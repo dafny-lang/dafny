@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass<G(00)> {
@@ -27,8 +27,8 @@ class MyClass<G(00)> {
   }  // error: x was never assigned, neither was oxA or oxB
   constructor C4(g: G)
   {
-    this.y := *;
-    x := y;
+    this.y := *; // note, the type of y is G, so this does not discharge the definite-assignment proof obligation on the next line
+    x := y; // error: y has not been properly assigned
   }
 }
 
@@ -87,7 +87,7 @@ method DontForgetHavoc<G(00)>(a: G, h: int) returns (k: G) {
   if h < 10 {
     k := x;  // fine
   } else if h < 20 {
-    k := y;
+    k := y; // error: y is used but not assigned
   } else {
     z := *;
     return z;  // this is fine, since z was explicitly assigned by the havoc
@@ -145,7 +145,7 @@ method MM<G(00)>(ghost x: int, g: G) returns (vv: G, ww: G)
   vv := v;  // fine
   var w: G := *;
   w := *;
-  ww := w;
+  ww := w; // error: w has not been properly assigned
 }
 
 // ----- iterators ----------------------------

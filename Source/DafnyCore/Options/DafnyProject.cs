@@ -19,7 +19,8 @@ using Tomlyn.Model;
 namespace Microsoft.Dafny;
 
 public class DafnyProject : IEquatable<DafnyProject> {
-  public const string FileName = "dfyconfig.toml";
+  public const string Extension = ".toml";
+  public const string FileName = "dfyconfig" + Extension;
 
   public string ProjectName => Uri.ToString();
 
@@ -32,8 +33,9 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public string[] Excludes { get; set; }
   public Dictionary<string, object> Options { get; set; }
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
+  public bool ImplicitFromCli;
 
-  public IToken StartingToken => new Token {
+  public IToken StartingToken => ImplicitFromCli ? Token.Cli : new Token {
     Uri = Uri,
     line = 1,
     col = 1
@@ -42,7 +44,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public DafnyProject() {
   }
 
-  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri) {
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri) {
 
     var emptyProject = new DafnyProject {
       Uri = uri
@@ -57,7 +59,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       result = model;
     } catch (IOException e) {
       result = emptyProject;
-      result.Errors.Error(MessageSource.Parser, result.StartingToken, e.Message);
+      result.Errors.Error(MessageSource.Project, result.StartingToken, e.Message);
     } catch (TomlException tomlException) {
       var regex = new Regex(
         @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
@@ -65,11 +67,12 @@ public class DafnyProject : IEquatable<DafnyProject> {
         match =>
           $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
       result = emptyProject;
-      result.Errors.Error(MessageSource.Parser, result.StartingToken, $"The Dafny project file {uri.LocalPath} contains the following errors: {newMessage}");
+      var path = dafnyOptions.GetPrintPath(uri.LocalPath);
+      result.Errors.Error(MessageSource.Project, result.StartingToken, $"The Dafny project file {path} contains the following errors: {newMessage}");
     }
 
     if (Path.GetFileName(uri.LocalPath) != FileName) {
-      result.Errors.Warning(MessageSource.Parser, (string)null, result.StartingToken, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+      result.Errors.Warning(MessageSource.Project, (string)null, result.StartingToken, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
 
     return result;
@@ -152,7 +155,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  public bool TryGetValue(Option option, TextWriter errorWriter, out object value) {
+  public bool TryGetValue(Option option, out object value) {
     if (Options == null) {
       value = null;
       return false;
@@ -166,7 +169,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
     var parseResult = option.Parse(printTomlValue.ToArray());
     if (parseResult.Errors.Any()) {
-      errorWriter.WriteLine($"Error: Could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
+      Errors.Error(MessageSource.Project, StartingToken, $"could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
       value = null;
       return false;
     }

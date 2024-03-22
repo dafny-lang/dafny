@@ -11,8 +11,7 @@ namespace Microsoft.Dafny;
 
 public class SystemModuleManager {
   public DafnyOptions Options { get; }
-  public readonly ModuleDefinition SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
-    false, false, null, null, null);
+  public readonly ModuleDefinition SystemModule;
   internal readonly Dictionary<int, ClassDecl> arrayTypeDecls = new();
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
@@ -88,6 +87,8 @@ public class SystemModuleManager {
   }
 
   public SystemModuleManager(DafnyOptions options) {
+    SystemModule = new(RangeToken.NoToken, new Name("_System"), new List<IToken>(),
+      ModuleKindEnum.Concrete, false, null, null, null);
     this.Options = options;
     SystemModule.Height = -1;  // the system module doesn't get a height assigned later, so we set it here to something below everything else
     // create type synonym 'string'
@@ -102,6 +103,7 @@ public class SystemModuleManager {
     NatDecl = new SubsetTypeDecl(RangeToken.NoToken, new Name("nat"),
       new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, Type.AutoInitInfo.CompilableValue, false),
       new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.CompiledZero, null, ax);
+    ((RedirectingTypeDecl)NatDecl).ConstraintIsCompilable = true;
     SystemModule.SourceDecls.Add(NatDecl);
     // create trait 'object'
     ObjectDecl = new TraitDecl(RangeToken.NoToken, new Name("object"), SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), false, null);
@@ -190,7 +192,7 @@ public class SystemModuleManager {
   }
 
   public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
-    var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null, false) };
+    var formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, null) };
     var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
       new List<TypeParameter>(), formals, resultType,
       new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
@@ -476,7 +478,7 @@ public class SystemModuleManager {
   }
 
   public void ResolveValueTypeDecls(ProgramResolver programResolver) {
-    var moduleResolver = new ModuleResolver(programResolver);
+    var moduleResolver = new ModuleResolver(programResolver, programResolver.Options);
     moduleResolver.moduleInfo = systemNameInfo;
     foreach (var valueTypeDecl in valuetypeDecls) {
       foreach (var member in valueTypeDecl.Members) {
@@ -522,6 +524,10 @@ declared: {allDeclaredDims.Comma()}");
 needed: {allNeededArities.Comma()}
 declared: {allDeclaredArities.Comma()}");
     }
+  }
+
+  public ValuetypeDecl getMap() {
+    return valuetypeDecls[(int)ValuetypeVariety.Map];
   }
 }
 

@@ -323,7 +323,9 @@ namespace Microsoft.Dafny {
         }
       } else if (f.IsMutable) {
         // generate h[o,f]
-        oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)), TrType(f.Type));
+        var ty = TrType(f.Type);
+        oDotF = ReadHeap(c.tok, h, o, new Bpl.IdentifierExpr(c.tok, GetField(f)));
+        oDotF = ty == predef.BoxType ? oDotF : ApplyUnbox(c.tok, oDotF, ty);
         bvsTypeAxiom.Add(hVar);
         bvsTypeAxiom.Add(oVar);
         bvsAllocationAxiom.Add(hVar);
@@ -622,9 +624,7 @@ namespace Microsoft.Dafny {
             IsGhost = m.IsGhost
           };
 
-          Expression parRange = new LiteralExpr(m.tok, true) {
-            Type = Type.Bool
-          };
+          Expression parRange = Expression.CreateBoolLiteral(m.tok, true);
           foreach (var pre in m.Req) {
             parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
           }
@@ -707,7 +707,9 @@ namespace Microsoft.Dafny {
           CheckFrameWellFormed(wfo, m.Reads.Expressions, localVariables, builder, etran);
         });
         // Also check that the reads clause == {} if the {:concurrent} attribute is present
-        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+        // on the method, and {:assume_concurrent} is NOT present on the reads clause.
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
+            !Attributes.Contains(m.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
           var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
           if (etran.readsFrame != null) {
             CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
@@ -722,8 +724,10 @@ namespace Microsoft.Dafny {
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           CheckFrameWellFormed(wfo, m.Mod.Expressions, localVariables, builder, etran);
         });
-        // Also check that the modifies clause == {} if the {:concurrent} attribute is present
-        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName)) {
+        // Also check that the modifies clause == {} if the {:concurrent} attribute is present,
+        // and {:assume_concurrent} is NOT present on the modifies clause.
+        if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
+            !Attributes.Contains(m.Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
           var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
           CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
         }
@@ -772,7 +776,7 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = AddImplementationWithVerboseName(GetToken(m), proc,
+        Boogie.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc,
            inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
@@ -859,7 +863,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
 
-        Boogie.Implementation impl = AddImplementationWithVerboseName(GetToken(m), proc, inParams, outParams, localVariables, stmts, kv);
+        Boogie.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc, inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -972,7 +976,7 @@ namespace Microsoft.Dafny {
       var proc = new Boogie.Procedure(f.tok, name, new List<Boogie.TypeVariable>(),
         Util.Concat(Util.Concat(typeInParams, inParams_Heap), inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
-      AddVerboseName(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
+      AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
       sink.AddTopLevelDeclaration(proc);
       var implInParams = Boogie.Formal.StripWhereClauses(inParams);
       var implOutParams = Boogie.Formal.StripWhereClauses(outParams);
@@ -1030,7 +1034,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
-        AddImplementationWithVerboseName(GetToken(f), proc,
+        AddImplementationWithAttributes(GetToken(f), proc,
             Util.Concat(Util.Concat(typeInParams, inParams_Heap), implInParams),
             implOutParams, localVariables, stmts, kv);
       }
@@ -1090,7 +1094,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in f.OverriddenFunction.Ens) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
         }
@@ -1131,7 +1135,7 @@ namespace Microsoft.Dafny {
       List<FrameExpression> traitFrameExps = new List<FrameExpression>();
       FunctionCallSubstituter sub = null;
       foreach (var e in func.OverriddenFunction.Reads.Expressions) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (ClassLikeDecl)func.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)func.EnclosingClass);
         var newE = sub.Substitute(e.E);
         FrameExpression fe = new FrameExpression(e.tok, newE, e.FieldName);
         traitFrameExps.Add(fe);
@@ -1140,30 +1144,29 @@ namespace Microsoft.Dafny {
       QKeyValue kv = etran.TrAttributes(func.Attributes, null);
 
       IToken tok = func.tok;
-      // Declare a local variable $_ReadsFrame: <alpha>[ref, Field alpha]bool
+      // Declare a local variable $_ReadsFrame: [ref, Field]bool
       Bpl.IdentifierExpr traitFrame = etran.ReadsFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_ReadsFrame variable
       traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ReadsFrame
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
       localVariables.Add(frame);
-      // $_ReadsFrame := (lambda<alpha> $o: ref, $f: Field alpha :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(tok, "alpha");
+      // $_ReadsFrame := (lambda $o: ref, $f: Field :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null,
                                            Bpl.Expr.Imp(ante, consequent));
 
       //to initialize $_ReadsFrame variable to Frame'
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
+      // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
       Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar },
                                       Bpl.Expr.Imp(Bpl.Expr.And(ante, oInCallee), consequent2));
       builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false), kv));
     }
@@ -1178,7 +1181,7 @@ namespace Microsoft.Dafny {
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var req in f.OverriddenFunction.Req) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (ClassLikeDecl)f.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E), "overridden function requires clause"));
       }
       //generating class pre-conditions
@@ -1303,7 +1306,7 @@ namespace Microsoft.Dafny {
         var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         var jfArg = new Boogie.IdentifierExpr(p.tok, bv);
-        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfUnboxed(jfArg, pType) : jfArg);
+        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.tok, jfArg, pType) : jfArg);
         moreArgsCF.Add(new Boogie.IdentifierExpr(p.tok, bv));
       }
 
@@ -1356,7 +1359,7 @@ namespace Microsoft.Dafny {
       // The equality that is what it's all about
       var synonyms = Boogie.Expr.Eq(
         funcAppl,
-        ModeledAsBoxType(f.ResultType) ? BoxIfUnboxed(overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
+        ModeledAsBoxType(f.ResultType) ? BoxIfNotNormallyBoxed(overridingFunction.tok, overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
 
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
@@ -1421,7 +1424,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in m.OverriddenMethod.Ens) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger()));
         }
@@ -1438,7 +1441,7 @@ namespace Microsoft.Dafny {
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var req in m.OverriddenMethod.Req) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (ClassLikeDecl)m.EnclosingClass);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E), "overridden requires clause"));
       }
       //generating class pre-conditions
@@ -1545,17 +1548,16 @@ namespace Microsoft.Dafny {
       var kv = etran.TrAttributes(m.Attributes, null);
 
       var tok = m.tok;
-      var alpha = new Boogie.TypeVariable(tok, "alpha");
       var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", predef.RefType));
       var o = new Boogie.IdentifierExpr(tok, oVar);
-      var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+      var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", predef.FieldName(tok)));
       var f = new Boogie.IdentifierExpr(tok, fVar);
       var ante = Boogie.Expr.And(Boogie.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
 
-      // emit: assert (forall<alpha> o: ref, f: Field alpha :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
+      // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      var q = new Boogie.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar },
+      var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
         Boogie.Expr.Imp(Boogie.Expr.And(ante, oInCallee), consequent2));
       builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
     }
@@ -1737,7 +1739,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
-      AddVerboseName(proc, m.FullDafnyName, kind);
+      AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
         InsertChecksum(m, proc, true);

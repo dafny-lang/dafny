@@ -201,10 +201,9 @@ public partial class BoogieGenerator {
           // inner forall vars
           var ivars = new List<Bpl.Variable>();
           var o = BplBoundVar("o", predef.RefType, ivars);
-          var a = new TypeVariable(tok, "a");
-          var fld = BplBoundVar("fld", predef.FieldName(tok, a), ivars);
+          var fld = BplBoundVar("fld", predef.FieldName(tok), ivars);
 
-          var inner_forall = new Bpl.ForallExpr(tok, Singleton(a), ivars, BplImp(
+          var inner_forall = new Bpl.ForallExpr(tok, new List<TypeVariable>(), ivars, BplImp(
             BplAnd(
               Bpl.Expr.Neq(o, predef.Null),
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
@@ -213,7 +212,7 @@ public partial class BoogieGenerator {
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
               })
             ),
-            Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld, a), ReadHeap(tok, h1, o, fld, a))));
+            Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
           Func<Bpl.Expr, Bpl.Expr> fn = h => FunctionCall(tok, fname, Bpl.Type.Bool, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
 
@@ -703,11 +702,9 @@ public partial class BoogieGenerator {
     Contract.Requires(expr != null);
     var xType = x.Type.NormalizeExpand();
     if (xType is BoolType) {
-      var lit = new LiteralExpr(x.tok, false);
-      lit.Type = Type.Bool;  // resolve here
+      var lit = Expression.CreateBoolLiteral(x.tok, false);
       yield return lit;
-      lit = new LiteralExpr(x.tok, true);
-      lit.Type = Type.Bool;  // resolve here
+      lit = Expression.CreateBoolLiteral(x.tok, true);
       yield return lit;
       yield break;  // there are no more possible witnesses for booleans
     } else if (xType is CharType) {
@@ -715,8 +712,7 @@ public partial class BoogieGenerator {
     } else if (xType.IsBitVectorType) {
       // TODO: something could be done for bitvectors
     } else if (xType.IsRefType) {
-      var lit = new LiteralExpr(x.tok);  // null
-      lit.Type = xType;
+      var lit = new LiteralExpr(x.tok) { Type = xType };  // null
       yield return lit;
     } else if (xType.IsDatatype) {
       var dt = xType.AsDatatype;
@@ -755,7 +751,7 @@ public partial class BoogieGenerator {
       yield return lit;
     }
 
-    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr);
+    var bounds = ModuleResolver.DiscoverAllBounds_SingleVar(x, expr, out _);
     foreach (var bound in bounds) {
       if (bound is ComprehensionExpr.IntBoundedPool) {
         var bnd = (ComprehensionExpr.IntBoundedPool)bound;
@@ -861,6 +857,9 @@ public partial class BoogieGenerator {
       // TODO: do better than just returning null
       return null;
     } else if (typ.IsAbstractType || typ.IsInternalTypeSynonym) {
+      return null;
+    } else if (typ.IsTraitType) {
+      Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy);
       return null;
     } else {
       Contract.Assume(false);  // unexpected type
@@ -1146,13 +1145,15 @@ public partial class BoogieGenerator {
       return BoxIfNecessary(r.tok, r, fromType);
     } else if (toType.IsRefType) {
       Contract.Assert(fromType.IsTraitType);
-      return UnboxIfBoxed(r, toType);
+      return UnboxUnlessInherentlyBoxed(r, toType);
     } else if (toType.IsTraitType) {
       // cast to a non-reference trait
       return BoxIfNecessary(r.tok, r, fromType);
     } else if (fromType.IsTraitType) {
       // cast from a non-reference trait
-      return UnboxIfBoxed(r, toType);
+      return UnboxUnlessInherentlyBoxed(r, toType);
+    } else if (fromType.Equals(toType)) {
+      return r;
     } else {
       Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
     }
@@ -1374,7 +1375,7 @@ public partial class BoogieGenerator {
     Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
     Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
 
-    proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.Name, MethodTranslationKind.SpecWellformedness));
+    proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness));
 
     if (!InVerificationScope(decl)) {
       // Checked in other file
@@ -1412,7 +1413,7 @@ public partial class BoogieGenerator {
     var proc = new Bpl.Procedure(decl.tok, name, new List<Bpl.TypeVariable>(),
       inParams, new List<Variable>(),
       false, req, mod, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
-    AddVerboseName(proc, decl.Name, MethodTranslationKind.SpecWellformedness);
+    AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
     sink.AddTopLevelDeclaration(proc);
 
     // TODO: Can a checksum be inserted here?
@@ -1509,7 +1510,7 @@ public partial class BoogieGenerator {
       // emit the impl only when there are proof obligations.
       QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
 
-      AddImplementationWithVerboseName(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
+      AddImplementationWithAttributes(GetToken(decl), proc, implInParams, new List<Variable>(), locals, implBody, kv);
     }
 
     // TODO: Should a checksum be inserted here?

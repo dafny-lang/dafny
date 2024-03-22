@@ -12,11 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
 
   public CachingParser(ILogger<ProgramParser> logger,
     IFileSystem fileSystem,
-    ITelemetryPublisher telemetryPublisher) : base(logger, fileSystem) {
+    TelemetryPublisherBase telemetryPublisher) : base(logger, fileSystem) {
     this.telemetryPublisher = telemetryPublisher;
   }
 
@@ -27,18 +27,17 @@ public class CachingParser : ProgramParser {
       telemetryPublisher, programName, "parsing");
   }
 
-  protected override DfyParseResult ParseFile(DafnyOptions options, bool parseAsDooFile, Func<TextReader> getReader,
+  protected override DfyParseResult ParseFile(DafnyOptions options, Func<TextReader> getReader,
     Uri uri, CancellationToken cancellationToken) {
     using var reader = getReader();
 
     // Add NUL delimiter to avoid collisions (otherwise hash("A" + "BC") == hash("AB" + "C"))
     var uriBytes = Encoding.UTF8.GetBytes(uri + "\0");
-    var startingBytes = new[] { Convert.ToByte(parseAsDooFile) }.Concat(uriBytes).ToArray();
 
-    var (newReader, hash) = ComputeHashFromReader(startingBytes, reader, HashAlgorithm.Create("SHA256")!);
+    var (newReader, hash) = ComputeHashFromReader(uriBytes, reader, HashAlgorithm.Create("SHA256")!);
     if (!parseCache.TryGet(hash, out var result)) {
       logger.LogDebug($"Parse cache miss for {uri}");
-      result = base.ParseFile(options, parseAsDooFile, () => newReader, uri, cancellationToken);
+      result = base.ParseFile(options, () => newReader, uri, cancellationToken);
       parseCache.Set(hash, result);
     } else {
       logger.LogDebug($"Parse cache hit for {uri}");

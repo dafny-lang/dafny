@@ -1,4 +1,4 @@
-import opened DafnyStdLibs.Wrappers
+import opened Std.Wrappers
 
 // ------ Demo for Option ----------------------------
 // We use Option when we don't need to pass around a reason for the failure,

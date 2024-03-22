@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Extensions.Logging.Abstractions;
 using static Microsoft.Dafny.RewriterErrors;
 
 namespace Microsoft.Dafny;
@@ -19,8 +18,10 @@ namespace Microsoft.Dafny;
 public class ExpectContracts : IRewriter {
   private readonly ClonerButDropMethodBodies cloner = new(true);
   private readonly Dictionary<MemberDecl, MemberDecl> wrappedDeclarations = new();
+  private readonly SystemModuleManager systemModuleManager;
 
-  public ExpectContracts(ErrorReporter reporter) : base(reporter) {
+  public ExpectContracts(ErrorReporter reporter, SystemModuleManager systemModuleManager) : base(reporter) {
+    this.systemModuleManager = systemModuleManager;
   }
 
   /// <summary>
@@ -42,8 +43,7 @@ public class ExpectContracts : IRewriter {
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       ReportWarning(ErrorId.rw_clause_cannot_be_compiled, tok,
         $"The {exprType} clause at this location cannot be compiled to be tested at runtime because it references ghost state.");
-      exprToCheck = new LiteralExpr(tok, true);
-      exprToCheck.Type = Type.Bool;
+      exprToCheck = Expression.CreateBoolLiteral(tok, true);
       msg += " (not compiled because it references ghost state)";
     }
     var msgExpr = Expression.CreateStringLiteral(tok, msg);
@@ -114,12 +114,8 @@ public class ExpectContracts : IRewriter {
 
     var args = newFunc.Formals.Select(Expression.CreateIdentExpr).ToList();
     var receiver = ModuleResolver.GetReceiver(parent, origFunc, decl.tok);
-    var callExpr = new FunctionCallExpr(tok, origFunc.Name, receiver, null, null, args) {
-      Function = origFunc,
-      TypeApplication_JustFunction = newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-      TypeApplication_AtEnclosingClass = parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(),
-      Type = newFunc.ResultType,
-    };
+    var callExpr = Expression.CreateResolvedCall(tok, receiver, origFunc, args,
+      newFunc.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList(), systemModuleManager);
 
     newFunc.Body = callExpr;
 
@@ -187,7 +183,7 @@ public class ExpectContracts : IRewriter {
   }
 
 
-  private static void RegisterResolvedByMethod(Function f, TopLevelDeclWithMembers cl) {
+  private void RegisterResolvedByMethod(Function f, TopLevelDeclWithMembers cl) {
 
     var tok = f.ByMethodTok;
     var resultVar = f.Result ?? new Formal(tok, "#result", f.ResultType, false, false, null);
@@ -197,8 +193,8 @@ public class ExpectContracts : IRewriter {
     // been set. Instead, we compute here directly from f.HasStaticKeyword and "cl".
     var isStatic = f.HasStaticKeyword || cl is DefaultClassDecl;
     var receiver = isStatic ? (Expression)new StaticReceiverExpr(tok, cl, true) : new ImplicitThisExpr(tok);
-    var fn = new FunctionCallExpr(tok, f.Name, receiver, null, null,
-      f.Formals.ConvertAll(Expression.CreateIdentExpr));
+    var fn = Expression.CreateResolvedCall(tok, receiver, f, f.Formals.ConvertAll(Expression.CreateIdentExpr),
+      f.TypeArgs.ConvertAll(typeParameter => (Type)new UserDefinedType(f.tok, typeParameter)), systemModuleManager);
     var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn) {
       Type = Type.Bool
     });
@@ -222,39 +218,50 @@ public class ExpectContracts : IRewriter {
   }
 
   /// <summary>
-  /// Add wrappers for certain top-level declarations in the given module.
-  /// This runs after the first pass of resolution so that it has access to
-  /// ghostness information, attributes and call targets.
+  /// Adds wrappers for certain top-level declarations in the given
+  /// program and redirects callers to call those wrappers instead of
+  /// the original members.
+  ///
+  /// This runs after resolution so that it has access to ghostness
+  /// information, attributes and call targets and after verification
+  /// because that makes the interaction with the refinement transformer
+  /// more straightforward.
   /// </summary>
-  /// <param name="moduleDefinition">The module to generate wrappers for and in.</param>
-  internal override void PostResolveIntermediate(ModuleDefinition moduleDefinition) {
-    // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
-    List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
+  /// <param name="program">The program to generate wrappers for and in.</param>
+  public override void PostVerification(Program program) {
+    // Create wrappers
+    foreach (var moduleDefinition in program.Modules()) {
 
-    moduleDefinition.CallRedirector = new(Reporter);
+      // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
+      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
 
-    // Find module members to wrap.
-    foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
-      foreach (var decl in topLevelDecl.Members) {
-        if (ShouldGenerateWrapper(decl)) {
-          membersToWrap.Add((topLevelDecl, decl));
+      moduleDefinition.CallRedirector = new(Reporter);
+
+      // Find module members to wrap.
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var decl in topLevelDecl.Members) {
+          if (ShouldGenerateWrapper(decl)) {
+            membersToWrap.Add((topLevelDecl, decl));
+          }
         }
       }
-    }
 
-    // Generate a wrapper for each of the members identified above.
-    foreach (var (topLevelDecl, decl) in membersToWrap) {
-      GenerateWrapper(moduleDefinition, topLevelDecl, decl);
-    }
-    moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
-  }
+      // Generate a wrapper for each of the members identified above. This
+      // need to happen after all declarations to wrap have been identified
+      // because it adds new declarations and would invalidate the iterator
+      // used during identification.
+      foreach (var (topLevelDecl, decl) in membersToWrap) {
+        GenerateWrapper(moduleDefinition, topLevelDecl, decl);
+      }
+      moduleDefinition.CallRedirector.NewRedirections = wrappedDeclarations;
 
-  public override void PostVerification(Program program) {
-    foreach (var module in program.CompileModules) {
-      foreach (var topLevelDecl in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+      // Put redirections in place. Any wrappers to call will be in either
+      // this module or to a previously-processed module, so they'll already
+      // exist.
+      foreach (var topLevelDecl in moduleDefinition.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var decl in topLevelDecl.Members) {
           if (decl is ICallable callable) {
-            module.CallRedirector?.Visit(callable, decl);
+            moduleDefinition.CallRedirector?.Visit(callable, decl);
           }
         }
       }
@@ -264,7 +271,7 @@ public class ExpectContracts : IRewriter {
       return;
     }
 
-    foreach (var module in program.CompileModules) {
+    foreach (var module in program.Modules()) {
       if (module.CallRedirector == null) {
         continue;
       }

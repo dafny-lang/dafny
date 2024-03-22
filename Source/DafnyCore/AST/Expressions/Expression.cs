@@ -391,6 +391,24 @@ public abstract class Expression : TokenNode {
     return s;
   }
 
+  public static Expression CreateMapSubtract(Expression e0, Expression e1) {
+    Contract.Requires(e0 != null);
+    Contract.Requires(e1 != null);
+    Contract.Ensures(Contract.Result<Expression>() != null);
+    var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Sub, e0, e1);
+    s.ResolvedOp = BinaryExpr.ResolvedOpcode.MapSubtraction;  // resolve here
+    s.Type = e0.Type.NormalizeExpand();  // resolve here
+    return s;
+  }
+
+  public static Expression CreateResolvedFieldSelect(IToken tok, Expression receiver, Field field) {
+    var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
+    return new ExprDotName(tok, receiver, field.Name, null) {
+      ResolvedExpression = memberSelectExpr,
+      Type = memberSelectExpr.Type
+    };
+  }
+
   /// <summary>
   /// Create a resolved expression of the form "|e|"
   /// </summary>
@@ -488,8 +506,9 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static LiteralExpr CreateBoolLiteral(IToken tok, bool b) {
     Contract.Requires(tok != null);
-    var lit = new LiteralExpr(tok, b);
-    lit.Type = Type.Bool;  // resolve here
+    var lit = new LiteralExpr(tok, b) {
+      Type = Type.Bool
+    };
     return lit;
   }
 
@@ -499,8 +518,9 @@ public abstract class Expression : TokenNode {
   public static LiteralExpr CreateStringLiteral(IToken tok, string s) {
     Contract.Requires(tok != null);
     Contract.Requires(s != null);
-    var lit = new StringLiteralExpr(tok, s, true);
-    lit.Type = new SeqType(new CharType());  // resolve here
+    var lit = new StringLiteralExpr(tok, s, true) {
+      Type = new SeqType(new CharType())
+    };
     return lit;
   }
 
@@ -510,8 +530,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression StripParens(Expression expr) {
     while (true) {
-      var e = expr as ParensExpression;
-      if (e == null) {
+      if (expr is not ParensExpression e) {
         return expr;
       }
       expr = e.E;
@@ -563,11 +582,11 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static bool IsIntLiteral(Expression expr, out BigInteger value) {
     Contract.Requires(expr != null);
-    var e = StripParens(expr) as LiteralExpr;
-    if (e != null && e.Value is int x) {
+    var e = StripParensAndCasts(expr) as LiteralExpr;
+    if (e is { Value: int x }) {
       value = new BigInteger(x);
       return true;
-    } else if (e != null && e.Value is BigInteger xx) {
+    } else if (e is { Value: BigInteger xx }) {
       value = xx;
       return true;
     } else {

@@ -144,7 +144,7 @@ greatest predicate TotalLang<S(!new)>(l: Lang<S>)
   forall s: S :: l.deriv.requires(s) && l.deriv.reads(s) == {} && TotalLang(l.deriv(s))
 }
 
-greatest lemma NothingTotal<S>()
+greatest lemma NothingTotal<S(!new)>()
   ensures TotalLang(Nothing<S>())
 {
 }
@@ -162,7 +162,7 @@ greatest predicate TotalLang_Nat<S(!new)>[nat](l: Lang<S>)
   forall s: S :: l.deriv.requires(s) && l.deriv.reads(s) == {} && TotalLang_Nat(l.deriv(s))
 }
 
-greatest lemma NothingTotal_Nat<S>[nat]()
+greatest lemma NothingTotal_Nat<S(!new)>[nat]()
   ensures TotalLang_Nat(Nothing<S>())
 {
 }

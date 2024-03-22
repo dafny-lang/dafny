@@ -30,10 +30,35 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override string ModuleSeparator => Compiler.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+    CheckInstantiationReplaceableModules(dafnyProgram);
+    ProcessOuterModules(dafnyProgram);
+    Compiler.Compile(dafnyProgram, output);
+  }
+
+  protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
+    foreach (var compiledModule in dafnyProgram.Modules()) {
+      if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {
+        if (compiledModule.IsExtern(Options, out _, out var name) && name != null) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            "inside a module that replaces another, {:extern} attributes may only be used without arguments");
+        }
+      }
+
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
+        if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
+          Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
+            $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
+        }
+      }
+    }
+  }
+
+  protected void ProcessOuterModules(Program dafnyProgram) {
     var outerModules = GetOuterModules();
     ModuleDefinition rootUserModule = null;
     foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(), false, false,
+      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
         null, null, null);
       newRoot.EnclosingModule = rootUserModule;
       rootUserModule = newRoot;
@@ -47,7 +72,6 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
-    Compiler.Compile(dafnyProgram, output);
   }
 
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
@@ -65,9 +89,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override void OnPostCompile() {
-    base.OnPostCompile();
+  public override bool OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     Compiler.Coverage.WriteLegendFile();
+    return true;
   }
 
   protected abstract SinglePassCompiler CreateCompiler();
@@ -111,7 +135,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
       outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
     }
 
+#pragma warning disable VSTHRD002
     errorProcessing.Wait();
+#pragma warning restore VSTHRD002
     return process.ExitCode;
   }
 

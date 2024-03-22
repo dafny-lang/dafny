@@ -468,10 +468,14 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString) {
+    public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction = null) {
       confirmations.Add(() => {
         if (!ConfirmConstraint(check, preType, null)) {
-          PreTypeResolver.ReportError(tok, errorFormatString, preType);
+          if (preType.Normalize() is PreTypeProxy && onProxyAction != null) {
+            onProxyAction();
+          } else {
+            PreTypeResolver.ReportError(tok, errorFormatString, preType);
+          }
         }
       });
     }
@@ -520,6 +524,8 @@ namespace Microsoft.Dafny {
       Sizeable,
       Freshable,
       IsCoDatatype,
+      IsNewtypeBaseTypeLegacy,
+      IsNewtypeBaseTypeGeneral,
     };
 
     private bool ConfirmConstraint(CommonConfirmationBag check, PreType preType, DPreType auxPreType) {
@@ -629,6 +635,10 @@ namespace Microsoft.Dafny {
           }
         case CommonConfirmationBag.IsCoDatatype:
           return ancestorDecl is CoDatatypeDecl;
+        case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
+          return pt.Decl is NewtypeDecl || pt.Decl.Name == "int" || pt.Decl.Name == "real";
+        case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
+          return pt.Decl is NewtypeDecl || (!DPreType.IsReferenceTypeDecl(pt.Decl) && pt.Decl is not TraitDecl && pt.Decl.Name != "ORDINAL");
 
         default:
           Contract.Assert(false); // unexpected case

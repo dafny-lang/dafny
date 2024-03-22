@@ -1,0 +1,1 @@
+Add the option `--include-test-runner` to `dafny translate`, to enable getting the same result as `dafny test` when doing manual compilation.

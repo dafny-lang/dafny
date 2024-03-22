@@ -123,7 +123,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(iter, kind);
       var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
-      AddVerboseName(proc, iter.FullDafnyName, kind);
+      AddVerboseNameAttribute(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
       codeContext = null;
@@ -255,7 +255,7 @@ namespace Microsoft.Dafny {
 
       if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
-        AddImplementationWithVerboseName(GetToken(iter), proc, inParams, new List<Variable>(),
+        AddImplementationWithAttributes(GetToken(iter), proc, inParams, new List<Variable>(),
           localVariables, stmts, kv);
       }
 
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
 
-        AddImplementationWithVerboseName(GetToken(iter), proc, inParams,
+        AddImplementationWithAttributes(GetToken(iter), proc, inParams,
           new List<Variable>(), localVariables, stmts, kv);
       }
 
@@ -340,9 +340,9 @@ namespace Microsoft.Dafny {
         // add the conjunct:  _yieldCount == |this.ys|
         wh = Bpl.Expr.And(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
-            ReadHeap(iter.tok, etran.HeapExpr,
+            ApplyUnbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
               new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
-              new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
+              new Bpl.IdentifierExpr(iter.tok, GetField(ys))), TrType(ys.Type)))));
       }
       return wh;
     }

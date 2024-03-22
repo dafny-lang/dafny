@@ -8,11 +8,15 @@ namespace Microsoft.Dafny;
 
 static class TranslateCommand {
 
+  static TranslateCommand() {
+  }
+
   public static IEnumerable<Option> Options =>
     new Option[] {
       CommonOptionBag.Output,
       IExecutableBackend.OuterModule,
       CommonOptionBag.IncludeRuntimeOption,
+      RunAllTestsMainMethod.IncludeTestRunner
     }.Concat(DafnyCommands.TranslationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
@@ -36,13 +40,12 @@ static class TranslateCommand {
         subCommand.AddGlobalOption(option);
       }
 
-      DafnyCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
+      DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(subCommand, async (options, context) => {
         options.Compile = false;
         var noVerify = options.Get(BoogieOptionBag.NoVerify);
         options.CompilerName = subCommand.Name;
         options.SpillTargetCode = noVerify ? 3U : 2U;
-        var continueCliWithOptions = await CompilerDriver.RunCompiler(options);
-        return continueCliWithOptions;
+        return await SynchronousCliCompilation.Run(options);
       });
     }
 

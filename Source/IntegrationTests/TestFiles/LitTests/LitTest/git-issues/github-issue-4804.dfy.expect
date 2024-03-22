@@ -1,0 +1,3 @@
+github-issue-4804.dfy(19,8): Error: Verification out of resource (Power.LemmaPowSubAddCancel (correctness))
+
+Dafny program verifier finished with 3 verified, 0 errors, 1 out of resource

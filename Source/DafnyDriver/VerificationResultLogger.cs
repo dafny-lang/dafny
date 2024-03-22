@@ -59,10 +59,16 @@ namespace Microsoft.Dafny {
         } else if (loggerName == "csv") {
           var csvLogger = new CSVTestLogger(options.OutputWriter);
           csvLogger.Initialize(events, parameters);
+        } else if (loggerName == "json") {
+          // This logger doesn't implement the ITestLogger interface because
+          // it uses information that's tricky to encode in a TestResult.
+          var jsonLogger = new JsonVerificationLogger(depManager, options.OutputWriter);
+          jsonLogger.Initialize(parameters);
+          jsonLogger.LogResults(verificationResults);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
-          var textLogger = new TextLogger(depManager, options.OutputWriter);
+          var textLogger = new TextVerificationLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
         } else {
@@ -104,7 +110,7 @@ namespace Microsoft.Dafny {
             Duration = vcResult.RunTime
           };
           testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
-          if (vcResult.Outcome == ProverInterface.Outcome.Valid) {
+          if (vcResult.Outcome == SolverOutcome.Valid) {
             testResult.Outcome = TestOutcome.Passed;
           } else {
             testResult.Outcome = TestOutcome.Failed;

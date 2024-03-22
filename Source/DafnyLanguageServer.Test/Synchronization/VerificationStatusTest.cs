@@ -93,6 +93,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
     _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Queued) == 2) {
         Assert.Contains(status.NamedVerifiables, v => v.Status == PublishedVerificationStatus.Stale);
@@ -105,6 +106,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     }
 
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Stale) > 1) {
         Assert.Fail("May not become stale after both being queued. ");
@@ -430,7 +432,7 @@ method Bar() { assert false; }";
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     Assert.True(successfulRun);
-    var range = new Range(0, 20, 0, 42);
+    var range = new Range(0, 31, 0, 53);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
 
@@ -653,7 +655,7 @@ iterator ThatIterator(x: int) yields (y: int, z: int)
   /// Without changing that, we can not show the status of individual refining declarations.
   /// </summary>
   [Fact]
-  public async Task RefiningDeclarationStatusIsFoldedIntoTheBase() {
+  public async Task RefiningDeclarationStatusIsNotFoldedIntoTheBase() {
     var source = @"
 abstract module BaseModule {
   method Foo() returns (x: int) ensures x > 2 

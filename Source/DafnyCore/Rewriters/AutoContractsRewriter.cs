@@ -212,7 +212,7 @@ public class AutoContractsRewriter : IRewriter {
     var implicitSelf = new ImplicitThisExpr(clTok) {
       Type = ty
     };
-    var Repr = CreateResolvedFieldSelect(clTok, implicitSelf, ReprField);
+    var Repr = Expression.CreateResolvedFieldSelect(clTok, implicitSelf, ReprField);
 
     foreach (var member in cl.Members) {
       bool sayYes = true;
@@ -236,14 +236,14 @@ public class AutoContractsRewriter : IRewriter {
               // the field has been inherited from a refined module, so don't include it here
               continue;
             }
-            var F = CreateResolvedFieldSelect(tok, implicitSelf, ff.Item1);
+            var F = Expression.CreateResolvedFieldSelect(tok, implicitSelf, ff.Item1);
             var c0 = IsNotNull(tok, F);
             var c1 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.InSet, F, Repr);
             if (ff.Item2 == null) {
               // F != null ==> F in Repr  (so, nothing else to do)
             } else {
               // F != null ==> F in Repr && F.Repr <= Repr && this !in F.Repr && F.Valid()
-              var FRepr = CreateResolvedFieldSelect(tok, F, ff.Item2);
+              var FRepr = Expression.CreateResolvedFieldSelect(tok, F, ff.Item2);
               var c2 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.Subset, FRepr, Repr);
               var c3 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.NotInSet, self, FRepr);
               c1 = BinBoolExpr(tok, BinaryExpr.ResolvedOpcode.And, c1,
@@ -353,7 +353,7 @@ public class AutoContractsRewriter : IRewriter {
     // TODO: these assignments should be included on every return path
 
     foreach (var ff in subobjects) {
-      var F = CreateResolvedFieldSelect(tok, implicitSelf, ff.Item1);  // create a resolved MemberSelectExpr
+      var F = Expression.CreateResolvedFieldSelect(tok, implicitSelf, ff.Item1);  // create a resolved MemberSelectExpr
       Expression e = new SetDisplayExpr(tok, true, new List<Expression>() { F }) {
         Type = systemModuleManager.ObjectSetType()
       };
@@ -366,7 +366,7 @@ public class AutoContractsRewriter : IRewriter {
         // Repr := Repr + {F}  (so, nothing else to do)
       } else {
         // Repr := Repr + {F} + F.Repr
-        var FRepr = CreateResolvedFieldSelect(tok, F, ff.Item2);  // create resolved MemberSelectExpr
+        var FRepr = Expression.CreateResolvedFieldSelect(tok, F, ff.Item2);  // create resolved MemberSelectExpr
         rhs = new BinaryExpr(tok, BinaryExpr.Opcode.Add, rhs, FRepr) {
           ResolvedOp = BinaryExpr.ResolvedOpcode.Union,
           Type = Repr.Type
@@ -480,14 +480,6 @@ public class AutoContractsRewriter : IRewriter {
 
     callingContext.EnclosingModule.CallGraph.AddEdge((ICallable)CodeContextWrapper.Unwrap(callingContext), Valid);
     return Expression.CreateResolvedCall(tok, receiver, Valid, new List<Expression>(), new List<Type>(), systemModuleManager);
-  }
-
-  public static Expression CreateResolvedFieldSelect(IToken tok, Expression receiver, Field field) {
-    var memberSelectExpr = new MemberSelectExpr(tok, receiver, field);
-    return new ExprDotName(tok, receiver, field.Name, null) {
-      ResolvedExpression = memberSelectExpr,
-      Type = memberSelectExpr.Type
-    };
   }
 
   public static BinaryExpr BinBoolExpr(IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1) {

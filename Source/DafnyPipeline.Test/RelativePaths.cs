@@ -16,8 +16,8 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public void Test() {
-      Assert.Equal(0, DafnyCli.MainWithWriters(output, output,
-        TextReader.Null, new[] { "/spillTargetCode:3", "warnings-as-errors.dfy" }));
+      Assert.Equal(0, DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
+        TextReader.Null, new[] { "/spillTargetCode:3", "testFile2.dfy" }));
     }
 
     [Fact]

@@ -14,11 +14,12 @@ public class CompilationManagerTest {
   public async Task CancelUnstartedCompilationLeadsToCancelledTasks() {
     var dafnyOptions = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
     var compilationManager = new Compilation(new Mock<ILogger<Compilation>>().Object,
+      new Mock<IFileSystem>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
-      dafnyOptions,
-      null, new CompilationInput(dafnyOptions, 0, new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }, new Uri[] { }));
+      null, new CompilationInput(dafnyOptions, 0,
+        new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }));
     compilationManager.CancelPendingUpdates();
-    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.Program);
+    await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedProgram);
   }
 }

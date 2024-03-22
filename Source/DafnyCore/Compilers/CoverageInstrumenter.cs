@@ -83,7 +83,7 @@ public class CoverageInstrumenter {
     if (compiler.Options?.CoverageLegendFile != null) {
       var filename = compiler.Options.CoverageLegendFile;
       Contract.Assert(filename != null);
-      TextWriter wr = filename == "-" ? compiler.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create));
+      TextWriter wr = filename == "-" ? compiler.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), FileMode.Create));
       {
         for (var i = 0; i < legend.Count; i++) {
           var e = legend[i];
