@@ -35,7 +35,7 @@ module AsIsResolve0 {
   trait AnotherTrait { }
 
   method M<X extends Trait>(x: X) returns (b: bool, t: Trait, u: int) {
-    t := x; // error: need to cast to Trait first
+    t := x; // (legacy error)
     b := x is Trait; // (legacy error)
     b := x is AnotherTrait; // error: AnotherTrait is not compatible with X
     b := x is object; // (legacy error)
