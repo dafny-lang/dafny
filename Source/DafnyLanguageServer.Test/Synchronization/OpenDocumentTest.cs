@@ -88,9 +88,7 @@ method Recurse(x: int) returns (r: int) {
       await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
       var documentItem = CreateTestDocument(source, "VerificationErrorsOfDocumentAreNotCapturedIfAutoVerificationIsNotOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
-      Assert.NotNull(document);
-      Assert.True((await GetLastDiagnostics(documentItem)).All(d => d.Severity != DiagnosticSeverity.Error));
+      await AssertNoDiagnosticsAreComing(CancellationToken, documentItem);
     }
 
     [Fact]

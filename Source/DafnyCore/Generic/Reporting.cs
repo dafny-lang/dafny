@@ -11,7 +11,7 @@ namespace Microsoft.Dafny {
     public IPhase? ParentPhase => null;
   }
 
-  public record SingletonPhase(IPhase Parent, DafnyDiagnostic Diagnostic) : IPhase {
+  public record SingletonPhase(IPhase Parent, object Key) : IPhase {
     public IPhase? ParentPhase => Parent;
   }
 

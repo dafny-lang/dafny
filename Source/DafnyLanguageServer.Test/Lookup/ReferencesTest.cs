@@ -14,7 +14,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class ReferencesTest : ClientBasedLanguageServerTest {
     private async Task<LocationContainer> RequestReferences(
       TextDocumentItem documentItem, Position position) {
-      // We don't want resolution errors, but other diagnostics (like a cyclic-include warning) are okay
       await AssertNoResolutionErrors(documentItem);
 
       return await client.RequestReferences(

@@ -176,15 +176,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     bool allowStale = false) {
     cancellationToken ??= CancellationToken;
 
-    CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLast(s => s.Uri == documentId.Uri);
-    while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
-           compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
-      compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
-    }
-
-    if (compilationStatusParams.Status != CompilationStatus.ResolutionSucceeded) {
+    if ((!await WaitUntilResolutionFinished(documentId, cancellationToken))) {
       return null;
     }
+
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
     if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
       while (fileVerificationStatus.Uri != documentId.Uri || !fileVerificationStatus.NamedVerifiables.All(FinishedStatus)) {
@@ -201,6 +196,16 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
       return method.Status >= PublishedVerificationStatus.Error;
     }
+  }
+
+  public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId, CancellationToken? cancellationToken) {
+    CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLast(s => s.Uri == documentId.Uri);
+    while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
+           compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
+      compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
+    }
+
+    return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
   }
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
@@ -364,11 +369,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     // A document without diagnostics may be absent, even if resolved successfully
-    var resolutionErrors = (await GetLastDiagnostics(documentItem)).Where(d =>
-      d.Source == MessageSource.Resolver.ToString() && d.Severity == DiagnosticSeverity.Error);
-    if (resolutionErrors.Any()) {
-      Assert.Fail($"Found resolution errors: {resolutionErrors.Stringify()}");
-    }
+    var success = await WaitUntilResolutionFinished(documentItem, CancellationToken);
+    Assert.True(success);
   }
 
   public async Task<PublishedVerificationStatus> PopNextStatus() {
