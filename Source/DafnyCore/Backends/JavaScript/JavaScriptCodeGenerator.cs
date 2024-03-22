@@ -974,7 +974,7 @@ namespace Microsoft.Dafny.Compilers {
         return $"{DafnyMultiSetClass}.Empty";
       } else if (xType is SeqType seq) {
         if (seq.Arg.IsCharType) {
-          return "''";
+          return "_dafny.Seq.UnicodeFromString('')";
         }
         return $"{DafnySeqClass}.of()";
       } else if (xType is MapType) {
