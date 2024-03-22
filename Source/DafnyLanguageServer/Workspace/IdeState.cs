@@ -61,7 +61,7 @@ public record IdeState(
     return new IdeState(input.Version, ImmutableHashSet<Uri>.Empty,
       input,
       CompilationStatus.Parsing,
-      program, 
+      program,
       ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
       program,
       SymbolTable.Empty(),
@@ -131,7 +131,9 @@ public record IdeState(
 
   public IEnumerable<FileDiagnostic> GetAllDiagnostics() {
     return StaticDiagnostics.Values.SelectMany(x => x).Concat(CanVerifyStates.SelectMany(s =>
-      s.Value.Values.SelectMany(cvs => cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
+      s.Value.Values.SelectMany(cvs =>
+        cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))).
+        Concat(cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))))));
   }
 
   private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeCanVerifyState> x) {
@@ -378,8 +380,7 @@ public record IdeState(
   }
 
   private ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> GetDiagnosticsAfterPhase(IPhase completedPhase,
-    ImmutableList<FileDiagnostic> newDiagnostics)
-  {
+    ImmutableList<FileDiagnostic> newDiagnostics) {
     var result = StaticDiagnostics.Where(
       kv => {
         var phase = kv.Key;

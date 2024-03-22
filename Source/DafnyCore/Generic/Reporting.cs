@@ -14,12 +14,12 @@ namespace Microsoft.Dafny {
   public record SingletonPhase(IPhase Parent, DafnyDiagnostic Diagnostic) : IPhase {
     public IPhase? ParentPhase => Parent;
   }
-  
+
 
   public interface IPhase {
     IPhase? ParentPhase { get; }
   }
-  
+
   public enum ErrorLevel {
     Info, Warning, Error
   }

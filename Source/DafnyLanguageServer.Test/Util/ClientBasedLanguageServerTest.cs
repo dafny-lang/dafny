@@ -364,7 +364,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected async Task AssertNoResolutionErrors(TextDocumentItem documentItem) {
     // A document without diagnostics may be absent, even if resolved successfully
-    var resolutionErrors = (await GetLastDiagnostics(documentItem)).Where(d => 
+    var resolutionErrors = (await GetLastDiagnostics(documentItem)).Where(d =>
       d.Source == MessageSource.Resolver.ToString() && d.Severity == DiagnosticSeverity.Error);
     if (resolutionErrors.Any()) {
       Assert.Fail($"Found resolution errors: {resolutionErrors.Stringify()}");

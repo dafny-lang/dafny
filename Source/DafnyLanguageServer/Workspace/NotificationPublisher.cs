@@ -37,9 +37,9 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var diagnosticsPerFile = state.GetAllDiagnostics().GroupBy(d => d.Uri).ToImmutableDictionary(
-        g => g.Key, 
+        g => g.Key,
         g => g.Select(d => d.Diagnostic).ToImmutableList());
-      
+
       PublishDiagnostics(state, diagnosticsPerFile);
       PublishProgress(previousState, state);
       PublishGhostness(previousState, state);
