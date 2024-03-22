@@ -734,6 +734,15 @@ namespace Microsoft.Dafny {
         }
       }
 
+      if (sub.Decl is TypeParameter typeParameter) {
+        foreach (var preTypeBound in PreTypeResolver.TypeParameterBounds2PreTypes(typeParameter)) {
+          var arguments = GetTypeArgumentsForSuperType(super, preTypeBound, allowBaseTypeCast);
+          if (arguments != null) {
+            return arguments;
+          }
+        }
+      }
+
       if (allowBaseTypeCast && sub.Decl is NewtypeDecl newtypeDecl) {
         var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, sub.Arguments);
         var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);

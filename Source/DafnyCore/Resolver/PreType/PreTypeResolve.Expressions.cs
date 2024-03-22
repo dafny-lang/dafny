@@ -1660,8 +1660,7 @@ namespace Microsoft.Dafny {
 
     void AddTypeBoundConstraints(IToken tok, List<TypeParameter> typeParameters, Dictionary<TypeParameter, PreType> subst) {
       foreach (var typeParameter in typeParameters) {
-        foreach (var typeBound in typeParameter.TypeBounds) {
-          var preTypeBound = Type2PreType(typeBound, $"type bound for type parameter '{typeParameter.Name}'");
+        foreach (var preTypeBound in TypeParameterBounds2PreTypes(typeParameter)) {
           var preTypeBoundWithSubst = preTypeBound.Substitute(subst);
           var actualPreType = subst[typeParameter];
           AddSubtypeConstraint(preTypeBoundWithSubst, actualPreType, tok,

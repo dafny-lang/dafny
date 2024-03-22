@@ -260,6 +260,13 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
+    public IEnumerable<DPreType> TypeParameterBounds2PreTypes(TypeParameter typeParameter) {
+      foreach (var typeBound in typeParameter.TypeBounds) {
+        var preTypeBound = Type2PreType(typeBound, $"type bound for type parameter '{typeParameter.Name}'");
+        yield return (DPreType)preTypeBound;
+      }
+    }
+
     /// <summary>
     /// Returns the non-newtype ancestor of "decl".
     /// This method assumes that the ancestors of "decl" do not form any cycles. That is, any such cycle detection must already
@@ -363,8 +370,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
       if (sub.Decl is TypeParameter typeParameter) {
-        foreach (var typeBound in typeParameter.TypeBounds) {
-          var preTypeBound = (DPreType)Type2PreType(typeBound);
+        foreach (var preTypeBound in TypeParameterBounds2PreTypes(typeParameter)) {
           if (IsSuperPreTypeOf(super, preTypeBound)) {
             return true;
           }
