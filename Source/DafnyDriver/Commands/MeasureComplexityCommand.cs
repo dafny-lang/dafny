@@ -52,9 +52,8 @@ static class MeasureComplexityCommand {
     var compilation = CliCompilation.Create(options);
     compilation.Start();
 
-    try {
-      var resolution = await compilation.Resolution;
-
+    var resolution = await compilation.Resolution;
+    if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
       // We should redesign the output of this command 
@@ -70,7 +69,6 @@ static class MeasureComplexityCommand {
       await RunVerificationIterations(options, compilation, verificationResults);
       await summaryReported;
       await verificationResultsLogged;
-    } catch (TaskCanceledException) {
     }
 
     return compilation.ExitCode;
