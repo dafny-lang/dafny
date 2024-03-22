@@ -67,7 +67,7 @@ public class CliCompilation {
 
     if (warningCount > 0 && !Options.Get(CommonOptionBag.AllowWarnings)) {
       await Options.OutputWriter.WriteLineAsync(
-        "Compilation failed because warnings were found and --allow-warning is false");
+        "Compilation failed because warnings were found and --allow-warnings is false");
       return ExitValue.DAFNY_ERROR;
     }
 
