@@ -209,6 +209,8 @@ public class Compilation : IDisposable {
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
       updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Parser), e));
       throw;
@@ -233,6 +235,8 @@ public class Compilation : IDisposable {
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
       updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Resolver), e));
       throw;

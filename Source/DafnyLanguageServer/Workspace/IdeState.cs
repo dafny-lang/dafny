@@ -385,7 +385,7 @@ public record IdeState(
       kv => {
         var phase = kv.Key;
         while (phase != null) {
-          if (phase == completedPhase) {
+          if (phase.Equals(completedPhase)) {
             return false;
           }
 
