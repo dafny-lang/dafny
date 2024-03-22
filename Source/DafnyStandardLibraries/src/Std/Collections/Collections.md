@@ -1,4 +1,4 @@
-## The `Collections` module
+# The `Collections` module
 
 This module includes a variety of submodules that define properties of
 various collections:
