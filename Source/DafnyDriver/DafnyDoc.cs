@@ -61,7 +61,7 @@ class DafnyDoc {
     var exitValue = ExitValue.SUCCESS;
     dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath =>
       FormatCommand.GetFilesForFolder(options, folderPath))).ToList();
-    await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -74,12 +74,12 @@ class DafnyDoc {
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        await Console.Out.WriteLineAsync(e.ToString()).ConfigureAwait(false);
+        await options.OutputWriter.WriteLineAsync(e.ToString()).ConfigureAwait(false);
       }
     }
     if (err != null) {
       exitValue = ExitValue.DAFNY_ERROR;
-      await Console.Out.WriteLineAsync(err);
+      await options.OutputWriter.WriteLineAsync(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
@@ -92,7 +92,7 @@ class DafnyDoc {
       try {
         await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        await Console.Out.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
+        await options.OutputWriter.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
         return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
@@ -1039,7 +1039,7 @@ class DafnyDoc {
 
   public void AnnounceFile(string filename) {
     if (Options.Verbose) {
-      Console.WriteLine("Writing " + filename);
+      Options.OutputWriter.WriteLine("Writing " + filename);
     }
   }
 
