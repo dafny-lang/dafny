@@ -522,7 +522,6 @@ method Bar() { assert true; }";
     await WaitUntilAllStatusAreCompleted(documentItem);
 
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
-    // A document without diagnostics may be absent, even if resolved successfully
 
     var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     await AssertNoResolutionErrors(documentItem);

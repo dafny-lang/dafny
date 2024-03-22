@@ -87,7 +87,7 @@ public record IdeState(
 
     var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
     foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
-      if (phase.ParentPhase == InternalExceptions.Instance) {
+      if (phase.Parent == InternalExceptions.Instance) {
         continue;
       }
 
@@ -204,7 +204,7 @@ public record IdeState(
 
   record RootFilesPhase : IPhase {
     public static readonly RootFilesPhase Instance = new();
-    public IPhase? ParentPhase => null;
+    public IPhase? Parent => null;
   }
 
   private async Task<IdeState> HandleDeterminedRootFiles(DafnyOptions options, ILogger logger,
@@ -274,7 +274,7 @@ public record IdeState(
 
   public record InternalExceptions : IPhase {
     public static readonly IPhase Instance = new InternalExceptions();
-    public IPhase? ParentPhase => null;
+    public IPhase? Parent => null;
   }
 
   private IdeState HandleInternalCompilationException(InternalCompilationException internalCompilationException) {
@@ -408,14 +408,9 @@ public record IdeState(
       VerificationTrees = trees
     };
   }
-
-
+  
   private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
-    return RemovePhase(completedPhase, OldDiagnostics);
-  }
-
-  public static ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> RemovePhase(IPhase completedPhase, ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> diagnostics) {
-    var result = diagnostics.Where(
+    return OldDiagnostics.Where(
       kv => {
         var phase = kv.Key;
         while (phase != null) {
@@ -423,12 +418,11 @@ public record IdeState(
             return false;
           }
 
-          phase = phase.ParentPhase;
+          phase = phase.Parent;
         }
 
         return true;
       }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
-    return result;
   }
 
   private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {

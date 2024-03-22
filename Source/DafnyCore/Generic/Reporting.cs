@@ -8,27 +8,21 @@ using System.Linq;
 namespace Microsoft.Dafny {
 
   public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
-    public IPhase? ParentPhase => null;
+    public IPhase? Parent => null;
   }
 
-  public record SingletonPhase(IPhase Parent, object Key) : IPhase {
-    public IPhase? ParentPhase => Parent;
-  }
+  public record SingletonPhase(IPhase Parent, object Key) : IPhase;
 
 
-  /**
-   * Phases form a tree.
-   *
-   * Each phase records its state
-   * Phase state is immutable.
-   *
-   * A phase can be old, meaning it is from a previous run.
-   * When a phase is finished, all old phases under it are removed.
-   *
-   * Optional: when a phase is discovered, a list of child phases can be given, that is used to prune the old phases
-   */
+  /// <summary>
+  /// A phase of compilation
+  /// 
+  /// A phases can have a parent, and so phases form a tree.
+  ///
+  /// The children of a phase, are the phases that are discovered and completed as phase of that parent.
+  /// </summary>
   public interface IPhase {
-    IPhase? ParentPhase { get; }
+    IPhase? Parent { get; }
   }
 
   public enum ErrorLevel {
