@@ -203,7 +203,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
 
       var errors = diagnosticsPerFile.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
-        Where(x => x.Severity == DiagnosticSeverity.Error).ToList();
+        Where(x => x.Severity == DiagnosticSeverity.Error && x.Source != MessageSource.Verifier.ToString()).ToList();
       var tree = state.VerificationTrees.GetValueOrDefault(uri);
       if (tree == null) {
         return;

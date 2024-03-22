@@ -144,7 +144,7 @@ public record IdeState(
 
   private IEnumerable<FileDiagnostic> GetErrorLimitDiagnostics() {
     var anyVerificationHitErrorLimit = CanVerifyStates.Values.SelectMany(x => x.Values)
-      .Select(s => s.VerificationTasks.Select(t => t.Value.HitErrorLimit)).Any();
+      .SelectMany(s => s.VerificationTasks.Select(t => t.Value.HitErrorLimit)).Any(x => x);
     IEnumerable<FileDiagnostic> result;
     if (anyVerificationHitErrorLimit) {
       var diagnostic = new Diagnostic() {
