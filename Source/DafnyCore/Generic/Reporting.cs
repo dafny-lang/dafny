@@ -8,10 +8,12 @@ using System.Linq;
 namespace Microsoft.Dafny {
 
   public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
-    public IPhase? Parent => null;
+    public IPhase? MaybeParent => null;
   }
 
-  public record SingletonPhase(IPhase Parent, object Key) : IPhase;
+  public record SingletonPhase(IPhase Parent, object Key) : IPhase {
+    public IPhase MaybeParent => Parent;
+  }
 
 
   /// <summary>
@@ -22,7 +24,7 @@ namespace Microsoft.Dafny {
   /// The children of a phase, are the phases that are discovered and completed as phase of that parent.
   /// </summary>
   public interface IPhase {
-    IPhase? Parent { get; }
+    IPhase? MaybeParent { get; }
   }
 
   public enum ErrorLevel {
