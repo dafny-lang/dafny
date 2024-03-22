@@ -1103,6 +1103,34 @@ axiom (forall s, t: Seq, n: int ::
   Seq#Take(Seq#Append(s, t), n) == s &&
   Seq#Drop(Seq#Append(s, t), n) == t);
 
+//  Map Axiom
+axiom (forall m:Map, n: Map::
+    {Map#Merge(m,n)}
+    Set#Disjoint(Map#Domain(m), Map#Domain(n)) ==> Map#Equal(m, Map#Subtract(Map#Merge(m,n), Map#Domain(n))) && Map#Equal(n, Map#Subtract(Map#Merge(m,n), Map#Domain(m))));
+
+//runs into matching loop
+// (forall s,t: Seq ::
+//  { Seq#Append(s,t) }
+//  Seq#Take(Seq#Append(s,t), Seq#Length(s)) == s &&
+//  Seq#Drop(Seq#Append(s,t), Seq#Length(s)) == t);
+
+axiom (forall s: Seq, n: int ::
+    { Seq#Take(s, n)}
+    { Seq#Drop(s, n)}
+    n >= 0 && n < Seq#Length(s)
+    ==> Seq#Append(Seq#Take(s,n), Seq#Drop(s,n)) == s);
+  
+ //Set Axiom
+ axiom (forall s, t: Set ::
+    { Set#Difference(s, t)}
+    s == Set#Union(Set#Difference(s, t), Set#Intersection(s, t))); 
+ 
+ axiom (forall s,t: MultiSet ::
+  { MultiSet#Difference(s, t)}
+  s == MultiSet#Union(MultiSet#Difference(s,t), MultiSet#Intersection(s,t))); 
+	
+
+
 function Seq#FromArray(h: Heap, a: ref): Seq;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
