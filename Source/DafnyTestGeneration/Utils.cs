@@ -181,20 +181,26 @@ namespace DafnyTestGeneration {
     }
 
     public static IEnumerable<MemberDecl> AllMemberDeclarationsWithAttribute(TopLevelDecl decl, string attribute) {
-      HashSet<MemberDecl> allInlinedDeclarations = new();
+      foreach (var memberDecl in AllMemberDeclarations(decl)) {
+        if (memberDecl.HasUserAttribute(attribute, out var _)) {
+          yield return memberDecl;
+        }
+      }
+    }
+
+    public static IEnumerable<MemberDecl> AllMemberDeclarations(TopLevelDecl decl) {
       if (decl is LiteralModuleDecl moduleDecl) {
-        foreach (var child in moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>()) {
-          allInlinedDeclarations.UnionWith(AllMemberDeclarationsWithAttribute(child, attribute));
+        foreach (var child in moduleDecl.ModuleDef.TopLevelDecls) {
+          foreach (var memberDecl in AllMemberDeclarations(child)) {
+            yield return memberDecl;
+          }
         }
       }
       if (decl is TopLevelDeclWithMembers withMembers) {
         foreach (var memberDecl in withMembers.Members) {
-          if (memberDecl.HasUserAttribute(attribute, out var _)) {
-            allInlinedDeclarations.Add(memberDecl);
-          }
+          yield return memberDecl;
         }
       }
-      return allInlinedDeclarations;
     }
   }
 }

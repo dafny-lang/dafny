@@ -183,6 +183,40 @@ namespace DafnyTestGeneration {
       return superSetType;
     }
 
+    /// <summary>
+    /// Return the name of the generator method that should be used to construct a default unconstrained value
+    /// of type <param name="fullyQualifiedType"></param> when generating tests for method <param name="testEntryName"></param>.
+    /// Return null if no such generator method is specified by the user.
+    /// </summary>
+    public string GetGeneratorMethodForType(string testEntryName, Type fullyQualifiedType) {
+      Attributes testGeneratorsAttribute = null;
+      if (methods.TryGetValue(testEntryName, out var method)) {
+        method.HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out testGeneratorsAttribute);
+      } else if (functions.TryGetValue(testEntryName, out var function)) {
+        function.HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out testGeneratorsAttribute);
+      }
+
+      if (testGeneratorsAttribute == null) {
+        return null;
+      }
+
+      foreach (var generatorName in testGeneratorsAttribute.Args.OfType<StringLiteralExpr>().Select(arg => arg.Value.ToString())) {
+        Type generatorReturnType = null;
+        if (methods.ContainsKey(generatorName)) {
+          generatorReturnType = Utils.UseFullName(methods[generatorName].Outs.First().Type);
+        } else if (functions.TryGetValue(generatorName, out var function)) {
+          generatorReturnType = Utils.UseFullName(function.ResultType);
+        } else {
+          continue;
+        }
+        if (generatorReturnType.ToString() == fullyQualifiedType.ToString()) {
+          return generatorName;
+        }
+      }
+
+      return null;
+    }
+
     public IEnumerable<Expression> GetEnsures(List<string> ins, List<string> outs, string callableName, string receiver) {
       Dictionary<IVariable, string> subst = new Dictionary<IVariable, string>();
       if (methods.ContainsKey(callableName)) {

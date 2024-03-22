@@ -496,6 +496,11 @@ namespace DafnyTestGeneration {
         errorMessages.Add("// Failed - cannot determine type");
         return "";
       }
+
+      var generator = DafnyInfo.GetGeneratorMethodForType(MethodName, asType);
+      if (generator != null) {
+        return AddValue(asType, generator + "()");
+      }
       type = GetBasicType(type, type => DafnyInfo.GetSupersetType(type) == null);
       type = DafnyModelTypeUtils.ReplaceTypeVariables(type, defaultType);
       if ((asType != null) && (DafnyInfo.GetWitnessForType(asType) != null)) {

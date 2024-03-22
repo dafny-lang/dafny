@@ -57,6 +57,7 @@ public class FirstPass {
     CheckHasTestEntry(program);
     CheckInlinedDeclarationsAreReachable(program);
     CheckInlineAttributes(program);
+    CheckGeneratorsAttributes(program);
     CheckInputTypesAreSupported(program);
     CheckVerificationTimeLimit(program);
     PrintWarningsAndErrors(errorReporter, program);
@@ -128,6 +129,69 @@ public class FirstPass {
         $"(absence of such an argument or 1 means no unrolling)",
         MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return;
+    }
+  }
+
+  /// <summary>
+  /// Check that function/methods annotated with {:testGenerators} use this attribute correctly. This includes:
+  /// - Any method annotated with {:testGenerators} must also be annotated with {:testEntry}
+  /// - {:testGenerators} must be accompanied with a non-zero number of string argument pairs, where
+  ///    - the first argument in each pair corresponds to the name of a input parameter of the original method
+  ///    - the second argument fully qualifies a function or method that is statis, takes no arguments, has no
+  ///      requires/modifies clauses, and returns a single value of the same type as the identified input parameter
+  /// </summary>
+  private void CheckGeneratorsAttributes(Program program) {
+    var allMemberDecls = Utils.AllMemberDeclarations(program.DefaultModule).ToList();
+    foreach (var testEntry in Utils
+               .AllMemberDeclarationsWithAttribute(program.DefaultModule, TestGenerationOptions.TestGeneratorsAttribute)) {
+      if (!testEntry.HasUserAttribute(TestGenerationOptions.TestEntryAttribute, out var _)) {
+        diagnostics.Add(new DafnyDiagnostic(MalformedAttributeError, testEntry.tok,
+          $"The {testEntry.FullDafnyName} method/function is annotated with " +
+          $"{{:{TestGenerationOptions.TestGeneratorsAttribute}}} attribute and must therefore also be a test entry method " +
+          $"annotated with {{:{TestGenerationOptions.TestEntryAttribute}}}",
+          MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+      }
+      testEntry.HasUserAttribute(TestGenerationOptions.TestGeneratorsAttribute, out var attribute);
+      if (attribute.Args == null || attribute.Args.Count == 0 ||
+          attribute.Args.Any(argument =>
+            argument is not StringLiteralExpr literal ||
+            literal.Type is not UserDefinedType { Name: "string" })) {
+        diagnostics.Add(new DafnyDiagnostic(MalformedAttributeError, testEntry.tok,
+          $"The {{:{TestGenerationOptions.TestGeneratorsAttribute}}} attribute on {testEntry.FullDafnyName} " +
+          $"must take in a list of fully-qualified names of generator methods/functions that will be " +
+          $"used by Dafny to produce a value of their return type for any value that is not constrained by the " +
+          $"solver.",
+          MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+        continue;
+      }
+
+      foreach (var generatorName in attribute.Args.OfType<StringLiteralExpr>().Select(stringLiteral => stringLiteral.Value.ToString())) {
+        var generator = allMemberDecls.FirstOrDefault(decl => decl.FullDafnyName == generatorName && decl is Method or Function, null);
+        if (generator == null) {
+          diagnostics.Add(new DafnyDiagnostic(MalformedAttributeError, testEntry.tok,
+            $"Cannot resolve fully-qualified name {generatorName} but such method/function is referenced " +
+            $"in the {{:{TestGenerationOptions.TestGeneratorsAttribute}}} attribute annotating the {testEntry.FullDafnyName} method.",
+            MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+          continue;
+        }
+        if (generator is Method method) {
+          if (method.IsStatic && method.Req.Count == 0 && method.Mod.Expressions.Count == 0 && method.Ins.Count == 0 &&
+              method.Outs.Count == 1 && (method.TypeArgs == null || method.TypeArgs.Count == 0)) {
+            TypeIsSupported(method.Outs.First().Type, testEntry.FullDafnyName);
+            continue;
+          }
+        } else if (generator is Function function) {
+          if (function.IsStatic && function.Req.Count == 0 && function.Formals.Count == 0 &&
+              (function.TypeArgs == null || function.TypeArgs.Count == 0)) {
+            TypeIsSupported(function.ResultType, testEntry.FullDafnyName);
+            continue;
+          }
+        }
+        diagnostics.Add(new DafnyDiagnostic(MalformedAttributeError, testEntry.tok,
+          $"The {generatorName} method/function is used as a generator and must, therefore, " +
+          $"take no input arguments, take no type arguments, return a single value, and have no requires or modifies clauses.",
+          MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
+      }
     }
   }
 
@@ -273,7 +337,7 @@ public class FirstPass {
         }
         isSupported = TypeIsSupported(userDefinedType.AsNewtype.BaseType, testEntry);
       } else if (userDefinedType.AsSubsetType != null) {
-        if (userDefinedType.AsSubsetType.Witness == null) {
+        if (userDefinedType.AsSubsetType.Witness == null && userDefinedType.Name != "nat") {
           diagnostics.Add(new DafnyDiagnostic(NoWitnessWarning, type.Tok,
             $"Cannot find witness for type {userDefinedType}. Please consider adding a witness to the declaration",
             MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));

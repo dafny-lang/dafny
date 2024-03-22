@@ -7,6 +7,7 @@ namespace Microsoft.Dafny {
   public class TestGenerationOptions {
     public const string TestInlineAttribute = "testInline";
     public const string TestEntryAttribute = "testEntry";
+    public const string TestGeneratorsAttribute = "testGenerators";
     public bool WarnDeadCode = false;
     public enum Modes { None, Block, InlinedBlock, Path };
     public Modes Mode = Modes.None;

@@ -1,0 +1,1 @@
+Allow users to specify generators methods that Dafny can use during test generation to construct values that are not otherwise constrained by the solver.
