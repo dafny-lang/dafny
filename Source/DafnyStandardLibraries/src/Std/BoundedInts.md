@@ -1,5 +1,5 @@
 
-## The `BoundedInts` module
+# The `BoundedInts` module
 
 The `Std.BoundedInts` module contains definitions of types and constants for fixed-bit-width integers.
 
@@ -14,6 +14,7 @@ variables of this Dafny type will be compiled to Java `short` variables. In some
 natural match. For example Java does not have an unsigned 16-bit type while C# and C++ do.
 
 This module defines:
+
 - unsigned types of 8, 16, 32, 64, 128 bit widths (e.g. `uint32`)
 - signed types of 8, 16, 32, 64, 128 bit widths (e.g. `int16`)
 - unsigned types that are subsets of the corresponding signed type (e.g. `nat8` has values from 0 through 127)
@@ -21,6 +22,7 @@ This module defines:
 The `natN` series of types require some care. A `nat8` for example has non-negative values up through 127,
 that is, just 7-bits worth of values. But it can be directly converted to an `int8` and can be represented by a
 native signed 8-bit integer type.
+
 - if you need a general unsigned 8-bit type, with values running up to 256, use `uint8`
 - if you want natural numbers that interact well with signed numbers and do not mind the restriction in range, use `nat8`
 - if the target platform for compilation does not have native unsigned int types, then use nat types because of the smaller range
