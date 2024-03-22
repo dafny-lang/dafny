@@ -16,6 +16,17 @@ namespace Microsoft.Dafny {
   }
 
 
+  /**
+   * Phases form a tree.
+   *
+   * Each phase records its state
+   * Phase state is immutable.
+   *
+   * A phase can be old, meaning it is from a previous run.
+   * When a phase is finished, all old phases under it are removed.
+   *
+   * Optional: when a phase is discovered, a list of child phases can be given, that is used to prune the old phases
+   */
   public interface IPhase {
     IPhase? ParentPhase { get; }
   }

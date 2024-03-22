@@ -36,7 +36,7 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> OldDiagnostics,
+  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> OldDiagnostics,
   ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> NewDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
@@ -63,7 +63,7 @@ public record IdeState(
       input,
       CompilationStatus.Parsing,
       program,
-      ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty,
       ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
       program,
       SymbolTable.Empty(),
@@ -84,9 +84,20 @@ public record IdeState(
     var verificationResults = clientSide
       ? CanVerifyStates
       : MigrateImplementationViews(migrator, CanVerifyStates);
+
+    var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
+    foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
+      if (phase.ParentPhase == InternalExceptions.Instance) {
+        continue;
+      }
+
+      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).
+        Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
+      oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
+    }
     return this with {
       Version = newVersion,
-      OldDiagnostics = RemovePhase(InternalExceptions.Instance, NewDiagnostics),
+      OldDiagnostics = oldDiagnostics,
       NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
@@ -398,24 +409,13 @@ public record IdeState(
     };
   }
 
-  /**
-   * Phases form a tree.
-   *
-   * Each phase records its state
-   * Phase state is immutable.
-   *
-   * A phase can be old, meaning it is from a previous run.
-   * When a phase is finished, all old phases under it are removed.
-   *
-   * Optional: when a phase is discovered, a list of child phases can be given, that is used to prune the old phases
-   */
 
-  private ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
+  private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
     return RemovePhase(completedPhase, OldDiagnostics);
   }
 
-  public static ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> RemovePhase(IPhase completedPhase, ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> diagnostics) {
-    return diagnostics.Where(
+  public static ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> RemovePhase(IPhase completedPhase, ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> diagnostics) {
+    var result = diagnostics.Where(
       kv => {
         var phase = kv.Key;
         while (phase != null) {
@@ -428,6 +428,7 @@ public record IdeState(
 
         return true;
       }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
+    return result;
   }
 
   private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {

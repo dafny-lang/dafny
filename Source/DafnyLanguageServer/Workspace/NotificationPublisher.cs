@@ -168,10 +168,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       PublishForUri(state.Input.Project.Uri, projectDiagnostics.ToArray());
 
       void PublishForUri(Uri publishUri, Diagnostic[] diagnostics) {
+        var sortedDiagnostics = diagnostics.OrderBy(d => d.Range.Start).ThenBy(d => d.Range.End).ToList();
         var previous = publishedDiagnostics.GetOrDefault(publishUri, Enumerable.Empty<Diagnostic>);
-        if (!previous.SequenceEqual(diagnostics, new DiagnosticComparer())) {
-          if (diagnostics.Any()) {
-            publishedDiagnostics[publishUri] = diagnostics;
+        if (!previous.SequenceEqual(sortedDiagnostics, new DiagnosticComparer())) {
+          if (sortedDiagnostics.Any()) {
+            publishedDiagnostics[publishUri] = sortedDiagnostics;
           } else {
             // Prevent memory leaks by cleaning up previous state when it's the IDE's initial state.
             publishedDiagnostics.TryRemove(publishUri, out _);
