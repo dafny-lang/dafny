@@ -277,7 +277,7 @@ method Test(i: int) returns (j: int)
       var relatedInformation =
         diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Null(relatedInformation[0].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[0].Message);
     }
 
     [Fact]
@@ -847,7 +847,7 @@ class Test {
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Null(relatedInformation[1].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
       Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

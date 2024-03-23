@@ -1,4 +1,4 @@
-## The `JSON` module
+# The `JSON` module
 
 JSON serialization and deserialization in Dafny, as described in [RFC 8259](https://datatracker.ietf.org/doc/html/rfc8259).
 
