@@ -257,3 +257,53 @@ module CheckArguments {
     var oo := new MyClass(o); // error: type parameter is RandomClass<int>, which is not a Trait<string> as required by type bound
   }
 }
+
+module Overrides {
+  trait Base {
+    function F<X extends object>(): int
+    method M<X extends object>()
+  }
+
+  class Class extends Base {
+    function F<X extends object extends object>(): int { 2 } // error: number of bounds is different
+    method M<X extends object?>() { } // error: bound is different
+  }
+
+  type ObjectSynonym = object
+
+  type AbstractType extends Base {
+    function F<Y extends object>(): int { 2 } // error: type parameter has been renamed
+    method M<X extends ObjectSynonym>() { } // the synonym here is okay
+  }
+
+  // ---
+
+  trait GenericBound<Z> { }
+
+  trait Parent {
+    function F<X extends GenericBound<Y>, Y extends GenericBound<X>>(): int
+    method M<X extends GenericBound<Y>, Y extends GenericBound<X>>()
+    greatest lemma L<X extends GenericBound<int>, Y extends IntGenericBound>()
+  }
+
+  type IntGenericBound = GenericBound<int>
+
+  codatatype AllGood extends Parent = More
+  {
+    function F<X extends GenericBound<Y>, Y extends GenericBound<X>>(): int { 2 }
+    method M<X extends GenericBound<Y>, Y extends GenericBound<int>>() { }
+    greatest lemma L<X extends IntGenericBound, Y extends GenericBound<int>>() { }
+  }
+
+  datatype CoAllGood extends Parent = More
+  {
+    function F<Y extends GenericBound<X>, X extends GenericBound<Y>>(): int { 2 } // error (x2): type parameters have been renamed
+    method M<X extends IntGenericBound, Y extends GenericBound<X>>() { } // error: bound is different
+    greatest lemma L<X extends GenericBound<X>, Y extends IntGenericBound>() { } // error: bound is different
+  }
+
+  trait AnotherTrait extends Parent {
+    greatest lemma L<X extends GenericBound<int>, Y extends GenericBound<X>>() { } // error: bound is different
+  }
+}
+

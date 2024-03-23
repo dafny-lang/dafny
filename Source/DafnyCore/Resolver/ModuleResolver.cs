@@ -2422,7 +2422,8 @@ namespace Microsoft.Dafny {
       CheckOverride_ResolvedParameters(nw.tok, old.Outs, nw.Outs, nw.Name, "method", "out-parameter", typeMap);
     }
 
-    private Dictionary<TypeParameter, Type> CheckOverride_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing, Dictionary<TypeParameter, Type> classTypeMap) {
+    private Dictionary<TypeParameter, Type> CheckOverride_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw,
+      string name, string thing, Dictionary<TypeParameter, Type> classTypeMap) {
       Contract.Requires(tok != null);
       Contract.Requires(old != null);
       Contract.Requires(nw != null);
@@ -2433,26 +2434,61 @@ namespace Microsoft.Dafny {
         reporter.Error(MessageSource.Resolver, tok,
           "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than in the overridden {0}", thing, name, nw.Count, old.Count);
       } else {
-        for (int i = 0; i < old.Count; i++) {
+        var checkNames = old.Concat(nw).Any(typeParameter => typeParameter.TypeBounds.Count != 0);
+        for (var i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
           typeMap.Add(o, new UserDefinedType(tok, n));
-          // Check type characteristics
-          if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+          if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
+            reporter.Error(MessageSource.Resolver, n.tok,
+              $"type parameters in this {thing} override are not allowed to be renamed from the names given in the the {thing} it overrides" +
+              $" (expected '{o.Name}', got '{n.Name}')");
+          } else {
+            // Check type characteristics
+            if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired &&
+                o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
+              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality",
+                n.Name);
+            }
+            if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
+              reporter.Error(MessageSource.Resolver, n.tok,
+                "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+            } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty",
+                n.Name);
+            }
+            if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
+              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement",
+                n.Name);
+            }
           }
-          if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
-          } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
-          }
-          if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
-          }
-
+        }
+        for (var i = 0; i < old.Count; i++) {
+          var o = old[i];
+          var n = nw[i];
+          CheckOverride_TypeBounds(tok, o, n, name, thing, typeMap);
         }
       }
       return typeMap;
+    }
+
+    void CheckOverride_TypeBounds(IToken tok, TypeParameter old, TypeParameter nw, string name, string thing, Dictionary<TypeParameter, Type> typeMap) {
+      if (old.TypeBounds.Count != nw.TypeBounds.Count) {
+        reporter.Error(MessageSource.Resolver, tok,
+          $"type parameter '{nw.Name}' of {thing} '{name}' is declared with a different number of type bounds than in the " +
+          $"{thing} it overrides (expected {old.TypeBounds.Count}, found {nw.TypeBounds.Count})");
+        return;
+      }
+
+      for (var i = 0; i < old.TypeBounds.Count; i++) {
+        var oldBound = old.TypeBounds[i].NormalizeExpandKeepConstraints();
+        var newBound = nw.TypeBounds[i].NormalizeExpandKeepConstraints();
+        if (!oldBound.Subst(typeMap).Equals(newBound, true)) {
+          reporter.Error(MessageSource.Resolver, tok,
+            $"type bound for type parameter '{nw.Name}' of {thing} '{name}' is different from the corresponding type bound of the " +
+            $"corresponding type parameter of the {thing} it overrides (expected '{oldBound}', found '{newBound}')");
+        }
+      }
     }
 
     private void CheckOverride_ResolvedParameters(IToken tok, List<Formal> old, List<Formal> nw, string name, string thing, string parameterKind, Dictionary<TypeParameter, Type> typeMap) {
