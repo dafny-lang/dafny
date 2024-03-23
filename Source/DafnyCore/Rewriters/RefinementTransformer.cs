@@ -946,7 +946,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          if (o.Name != n.Name && checkNames) { // if checkNames is false, then just treat the parameters positionally.
+          if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
             Error(ErrorId.ref_mismatched_type_parameter_name, n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
           } else {
             // This explains what we want to do and why:
@@ -992,8 +992,8 @@ namespace Microsoft.Dafny {
     void CheckAgreement_TypeBounds(IToken tok, TypeParameter old, TypeParameter nw, string name, string thing) {
       if (old.TypeBounds.Count != nw.TypeBounds.Count) {
         Error(ErrorId.ref_mismatched_type_bounds_count, tok,
-          $"type parameter '{nw.Name}' of {thing} '{name}' is declared with a different number of type bounds " +
-          $"(expected {old.TypeBounds.Count}, found {nw.TypeBounds.Count}) than in the corresponding {thing} in the module it refines");
+          $"type parameter '{nw.Name}' of {thing} '{name}' is declared with a different number of type bounds than in the corresponding {thing}" +
+          $" in the module it refines (expected {old.TypeBounds.Count}, found {nw.TypeBounds.Count})");
         return;
       }
       for (var i = 0; i < old.TypeBounds.Count; i++) {

@@ -775,7 +775,7 @@ There are restrictions on what can be changed in a refinement.
 In particular, the variance of type parameters must remain the same.
 
 
-## **Error: type parameter '_name_' of _what_ '_declarationname_' is declared with a different number of type bounds (expected _oldnum_, found _num_) than in the corresponding _what_ in the module it refines** {#ref_mismatched_type_bounds_count}
+## **Error: type parameter '_name_' of _what_ '_declarationname_' is declared with a different number of type bounds than in the corresponding _what_ in the module it refines (expected _oldnum_, found _num_)** {#ref_mismatched_type_bounds_count}
 
 ``` dafny
 module A {
