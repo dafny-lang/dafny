@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
       if (object.ReferenceEquals(super, Super) && object.ReferenceEquals(sub, Sub)) {
         return this;
       } else {
-        return new SubtypeConstraint(super, sub, Token.NoToken, ErrorFormatString, null, ReportErrors);
+        return new SubtypeConstraint(super, sub, tok, ErrorFormatString, null, ReportErrors);
       }
     }
 
