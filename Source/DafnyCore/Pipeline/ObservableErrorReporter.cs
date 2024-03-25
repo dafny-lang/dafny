@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading;
 using DafnyCore;
-using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
   public class ObservableErrorReporter : ErrorReporter {
@@ -27,7 +26,7 @@ namespace Microsoft.Dafny {
       this.entryUri = entryUri;
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string? errorId, IToken rootTok, string msg) {
+    protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken rootTok, string msg) {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
@@ -41,7 +40,7 @@ namespace Microsoft.Dafny {
         );
       }
 
-      var dafnyDiagnostic = new DafnyDiagnostic(new MessageSourceBasedPhase(source), errorId!, rootTok, msg, source, level, relatedInformation);
+      var dafnyDiagnostic = new DafnyDiagnostic(phase, errorId, rootTok, msg, level, relatedInformation);
       AddDiagnosticForFile(dafnyDiagnostic, GetUriOrDefault(rootTok));
       return true;
     }
@@ -70,7 +69,8 @@ namespace Microsoft.Dafny {
       rwLock.EnterWriteLock();
       try {
         counts[dafnyDiagnostic.Level] = counts.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
-        if (dafnyDiagnostic.Source != MessageSource.Verifier && dafnyDiagnostic.Source != MessageSource.Compiler) {
+        var source = dafnyDiagnostic.Phase.Source;
+        if (source != MessageSource.Verifier && source != MessageSource.Compiler) {
           countsNotVerificationOrCompiler[dafnyDiagnostic.Level] =
             countsNotVerificationOrCompiler.GetValueOrDefault(dafnyDiagnostic.Level, 0) + 1;
         }

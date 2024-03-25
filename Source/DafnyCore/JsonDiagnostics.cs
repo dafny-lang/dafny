@@ -7,7 +7,6 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using VCGeneration;
-using static Microsoft.Dafny.ErrorRegistry;
 
 namespace Microsoft.Dafny;
 
@@ -111,9 +110,9 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IToken tok, string msg) {
-    if (base.MessageCore(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
+  protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorID, IToken tok, string msg) {
+    if (base.MessageCore(phase, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
+      new DiagnosticMessageData(phase.Source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
       return true;
     }
 

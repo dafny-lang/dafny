@@ -102,7 +102,7 @@ public class ProgramResolver {
     }
 
     foreach (var diagnostic in moduleResolutionResult.ErrorReporter.AllMessages) {
-      Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+      Reporter.Message(diagnostic.Phase.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
         diagnostic.Message);
     }
   }

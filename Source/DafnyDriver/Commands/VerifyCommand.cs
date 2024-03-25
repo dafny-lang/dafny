@@ -169,7 +169,7 @@ public static class VerifyCommand {
       }
 
       foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-        compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+        compilation.Compilation.Reporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);
       }
     });

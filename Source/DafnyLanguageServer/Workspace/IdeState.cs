@@ -187,6 +187,8 @@ public record IdeState(
         return HandleBoogieUpdate(options, logger, boogieUpdate);
       case CanVerifyPartsIdentified canVerifyPartsIdentified:
         return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
+      case PhaseFinished phaseFinished:
+        return HandlePhaseFinished(phaseFinished);
       case FinishedParsing finishedParsing:
         return HandleFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
@@ -202,6 +204,12 @@ public record IdeState(
       default:
         throw new ArgumentOutOfRangeException(nameof(e));
     }
+  }
+
+  private IdeState HandlePhaseFinished(PhaseFinished phaseFinished) {
+    return this with {
+      OldDiagnostics = GetOldDiagnosticsAfterPhase(phaseFinished.Phase)
+    };
   }
 
   record RootFilesPhase : IPhase {
@@ -263,10 +271,9 @@ public record IdeState(
 
     // Until resolution is finished, keep showing the old diagnostics. 
     if (previousState.Status > CompilationStatus.ResolutionStarted) {
-      var phase = new SingletonPhase(new MessageSourceBasedPhase(newDiagnostic.Diagnostic.Source), newDiagnostic.Diagnostic);
+      var phase = new SingletonPhase(newDiagnostic.Diagnostic.Phase, newDiagnostic.Diagnostic);
       var newDiagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()));
       return previousState with {
-        OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
         NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
       };
     }

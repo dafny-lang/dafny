@@ -35,10 +35,13 @@ public abstract class ErrorReporter {
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
   public bool Message(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
-    return MessageCore(source, level, errorId, tok, msg);
+    return MessageCore(new MessageSourceBasedPhase(source), level, errorId, tok, msg);
+  }
+  public bool Message(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
+    return MessageCore(phase, level, errorId, tok, msg);
   }
 
-  protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg);
+  protected abstract bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg);
 
   public void Error(MessageSource source, IToken tok, string msg) {
     Error(source, ParseErrors.ErrorId.none, tok, msg);
@@ -147,7 +150,7 @@ public abstract class ErrorReporter {
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
   }
-  
+
   public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);

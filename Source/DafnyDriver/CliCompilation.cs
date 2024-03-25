@@ -99,13 +99,13 @@ public class CliCompilation {
     Compilation.Updates.Subscribe(ev => {
       if (ev is NewDiagnostic newDiagnostic) {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
-          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Source,
+          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Phase.Source,
             _ => 1,
             (_, previous) => previous + 1);
           Interlocked.Increment(ref errorCount);
         }
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
+        consoleReporter.Message(dafnyDiagnostic.Phase, dafnyDiagnostic.Level,
           dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {

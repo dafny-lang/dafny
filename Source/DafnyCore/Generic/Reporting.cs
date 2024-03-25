@@ -25,6 +25,22 @@ namespace Microsoft.Dafny {
   /// </summary>
   public interface IPhase {
     IPhase? MaybeParent { get; }
+    MessageSource Source {
+      get {
+        var sourcePhase = this;
+        while (sourcePhase != null && sourcePhase is not MessageSourceBasedPhase) {
+          sourcePhase = sourcePhase.MaybeParent;
+        }
+
+        return (sourcePhase as MessageSourceBasedPhase)?.MessageSource ?? MessageSource.Unknown;
+      }
+    }
+  }
+
+  public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;
+
+  public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
+    public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
   }
 
   public enum ErrorLevel {
@@ -32,18 +48,18 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
+    Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration, Unknown
   }
 
   public record DafnyRelatedInformation(IToken Token, string Message);
   public record DafnyDiagnostic(IPhase Phase, string ErrorId, IToken Token, string Message,
-    MessageSource Source, ErrorLevel Level,
+    ErrorLevel Level,
     IReadOnlyList<DafnyRelatedInformation> RelatedInformation);
 
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink(DafnyOptions options) : base(options) { }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
       return false;
     }
 
@@ -70,13 +86,13 @@ namespace Microsoft.Dafny {
       this.WrappedReporter = reporter;
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (level == ErrorLevel.Warning) {
         return false;
       }
 
-      base.MessageCore(source, level, errorId, tok, msg);
-      return WrappedReporter.Message(source, level, errorId, tok, msgPrefix + msg);
+      base.MessageCore(phase, level, errorId, tok, msg);
+      return WrappedReporter.Message(phase, level, errorId, tok, msgPrefix + msg);
     }
   }
 }

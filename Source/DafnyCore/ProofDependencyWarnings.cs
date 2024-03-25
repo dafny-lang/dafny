@@ -1,5 +1,4 @@
 #nullable enable
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using DafnyCore.Verifier;
@@ -10,12 +9,6 @@ using VC;
 namespace Microsoft.Dafny;
 
 public record VerificationTaskResult(IVerificationTask Task, VerificationRunResult Result);
-
-public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;
-
-public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
-  public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
-}
 
 public class ProofDependencyWarnings {
 
@@ -50,7 +43,6 @@ public class ProofDependencyWarnings {
   private static void Warn(DafnyOptions dafnyOptions, IPhase phase, ErrorReporter reporter, ProofDependencyManager depManager,
     string scopeName, IEnumerable<TrackedNodeComponent> coveredElements) {
 
-
     var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(scopeName);
     var usedDependencies =
       coveredElements
@@ -71,13 +63,13 @@ public class ProofDependencyWarnings {
             if (obligation.ProofObligation is AssertStatementDescription) {
               message += ". (Use the `{:contradiction}` attribute on the `assert` statement to silence.)";
             }
-            reporter.Warning(MessageSource.Verifier, "", obligation.Range, message);
+            reporter.Message(phase, ErrorLevel.Warning, "", obligation.Range, message);
           }
         }
 
         if (unusedDependency is EnsuresDependency ensures) {
           if (ShouldWarnVacuous(dafnyOptions, scopeName, ensures)) {
-            reporter.Warning(MessageSource.Verifier, "", ensures.Range,
+            reporter.Message(phase, ErrorLevel.Warning, "", ensures.Range,
               $"ensures clause proved using contradictory assumptions");
           }
         }
@@ -85,12 +77,12 @@ public class ProofDependencyWarnings {
 
       if (dafnyOptions.Get(CommonOptionBag.WarnRedundantAssumptions)) {
         if (unusedDependency is RequiresDependency requires) {
-          reporter.Warning(MessageSource.Verifier, "", requires.Range, $"unnecessary requires clause");
+          reporter.Message(phase, ErrorLevel.Warning, "", requires.Range, $"unnecessary requires clause");
         }
 
         if (unusedDependency is AssumptionDependency assumption) {
           if (ShouldWarnUnused(assumption)) {
-            reporter.Warning(MessageSource.Verifier, "", assumption.Range,
+            reporter.Message(phase, ErrorLevel.Warning, "", assumption.Range,
               $"unnecessary (or partly unnecessary) {assumption.Description}");
           }
         }

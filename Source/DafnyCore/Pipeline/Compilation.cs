@@ -363,7 +363,7 @@ public class Compilation : IDisposable {
           var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
           tasksForScope.Add(VerifyTask(canVerify, seededTask));
         }
-        
+
         _ = WaitForAndHandleScopeFinished();
         async Task WaitForAndHandleScopeFinished() {
           if (taskFilter != null) {
