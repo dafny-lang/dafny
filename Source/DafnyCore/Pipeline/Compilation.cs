@@ -255,8 +255,6 @@ public class Compilation : IDisposable {
     return prefix;
   }
 
-  private int runningVerificationJobs;
-
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
   public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
@@ -381,10 +379,6 @@ public class Compilation : IDisposable {
 
       return;
     }
-
-    var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug(
-      $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
 
     statusUpdates.Subscribe(
       update => {
