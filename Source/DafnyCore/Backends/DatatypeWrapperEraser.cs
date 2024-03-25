@@ -136,9 +136,10 @@ namespace Microsoft.Dafny.Compilers {
     ///   2 -- be an inductive datatype (not a "codatatype"), and
     ///   3 -- have exactly one non-ghost constructor, and
     ///   4 -- that constructor must have exactly one non-ghost destructor parameter (say, "d" of type "D"), and
-    ///   5 -- have no fields declared as members, and
-    ///   6 -- the compiled parts of type "D" must not include the datatype itself, and
-    ///   7 -- not be declared with {:extern} (since extern code may rely on it being there).
+    ///   5 -- have no non-ghost fields declared as members, and
+    ///   6 -- have no parent traits, and
+    ///   7 -- the compiled parts of type "D" must not include the datatype itself, and
+    ///   8 -- not be declared with {:extern} (since extern code may rely on it being there).
     ///
     /// If the conditions above apply, then the method returns true and sets the out-parameter to the core DatatypeDestructor "d".
     /// From this return, the compiler (that is, the caller) will arrange to compile type "dt" as type "D".
@@ -161,12 +162,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     /// <summary>
-    /// Check for conditions 2, 3, 4, 5, and 7 (but not 0, 1, and 6) mentioned in the description of IsErasableDatatypeWrapper.
+    /// Check for conditions 2, 3, 4, 5, 6, and 8 (but not 0, 1, and 7) mentioned in the description of IsErasableDatatypeWrapper.
     /// </summary>
     private static bool FindUnwrappedCandidate(DafnyOptions options, DatatypeDecl datatypeDecl, out DatatypeDestructor coreDtor) {
       if (datatypeDecl is IndDatatypeDecl &&
           !datatypeDecl.IsExtern(options, out _, out _) &&
-          !datatypeDecl.Members.Any(member => member is Field)) {
+          !datatypeDecl.Members.Any(member => member is Field { IsGhost: false }) &&
+          datatypeDecl.ParentTraits.Count == 0) {
         var nonGhostConstructors = datatypeDecl.Ctors.Where(ctor => !ctor.IsGhost).ToList();
         if (nonGhostConstructors.Count == 1) {
           // there is exactly one non-ghost constructor
