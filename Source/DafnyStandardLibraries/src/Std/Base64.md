@@ -1,4 +1,4 @@
-## The `Base64` module
+# The `Base64` module
 
 The `Std.Base64` module contains an encoder and decoder for Base64, which allows arbitrary byte sequences to be represented in sequences of characters drawn entirely from 7-bit ASCII. This encoder and decoder have two interfaces, one which uses `uint8` to represent arbitrary bytes, and one which uses `bv8`. The encoder and decoder are proved to be inverses of each other, for both interfaces.
 

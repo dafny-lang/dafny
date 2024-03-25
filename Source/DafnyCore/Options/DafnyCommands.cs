@@ -25,6 +25,7 @@ public static class DafnyCommands {
   }.Concat(ParserOptions);
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+    CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,

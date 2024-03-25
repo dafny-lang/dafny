@@ -11,6 +11,11 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
+  public static readonly Option<bool> ProgressOption =
+    new("--progress", "While verifying, output information that helps track progress") {
+      IsHidden = true
+    };
+
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
       IsHidden = true
@@ -572,6 +577,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      ProgressOption,
       LogLocation,
       LogLevelOption,
       ManualTriggerOption,
