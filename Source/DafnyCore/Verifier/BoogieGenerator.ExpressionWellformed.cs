@@ -711,7 +711,10 @@ namespace Microsoft.Dafny {
                     Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                     if (wh != null) {
                       var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
-                      var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
+                      var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
+                        "in the two-state function's previous state" +
+                          PODesc.IsAllocated.HelperFormal(formal)
+                        );
                       builder.Add(Assert(GetToken(ee), wh, desc));
                     }
                   }
