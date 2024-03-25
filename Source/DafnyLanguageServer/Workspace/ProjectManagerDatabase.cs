@@ -49,7 +49,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
-      fileSystem.UpdateDocument(documentChange);
+      var success = fileSystem.UpdateDocument(documentChange);
+      if (!success) {
+        throw new ArgumentException("the document change ranges did not match ranges inside the documents");
+      }
       var documentUri = documentChange.TextDocument.Uri;
       var manager = await GetProjectManager(documentUri, false);
       if (manager == null) {
