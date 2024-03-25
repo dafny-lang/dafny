@@ -80,7 +80,7 @@ module Q refines P {
 
 A submodule M within a module that is refining some base module must refine some submodule M in the base module.
 
-## **Error: to be a refinement of _kind_ '_name_' declared with (==), _kind_ '_name_' must support equality {#ref_mismatched_type_characteristics}
+## **Error: to be a refinement of _kind_ '_name_' declared with (==), _kind_ '_name_' must support equality {#ref_mismatched_type_characteristics_equality}
 
 ```dafny
 module P {
@@ -95,7 +95,7 @@ module Q refines P {
 The abstract type `T` in module `P` says it supports equality, but its attempted refinement in module `Q` does not.
 Codatatypes do not generally support equality and so cannot be refinements of equality-supporting abstract types.
 
-## **Error: to be a refinement of _kind_ '_name_' declared with (!new), _kind_ '_name_' must contain no references {#ref_mismatched_type_characteristics}
+## **Error: to be a refinement of _kind_ '_name_' declared with (!new), _kind_ '_name_' must contain no references {#ref_mismatched_type_characteristics_noreferences}
 
 ```dafny
 module P {
@@ -109,7 +109,7 @@ module Q refines P {
 The abstract type `T` in module `P` says it contains no reference, but its attempted refinement in module `Q` does.
 A refining type must support the type characteristics declared of the refined type.
 
-## **Error: to be a refinement of _kind_ '_name_' declared with (00), _kind_ '_name_' must be nonempty {#ref_mismatched_type_characteristics}
+## **Error: to be a refinement of _kind_ '_name_' declared with (00), _kind_ '_name_' must be nonempty {#ref_mismatched_type_characteristics_nonempty}
 
 ```dafny
 module P {
@@ -126,7 +126,7 @@ not generally known to be nonempty, so `A` cannot be used as a refinement for `T
 
 For this particular situation, a possible remedy would be to instead use `type T = A?`, since the nullable type `A?` is known to be nonempty.
 
-## **Error: to be a refinement of _kind_ '_name_' declared with (0), _kind_ '_name_' must support auto-initialization {#ref_mismatched_type_characteristics}
+## **Error: to be a refinement of _kind_ '_name_' declared with (0), _kind_ '_name_' must support auto-initialization {#ref_mismatched_type_characteristics_autoinit}
 
 ```dafny
 module P {
