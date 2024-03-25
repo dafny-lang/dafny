@@ -18,8 +18,8 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
-    //TODO: Update this to point to public module than the private one owned by ShubhamChaturvedi7 user.
-    private string DafnyRuntimeGoModule = "github.com/ShubhamChaturvedi7/DafnyRuntimeGo/";
+    //TODO: This is tentative, update this to point to public module once available.
+    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
 
     private bool GoModuleMode;
     private string GoModuleName;
