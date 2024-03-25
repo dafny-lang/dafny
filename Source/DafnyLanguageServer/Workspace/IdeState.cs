@@ -491,11 +491,11 @@ public record IdeState(
     public IPhase? MaybeParent => null;
   }
 
-  public record VerificationOf(ICanVerify CanVerify) : IPhase {
+  public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
     public IPhase? MaybeParent => VerificationPhase.Instance;
   }
 
-  public record VerificationScopePhase(VerificationOf Parent, string ScopeId) : IPhase {
+  public record VerificationOfScope(VerificationOfSymbol Parent, string ScopeId) : IPhase {
     public IPhase? MaybeParent => Parent;
   }
 
@@ -543,6 +543,9 @@ public record IdeState(
     var updateNewDiagnostics = NewDiagnostics;
     if (allTasksAreCompleted) {
 
+      // This should be moved to compilation
+      // TODO let Compilation track whether an ICanVerify has completely finished verifying ????
+      // Does not combine well with assertion filtering.
       var errorReporter = new ObservableErrorReporter(options, uri);
       List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
       errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
@@ -551,8 +554,8 @@ public record IdeState(
         scopeGroup.Select(s => new VerificationTaskResult(s.Task, ((Completed)s.RawStatus).Result)),
         errorReporter, boogieUpdate.ProofDependencyManager);
 
-      var canVerifyPhase = new VerificationOf(boogieUpdate.CanVerify);
-      var scopePhase = new VerificationScopePhase(canVerifyPhase, boogieUpdate.VerificationTask.ScopeId);
+      var canVerifyPhase = new VerificationOfSymbol(boogieUpdate.CanVerify);
+      var scopePhase = new VerificationOfScope(canVerifyPhase, boogieUpdate.VerificationTask.ScopeId);
       updateNewDiagnostics = updateNewDiagnostics.Add(scopePhase,
         verificationCoverageDiagnostics.Select(d => new FileDiagnostic(uri, d.ToLspDiagnostic())).ToImmutableList());
     }
