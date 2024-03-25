@@ -67,7 +67,7 @@ namespace DafnyTestGeneration {
           { Utils.UseFullName(functions[callable].ResultType) };
       }
 
-      Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callable}");
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
 
       SetNonZeroExitCode = true;
       return new List<Type>();
@@ -81,7 +81,7 @@ namespace DafnyTestGeneration {
         return functions[callable].TypeArgs;
       }
 
-      Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callable}");
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
 
       SetNonZeroExitCode = true;
       return new List<TypeParameter>();
@@ -97,7 +97,7 @@ namespace DafnyTestGeneration {
         result.AddRange(functions[callable].TypeArgs);
         clazz = functions[callable].EnclosingClass;
       } else {
-        Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callable}");
+        Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
 
         SetNonZeroExitCode = true;
         return result;
@@ -116,7 +116,7 @@ namespace DafnyTestGeneration {
           Utils.UseFullName(arg.Type)).ToList(); ;
       }
 
-      Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callable}");
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
 
       SetNonZeroExitCode = true;
       return new List<Type>();
@@ -130,7 +130,7 @@ namespace DafnyTestGeneration {
         return functions[callable].IsStatic;
       }
 
-      Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callable}");
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callable}");
 
       SetNonZeroExitCode = true;
       return true;
@@ -210,7 +210,7 @@ namespace DafnyTestGeneration {
           .Where(e => e != null);
       }
 
-      Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callableName}");
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callableName}");
 
       SetNonZeroExitCode = true;
       return new List<Expression>();
@@ -235,7 +235,7 @@ namespace DafnyTestGeneration {
           .Where(e => e != null);
       }
 
-      Options.Printer.ErrorWriteLine(Options.ErrorWriter, $"*** Error: Test Generation failed to identify callable {callableName}");
+      Options.ErrorWriter.WriteLine($"*** Error: Test Generation failed to identify callable {callableName}");
 
       SetNonZeroExitCode = true;
       return new List<Expression>();
@@ -254,7 +254,7 @@ namespace DafnyTestGeneration {
 
     public List<(string name, Type type, bool mutable, string/*?*/ defValue)> GetNonGhostFields(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        Options.Printer.ErrorWriteLine(Options.ErrorWriter,
+        Options.ErrorWriter.WriteLine(
             $"*** Error: Test Generation failed to identify type {type?.Name ?? " (null) "}");
 
         SetNonZeroExitCode = true;
@@ -286,7 +286,7 @@ namespace DafnyTestGeneration {
 
     public bool IsTrait(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        Options.Printer.ErrorWriteLine(Options.ErrorWriter,
+        Options.ErrorWriter.WriteLine(
             $"*** Error: Test Generation failed to identify type {type?.Name ?? " (null) "}");
 
         SetNonZeroExitCode = true;
@@ -304,7 +304,7 @@ namespace DafnyTestGeneration {
 
     public bool IsExtern(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        Options.Printer.ErrorWriteLine(Options.ErrorWriter,
+        Options.ErrorWriter.WriteLine(
             $"*** Error: Test Generation failed to identify type {type?.Name ?? " (null) "}");
 
         SetNonZeroExitCode = true;
@@ -315,7 +315,7 @@ namespace DafnyTestGeneration {
 
     public Constructor/*?*/ GetConstructor(UserDefinedType/*?*/ type) {
       if (type == null || !classes.ContainsKey(type.Name)) {
-        Options.Printer.ErrorWriteLine(Options.ErrorWriter,
+        Options.ErrorWriter.WriteLine(
             $"*** Error: Test Generation failed to identify type {type?.Name ?? " (null) "}");
 
         SetNonZeroExitCode = true;
