@@ -61,12 +61,13 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
     }
     var diagnostics = input.Diagnostics;
     var result = new List<DafnyCodeAction>();
-    foreach (var diagnostic in diagnostics) {
-      var range = diagnostic.Range;
+    var uri = input.Uri.ToUri();
+    foreach (var diagnostic in diagnostics.Where(d => d.Uri == uri)) {
+      var range = diagnostic.Diagnostic.Range;
       var linesOverlap = range.Start.Line <= selection.Start.Line
                          && selection.Start.Line <= range.End.Line;
       if (linesOverlap) {
-        var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic, selection);
+        var moreDafnyCodeActions = GetDafnyCodeActions(input, diagnostic.Diagnostic, selection);
         if (moreDafnyCodeActions != null) {
           result.AddRange(moreDafnyCodeActions);
         }

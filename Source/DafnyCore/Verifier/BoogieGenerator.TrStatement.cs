@@ -1903,7 +1903,10 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " at index " + i;
-              var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+              var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
+                "in the two-state lemma's previous state" +
+                PODesc.IsAllocated.HelperFormal(formal)
+                );
               builder.Add(Assert(ee.tok, wh, desc));
             }
           }

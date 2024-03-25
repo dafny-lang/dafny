@@ -8,6 +8,6 @@ namespace Microsoft.Dafny;
 
 public record FinishedResolution(
   ResolutionResult Result,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent {
+  ImmutableList<FileDiagnostic> Diagnostics) : ICompilationEvent {
 
 }
