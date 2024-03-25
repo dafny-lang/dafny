@@ -6,6 +6,7 @@ using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -49,7 +50,7 @@ public class LanguageServerFilesystem : IFileSystem {
     return existingText != document.Text;
   }
 
-  public bool UpdateDocument(DidChangeTextDocumentParams documentChange) {
+  public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
     if (!openFiles.TryGetValue(uri, out var entry)) {
       throw new InvalidOperationException("Cannot update file that has not been opened");
@@ -57,12 +58,17 @@ public class LanguageServerFilesystem : IFileSystem {
 
     var buffer = entry.Buffer;
     var mergedBuffer = buffer;
-    try {
-      foreach (var change in documentChange.ContentChanges) {
+    foreach (var change in documentChange.ContentChanges) {
+      try {
         mergedBuffer = mergedBuffer.ApplyTextChange(change);
+      } catch (ArgumentOutOfRangeException) {
+        var lastLine = mergedBuffer.Lines.LastOrDefault();
+        var endColumn = lastLine == null ? 0 : lastLine.EndIndex - lastLine.StartIndex;
+        var endLine = lastLine == null ? 0 : mergedBuffer.Lines.Count - 1;
+        var documentRange = new Range(0, 0, endLine, endColumn);
+        throw new ArgumentException(
+          $"The change range {change.Range} does not fall within the document range {documentRange}");
       }
-    } catch (ArgumentOutOfRangeException) {
-      return false;
     }
     entry.Buffer = mergedBuffer;
 
@@ -77,7 +83,6 @@ public class LanguageServerFilesystem : IFileSystem {
     }
 
     entry.Version = newVersion!.Value;
-    return true;
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {

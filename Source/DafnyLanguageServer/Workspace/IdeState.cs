@@ -23,8 +23,6 @@ public enum VerificationPreparationState { NotStarted, InProgress, Done }
 public record IdeCanVerifyState(VerificationPreparationState PreparationProgress,
   ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks);
 
-
-
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
 /// to provide the IDE with as much information as possible.
@@ -51,8 +49,7 @@ public record IdeState(
     return diagnostics.Select(MarkDiagnosticAsOutdated);
   }
 
-  private static Diagnostic MarkDiagnosticAsOutdated(Diagnostic diagnostic)
-  {
+  private static Diagnostic MarkDiagnosticAsOutdated(Diagnostic diagnostic) {
     return diagnostic with {
       Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
       Message = diagnostic.Message.StartsWith(OutdatedPrefix)
@@ -95,7 +92,7 @@ public record IdeState(
         continue;
       }
 
-      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).Select(d => 
+      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).Select(d =>
           d with { Diagnostic = MarkDiagnosticAsOutdated(d.Diagnostic) }).ToImmutableList().
         Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
       oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
@@ -412,7 +409,7 @@ public record IdeState(
       VerificationTrees = trees
     };
   }
-  
+
   private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
     return OldDiagnostics.Where(
       kv => {
@@ -493,7 +490,7 @@ public record IdeState(
 
     public IPhase? MaybeParent => null;
   }
-  
+
   public record VerificationOf(ICanVerify CanVerify) : IPhase {
     public IPhase? MaybeParent => VerificationPhase.Instance;
   }
