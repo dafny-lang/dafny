@@ -204,9 +204,6 @@ public static class VerifyCommand {
     var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
 
     verificationResults.Subscribe(result => {
-      ProofDependencyWarnings.ReportSuspiciousDependencies(cliCompilation.Options, result.Results,
-        resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
-
       foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
         usedDependencies.Add(used);
       }

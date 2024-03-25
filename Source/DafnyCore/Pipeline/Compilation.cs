@@ -22,6 +22,10 @@ public delegate Compilation CreateCompilation(
   ExecutionEngine boogieEngine,
   CompilationInput compilation);
 
+record VerificationOf(ICanVerify CanVerify) : IPhase {
+  public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
+}
+
 public record FilePosition(Uri Uri, Position Position);
 /// <summary>
 /// The compilation of a single version of a program
@@ -257,7 +261,7 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -280,12 +284,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, null, null);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
-    int? randomSeed = 0,
-    bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool>? taskFilter,
+    int? randomSeed = 0) {
 
     var resolution = await Resolution;
     if (resolution == null) {
@@ -297,23 +300,20 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
+    if ((randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
       return false;
     }
 
     updates.OnNext(new ScheduledVerification(canVerify));
 
-    if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
-      return true;
-    }
-
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
+    _ = VerifyUnverifiedSymbol(canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
 
-  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
+  private async Task VerifyUnverifiedSymbol(ICanVerify canVerify,
+    ResolutionResult resolution, Func<IVerificationTask, bool>? taskFilter, int? randomSeed) {
+
+    List<(IVerificationTask, Task)> tasks = new();
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -341,7 +341,7 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, tasksPerVerifiable must be Lazy
       var updated = false;
-      var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
+      IReadOnlyList<IVerificationTask> verificationTasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
@@ -357,33 +357,53 @@ public class Compilation : IDisposable {
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
-      if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var task in tasks.Where(taskFilter)) {
-          var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
-          VerifyTask(canVerify, seededTask);
+      var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
+      var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
+      var phase = new VerificationOf(canVerify);
+      foreach (var scope in verificationTaskPerScope) {
+        var tasksForScope = new List<Task<IVerificationStatus>>();
+        var scopeVerificationTasks = scope.ToList();
+        foreach (var verificationTask in scopeVerificationTasks) {
+          var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
+          tasksForScope.Add(VerifyTask(canVerify, seededTask));
+        }
+
+        _ = WaitForAndHandleScopeFinished();
+        async Task WaitForAndHandleScopeFinished() {
+          var statuses = await Task.WhenAll(tasksForScope);
+          if (statuses.Any(s => s is Stale)) {
+            return;
+          }
+
+          ProofDependencyWarnings.ReportSuspiciousDependencies(Options, phase,
+            statuses.Select((s, index) => new VerificationTaskResult(scopeVerificationTasks[index], ((Completed)s).Result)),
+            errorReporter, transformedProgram!.ProofDependencyManager);
         }
       }
-
     }
     finally {
       verificationTickets.Enqueue(Unit.Default);
     }
   }
 
-  private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
+  private Task<IVerificationStatus> VerifyTask(ICanVerify canVerify, IVerificationTask task) {
     var statusUpdates = task.TryRun();
     if (statusUpdates == null) {
       if (task.CacheStatus is Completed completedCache) {
         HandleStatusUpdate(canVerify, task, completedCache);
       }
 
-      return;
+      return Task.FromResult(task.CacheStatus);
     }
 
+    var completed = new TaskCompletionSource<IVerificationStatus>();
     statusUpdates.Subscribe(
       update => {
         try {
           HandleStatusUpdate(canVerify, task, update);
+          if (update is Completed or Stale) {
+            completed.TrySetResult(update);
+          }
         } catch (Exception e) {
           logger.LogError(e, "Caught exception in statusUpdates OnNext.");
         }
@@ -395,6 +415,7 @@ public class Compilation : IDisposable {
         }
       }
     );
+    return completed.Task;
   }
 
   public async Task Cancel(FilePosition filePosition) {

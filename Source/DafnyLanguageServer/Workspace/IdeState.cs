@@ -482,23 +482,6 @@ public record IdeState(
     };
   }
 
-
-  public record VerificationPhase : IPhase {
-    public static readonly VerificationPhase Instance = new();
-
-    private VerificationPhase() { }
-
-    public IPhase? MaybeParent => null;
-  }
-
-  public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
-    public IPhase? MaybeParent => VerificationPhase.Instance;
-  }
-
-  public record VerificationOfScope(VerificationOfSymbol Parent, string ScopeId) : IPhase {
-    public IPhase? MaybeParent => Parent;
-  }
-
   private IdeState HandleBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
     var previousState = this;
 
@@ -539,31 +522,9 @@ public record IdeState(
     var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
 
     var scopeGroup = newTaskStates.Values.Where(s => s.Task.ScopeId == boogieUpdate.VerificationTask.ScopeId).ToList();
-    var allTasksAreCompleted = scopeGroup.All(s => s.Status >= PublishedVerificationStatus.Error);
-    var updateNewDiagnostics = NewDiagnostics;
-    if (allTasksAreCompleted) {
-
-      // This should be moved to compilation
-      // TODO let Compilation track whether an ICanVerify has completely finished verifying ????
-      // Does not combine well with assertion filtering.
-      var errorReporter = new ObservableErrorReporter(options, uri);
-      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
-      errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
-
-      ProofDependencyWarnings.ReportSuspiciousDependencies(options,
-        scopeGroup.Select(s => new VerificationTaskResult(s.Task, ((Completed)s.RawStatus).Result)),
-        errorReporter, boogieUpdate.ProofDependencyManager);
-
-      var canVerifyPhase = new VerificationOfSymbol(boogieUpdate.CanVerify);
-      var scopePhase = new VerificationOfScope(canVerifyPhase, boogieUpdate.VerificationTask.ScopeId);
-      updateNewDiagnostics = updateNewDiagnostics.Add(scopePhase,
-        verificationCoverageDiagnostics.Select(d => new FileDiagnostic(uri, d.ToLspDiagnostic())).ToImmutableList());
-    }
-
     UpdateGutterIconTrees(logger, boogieUpdate, scopeGroup);
 
     return previousState with {
-      NewDiagnostics = updateNewDiagnostics,
       Counterexamples = counterExamples,
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {

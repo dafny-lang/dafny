@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,13 +11,33 @@ namespace Microsoft.Dafny;
 
 public record VerificationTaskResult(IVerificationTask Task, VerificationRunResult Result);
 
+public record VerificationPhase : IPhase {
+  public static readonly VerificationPhase Instance = new();
+
+  private VerificationPhase() { }
+
+  public IPhase? MaybeParent => null;
+}
+
+public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;
+
+public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
+  public IPhase? MaybeParent => VerificationPhase.Instance;
+}
+
+public record VerificationOfScope(VerificationOfSymbol Parent, string ScopeId) : IPhase {
+  public IPhase? MaybeParent => Parent;
+}
+
 public class ProofDependencyWarnings {
 
 
-  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<VerificationTaskResult> parts,
+  public static void ReportSuspiciousDependencies(DafnyOptions options, IPhase parentPhase, IEnumerable<VerificationTaskResult> parts,
     ErrorReporter reporter, ProofDependencyManager manager) {
     foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeId)) {
+      var phase = new PhaseFromObject((typeof(ProofDependencyWarnings), resultsForScope.Key), parentPhase);
       WarnAboutSuspiciousDependenciesForImplementation(options,
+        phase,
         reporter,
         manager,
         resultsForScope.Key,
@@ -31,14 +52,16 @@ public class ProofDependencyWarnings {
         (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col));
 
     foreach (var (implementation, result) in orderedResults) {
+      var phase = new PhaseFromObject((typeof(ProofDependencyWarnings), implementation), new MessageSourceBasedPhase(MessageSource.Verifier));
       if (result.Outcome != VcOutcome.Correct) {
         continue;
       }
-      Warn(dafnyOptions, reporter, depManager, implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements));
+      Warn(dafnyOptions, phase, reporter, depManager, implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements));
     }
   }
 
-  public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, ErrorReporter reporter,
+  public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, PhaseFromObject phase,
+    ErrorReporter reporter,
     ProofDependencyManager depManager, string name,
     IReadOnlyList<VerificationRunResult> results) {
     if (results.Any(r => r.Outcome != SolverOutcome.Valid)) {
@@ -47,11 +70,13 @@ public class ProofDependencyWarnings {
 
     var coveredElements = results.SelectMany(r => r.CoveredElements);
 
-    Warn(dafnyOptions, reporter, depManager, name, coveredElements);
+    Warn(dafnyOptions, phase, reporter, depManager, name, coveredElements);
   }
 
-  private static void Warn(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager,
+  private static void Warn(DafnyOptions dafnyOptions, IPhase phase, ErrorReporter reporter, ProofDependencyManager depManager,
     string scopeName, IEnumerable<TrackedNodeComponent> coveredElements) {
+
+
     var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(scopeName);
     var usedDependencies =
       coveredElements
