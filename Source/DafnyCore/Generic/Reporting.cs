@@ -24,6 +24,17 @@ namespace Microsoft.Dafny {
   /// The children of a phase, are the phases that are discovered and completed as phase of that parent.
   /// </summary>
   public interface IPhase {
+    public Cons<IPhase> AncestorsAndSelf {
+      get {
+        Cons<IPhase> result = new Cons<IPhase>(this, new Nil<IPhase>());
+        while (result.Head.MaybeParent != null) {
+          result = new Cons<IPhase>(result.Head.MaybeParent, result);
+        }
+
+        return result;
+      }
+    }
+
     IPhase? MaybeParent { get; }
     MessageSource Source {
       get {

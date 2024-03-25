@@ -33,8 +33,8 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> OldDiagnostics,
-  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> NewDiagnostics,
+  PhaseTree OldDiagnostics,
+  PhaseTree NewDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -64,8 +64,8 @@ public record IdeState(
       input,
       CompilationStatus.Parsing,
       program,
-      ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty,
-      ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      PhaseTree.Empty(),
+      PhaseTree.Empty(),
       program,
       SymbolTable.Empty(),
       LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>>.Empty,
@@ -86,21 +86,26 @@ public record IdeState(
       ? CanVerifyStates
       : MigrateImplementationViews(migrator, CanVerifyStates);
 
-    var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
-    foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
-      if (phase.MaybeParent == InternalExceptions.Instance) {
+    var oldDiagnostics = new PhaseTree(OldDiagnostics.Phase, OldDiagnostics.Diagnostics.Select(
+      s => s with { Diagnostic = MarkDiagnosticAsOutdated(s.Diagnostic) }).ToArray());
+    var queue = new Queue<(PhaseTree, PhaseTree)>();
+    queue.Enqueue((oldDiagnostics, OldDiagnostics));
+    while (queue.Any()) {
+      var (newTree, oldTree) = queue.Dequeue();
+      if (oldTree.Phase == InternalExceptions.Instance) {
         continue;
       }
-
-      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).Select(d =>
-          d with { Diagnostic = MarkDiagnosticAsOutdated(d.Diagnostic) }).ToImmutableList().
-        Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
-      oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
+      foreach (var oldChild in oldTree.Children) {
+        var childDiagnostics = oldChild.Diagnostics.Select(
+          s => s with { Diagnostic = MarkDiagnosticAsOutdated(s.Diagnostic) }).ToArray();
+        var newChild = newTree.Add(oldChild.Phase, childDiagnostics);
+        queue.Enqueue((newChild, oldChild));
+      }
     }
     return this with {
       Version = newVersion,
       OldDiagnostics = oldDiagnostics,
-      NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      NewDiagnostics = PhaseTree.Empty(),
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
@@ -151,7 +156,7 @@ public record IdeState(
       s.Value.Values.SelectMany(cvs =>
         cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))
           ));
-    var genericDiagnostics = (OldDiagnostics.Values.Concat(NewDiagnostics.Values)).SelectMany(x => x);
+    var genericDiagnostics = OldDiagnostics.AllDiagnostics.Concat(NewDiagnostics.AllDiagnostics);
     return genericDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
   }
 
@@ -208,7 +213,7 @@ public record IdeState(
 
   private IdeState HandlePhaseFinished(PhaseFinished phaseFinished) {
     return this with {
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(phaseFinished.Phase)
+      OldDiagnostics = OldDiagnostics.Remove(phaseFinished.Phase)
     };
   }
 
@@ -236,7 +241,7 @@ public record IdeState(
 
     return this with {
       OwnedUris = ownedUris,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(RootFilesPhase.Instance),
+      OldDiagnostics = OldDiagnostics.Remove(RootFilesPhase.Instance),
       NewDiagnostics = NewDiagnostics.Add(RootFilesPhase.Instance, determinedRootFiles.Diagnostics),
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
@@ -351,7 +356,7 @@ public record IdeState(
 
     var phase = new MessageSourceBasedPhase(MessageSource.Resolver);
     return previousState with {
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
+      OldDiagnostics = OldDiagnostics.Remove(phase),
       NewDiagnostics = NewDiagnostics.Add(phase, finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
@@ -410,27 +415,11 @@ public record IdeState(
     var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
+      OldDiagnostics = OldDiagnostics.Remove(completedPhase),
       NewDiagnostics = NewDiagnostics.Add(completedPhase, newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
-  }
-
-  private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
-    return OldDiagnostics.Where(
-      kv => {
-        var phase = kv.Key;
-        while (phase != null) {
-          if (phase.Equals(completedPhase)) {
-            return false;
-          }
-
-          phase = phase.MaybeParent;
-        }
-
-        return true;
-      }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
   }
 
   private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
