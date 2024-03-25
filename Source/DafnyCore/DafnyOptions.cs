@@ -271,8 +271,7 @@ namespace Microsoft.Dafny {
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
-      Printer = new DafnyConsolePrinter(this);
-      Printer.Options = this;
+      Printer = new NullPrinter();
     }
 
     public override string VersionNumber {

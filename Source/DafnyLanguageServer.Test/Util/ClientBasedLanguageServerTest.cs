@@ -210,20 +210,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
-    logger.LogTrace("GetLastDiagnosticsParams status was: " + status.Stringify());
-    await Task.Delay(10);
-    try {
-      var result = diagnosticsReceiver.History.Last(d => d.Uri == documentItem.Uri);
-      diagnosticsReceiver.ClearQueue();
-      return result;
-    } catch (InvalidOperationException) {
-      await output.WriteLineAsync(
-        $"GetLastDiagnosticsParams didn't find the right diagnostics. History contained: {diagnosticsReceiver.History.Stringify()}");
-      var diagnostic = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      await output.WriteLineAsync(
-        $"After waiting for diagnostics, got: {diagnostic.Stringify()}");
-      throw;
+    var result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
+    while (result == null) {
+      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
+      logger.LogInformation(
+        $"GetLastDiagnosticsParams didn't find the right diagnostics after getting status {status}. Waited to get these diagnostics: {diagnostics.Stringify()}");
     }
+    diagnosticsReceiver.ClearQueue();
+    return result;
   }
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning,
