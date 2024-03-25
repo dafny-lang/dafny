@@ -22,10 +22,6 @@ public delegate Compilation CreateCompilation(
   ExecutionEngine boogieEngine,
   CompilationInput compilation);
 
-record VerificationOf(ICanVerify CanVerify) : IPhase {
-  public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
-}
-
 public record FilePosition(Uri Uri, Position Position);
 /// <summary>
 /// The compilation of a single version of a program
@@ -359,7 +355,7 @@ public class Compilation : IDisposable {
 
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
-      var phase = new VerificationOf(canVerify);
+      var verificationOfSymbol = new VerificationOfSymbol(canVerify);
       foreach (var scope in verificationTaskPerScope) {
         var tasksForScope = new List<Task<IVerificationStatus>>();
         var scopeVerificationTasks = scope.ToList();
@@ -367,17 +363,21 @@ public class Compilation : IDisposable {
           var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
           tasksForScope.Add(VerifyTask(canVerify, seededTask));
         }
-
+        
         _ = WaitForAndHandleScopeFinished();
         async Task WaitForAndHandleScopeFinished() {
+          if (taskFilter != null) {
+            return;
+          }
           var statuses = await Task.WhenAll(tasksForScope);
           if (statuses.Any(s => s is Stale)) {
             return;
           }
 
-          ProofDependencyWarnings.ReportSuspiciousDependencies(Options, phase,
-            statuses.Select((s, index) => new VerificationTaskResult(scopeVerificationTasks[index], ((Completed)s).Result)),
-            errorReporter, transformedProgram!.ProofDependencyManager);
+          var proofDependingWarningComputation = new PhaseFromObject((typeof(ProofDependencyWarnings), scope.Key), verificationOfSymbol);
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, proofDependingWarningComputation,
+            errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
+          updates.OnNext(new PhaseFinished(proofDependingWarningComputation));
         }
       }
     }

@@ -7,3 +7,5 @@ public record BoogieUpdate(ProofDependencyManager ProofDependencyManager,
   : ICompilationEvent {
 
 }
+
+public record PhaseFinished(IPhase Phase) : ICompilationEvent;

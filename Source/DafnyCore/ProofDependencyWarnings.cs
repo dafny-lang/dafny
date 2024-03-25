@@ -11,39 +11,13 @@ namespace Microsoft.Dafny;
 
 public record VerificationTaskResult(IVerificationTask Task, VerificationRunResult Result);
 
-public record VerificationPhase : IPhase {
-  public static readonly VerificationPhase Instance = new();
-
-  private VerificationPhase() { }
-
-  public IPhase? MaybeParent => null;
-}
-
 public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;
 
 public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
-  public IPhase? MaybeParent => VerificationPhase.Instance;
-}
-
-public record VerificationOfScope(VerificationOfSymbol Parent, string ScopeId) : IPhase {
-  public IPhase? MaybeParent => Parent;
+  public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
 }
 
 public class ProofDependencyWarnings {
-
-
-  public static void ReportSuspiciousDependencies(DafnyOptions options, IPhase parentPhase, IEnumerable<VerificationTaskResult> parts,
-    ErrorReporter reporter, ProofDependencyManager manager) {
-    foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeId)) {
-      var phase = new PhaseFromObject((typeof(ProofDependencyWarnings), resultsForScope.Key), parentPhase);
-      WarnAboutSuspiciousDependenciesForImplementation(options,
-        phase,
-        reporter,
-        manager,
-        resultsForScope.Key,
-        resultsForScope.Select(p => p.Result).ToList());
-    }
-  }
 
   public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
     var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
@@ -60,7 +34,7 @@ public class ProofDependencyWarnings {
     }
   }
 
-  public static void WarnAboutSuspiciousDependenciesForImplementation(DafnyOptions dafnyOptions, PhaseFromObject phase,
+  public static void WarnAboutSuspiciousDependenciesForScope(DafnyOptions dafnyOptions, PhaseFromObject phase,
     ErrorReporter reporter,
     ProofDependencyManager depManager, string name,
     IReadOnlyList<VerificationRunResult> results) {

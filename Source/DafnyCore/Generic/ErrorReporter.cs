@@ -147,7 +147,7 @@ public abstract class ErrorReporter {
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Warning, errorId.ToString(), tok, msg);
   }
-
+  
   public void Warning(MessageSource source, string errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
