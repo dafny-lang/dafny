@@ -640,7 +640,7 @@ namespace Microsoft.Dafny {
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
 
       //This recursive call is to produce a doo artifact for every backend.
-      if (dafnyProgram.Options.Backend is not LibraryBackend && dafnyProgram.Options.UsingNewCli) {
+      if (dafnyProgram.Options.Backend is not LibraryBackend && dafnyProgram.Options.UsingNewCli && dafnyProgram.Options.Get(CommonOptionBag.GenerateDoo)) {
         var b = dafnyProgram.Options.Backend;
         var lib = new LibraryBackend(dafnyProgram.Options);
         lib.ProgramAfterParsing = dafnyProgram.Options.Backend.ProgramAfterParsing;
