@@ -36,7 +36,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   /// </summary>
   [Fact]
   public async Task QuickEditsInLargeFile() {
-    string GetLineContent(int index) => $"method Foo{index}() {{ assume false; }}";
+    string GetLineContent(int index) => $"method Foo{index}() {{ assume {{:axiom}} false; }}";
     var contentBuilder = new StringBuilder();
     for (int lineNumber = 0; lineNumber < 1000; lineNumber++) {
       contentBuilder.AppendLine(GetLineContent(lineNumber));

@@ -108,14 +108,18 @@ function HasResolutionError(): int {
   true
 }".TrimStart();
 
-      var document = await CreateOpenAndWaitForResolve(source);
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var resolutionDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(MessageSource.Resolver.ToString(), resolutionDiagnostics[0].Source);
-      ApplyChange(ref document, new Range(3, 0, 3, 0), "// comment to trigger update\n");
+      ApplyChange(ref documentItem, new Range(2, 1, 2, 1), "\n// comment to trigger update\n");
       await AssertNoDiagnosticsAreComing(CancellationToken);
-      ApplyChange(ref document, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
-      var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Equal(MessageSource.Parser.ToString(), parseDiagnostics[0].Source);
+      ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
+      var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
+      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
+      ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Single(parseDiagnostics2);
+      Assert.Equal(MessageSource.Resolver.ToString(), parseDiagnostics2[0].Source);
     }
 
     [Fact]
@@ -277,7 +281,7 @@ method Test(i: int) returns (j: int)
       var relatedInformation =
         diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Null(relatedInformation[0].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[0].Message);
     }
 
     [Fact]
@@ -847,7 +851,7 @@ class Test {
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Null(relatedInformation[1].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
       Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

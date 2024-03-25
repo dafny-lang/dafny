@@ -49,7 +49,7 @@ public class LanguageServerFilesystem : IFileSystem {
     return existingText != document.Text;
   }
 
-  public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+  public bool UpdateDocument(DidChangeTextDocumentParams documentChange) {
     var uri = documentChange.TextDocument.Uri.ToUri();
     if (!openFiles.TryGetValue(uri, out var entry)) {
       throw new InvalidOperationException("Cannot update file that has not been opened");
@@ -57,8 +57,12 @@ public class LanguageServerFilesystem : IFileSystem {
 
     var buffer = entry.Buffer;
     var mergedBuffer = buffer;
-    foreach (var change in documentChange.ContentChanges) {
-      mergedBuffer = mergedBuffer.ApplyTextChange(change);
+    try {
+      foreach (var change in documentChange.ContentChanges) {
+        mergedBuffer = mergedBuffer.ApplyTextChange(change);
+      }
+    } catch (ArgumentOutOfRangeException) {
+      return false;
     }
     entry.Buffer = mergedBuffer;
 
@@ -73,7 +77,7 @@ public class LanguageServerFilesystem : IFileSystem {
     }
 
     entry.Version = newVersion!.Value;
-
+    return true;
   }
 
   public void CloseDocument(TextDocumentIdentifier document) {
