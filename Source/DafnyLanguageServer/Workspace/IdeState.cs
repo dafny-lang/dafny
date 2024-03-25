@@ -408,7 +408,7 @@ public record IdeState(
       VerificationTrees = trees
     };
   }
-  
+
   private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
     return OldDiagnostics.Where(
       kv => {
