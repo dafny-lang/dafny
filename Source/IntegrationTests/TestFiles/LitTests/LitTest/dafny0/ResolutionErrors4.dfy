@@ -314,19 +314,21 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
     P(n);  // error: Z.XYZ is not known to support auto-initialization
   }
 
-  type A0
-  type A1(0)   // error: not allowed to change auto-initialization setting
-  type A2(00)  // error: not allowed to change nonempty setting
-  type B0      // error: not allowed to change auto-initialization setting
-  type B1(0)
-  type B2(00)  // error: not allowed to change auto-initialization setting
-  type C0      // error: not allowed to change nonempty setting
-  type C1(0)   // error: not allowed to change auto-initialization setting
-  type C2(00)
-
   method Delta<
     Q,  // error: not allowed to change auto-initialization setting
     W,
     E(0),
     R(0)>()  // error: not allowed to change auto-initialization setting
+}
+
+module ZI_RefinementConcrete2 refines ZI_RefinementAbstract {
+  type A0
+  type A1(0)
+  type A2(00)
+  type B0      // error (with hint): not allowed to change auto-initialization setting from (0) to nothing
+  type B1(0)
+  type B2(00)  // error (with hint): not allowed to change auto-initialization setting from (0) to (00)
+  type C0      // error (with hint): not allowed to change nonempty setting from (00) to nothing
+  type C1(0)
+  type C2(00)
 }

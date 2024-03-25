@@ -32,3 +32,21 @@ true 3
 true 3
 true 4
 true 4
+map[] 2 false true
+2.0 2.1
+1.0 2.1 3.0
+4 2.0
+2 4.1
+2 2 true true
+true false
+true false true true
+6.0 7.0
+map[] false true
+2.0 2.1
+1.0 2.1 3.0
+2.0
+4.1
+true true
+true false
+true false true true
+6.0 7.0

@@ -3,10 +3,10 @@ git-issue-1419.dfy(17,4): Error: a exists expression involved in a predicate def
 git-issue-1419.dfy(23,7): Error: type 'Reference' declared as containing no reference types, but the RHS type (object) may contain reference types
 git-issue-1419.dfy(25,7): Error: type 'ReferenceX' declared as containing no reference types, but the RHS type (object) may contain reference types
 git-issue-1419.dfy(27,7): Error: type 'ParamX' declared as containing no reference types, but the RHS type (X) may contain reference types
-git-issue-1419.dfy(32,19): Error: type parameter 0 (X) passed to type Dt must support no references (got object)
+git-issue-1419.dfy(32,19): Error: type parameter 0 (X) passed to type Dt must contain no references (got object)
 git-issue-1419.dfy(32,7): Error: type 'Dt1' declared as containing no reference types, but the RHS type (Dt<object, int>) may contain reference types
 git-issue-1419.dfy(33,7): Error: type 'Dt2' declared as containing no reference types, but the RHS type (Dt<int, object>) may contain reference types
-git-issue-1419.dfy(34,19): Error: type parameter 0 (X) passed to type Dt must support no references (got object)
+git-issue-1419.dfy(34,19): Error: type parameter 0 (X) passed to type Dt must contain no references (got object)
 git-issue-1419.dfy(34,7): Error: type 'Dt3' declared as containing no reference types, but the RHS type (Dt<object, object>) may contain reference types
 git-issue-1419.dfy(38,7): Error: type 'Et1' declared as containing no reference types, but the RHS type (Et<object, int>) may contain reference types
 git-issue-1419.dfy(39,7): Error: type 'Et2' declared as containing no reference types, but the RHS type (Et<int, object>) may contain reference types
@@ -33,14 +33,14 @@ git-issue-1419.dfy(142,4): Error: a exists expression involved in a predicate de
 git-issue-1419.dfy(146,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'A.ReferenceX<object>') may contain references (see documentation for 'older' parameters)
 git-issue-1419.dfy(150,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'A.Param<int>') may contain references (see documentation for 'older' parameters)
 git-issue-1419.dfy(154,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'A.Param<object>') may contain references (see documentation for 'older' parameters)
-git-issue-1419.dfy(187,16): Error: type parameter (X) passed to type Param must support no references (got object)
+git-issue-1419.dfy(187,16): Error: type parameter (X) passed to type Param must contain no references (got object)
 git-issue-1419.dfy(195,4): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'o' (of type 'Obs') may contain references (see documentation for 'older' parameters)
 git-issue-1419.dfy(202,7): Error: type 'X' declared as containing no reference types, but the RHS type (D) may contain reference types
 git-issue-1419.dfy(205,7): Error: type 'SM0' declared as containing no reference types, but the RHS type (M<int>) may contain reference types
 git-issue-1419.dfy(206,7): Error: type 'SM1' declared as containing no reference types, but the RHS type (M<object>) may contain reference types
 git-issue-1419.dfy(210,7): Error: type 'SN1' declared as containing no reference types, but the RHS type (N<object>) may contain reference types
-git-issue-1419.dfy(218,27): Error: type parameter (X) passed to method NoReferencesPlease must support no references (got Y) (perhaps try declaring type parameter 'Y' on line 214 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
-git-issue-1419.dfy(219,32): Error: type parameter (X) passed to method NoReferencesPlease must support no references (got object)
+git-issue-1419.dfy(218,27): Error: type parameter (X) passed to method NoReferencesPlease must contain no references (got Y) (perhaps try declaring type parameter 'Y' on line 214 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+git-issue-1419.dfy(219,32): Error: type parameter (X) passed to method NoReferencesPlease must contain no references (got object)
 git-issue-1419.dfy(252,7): Error: type 'SM0' declared as containing no reference types, but the RHS type (I.M<int>) may contain reference types
 git-issue-1419.dfy(253,7): Error: type 'SM1' declared as containing no reference types, but the RHS type (I.M<object>) may contain reference types
 git-issue-1419.dfy(256,7): Error: type 'SN1' declared as containing no reference types, but the RHS type (I.N<object>) may contain reference types

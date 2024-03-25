@@ -1,0 +1,35 @@
+git-issue-2064.dfy(13,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'OpaqueType.T' must contain no references
+git-issue-2064.dfy(14,9): Error: to be a refinement of abstract type 'UnitTestParent.U' declared with (==), type synonym 'OpaqueType.U' must support equality
+git-issue-2064.dfy(15,9): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), type synonym 'OpaqueType.V' must support auto-initialization
+git-issue-2064.dfy(16,9): Error: to be a refinement of abstract type 'UnitTestParent.W' declared with (00), type synonym 'OpaqueType.W' must be nonempty
+git-issue-2064.dfy(35,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'OpaqueTypeMixedUp.T' must contain no references
+git-issue-2064.dfy(36,9): Error: to be a refinement of abstract type 'UnitTestParent.U' declared with (==), type synonym 'OpaqueTypeMixedUp.U' must support equality
+git-issue-2064.dfy(37,9): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), type synonym 'OpaqueTypeMixedUp.V' must support auto-initialization
+git-issue-2064.dfy(51,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'Arrow.T' must contain no references
+git-issue-2064.dfy(52,9): Error: to be a refinement of abstract type 'UnitTestParent.U' declared with (==), type synonym 'Arrow.U' must support equality
+git-issue-2064.dfy(53,9): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), type synonym 'Arrow.V' must support auto-initialization
+git-issue-2064.dfy(54,9): Error: to be a refinement of abstract type 'UnitTestParent.W' declared with (00), type synonym 'Arrow.W' must be nonempty
+git-issue-2064.dfy(60,9): Error: to be a refinement of abstract type 'UnitTestParent.U' declared with (==), type synonym 'ArrowGood.U' must support equality
+git-issue-2064.dfy(66,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'ArrowDirect.T' must contain no references
+git-issue-2064.dfy(67,9): Error: to be a refinement of abstract type 'UnitTestParent.U' declared with (==), type synonym 'ArrowDirect.U' must support equality
+git-issue-2064.dfy(68,9): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), type synonym 'ArrowDirect.V' must support auto-initialization
+git-issue-2064.dfy(69,9): Error: to be a refinement of abstract type 'UnitTestParent.W' declared with (00), type synonym 'ArrowDirect.W' must be nonempty
+git-issue-2064.dfy(74,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'Class.T' must contain no references
+git-issue-2064.dfy(76,9): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), type synonym 'Class.V' must support auto-initialization
+git-issue-2064.dfy(77,9): Error: to be a refinement of abstract type 'UnitTestParent.W' declared with (00), type synonym 'Class.W' must be nonempty
+git-issue-2064.dfy(81,10): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), class 'ClassDirect.T' must contain no references
+git-issue-2064.dfy(83,10): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), class 'ClassDirect.V' must support auto-initialization
+git-issue-2064.dfy(84,10): Error: to be a refinement of abstract type 'UnitTestParent.W' declared with (00), class 'ClassDirect.W' must be nonempty
+git-issue-2064.dfy(89,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'NullableClass.T' must contain no references
+git-issue-2064.dfy(98,9): Error: to be a refinement of abstract type 'UnitTestParent.T' declared with (!new), type synonym 'InstantiatedDatatypeBad0.T' must contain no references
+git-issue-2064.dfy(100,9): Error: to be a refinement of abstract type 'UnitTestParent.V' declared with (0), type synonym 'InstantiatedDatatypeBad0.V' must support auto-initialization
+git-issue-2064.dfy(101,9): Error: to be a refinement of abstract type 'UnitTestParent.W' declared with (00), type synonym 'InstantiatedDatatypeBad0.W' must be nonempty
+git-issue-2064.dfy(108,9): Error: to be a refinement of abstract type 'UnitTestParent.U' declared with (==), type synonym 'InstantiatedDatatypeBad1.U' must support equality
+git-issue-2064.dfy(134,10): Error: to be a refinement of abstract type 'Parent.T' declared with (==,!new), class 'Child.T' must contain no references
+git-issue-2064.dfy(161,13): Error: to be a refinement of abstract type 'Parent.U' declared with (00), datatype 'Child.U' must be nonempty
+git-issue-2064.dfy(158,9): Error: not resolving module 'BugReport1' because there were errors in resolving its nested module 'Child'
+git-issue-2064.dfy(183,10): Error: to be a refinement of abstract type 'Parent.U' declared with (00), class 'Child.U' must be nonempty
+git-issue-2064.dfy(179,9): Error: not resolving module 'BugReport2' because there were errors in resolving its nested module 'Child'
+git-issue-2064.dfy(207,10): Error: to be a refinement of abstract type 'Parent.U' declared with (0), class 'Child.U' must support auto-initialization
+git-issue-2064.dfy(204,9): Error: not resolving module 'BugReport2'' because there were errors in resolving its nested module 'Child'
+34 resolution/type errors detected in git-issue-2064.dfy
