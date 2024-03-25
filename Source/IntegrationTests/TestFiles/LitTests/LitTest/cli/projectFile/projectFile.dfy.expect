@@ -1,5 +1,6 @@
 Error: The Dafny project file invalidValue.toml contains the following errors: (3,14) : error : Unexpected token `NoIncludes` for a value
 
+Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 input.dfy(6,8): Warning: Shadowed local-variable name: x
 Compilation failed because warnings were found and --allow-warnings is false
 Error: file web.toml not found
