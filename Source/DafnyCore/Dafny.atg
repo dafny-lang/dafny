@@ -3758,6 +3758,7 @@ ParensExpression<out Expression e>
        SystemModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
        e = new DatatypeValue(lp, SystemModuleManager.TupleTypeName(argumentGhostness), SystemModuleManager.TupleTypeCtorName(args.Count), args);
      }
+     e.RangeToken = new RangeToken(lp, rp);
   .)
   .
 
