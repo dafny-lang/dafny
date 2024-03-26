@@ -309,7 +309,6 @@ public class Compilation : IDisposable {
   private async Task VerifyUnverifiedSymbol(ICanVerify canVerify,
     ResolutionResult resolution, Func<IVerificationTask, bool>? taskFilter, int? randomSeed) {
 
-    List<(IVerificationTask, Task)> tasks = new();
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);

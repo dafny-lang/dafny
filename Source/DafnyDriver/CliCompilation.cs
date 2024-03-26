@@ -140,7 +140,10 @@ public class CliCompilation {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
-        foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
+        var parts = canVerifyResult.TaskFilter == null 
+          ? canVerifyPartsIdentified.Parts 
+          : canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter);
+        foreach (var part in parts) {
           canVerifyResult.Tasks.Add(part);
         }
 
