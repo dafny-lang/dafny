@@ -398,8 +398,8 @@ module Std.JSON.ZeroCopy.Serializer {
 
 
   ghost function {:isolate_assertions} SequenceSpec<T>(v: Value, items: seq<T>,
-                                                              spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
-                                                              writer: Writer)
+                                                       spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
+                                                       writer: Writer)
     : (wr: Writer)
     requires SequenceSpecRequires(v, items, spec, impl, writer)
     decreases v, 1, items

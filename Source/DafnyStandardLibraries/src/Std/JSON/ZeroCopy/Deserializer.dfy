@@ -245,10 +245,10 @@ module Std.JSON.ZeroCopy.Deserializer {
     }
 
     opaque function {:resource_limit 10000000} {:isolate_assertions} AppendLast(ghost cs0: FreshCursor,
-                                                                                       ghost json: ValueParser,
-                                                                                       elems: Split<seq<TSuffixedElement>>,
-                                                                                       elem: Split<TElement>,
-                                                                                       sep: Split<Structural<jclose>>)
+                                                                                ghost json: ValueParser,
+                                                                                elems: Split<seq<TSuffixedElement>>,
+                                                                                elem: Split<TElement>,
+                                                                                sep: Split<Structural<jclose>>)
       : (elems': Split<seq<TSuffixedElement>>)
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
