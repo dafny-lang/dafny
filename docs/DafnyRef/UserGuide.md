@@ -2469,12 +2469,12 @@ Legacy options:
   * `1` (default) - in the body of prefix lemmas, rewrite any use of a
     focal predicate `P` to `P#[_k-1]`.
 
-* `-extractCounterexample` - control generation of counterexamples. If
-  verification fails, report a detailed counterexample for the first
-  failing assertion. Requires specifying the `-mv` option, to specify
-  where to write the counterexample, as well as the
-  `-proverOpt:O:model_compress=false` and
-  `-proverOpt:O:model.completion=true` options.
+* `-extractCounterexample` - if verification fails, report a possible
+  counterexample as a set of assumptions that can be inserted into the code.
+  Note that Danfy cannot guarantee that the counterexample
+  it reports provably violates the assertion or that the assumptions are not
+  mutually inconsistent (see [^smt-encoding]), so this output should be 
+  expected manually and treated as a hint.
 
 ### 13.9.8. Controlling compilation {#sec-controlling-compilation}
 

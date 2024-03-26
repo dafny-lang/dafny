@@ -35,6 +35,7 @@ module SimpleTest {
     } else if (|tseq| > 0 && tseq[0].1.1 == 'R') {
         return 2;
     }
+    return 3;
   }
 }
 ".TrimStart();

@@ -354,15 +354,18 @@ namespace Microsoft.Dafny {
         return;
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
+      model.AssignConcretePrimitiveValues();
+      options.OutputWriter.WriteLine("WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#fn:smt-encoding.");
       options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
+      if (model.LoopGuards.Count > 0) {
+        options.OutputWriter.WriteLine("Temporary variables to describe counterexamples: ");
+        foreach (var loopGuard in model.LoopGuards) {
+          options.OutputWriter.WriteLine($"ghost var {loopGuard} : bool := false;");
+        }
+      }
       foreach (var state in model.States.Where(state => state.StateContainsPosition())) {
         options.OutputWriter.WriteLine(state.FullStateName + ":");
-        var vars = state.ExpandedVariableSet(-1);
-        foreach (var variable in vars) {
-          options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
-                                         $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                                         $"{variable.Value}");
-        }
+        options.OutputWriter.WriteLine(state.AsAssumption());
       }
     }
 

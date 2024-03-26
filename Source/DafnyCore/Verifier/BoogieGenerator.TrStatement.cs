@@ -1510,7 +1510,7 @@ namespace Microsoft.Dafny {
       }
 
       var loopBodyBuilder = new BoogieStmtListBuilder(this, options);
-      loopBodyBuilder.AddCaptureState(s.Tok, true, "after some loop iterations");
+      loopBodyBuilder.AddCaptureState(s.Tok, true, CaptureStateExtensions.AfterLoopIterationsStateMarker);
 
       // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));

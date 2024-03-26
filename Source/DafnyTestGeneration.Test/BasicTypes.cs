@@ -214,7 +214,7 @@ module SimpleTest {
       Assert.True(methods.All(m => m.ValueCreation.Count == 0));
       Assert.True(methods.Exists(m => m.ArgValues[0] == "'B'"));
       Assert.True(methods.Exists(m =>
-        Regex.IsMatch(m.ArgValues[0], "'[^B]'")));
+        Regex.IsMatch(m.ArgValues[0], "'[^B]+'")));
     }
 
   }
