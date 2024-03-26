@@ -95,9 +95,7 @@ public class ProgramParser {
       // Capture the original program text before resolution
       // if we're building a .doo file.
       // See comment on LibraryBackend.DooFile.
-      if (program.Options.Backend is LibraryBackend libBackend) {
-        libBackend.ProgramAfterParsing = new Program(new Cloner(true), program);
-      }
+      program.Options.Backend.ProgramAfterParsing = new Program(new Cloner(true), program);
     }
 
     ShowWarningsForIncludeCycles(program);

@@ -52,7 +52,6 @@ public class LibraryBackend : ExecutableBackend {
   /// if having this state here hampers reuse in the future,
   /// especially parallel processing.
   /// </summary>
-  internal Program ProgramAfterParsing { get; set; }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return null;

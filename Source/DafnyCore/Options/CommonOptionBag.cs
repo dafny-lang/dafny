@@ -3,6 +3,9 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Plugins;
 using Serilog.Events;
 
 namespace Microsoft.Dafny;
@@ -354,6 +357,13 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
 
+  public static readonly Option<string> BackendModuleName = new("--module-name",
+    @"This Option is used to create the top level module/project/package name".TrimStart()) {
+  };
+
+  public static readonly Option<bool> GenerateDoo = new("--generate-doo", () => false,
+    @"This Option is used to generate a doo library during translation".TrimStart()) {
+  };
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
@@ -621,7 +631,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       AddCompileSuffix,
       SystemModule,
       ExecutionCoverageReport,
-      ExtractCounterexample
+      ExtractCounterexample,
+      BackendModuleName,
+      GenerateDoo
       );
   }
 
