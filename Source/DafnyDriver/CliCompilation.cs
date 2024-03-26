@@ -5,10 +5,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reactive;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -90,24 +92,77 @@ public class CliCompilation {
       throw new InvalidOperationException("Compilation was already started");
     }
 
+    var previousPhases = new ConcurrentDictionary<IPhase, IPhase>();
+    var nextPhases = new ConcurrentDictionary<IPhase, IPhase>();
+    IPhase? currentPhase = null;
+    var queuedDiagnostics = new ConcurrentDictionary<IPhase, IReadOnlyList<NewDiagnostic>>();
+    var completed = new ConcurrentDictionary<IPhase, Unit>();
+    bool IsFullyCompleted(IPhase phase) => !queuedDiagnostics.TryGetValue(phase, out _);
+    bool IsCompleted(IPhase phase) => completed.TryGetValue(phase, out _);
+
     ErrorReporter consoleReporter = Options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(Options),
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
 
+    
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
-      if (ev is NewDiagnostic newDiagnostic) {
-        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
-          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Phase.Source,
-            _ => 1,
-            (_, previous) => previous + 1);
-          Interlocked.Increment(ref errorCount);
+      if (ev is PhaseStarted phaseStarted) {
+        if (currentPhase != null) {
+          previousPhases.TryAdd(phaseStarted.Phase, currentPhase);
+          nextPhases.TryAdd(currentPhase, phaseStarted.Phase);
         }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Phase, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+
+        queuedDiagnostics.TryAdd(phaseStarted.Phase, Array.Empty<NewDiagnostic>());
+
+        currentPhase = phaseStarted.Phase;
+      } else if (ev is PhaseFinished phaseFinished) {
+
+        previousPhases.TryGetValue(phaseFinished.Phase, out var previousPhase);
+        var fullyCompleted = previousPhase == null || IsFullyCompleted(previousPhase);
+        completed.TryAdd(phaseFinished.Phase, Unit.Default);
+        if (fullyCompleted) {
+          var currentPhase = phaseFinished.Phase;
+          while (true) {
+            if (IsCompleted(currentPhase)) {
+              if (queuedDiagnostics.TryRemove(currentPhase, out var queuedDiagnosticsForPhase)) {
+                foreach (var diagnostic in queuedDiagnosticsForPhase!) {
+                  ProcessNewDiagnostic(diagnostic, consoleReporter);
+                }
+                currentPhase = nextPhases[currentPhase];
+              } else {
+                break; // Phase was not started.
+              }
+            } else {
+              break;
+            }
+          }
+        }
+      } else if (ev is NewDiagnostic newDiagnostic) {
+        IPhase? previousPhase = null;
+        var diagnosticPhase = newDiagnostic.Diagnostic.Phase;
+        while (diagnosticPhase != null) {
+          if (previousPhases.TryGetValue(diagnosticPhase, out previousPhase)) {
+            break;
+          }
+          diagnosticPhase = diagnosticPhase.MaybeParent;
+        }
+
+        IPhase? previousUncompletedPhase = previousPhase;
+        while (previousUncompletedPhase != null && !queuedDiagnostics.TryGetValue(previousUncompletedPhase, out _)) {
+          previousPhases.TryGetValue(previousUncompletedPhase, out previousUncompletedPhase);
+        }
+
+        var previousPhaseIsRunning = previousUncompletedPhase != null;
+        if (previousPhaseIsRunning) {
+          queuedDiagnostics.AddOrUpdate(previousPhase!, 
+            _ => Array.Empty<NewDiagnostic>(), 
+            (_, existing) => existing.Concat(new[] { newDiagnostic }));
+        } else {
+          ProcessNewDiagnostic(newDiagnostic, consoleReporter);
+        }
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.Program.Name;
@@ -128,6 +183,18 @@ public class CliCompilation {
 
     });
     Compilation.Start();
+  }
+
+  private void ProcessNewDiagnostic(NewDiagnostic newDiagnostic, ErrorReporter consoleReporter) {
+    if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
+      errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Phase.Source,
+        _ => 1,
+        (_, previous) => previous + 1);
+      Interlocked.Increment(ref errorCount);
+    }
+    var dafnyDiagnostic = newDiagnostic.Diagnostic;
+    consoleReporter.Message(dafnyDiagnostic.Phase, dafnyDiagnostic.Level,
+      dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
   }
 
   public DafnyOptions Options { get; }

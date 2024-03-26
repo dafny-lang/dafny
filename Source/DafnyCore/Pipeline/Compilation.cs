@@ -355,12 +355,16 @@ public class Compilation : IDisposable {
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
       var verificationOfSymbol = new VerificationOfSymbol(canVerify);
+      var tasksForSymbol = new List<Task<IVerificationStatus>>();
+      updates.OnNext(new PhaseStarted(verificationOfSymbol));
       foreach (var scope in verificationTaskPerScope) {
         var tasksForScope = new List<Task<IVerificationStatus>>();
         var scopeVerificationTasks = scope.ToList();
         foreach (var verificationTask in scopeVerificationTasks) {
           var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
-          tasksForScope.Add(VerifyTask(canVerify, seededTask));
+          var task = VerifyTask(canVerify, seededTask);
+          tasksForScope.Add(task);
+          tasksForSymbol.Add(task);
         }
 
         _ = WaitForAndHandleScopeFinished();
@@ -378,6 +382,19 @@ public class Compilation : IDisposable {
             errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
           updates.OnNext(new PhaseFinished(proofDependingWarningComputation));
         }
+      }
+
+      _ = WaitForAndHandleSymbolFinished();
+      async Task WaitForAndHandleSymbolFinished() {
+        if (taskFilter != null) {
+          return;
+        }
+        var statuses = await Task.WhenAll(tasksForSymbol);
+        if (statuses.Any(s => s is Stale)) {
+          return;
+        }
+        
+        updates.OnNext(new PhaseFinished(verificationOfSymbol));
       }
     }
     finally {

@@ -158,6 +158,7 @@ public static class VerifyCommand {
     await output.FlushAsync();
   }
 
+  // TODO change this so CliCompilation emits NewDiagnostic
   public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {
     verificationResults.Subscribe(result => {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token

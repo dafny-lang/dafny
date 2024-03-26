@@ -9,3 +9,4 @@ public record BoogieUpdate(ProofDependencyManager ProofDependencyManager,
 }
 
 public record PhaseFinished(IPhase Phase) : ICompilationEvent;
+public record PhaseStarted(IPhase Phase) : ICompilationEvent;
