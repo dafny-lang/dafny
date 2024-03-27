@@ -18,3 +18,5 @@ HasConst.MakeC(4) (4, 4)
 OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.Ints(5, 7) OptimizationChecks.Ints.AnotherIntsWrapper(OptimizationChecks.Ints.Ints(5, 7))
 D D
 5 5
+ConditionsThatDisableTheOptimization.WithTrait.WithTrait(40) 5 5
+ConditionsThatDisableTheOptimization.WithCompiledField.WithCompiledField(41) 100 42

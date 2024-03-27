@@ -2921,19 +2921,19 @@ namespace Microsoft.Dafny {
         Contract.Assert(VisibleInScope(receiverType));
 
         Bpl.Expr wh;
+        var receiver = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
         if (m is Constructor && kind == MethodTranslationKind.Implementation) {
-          var th = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
           wh = Bpl.Expr.And(
-            ReceiverNotNull(th),
-            GetWhereClause(tok, th, receiverType, etran, IsAllocType.NEVERALLOC));
+            ReceiverNotNull(receiver),
+            GetWhereClause(tok, receiver, receiverType, etran, IsAllocType.NEVERALLOC));
         } else {
-          var th = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
           wh = Bpl.Expr.And(
-            ReceiverNotNull(th),
-            (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, th, receiverType));
+            ReceiverNotNull(receiver),
+            (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, receiver, receiverType));
         }
         // for class constructors, the receiver is encoded as an output parameter
-        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh), !(m is Constructor && kind != MethodTranslationKind.SpecWellformedness));
+        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh),
+          m is not Constructor);
         if (thVar.InComing) {
           inParams.Add(thVar);
         } else {
