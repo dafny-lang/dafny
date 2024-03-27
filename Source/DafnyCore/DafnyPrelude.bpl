@@ -35,44 +35,24 @@ const unique TORDINAL  : Ty uses {
 }
 // See for which axioms we can make use of the trigger to determine the connection.
 function TBitvector(int) : Ty;
-axiom (forall w: int :: { TBitvector(w) } Inv0_TBitvector(TBitvector(w)) == w);
 
 function TSet(Ty) : Ty;
-axiom (forall t: Ty :: { TSet(t) } Inv0_TSet(TSet(t)) == t);
 axiom (forall t: Ty :: { TSet(t) }      Tag(TSet(t))      == TagSet);
 
 function TISet(Ty) : Ty;
-axiom (forall t: Ty :: { TISet(t) } Inv0_TISet(TISet(t)) == t);
 axiom (forall t: Ty :: { TISet(t) }     Tag(TISet(t))     == TagISet);
 
 function TMultiSet(Ty) : Ty;
-axiom (forall t: Ty :: { TMultiSet(t) } Inv0_TMultiSet(TMultiSet(t)) == t);
 axiom (forall t: Ty :: { TMultiSet(t) } Tag(TMultiSet(t)) == TagMultiSet);
 
 function TSeq(Ty) : Ty;
-axiom (forall t: Ty :: { TSeq(t) } Inv0_TSeq(TSeq(t)) == t);
 axiom (forall t: Ty :: { TSeq(t) } Tag(TSeq(t)) == TagSeq);
 
 function TMap(Ty, Ty) : Ty;
-axiom (forall t, u: Ty :: { TMap(t,u) } Inv0_TMap(TMap(t,u)) == t);
-axiom (forall t, u: Ty :: { TMap(t,u) } Inv1_TMap(TMap(t,u)) == u);
 axiom (forall t, u: Ty :: { TMap(t,u) } Tag(TMap(t,u)) == TagMap);
 
 function TIMap(Ty, Ty) : Ty;
-axiom (forall t, u: Ty :: { TIMap(t,u) } Inv0_TIMap(TIMap(t,u)) == t);
-axiom (forall t, u: Ty :: { TIMap(t,u) } Inv1_TIMap(TIMap(t,u)) == u);
 axiom (forall t, u: Ty :: { TIMap(t,u) } Tag(TIMap(t,u)) == TagIMap);
-
-
-function Inv0_TBitvector(Ty) : int;
-function Inv0_TSet(Ty) : Ty;
-function Inv0_TISet(Ty) : Ty;
-function Inv0_TSeq(Ty) : Ty;
-function Inv0_TMultiSet(Ty) : Ty;
-function Inv0_TMap(Ty) : Ty;
-function Inv1_TMap(Ty) : Ty;
-function Inv0_TIMap(Ty) : Ty;
-function Inv1_TIMap(Ty) : Ty;
 
 // -- Classes and Datatypes --
 

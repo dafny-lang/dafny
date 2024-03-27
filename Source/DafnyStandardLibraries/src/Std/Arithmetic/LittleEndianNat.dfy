@@ -317,7 +317,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
           true;
           { LemmaModEquivalence(ToNatRight(xs), ToNatRight(DropFirst(xs)) * BASE() + First(xs), BASE()); }
           IsModEquivalent(ToNatRight(xs), ToNatRight(DropFirst(xs)) * BASE() + First(xs), BASE());
-          { LemmaModMultiplesBasicAuto(); }
+          { LemmaModMultiplesBasic(ToNatRight(DropFirst(xs)), BASE()); }
           IsModEquivalent(ToNatRight(xs), First(xs), BASE());
         }
       }
