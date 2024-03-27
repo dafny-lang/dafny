@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -526,25 +527,37 @@ public class TraitDecreases : ProofObligationDescription {
   }
 }
 
-public class FrameSubset : ProofObligationDescription {
-  public override string SuccessDescription =>
-    isWrite
-      ? $"{whatKind} is allowed by context's modifies clause"
-      : $"sufficient reads clause to {whatKind}";
+public class ReadFrameSubset: ProofObligationDescription {
+public override string SuccessDescription =>
+      $"sufficient reads clause to {whatKind}";
 
   public override string FailureDescription =>
-    isWrite
-      ? $"{whatKind} might violate context's modifies clause"
-      : $"insufficient reads clause to {whatKind}";
+      $"insufficient reads clause to {whatKind}" + (helperCode != null ? helperCode() : "");
 
-  public override string ShortDescription => "frame subset";
+  public override string ShortDescription => "read frame subset";
 
   private readonly string whatKind;
-  private readonly bool isWrite;
+  private readonly Func<string> helperCode;
 
-  public FrameSubset(string whatKind, bool isWrite) {
+  public ReadFrameSubset(string whatKind, Func<string> helperCode = null) {
     this.whatKind = whatKind;
-    this.isWrite = isWrite;
+    this.helperCode = helperCode;
+  }
+}
+
+public class ModifyFrameSubset : ProofObligationDescription {
+  public override string SuccessDescription =>
+      $"{whatKind} is allowed by context's modifies clause";
+      
+  public override string FailureDescription =>
+      $"{whatKind} might violate context's modifies clause";
+
+  public override string ShortDescription => "modify frame subset";
+
+  private readonly string whatKind;
+
+  public ModifyFrameSubset(string whatKind) {
+    this.whatKind = whatKind;
   }
 }
 

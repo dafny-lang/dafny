@@ -223,7 +223,7 @@ namespace Microsoft.Dafny {
         var cf = (ConstantField)f;
         AddWellformednessCheck(cf);
         if (InVerificationScope(cf)) {
-          var etran = new ExpressionTranslator(this, predef, f.tok);
+          var etran = new ExpressionTranslator(this, predef, f.tok, null);
           heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
         }
       }
@@ -541,7 +541,8 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options);
       var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
-      var etran = new ExpressionTranslator(this, predef, m.tok);
+      var etran = new ExpressionTranslator(this, predef, m.tok, 
+        m.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
       // Only do reads checks for methods, not lemmas
       // (which aren't allowed to declare frames and don't check reads and writes against them).
       // Also don't do any reads checks if the reads clause is *,
@@ -681,7 +682,7 @@ namespace Microsoft.Dafny {
         readsCheckDelayer.DoWithDelayedReadsChecks(true, wfo => {
           foreach (var formal in m.Ins.Where(formal => formal.DefaultValue != null)) {
             var e = formal.DefaultValue;
-            CheckWellformed(e, wfo, localVariables, builder, etran);
+            CheckWellformed(e, wfo, localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No scope for default parameters
             builder.Add(new Boogie.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
             CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
@@ -808,7 +809,7 @@ namespace Microsoft.Dafny {
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
       var builder = new BoogieStmtListBuilder(this, options);
-      var etran = new ExpressionTranslator(this, predef, m.tok);
+      var etran = new ExpressionTranslator(this, predef, m.tok, m);
       var localVariables = new List<Variable>();
       InitializeFuelConstant(m.tok, builder, etran);
 
@@ -906,7 +907,7 @@ namespace Microsoft.Dafny {
 
       Boogie.Expr prevHeap = null;
       Boogie.Expr currHeap = null;
-      var ordinaryEtran = new ExpressionTranslator(this, predef, f.tok);
+      var ordinaryEtran = new ExpressionTranslator(this, predef, f.tok, f);
       ExpressionTranslator etran;
       var inParams_Heap = new List<Boogie.Variable>();
       if (f is TwoStateFunction) {
@@ -918,7 +919,7 @@ namespace Microsoft.Dafny {
           inParams_Heap.Add(currHeapVar);
           currHeap = new Boogie.IdentifierExpr(f.tok, currHeapVar);
         }
-        etran = new ExpressionTranslator(this, predef, currHeap, prevHeap);
+        etran = new ExpressionTranslator(this, predef, currHeap, prevHeap, f);
       } else {
         etran = ordinaryEtran;
       }
@@ -1220,11 +1221,12 @@ namespace Microsoft.Dafny {
         bvPrevHeap = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
         etran = new ExpressionTranslator(this, predef,
           f.ReadsHeap ? new Boogie.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
-          new Boogie.IdentifierExpr(f.tok, bvPrevHeap));
+          new Boogie.IdentifierExpr(f.tok, bvPrevHeap),
+          f);
       } else if (readsHeap) {
-        etran = new ExpressionTranslator(this, predef, f.tok);
+        etran = new ExpressionTranslator(this, predef, f.tok, f);
       } else {
-        etran = new ExpressionTranslator(this, predef, (Boogie.Expr)null);
+        etran = new ExpressionTranslator(this, predef, (Boogie.Expr)null, f);
       }
 
       // "forallFormals" is built to hold the bound variables of the quantification
@@ -1629,7 +1631,7 @@ namespace Microsoft.Dafny {
       isAllocContext = new IsAllocContext(options, m.IsGhost);
       Boogie.Expr prevHeap = null;
       Boogie.Expr currHeap = null;
-      var ordinaryEtran = new ExpressionTranslator(this, predef, m.tok);
+      var ordinaryEtran = new ExpressionTranslator(this, predef, m.tok, m);
       ExpressionTranslator etran;
       var inParams = new List<Boogie.Variable>();
       if (m is TwoStateLemma) {
@@ -1639,7 +1641,7 @@ namespace Microsoft.Dafny {
         inParams.Add(currHeapVar);
         prevHeap = new Boogie.IdentifierExpr(m.tok, prevHeapVar);
         currHeap = new Boogie.IdentifierExpr(m.tok, currHeapVar);
-        etran = new ExpressionTranslator(this, predef, currHeap, prevHeap);
+        etran = new ExpressionTranslator(this, predef, currHeap, prevHeap, m);
       } else {
         etran = ordinaryEtran;
       }

@@ -28,6 +28,10 @@ public interface ICanVerify : ISymbol {
   string FullDafnyName { get; }
 }
 
+public interface IFrameScope {
+  string Designator { get; } // "lambda expression", "method", "function"...
+}
+
 public static class AstExtensions {
 
   public static string GetMemberQualification(MemberDecl memberDecl) {
