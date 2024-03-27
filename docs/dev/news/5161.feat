@@ -1,0 +1,1 @@
+Allow for plugins to add custom request handlers to the language server.
