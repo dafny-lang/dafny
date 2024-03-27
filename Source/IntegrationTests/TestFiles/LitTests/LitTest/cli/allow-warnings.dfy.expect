@@ -1,0 +1,6 @@
+allow-warnings.dfy(5,6): Warning: Shadowed local-variable name: x
+
+Dafny program verifier finished with 0 verified, 0 errors
+allow-warnings.dfy(5,6): Warning: Shadowed local-variable name: x
+
+Dafny program verifier finished with 0 verified, 0 errors

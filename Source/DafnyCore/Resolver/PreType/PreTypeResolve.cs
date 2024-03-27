@@ -1240,6 +1240,8 @@ namespace Microsoft.Dafny {
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
 
+      f.ResolveMethodOrFunction(this);
+
       // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = true;
@@ -1321,6 +1323,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
+
+      m.ResolveMethodOrFunction(this);
 
       try {
         currentMethod = m;
