@@ -1,4 +1,4 @@
-// RUN: %verify --filter-position='C:\windows\path.dfy' %s > %t
+// RUN: %verify --allow-warnings --filter-position='C:\windows\path.dfy' %s > %t
 // RUN: ! %verify --filter-position='src/source1.dfy:5' %S/Inputs/dfyconfig.toml >> %t
 // RUN: %verify --filter-position='src/source1.dfy:1' %S/Inputs/dfyconfig.toml >> %t
 // RUN: ! %verify --filter-position='e.dfy' %S/Inputs/single-file.dfy >> %t

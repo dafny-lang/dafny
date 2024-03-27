@@ -340,6 +340,7 @@ do
         if [ -z "$expect" -a "$useHeadings" == "0" ]; then
           defaultExit=0
         elif [ "$iswarn" == "1" ]; then
+          dOptions="$dOptions --allow-warnings"
           defaultExit=0
         elif [ "$verb" == "verify" ]; then
           defaultExit=4

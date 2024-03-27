@@ -35,9 +35,9 @@ ghost method m1() {
  assert s2 - s3 == iset{3}; // set difference
 
  assert (iset x | x in s2 :: x+1) == iset{2,3,4}; // set comprehension
- assert 17 in (iset x: int | true :: x); // set comprehension
+ assert 17 in (iset x: int {:trigger} | true :: x); // set comprehension
 
- assert (imap x: int | true :: x+1)[14] == 15;
+ assert (imap x: int {:trigger} | true :: x+1)[14] == 15;
 }
 
 

@@ -1,4 +1,4 @@
-// RUN: %verify %S/git-issue-845.dfy > "%t"
+// RUN: %verify %S/git-issue-845.dfy --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /* blah blah /* blah */

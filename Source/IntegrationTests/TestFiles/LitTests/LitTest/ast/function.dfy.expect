@@ -4,6 +4,7 @@ function.dfy(8,36): Warning: This ensures clause is part of a bodyless function.
 function.dfy(8,50): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 
 Dafny program verifier finished with 9 verified, 0 errors
+Compilation failed because warnings were found and --allow-warnings is false
 function.dfy(7,33): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(7,47): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(8,36): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning

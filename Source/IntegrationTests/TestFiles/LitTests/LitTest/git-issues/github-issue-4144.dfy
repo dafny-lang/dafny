@@ -1,4 +1,4 @@
-// RUN: %verify %s > %t
+// RUN: %verify --allow-warnings %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 module P {

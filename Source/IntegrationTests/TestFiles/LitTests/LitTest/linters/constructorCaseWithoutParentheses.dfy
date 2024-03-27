@@ -1,4 +1,4 @@
-// RUN: %verify --warn-missing-constructor-parentheses "%s" > "%t"
+// RUN: %verify --warn-missing-constructor-parentheses "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module WithWarning {

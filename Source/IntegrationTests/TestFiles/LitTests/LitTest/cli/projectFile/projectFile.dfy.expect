@@ -1,8 +1,8 @@
 Error: The Dafny project file invalidValue.toml contains the following errors: (3,14) : error : Unexpected token `NoIncludes` for a value
 
+Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 input.dfy(6,8): Warning: Shadowed local-variable name: x
-
-Dafny program verifier did not attempt verification
+Compilation failed because warnings were found and --allow-warnings is false
 Error: file web.toml not found
 
 Dafny program verifier did not attempt verification
@@ -14,17 +14,14 @@ Error: The Dafny project file dfyconfig.toml contains the following errors: (1,1
 Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 Warning: option 'does-not-exist' that was specified in the project file, is not a valid Dafny option.
 invalidOption.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
-
-Dafny program verifier did not attempt verification
+Compilation failed because warnings were found and --allow-warnings is false
 Error: file doesNotExist.toml not found
 dfyconfig.toml(1,0): Error: could not parse value '3' for option 'warn-shadowing' that has type 'Boolean'
 input.dfy(6,8): Warning: Shadowed local-variable name: x
 moreInput.dfy(6,8): Warning: Shadowed local-variable name: x
-
-Dafny program verifier did not attempt verification
+Compilation failed because warnings were found and --allow-warnings is false
 input.dfy(6,8): Warning: Shadowed local-variable name: x
-
-Dafny program verifier did not attempt verification
+Compilation failed because warnings were found and --allow-warnings is false
 excluded.dfy(3,7): Error: Duplicate member name: Foo
 input.dfy(6,8): Warning: Shadowed local-variable name: x
 excluded.dfy(6,8): Warning: Shadowed local-variable name: z

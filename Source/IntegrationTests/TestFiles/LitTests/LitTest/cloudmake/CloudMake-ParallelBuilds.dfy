@@ -1,4 +1,4 @@
-// RUN: %verify --relax-definite-assignment --manual-triggers "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --manual-triggers --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This module proves the correctness of the algorithms.  It leaves a number of things undefined.

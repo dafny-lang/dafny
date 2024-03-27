@@ -1,4 +1,4 @@
-// RUN: %verify --warn-contradictory-assumptions "%s" > "%t"
+// RUN: %verify --warn-contradictory-assumptions --allow-warnings "%s" > "%t"
 // DIFF: "%s.expect" "%t"
 
 type CodeUnit
