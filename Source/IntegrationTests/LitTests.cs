@@ -62,7 +62,7 @@ namespace IntegrationTests {
 
       string[] defaultResolveArgs = new[] { "resolve", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false" };
       string[] defaultVerifyArgs = new[] { "verify", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
-      //string[] defaultTranslateArgs = new[] { "translate", "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
+      string[] defaultTranslateArgs = new[] { "--use-basename-for-filename", "--cores:2", "--standard-libraries:false", "--verification-time-limit:300", "--resource-limit:50e6" };
       string[] defaultBuildArgs = new[] { "build", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
       string[] defaultRunArgs = new[] { "run", "--use-basename-for-filename", "--show-snippets:false", "--standard-libraries:false", "--cores:2", "--verification-time-limit:300", "--resource-limit:50e6" };
 
@@ -83,7 +83,7 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%translate", (args, config) =>
-            DafnyCommand(AddExtraArgs(new[] { "translate" }, args), config, InvokeMainMethodsDirectly)
+            DafnyCommand(AddExtraArgs(new[] { "translate" }, args.Concat(defaultTranslateArgs)), config, InvokeMainMethodsDirectly)
         }, {
           "%verify", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultVerifyArgs, args), config, InvokeMainMethodsDirectly)
