@@ -34,6 +34,10 @@ public abstract class MethodOrFunction : MemberDecl {
   public bool IsAbstract => EnclosingClass.EnclosingModuleDefinition.ModuleKind != ModuleKindEnum.Concrete;
 
   public virtual void Resolve(ModuleResolver resolver) {
+    ResolveMethodOrFunction(resolver);
+  }
+
+  public void ResolveMethodOrFunction(INewOrOldResolver resolver) {
     if (Bodyless && !IsVirtual && !IsAbstract && !this.IsExtern(resolver.Options) && !this.IsExplicitAxiom()) {
       foreach (var ensures in Ens) {
         if (!ensures.IsExplicitAxiom() && !resolver.Options.Get(CommonOptionBag.AllowAxioms)) {
