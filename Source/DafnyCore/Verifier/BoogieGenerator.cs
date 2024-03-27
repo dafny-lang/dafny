@@ -2922,7 +2922,7 @@ namespace Microsoft.Dafny {
 
         Bpl.Expr wh;
         var receiver = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
-        if (m is Constructor && kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.SpecWellformedness) {
+        if (m is Constructor && kind == MethodTranslationKind.Implementation) {
           wh = Bpl.Expr.And(
             ReceiverNotNull(receiver),
             GetWhereClause(tok, receiver, receiverType, etran, IsAllocType.NEVERALLOC));
@@ -2933,7 +2933,7 @@ namespace Microsoft.Dafny {
         }
         // for class constructors, the receiver is encoded as an output parameter
         Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh), 
-          !(m is Constructor));
+          m is not Constructor);
         if (thVar.InComing) {
           inParams.Add(thVar);
         } else {
