@@ -580,7 +580,7 @@ module SnapTree {
     }
 
     // private
-    static method {:vcs_split_on_every_assert} Push(stIn: List, ghost n: int, p: Node, ghost C: seq<int>, ghost Nodes: set<object>) returns (st: List)
+    static method {:isolate_assertions} Push(stIn: List, ghost n: int, p: Node, ghost C: seq<int>, ghost Nodes: set<object>) returns (st: List)
       requires p in Nodes && p.Repr <= Nodes && p.NodeValid()
       requires 0 <= n <= |C|
       requires p.Contents <= C[n..]
@@ -607,7 +607,7 @@ module SnapTree {
       case Cons(y, rest) => x := y.data;
     }
 
-    method {:vcs_split_on_every_assert} MoveNext() returns (hasCurrent: bool)
+    method {:isolate_assertions} MoveNext() returns (hasCurrent: bool)
       requires Valid() && N <= |Contents|
       modifies IterRepr
       ensures Valid() && fresh(IterRepr - old(IterRepr)) && T.Repr == old(T.Repr)
