@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
+namespace Microsoft.Dafny {
 
   /// <summary>
   /// This class stores various transformations that could be useful to perform
