@@ -245,12 +245,12 @@ public class CliCompilation {
   }
 
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
-    var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
+    var symbolFilter = Options.Get(CommonOptionBag.FilterSymbol);
     if (symbolFilter != null) {
       canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
     }
 
-    var filterPosition = Options.Get(VerifyCommand.FilterPosition);
+    var filterPosition = Options.Get(CommonOptionBag.FilterPosition);
     if (filterPosition == null) {
       line = null;
       return canVerifies;
