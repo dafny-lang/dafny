@@ -630,7 +630,7 @@ Defaults to 1.
 If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
 ### 11.2.25. `{:isolate_assertions}` {#sec-isolate_assertions}
-Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
+Per-method version of the command-line option<span id="sec-vcs_split_on_every_assert"></span> `/vcsSplitOnEveryAssert`
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
