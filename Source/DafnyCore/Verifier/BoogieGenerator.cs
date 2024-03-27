@@ -2932,7 +2932,7 @@ namespace Microsoft.Dafny {
             (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, receiver, receiverType));
         }
         // for class constructors, the receiver is encoded as an output parameter
-        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh), 
+        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh),
           m is not Constructor);
         if (thVar.InComing) {
           inParams.Add(thVar);
