@@ -1087,7 +1087,8 @@ same name.
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
 of type `T`, integer-based numeric index `i` satisfying `0 <= i < |s|`, and
 integer-based numeric bounds `lo` and `hi` satisfying
-`0 <= lo <= hi <= |s|`, sequences support the following operations:
+`0 <= lo <= hi <= |s|`, noting that bounds can equal the length of the sequence,
+sequences support the following operations:
 
  expression         | precedence | result type | description
  -------------------|:---:|:---:|----------------------------------------
@@ -2409,7 +2410,8 @@ an error message is generated.
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
 `array<T>`, integer-based numeric bounds `lo` and `hi` satisfying
-`0 <= lo <= hi <= a.Length`, the following operations each yields a
+`0 <= lo <= hi <= a.Length`, noting that bounds can equal the array's length,
+the following operations each yields a
 `seq<T>`:
 
  expression          | description
