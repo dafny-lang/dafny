@@ -416,10 +416,10 @@ public class Compilation : IDisposable {
     statusUpdates.Subscribe(
       update => {
         try {
-          HandleStatusUpdate(canVerify, task, update);
           if (update is Completed or Stale) {
             completed.TrySetResult(update);
           }
+          HandleStatusUpdate(canVerify, task, update);
         } catch (Exception e) {
           logger.LogError(e, "Caught exception in statusUpdates OnNext.");
         }

@@ -1,34 +1,47 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public class PhaseTree {
-  public IPhase Phase { get; }
   public IReadOnlyList<FileDiagnostic> Diagnostics;
 
   public IEnumerable<FileDiagnostic> AllDiagnostics {
     get {
-      return Diagnostics.Concat(Children.SelectMany(c => c.AllDiagnostics));
+      return Diagnostics.Concat(Children.Values.SelectMany(c => c.AllDiagnostics));
     }
   }
 
-  public PhaseTree Add(IPhase phase, IReadOnlyList<FileDiagnostic> diagnostics) {
+  public PhaseTree Merge(PhaseTree source, Func<FileDiagnostic, FileDiagnostic> updateDiagnostic) {
+    var newChildren = source.Children.Aggregate(Children,
+      (newChildren, kv) => {
+        if (newChildren.TryGetValue(kv.Key, out var existingChild)) {
+          return newChildren.SetItem(kv.Key, existingChild.Merge(kv.Value, updateDiagnostic));
+        } else {
+          return newChildren.SetItem(kv.Key, kv.Value);
+        }
+      });
+    return new PhaseTree(Diagnostics.Concat(source.Diagnostics.Select(updateDiagnostic)).ToList(), newChildren);
+  }
+
+  public PhaseTree Add(IPhase phase, IReadOnlyList<FileDiagnostic> newDiagnostics) {
     var ancestors = phase.AncestorsAndSelf;
 
-    return Recursive(this, ancestors)!;
-    PhaseTree Recursive(PhaseTree tree, Cons<IPhase> phases) {
-      if (phases.Head == tree.Phase) {
-        return new PhaseTree(tree.Phase, tree.Diagnostics.Concat(diagnostics));
-      }
-      if (phases.Tail is Cons<IPhase> cons) {
+    return Recursive(this, ancestors);
+    PhaseTree Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
+      if (phases is Cons<IPhase> cons) {
+        if (!tree.Children.TryGetValue(cons.Head, out var child)) {
+          child = new PhaseTree(ImmutableList<FileDiagnostic>.Empty);
+        }
 
-        return new PhaseTree(tree.Phase, tree.Diagnostics,
-          tree.Children.Select(c => Recursive(c, cons)).ToImmutableList());
+        var newChild = Recursive(child, cons.Tail);
+        return new PhaseTree(tree.Diagnostics, tree.Children.SetItem(cons.Head, newChild));
       }
 
-      return new PhaseTree(phases.Head, diagnostics);
+      return new PhaseTree(tree.Diagnostics.Concat(newDiagnostics), tree.Children);
     }
   }
 
@@ -38,36 +51,33 @@ public class PhaseTree {
     return Recursive(this, ancestors)!;
     PhaseTree? Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
       if (phases is Cons<IPhase> cons) {
-        if (cons.Head == tree.Phase) {
-          return null;
+        if (tree.Children.TryGetValue(cons.Head, out var child)) {
+          var recursiveResult = Recursive(child, cons.Tail);
+          return recursiveResult == null
+            ? new PhaseTree(tree.Diagnostics, tree.Children.Remove(cons.Head))
+            : new PhaseTree(tree.Diagnostics, tree.Children.SetItem(cons.Head, recursiveResult));
         }
 
-        return new PhaseTree(tree.Phase, tree.Diagnostics,
-          tree.Children.Select(c => Recursive(c, cons.Tail)).Where(t => t != null).ToImmutableList()!);
+        return tree;
       }
 
-      return tree;
+      return null;
     }
   }
 
-  record EmptyPhase : IPhase {
-    public IPhase? MaybeParent => null;
-  }
   public static PhaseTree Empty() {
-    return new PhaseTree(new EmptyPhase(), ImmutableArray<FileDiagnostic>.Empty);
+    return new PhaseTree(ImmutableArray<FileDiagnostic>.Empty);
   }
 
-  public PhaseTree(IPhase phase, IReadOnlyList<FileDiagnostic> diagnostics) {
+  public PhaseTree(IReadOnlyList<FileDiagnostic> diagnostics) {
     Diagnostics = diagnostics;
-    Phase = phase;
-    Children = ImmutableList<PhaseTree>.Empty;
+    Children = ImmutableDictionary<IPhase, PhaseTree>.Empty;
   }
 
-  public PhaseTree(IPhase phase, IReadOnlyList<FileDiagnostic> diagnostics, ImmutableList<PhaseTree> children) {
-    Phase = phase;
+  public PhaseTree(IReadOnlyList<FileDiagnostic> diagnostics, ImmutableDictionary<IPhase, PhaseTree> children) {
     Diagnostics = diagnostics;
     Children = children;
   }
 
-  public ImmutableList<PhaseTree> Children;
+  public ImmutableDictionary<IPhase, PhaseTree> Children;
 }

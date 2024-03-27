@@ -25,7 +25,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(3, diagnostics.Length);
+      Assert.Equal(8, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
@@ -1249,6 +1249,7 @@ method Foo() {
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
       // Next line is made obsolete by resolving https://github.com/dafny-lang/dafny/issues/4377
       var unnecessaryDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Empty(resolutionDiagnostics.Diagnostics);
       var translationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

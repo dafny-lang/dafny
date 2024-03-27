@@ -86,22 +86,9 @@ public record IdeState(
       ? CanVerifyStates
       : MigrateImplementationViews(migrator, CanVerifyStates);
 
-    var oldDiagnostics = new PhaseTree(OldDiagnostics.Phase, OldDiagnostics.Diagnostics.Select(
-      s => s with { Diagnostic = MarkDiagnosticAsOutdated(s.Diagnostic) }).ToArray());
-    var queue = new Queue<(PhaseTree, PhaseTree)>();
-    queue.Enqueue((oldDiagnostics, OldDiagnostics));
-    while (queue.Any()) {
-      var (newTree, oldTree) = queue.Dequeue();
-      if (oldTree.Phase == InternalExceptions.Instance) {
-        continue;
-      }
-      foreach (var oldChild in oldTree.Children) {
-        var childDiagnostics = oldChild.Diagnostics.Select(
-          s => s with { Diagnostic = MarkDiagnosticAsOutdated(s.Diagnostic) }).ToArray();
-        var newChild = newTree.Add(oldChild.Phase, childDiagnostics);
-        queue.Enqueue((newChild, oldChild));
-      }
-    }
+    var oldDiagnostics = PhaseTree.Empty().
+      Merge(NewDiagnostics, MigrateFileDiagnostic).
+      Merge(OldDiagnostics, MigrateFileDiagnostic);
     return this with {
       Version = newVersion,
       OldDiagnostics = oldDiagnostics,
@@ -112,6 +99,10 @@ public record IdeState(
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
     };
+
+    FileDiagnostic MigrateFileDiagnostic(FileDiagnostic s) {
+      return s with { Diagnostic = MarkDiagnosticAsOutdated(s.Diagnostic) };
+    }
   }
 
   private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> MigrateImplementationViews(
@@ -207,7 +198,7 @@ public record IdeState(
       case ScheduledVerification scheduledVerification:
         return HandleScheduledVerification(scheduledVerification);
       default:
-        throw new ArgumentOutOfRangeException(nameof(e));
+        return this;
     }
   }
 
