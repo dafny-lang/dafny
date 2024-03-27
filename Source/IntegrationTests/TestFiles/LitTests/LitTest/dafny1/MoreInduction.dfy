@@ -48,7 +48,7 @@ lemma Theorem<X>(list: List<X>)
   Lemma(list, Nil);
 }
 
-lemma {:vcs_split_on_every_assert} Lemma<X>(list: List<X>, ext: List<X>)
+lemma {:isolate_assertions} Lemma<X>(list: List<X>, ext: List<X>)
   requires IsFlat(ext)
   ensures ToSeq(list) + ToSeq(ext) == ToSeq(Flatten(list, ext))
 {
