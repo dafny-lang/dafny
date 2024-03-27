@@ -74,6 +74,7 @@ Open the newly created file `PluginTutorial.csproj`, and add the following after
     <ProjectReference Include="../dafny/source/DafnyLanguageServer/DafnyLanguageServer.csproj" />
   </ItemGroup>
 ```
+### 15.1.2. Implement plugin
 
 #### 15.1.2.1. Code actions plugin
 
