@@ -1263,9 +1263,7 @@ namespace Microsoft.Dafny {
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
         argsJF.Add(reveal);
       } else if (overridingFunction.IsOpaque || overridingFunction.IsMadeImplicitlyOpaque(options)) {
-        // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
-        // Instead, we do the next best thing: use the literal false.
-        reveal = new Boogie.LiteralExpr(f.tok, false);
+        reveal = GetRevealConstant(overridingFunction);
       }
 
       // Add heap arguments
@@ -1670,7 +1668,9 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
-            var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+            var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
+              "in the two-state lemma's previous state" +
+              PODesc.IsAllocated.HelperFormal(formal));
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, desc.SuccessDescription, null);
             require.Description = desc;

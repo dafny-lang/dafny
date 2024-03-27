@@ -6,9 +6,10 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
-namespace Microsoft.Dafny.Compilers;
+namespace Microsoft.Dafny;
 
 public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
@@ -39,7 +40,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         }
       }
 
-      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && dafnyProgram.Replacements.GetValueOrDefault(compiledModule) == null) {
         if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
           Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
             $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");

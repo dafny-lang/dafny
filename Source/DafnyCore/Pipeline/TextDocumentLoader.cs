@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
       );
     }
 
-    public async Task<ResolutionResult> ResolveAsync(Compilation compilation,
+    public async Task<ResolutionResult?> ResolveAsync(Compilation compilation,
       Program program,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
@@ -45,12 +45,14 @@ namespace Microsoft.Dafny {
 #pragma warning restore CS1998
     }
 
-    private ResolutionResult ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
+    private ResolutionResult? ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
       if (program.HasParseErrors) {
-        throw new TaskCanceledException();
+        return null;
       }
 
       symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
+
+      compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
 
       List<ICanVerify>? verifiables;
       if (compilation.HasErrors) {

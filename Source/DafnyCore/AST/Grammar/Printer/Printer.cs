@@ -980,7 +980,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost) {
         bool verify = true;
         if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify) { return true; }
-        if (name.Contains("INTERNAL") || name.StartsWith("reveal_")) { return true; }
+        if (name.Contains("INTERNAL") || name.StartsWith(RevealStmt.RevealLemmaPrefix)) { return true; }
       }
       return false;
     }
@@ -1176,10 +1176,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       if (options.DafnyPrintResolvedFile != null) {
-        ty = AdjustableType.NormalizeSansAdjustableType(ty);
+        ty = TypeRefinementWrapper.NormalizeSansRefinementWrappers(ty);
       }
       string s = ty.TypeName(options, null, true);
-      if (ty is AdjustableType or not TypeProxy && !s.StartsWith("_")) {
+      if (ty is TypeRefinementWrapper or not TypeProxy && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }

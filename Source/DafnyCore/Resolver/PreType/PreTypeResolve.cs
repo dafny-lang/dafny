@@ -836,7 +836,7 @@ namespace Microsoft.Dafny {
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-            "a newtype must be based on some non-reference, non-trait, non-ORDINAL, non-collection, non-datatype type (got {0})",
+            "a newtype must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got {0})",
             onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
@@ -1240,6 +1240,8 @@ namespace Microsoft.Dafny {
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
 
+      f.ResolveMethodOrFunction(this);
+
       // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = true;
@@ -1321,6 +1323,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
+
+      m.ResolveMethodOrFunction(this);
 
       try {
         currentMethod = m;
@@ -1433,7 +1437,8 @@ namespace Microsoft.Dafny {
     void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);
-      ResolveExpression(fe.E, new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged));
+      var resolutionContext = new ResolutionContext(codeContext, codeContext is TwoStateLemma || use == FrameExpressionUse.Unchanged);
+      ResolveExpression(fe.E, resolutionContext);
       Constraints.AddGuardedConstraint(() => {
         DPreType dp = fe.E.PreType.NormalizeWrtScope() as DPreType;
         if (dp == null) {
@@ -1458,13 +1463,16 @@ namespace Microsoft.Dafny {
             return false;
           }
         }
-        if (dp.Decl.Name is PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset) {
+
+        if (dp.UrAncestor(this) is DPreType {
+          Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset
+        } dpAncestor) {
           hasCollectionType = true;
-          var elementType = dp.Arguments[0].Normalize();
+          var elementType = dpAncestor.Arguments[0].Normalize();
           dp = elementType as DPreType;
           if (dp == null) {
             // element type not yet known
-            Constraints.AddDefaultAdvice(elementType, Advice.Target.Object);
+            Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
             return false;
           }
         }
@@ -1486,7 +1494,7 @@ namespace Microsoft.Dafny {
         }
 
         if (fe.FieldName != null) {
-          var (member, tentativeReceiverType) = FindMember(fe.E.tok, dp, fe.FieldName);
+          var (member, tentativeReceiverType) = FindMember(fe.E.tok, dp, fe.FieldName, resolutionContext);
           Contract.Assert((member == null) == (tentativeReceiverType == null)); // follows from contract of FindMember
           if (member == null) {
             // error has already been reported by FindMember

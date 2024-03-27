@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
@@ -23,7 +24,7 @@ namespace Microsoft.Dafny {
 
   interface IVerificationResultFormatLogger {
     void LogScopeResults(VerificationScopeResult result);
-    void Flush();
+    Task Flush();
   }
 
   /// <summary>
@@ -33,13 +34,16 @@ namespace Microsoft.Dafny {
   ///  * human-readable text output.
   /// </summary>
   public class VerificationResultLogger {
+    private readonly DafnyOptions options;
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
+    public static TestProperty RandomSeedProperty = TestProperty.Register("TestResult.RandomSeed", "TestResult.RandomSeed", typeof(int), typeof(TestResult));
 
     private readonly IList<IVerificationResultFormatLogger> formatLoggers = new List<IVerificationResultFormatLogger>();
     private readonly LocalTestLoggerEvents events;
 
     public VerificationResultLogger(DafnyOptions options, ProofDependencyManager depManager) {
+      this.options = options;
       var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
 
       events = new LocalTestLoggerEvents();
@@ -109,25 +113,25 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void Finish() {
-      foreach (var formatLogger in formatLoggers) {
-        formatLogger.Flush();
-      }
+    public async Task Finish() {
       events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
         new TestRunStatistics(),
         false, false, null, null, new TimeSpan()
       ));
+      foreach (var formatLogger in formatLoggers) {
+        await formatLogger.Flush();
+      }
     }
 
     public static IEnumerable<TestResult> VerificationToTestResults(VerificationScopeResult result) {
       var testResults = new List<TestResult>();
 
       var verificationScope = result.Scope;
-      foreach (var vcResult in result.Results.OrderBy(r => r.Result.VcNum).
-                 Select(r => r.Result)) {
-        var name = result.Results.Count() > 1
+      foreach (var (task, vcResult) in result.Results.OrderBy(r => r.Result.VcNum).
+                 Select(r => r)) {
+        var name = (result.Results.Count > 1
           ? verificationScope.Name + $" (assertion batch {vcResult.VcNum})"
-          : verificationScope.Name;
+          : verificationScope.Name);
         var testCase = new TestCase {
           FullyQualifiedName = name,
           ExecutorUri = new Uri("executor://dafnyverifier/v1"),
@@ -138,6 +142,9 @@ namespace Microsoft.Dafny {
           Duration = vcResult.RunTime
         };
         testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
+        if (task != null && task.Split.RandomSeed != 0) {
+          testResult.SetPropertyValue(RandomSeedProperty, task.Split.RandomSeed);
+        }
         if (vcResult.Outcome == SolverOutcome.Valid) {
           testResult.Outcome = TestOutcome.Passed;
         } else {

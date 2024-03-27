@@ -63,6 +63,8 @@ public static class ErrorReporterExtensions {
       }
     }
 
+    message ??= "this proposition could not be proved";
+
     yield return new DafnyRelatedInformation(token, message);
     if (inner != null) {
       foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, newMessage, usingSnippets)) {

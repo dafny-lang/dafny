@@ -304,27 +304,29 @@ namespace Microsoft.Dafny {
           }
         case DisplayExpression expression: {
             DisplayExpression e = expression;
-            Contract.Assert(e.Type is CollectionType);
-            var elementType = ((CollectionType)e.Type).Arg;
+            var type = e.Type.NormalizeToAncestorType();
+            Contract.Assert(type is CollectionType);
+            var elementType = ((CollectionType)type).Arg;
             foreach (Expression el in e.Elements) {
               CheckWellformed(el, wfOptions, locals, builder, etran);
               CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
             }
-
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             break;
           }
         case MapDisplayExpr displayExpr: {
             MapDisplayExpr e = displayExpr;
-            Contract.Assert(e.Type is MapType);
-            var keyType = ((MapType)e.Type).Domain;
-            var valType = ((MapType)e.Type).Range;
+            var type = e.Type.NormalizeToAncestorType();
+            Contract.Assert(type is MapType);
+            var keyType = ((MapType)type).Domain;
+            var valType = ((MapType)type).Range;
             foreach (ExpressionPair p in e.Elements) {
               CheckWellformed(p.A, wfOptions, locals, builder, etran);
               CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder);
               CheckWellformed(p.B, wfOptions, locals, builder, etran);
               CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder);
             }
-
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             break;
           }
         case MemberSelectExpr selectExpr: {
@@ -380,7 +382,7 @@ namespace Microsoft.Dafny {
           }
         case SeqSelectExpr selectExpr: {
             SeqSelectExpr e = selectExpr;
-            var eSeqType = e.Seq.Type.NormalizeExpand();
+            var eSeqType = e.Seq.Type.NormalizeToAncestorType();
             bool isSequence = eSeqType is SeqType;
             CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
             Bpl.Expr seq = etran.TrExpr(e.Seq);
@@ -447,6 +449,9 @@ namespace Microsoft.Dafny {
               }
             }
 
+            if (!e.SelectOne) {
+              CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
+            }
             break;
           }
         case MultiSelectExpr selectExpr: {
@@ -485,7 +490,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr seq = etran.TrExpr(e.Seq);
             Bpl.Expr index = etran.TrExpr(e.Index);
             Bpl.Expr value = etran.TrExpr(e.Value);
-            var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+            var collectionType = (CollectionType)e.Seq.Type.NormalizeToAncestorType();
             // validate index
             CheckWellformed(e.Index, wfOptions, locals, builder, etran);
             if (collectionType is SeqType) {
@@ -706,7 +711,10 @@ namespace Microsoft.Dafny {
                     Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                     if (wh != null) {
                       var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
-                      var desc = new PODesc.IsAllocated($"argument{pIdx} ('{formal.Name}')", "in the two-state function's previous state");
+                      var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
+                        "in the two-state function's previous state" +
+                          PODesc.IsAllocated.HelperFormal(formal)
+                        );
                       builder.Add(Assert(GetToken(ee), wh, desc));
                     }
                   }
@@ -840,13 +848,14 @@ namespace Microsoft.Dafny {
             builder.Add(Assert(GetToken(e.N), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)), desc));
 
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
-            var eType = e.Type.AsSeqType.Arg;
+            var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
             CheckElementInit(e.tok, false, new List<Expression>() { e.N }, eType, e.Initializer, null, builder, etran, wfOptions);
             break;
           }
         case MultiSetFormingExpr formingExpr: {
             MultiSetFormingExpr e = formingExpr;
             CheckWellformed(e.E, wfOptions, locals, builder, etran);
+            CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
             break;
           }
         case OldExpr oldExpr: {
@@ -926,7 +935,7 @@ namespace Microsoft.Dafny {
                   var offset0 = FunctionCall(binaryExpr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
                   var offset1 = FunctionCall(binaryExpr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E1));
                   builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(offset1, offset0), new PODesc.OrdinalSubtractionUnderflow()));
-                } else if (e.Type.IsCharType) {
+                } else if (e.Type.NormalizeToAncestorType().IsCharType) {
                   var e0 = FunctionCall(binaryExpr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E0));
                   var e1 = FunctionCall(binaryExpr.tok, "char#ToInt", Bpl.Type.Int, etran.TrExpr(e.E1));
                   if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
@@ -1053,10 +1062,9 @@ namespace Microsoft.Dafny {
           break;
         case ComprehensionExpr comprehensionExpr: {
             var e = comprehensionExpr;
-            var q = e as QuantifierExpr;
             var lam = e as LambdaExpr;
             var mc = e as MapComprehension;
-            if (mc != null && !mc.IsGeneralMapComprehension) {
+            if (mc is { IsGeneralMapComprehension: false }) {
               mc = null;  // mc will be non-null when "e" is a general map comprehension
             }
 
@@ -1153,6 +1161,25 @@ namespace Microsoft.Dafny {
                 nextBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
               }
             });
+
+            bool needTypeConstraintCheck;
+            if (lam == null) {
+              needTypeConstraintCheck = true;
+            } else {
+              // omit constraint check if the type is according to the syntax of the expression
+              var arrowType = (UserDefinedType)e.Type.NormalizeExpandKeepConstraints();
+              if (ArrowType.IsPartialArrowTypeName(arrowType.Name)) {
+                needTypeConstraintCheck = lam.Reads.Expressions.Count != 0;
+              } else if (ArrowType.IsTotalArrowTypeName(arrowType.Name)) {
+                needTypeConstraintCheck = lam.Reads.Expressions.Count != 0 || lam.Range != null;
+              } else {
+                needTypeConstraintCheck = true;
+              }
+            }
+            if (needTypeConstraintCheck) {
+              CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
+            }
+
             builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
             break;
           }
