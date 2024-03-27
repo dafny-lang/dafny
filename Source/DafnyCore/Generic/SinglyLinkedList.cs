@@ -42,6 +42,8 @@ public abstract record SinglyLinkedList<T> : IEnumerable<T> {
   public bool Any() {
     return this is not Nil<T>;
   }
+
+  public static SinglyLinkedList<T> Empty => new Nil<T>();
 }
 
 public static class LinkedLists {

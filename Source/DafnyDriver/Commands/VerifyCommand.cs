@@ -68,6 +68,7 @@ public static class VerifyCommand {
       await verificationSummarized;
       await verificationResultsLogged;
     }
+    await compilation.FinishedPhases();
 
     return compilation.ExitCode;
   }
@@ -112,6 +113,7 @@ public static class VerifyCommand {
       Interlocked.Increment(ref statistics.SolverExceptionCount);
     });
     await verificationResults.WaitForComplete();
+    await cliCompilation.FinishedPhases();
     await WriteTrailer(cliCompilation, statistics);
   }
 
@@ -158,6 +160,7 @@ public static class VerifyCommand {
     await output.FlushAsync();
   }
 
+  // TODO change this so CliCompilation emits NewDiagnostic
   public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {
     verificationResults.Subscribe(result => {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token
@@ -169,7 +172,7 @@ public static class VerifyCommand {
       }
 
       foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-        compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+        compilation.Compilation.Reporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
           diagnostic.Message);
       }
     });
@@ -204,9 +207,6 @@ public static class VerifyCommand {
     var proofDependencyManager = resolution.ResolvedProgram.ProofDependencyManager;
 
     verificationResults.Subscribe(result => {
-      ProofDependencyWarnings.ReportSuspiciousDependencies(cliCompilation.Options, result.Results,
-        resolution.ResolvedProgram.Reporter, resolution.ResolvedProgram.ProofDependencyManager);
-
       foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
         usedDependencies.Add(used);
       }

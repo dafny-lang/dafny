@@ -8,10 +8,12 @@ using System.Linq;
 namespace Microsoft.Dafny {
 
   public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
-    public IPhase? Parent => null;
+    public IPhase? MaybeParent => null;
   }
 
-  public record SingletonPhase(IPhase Parent, object Key) : IPhase;
+  public record SingletonPhase(IPhase Parent, object Key) : IPhase {
+    public IPhase MaybeParent => Parent;
+  }
 
 
   /// <summary>
@@ -22,7 +24,34 @@ namespace Microsoft.Dafny {
   /// The children of a phase, are the phases that are discovered and completed as phase of that parent.
   /// </summary>
   public interface IPhase {
-    IPhase? Parent { get; }
+    public Cons<IPhase> AncestorsAndSelf {
+      get {
+        Cons<IPhase> result = new Cons<IPhase>(this, new Nil<IPhase>());
+        while (result.Head.MaybeParent != null) {
+          result = new Cons<IPhase>(result.Head.MaybeParent, result);
+        }
+
+        return result;
+      }
+    }
+
+    IPhase? MaybeParent { get; }
+    MessageSource Source {
+      get {
+        var sourcePhase = this;
+        while (sourcePhase != null && sourcePhase is not MessageSourceBasedPhase) {
+          sourcePhase = sourcePhase.MaybeParent;
+        }
+
+        return (sourcePhase as MessageSourceBasedPhase)?.MessageSource ?? MessageSource.Unknown;
+      }
+    }
+  }
+
+  public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;
+
+  public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
+    public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
   }
 
   public enum ErrorLevel {
@@ -30,18 +59,18 @@ namespace Microsoft.Dafny {
   }
 
   public enum MessageSource {
-    Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
+    Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration, Unknown
   }
 
   public record DafnyRelatedInformation(IToken Token, string Message);
   public record DafnyDiagnostic(IPhase Phase, string ErrorId, IToken Token, string Message,
-    MessageSource Source, ErrorLevel Level,
+    ErrorLevel Level,
     IReadOnlyList<DafnyRelatedInformation> RelatedInformation);
 
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink(DafnyOptions options) : base(options) { }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
       return false;
     }
 
@@ -68,13 +97,13 @@ namespace Microsoft.Dafny {
       this.WrappedReporter = reporter;
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (level == ErrorLevel.Warning) {
         return false;
       }
 
-      base.MessageCore(source, level, errorId, tok, msg);
-      return WrappedReporter.Message(source, level, errorId, tok, msgPrefix + msg);
+      base.MessageCore(phase, level, errorId, tok, msg);
+      return WrappedReporter.Message(phase, level, errorId, tok, msgPrefix + msg);
     }
   }
 }

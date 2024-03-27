@@ -255,11 +255,9 @@ public class Compilation : IDisposable {
     return prefix;
   }
 
-  private int runningVerificationJobs;
-
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -282,12 +280,11 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, null, null);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
-    int? randomSeed = 0,
-    bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool>? taskFilter,
+    int? randomSeed = 0) {
 
     var resolution = await Resolution;
     if (resolution == null) {
@@ -299,23 +296,19 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
+    if ((randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
       return false;
     }
 
     updates.OnNext(new ScheduledVerification(canVerify));
 
-    if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
-      return true;
-    }
-
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
+    _ = VerifyUnverifiedSymbol(canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
 
-  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
+  private async Task VerifyUnverifiedSymbol(ICanVerify canVerify,
+    ResolutionResult resolution, Func<IVerificationTask, bool>? taskFilter, int? randomSeed) {
+
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -343,7 +336,7 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, tasksPerVerifiable must be Lazy
       var updated = false;
-      var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
+      IReadOnlyList<IVerificationTask> verificationTasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
@@ -359,36 +352,73 @@ public class Compilation : IDisposable {
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
-      if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var task in tasks.Where(taskFilter)) {
-          var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
-          VerifyTask(canVerify, seededTask);
+      var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
+      var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
+      var verificationOfSymbol = new VerificationOfSymbol(canVerify);
+      var tasksForSymbol = new List<Task<IVerificationStatus>>();
+      updates.OnNext(new PhaseStarted(verificationOfSymbol));
+      foreach (var scope in verificationTaskPerScope) {
+        var tasksForScope = new List<Task<IVerificationStatus>>();
+        var scopeVerificationTasks = scope.ToList();
+        foreach (var verificationTask in scopeVerificationTasks) {
+          var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
+          var task = VerifyTask(canVerify, seededTask);
+          tasksForScope.Add(task);
+          tasksForSymbol.Add(task);
+        }
+
+        _ = WaitForAndHandleScopeFinished();
+        async Task WaitForAndHandleScopeFinished() {
+          if (taskFilter != null) {
+            return;
+          }
+          var statuses = await Task.WhenAll(tasksForScope);
+          if (statuses.Any(s => s is Stale)) {
+            return;
+          }
+
+          var proofDependingWarningComputation = new PhaseFromObject((typeof(ProofDependencyWarnings), scope.Key), verificationOfSymbol);
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, proofDependingWarningComputation,
+            errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
+          updates.OnNext(new PhaseFinished(proofDependingWarningComputation));
         }
       }
 
+      _ = WaitForAndHandleSymbolFinished();
+      async Task WaitForAndHandleSymbolFinished() {
+        if (taskFilter != null) {
+          return;
+        }
+        var statuses = await Task.WhenAll(tasksForSymbol);
+        if (statuses.Any(s => s is Stale)) {
+          return;
+        }
+
+        updates.OnNext(new PhaseFinished(verificationOfSymbol));
+      }
     }
     finally {
       verificationTickets.Enqueue(Unit.Default);
     }
   }
 
-  private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
+  private Task<IVerificationStatus> VerifyTask(ICanVerify canVerify, IVerificationTask task) {
     var statusUpdates = task.TryRun();
     if (statusUpdates == null) {
       if (task.CacheStatus is Completed completedCache) {
         HandleStatusUpdate(canVerify, task, completedCache);
       }
 
-      return;
+      return Task.FromResult(task.CacheStatus);
     }
 
-    var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug(
-      $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
-
+    var completed = new TaskCompletionSource<IVerificationStatus>();
     statusUpdates.Subscribe(
       update => {
         try {
+          if (update is Completed or Stale) {
+            completed.TrySetResult(update);
+          }
           HandleStatusUpdate(canVerify, task, update);
         } catch (Exception e) {
           logger.LogError(e, "Caught exception in statusUpdates OnNext.");
@@ -401,6 +431,7 @@ public class Compilation : IDisposable {
         }
       }
     );
+    return completed.Task;
   }
 
   public async Task Cancel(FilePosition filePosition) {
