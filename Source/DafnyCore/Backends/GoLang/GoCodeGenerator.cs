@@ -157,7 +157,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName, string goModuleName = "") {
+    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -174,14 +174,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      if (moduleName.Equals("_System")) {
-        if (Options.IncludeRuntime) {
-          goModuleName = GoModuleMode ? GoModuleName + "/" : "";
-        } else {
-          goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
-        }
-      }
-      return new Import { Name = moduleName, Path = goModuleName + pkgName, ExternModule = externModule };
+
+      return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
@@ -192,14 +186,22 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      var import = CreateImport(moduleName, isDefault, externModule, libraryName, GoModuleMode ? GoModuleName + "/" : "");
+      var goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+      if (moduleName.Equals("_System")) {
+        if (Options.IncludeRuntime) {
+          goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+        } else {
+          goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
+        }
+      }
 
-      var packageName = import.Name;
-      var filename = string.Format("{0}/{0}.go", packageName);
+      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
+      var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
       ModuleName = moduleName;
       EmitModuleHeader(w);
 
+      import.Path = goModuleName + import.Path;
       AddImport(import);
 
       return w;
@@ -220,7 +222,17 @@ namespace Microsoft.Dafny.Compilers {
           Options.ErrorWriter.WriteLine($"Go Module Name not found for the module {module.GetCompileName(Options)}");
         }
       }
-      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, goModuleName);
+
+      if (module.GetCompileName(Options).Equals("_System")) {
+        if (Options.IncludeRuntime) {
+          goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+        } else {
+          goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
+        }
+      }
+
+      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+      import.Path = goModuleName + import.Path;
       AddImport(import);
     }
 
