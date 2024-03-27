@@ -393,7 +393,7 @@ public class Compilation : IDisposable {
         if (statuses.Any(s => s is Stale)) {
           return;
         }
-        
+
         updates.OnNext(new PhaseFinished(verificationOfSymbol));
       }
     }

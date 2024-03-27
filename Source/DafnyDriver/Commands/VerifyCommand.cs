@@ -68,6 +68,7 @@ public static class VerifyCommand {
       await verificationSummarized;
       await verificationResultsLogged;
     }
+    await compilation.FinishedPhases();
 
     return compilation.ExitCode;
   }
@@ -112,6 +113,7 @@ public static class VerifyCommand {
       Interlocked.Increment(ref statistics.SolverExceptionCount);
     });
     await verificationResults.WaitForComplete();
+    await cliCompilation.FinishedPhases();
     await WriteTrailer(cliCompilation, statistics);
   }
 

@@ -26,6 +26,7 @@ public class CliCompilation {
   public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
+  private ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks;
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
@@ -87,11 +88,16 @@ public class CliCompilation {
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
+  public Task FinishedPhases() {
+    return Task.WhenAll(phaseTasks.Values.Select(ts => ts.Task));
+  }
+
   public void Start() {
     if (Compilation.Started) {
       throw new InvalidOperationException("Compilation was already started");
     }
 
+    phaseTasks = new ConcurrentDictionary<IPhase, TaskCompletionSource>();
     var previousPhases = new ConcurrentDictionary<IPhase, IPhase>();
     var nextPhases = new ConcurrentDictionary<IPhase, IPhase>();
     IPhase? currentPhase = null;
@@ -106,7 +112,7 @@ public class CliCompilation {
       _ => throw new ArgumentOutOfRangeException()
     };
 
-    
+
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is PhaseStarted phaseStarted) {
@@ -114,6 +120,7 @@ public class CliCompilation {
           previousPhases.TryAdd(phaseStarted.Phase, currentPhase);
           nextPhases.TryAdd(currentPhase, phaseStarted.Phase);
         }
+        phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
 
         queuedDiagnostics.TryAdd(phaseStarted.Phase, Array.Empty<NewDiagnostic>());
 
@@ -131,7 +138,10 @@ public class CliCompilation {
                 foreach (var diagnostic in queuedDiagnosticsForPhase!) {
                   ProcessNewDiagnostic(diagnostic, consoleReporter);
                 }
-                currentPhase = nextPhases[currentPhase];
+
+                if (!nextPhases.TryGetValue(currentPhase, out currentPhase)) {
+                  break; // Phase is the last one
+                }
               } else {
                 break; // Phase was not started.
               }
@@ -139,6 +149,10 @@ public class CliCompilation {
               break;
             }
           }
+        }
+
+        if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {
+          phaseTask.TrySetResult();
         }
       } else if (ev is NewDiagnostic newDiagnostic) {
         IPhase? previousPhase = null;
@@ -157,8 +171,8 @@ public class CliCompilation {
 
         var previousPhaseIsRunning = previousUncompletedPhase != null;
         if (previousPhaseIsRunning) {
-          queuedDiagnostics.AddOrUpdate(previousPhase!, 
-            _ => Array.Empty<NewDiagnostic>(), 
+          queuedDiagnostics.AddOrUpdate(previousPhase!,
+            _ => Array.Empty<NewDiagnostic>(),
             (_, existing) => existing.Concat(new[] { newDiagnostic }));
         } else {
           ProcessNewDiagnostic(newDiagnostic, consoleReporter);
@@ -207,8 +221,8 @@ public class CliCompilation {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
-        var parts = canVerifyResult.TaskFilter == null 
-          ? canVerifyPartsIdentified.Parts 
+        var parts = canVerifyResult.TaskFilter == null
+          ? canVerifyPartsIdentified.Parts
           : canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter);
         foreach (var part in parts) {
           canVerifyResult.Tasks.Add(part);
