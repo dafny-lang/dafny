@@ -101,3 +101,9 @@ For example, `Formatting.dfy`
 ### What is the release process?
 
 You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).
+
+### Backwards compatibility
+
+Dafny is still changing and backwards incompatible changes may be made. Any backwards compatibility breaking change must be easy to adapt to, such as by adding a command line option. In the future, we plan to add a `dafny migrate` command which should support migrating any Dafny codebase from the previous to the current CLI version. 
+
+As rule, Dafny features must be marked as deprecated, including migration instructions, at least one release before they are removed.
