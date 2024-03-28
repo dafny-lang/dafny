@@ -11,6 +11,7 @@ public class DooFileTest {
     var options = DafnyOptions.Default;
     options.ApplyDefaultOptionsWithoutSettingsDefault();
     var program = ParseProgram("module MyModule { function TheAnswer(): int { 42 } }", options);
+    options.ProcessSolverOptions(program.Reporter, Token.Cli);
     var dooFile = new DooFile(program);
 
     var path = Path.GetTempFileName();

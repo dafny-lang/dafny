@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class PredicateStmt : Statement {
+public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
   public readonly Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -25,5 +25,11 @@ public abstract class PredicateStmt : Statement {
     Contract.Requires(rangeToken != null);
     Contract.Requires(expr != null);
     this.Expr = expr;
+  }
+
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
+    base.GenResolve(resolver, context);
+    resolver.ResolveExpression(Expr, context);// follows from postcondition of ResolveExpression
+    resolver.ConstrainTypeExprBool(Expr, "condition is expected to be of type bool, but is {0}");
   }
 }

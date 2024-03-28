@@ -495,7 +495,7 @@ namespace Microsoft.Dafny {
     /// This method calls "SubstituteBoundedPool" on each item in the possibly null list. If any of those calls returns a
     /// change from the original, then all of the results are returned in a new list; otherwise, "list" is returned.
     /// </summary>
-    public List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list) {
+    public List<BoundedPool>/*?*/ SubstituteBoundedPoolList(List<BoundedPool>/*?*/ list) {
       if (list != null) {
         var newList = list.ConvertAll(SubstituteBoundedPool);
         for (var i = 0; i < list.Count; i++) {
@@ -507,55 +507,55 @@ namespace Microsoft.Dafny {
       return list;
     }
 
-    public ComprehensionExpr.BoundedPool SubstituteBoundedPool(ComprehensionExpr.BoundedPool bound) {
+    public BoundedPool SubstituteBoundedPool(BoundedPool bound) {
       if (bound == null) {
         return null;
-      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-        var b = (ComprehensionExpr.ExactBoundedPool)bound;
-        return new ComprehensionExpr.ExactBoundedPool(Substitute(b.E));
-      } else if (bound is ComprehensionExpr.BoolBoundedPool) {
+      } else if (bound is ExactBoundedPool) {
+        var b = (ExactBoundedPool)bound;
+        return new ExactBoundedPool(Substitute(b.E));
+      } else if (bound is BoolBoundedPool) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.CharBoundedPool) {
+      } else if (bound is CharBoundedPool) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.IntBoundedPool) {
-        var b = (ComprehensionExpr.IntBoundedPool)bound;
-        return new ComprehensionExpr.IntBoundedPool(
+      } else if (bound is IntBoundedPool) {
+        var b = (IntBoundedPool)bound;
+        return new IntBoundedPool(
           b.LowerBound == null ? null : Substitute(b.LowerBound),
           b.UpperBound == null ? null : Substitute(b.UpperBound));
-      } else if (bound is ComprehensionExpr.SetBoundedPool) {
-        var b = (ComprehensionExpr.SetBoundedPool)bound;
-        return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
-      } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-        var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-        return new ComprehensionExpr.MultiSetBoundedPool(Substitute(b.MultiSet), b.BoundVariableType, b.CollectionElementType);
-      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-        var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-        return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound), b.IsFiniteCollection);
-      } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
-        var b = (ComprehensionExpr.SuperSetBoundedPool)bound;
-        return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
-      } else if (bound is ComprehensionExpr.MapBoundedPool) {
-        var b = (ComprehensionExpr.MapBoundedPool)bound;
-        return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
-      } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-        var b = (ComprehensionExpr.SeqBoundedPool)bound;
-        return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.BoundVariableType, b.CollectionElementType);
-      } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+      } else if (bound is SetBoundedPool) {
+        var b = (SetBoundedPool)bound;
+        return new SetBoundedPool(Substitute(b.Set), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
+      } else if (bound is MultiSetBoundedPool) {
+        var b = (MultiSetBoundedPool)bound;
+        return new MultiSetBoundedPool(Substitute(b.MultiSet), b.BoundVariableType, b.CollectionElementType);
+      } else if (bound is SubSetBoundedPool) {
+        var b = (SubSetBoundedPool)bound;
+        return new SubSetBoundedPool(Substitute(b.UpperBound), b.IsFiniteCollection);
+      } else if (bound is SuperSetBoundedPool) {
+        var b = (SuperSetBoundedPool)bound;
+        return new SuperSetBoundedPool(Substitute(b.LowerBound));
+      } else if (bound is MapBoundedPool) {
+        var b = (MapBoundedPool)bound;
+        return new MapBoundedPool(Substitute(b.Map), b.BoundVariableType, b.CollectionElementType, b.IsFiniteCollection);
+      } else if (bound is SeqBoundedPool) {
+        var b = (SeqBoundedPool)bound;
+        return new SeqBoundedPool(Substitute(b.Seq), b.BoundVariableType, b.CollectionElementType);
+      } else if (bound is DatatypeBoundedPool) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.DatatypeInclusionBoundedPool) {
+      } else if (bound is DatatypeInclusionBoundedPool) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.AllocFreeBoundedPool) {
+      } else if (bound is AllocFreeBoundedPool) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.ExplicitAllocatedBoundedPool) {
+      } else if (bound is ExplicitAllocatedBoundedPool) {
         return bound;  // nothing to substitute
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool) {
+      } else if (bound is SpecialAllocIndependenceAllocatedBoundedPool) {
         return bound;  // nothing to substitute
-      } else if (bound is ComprehensionExpr.OlderBoundedPool) {
+      } else if (bound is OlderBoundedPool) {
         return bound;  // nothing to substitute
       } else {
-        Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool
+        Contract.Assume(false);  // unexpected BoundedPool
         throw new cce.UnreachableException();  // to please compiler
       }
     }

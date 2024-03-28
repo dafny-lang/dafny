@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,25 +13,23 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.Logging;
-using VC;
-using IToken = Microsoft.Dafny.IToken;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
 
-public class CliCompilation {
-  private readonly DafnyOptions options;
+public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
-  private Compilation Compilation { get; }
+public class CliCompilation {
+  public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
+  public bool DidVerification { get; private set; }
 
   private CliCompilation(
     CreateCompilation createCompilation,
     DafnyOptions options) {
-    this.options = options;
+    Options = options;
 
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
@@ -68,47 +67,7 @@ public class CliCompilation {
     }
   }
 
-  public Task<ResolutionResult> Resolution => Compilation.Resolution;
-
-  public void Start() {
-    if (Compilation.Started) {
-      throw new InvalidOperationException("Compilation was already started");
-    }
-
-    ErrorReporter consoleReporter = options.DiagnosticsFormat switch {
-      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
-      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
-      _ => throw new ArgumentOutOfRangeException()
-    };
-
-    Compilation.Updates.Subscribe(ev => {
-      if (ev is NewDiagnostic newDiagnostic) {
-        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
-          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Source,
-            _ => 1,
-            (_, previous) => previous + 1);
-          Interlocked.Increment(ref errorCount);
-        }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
-      } else if (ev is FinishedParsing finishedParsing) {
-        if (errorCount > 0) {
-          var programName = finishedParsing.Program.Name;
-          options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
-        }
-      } else if (ev is FinishedResolution finishedResolution) {
-        DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, options.DafnyPrintResolvedFile, true);
-
-        if (errorCount > 0) {
-          var programName = finishedResolution.Result.ResolvedProgram.Name;
-          options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
-        }
-      }
-
-    });
-    Compilation.Start();
-  }
+  public Task<ResolutionResult?> Resolution => Compilation.Resolution;
 
   public static CliCompilation Create(DafnyOptions options) {
     var fileSystem = OnDiskFileSystem.Instance;
@@ -126,20 +85,72 @@ public class CliCompilation {
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
-  public async Task VerifyAllAndPrintSummary() {
-    var statSum = new PipelineStatistics();
+  public void Start() {
+    if (Compilation.Started) {
+      throw new InvalidOperationException("Compilation was already started");
+    }
 
-    var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyResults>();
+    ErrorReporter consoleReporter = Options.DiagnosticsFormat switch {
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(Options),
+      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
+      _ => throw new ArgumentOutOfRangeException()
+    };
+
+    var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
+      if (ev is NewDiagnostic newDiagnostic) {
+        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
+          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Source,
+            _ => 1,
+            (_, previous) => previous + 1);
+          Interlocked.Increment(ref errorCount);
+        }
+        var dafnyDiagnostic = newDiagnostic.Diagnostic;
+        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
+          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+      } else if (ev is FinishedParsing finishedParsing) {
+        if (errorCount > 0) {
+          var programName = finishedParsing.Program.Name;
+          Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
+        }
+      } else if (ev is FinishedResolution finishedResolution) {
+        DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, Options.DafnyPrintResolvedFile, true);
+
+        if (errorCount > 0) {
+          var programName = finishedResolution.Result.ResolvedProgram.Name;
+          Options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
+        }
+      } else if (ev is InternalCompilationException internalCompilationException) {
+        if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
+          Options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
+        }
+      }
+
+    });
+    Compilation.Start();
+  }
+
+  public DafnyOptions Options { get; }
+
+  public bool VerifiedAssertions { get; private set; }
+
+  public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
+    var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
+    using var subscription = Compilation.Updates.Subscribe(ev => {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
-        foreach (var part in canVerifyPartsIdentified.Parts) {
+        foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
           canVerifyResult.Tasks.Add(part);
         }
 
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.SetResult();
+        }
+      }
+      if (ev is InternalCompilationException internalCompilationException) {
+        foreach (var state in canVerifyResults.Values) {
+          state.Finished.TrySetException(internalCompilationException.Exception);
         }
       }
 
@@ -148,114 +159,136 @@ public class CliCompilation {
         canVerifyResult.Finished.SetException(boogieException.Exception);
       }
 
-      if (ev is BoogieUpdate boogieUpdate) {
-        if (boogieUpdate.BoogieStatus is Completed completed) {
-          var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
-          canVerifyResult.CompletedParts.Add((boogieUpdate.ImplementationTask, completed));
+      if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
+        var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
+        canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
-          switch (completed.Result.Outcome) {
-            case ConditionGeneration.Outcome.Correct:
-            case ConditionGeneration.Outcome.ReachedBound:
-              Interlocked.Increment(ref statSum.VerifiedCount);
-              break;
-            case ConditionGeneration.Outcome.Errors:
-              Interlocked.Add(ref statSum.ErrorCount, completed.Result.Errors.Count);
-              break;
-            case ConditionGeneration.Outcome.TimedOut:
-              Interlocked.Increment(ref statSum.TimeoutCount);
-              break;
-            case ConditionGeneration.Outcome.OutOfMemory:
-              Interlocked.Increment(ref statSum.OutOfMemoryCount);
-              break;
-            case ConditionGeneration.Outcome.OutOfResource:
-              Interlocked.Increment(ref statSum.OutOfResourceCount);
-              break;
-            case ConditionGeneration.Outcome.Inconclusive:
-              Interlocked.Increment(ref statSum.InconclusiveCount);
-              break;
-            default:
-              throw new ArgumentOutOfRangeException();
-          }
-
-          if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
-            canVerifyResult.Finished.TrySetResult();
-          }
+        if (Options.Get(CommonOptionBag.ProgressOption)) {
+          var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+          Options.OutputWriter.WriteLine(
+            $"Verified part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
+            $", on line {token.line} (time: {completed.Result.RunTime.Milliseconds}ms, " +
+            $"resource count: {completed.Result.ResourceCount.ToString("E1", CultureInfo.InvariantCulture)})");
+        }
+        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+          canVerifyResult.Finished.TrySetResult();
         }
       }
     });
 
-    try {
-      var resolution = await Compilation.Resolution;
-      if (errorCount > 0) {
-        return;
+    var resolution = await Compilation.Resolution;
+    if (resolution == null || resolution.HasErrors) {
+      yield break;
+    }
+
+    var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
+
+    if (canVerifies == null) {
+      yield break;
+    }
+
+    DidVerification = true;
+
+    canVerifies = FilterCanVerifies(canVerifies, out var line);
+    VerifiedAssertions = line != null;
+
+    var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
+    foreach (var canVerify in orderedCanVerifies) {
+      var results = new CliCanVerifyState();
+      canVerifyResults[canVerify] = results;
+      if (line != null) {
+        results.TaskFilter = t => KeepVerificationTask(t, line.Value);
       }
 
-      var canVerifies = resolution.CanVerifies?.DistinctBy(v => v.Tok).ToList();
-
-      if (canVerifies != null) {
-        canVerifies = FilterCanVerifies(canVerifies);
-
-        var orderedCanVerifies = canVerifies.OrderBy(v => v.Tok.pos).ToList();
-        foreach (var canVerify in orderedCanVerifies) {
-          canVerifyResults[canVerify] = new CliCanVerifyResults();
-          await Compilation.VerifyCanVerify(canVerify, false);
-        }
-
-        foreach (var canVerify in orderedCanVerifies) {
-          var results = canVerifyResults[canVerify];
-          try {
-            await results.Finished.Task;
-            foreach (var (task, completed) in results.CompletedParts.OrderBy(t => t.Item1.Implementation.Name)) {
-              foreach (var vcResult in completed.Result.VCResults) {
-                Compilation.ReportDiagnosticsInResult(options, task, vcResult, Compilation.Reporter);
-              }
-
-              ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForImplementation(options,
-                resolution.ResolvedProgram!.Reporter,
-                resolution.ResolvedProgram.ProofDependencyManager,
-                new DafnyConsolePrinter.ImplementationLogEntry(task.Implementation.VerboseName,
-                  task.Implementation.tok),
-                DafnyConsolePrinter.DistillVerificationResult(completed.Result));
-            }
-          } catch (ProverException e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
-            Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
-          } catch (Exception e) {
-            Interlocked.Increment(ref statSum.SolverExceptionCount);
-            Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
-              $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
-          }
-        }
+      var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
+      if (!shouldVerify) {
+        orderedCanVerifies.Remove(canVerify);
       }
+    }
 
-      SynchronousCliCompilation.WriteTrailer(options, /* TODO ErrorWriter? */ options.OutputWriter, statSum);
+    int done = 0;
+    foreach (var canVerify in orderedCanVerifies) {
+      var results = canVerifyResults[canVerify];
+      try {
+        var timeLimitSeconds = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
+        var tasks = new List<Task> { results.Finished.Task };
+        if (timeLimitSeconds.Seconds != 0) {
+          tasks.Add(Task.Delay(timeLimitSeconds));
+        }
 
-    } catch (OperationCanceledException) {
-      // Failed to resolve the program due to a user error.
+        if (Options.Get(CommonOptionBag.ProgressOption)) {
+          await Options.OutputWriter.WriteLineAsync($"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
+        }
+        await Task.WhenAny(tasks);
+        done++;
+        if (!results.Finished.Task.IsCompleted) {
+          Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
+            "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
+          break;
+        }
+
+        await results.Finished.Task;
+      } catch (ProverException e) {
+        Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
+        yield break;
+      } catch (OperationCanceledException) {
+
+      } catch (Exception e) {
+        Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok,
+          $"Internal error occurred during verification: {e.Message}\n{e.StackTrace}");
+        throw;
+      }
+      yield return new CanVerifyResult(canVerify, results.CompletedParts.Select(c => new VerificationTaskResult(c.Task, c.Result.Result)).ToList());
+
+      canVerifyResults.Remove(canVerify); // Free memory
     }
   }
 
-  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies) {
-    var filterPosition = options.Get(VerifyCommand.FilterPosition);
+  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
+    var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
+    if (symbolFilter != null) {
+      canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+    }
+
+    var filterPosition = Options.Get(VerifyCommand.FilterPosition);
     if (filterPosition == null) {
+      line = null;
       return canVerifies;
     }
 
-    var regex = new Regex(@"(.+)(?::(\d+))?", RegexOptions.RightToLeft);
+    var regex = new Regex(@"(.*)(?::(\d+))?", RegexOptions.RightToLeft);
     var result = regex.Match(filterPosition);
     if (result.Length != filterPosition.Length || !result.Success) {
       Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
+      line = null;
       return new List<ICanVerify>();
     }
     var filePart = result.Groups[1].Value;
     string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
     var fileFiltered = canVerifies.Where(c => c.Tok.Uri.ToString().EndsWith(filePart)).ToList();
     if (string.IsNullOrEmpty(linePart)) {
+      line = null;
       return fileFiltered;
     }
 
-    var line = int.Parse(linePart);
+    var parsedLine = int.Parse(linePart);
+    line = parsedLine;
     return fileFiltered.Where(c =>
-        c.RangeToken.StartToken.line <= line && line <= c.RangeToken.EndToken.line).ToList();
+        c.RangeToken.StartToken.line <= parsedLine && parsedLine <= c.RangeToken.EndToken.line).ToList();
   }
+
+  private bool KeepVerificationTask(IVerificationTask task, int line) {
+    return task.ScopeToken.line == line || task.Token.line == line;
+  }
+}
+
+record VerificationStatistics {
+  public int ErrorCount;
+  public int VerifiedAssertions;
+  public int VerifiedSymbols;
+  public int InconclusiveCount;
+  public int TimeoutCount;
+  public int OutOfResourceCount;
+  public int OutOfMemoryCount;
+  public int SolverExceptionCount;
 }

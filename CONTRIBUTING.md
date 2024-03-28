@@ -30,7 +30,7 @@ If you want to propose code changes for the Dafny project, please note:
 - To propose code changes, use the standard Github multi-user project process, which is described for Dafny on the [wiki](https://github.com/dafny-lang/dafny/wiki/Setting-up-a-development-copy-of-Dafny).
 
 If your change is user-visible, then part of the PR should be corresponding changes to the
-[`RELEASE_NOTES.md`](../RELEASE_NOTES.md) file and to the 
+[`RELEASE_NOTES.md`](./RELEASE_NOTES.md) file (by following [this](./docs/dev/README.md)) and to the 
 [Dafny Reference Manual](./docs/DafnyRef).
 
 Any PR should have tests that check whether the bug-fix fixes the problem addressed or that the new functionality 
@@ -40,7 +40,7 @@ is properly working.
 
     Each `.dfy` file in this directory is a test, with a  [`lit`](https://llvm.org/docs/CommandGuide/lit.html) header describing how to run it and a `.expect` file indicating the expected output.  See [this README.md file](Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md) for more info on running Dafny' integration tests.
 
-  - Dafny's unit tests are in various `*.Test` directories in [`Source`](../Source).
+  - Dafny's unit tests are in various `*.Test` directories in [`Source`](./Source).
 
   Our CI is configured to run all tests when you create a PR.  To run tests locally, use `dotnet test Source/Dafny.sln` (but note that running the tests for our compiler backends requires installing lots of additional software).
 
@@ -101,3 +101,9 @@ For example, `Formatting.dfy`
 ### What is the release process?
 
 You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).
+
+### Backwards compatibility
+
+Dafny is still changing and backwards incompatible changes may be made. Any backwards compatibility breaking change must be easy to adapt to, such as by adding a command line option. In the future, we plan to add a `dafny migrate` command which should support migrating any Dafny codebase from the previous to the current CLI version. 
+
+As rule, Dafny features must be marked as deprecated, including migration instructions, at least one release before they are removed.

@@ -202,26 +202,26 @@ namespace Microsoft.Dafny {
           return;
         }
         RefinedSig = refinementTarget.Sig;
-
-
         Contract.Assert(RefinedSig.ModuleDef != null);
         Contract.Assert(refinementTarget.Def == RefinedSig.ModuleDef);
+
         // check that the openness in the imports between refinement and its base matches
+        Dictionary<string, TopLevelDecl> refinedModuleTopLevelDecls = new();
+        foreach (var baseDecl in refinementTarget.Def.TopLevelDecls) {
+          refinedModuleTopLevelDecls.Add(baseDecl.Name, baseDecl);
+        }
         var declarations = m.TopLevelDecls;
-        var baseDeclarations = refinementTarget.Def.TopLevelDecls.ToList();
-        foreach (var im in declarations) {
-          // TODO: this is a terribly slow algorithm; use the symbol table instead
-          var bim = baseDeclarations.FirstOrDefault(bim => bim.Name.Equals(im.Name));
-          if (bim != null) {
-            if (im is ModuleDecl mdecl && bim is ModuleDecl mbim && mdecl.Opened != mbim.Opened) {
-              if (mdecl.Opened) {
+        foreach (var mdecl in declarations.OfType<ModuleDecl>()) {
+          if (refinedModuleTopLevelDecls.TryGetValue(mdecl.Name, out var baseDecl)) {
+            if (baseDecl is ModuleDecl baseModuleDecl) {
+              if (mdecl.Opened && !baseModuleDecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_opened_base, m.tok,
                   "{0} in {1} cannot be imported with \"opened\" because it does not match the corresponding import in the refinement base {2}.",
-                  im.Name, m.Name, m.Implements.Target.ToString());
-              } else {
+                  mdecl.Name, m.Name, m.Implements.Target.ToString());
+              } else if (!mdecl.Opened && baseModuleDecl.Opened) {
                 Error(ErrorId.ref_refinement_import_must_match_non_opened_base, m.tok,
                   "{0} in {1} must be imported with \"opened\"  to match the corresponding import in its refinement base {2}.",
-                  im.Name, m.Name, m.Implements.Target.ToString());
+                  mdecl.Name, m.Name, m.Implements.Target.ToString());
               }
             }
           }
@@ -348,57 +348,18 @@ namespace Microsoft.Dafny {
           Error(ErrorId.ref_module_must_refine_module_2, nw, "a module ({0}) must refine another module", nw.Name);
         } else {
           var od = (AbstractTypeDecl)d;
-          if (nw is AbstractTypeDecl) {
-            if (od.SupportsEquality != ((AbstractTypeDecl)nw).SupportsEquality) {
-              Error(ErrorId.ref_mismatched_equality, nw, "type declaration '{0}' is not allowed to change the requirement of supporting equality", nw.Name);
+          postTasks.Enqueue(() => {
+            // check that od's type characteristics are respected by nw's
+            var newType = UserDefinedType.FromTopLevelDecl(nw.tok,
+              nw is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl } ? nonNullTypeDecl : nw);
+            if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
+              var typeCharacteristicsSyntax = od.Characteristics.ToString();
+              Error(errorId, nw.tok,
+                $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
+                $"{nw.WhatKind} '{m.Name}.{nw.Name}' must {whatIsNeeded}{hint}");
             }
-            if (od.Characteristics.HasCompiledValue != ((AbstractTypeDecl)nw).Characteristics.HasCompiledValue) {
-              Error(ErrorId.ref_mismatched_auto_init, nw.tok, "type declaration '{0}' is not allowed to change the requirement of supporting auto-initialization", nw.Name);
-            } else if (od.Characteristics.IsNonempty != ((AbstractTypeDecl)nw).Characteristics.IsNonempty) {
-              Error(ErrorId.ref_mismatched_nonempty, nw.tok, "type declaration '{0}' is not allowed to change the requirement of being nonempty", nw.Name);
-            }
-          } else {
-            if (od.SupportsEquality) {
-              if (nw is TraitDecl traitDecl) {
-                if (!traitDecl.IsReferenceTypeDecl) {
-                  Error(ErrorId.ref_trait_mismatched_equality, nw, "a type declaration that requires equality support cannot be replaced by this trait");
-                }
-              } else if (nw is ClassDecl || nw is NewtypeDecl) {
-                // fine
-              } else if (nw is CoDatatypeDecl) {
-                Error(ErrorId.ref_equality_support_precludes_codatatype, nw, "a type declaration that requires equality support cannot be replaced by a codatatype");
-              } else {
-                Contract.Assert(nw is IndDatatypeDecl || nw is TypeSynonymDecl);
-                // Here, we need to figure out if the new type supports equality.  But we won't know about that until resolution has
-                // taken place, so we defer it until the PostResolveIntermediate phase.
-                var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-                postTasks.Enqueue(() => {
-                  if (!udt.SupportsEquality) {
-                    Error(ErrorId.ref_mismatched_type_equality_support, udt.tok, "type '{0}', which does not support equality, is used to refine an abstract type with equality support", udt.Name);
-                  }
-                });
-              }
-            }
-            if (od.Characteristics.HasCompiledValue) {
-              // We need to figure out if the new type supports auto-initialization.  But we won't know about that until resolution has
-              // taken place, so we defer it until the PostResolveIntermediate phase.
-              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-              postTasks.Enqueue(() => {
-                if (!udt.HasCompilableValue) {
-                  Error(ErrorId.ref_mismatched_type_auto_init, udt.tok, "type '{0}', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization", udt.Name);
-                }
-              });
-            } else if (od.Characteristics.IsNonempty) {
-              // We need to figure out if the new type is nonempty.  But we won't know about that until resolution has
-              // taken place, so we defer it until the PostResolveIntermediate phase.
-              var udt = UserDefinedType.FromTopLevelDecl(nw.tok, nw);
-              postTasks.Enqueue(() => {
-                if (!udt.IsNonempty) {
-                  Error(ErrorId.ref_mismatched_type_nonempty, udt.tok, "type '{0}', which may be empty, is used to refine an abstract type expected to be nonempty", udt.Name);
-                }
-              });
-            }
-          }
+          });
+
           if (nw is TopLevelDeclWithMembers) {
             nwPointer.Set(MergeClass((TopLevelDeclWithMembers)nw, od));
           } else if (od.Members.Count != 0) {
@@ -486,71 +447,6 @@ namespace Microsoft.Dafny {
         derivedPointer = derivedPointer.Implements.Target.Def;
       }
       return false;
-    }
-
-    // Check that two resolved types are the same in a similar context (the same type parameters, method, class, etc.)
-    // Assumes that prev is in a previous refinement, and next is in some refinement. Note this is not commutative.
-    public bool ResolvedTypesAreTheSame(Type prev, Type next) {
-      Contract.Requires(prev != null);
-      Contract.Requires(next != null);
-
-      prev = prev.NormalizeExpandKeepConstraints();
-      next = next.NormalizeExpandKeepConstraints();
-
-      if (prev is TypeProxy || next is TypeProxy) {
-        return false;
-      }
-
-      if (prev is BoolType) {
-        return next is BoolType;
-      } else if (prev is CharType) {
-        return next is CharType;
-      } else if (prev is IntType) {
-        return next is IntType;
-      } else if (prev is RealType) {
-        return next is RealType;
-      } else if (prev is SetType) {
-        return next is SetType && ((SetType)prev).Finite == ((SetType)next).Finite &&
-          ResolvedTypesAreTheSame(((SetType)prev).Arg, ((SetType)next).Arg);
-      } else if (prev is MultiSetType) {
-        return next is MultiSetType && ResolvedTypesAreTheSame(((MultiSetType)prev).Arg, ((MultiSetType)next).Arg);
-      } else if (prev is MapType) {
-        return next is MapType && ((MapType)prev).Finite == ((MapType)next).Finite &&
-               ResolvedTypesAreTheSame(((MapType)prev).Domain, ((MapType)next).Domain) && ResolvedTypesAreTheSame(((MapType)prev).Range, ((MapType)next).Range);
-      } else if (prev is SeqType) {
-        return next is SeqType && ResolvedTypesAreTheSame(((SeqType)prev).Arg, ((SeqType)next).Arg);
-      } else if (prev is UserDefinedType) {
-        if (!(next is UserDefinedType)) {
-          return false;
-        }
-        UserDefinedType aa = (UserDefinedType)prev;
-        UserDefinedType bb = (UserDefinedType)next;
-        if (aa.ResolvedClass is TypeParameter && bb.ResolvedClass is TypeParameter) {
-          // these are both resolved type parameters
-          var tpa = (TypeParameter)aa.ResolvedClass;
-          var tpb = (TypeParameter)bb.ResolvedClass;
-          Contract.Assert(aa.TypeArgs.Count == 0 && bb.TypeArgs.Count == 0);
-          // Note that this is only correct if the two types occur in the same context, ie. both from the same method
-          // or class field.
-          return tpa.PositionalIndex == tpb.PositionalIndex && tpa.IsToplevelScope == tpb.IsToplevelScope;
-        } else if (aa.ResolvedClass == bb.ResolvedClass) {
-          // these are both resolved class/datatype types
-          Contract.Assert(aa.TypeArgs.Count == bb.TypeArgs.Count);
-          for (int i = 0; i < aa.TypeArgs.Count; i++) {
-            if (!ResolvedTypesAreTheSame(aa.TypeArgs[i], bb.TypeArgs[i])) {
-              return false;
-            }
-          }
-
-          return true;
-        } else {
-          // something is wrong; either aa or bb wasn't properly resolved, or they aren't the same
-          return false;
-        }
-
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
     }
 
     internal override void PostResolveIntermediate(ModuleDefinition m) {
@@ -1126,7 +1022,7 @@ namespace Microsoft.Dafny {
                 var sepA = "";
                 while (nxt == null || !PotentialMatch(nxt, oldS)) {
                   // loop invariant:  oldS == oldStmt.Body[j]
-                  var s = refinementCloner.CloneStmt(oldS);
+                  var s = refinementCloner.CloneStmt(oldS, false);
                   body.Add(s);
                   hoverTextA += sepA + Printer.StatementToString(Reporter.Options, s);
                   sepA = "\n";
@@ -1415,7 +1311,7 @@ namespace Microsoft.Dafny {
       var sep = "";
       for (; j < oldStmt.Count; j++) {
         var b = oldStmt[j];
-        body.Add(refinementCloner.CloneStmt(b));
+        body.Add(refinementCloner.CloneStmt(b, false));
         hoverText += sep + Printer.StatementToString(Reporter.Options, b);
         sep = "\n";
       }
@@ -1556,7 +1452,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(oldStmt == null || oldStmt is BlockStmt || oldStmt is IfStmt || oldStmt is SkeletonStatement);
 
       if (skeleton == null) {
-        return refinementCloner.CloneStmt(oldStmt);
+        return refinementCloner.CloneStmt(oldStmt, false);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
         skeleton = new BlockStmt(skeleton.RangeToken, new List<Statement>() { skeleton });

@@ -1,4 +1,4 @@
-// RUN: %verify --disable-nonlinear-arithmetic "%s" > "%t"
+// RUN: %verify --disable-nonlinear-arithmetic --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function power(n:nat, e:nat) : int

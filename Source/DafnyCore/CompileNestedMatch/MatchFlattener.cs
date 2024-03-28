@@ -414,7 +414,7 @@ public class MatchFlattener : IRewriter {
     MatchCase newMatchCase;
     var cloner = new Cloner(false, true);
     if (bodyContainer.Node is Statement statement) {
-      var body = UnboxStmt(statement).Select(cloner.CloneStmt).ToList();
+      var body = UnboxStmt(statement).Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
       newMatchCase = new MatchCaseStmt(tok.ToRange(), ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);
     } else {
       var body = (Expression)(bodyContainer.Node);
@@ -723,7 +723,7 @@ public class MatchFlattener : IRewriter {
       };
 
       var cloner = new SubstitutingCloner(substitutions, true);
-      var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s)).ToList();
+      var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s, false)).ToList();
 
       return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new[] { caseLet }.Concat(clonedBody).ToList(), stmtPath.Attributes);
     }

@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type Pos = x | 0 < x witness 1
@@ -170,7 +170,7 @@ lemma sum_assoc_mult(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
 }
 
 /** (a * (b * c))(i, j) == ((a * b) * c)(i, j) */
-lemma {:vcs_split_on_every_assert} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
+lemma {:isolate_assertions} mult_assoc_ij(a: Matrix, b: Matrix, c: Matrix, i: Index, j: Index)
   ensures mult(mult(a, b), c)(i)(j) == mult(a, mult(b, c))(i)(j)
 {
   calc {

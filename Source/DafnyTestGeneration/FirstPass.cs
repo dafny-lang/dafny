@@ -13,7 +13,7 @@ namespace DafnyTestGeneration;
 
 // This AST pass is run before test generation to detect any potential issues and report them to the user
 public class FirstPass {
-
+  private static readonly IPhase Phase = new MessageSourceBasedPhase(MessageSource.TestGeneration);
   private List<DafnyDiagnostic> diagnostics;
   private IEnumerable<DafnyDiagnostic> Errors => diagnostics.Where(diagnostic => diagnostic.Level == ErrorLevel.Error);
   private IEnumerable<DafnyDiagnostic> Warnings => diagnostics.Where(diagnostic => diagnostic.Level == ErrorLevel.Warning);
@@ -48,7 +48,7 @@ public class FirstPass {
     var errorReporter = new ConsoleErrorReporter(options);
     var program = Utils.Parse(errorReporter, source, true, uri);
     diagnostics = new();
-    if (errorReporter.HasErrors) {
+    if (errorReporter.FailCompilation) {
       NonZeroExitCode = true;
       return false;
     }
@@ -61,7 +61,7 @@ public class FirstPass {
     CheckVerificationTimeLimit(program);
     PrintWarningsAndErrors(errorReporter, program);
     NonZeroExitCode = Errors.Count() != 0;
-    return !Errors.Any() && (!Warnings.Any() || !options.WarningsAsErrors);
+    return !Errors.Any() && (!Warnings.Any() || !options.FailOnWarnings);
   }
 
   /// <summary>
@@ -101,7 +101,7 @@ public class FirstPass {
       }
     }
     if (callableWithMaxTimeLimit != null) {
-      diagnostics.Add(new DafnyDiagnostic(SmallTimeLimitWarning, callableWithMaxTimeLimit.Tok,
+      diagnostics.Add(new DafnyDiagnostic(Phase, SmallTimeLimitWarning, callableWithMaxTimeLimit.Tok,
         $"Method/function {callableWithMaxTimeLimit} is annotated with {{:timeLimit {maxTimeLimit}}} but test " +
         $"generation is called with --{BoogieOptionBag.VerificationTimeLimit.Name}:{options.TimeLimit}." +
         $"\nConsider increasing the time limit for test generation",
@@ -122,7 +122,7 @@ public class FirstPass {
           (attribute.Args.Count == 1 && uint.TryParse(attribute.Args.First().ToString(), out uint result) && result > 0)) {
         continue;
       }
-      diagnostics.Add(new DafnyDiagnostic(MalformedAttributeError, toInline.Tok,
+      diagnostics.Add(new DafnyDiagnostic(Phase, MalformedAttributeError, toInline.Tok,
         $"{{:{TestGenerationOptions.TestInlineAttribute}}} attribute on the {toInline.FullDafnyName} method/function " +
         $"can only take one argument, which must be a positive integer specifying the recursion unrolling limit " +
         $"(absence of such an argument or 1 means no unrolling)",
@@ -170,7 +170,7 @@ public class FirstPass {
       } else {
         message = $"Found a {{:{TestGenerationOptions.TestInlineAttribute}}}-annotated declaration that is neither a method nor a function";
       }
-      diagnostics.Add(new DafnyDiagnostic(InlinedMethodNotReachableWarning, toInline.Tok, message,
+      diagnostics.Add(new DafnyDiagnostic(Phase, InlinedMethodNotReachableWarning, toInline.Tok, message,
         MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       result = false;
     }
@@ -183,7 +183,7 @@ public class FirstPass {
   /// </summary>
   private bool CheckIsWrappedInAModule(Program program) {
     if (program.DefaultModuleDef.Children.OfType<ClassLikeDecl>().Any() || program.DefaultModuleDef.Children.OfType<DefaultClassDecl>().Any(decl => decl.Children.Any())) {
-      diagnostics.Add(new DafnyDiagnostic(NoExternalModuleError, program.Tok,
+      diagnostics.Add(new DafnyDiagnostic(Phase, NoExternalModuleError, program.Tok,
         "Program is not wrapped in a module. Put your code inside \"module M {}\" or equivalent",
         MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return false;
@@ -199,14 +199,14 @@ public class FirstPass {
     var result = true;
     foreach (MemberDecl declaration in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule, TestGenerationOptions.TestEntryAttribute)) {
       if (declaration.EnclosingClass is TraitDecl or ArrayClassDecl or IteratorDecl) {
-        diagnostics.Add(new DafnyDiagnostic(UnsupportedInputTypeError, declaration.Tok,
+        diagnostics.Add(new DafnyDiagnostic(Phase, UnsupportedInputTypeError, declaration.Tok,
           $"Test Generation does not support trait, array, or iterator types as receivers of " +
           $"{{:{TestGenerationOptions.TestEntryAttribute}}}-annotated methods.\n" +
           $"Consider writing a wrapper method that creates a receiver and passes on the arguments to it",
           MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
         result = false;
       } else if (declaration.EnclosingClass is ClassDecl) {
-        diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, declaration.Tok,
+        diagnostics.Add(new DafnyDiagnostic(Phase, NotFullySupportedInputTypeWarning, declaration.Tok,
           $"Test Generation does not fully support class types as receivers of " +
           $"{{:{TestGenerationOptions.TestEntryAttribute}}}-annotated methods.\n" +
           $"Consider writing a wrapper method that creates a receiver and passes on the arguments to it",
@@ -249,7 +249,7 @@ public class FirstPass {
         $"Consider modelling values of type {userDefinedType} with a datatype and passing them as input to " +
         $"{{:{TestGenerationOptions.TestEntryAttribute}}} annotated method/function {testEntry}";
       if (userDefinedType.IsAbstractType || userDefinedType.IsArrayType || userDefinedType.IsTraitType) {
-        diagnostics.Add(new DafnyDiagnostic(UnsupportedInputTypeError, type.Tok,
+        diagnostics.Add(new DafnyDiagnostic(Phase, UnsupportedInputTypeError, type.Tok,
           $"Test Generation does not support abstract types, array types, and trait types as inputs.\n{genericMessage}",
           MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       } else if (userDefinedType.IsRefType) {
@@ -258,23 +258,23 @@ public class FirstPass {
             TypeIsSupported(field.Type, testEntry);
           }
         }
-        diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, type.Tok,
+        diagnostics.Add(new DafnyDiagnostic(Phase, NotFullySupportedInputTypeWarning, type.Tok,
           $"Test Generation does not fully support class types as inputs.\n{genericMessage}",
           MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       } else if (userDefinedType.IsArrowType) {
-        diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, type.Tok,
+        diagnostics.Add(new DafnyDiagnostic(Phase, NotFullySupportedInputTypeWarning, type.Tok,
           $"Test Generation does not fully support function types as inputs.\n{genericMessage}",
           MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
       } else if (userDefinedType.AsNewtype != null) {
         if (userDefinedType.AsNewtype.Witness == null) {
-          diagnostics.Add(new DafnyDiagnostic(NoWitnessWarning, type.Tok,
+          diagnostics.Add(new DafnyDiagnostic(Phase, NoWitnessWarning, type.Tok,
             $"Cannot find witness for type {userDefinedType}. Please consider adding a witness to the declaration",
             MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         }
         isSupported = TypeIsSupported(userDefinedType.AsNewtype.BaseType, testEntry);
       } else if (userDefinedType.AsSubsetType != null) {
         if (userDefinedType.AsSubsetType.Witness == null) {
-          diagnostics.Add(new DafnyDiagnostic(NoWitnessWarning, type.Tok,
+          diagnostics.Add(new DafnyDiagnostic(Phase, NoWitnessWarning, type.Tok,
             $"Cannot find witness for type {userDefinedType}. Please consider adding a witness to the declaration",
             MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         }
@@ -283,7 +283,7 @@ public class FirstPass {
         isSupported = TypeIsSupported(userDefinedType.AsTypeSynonym.Rhs, testEntry);
       } else if (userDefinedType.IsDatatype) {
         if (userDefinedType.IsCoDatatype) {
-          diagnostics.Add(new DafnyDiagnostic(NotFullySupportedInputTypeWarning, type.Tok,
+          diagnostics.Add(new DafnyDiagnostic(Phase, NotFullySupportedInputTypeWarning, type.Tok,
             $"Test Generation has not been properly tested with co-inductive datatypes.\n{genericMessage}",
             MessageSource.TestGeneration, ErrorLevel.Warning, new List<DafnyRelatedInformation>()));
         } else {
@@ -314,7 +314,7 @@ public class FirstPass {
   /// </summary>
   private bool CheckHasTestEntry(Program program) {
     if (!Utils.ProgramHasAttribute(program, TestGenerationOptions.TestEntryAttribute)) {
-      diagnostics.Add(new DafnyDiagnostic(NoTestEntryError, program.Tok,
+      diagnostics.Add(new DafnyDiagnostic(Phase, NoTestEntryError, program.Tok,
         $"Cannot find a method or function annotated with {{:{TestGenerationOptions.TestEntryAttribute}}}",
         MessageSource.TestGeneration, ErrorLevel.Error, new List<DafnyRelatedInformation>()));
       return false;
@@ -358,14 +358,14 @@ public class FirstPass {
       return base.CloneExpr(expr);
     }
 
-    public override Statement CloneStmt(Statement stmt) {
+    public override Statement CloneStmt(Statement stmt, bool isReference) {
       if (stmt is CallStmt callStmt) {
         if (!Edges.ContainsKey(currentlyVisited)) {
           Edges[currentlyVisited] = new();
         }
         Edges[currentlyVisited].Add(callStmt.Method);
       }
-      return base.CloneStmt(stmt);
+      return base.CloneStmt(stmt, isReference);
     }
   }
 }

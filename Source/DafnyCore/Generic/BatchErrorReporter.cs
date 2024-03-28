@@ -9,8 +9,7 @@ public class BatchErrorReporter : ErrorReporter {
 
   public void CopyDiagnostics(ErrorReporter intoReporter) {
     foreach (var diagnostic in AllMessages) {
-      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-        diagnostic.Message);
+      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
     }
   }
 
@@ -29,7 +28,7 @@ public class BatchErrorReporter : ErrorReporter {
       return false;
     }
 
-    var dafnyDiagnostic = new DafnyDiagnostic(errorId, tok, msg, source, level, new List<DafnyRelatedInformation>());
+    var dafnyDiagnostic = new DafnyDiagnostic(new MessageSourceBasedPhase(source), errorId, tok, msg, source, level, new List<DafnyRelatedInformation>());
     AllMessages.Add(dafnyDiagnostic);
     AllMessagesByLevel[level].Add(dafnyDiagnostic);
     return true;

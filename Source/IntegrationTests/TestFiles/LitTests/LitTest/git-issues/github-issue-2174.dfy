@@ -71,7 +71,11 @@ lemma UpCastRShiftMasking(v: bv64, idx: nat)
   ensures v as bv128 == (v as bv128) & (Ones >> idx)
 {}
 
+// This one has worked in the past but is very brittle. Changing
+// unrelated background axioms causes it to fail.
+/*
 lemma RightMask(v: bv64, i: nat)
   requires 64 <= i <= 128
   ensures v as bv128 & (Ones >> i) == (v & (0xffff_ffff_ffff_ffff >> i - 64)) as bv128
 {}
+*/

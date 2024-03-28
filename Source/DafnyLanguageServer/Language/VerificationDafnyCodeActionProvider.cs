@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Plugins;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -29,7 +31,10 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    var range = ErrorMessageDafnyCodeActionProvider.FindTokenRangeFromLspRange(input, relatedInformation.Location.Range);
+    var range = FindTokenRangeFromLspRange(input, relatedInformation.Location.Range);
+    if (range == null) {
+      return null;
+    }
     var expression = range.PrintOriginal();
     var statement = $"assert {expression};";
     var edit = DafnyCodeActionHelpers.InsertAtEndOfBlock(input, diagnostic.Range.Start, statement);
@@ -45,5 +50,8 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       )
     };
 
+  }
+
+  public VerificationDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger) : base(logger) {
   }
 }

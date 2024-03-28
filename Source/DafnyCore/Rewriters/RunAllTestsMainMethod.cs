@@ -150,6 +150,12 @@ public class RunAllTestsMainMethod : IRewriter {
             continue;
           }
 
+          if (method.TypeArgs.Count != 0) {
+            ReportError(ErrorId.rw_test_methods_may_not_have_type_parameters, method.tok,
+              "Methods with the :test attribute may not have type parameters");
+            continue;
+          }
+
           Expression resultVarExpr = null;
           var lhss = new List<Expression>();
 
@@ -229,7 +235,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
     // Find the resolved main method to attach the body to (which will be a different instance
     // than the Method we added in PreResolve).
-    var hasMain = Compilers.SinglePassCompiler.HasMain(program, out var mainMethod);
+    var hasMain = Compilers.SinglePassCodeGenerator.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
     mainMethod.Body = new BlockStmt(tok.ToRange(), mainMethodStatements);
   }

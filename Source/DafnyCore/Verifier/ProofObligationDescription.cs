@@ -47,28 +47,41 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class ShiftLowerBound : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "shift amount is always non-negative";
+public abstract class ShiftOrRotateBound : ProofObligationDescription {
+  protected readonly string shiftOrRotate;
 
-  public override string FailureDescription =>
-    "shift amount must be non-negative";
-
-  public override string ShortDescription => "shift lower bound";
+  public ShiftOrRotateBound(bool shift) {
+    shiftOrRotate = shift ? "shift" : "rotate";
+  }
 }
 
-public class ShiftUpperBound : ProofObligationDescription {
+public class ShiftLowerBound : ShiftOrRotateBound {
   public override string SuccessDescription =>
-    $"shift amount is always within the width of the result ({width})";
+    $"{shiftOrRotate} amount is always non-negative";
 
   public override string FailureDescription =>
-    $"shift amount must not exceed the width of the result ({width})";
+    $"{shiftOrRotate} amount must be non-negative";
 
-  public override string ShortDescription => "shift upper bound";
+  public override string ShortDescription => $"{shiftOrRotate} lower bound";
+
+  public ShiftLowerBound(bool shift)
+    : base(shift) {
+  }
+}
+
+public class ShiftUpperBound : ShiftOrRotateBound {
+  public override string SuccessDescription =>
+    $"{shiftOrRotate} amount is always within the width of the result ({width})";
+
+  public override string FailureDescription =>
+    $"{shiftOrRotate} amount must not exceed the width of the result ({width})";
+
+  public override string ShortDescription => $"{shiftOrRotate} upper bound";
 
   private readonly int width;
 
-  public ShiftUpperBound(int width) {
+  public ShiftUpperBound(int width, bool shift)
+    : base(shift) {
     this.width = width;
   }
 }
@@ -247,7 +260,7 @@ public class IsAllocated : ProofObligationDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might not be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
@@ -257,6 +270,11 @@ public class IsAllocated : ProofObligationDescription {
   private string WhenSuffix => when is null ? "" : $" {when}";
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
+
+  public static string HelperFormal(Formal formal) {
+    return $" -- if you add 'new' before the parameter declaration, like 'new {formal.Name}: {formal.Type.ToString()}',"
+           + " arguments can refer to expressions possibly unallocated in the previous state";
+  }
 
   public IsAllocated(string what, string when, bool plural = false) {
     this.what = what;
