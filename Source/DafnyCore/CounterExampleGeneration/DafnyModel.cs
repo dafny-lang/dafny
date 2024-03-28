@@ -1,16 +1,16 @@
 ﻿// Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 
-namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
+namespace Microsoft.Dafny {
 
   /// <summary>
   /// A wrapper around Boogie's Model class that allows extracting
@@ -109,6 +109,20 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
       var modelString = mv.Substring(beginIndex, endIndex + end.Length - beginIndex);
       var model = Model.ParseModels(new StringReader(modelString)).First();
       return new DafnyModel(model, options);
+    }
+
+    public override string ToString() {
+      var result = new StringBuilder();
+      foreach (var state in States.Where(state => state.StateContainsPosition())) {
+        result.AppendLine(state.FullStateName + ":");
+        var vars = state.ExpandedVariableSet(-1);
+        foreach (var variable in vars) {
+          result.AppendLine($"\t{variable.ShortName} : " +
+                            $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
+                            $"{variable.Value}");
+        }
+      }
+      return result.ToString();
     }
 
     /// <summary>
@@ -232,7 +246,7 @@ namespace Microsoft.Dafny.LanguageServer.CounterExampleGeneration {
     /// a direct analog in Dafny source (i.e. not $Heap, $_Frame, $nw, etc.)
     /// </summary>
     public static bool IsUserVariableName(string name) =>
-      !name.Contains("$") && !name.Contains("##");
+      !name.Contains("$") && name.Count(c => c == '#') <= 1;
 
     public bool ElementIsNull(Model.Element element) => element == fNull.GetConstant();
 
