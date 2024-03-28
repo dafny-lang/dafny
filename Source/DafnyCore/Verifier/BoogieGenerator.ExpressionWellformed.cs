@@ -377,8 +377,10 @@ namespace Microsoft.Dafny {
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.ReadFrameSubset("read field", () => {
                   if (etran.scope is {Designator: var designator}) {
-                    var hint = $"adding 'reads {e.Obj.ToString()}' or 'reads {e.Obj.ToString()}`{f.Name}' in the enclosing {designator} specification for resolution";
-                    if (etran.scope is LambdaExpr l && l.Reads.Expressions.Count == 0) {
+                    var lambdaScope = etran.scope as LambdaExpr;
+                    var extraHint = lambdaScope == null ? $" or 'reads {e.Obj.ToString()}`{f.Name}'" : "";
+                    var hint = $"adding 'reads {e.Obj.ToString()}'{extraHint} in the enclosing {designator} specification for resolution";
+                    if (lambdaScope != null && lambdaScope.Reads.Expressions.Count == 0) {
                       hint = $"extracting {e.Obj.ToString()}.{f.Name} to a local variable, or {hint}";
                     }
 
