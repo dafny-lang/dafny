@@ -133,7 +133,7 @@ function HasResolutionError(): int {
     [Fact]
     public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {
       var source = @"
-method {:vcs_split_on_every_assert} Foo(x: int) {
+method {:isolate_assertions} Foo(x: int) {
   if (x == 0) {
     assert true;
   } else if (x == 1) {
@@ -157,7 +157,7 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
     [Fact]
     public async Task IncrementalBatchDiagnostics() {
       var source = @"
-method {:vcs_split_on_every_assert} Foo(x: int) {
+method {:isolate_assertions} Foo(x: int) {
   if (x == 0) {
     assert false;
   } else {

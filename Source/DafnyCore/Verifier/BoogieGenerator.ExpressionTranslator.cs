@@ -1927,6 +1927,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         return false;
       }
 
+      private static readonly Dictionary<string, string> NullaryAttributesToTranslate;
+
       private static readonly HashSet<string> NullaryAttributesToCopy = new(new[] {
         "focus",
         "ignore",
@@ -1957,6 +1959,15 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         "captureState",
         "error"
       });
+
+      static ExpressionTranslator() {
+        NullaryAttributesToTranslate = new() {
+          {
+            "isolate_assertions",
+            "vcs_split_on_every_assert"
+          }
+        };
+      }
 
       private QKeyValue TrBooleanAttribute(string name, Expression arg, QKeyValue rest) {
         var boolArg = RemoveLit(TrExpr(arg));
@@ -1995,7 +2006,9 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             continue;
           }
 
-          if (NullaryAttributesToCopy.Contains(name) && attr.Args.Count == 0) {
+          if (NullaryAttributesToTranslate.ContainsKey(name) && attr.Args.Count == 0) {
+            kv = new QKeyValue(attr.tok, NullaryAttributesToTranslate[name], new List<object>(), kv);
+          } else if (NullaryAttributesToCopy.Contains(name) && attr.Args.Count == 0) {
             kv = new QKeyValue(attr.tok, name, new List<object>(), kv);
           } else if (BooleanAttributesToCopy.Contains(name) && attr.Args.Count == 1) {
             kv = TrBooleanAttribute(name, attr.Args[0], kv);

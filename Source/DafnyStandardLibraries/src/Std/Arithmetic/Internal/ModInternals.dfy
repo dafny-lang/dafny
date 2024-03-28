@@ -76,7 +76,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAddDenominator(n: int, x: int)
+  lemma {:isolate_assertions} LemmaDivAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) / n == x / n + 1
   {
@@ -96,7 +96,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivSubDenominator(n: int, x: int)
+  lemma {:isolate_assertions} LemmaDivSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) / n == x / n - 1
   {
@@ -116,7 +116,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaModAddDenominator(n: int, x: int)
+  lemma {:isolate_assertions} LemmaModAddDenominator(n: int, x: int)
     requires n > 0
     ensures (x + n) % n == x % n
   {
@@ -136,7 +136,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaModSubDenominator(n: int, x: int)
+  lemma {:isolate_assertions} LemmaModSubDenominator(n: int, x: int)
     requires n > 0
     ensures (x - n) % n == x % n
   {
@@ -193,7 +193,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   }
 
   /* proves the quotient remainder theorem */
-  lemma {:vcs_split_on_every_assert} LemmaQuotientAndRemainder(x: int, q: int, r: int, n: int)
+  lemma {:isolate_assertions} LemmaQuotientAndRemainder(x: int, q: int, r: int, n: int)
     requires n > 0
     requires 0 <= r < n
     requires x == q * n + r
