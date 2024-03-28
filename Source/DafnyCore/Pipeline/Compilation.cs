@@ -11,12 +11,9 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
-using Diagnostic = OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -45,8 +42,6 @@ public class Compilation : IDisposable {
   public bool Started => started.Task.IsCompleted;
 
   private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> staticDiagnostics = new();
-  public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
-    staticDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
 
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
@@ -122,13 +117,15 @@ public class Compilation : IDisposable {
     Project.Errors.CopyDiagnostics(errorReporter);
     RootFiles = DetermineRootFiles();
 
-    updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
+    updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopyAndClear()));
     started.TrySetResult();
   }
 
-  private ImmutableDictionary<Uri, ImmutableList<Diagnostic>> GetDiagnosticsCopy() {
-    return staticDiagnostics.ToImmutableDictionary(k => k.Key,
-      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
+  private ImmutableList<FileDiagnostic> GetDiagnosticsCopyAndClear() {
+    var result = staticDiagnostics.SelectMany(k =>
+      k.Value.Select(v => new FileDiagnostic(k.Key, v.ToLspDiagnostic()))).ToImmutableList();
+    staticDiagnostics.Clear();
+    return result;
   }
 
   private IReadOnlyList<DafnyFile> DetermineRootFiles() {
@@ -207,13 +204,15 @@ public class Compilation : IDisposable {
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, transformedProgram);
 
-      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopy()));
+      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(e));
+      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Parser), e));
       throw;
     }
   }
@@ -231,13 +230,15 @@ public class Compilation : IDisposable {
 
       updates.OnNext(new FinishedResolution(
         resolution,
-        GetDiagnosticsCopy()));
+        GetDiagnosticsCopyAndClear()));
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
 
+    } catch (OperationCanceledException) {
+      throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(e));
+      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Resolver), e));
       throw;
     }
   }
@@ -336,7 +337,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(e));
+        updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Verifier), e));
         throw;
       }
 
@@ -495,14 +496,16 @@ public class Compilation : IDisposable {
     result.CounterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
+      var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+      var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
+      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
       timeLimit, result.CounterExamples);
   }

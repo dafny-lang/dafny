@@ -650,7 +650,7 @@ method Acquire(universe: Universe, running: Thread, mutex: Mutex)
 //   drop(l); // deallocate a guard == release mutex
 // }
 
-method {:vcs_split_on_every_assert} SetData(universe: Universe, running: Thread, mutex: Mutex)
+method {:isolate_assertions} SetData(universe: Universe, running: Thread, mutex: Mutex)
   requires universe.globalInv() && running in universe.content && mutex in universe.content
   modifies universe, universe.content
   decreases *

@@ -108,14 +108,18 @@ function HasResolutionError(): int {
   true
 }".TrimStart();
 
-      var document = await CreateOpenAndWaitForResolve(source);
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var resolutionDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(MessageSource.Resolver.ToString(), resolutionDiagnostics[0].Source);
-      ApplyChange(ref document, new Range(3, 0, 3, 0), "// comment to trigger update\n");
+      ApplyChange(ref documentItem, new Range(2, 1, 2, 1), "\n// comment to trigger update\n");
       await AssertNoDiagnosticsAreComing(CancellationToken);
-      ApplyChange(ref document, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
-      var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Equal(MessageSource.Parser.ToString(), parseDiagnostics[0].Source);
+      ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
+      var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
+      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
+      ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Single(parseDiagnostics2);
+      Assert.Equal(MessageSource.Resolver.ToString(), parseDiagnostics2[0].Source);
     }
 
     [Fact]
@@ -130,7 +134,7 @@ function HasResolutionError(): int {
     [Fact]
     public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {
       var source = @"
-method {:vcs_split_on_every_assert} Foo(x: int) {
+method {:isolate_assertions} Foo(x: int) {
   if (x == 0) {
     assert true;
   } else if (x == 1) {
@@ -154,7 +158,7 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
     [Fact]
     public async Task IncrementalBatchDiagnostics() {
       var source = @"
-method {:vcs_split_on_every_assert} Foo(x: int) {
+method {:isolate_assertions} Foo(x: int) {
   if (x == 0) {
     assert false;
   } else {

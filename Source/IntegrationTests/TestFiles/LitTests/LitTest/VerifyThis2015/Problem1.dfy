@@ -156,7 +156,7 @@ lemma Prefix<T>(pat: seq<T>, a: seq<T>)
   ensures IsRelaxedPrefixAux(pat, a, 0)
 {
 }
-lemma {:vcs_split_on_every_assert} Same2<T>(pat: seq<T>, a: seq<T>)
+lemma {:isolate_assertions} Same2<T>(pat: seq<T>, a: seq<T>)
   requires IsRelaxedPrefixAux(pat, a, 1)
   ensures IRP_Alt(pat, a)
 {

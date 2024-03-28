@@ -974,7 +974,11 @@ namespace Microsoft.Dafny.Compilers {
         return $"{DafnyMultiSetClass}.Empty";
       } else if (xType is SeqType seq) {
         if (seq.Arg.IsCharType) {
-          return "''";
+          if (UnicodeCharEnabled) {
+            return "_dafny.Seq.UnicodeFromString(\"\")";
+          } else {
+            return "\"\"";
+          }
         }
         return $"{DafnySeqClass}.of()";
       } else if (xType is MapType) {
