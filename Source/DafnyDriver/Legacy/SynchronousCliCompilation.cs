@@ -24,7 +24,6 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.Dafny.Compilers;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 using VC;
 
@@ -354,16 +353,8 @@ namespace Microsoft.Dafny {
         return;
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
-      options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
-      foreach (var state in model.States.Where(state => state.StateContainsPosition())) {
-        options.OutputWriter.WriteLine(state.FullStateName + ":");
-        var vars = state.ExpandedVariableSet(-1);
-        foreach (var variable in vars) {
-          options.OutputWriter.WriteLine($"\t{variable.ShortName} : " +
-                                         $"{DafnyModelTypeUtils.GetInDafnyFormat(variable.Type)} = " +
-                                         $"{variable.Value}");
-        }
-      }
+      options.OutputWriter.Write("The following counterexample refers to the following failing assertion:\n");
+      options.OutputWriter.Write(model.ToString());
     }
 
     private static string BoogieProgramSuffix(string printFile, string suffix) {
