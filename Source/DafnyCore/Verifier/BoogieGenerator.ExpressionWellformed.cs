@@ -377,15 +377,15 @@ namespace Microsoft.Dafny {
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.ReadFrameSubset("read field", () => {
                   if (etran.scope is {Designator: var designator}) {
-                    var result = $"adding 'reads {e.Obj.ToString()}`{f.Name}' in the enclosing {designator} specification might help";
+                    var hint = $"adding 'reads {e.Obj.ToString()}`{f.Name}' in the enclosing {designator} specification for resolution";
                     if (etran.scope is LambdaExpr l && l.Reads.Expressions.Count == 0) {
-                      result = $"extracting {e.Obj.ToString()}.{f.Name} to a local variable might help, or else " + result;
+                      hint = $"extracting {e.Obj.ToString()}.{f.Name} to a local variable, or {hint}";
                     }
 
-                    return ", " + result;
+                    return $"; Consider {hint}";
                   }
 
-                  return "";
+                  return "; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants";
                 }), wfOptions.AssertKv);
             }
 
