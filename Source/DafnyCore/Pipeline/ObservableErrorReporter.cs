@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Reactive.Subjects;
 using System.Threading;
+using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny {
@@ -32,7 +33,7 @@ namespace Microsoft.Dafny {
       }
       var relatedInformation = new List<DafnyRelatedInformation>();
 
-      var usingSnippets = Options.Get(DafnyConsolePrinter.ShowSnippets);
+      var usingSnippets = Options.Get(Snippets.ShowSnippets);
       if (rootTok is NestedToken nestedToken) {
         relatedInformation.AddRange(
           ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
@@ -40,7 +41,7 @@ namespace Microsoft.Dafny {
         );
       }
 
-      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level, relatedInformation);
+      var dafnyDiagnostic = new DafnyDiagnostic(new MessageSourceBasedPhase(source), errorId!, rootTok, msg, source, level, relatedInformation);
       AddDiagnosticForFile(dafnyDiagnostic, GetUriOrDefault(rootTok));
       return true;
     }

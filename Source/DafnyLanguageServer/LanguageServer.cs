@@ -9,6 +9,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -46,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer {
     };
 
     public static void ConfigureDafnyOptionsForServer(DafnyOptions dafnyOptions) {
-      dafnyOptions.Set(DafnyConsolePrinter.ShowSnippets, true);
+      dafnyOptions.Set(Snippets.ShowSnippets, true);
     }
 
     public static async Task Start(DafnyOptions dafnyOptions) {

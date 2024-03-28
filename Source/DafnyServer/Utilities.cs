@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Threading;
+using DafnyCore;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -57,7 +58,7 @@ namespace Microsoft.Dafny {
         options.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
         options.PrintTooltips = true; // Dump tooltips (ErrorLevel.Info) to stdout
         //options.UnicodeOutput = true; // Use pretty warning signs
-        options.Set(DafnyConsolePrinter.ShowSnippets, false); // Server sometimes has filename == null, which crashes showSnippets
+        options.Set(Snippets.ShowSnippets, false); // Server sometimes has filename == null, which crashes showSnippets
         options.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
       } else {
         throw new ServerException("Invalid command line options");

@@ -52,14 +52,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   // The limit has to be at least a little higher than zero
   // for basic logic to be valid.
-  const MIN_SIZE_T_LIMIT: nat := 128
+  ghost const MIN_SIZE_T_LIMIT: nat := 128
 
   // Ensures a minimum for SIZE_T_LIMIT.
   // Refining modules must provide a body - an empty body is enough,
   // but only works if SIZE_T_LIMIT is defined legally.
-  lemma EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
+  lemma {:axiom} EnsureSizeTLimitAboveMinimum() ensures MIN_SIZE_T_LIMIT <= SIZE_T_LIMIT
 
-  newtype size_t = x: nat | x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
+  newtype size_t = x: int | 0 <= x < SIZE_T_LIMIT witness (EnsureSizeTLimitAboveMinimum(); 0)
 
   const SIZE_T_MAX: size_t := (EnsureSizeTLimitAboveMinimum(); (SIZE_T_LIMIT - 1) as size_t)
   const ZERO_SIZE: size_t := (EnsureSizeTLimitAboveMinimum(); 0 as size_t)
@@ -746,7 +746,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  method {:tailrecursion} {:vcs_split_on_every_assert} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
+  method {:tailrecursion} {:isolate_assertions} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()
