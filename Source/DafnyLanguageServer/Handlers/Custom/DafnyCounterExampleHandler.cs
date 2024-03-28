@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
@@ -38,7 +37,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           var state = await projectManager.States.
             Where(s => FinishedVerifyingUri(s, uri)).FirstAsync();
           logger.LogDebug($"counter-example handler retrieved IDE state, " +
-                          $"canVerify count: {state.VerificationResults[uri].Count}, " +
+                          $"canVerify count: {state.CanVerifyStates[uri].Count}, " +
                           $"counterExample count: {state.Counterexamples.Count}");
           return new CounterExampleLoader(options, logger, state, request.CounterExampleDepth, cancellationToken).GetCounterExamples();
         }
@@ -58,9 +57,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
 
     private static bool FinishedVerifyingUri(IdeState s, Uri uri) {
       return s.Status == CompilationStatus.ResolutionSucceeded &&
-             s.VerificationResults[uri].Values.All(r =>
+             s.CanVerifyStates[uri].Values.All(r =>
                r.PreparationProgress == VerificationPreparationState.Done &&
-               r.Implementations.Values.All(v => v.Status >= PublishedVerificationStatus.Error));
+               r.VerificationTasks.Values.All(v => v.Status >= PublishedVerificationStatus.Error));
     }
 
     private class CounterExampleLoader {

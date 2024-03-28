@@ -9,6 +9,8 @@ method Main() {
 
   var objectTests := new ObjectTests();
   objectTests.Run();
+
+  ForallWithNewtype.Test();
 }
 
 class ArrayTests {
@@ -344,5 +346,21 @@ class ObjectTests {
       t.i := t.i + g();
     }
     Report(); // [(3, 1.0), (4, 2.0), (5, 3.0)];
+  }
+}
+
+module ForallWithNewtype {
+  predicate P(x: int) {
+    x != 11
+  }
+
+  newtype MyInt = x: int | -2 <= x < 16 && P(x)
+
+  method Test() {
+    var a := new int[20];
+    forall i: MyInt | 5 <= i && i as int < a.Length {
+      a[i] := i as int;
+    }
+    print "\n", a[..], "\n"; // [0, 0, 0, 0, 0, 5, 6, 7, 8, 9, 10, 0, 12, 13, 14, 15, 0, 0, 0, 0]
   }
 }

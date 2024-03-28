@@ -83,14 +83,14 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
 
     if (e is QuantifierExpr or SetComprehension or MapComprehension) {
       foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraint) {
-          if (!declWithConstraint.ConstraintIsCompilable) {
+        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints) {
+          if (!declWithConstraints.ConstraintIsCompilable) {
 
             IToken finalToken = boundVar.tok;
-            if (declWithConstraint.Constraint != null && declWithConstraint.Constraint.tok.line != 0) {
+            if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.tok.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
-              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraint.Constraint,
-                new CodeContextWrapper(declWithConstraint, true));
+              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
+                new CodeContextWrapper(declWithConstraints, true));
               if (errorCollector.Collected) {
                 finalToken = new NestedToken(finalToken, errorCollector.FirstCollectedToken,
                   "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
@@ -98,7 +98,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
               }
             }
             this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a {declWithConstraint.WhatKind} and its constraint is not compilable, " +
+              $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
               $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.");
           }
         }

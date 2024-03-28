@@ -1,4 +1,4 @@
-// RUN: %verify --warn-deprecation false --relax-definite-assignment "%s" > "%t"
+// RUN: %verify --allow-deprecation --relax-definite-assignment --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Node {

@@ -6,5 +6,5 @@ namespace Microsoft.Dafny;
 
 public record FinishedParsing(
   Program Program,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent {
+  ImmutableList<FileDiagnostic> Diagnostics) : ICompilationEvent {
 }

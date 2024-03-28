@@ -100,25 +100,20 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      var uriDiagnostics = state.GetDiagnosticsForUri(uri).ToList();
-      foreach (var diagnostic in uriDiagnostics) {
-        if (diagnostic.Range.Contains(position)) {
-          string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
+      foreach (var diagnostic in state.GetAllDiagnostics()) {
+        if (diagnostic.Uri == uri && diagnostic.Diagnostic.Range.Contains(position)) {
+          string? detail = ErrorRegistry.GetDetail(diagnostic.Diagnostic.Code);
           if (detail is not null) {
             return detail;
           }
         }
       }
 
-      return GetVerificationHoverContent(state, uri, position, ref areMethodStatistics, uriDiagnostics);
+      return GetVerificationHoverContent(state, uri, position, ref areMethodStatistics);
     }
 
-    private string? GetVerificationHoverContent(IdeState state, Uri uri, Position position, ref bool areMethodStatistics,
-      List<Diagnostic> uriDiagnostics) {
-      if (uriDiagnostics.Any(diagnostic =>
-            diagnostic.Severity == DiagnosticSeverity.Error && (
-              diagnostic.Source == MessageSource.Parser.ToString() ||
-              diagnostic.Source == MessageSource.Resolver.ToString()))) {
+    private string? GetVerificationHoverContent(IdeState state, Uri uri, Position position, ref bool areMethodStatistics) {
+      if (state.Status != CompilationStatus.ResolutionSucceeded) {
         return null;
       }
 
@@ -441,7 +436,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private static string AddAssertionBatchDocumentation(string batchReference) {
-      return $"[{batchReference}](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-verification-attributes-on-assert-statements)";
+      return $"[{batchReference}](https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#sec-assertion-batches)";
     }
 
     private static Hover CreateMarkdownHover(string information) {

@@ -25,7 +25,7 @@ static class TranslateCommand {
   public static Command Create() {
     var result = new Command("translate", "Translate Dafny sources to source and build files in a specified language.");
 
-    foreach (var backend in SinglePassCompiler.Plugin.GetCompilers(DafnyOptions.Default)) {
+    foreach (var backend in SinglePassCodeGenerator.Plugin.GetCompilers(DafnyOptions.Default)) {
       var command = backend.GetCommand();
       result.AddCommand(command);
       if (!backend.IsStable) {

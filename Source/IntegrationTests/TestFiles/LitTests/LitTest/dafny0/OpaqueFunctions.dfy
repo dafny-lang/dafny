@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --warn-deprecation false "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecation --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
