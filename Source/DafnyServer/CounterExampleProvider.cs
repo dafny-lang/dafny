@@ -9,7 +9,6 @@ using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 
 namespace DafnyServer {
   public sealed class CounterExampleProvider {
