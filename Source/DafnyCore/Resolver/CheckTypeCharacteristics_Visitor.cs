@@ -279,7 +279,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
   public void VisitType(IToken tok, Type type, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
-    type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
+    type = type.Normalize();  // we only do a .Normalize() here, because we want to stop at any type synonym or subset type
     if (type is BasicType) {
       // fine
     } else if (type is SetType) {
