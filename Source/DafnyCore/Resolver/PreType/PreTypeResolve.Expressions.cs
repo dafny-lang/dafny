@@ -913,12 +913,13 @@ namespace Microsoft.Dafny {
               Contract.Assert(left.Arguments.Count == 2);
               var st = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), new List<PreType>() { left.Arguments[0] });
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
-              var messageFormat = $"map subtraction expects right-hand operand to have type {st} (instead got {{0}})";
+              Constraints.AddDefaultAdvice(a1, st);
 
+              var messageFormat = $"map subtraction expects right-hand operand to have type {st} (instead got {{0}})";
               Constraints.AddGuardedConstraint(() => {
-                if (e1.PreType.UrAncestor(this) is DPreType dPreType) {
+                if (a1.UrAncestor(this) is DPreType dPreType) {
                   if (dPreType.Decl.Name != PreType.TypeNameSet) {
-                    ReportError(e1, messageFormat, e1.PreType);
+                    ReportError(e1, messageFormat, a1);
                   } else {
                     AddSubtypeConstraint(dPreType.Arguments[0], left.Arguments[0], e1.tok,
                       $"element type of {PreType.TypeNameSet} expected to be {{0}} (got {{1}})");
@@ -927,13 +928,11 @@ namespace Microsoft.Dafny {
                 }
                 return false;
               });
-              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSetFamily, e1.PreType, e1.tok,
-                $"map subtraction expects right-hand operand to have type {st} (instead got {{0}})");
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSetFamily, a1, e1.tok, messageFormat);
               return true;
             } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != PreType.TypeNameSet)) {
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
-              AddSubtypeConstraint(a0, a1, tok,
-                "type of right argument to - ({0}) must agree with the result type ({1})");
+              AddSubtypeConstraint(a0, a1, tok, "type of right argument to - ({0}) must agree with the result type ({1})");
               return true;
             }
             return false;
