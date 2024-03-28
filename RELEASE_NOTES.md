@@ -2,6 +2,30 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.6.0
+
+## New features
+
+- Add a check to `dafny run` that notifies the user when a value that was parsed as a user program argument, and which occurs before a `--` token, starts with `--`, since this indicates they probably mistyped a Dafny option name. (https://github.com/dafny-lang/dafny/pull/5097)
+
+- Add an option --progress that can be used to track the progress of verification. (https://github.com/dafny-lang/dafny/pull/5150)
+
+- Add the attribute `{:isolate_assertions}`, which does the same as `{:vcs_split_on_every_assert}`. Deprecated `{:vcs_split_on_every_assert}` (https://github.com/dafny-lang/dafny/pull/5247)
+
+## Bug fixes
+
+- (soundness issue) Twostate predicate now check if their not new arguments are allocated in the previous heap (https://github.com/dafny-lang/dafny/pull/4844)
+
+- Add uniform checking of type characteristics in refinement modules (https://github.com/dafny-lang/dafny/pull/5146)
+
+- Fixed links associated with the standard libraries. (https://github.com/dafny-lang/dafny/pull/5176)
+
+- fix: Disable the "erase datatype wrappers" optimization if the datatype implements any traits.
+  feat: Allow the "erase datatype wrappers" optimization if the only fields in the datatype are ghost fields.
+  (https://github.com/dafny-lang/dafny/pull/5234)
+
+- Fix the default string value emitted for JavaScript (https://github.com/dafny-lang/dafny/pull/5239)
+
 # 4.5.0
 
 ## New features

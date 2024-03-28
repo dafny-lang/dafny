@@ -1,1 +1,0 @@
-Add a check to `dafny run` that notifies the user when a value that was parsed as a user program argument, and which occurs before a `--` token, starts with `--`, since this indicates they probably mistyped a Dafny option name.
