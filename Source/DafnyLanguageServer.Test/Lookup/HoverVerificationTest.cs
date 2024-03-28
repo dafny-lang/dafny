@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     [Fact(Timeout = MaxTestExecutionTimeMs)]
     public async Task HoverPutsErrorsFirst() {
       var documentItem = await GetDocumentItem(@"
-method {:vcs_split_on_every_assert} Test(x: int, y: int)
+method {:isolate_assertions} Test(x: int, y: int)
   requires x < y
 {
   var callIt := giveIt(x, y);
@@ -118,7 +118,7 @@ Resource usage: ??? RU"
         // LineVerificationStatusOption.Instance.Set(o, true);
       });
       var documentItem = await GetDocumentItem(@"
-method {:vcs_split_on_every_assert} f(x: int) {
+method {:isolate_assertions} f(x: int) {
   assert x >= 2; // Hover #1
   assert x >= 1; // Hover #2
 }
