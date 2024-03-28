@@ -1,6 +1,6 @@
 // NONUNIFORM: Javascript-specific extern test
-// RUN: %dafny /compile:3 /unicodeChar:0 "%s" /compileTarget:js > "%t"
-// note: putting /compileTarget:js after "%s" overrides user-provided option
+// RUN: %run --unicode-char false "%s" --target js > "%t"
+// note: putting --target js after "%s" overrides user-provided option
 // RUN: %diff "%s.expect" "%t"
 
 // "url" is a built-in package in node, so it should be accessible to the

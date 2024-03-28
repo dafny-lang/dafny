@@ -1,9 +1,9 @@
 // RUN: %verify "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" %S/Extern2.cs >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" %S/Extern3.js >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" %S/Extern4.go >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" %S/SingletonOptimization.java %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" %S/Extern5.py >> "%t"
+// RUN: %dafny /noVerify /compile:4 --target cs "%s" %S/Extern2.cs >> "%t"
+// RUN: %dafny /noVerify /compile:4 --target js "%s" %S/Extern3.js >> "%t"
+// RUN: %dafny /noVerify /compile:4 --target go "%s" %S/Extern4.go >> "%t"
+// RUN: %dafny /noVerify /compile:4 --target java "%s" %S/SingletonOptimization.java %S/LibClass.java %S/OtherClass.java %S/AllDafny.java %S/Mixed.java %S/AllExtern.java >> "%t"
+// RUN: %dafny /noVerify /compile:4 --target py "%s" %S/Extern5.py >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
