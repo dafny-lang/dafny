@@ -49,9 +49,7 @@ public static class DafnyCommands {
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
     CommonOptionBag.ShowInference,
-    CommonOptionBag.ManualTriggerOption,
-    CommonOptionBag.FilterSymbol,
-    CommonOptionBag.FilterPosition
+    CommonOptionBag.ManualTriggerOption
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
