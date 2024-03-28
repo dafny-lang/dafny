@@ -2,12 +2,12 @@
 // Old way:
 
 // RUN: %exits-with 0 %verify "%s" > "%t"
-// RUN: %exits-with 0 %dafny /noVerify /compile:4 --target cs "%s" >> "%t"
-// RUN: %exits-with 0 %dafny /noVerify /compile:4 --target js "%s" >> "%t"
-// RUN: %exits-with 0 %dafny /noVerify /compile:4 --target go "%s" >> "%t"
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 --target java "%s" >> "%t"
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 --target cpp "%s" >> "%t"
-// RUN: %exits-with 0 %dafny /noVerify /compile:4 --target py "%s" >> "%t"
+// RUN: %exits-with 0 %run --no-verify --target cs "%s" >> "%t"
+// RUN: %exits-with 0 %run --no-verify --target js "%s" >> "%t"
+// RUN: %exits-with 0 %run --no-verify --target go "%s" >> "%t"
+// RUN: %exits-with 3 %run --no-verify --target java "%s" >> "%t"
+// RUN: %exits-with 3 %run --no-verify --target cpp "%s" >> "%t"
+// RUN: %exits-with 0 %run --no-verify --target py "%s" >> "%t"
 // RUN: %diff "%s.oldway.expect" "%t"
 
 // New way:

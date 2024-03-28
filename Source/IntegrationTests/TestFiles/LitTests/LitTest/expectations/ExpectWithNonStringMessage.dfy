@@ -1,9 +1,9 @@
 // RUN: %verify --unicode-char false "%s" > "%t"
-// RUN: ! %dafny /noVerify /compile:4 --unicode-char false /compileTarget:cs "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 --unicode-char false /compileTarget:go "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 --unicode-char false /compileTarget:java "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 --unicode-char false /compileTarget:js "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 --unicode-char false /compileTarget:py "%s" >> "%t"
+// RUN: ! %dafny /noVerify /compile:4 --unicode-char false --target cs "%s" >> "%t"
+// RUN: ! %dafny /noVerify /compile:4 --unicode-char false --target go "%s" >> "%t"
+// RUN: ! %dafny /noVerify /compile:4 --unicode-char false --target java "%s" >> "%t"
+// RUN: ! %dafny /noVerify /compile:4 --unicode-char false --target js "%s" >> "%t"
+// RUN: ! %dafny /noVerify /compile:4 --unicode-char false --target py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<T> = None | Some(get: T)

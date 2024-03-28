@@ -6,7 +6,7 @@
 // In the new UI, consuming a Dafny library in Dafny is done by consuming the library's Dafny source, 
 // instead of a .dll that includes the Dafny source.
 
-// RUN: %dafny /spillTargetCode:1 %S/DafnyLib.dfy %S/DafnyLib-extern.cs /useRuntimeLib /out:%S/Output/DafnyLib.dll /compileTarget:cs > "%t"
+// RUN: %dafny /spillTargetCode:1 %S/DafnyLib.dfy %S/DafnyLib-extern.cs /useRuntimeLib /out:%S/Output/DafnyLib.dll --target cs > "%t"
 // RUN: %dafny /spillTargetCode:1 /compile:3 "%s" %binaryDir/DafnyRuntime.dll %S/Output/DafnyLib.dll >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
