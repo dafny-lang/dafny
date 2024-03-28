@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-deprecation
 
 
 // ---------------------- chaining operators -----------------------------------
@@ -270,6 +270,26 @@ module ArrowTypes {
     var g: (real, (ghost int, int), bool) -> int;
     var h: ((ghost int, int)) -> int;
     var i: (bool, ghost real, int, ghost bv6) -> ORDINAL; // error (x2): ghost not allowed
+  }
+}
+
+// ---------------------- missing parentheses for `predicate` -----------------------------------
+
+module MissingPredicateParens0 {
+  predicate P<A>
+} // error: expecting open paren
+
+module MissingPredicateParens1 {
+  predicate P<A> { // error: expecting open paren
+    true
+  }
+}
+
+module MissingPredicateParens2 {
+  predicate P<A> { // error: expecting open paren
+    true
+  } by method {
+    return true;
   }
 }
 

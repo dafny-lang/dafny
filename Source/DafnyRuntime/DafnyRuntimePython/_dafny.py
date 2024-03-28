@@ -7,6 +7,7 @@ from collections import Counter, deque
 from collections.abc import Iterable
 from functools import reduce
 from types import GeneratorType, FunctionType
+from math import floor
 from itertools import chain, combinations, count
 
 class classproperty(property):
@@ -94,6 +95,10 @@ class CodePoint(str):
 
     def __sub__(self, other):
         return CodePoint(minus_char(self, other))
+
+    @staticmethod
+    def is_code_point(i):
+        return (0 <= i and i < 0xD800) or (0xE000 <= i and i < 0x11_0000)
 
 class Concat:
     def __init__(self, l, r):
@@ -411,6 +416,9 @@ class BigRational(Fraction):
             y += 1
             x //= f
         return x, y
+
+    def is_integer(self):
+        return BigRational(floor(self), 1) == self
 
     @staticmethod
     def divides_a_power_of_10(x):

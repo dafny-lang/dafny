@@ -29,4 +29,4 @@ TestAuditor.dfy(150,2): Error: Assertion has explicit temporary [{:only}] attrib
 TestAuditor.dfy(154,15): Error: Member has explicit temporary [{:only}] attribute.
 TestAuditor.dfy(164,28): Error: Function with [{:extern}] attribute.
 TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
-Wrote textual form of partial target program to assumptions-lib/assumptions.doo
+Translation was aborted because errors were found

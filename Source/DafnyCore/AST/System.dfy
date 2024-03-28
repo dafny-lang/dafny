@@ -29,7 +29,7 @@ module {:extern "System"} {:compile false} {:options "-functionSyntax:4"} System
     }
   }
   class {:extern "String"} {:compile false} String {
-    static function Concat(s1: CsString, s2: CsString): (r: CsString)
+    static function {:extern} Concat(s1: CsString, s2: CsString): (r: CsString)
       ensures r.Contains(s1)
       ensures r.Contains(s2)
   }

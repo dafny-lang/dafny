@@ -588,7 +588,7 @@ namespace Microsoft.Dafny {
           }
 
           var parBoundVars = new List<BoundVar>();
-          var parBounds = new List<ComprehensionExpr.BoundedPool>();
+          var parBounds = new List<BoundedPool>();
           var substMap = new Dictionary<IVariable, Expression>();
           Expression receiverSubst = null;
           foreach (var iv in inductionVars) {
@@ -609,7 +609,7 @@ namespace Microsoft.Dafny {
               substMap.Add(iv, ie);
             }
             parBoundVars.Add(bv);
-            parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
+            parBounds.Add(new SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
           }
 
           // Generate a CallStmt to be used as the body of the 'forall' statement.
@@ -1263,9 +1263,7 @@ namespace Microsoft.Dafny {
         reveal = new Boogie.IdentifierExpr(f.tok, revealVar);
         argsJF.Add(reveal);
       } else if (overridingFunction.IsOpaque || overridingFunction.IsMadeImplicitlyOpaque(options)) {
-        // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
-        // Instead, we do the next best thing: use the literal false.
-        reveal = new Boogie.LiteralExpr(f.tok, false);
+        reveal = GetRevealConstant(overridingFunction);
       }
 
       // Add heap arguments
@@ -1461,6 +1459,9 @@ namespace Microsoft.Dafny {
       // Note, it is as if the trait's method is calling the class's method.
       var contextDecreases = overryd.Decreases.Expressions;
       var calleeDecreases = original.Decreases.Expressions;
+      var T = (TraitDecl)((MemberDecl)overryd).EnclosingClass;
+      var I = (TopLevelDeclWithMembers)((MemberDecl)original).EnclosingClass;
+
       // We want to check:  calleeDecreases <= contextDecreases (note, we can allow equality, since there is a bounded, namely 1, number of dynamic dispatches)
       if (Contract.Exists(contextDecreases, e => e is WildcardExpr)) {
         // no check needed
@@ -1473,10 +1474,12 @@ namespace Microsoft.Dafny {
       var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
+      FunctionCallSubstituter sub = null;
 
       for (int i = 0; i < N; i++) {
         Expression e0 = calleeDecreases[i];
-        Expression e1 = Substitute(contextDecreases[i], null, substMap, typeMap);
+        sub ??= new FunctionCallSubstituter(substMap, typeMap, T, I);
+        Expression e1 = sub.Substitute(contextDecreases[i]);
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
           break;
@@ -1486,6 +1489,10 @@ namespace Microsoft.Dafny {
         types1.Add(e1.Type.NormalizeExpand());
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
+        var canCall = etran.CanCallAssumption(e1);
+        if (canCall != Bpl.Expr.True) {
+          builder.Add(new Bpl.AssumeCmd(e1.tok, canCall));
+        }
       }
 
       var decrCountT = contextDecreases.Count;
@@ -1661,7 +1668,9 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
-            var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+            var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
+              "in the two-state lemma's previous state" +
+              PODesc.IsAllocated.HelperFormal(formal));
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, desc.SuccessDescription, null);
             require.Description = desc;

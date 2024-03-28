@@ -92,7 +92,7 @@ class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition> {
       var cpos = IsCoContext ? cp : Invert(cp);
       if (ContinuityIsImportant) {
         if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
-          if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
+          if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & BoundedPool.PoolVirtues.Finite) == 0)) {
             // To ensure continuity of extreme predicates, don't allow calls under an existential (resp. universal) quantifier
             // for greatest (resp. least) predicates).
             cp = CallingPosition.Neither;

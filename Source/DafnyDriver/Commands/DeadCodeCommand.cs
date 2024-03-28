@@ -23,7 +23,7 @@ static class DeadCodeCommand {
       BoogieOptionBag.SolverOptionHelp,
       BoogieOptionBag.SolverPath,
       BoogieOptionBag.SolverResourceLimit,
-      BoogieOptionBag.VerificationTimeLimit
+      BoogieOptionBag.VerificationTimeLimit,
     }.Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
 

@@ -1,4 +1,4 @@
-// RUN: %verify --warn-deprecation false --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
+// RUN: %verify --allow-deprecation --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This is the Extractor Problem from section 11.8 of the ACL2 book,
@@ -141,7 +141,7 @@ lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
 
 // here is the theorem, but applied to the ith element
 
-lemma {:vcs_split_on_every_assert} ExtractorLemma<T(00)>(i: int, xs: List)
+lemma {:isolate_assertions} ExtractorLemma<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs);
   ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs));
 {

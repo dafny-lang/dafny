@@ -14,6 +14,7 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using System.Threading;
+using DafnyCore;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using DafnyCore.Verifier;
@@ -76,7 +77,7 @@ namespace Microsoft.Dafny {
       this.reporter = reporter;
       if (flags == null) {
         flags = new TranslatorFlags(options) {
-          ReportRanges = options.Get(DafnyConsolePrinter.ShowSnippets)
+          ReportRanges = options.Get(Snippets.ShowSnippets)
         };
       }
       this.flags = flags;
@@ -1038,10 +1039,18 @@ namespace Microsoft.Dafny {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
-          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, "reveal_" + f.FullName, Bpl.Type.Bool), false);
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, RevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
         sink.AddTopLevelDeclaration(revealTrigger);
         Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
         this.functionReveals[f] = revealTrigger_expr;
+
+        // If this is an override, generate:
+        //     axiom reveal_FunctionA ==> reveal_FunctionParent;
+        if (f.OverriddenFunction is { IsOpaque: true }) {
+          var revealParent = GetRevealConstant(f.OverriddenFunction);
+          var implication = BplImp(revealTrigger_expr, revealParent);
+          AddOtherDefinition(revealTrigger, new Axiom(f.tok, implication));
+        }
       }
     }
 
@@ -1123,6 +1132,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(e0 != null);
       Contract.Requires(e1 != null);
 
+      type = type.NormalizeToAncestorType();
       if (type.AsSetType != null) {
         var finite = type.AsSetType.Finite;
         return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
@@ -2229,7 +2239,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr disjunct;
-        var eType = e.Type.NormalizeExpand();
+        var eType = e.Type.NormalizeToAncestorType();
         if (e is WildcardExpr) {
           // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
@@ -2638,10 +2648,11 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var isSetType = e.Type.AsSetType != null;
-      var isMultisetType = e.Type.AsMultiSetType != null;
-      Contract.Assert(isSetType || isMultisetType || e.Type.AsSeqType != null);
-      var sType = e.Type.AsCollectionType;
+      var eType = e.Type.NormalizeToAncestorType();
+      var isSetType = eType.AsSetType != null;
+      var isMultisetType = eType.AsMultiSetType != null;
+      Contract.Assert(isSetType || isMultisetType || eType.AsSeqType != null);
+      var sType = eType.AsCollectionType;
       Contract.Assert(sType != null);
       type = sType.Arg;
       // var $x
@@ -2910,19 +2921,19 @@ namespace Microsoft.Dafny {
         Contract.Assert(VisibleInScope(receiverType));
 
         Bpl.Expr wh;
+        var receiver = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
         if (m is Constructor && kind == MethodTranslationKind.Implementation) {
-          var th = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
           wh = BplAnd(
-            ReceiverNotNull(th),
-            GetWhereClause(tok, th, receiverType, etran, IsAllocType.NEVERALLOC));
+            ReceiverNotNull(receiver),
+            GetWhereClause(tok, receiver, receiverType, etran, IsAllocType.NEVERALLOC));
         } else {
-          var th = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
           wh = BplAnd(
-            ReceiverNotNull(th),
-            (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, th, receiverType));
+            ReceiverNotNull(receiver),
+            (m is TwoStateLemma ? etran.Old : etran).GoodRef(tok, receiver, receiverType));
         }
         // for class constructors, the receiver is encoded as an output parameter
-        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh), !(m is Constructor && kind != MethodTranslationKind.SpecWellformedness));
+        Bpl.Formal thVar = new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "this", TrType(receiverType), wh),
+          m is not Constructor);
         if (thVar.InComing) {
           inParams.Add(thVar);
         } else {
@@ -4097,7 +4108,7 @@ namespace Microsoft.Dafny {
       public Dictionary<TypeParameter, Type> typeMap;
 
       public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
-         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<ComprehensionExpr.BoundedPool>/*?*/ constraintBounds)
+         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<BoundedPool>/*?*/ constraintBounds)
         : base(tok, lhss, rhss, body, exact) {
         this.orgExpr = orgExpr;
         this.substMap = substMap;
