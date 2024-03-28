@@ -302,6 +302,13 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
 
     var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
+    if (GutterIconTesting) {
+      foreach (var canVerify in orderedVerifiableLocations) {
+        await compilation.VerifyLocation(canVerify, true);
+      }
+
+      logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
+    }
 
     foreach (var canVerify in orderedVerifiableLocations) {
       // Wait for each task to try and run, so the order is respected.

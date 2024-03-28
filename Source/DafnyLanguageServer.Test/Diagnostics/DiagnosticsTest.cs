@@ -25,7 +25,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(8, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&

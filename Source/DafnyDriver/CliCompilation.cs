@@ -26,7 +26,7 @@ public class CliCompilation {
   public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
-  private ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks;
+  private readonly ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks = new();
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
@@ -97,7 +97,6 @@ public class CliCompilation {
       throw new InvalidOperationException("Compilation was already started");
     }
 
-    phaseTasks = new ConcurrentDictionary<IPhase, TaskCompletionSource>();
     var previousPhases = new ConcurrentDictionary<IPhase, IPhase>();
     var nextPhases = new ConcurrentDictionary<IPhase, IPhase>();
     IPhase? currentPhase = null;

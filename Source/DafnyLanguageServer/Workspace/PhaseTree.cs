@@ -18,6 +18,10 @@ public class PhaseTree {
   public PhaseTree Merge(PhaseTree source, Func<FileDiagnostic, FileDiagnostic> updateDiagnostic) {
     var newChildren = source.Children.Aggregate(Children,
       (newChildren, kv) => {
+        if (kv.Key == IdeState.InternalExceptions.Instance) {
+          return newChildren;
+        }
+
         if (newChildren.TryGetValue(kv.Key, out var existingChild)) {
           return newChildren.SetItem(kv.Key, existingChild.Merge(kv.Value, updateDiagnostic));
         } else {

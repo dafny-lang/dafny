@@ -257,7 +257,8 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation,
+    bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -280,11 +281,12 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, null, null);
+    return await VerifyCanVerify(canVerify, null, null, onlyPrepareVerificationForGutterTests);
   }
 
   public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool>? taskFilter,
-    int? randomSeed = 0) {
+    int? randomSeed = 0,
+    bool onlyPrepareVerificationForGutterTests = false) {
 
     var resolution = await Resolution;
     if (resolution == null) {
@@ -294,6 +296,11 @@ public class Compilation : IDisposable {
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
       return false;
+    }
+
+    if (onlyPrepareVerificationForGutterTests) {
+      await VerifyUnverifiedSymbol(canVerify, resolution, _ => false, randomSeed);
+      return true;
     }
 
     if ((randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
@@ -356,7 +363,9 @@ public class Compilation : IDisposable {
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
       var verificationOfSymbol = new VerificationOfSymbol(canVerify);
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
-      updates.OnNext(new PhaseStarted(verificationOfSymbol));
+      if (taskFilter == null) {
+        updates.OnNext(new PhaseStarted(verificationOfSymbol));
+      }
       foreach (var scope in verificationTaskPerScope) {
         var tasksForScope = new List<Task<IVerificationStatus>>();
         var scopeVerificationTasks = scope.ToList();
