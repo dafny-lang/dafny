@@ -32,7 +32,7 @@ namespace XUnitExtensions.Lit {
 
     public static string? Run(string expectedOutputFile, string actualOutput) {
       if (UpdateExpectFile) {
-        var path = Path.GetFullPath(expectedOutputFile).Replace("bin/Debug/net6.0/", "");
+        var path = Path.GetFullPath(expectedOutputFile).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net6.0" + Path.DirectorySeparatorChar, "");
         File.WriteAllText(path, actualOutput);
         return null;
       }
@@ -40,16 +40,16 @@ namespace XUnitExtensions.Lit {
       return AssertWithDiff.GetDiffMessage(expected, actualOutput);
     }
 
-    public Task<int> Execute(TextReader inputReader,
+    public async Task<int> Execute(TextReader inputReader,
       TextWriter outputWriter, TextWriter errorWriter) {
-      var actual = File.ReadAllText(ActualPath);
+      var actual = await File.ReadAllTextAsync(ActualPath);
       var diffMessage = Run(ExpectedPath, actual);
       if (diffMessage != null) {
-        outputWriter.Write(diffMessage);
-        return Task.FromResult(1);
+        await outputWriter.WriteAsync(diffMessage);
+        return 1;
       }
 
-      return Task.FromResult(0);
+      return 0;
     }
 
     public override string ToString() {

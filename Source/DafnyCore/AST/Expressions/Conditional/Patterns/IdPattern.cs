@@ -33,11 +33,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Id = original.Id;
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
+    Type = cloner.CloneType(original.Type);
     if (cloner.CloneResolvedFields) {
       BoundVar = cloner.CloneIVariable(original.BoundVar, false);
-      Type = original.Type;
-    } else {
-      Type = new InferredTypeProxy();
     }
   }
 
@@ -54,7 +52,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     this.Id = id;
-    this.Type = type == null ? new InferredTypeProxy() : type;
+    this.Type = type ?? new InferredTypeProxy();
     this.Arguments = arguments;
     this.IsGhost = isGhost;
   }

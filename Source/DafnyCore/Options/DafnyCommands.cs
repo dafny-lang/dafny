@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -24,6 +25,7 @@ public static class DafnyCommands {
   }.Concat(ParserOptions);
 
   public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+    CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
@@ -68,12 +70,13 @@ public static class DafnyCommands {
   }.Concat(TranslationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
-    DafnyConsolePrinter.ShowSnippets,
+    Snippets.ShowSnippets,
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.AllowWarnings,
+    CommonOptionBag.WarnAsErrors
   });
 
   public static readonly IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
@@ -103,5 +106,6 @@ public static class DafnyCommands {
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
+    CommonOptionBag.AllowAxioms,
   }).Concat(ParserOptions).ToList();
 }

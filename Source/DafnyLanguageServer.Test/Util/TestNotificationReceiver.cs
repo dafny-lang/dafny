@@ -51,7 +51,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     }
 
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
-      await availableNotifications.WaitAsync(cancellationToken);
+      var start = DateTime.Now;
+      try {
+        await availableNotifications.WaitAsync(cancellationToken);
+      } catch (OperationCanceledException) {
+        logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds");
+        throw;
+      }
       if (notifications.TryDequeue(out var notification)) {
         return notification;
       }

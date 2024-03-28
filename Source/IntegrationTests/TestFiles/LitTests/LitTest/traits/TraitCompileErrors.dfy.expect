@@ -1,10 +1,10 @@
+TraitCompileErrors.dfy(7,46): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+TraitCompileErrors.dfy(8,35): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TraitCompileErrors.dfy(9,49): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+TraitCompileErrors.dfy(10,41): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TraitCompileErrors.dfy(13,36): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TraitCompileErrors.dfy(14,39): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 
-Dafny program verifier finished with 0 verified, 0 errors
-TraitCompileErrors.dfy(7,26): Error: Function StaticMembers.Tr.Func has no body
-TraitCompileErrors.dfy(8,18): Error: Method StaticMembers.Tr.Method has no body
-TraitCompileErrors.dfy(9,29): Error: Function StaticMembers.Tr.TwoF has no body
-TraitCompileErrors.dfy(10,26): Error: Method StaticMembers.Tr.TwoL has no body
-TraitCompileErrors.dfy(11,27): Error: Function StaticMembers.Tr.P has no body
-TraitCompileErrors.dfy(12,30): Error: Function StaticMembers.Tr.Q has no body
-TraitCompileErrors.dfy(13,23): Error: Method StaticMembers.Tr.IL has no body
-TraitCompileErrors.dfy(14,26): Error: Method StaticMembers.Tr.CL has no body
+Dafny program verifier finished with 2 verified, 0 errors
+TraitCompileErrors.dfy(8,18): Error: Method StaticMembers.Tr.Method has no body so it cannot be compiled
+Translation was aborted because errors were found

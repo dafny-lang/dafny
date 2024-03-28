@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C<U(==)> {
