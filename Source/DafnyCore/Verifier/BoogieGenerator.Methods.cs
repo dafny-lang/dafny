@@ -541,7 +541,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options);
       var builderInitializationArea = new BoogieStmtListBuilder(this, options);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
-      var etran = new ExpressionTranslator(this, predef, m.tok, 
+      var etran = new ExpressionTranslator(this, predef, m.tok,
         m.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
       // Only do reads checks for methods, not lemmas
       // (which aren't allowed to declare frames and don't check reads and writes against them).

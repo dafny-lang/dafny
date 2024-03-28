@@ -373,10 +373,10 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field {IsMutable: true} f) {
+            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field { IsMutable: true } f) {
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
                 new PODesc.ReadFrameSubset("read field", () => {
-                  if (etran.scope is {Designator: var designator}) {
+                  if (etran.scope is { Designator: var designator }) {
                     var lambdaScope = etran.scope as LambdaExpr;
                     var extraHint = lambdaScope == null ? $" or 'reads {e.Obj.ToString()}`{f.Name}'" : "";
                     var hint = $"adding 'reads {e.Obj.ToString()}'{extraHint} in the enclosing {designator} specification for resolution";

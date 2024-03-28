@@ -527,9 +527,9 @@ public class TraitDecreases : ProofObligationDescription {
   }
 }
 
-public class ReadFrameSubset: ProofObligationDescription {
-public override string SuccessDescription =>
-      $"sufficient reads clause to {whatKind}";
+public class ReadFrameSubset : ProofObligationDescription {
+  public override string SuccessDescription =>
+        $"sufficient reads clause to {whatKind}";
 
   public override string FailureDescription =>
       $"insufficient reads clause to {whatKind}" + (helperCode != null ? helperCode() : "");
@@ -548,7 +548,7 @@ public override string SuccessDescription =>
 public class ModifyFrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
       $"{whatKind} is allowed by context's modifies clause";
-      
+
   public override string FailureDescription =>
       $"{whatKind} might violate context's modifies clause";
 

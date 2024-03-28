@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope {
   public override string WhatKind => Reads.Expressions.Count != 0 ? "lambda" : Range != null ? "partial lambda" : "total lambda";
-  
+
   public Expression Body => Term;
 
   public readonly Specification<FrameExpression> Reads;
