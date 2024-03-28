@@ -167,7 +167,7 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      ModuleName = IdProtect(moduleName);
+      ModuleName = PublicModuleIdProtect(moduleName);
       var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
 
       var filename = string.Format("{0}/{0}.go", import.Path);
@@ -2491,7 +2491,6 @@ namespace Microsoft.Dafny.Compilers {
         case "String":
         case "Equals":
         case "EqualsGeneric":
-        case "C":
 
         // Built-in types (can also be used as functions)
         case "bool":
@@ -2520,6 +2519,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public string PublicModuleIdProtect(string name) {
+      if (name == "C") {
+        return "_C";
+      } else {
+        return name;
+      }
+    }
+
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       return UserDefinedTypeName(udt, full: true, member: member);
     }
@@ -2542,7 +2549,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
-      var enclosingModuleDefinitionId = IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+      var enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
