@@ -1,6 +1,5 @@
 // NONUNIFORM: Go-specific extern test
-// RUN: %exits-with 3 %dafny /compile:3 --unicode-char false /spillTargetCode:2 "%s" --target go 2> "%t"
-// note: putting --target go after "%s" overrides user-provided option
+// RUN: %exits-with 3 %run --unicode-char false --target go "%s" &> "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: undefined: GoModuleConversions.ParseURL
 
