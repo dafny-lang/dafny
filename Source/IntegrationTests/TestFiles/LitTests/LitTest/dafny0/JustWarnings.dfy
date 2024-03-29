@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-shadowing
+// RUN: %testDafnyForEachResolver "%s" -- --warn-shadowing --allow-warnings
 
 
 // This file tests the behavior where the Resolver reports some warnings
