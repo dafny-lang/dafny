@@ -70,7 +70,7 @@ public static class VerifyCommand {
     }
     await compilation.FinishedPhases();
 
-    return compilation.ExitCode;
+    return await compilation.GetAndReportExitCode();
   }
   public static async Task ReportVerificationSummary(
     CliCompilation cliCompilation,
