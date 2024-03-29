@@ -556,7 +556,6 @@ public class ReadFrameSubset : ProofObligationDescription {
         if (lambdaScope == null && readExpression is MemberSelectExpr {MemberName: var field}) {
           extraHint = $" or 'reads {obj}`{field}'";
         }
-
         var hint = $"adding 'reads {obj}'{extraHint} in the enclosing {designator} specification for resolution";
         if (lambdaScope != null && lambdaScope.Reads.Expressions.Count == 0) {
           hint = $"extracting {readExpression} to a local variable before the lambda expression, or {hint}";
