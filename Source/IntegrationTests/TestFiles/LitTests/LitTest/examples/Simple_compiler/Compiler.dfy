@@ -1,5 +1,5 @@
 // RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
-// RUN: %translate cs --unicode-char false "-out:%S/csharp/Compiler.cs" "%s"
+// RUN: %translate cs --include-runtime --unicode-char false "-out:%S/csharp/Compiler.cs" "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 

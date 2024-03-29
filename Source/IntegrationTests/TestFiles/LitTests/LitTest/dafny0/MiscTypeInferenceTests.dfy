@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %build "%s" --relax-definite-assignment > "%t"
+// RUN: %exits-with 4 %build "%s" --relax-definite-assignment --allow-axiom > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // All of the examples in this file should type check (but some produce
