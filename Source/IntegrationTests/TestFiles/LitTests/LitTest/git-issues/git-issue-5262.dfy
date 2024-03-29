@@ -1,3 +1,6 @@
+// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 function F(a: array<int>): int
   requires a.Length > 0
 {
@@ -6,6 +9,12 @@ function F(a: array<int>): int
 
 class C {
   var data: int
+
+  function G(): int {
+    // Amazing! I don't think I've ever thought about that ` has really low binding power,
+    // so the suggestion "reads var th := this; th`data" in the following line works!
+    (var th := this; th).data
+  }
 
   function H(): int {
     var th := this;
