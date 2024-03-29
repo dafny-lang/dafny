@@ -71,7 +71,7 @@ static class MeasureComplexityCommand {
       await verificationResultsLogged;
     }
 
-    return compilation.ExitCode;
+    return await compilation.GetAndReportExitCode();
   }
 
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,

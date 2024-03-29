@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-inference --allow-warnings "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file checks that suppressing warnings works properly
