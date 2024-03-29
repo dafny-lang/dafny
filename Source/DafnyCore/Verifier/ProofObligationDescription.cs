@@ -551,9 +551,9 @@ public class ReadFrameSubset : ProofObligationDescription {
           new PrintFlags(UseOriginalDafnyNames: true));
       }
 
-      if (scope is Function {CoClusterTarget: var x} && x != Function.CoCallClusterInvolvement.None) {
+      if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
-        if (lambdaScope == null && readExpression is MemberSelectExpr {MemberName: var field}) {
+        if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
           extraHint = $" or 'reads {obj}`{field}'";
         }
         var hint = $"adding 'reads {obj}'{extraHint} in the enclosing {designator} specification for resolution";
@@ -574,7 +574,7 @@ public class ReadFrameSubset : ProofObligationDescription {
     }
     return $"; {whyNotWhat} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls";
 
-  } 
+  }
 
   public override string ShortDescription => "read frame subset";
 
