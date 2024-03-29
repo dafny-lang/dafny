@@ -37,6 +37,8 @@ ResolutionErrors7.dfy(183,13): Error: == can only be applied to expressions of t
 ResolutionErrors7.dfy(188,13): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 182 as 'T(==)', which says it can only be instantiated with a type that supports equality)
 ResolutionErrors7.dfy(190,23): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 182 as 'T(==)', which says it can only be instantiated with a type that supports equality)
 ResolutionErrors7.dfy(192,14): Error: type parameter 0 (T) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors7.dfy(192,14): Error: type parameter 0 (T) passed to type QuadEq must support equality (got seq<T>)
+ResolutionErrors7.dfy(193,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
 ResolutionErrors7.dfy(193,15): Error: type parameter 1 (U) passed to type QuadEq must support equality (got seq<T>)
 ResolutionErrors7.dfy(202,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 199 as 'T(==)', which says it can only be instantiated with a type that supports equality)
 ResolutionErrors7.dfy(211,15): Error: == can only be applied to expressions of types that support equality (got T) (perhaps try declaring type parameter 'T' on line 199 as 'T(==)', which says it can only be instantiated with a type that supports equality)
@@ -69,4 +71,4 @@ ResolutionErrors7.dfy(338,6): Error: type parameter (T) passed to function NoRef
 ResolutionErrors7.dfy(344,9): Error: type parameter (T) passed to function MustBeNonempty must be nonempty (got PossiblyEmpty)
 ResolutionErrors7.dfy(350,9): Error: type parameter (T) passed to function MustBeAutoInit must support auto-initialization (got PossiblyEmpty)
 ResolutionErrors7.dfy(365,9): Error: type parameter (T) passed to function NoReferences must contain no references (got Class?)
-71 resolution/type errors detected in ResolutionErrors7.dfy
+73 resolution/type errors detected in ResolutionErrors7.dfy
