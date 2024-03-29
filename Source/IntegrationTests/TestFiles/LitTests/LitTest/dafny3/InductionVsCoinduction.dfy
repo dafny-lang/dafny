@@ -78,7 +78,7 @@ lemma {:induction false} SAppendIsAssociativeK(k:nat, a:Stream, b:Stream, c:Stre
 lemma SAppendIsAssociative(a:Stream, b:Stream, c:Stream)
   ensures SAppend(SAppend(a, b), c) == SAppend(a, SAppend(b, c));
 {
-  forall k:nat { SAppendIsAssociativeK(k, a, b, c); }
+  forall k:nat {:trigger} { SAppendIsAssociativeK(k, a, b, c); }
   // assert for clarity only, postcondition follows directly from it
   assert (forall k:nat {:autotriggers false} :: SAppend(SAppend(a, b), c) ==#[k] SAppend(a, SAppend(b, c))); //FIXME: Should Dafny generate a trigger here? If so then which one?
 }
