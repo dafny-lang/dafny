@@ -10,8 +10,8 @@
 // RUN: %run --no-verify --main-method I.Test "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --main-method J.Test "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --main-method K.Test "%s" >> "%t"
-// RUN: %run --no-verify /Main:       "%s" >> "%t"
-// RUN: %run --no-verify /Main:-      "%s" >> "%t"
+
+// RUN: %run --no-verify --main-method=-      "%s" &>> "%t"
 // RUN: %exits-with 3 %run --no-verify --main-method Tr.Instance "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --main-method Opaque.Static   "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --main-method Opaque.Instance "%s" >> "%t"

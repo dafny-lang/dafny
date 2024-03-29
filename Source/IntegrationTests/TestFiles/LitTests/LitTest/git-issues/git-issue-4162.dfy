@@ -1,9 +1,9 @@
 // NONUNIFORM: %testDafnyForEachCompiler doesn't support /out
-// RUN: %run --target py --output M "%s" > "%t"
-// RUN: %run --target cs --output M "%s" >> "%t"
-// RUN: %run --target java --output M "%s" >> "%t"
-// RUN: %run --target js --output M "%s" >> "%t"
-// RUN: %run --target go --output M "%s" >> "%t"
+// RUN: %run --target py --build M "%s" > "%t"
+// RUN: %run --target cs --build M "%s" >> "%t"
+// RUN: %run --target java --build M "%s" >> "%t"
+// RUN: %run --target js --build M "%s" >> "%t"
+// RUN: %run --target go --build M "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M {

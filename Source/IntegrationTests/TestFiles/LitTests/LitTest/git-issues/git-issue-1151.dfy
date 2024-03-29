@@ -1,4 +1,4 @@
-// RUN: %run "%s" --input %S/git-issue-1151-concrete.cs > "%t"
+// RUN: %run "%s" --relax-definite-assignment --input %S/git-issue-1151-concrete.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "M"} M {
