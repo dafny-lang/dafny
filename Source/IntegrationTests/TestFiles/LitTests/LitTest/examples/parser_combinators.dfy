@@ -316,5 +316,5 @@ module {:options "-functionSyntax:4"} Parsers {
 /// }
 /// ```
 
-// RUN: %exits-with 4 %dafny -compile:4 "%s" --args "((()))" "((()))no" "((())" > "%t"
+// RUN: %exits-with 4 %run "%s" "((()))" "((()))no" "((())" > "%t"
 // RUN: %diff "%s.expect" "%t"

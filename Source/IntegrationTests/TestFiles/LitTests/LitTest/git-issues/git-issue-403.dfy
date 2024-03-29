@@ -1,4 +1,4 @@
-// RUN: %dafny -compile:4 -compileTarget:java "%s" > "%t"
+// RUN: %run --target java "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype {:nativeType "byte"} uint8 = x:int | 0 <= x < 0x100
