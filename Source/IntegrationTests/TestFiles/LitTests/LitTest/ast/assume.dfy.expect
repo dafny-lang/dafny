@@ -3,3 +3,4 @@ assume.dfy(11,10): Warning: assume keyword in assign-such-that statement has no 
 assume.dfy(13,11): Warning: assume keyword in update-with-failure statement has no {:axiom} annotation
 
 Dafny program verifier finished with 2 verified, 0 errors
+Compilation failed because warnings were found and --allow-warnings is false
