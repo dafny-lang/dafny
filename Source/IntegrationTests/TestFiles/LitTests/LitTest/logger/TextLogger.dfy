@@ -1,5 +1,4 @@
 // RUN: %exits-with 4 %baredafny verify --show-snippets:false --log-format:text --isolate-assertions "%s" > "%t"
-// Also test old CLI
 // RUN: %exits-with 4 %baredafny /compile:0 /verificationLogger:text /vcsSplitOnEveryAssert "%s" >> "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Overall outcome: Errors

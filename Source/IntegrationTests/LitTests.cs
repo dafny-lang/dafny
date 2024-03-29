@@ -82,8 +82,17 @@ namespace IntegrationTests {
           "%resolve", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
-          "%translate", (args, config) =>
-            DafnyCommand(AddExtraArgs(new[] { "translate" }, args.Concat(defaultTranslateArgs)), config, InvokeMainMethodsDirectly)
+          "%translate", (args, config) => {
+            var totalArgs = args.ToList();
+            if (totalArgs.Any()) {
+              var target = totalArgs.First();
+              totalArgs = new[] { target }.Concat(defaultTranslateArgs).Concat(totalArgs.Skip(1)).ToList();
+            } else {
+              totalArgs = defaultTranslateArgs.ToList();
+            }
+            return DafnyCommand(AddExtraArgs(new[] { "translate" }, totalArgs), config,
+              InvokeMainMethodsDirectly);
+          }
         }, {
           "%verify", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultVerifyArgs, args), config, InvokeMainMethodsDirectly)
