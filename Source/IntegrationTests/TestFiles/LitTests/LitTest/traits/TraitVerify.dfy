@@ -8,14 +8,14 @@ class B extends Tr<real> { }
 class C<Y> extends Tr<Y> { }
 
 method M(a: A, b: B) {
-  var c: C?;
+  var c: C? := *;
   var t;  // Tr?<int>
   t := a;
   t := c;
 }
 
 method N(a: A, b: B) {
-  var c: C?<int>;
+  var c: C?<int> := *;
   var t: Tr<int>;
   t := a;
   t := c;  // error: c may be null

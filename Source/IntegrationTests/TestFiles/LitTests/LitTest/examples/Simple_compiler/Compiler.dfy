@@ -1,5 +1,5 @@
 // RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
-// RUN: %translate --unicode-char false "-out:%S/csharp/Compiler.cs" "%s"
+// RUN: %translate cs --unicode-char false "-out:%S/csharp/Compiler.cs" "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -237,7 +237,7 @@ module StackMachine {
     }
   }
 
-  const EmptyState := State(Nil, map[], []);
+  const EmptyState := State(Nil, map[], [])
 
   function interpProg(p: Prog, input: RegisterFile) : seq<int> {
     interpProg'(p, EmptyState.(regs := input)).output
@@ -461,7 +461,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
   }
 
   trait {:compile false} {:extern} Assign extends Stmt {
-    var v: System.String;
+    var v: System.String
     var e: Expr
   }
 

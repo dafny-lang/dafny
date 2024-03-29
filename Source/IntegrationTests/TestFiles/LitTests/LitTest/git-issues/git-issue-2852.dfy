@@ -1,3 +1,4 @@
+// NONUNIFORM: regression test
 // RUN: %run --target cs "%s" > "%t"
 // RUN: %run --no-verify --target js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"

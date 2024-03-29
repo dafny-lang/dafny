@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %build --type-system-refresh --general-newtypes "%s" > "%t"
+// RUN: %exits-with 4 %build --type-system-refresh true --general-newtypes true --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module EmptyBool {

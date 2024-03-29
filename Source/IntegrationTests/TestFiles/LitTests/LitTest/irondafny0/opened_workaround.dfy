@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %build > "%t"
+// RUN: %exits-with 3 %build %s > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

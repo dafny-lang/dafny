@@ -1,5 +1,5 @@
-// RUN: %build --no-verify --print:- "%s" > "%t"
-// RUN: %build --no-verify --print:- --type-system-refresh "%s" > "%t.refresh"
+// RUN: %resolve --allow-warnings --print:- "%s" > "%t"
+// RUN: %resolve --allow-warnings --print:- --type-system-refresh "%s" > "%t.refresh"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %diff "%s.expect" "%t.refresh"
 // My first Dafny program

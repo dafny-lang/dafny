@@ -11,7 +11,7 @@ class C {
 
 method K() {
   var f := C.Static;
-  var o : object?;
+  var o : object? := *;
   assert o !in f.reads();
   assert f.requires();
   assert f();

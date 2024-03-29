@@ -1,3 +1,4 @@
+// NONUNIFORM: nativeType has back-end specific behavior
 // RUN: %run --target java "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
