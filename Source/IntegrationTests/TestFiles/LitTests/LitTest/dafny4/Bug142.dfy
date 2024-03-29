@@ -1,4 +1,4 @@
-// RUN: %resolve --warn-shadowing "%s" > "%t"
+// RUN: %resolve --warn-shadowing --allow-warnings "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function P(x:int):int
