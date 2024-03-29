@@ -375,20 +375,7 @@ namespace Microsoft.Dafny {
             }
             if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field { IsMutable: true } f) {
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
-                new PODesc.ReadFrameSubset("read field", () => {
-                  if (etran.scope is { Designator: var designator }) {
-                    var lambdaScope = etran.scope as LambdaExpr;
-                    var extraHint = lambdaScope == null ? $" or 'reads {e.Obj.ToString()}`{f.Name}'" : "";
-                    var hint = $"adding 'reads {e.Obj.ToString()}'{extraHint} in the enclosing {designator} specification for resolution";
-                    if (lambdaScope != null && lambdaScope.Reads.Expressions.Count == 0) {
-                      hint = $"extracting {e.Obj.ToString()}.{f.Name} to a local variable, or {hint}";
-                    }
-
-                    return $"; Consider {hint}";
-                  }
-
-                  return "; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants";
-                }), wfOptions.AssertKv);
+                new PODesc.ReadFrameSubset("read field", selectExpr, etran.scope), wfOptions.AssertKv);
             }
 
             break;
@@ -443,7 +430,7 @@ namespace Microsoft.Dafny {
                 i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
                 Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), seq, fieldName),
-                  new PODesc.ReadFrameSubset("read array element"), wfOptions.AssertKv);
+                  new PODesc.ReadFrameSubset("read array element", e, etran.scope), wfOptions.AssertKv);
               } else {
                 Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
                 Contract.Assert(eSeqType.AsArrayType.Dims == 1);
@@ -457,7 +444,7 @@ namespace Microsoft.Dafny {
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
                 var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
-                  new PODesc.ReadFrameSubset("read the indicated range of array elements"),
+                  new PODesc.ReadFrameSubset("read the indicated range of array elements", e, etran.scope),
                   wfOptions.AssertKv);
               }
             }
@@ -492,7 +479,7 @@ namespace Microsoft.Dafny {
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), array, fieldName),
-                new PODesc.ReadFrameSubset("read array element"), wfOptions.AssertKv);
+                new PODesc.ReadFrameSubset("read array element", selectExpr, etran.scope), wfOptions.AssertKv);
             }
 
             break;
