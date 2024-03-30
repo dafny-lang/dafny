@@ -1,5 +1,5 @@
 
-// RUN: %exits-with 4 %dafny /compile:0 /warnShadowing /extractCounterexample "%s" > "%t"
+// RUN: %exits-with 4 %verify --extract-counterexample "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following method performs string equality comparison whereas its 
