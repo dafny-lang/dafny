@@ -1169,7 +1169,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(B != null);
       Contract.Requires(l != null);
       Contract.Requires(predef != null);
-      var etran = new ExpressionTranslator(this, predef, dt.tok);
+      var etran = new ExpressionTranslator(this, predef, dt.tok, dt);
       // For example, for possibly infinite lists:
       //     codatatype SList<T> = Nil | SCons(head: T, tail: SList<T>);
       // produce with conjucts=false (default):
@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny {
       //         IsGoodHeap(h) && OlderTag(h) && F(x, y) && IsAlloc(y, Y, h)
       //         ==>  IsAlloc(x, X, h))
       var heapVar = BplBoundVar("$olderHeap", predef.HeapType, out var heap);
-      var etran = new ExpressionTranslator(this, predef, heap);
+      var etran = new ExpressionTranslator(this, predef, heap, f);
 
       var isGoodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, heap);
       var olderTag = FunctionCall(f.tok, "$OlderTag", Bpl.Type.Bool, heap);
@@ -2052,7 +2052,7 @@ namespace Microsoft.Dafny {
         // This is the common case. It means that the frame will be defined in terms of the usual variable $Heap.
         // The one case where a frame is needed for a different heap is for lambda expressions, because they may
         // sit inside of an "old" expression.
-        etran = new ExpressionTranslator(this, predef, tok);
+        etran = new ExpressionTranslator(this, predef, tok, null);
       }
       // Declare a local variable $_Frame: [ref, Field]bool
       Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? frameIdentifier.Name, frameIdentifier.Type));
@@ -2305,7 +2305,7 @@ namespace Microsoft.Dafny {
       currentModule = ctor.EnclosingDatatype.EnclosingModuleDefinition;
       codeContext = ctor.EnclosingDatatype;
       fuelContext = FuelSetting.NewFuelContext(ctor.EnclosingDatatype);
-      var etran = new ExpressionTranslator(this, predef, ctor.tok);
+      var etran = new ExpressionTranslator(this, predef, ctor.tok, null);
 
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(ctor.EnclosingDatatype), true);

@@ -12,7 +12,6 @@ using System.Threading;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Declaration = Microsoft.Boogie.Declaration;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;

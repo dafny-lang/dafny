@@ -65,4 +65,5 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
     }
   }
+  public string Designator => WhatKind;
 }
