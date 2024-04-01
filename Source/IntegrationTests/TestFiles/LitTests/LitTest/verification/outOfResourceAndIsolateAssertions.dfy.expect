@@ -1,3 +1,37 @@
-git-issue106.dfy(6,32): Error: Verification out of resource (L)
+Verified 0/2 symbols. Waiting for f to verify.
+Verification part 1/11 of f, on line 5, verified successfully, taking 40ms and consuming 9.5E+002 resources
+Verification part 2/11 of f, on line 5, verified successfully, taking 66ms and consuming 6.2E+003 resources
+Verification part 3/11 of f, on line 5, verified successfully, taking 16ms and consuming 6.7E+003 resources
+Verification part 4/11 of f, on line 5, verified successfully, taking 11ms and consuming 6.7E+003 resources
+Verification part 5/11 of f, on line 5, verified successfully, taking 13ms and consuming 5.8E+003 resources
+Verification part 6/11 of f, on line 5, verified successfully, taking 11ms and consuming 5.9E+003 resources
+Verification part 7/11 of f, on line 5, verified successfully, taking 10ms and consuming 5.9E+003 resources
+Verification part 8/11 of f, on line 5, verified successfully, taking 11ms and consuming 7.8E+003 resources
+Verification part 9/11 of f, on line 5, verified successfully, taking 10ms and consuming 6.0E+003 resources
+VerifVerified 0/2 symbols. Waiting for f to verify.
+Verification part 1/11 of f, on line 5, verified successfully, taking 40ms and consuming 9.5E+002 resources
+Verification part 2/11 of f, on line 5, verified successfully, taking 66ms and consuming 6.2E+003 resources
+Verification part 3/11 of f, on line 5, verified successfully, taking 16ms and consuming 6.7E+003 resources
+Verification part 4/11 of f, on line 5, verified successfully, taking 11ms and consuming 6.7E+003 resources
+Verification part 5/11 of f, on line 5, verified successfully, taking 13ms and consuming 5.8E+003 resources
+Verification part 6/11 of f, on line 5, verified successfully, taking 11ms and consuming 5.9E+003 resources
+Verification part 7/11 of f, on line 5, verified successfully, taking 10ms and consuming 5.9E+003 resources
+Verification part 8/11 of f, on line 5, verified successfully, taking 11ms and consuming 7.8E+003 resources
+Verification part 9/11 of f, on line 5, verified successfully, taking 10ms and consuming 6.0E+003 resources
+Verification part 11/11 of f, on line 5, verified successfully, taking 10ms and consuming 6.0E+003 resources
+ully, taking 40ms and consuming 9.5E+002 resources
+Verification part 2/11 of f, on line 5, verified suc
+Verification part 1/9 of L, on line 7, verified successfully, taking 7ms and consuming 8.7E+002 resources
+Verified 1/2 symbols. Waiting for L to verify.
+Verification part 2/9 of L, on line 9, verified successfully, taking 9ms and consuming 5.6E+003 resources
+Verification part 3/9 of L, on line 10, verified successfully, taking 11ms and consuming 5.8E+003 resources
+Verification part 4/9 of L, on line 10, verified successfully, taking 10ms and consuming 6.0E+003 resources
+Verification part 5/9 of L, on line 11, verified successfully, taking 9ms and consuming 5.5E+003 resources
+Verification part 6/9 of L, on line 12, verified successfully, taking 9ms and consuming 5.5E+003 resources
+Verification part 7/9 of L, on line 12, verified successfully, taking 10ms and consuming 6.8E+003 resources
+Verification part 8/9 of L, on line 10, ran out of resources, taking 906ms and consuming 1.0E+007 resources
+Verification part 9/9 of L, on line 12, ran out of resources, taking 423ms and consuming 1.0E+007 resources
+outOfResourceAndIsolateAssertions.dfy(10,18): Error: Verification out of resource (L)
+outOfResourceAndIsolateAssertions.dfy(12,18): Error: Verification out of resource (L)
 
-Dafny program verifier finished with 1 verified, 0 errors, 1 out of resource
+Dafny program verifier finished with 18 verified, 0 errors, 2 out of resource
