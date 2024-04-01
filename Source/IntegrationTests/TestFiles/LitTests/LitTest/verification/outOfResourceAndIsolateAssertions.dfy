@@ -1,4 +1,4 @@
-// RUN: ! %verify --isolate-assertions --progress "%s" &> %t.raw
+// RUN: ! %verify --isolate-assertions --cores=1 --progress "%s" &> %t.raw
 // RUN: %sed 's/taking \d*ms/redacted/g' %t.raw > %t
 // RUN: %diff "%s.expect" %t
 
