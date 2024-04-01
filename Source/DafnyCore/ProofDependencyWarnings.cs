@@ -13,7 +13,7 @@ public record VerificationTaskResult(IVerificationTask Task, VerificationRunResu
 public class ProofDependencyWarnings {
 
   public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
-    var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
+    var verificationResults = ((DafnyConsolePrinter)dafnyOptions.Printer).VerificationResults.ToList();
     var orderedResults =
       verificationResults.OrderBy(vr =>
         (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col));

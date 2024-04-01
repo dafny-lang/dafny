@@ -267,10 +267,9 @@ public record IdeState(
 
     // Until resolution is finished, keep showing the old diagnostics. 
     if (previousState.Status > CompilationStatus.ResolutionStarted) {
-      var phase = new SingletonPhase(newDiagnostic.Diagnostic.Phase, newDiagnostic.Diagnostic);
       var newDiagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()));
       return previousState with {
-        NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+        NewDiagnostics = NewDiagnostics.Add(newDiagnostic.Diagnostic.Phase, newDiagnostics)
       };
     }
 
@@ -292,12 +291,11 @@ public record IdeState(
       Range = new Range(0, 0, 0, 1)
     };
 
-    var phase = new SingletonPhase(InternalExceptions.Instance, internalErrorDiagnostic);
     var newDiagnostics = ImmutableList.Create(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic));
     return previousState with {
       Status = CompilationStatus.InternalException,
       OldDiagnostics = OldDiagnostics,
-      NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+      NewDiagnostics = NewDiagnostics.Add(InternalExceptions.Instance, newDiagnostics)
     };
   }
 

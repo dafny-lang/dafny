@@ -5,12 +5,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reactive;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
@@ -28,6 +26,8 @@ public class CliCompilation {
   private int errorCount;
   private int warningCount;
   private readonly ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks = new();
+  private PhaseOrderedDiagnosticsReporter phaseOrderedDiagnosticsReporter;
+
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
@@ -50,6 +50,7 @@ public class CliCompilation {
     var input = new CompilationInput(options, 0, options.DafnyProject);
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     Compilation = createCompilation(executionEngine, input);
+
   }
 
   public async Task<int> GetAndReportExitCode() {
@@ -109,95 +110,26 @@ public class CliCompilation {
       throw new InvalidOperationException("Compilation was already started");
     }
 
-    var previousPhases = new ConcurrentDictionary<IPhase, IPhase>();
-    var nextPhases = new ConcurrentDictionary<IPhase, IPhase>();
-    IPhase? currentPhase = null;
-    var queuedDiagnostics = new ConcurrentDictionary<IPhase, IReadOnlyList<NewDiagnostic>>();
-    var completed = new ConcurrentDictionary<IPhase, Unit>();
-    bool IsFullyCompleted(IPhase phase) => !queuedDiagnostics.TryGetValue(phase, out _);
-    bool IsCompleted(IPhase phase) => completed.TryGetValue(phase, out _);
-
     ErrorReporter consoleReporter = Options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(Options),
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
-
+    phaseOrderedDiagnosticsReporter =
+      new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is PhaseStarted phaseStarted) {
-        if (currentPhase != null) {
-          previousPhases.TryAdd(phaseStarted.Phase, currentPhase);
-          nextPhases.TryAdd(currentPhase, phaseStarted.Phase);
-        }
+        phaseOrderedDiagnosticsReporter.PhaseStart(phaseStarted.Phase);
         phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
-
-        queuedDiagnostics.TryAdd(phaseStarted.Phase, Array.Empty<NewDiagnostic>());
-
-        currentPhase = phaseStarted.Phase;
       } else if (ev is PhaseFinished phaseFinished) {
-
-        previousPhases.TryGetValue(phaseFinished.Phase, out var previousPhase);
-        var fullyCompleted = previousPhase == null || IsFullyCompleted(previousPhase);
-        completed.TryAdd(phaseFinished.Phase, Unit.Default);
-        if (fullyCompleted) {
-          var currentPhase = phaseFinished.Phase;
-          while (true) {
-            if (IsCompleted(currentPhase)) {
-              if (queuedDiagnostics.TryRemove(currentPhase, out var queuedDiagnosticsForPhase)) {
-                foreach (var diagnostic in queuedDiagnosticsForPhase!) {
-                  ProcessNewDiagnostic(diagnostic, consoleReporter);
-                }
-
-                if (!nextPhases.TryGetValue(currentPhase, out currentPhase)) {
-                  break; // Phase is the last one
-                }
-              } else {
-                break; // Phase was not started.
-              }
-            } else {
-              break;
-            }
-          }
-        }
-
+        phaseOrderedDiagnosticsReporter.PhaseFinished(phaseFinished.Phase);
         if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {
           phaseTask.TrySetResult();
         }
       } else if (ev is NewDiagnostic newDiagnostic) {
-        IPhase? previousPhase = null;
-        var diagnosticPhase = newDiagnostic.Diagnostic.Phase;
-        while (diagnosticPhase != null) {
-          if (previousPhases.TryGetValue(diagnosticPhase, out previousPhase)) {
-            break;
-          }
-          diagnosticPhase = diagnosticPhase.MaybeParent;
-        }
-
-        IPhase? previousUncompletedPhase = previousPhase;
-        while (previousUncompletedPhase != null && !queuedDiagnostics.TryGetValue(previousUncompletedPhase, out _)) {
-          previousPhases.TryGetValue(previousUncompletedPhase, out previousUncompletedPhase);
-        }
-
-        var previousPhaseIsRunning = previousUncompletedPhase != null;
-        if (previousPhaseIsRunning) {
-          queuedDiagnostics.AddOrUpdate(previousPhase!,
-            _ => Array.Empty<NewDiagnostic>(),
-            (_, existing) => existing.Concat(new[] { newDiagnostic }));
-        } else {
-          ProcessNewDiagnostic(newDiagnostic, consoleReporter);
-        }
-<<<<<<< HEAD
-=======
-
-        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
-          Interlocked.Increment(ref warningCount);
-        }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
->>>>>>> origin/master
+        phaseOrderedDiagnosticsReporter.NewDiagnostic(newDiagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.Program.Name;
@@ -221,7 +153,9 @@ public class CliCompilation {
   }
 
   private void ProcessNewDiagnostic(NewDiagnostic newDiagnostic, ErrorReporter consoleReporter) {
-    if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
+    if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
+      Interlocked.Increment(ref warningCount);
+    } else if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
       errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Phase.Source,
         _ => 1,
         (_, previous) => previous + 1);
