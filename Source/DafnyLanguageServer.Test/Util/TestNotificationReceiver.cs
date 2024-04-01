@@ -55,13 +55,15 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       try {
         await availableNotifications.WaitAsync(cancellationToken);
       } catch (OperationCanceledException) {
-        logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds");
+        var last = History.Any() ? History[-1].Stringify() : "none";
+        logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds for new notification.\n" +
+                              $"Last received notification was {last}");
         throw;
       }
       if (notifications.TryDequeue(out var notification)) {
         return notification;
       }
-      throw new System.InvalidOperationException("got a signal for a received notification but it was not present in the queue");
+      throw new InvalidOperationException("got a signal for a received notification but it was not present in the queue");
     }
   }
 }
