@@ -242,7 +242,7 @@ method GetBoxReadsStar(b: Box<int>) returns (i: int)
 method GetBoxIncorrectReads(b: Box<int>) returns (i: int)
   reads {}
 {
-  i := b.x; // Error: insufficient reads clause to read field
+  i := b.x; // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
 }
 
 method GetBoxDefaultReads(b: Box<int>) returns (i: int)
@@ -301,7 +301,7 @@ class {:extern} ExternalSequentialMutableMap<K, V> {
 }
 
 method {:concurrent} MemoizedSquare2(x: int, cache: ExternalSequentialMutableMap<int, int>) returns (xSquared: int)
-  requires forall k | k in cache.state :: cache.state[k] == k * k   // Error: insufficient reads clause to read field
+  requires forall k | k in cache.state :: cache.state[k] == k * k   // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
   reads {}
   ensures xSquared == x * x
 {
@@ -399,7 +399,7 @@ function WeirdAlways42(b: Box<int>): int {
   42
 } by method {
   var result := 42;
-  result := result + b.x; // Error: insufficient reads clause to read field
+  result := result + b.x; // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
   result := result - b.x;
   return 42;
 }
@@ -408,9 +408,9 @@ function WeirdAlways42(b: Box<int>): int {
 
 method BadMetaBox(b: Box<Box<int>>)
   reads {}
-  modifies b.x  // Error: insufficient reads clause to read field
+  modifies b.x  // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
 {
-  b.x.x := 42;  // Error: insufficient reads clause to read field
+  b.x.x := 42;  // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
 }
 
 method GoodMetaBox(b: Box<Box<int>>)
@@ -520,14 +520,14 @@ twostate predicate Was42(b: Box<int>) {
 
 // Testing the reads checks on other clauses
 method OnlySpecReads(b: Box<int>) returns (r: int)
-  requires b.x == 42  // Error: insufficient reads clause to read field
+  requires b.x == 42  // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
   reads {}
   ensures r == b.x
 {
   return 42;
 }
 
-method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient reads clause to read field
+method DefaultValueReads(b: Box<int>, x: int := b.x)  // Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values or the right-hand side of constants
   returns (r: int)
   reads {}
 {

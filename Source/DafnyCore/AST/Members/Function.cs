@@ -564,4 +564,5 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
+  public string Designator => WhatKind;
 }
