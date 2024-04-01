@@ -500,7 +500,7 @@ public class Compilation : IDisposable {
       var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
       errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
-    
+
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
