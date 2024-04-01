@@ -7,6 +7,10 @@ using Microsoft.Dafny;
 
 namespace DafnyDriver.Commands;
 
+/// <summary>
+/// Orders phases by their start time.
+/// Reports diagnostics only after all phases that come before the phase of this diagnostics, have finished.
+/// </summary>
 class PhaseOrderedDiagnosticsReporter {
   private readonly Action<NewDiagnostic> processNewDiagnostic;
   private readonly ConcurrentDictionary<IPhase, IPhase> previousPhases = new();
