@@ -23,8 +23,8 @@ class PhaseOrderedDiagnosticsReporter {
     this.processNewDiagnostic = processNewDiagnostic;
   }
 
-  bool IsFullyCompleted(IPhase phase) => !queuedDiagnostics.TryGetValue(phase, out _);
-  bool IsCompleted(IPhase phase) => completed.TryGetValue(phase, out _);
+  private bool SequenceCompleted(IPhase phase) => !queuedDiagnostics.TryGetValue(phase, out _);
+  private bool IsCompleted(IPhase phase) => completed.TryGetValue(phase, out _);
 
   public void PhaseStart(IPhase phase) {
     if (currentPhase != null) {
@@ -39,28 +39,32 @@ class PhaseOrderedDiagnosticsReporter {
   }
 
   public void PhaseFinished(IPhase phase) {
-
     previousPhases.TryGetValue(phase, out var previousPhase);
-    var fullyCompleted = previousPhase == null || IsFullyCompleted(previousPhase);
     completed.TryAdd(phase, Unit.Default);
+    var fullyCompleted = previousPhase == null || SequenceCompleted(previousPhase);
     if (fullyCompleted) {
-      currentPhase = phase;
-      while (true) {
-        if (IsCompleted(currentPhase)) {
-          if (queuedDiagnostics.TryRemove(currentPhase, out var queuedDiagnosticsForPhase)) {
-            foreach (var diagnostic in queuedDiagnosticsForPhase!) {
-              this.processNewDiagnostic(diagnostic);
-            }
+      ProcessNewCompletedSequence(phase);
+    }
+  }
 
-            if (!nextPhases.TryGetValue(currentPhase, out currentPhase)) {
-              break; // Phase is the last one
-            }
-          } else {
-            break; // Phase was not started.
+  private void ProcessNewCompletedSequence(IPhase phase)
+  {
+    var completedPhase = phase;
+    while (true) {
+      if (IsCompleted(completedPhase)) {
+        if (queuedDiagnostics.TryRemove(completedPhase, out var queuedDiagnosticsForPhase)) {
+          foreach (var diagnostic in queuedDiagnosticsForPhase!) {
+            processNewDiagnostic(diagnostic);
+          }
+
+          if (!nextPhases.TryGetValue(completedPhase, out completedPhase)) {
+            break; // Phase is the last one
           }
         } else {
-          break;
+          break; // Phase was not started.
         }
+      } else {
+        break;
       }
     }
   }
@@ -86,7 +90,7 @@ class PhaseOrderedDiagnosticsReporter {
         _ => Array.Empty<NewDiagnostic>(),
         (_, existing) => existing.Concat(new[] { newDiagnostic }));
     } else {
-      this.processNewDiagnostic(newDiagnostic);
+      processNewDiagnostic(newDiagnostic);
     }
   }
 }
