@@ -472,4 +472,5 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
+  public string Designator => WhatKind;
 }

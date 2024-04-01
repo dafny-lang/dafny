@@ -998,7 +998,7 @@ public partial class BoogieGenerator {
       comment = $"$Is axiom for {dd.WhatKind} {fullName}";
       // $Is(o, ..)
       is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
-      var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
+      var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok), null);
       Bpl.Expr parentConstraint, constraint;
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
         // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
@@ -1397,7 +1397,7 @@ public partial class BoogieGenerator {
 
     currentModule = decl.Module;
     codeContext = new CallableWrapper(decl, true);
-    var etran = new ExpressionTranslator(this, predef, decl.tok);
+    var etran = new ExpressionTranslator(this, predef, decl.tok, null);
 
     // parameters of the procedure
     var inParams = MkTyParamFormals(decl.TypeArgs, true);

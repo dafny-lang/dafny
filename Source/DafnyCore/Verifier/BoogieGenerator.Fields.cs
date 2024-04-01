@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
-            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
+            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
             if (!IsOpaque(cf)) {
               sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
             }
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
       currentModule = decl.EnclosingModule;
       codeContext = decl;
       fuelContext = FuelSetting.NewFuelContext(decl);
-      var etran = new ExpressionTranslator(this, predef, decl.tok);
+      var etran = new ExpressionTranslator(this, predef, decl.tok, null);
 
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass), true);

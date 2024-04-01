@@ -373,9 +373,9 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field && ((Field)e.Member).IsMutable) {
+            if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field { IsMutable: true } f) {
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
-                new PODesc.FrameSubset("read field", false), wfOptions.AssertKv);
+                new PODesc.ReadFrameSubset("read field", selectExpr, etran.scope), wfOptions.AssertKv);
             }
 
             break;
@@ -430,7 +430,7 @@ namespace Microsoft.Dafny {
                 i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
                 Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), seq, fieldName),
-                  new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
+                  new PODesc.ReadFrameSubset("read array element", e, etran.scope), wfOptions.AssertKv);
               } else {
                 Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
                 Contract.Assert(eSeqType.AsArrayType.Dims == 1);
@@ -444,7 +444,7 @@ namespace Microsoft.Dafny {
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
                 var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
-                  new PODesc.FrameSubset("read the indicated range of array elements", false),
+                  new PODesc.ReadFrameSubset("read the indicated range of array elements", e, etran.scope),
                   wfOptions.AssertKv);
               }
             }
@@ -479,7 +479,7 @@ namespace Microsoft.Dafny {
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), array, fieldName),
-                new PODesc.FrameSubset("read array element", false), wfOptions.AssertKv);
+                new PODesc.ReadFrameSubset("read array element", selectExpr, etran.scope), wfOptions.AssertKv);
             }
 
             break;
@@ -600,7 +600,7 @@ namespace Microsoft.Dafny {
                 objset);
               var reads = new FrameExpression(e.tok, wrap, null);
               CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { reads }, null, null,
-                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.ReadFrameSubset("invoke function"), wfOptions.AssertKv);
             }
 
             break;
@@ -736,7 +736,7 @@ namespace Microsoft.Dafny {
                     objset);
                   var reads = new FrameExpression(expr.tok, wrap, null);
                   CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), new PODesc.ReadFrameSubset("invoke function"), wfOptions.AssertKv);
                 }
 
               } else {
@@ -766,7 +766,7 @@ namespace Microsoft.Dafny {
                   var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,
                     e.Function.Reads.Expressions.ConvertAll(s.SubstFrameExpr),
-                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.FrameSubset("invoke function", false), wfOptions.AssertKv);
+                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.ReadFrameSubset("invoke function"), wfOptions.AssertKv);
                 }
               }
               Bpl.Expr allowance = null;
@@ -892,7 +892,7 @@ namespace Microsoft.Dafny {
                 CheckFrameSubset(fe.E.tok,
                   new List<FrameExpression>() { fe },
                   null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.tok), wfOptions.AssertSink(this, builder),
-                  new PODesc.FrameSubset($"read state of 'unchanged' {description}", false), wfOptions.AssertKv);
+                  new PODesc.ReadFrameSubset($"read state of 'unchanged' {description}"), wfOptions.AssertKv);
               }
             }
 
@@ -1098,7 +1098,7 @@ namespace Microsoft.Dafny {
                   // Set up a new frame
                   var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
                   reads = lam.Reads.Expressions.ConvertAll(s.SubstFrameExpr);
-                  comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName);
+                  comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName, lam);
                   DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
 
                   // Check frame WF and that it read covers itself
@@ -1343,7 +1343,7 @@ namespace Microsoft.Dafny {
       var tmpHeapVar = new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, predef.HeapType));
       locals.Add(tmpHeapVar);
       var tmpHeap = new Bpl.IdentifierExpr(token, tmpHeapVar);
-      var generalEtran = new ExpressionTranslator(this, predef, token);
+      var generalEtran = new ExpressionTranslator(this, predef, token, null);
       var theHeap = generalEtran.HeapCastToIdentifierExpr;
 
       // tmpHeap := $Heap;
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny {
         };
         CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
           etran, etran.ReadsFrame(tok), maker,
-          new PODesc.FrameSubset("invoke the function passed as an argument to the sequence constructor", false),
+          new PODesc.ReadFrameSubset("invoke the function passed as an argument to the sequence constructor"),
           options.AssertKv);
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints

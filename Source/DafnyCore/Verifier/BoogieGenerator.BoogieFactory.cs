@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
         // Bpl.LiteralExpr for a bitvector.
         var zero = new Bpl.LiteralExpr(tok, BaseTypes.BigNum.ZERO, width);
         var absN = new Bpl.LiteralExpr(tok, -n, width);
-        var etran = new ExpressionTranslator(this, predef, tok);
+        var etran = new ExpressionTranslator(this, predef, tok, null);
         return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
       } else {
         return new Bpl.LiteralExpr(tok, n, width);

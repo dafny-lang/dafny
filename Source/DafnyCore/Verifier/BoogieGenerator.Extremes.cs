@@ -53,7 +53,7 @@ public partial class BoogieGenerator {
     Contract.Requires(predef != null);
     var co = pp.ExtremePred;
     var tok = pp.tok;
-    var etran = new ExpressionTranslator(this, predef, tok);
+    var etran = new ExpressionTranslator(this, predef, tok, pp);
 
     var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
 
