@@ -57,7 +57,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       try {
         await availableNotifications.WaitAsync(cancellationToken);
       } catch (OperationCanceledException) {
-        var last = History.Any() ? History[-1].Stringify() : "none";
+        var last = History.Any() ? History[^1].Stringify() : "none";
         logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds for new notification.\n" +
                               $"Last received notification was {last}");
         throw;
