@@ -180,6 +180,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       return null;
     }
 
+    Assert.NotNull(documentId);
     var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
     if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
       while (fileVerificationStatus.Uri != documentId.Uri || !fileVerificationStatus.NamedVerifiables.All(FinishedStatus)) {
