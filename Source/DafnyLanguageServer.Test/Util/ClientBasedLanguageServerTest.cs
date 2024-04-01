@@ -260,9 +260,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       NotificationHandler.For<FileVerificationStatus>(verificationStatusReceiver.NotificationReceived));
   }
 
-  public record Change(Range range, String inserted);
+  public record Change(Range Range, String Inserted);
 
-  public record Changes(List<Change> changes);
+  public record Changes(List<Change> Data);
 
   protected void ApplyChange(ref TextDocumentItem documentItem, Range range, string text) {
     documentItem = documentItem with { Version = documentItem.Version + 1 };
@@ -280,7 +280,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     });
   }
 
-  protected void ApplyChanges(ref TextDocumentItem documentItem, List<Change> changes) {
+  protected void ApplyChanges(ref TextDocumentItem documentItem, params Change[] changes) {
     documentItem = documentItem with { Version = documentItem.Version + 1 };
     client.DidChangeTextDocument(new DidChangeTextDocumentParams {
       TextDocument = new OptionalVersionedTextDocumentIdentifier {
@@ -290,8 +290,8 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       ContentChanges =
         changes.Select(change =>
           new TextDocumentContentChangeEvent {
-            Range = change.range,
-            Text = change.inserted
+            Range = change.Range,
+            Text = change.Inserted
           }).ToArray()
     });
   }

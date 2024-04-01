@@ -178,7 +178,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
   /// </summary>
   /// <param name="code">The original code with the //Replace: comments or //ReplaceN:</param>
   /// <returns></returns>
-  public static (string code, List<string> codes, List<List<Change>> changes) ExtractCodeAndChanges(string code) {
+  public static (string code, List<string> codes, Change[][] changes) ExtractCodeAndChanges(string code) {
     var lineMatcher = new Regex(@"\r?\n");
     var newLineOrDoubleBackslashMatcher = new Regex(@"\\\\|\\n");
     var matcher = new Regex(@"(?<previousNewline>^|\r?\n)(?<toRemove>.*?(?<commentStart>//)(?<keyword>Replace|Remove|Insert)(?<id>\d*):)(?<toInsert>.*)");
@@ -187,7 +187,7 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
     codes.Add(code);
     var originalCode = code;
     var matches = matcher.Matches(code);
-    var changes = new List<List<Change>>();
+    var changes = new List<Change[]>();
     while (matches.Count > 0) {
       var firstChange = 0;
       Match firstChangeMatch = null;
@@ -255,11 +255,11 @@ public abstract class LinearVerificationGutterStatusTester : ClientBasedLanguage
         new Range(IndexToPosition(startRemove), IndexToPosition(endRemove)), ""));
       code = code.Substring(0, startRemove) + code.Substring(endRemove);
       matches = matcher.Matches(code);
-      changes.Add(resultingChange);
+      changes.Add(resultingChange.ToArray());
       codes.Add(code);
     }
 
-    return (originalCode, codes, changes);
+    return (originalCode, codes, changes.ToArray());
   }
 
   // If testTrace is false, codeAndTree should not contain a trace to test.
