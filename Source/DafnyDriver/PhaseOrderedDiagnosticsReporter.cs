@@ -15,9 +15,9 @@ class PhaseOrderedDiagnosticsReporter {
   private readonly Action<NewDiagnostic> processNewDiagnostic;
   private readonly ConcurrentDictionary<IPhase, IPhase> previousPhases = new();
   private readonly ConcurrentDictionary<IPhase, IPhase> nextPhases = new();
-  private IPhase? currentPhase;
   private readonly ConcurrentDictionary<IPhase, IReadOnlyList<NewDiagnostic>> queuedDiagnostics = new();
   private readonly ConcurrentDictionary<IPhase, Unit> completed = new();
+  private IPhase? currentPhase;
 
   public PhaseOrderedDiagnosticsReporter(Action<NewDiagnostic> processNewDiagnostic) {
     this.processNewDiagnostic = processNewDiagnostic;
