@@ -28,7 +28,7 @@ public partial class BoogieGenerator {
 
     Bpl.Expr prevHeap = null;
     Bpl.Expr currHeap = null;
-    var ordinaryEtran = new ExpressionTranslator(this, predef, f.tok);
+    var ordinaryEtran = new ExpressionTranslator(this, predef, f.tok, f);
     ExpressionTranslator etran;
     var inParams_Heap = new List<Bpl.Variable>();
     if (f is TwoStateFunction) {
@@ -38,7 +38,7 @@ public partial class BoogieGenerator {
       inParams_Heap.Add(currHeapVar);
       prevHeap = new Bpl.IdentifierExpr(f.tok, prevHeapVar);
       currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
-      etran = new ExpressionTranslator(this, predef, currHeap, prevHeap);
+      etran = new ExpressionTranslator(this, predef, currHeap, prevHeap, f);
     } else {
       etran = ordinaryEtran;
     }
@@ -133,7 +133,7 @@ public partial class BoogieGenerator {
     delayer.DoWithDelayedReadsChecks(true, wfo => {
       foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, wfo, locals, builder, etran);
+        CheckWellformed(e, wfo, locals, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No frame scope for default values
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
 
@@ -360,11 +360,11 @@ public partial class BoogieGenerator {
       bvPrevHeap = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
       etran = new ExpressionTranslator(this, predef,
         f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
-        new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
+        new Bpl.IdentifierExpr(f.tok, bvPrevHeap), f);
       etranHeap = etran;
     } else {
-      etranHeap = new ExpressionTranslator(this, predef, f.tok);
-      etran = readsHeap ? etranHeap : new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+      etranHeap = new ExpressionTranslator(this, predef, f.tok, f);
+      etran = readsHeap ? etranHeap : new ExpressionTranslator(this, predef, (Bpl.Expr)null, f);
     }
 
     // This method generate the Consequence Axiom, which has information about the function's
@@ -646,11 +646,11 @@ public partial class BoogieGenerator {
       bvPrevHeap = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$prevHeap", predef.HeapType));
       etran = new ExpressionTranslator(this, predef,
         f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
-        new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
+        new Bpl.IdentifierExpr(f.tok, bvPrevHeap), f);
     } else {
       etran = readsHeap
-        ? new ExpressionTranslator(this, predef, f.tok)
-        : new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+        ? new ExpressionTranslator(this, predef, f.tok, f)
+        : new ExpressionTranslator(this, predef, (Bpl.Expr)null, f);
     }
 
     // quantify over the type arguments, and add them first to the arguments
@@ -1106,7 +1106,7 @@ public partial class BoogieGenerator {
         Bpl.Expr unboxBx = FunctionCall(f.tok, BuiltinFunction.Unbox, predef.RefType, bx);
         Bpl.Expr lhs = Bpl.Expr.SelectTok(f.tok, lhs_inner, bx);
 
-        var et = new ExpressionTranslator(this, predef, h);
+        var et = new ExpressionTranslator(this, predef, h, f);
         var rhs = InRWClause_Aux(f.tok, unboxBx, bx, null, f.Reads.Expressions, false, et, selfExpr, rhs_dict);
 
         if (f.EnclosingClass is ArrowTypeDecl) {
@@ -1182,8 +1182,8 @@ public partial class BoogieGenerator {
     Bpl.Expr h0; var h0Var = BplBoundVar("$h0", predef.HeapType, out h0);
     Bpl.Expr h1; var h1Var = BplBoundVar("$h1", predef.HeapType, out h1);
 
-    var etran0 = new ExpressionTranslator(this, predef, h0);
-    var etran1 = new ExpressionTranslator(this, predef, h1);
+    var etran0 = new ExpressionTranslator(this, predef, h0, f);
+    var etran1 = new ExpressionTranslator(this, predef, h1, f);
 
     Bpl.Expr wellFormed = Bpl.Expr.And(
       FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
