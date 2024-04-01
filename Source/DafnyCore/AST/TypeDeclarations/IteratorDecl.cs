@@ -513,4 +513,5 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public string Designator => WhatKind;
 }
