@@ -2235,7 +2235,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl.ParentTypeInformation != null);
 
       foreach (var member in GetClassMembers(cl).Values) {
-        if (member is PrefixPredicate || member is PrefixLemma) {
+        if (member is PrefixPredicate or PrefixLemma) {
           // these are handled with the corresponding extreme predicate/lemma
           continue;
         }
