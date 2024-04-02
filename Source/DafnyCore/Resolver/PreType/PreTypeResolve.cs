@@ -849,7 +849,23 @@ namespace Microsoft.Dafny {
           var memberDictionary = resolver.GetClassMembers(nd);
           foreach (var member in valuetypeAncestorDecl.Members) {
             if (memberDictionary.TryGetValue(member.Name, out var previousMember)) {
-              ReportError(previousMember, $"type '{nd.Name}' already inherits a member '{member.Name}' from the built-in ancestor type '{valuetypeAncestorDecl.Name}'");
+              Contract.Assert(previousMember is SpecialField or SpecialFunction);
+              // We get here because "member" has the same name as "previousMember". The typical case is that "member" is user defined and that
+              // this situation constitutes an error. But it may also be that the member is a built-in member of a built-in type.
+              // For a built-in member, one could imagine just ignoring this member and moving on to the next. However, there is a special case
+              // that requires attention:
+              // At this stage of the resolver, all bitvector types are represented by a single, artificial type name "_bv". One may think of "_bv"
+              // as representing a family of types, and its members "RotateLeft" and "RotateRight" in that way represent two families of members.
+              // To assign some type to these and for this purpose uses a special "SelfType" (which was used by the legacy resolver). The pre-type
+              // resolver creates a ValuetypeDecl for each bitvector type (e.g., for "bv7" and "bv12"), and gives each of these its own
+              // "RotateLeft" and "RotateRight" members with the complete signature (that is, without any "SelfType"). In this situation,
+              // "previouMember" will be the member of "_bv" and "member" will be the member for the specific bitvector type. So, rather than
+              // giving an error in this case, we simply replace the "_bv" member with the actual member.
+              if (member is SpecialField or SpecialFunction) {
+                memberDictionary[member.Name] = member;
+              } else {
+                ReportError(previousMember, $"type '{nd.Name}' already inherits a member '{member.Name}' from the built-in ancestor type '{valuetypeAncestorDecl.Name}'");
+              }
             } else {
               memberDictionary.Add(member.Name, member);
             }

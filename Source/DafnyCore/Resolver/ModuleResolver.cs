@@ -2076,6 +2076,27 @@ namespace Microsoft.Dafny {
       }
       cl.ParentTypeInformation = new TopLevelDeclWithMembers.InheritanceInformationClass();
 
+      // populate .ParentFormalTypeParametersToActuals with the type arguments given to the base type (this applies only to newtype's)
+      TopLevelDeclWithMembers baseTypeDecl = null;
+      if (cl is NewtypeDecl newtypeDecl) {
+        // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
+        var baseType = newtypeDecl.BaseType.NormalizeExpand();
+        if (baseType is UserDefinedType udtBaseType) {
+          baseTypeDecl = (TopLevelDeclWithMembers)udtBaseType.ResolvedClass;
+        } else {
+          baseTypeDecl = GetSystemValuetypeDecl(baseType);
+        }
+        if (baseTypeDecl == null) {
+          Contract.Assert(baseType.TypeArgs.Count == 0);
+        } else {
+          Contract.Assert(baseType.TypeArgs.Count == baseTypeDecl.TypeArgs.Count);
+          for (var i = 0; i < baseType.TypeArgs.Count; i++) {
+            cl.ParentFormalTypeParametersToActuals.Add(baseTypeDecl.TypeArgs[i], baseType.TypeArgs[i]);
+          }
+          RegisterInheritedMembers(baseTypeDecl);
+        }
+      }
+
       // populate .ParentTypeInformation and .ParentFormalTypeParametersToActuals for the immediate parent traits
       foreach (var tt in cl.ParentTraits) {
         var udt = (UserDefinedType)tt;
@@ -2121,6 +2142,11 @@ namespace Microsoft.Dafny {
       // Update the name->MemberDecl table for the class. Report an error if the same name refers to more than one member,
       // except when such duplication is purely that one member, say X, is inherited and the other is an override of X.
       var inheritedMembers = new Dictionary<string, MemberDecl>();
+      if (baseTypeDecl != null && Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        foreach (var baseMember in GetClassMembers(baseTypeDecl)!.Values) {
+          inheritedMembers.Add(baseMember.Name, baseMember);
+        }
+      }
       foreach (var trait in cl.ParentTraitHeads) {
         foreach (var traitMember in GetClassMembers(trait)!.Values) { // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
           if (!inheritedMembers.TryGetValue(traitMember.Name, out var prevMember)) {
@@ -2157,6 +2183,16 @@ namespace Microsoft.Dafny {
           clMember.OverriddenMember = traitMember;
         }
       }
+    }
+
+    [CanBeNull]
+    ValuetypeDecl GetSystemValuetypeDecl(Type type) {
+      foreach (var systemTopLevelDecl in ProgramResolver.SystemModuleManager.SystemModule.SourceDecls.OfType<ValuetypeDecl>()) {
+        if (systemTopLevelDecl.IsThisType(type)) {
+          return systemTopLevelDecl;
+        }
+      }
+      return null; // not present
     }
 
     /// <summary>
@@ -2240,6 +2276,9 @@ namespace Microsoft.Dafny {
           continue;
         }
         if (member.EnclosingClass != cl) {
+          if (member.EnclosingClass is not TraitDecl) {
+            continue;
+          }
           // The member is the one inherited from a trait (and the class does not itself define a member with this name).  This
           // is fine for fields and for functions and methods with bodies. However, if "cl" is not itself a trait, then for a body-less function
           // or method, "cl" is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
@@ -2270,7 +2309,10 @@ namespace Microsoft.Dafny {
 
         var traitMember = member.OverriddenMember;
         var trait = traitMember.EnclosingClass;
-        if (traitMember.IsStatic) {
+        if (trait is not TraitDecl) {
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"{traitMember.WhatKindAndName} is inherited from {trait.WhatKindAndName} and is not allowed to be re-declared in {cl.WhatKindAndName}");
+        } else if (traitMember.IsStatic) {
           reporter.Error(MessageSource.Resolver, member.tok,
             $"static {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member.IsStatic) {
