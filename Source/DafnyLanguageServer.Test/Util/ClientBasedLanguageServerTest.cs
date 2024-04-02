@@ -176,7 +176,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     bool allowStale = false) {
     cancellationToken ??= CancellationToken;
 
-    if ((!await WaitUntilResolutionFinished(documentId, cancellationToken))) {
+    if ((!await WaitUntilResolutionFinished(documentId, cancellationToken.Value))) {
       return null;
     }
 
@@ -198,11 +198,13 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     }
   }
 
-  public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId, CancellationToken? cancellationToken) {
+  public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId,
+    CancellationToken cancellationToken = default) {
+
     CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLast(s => s.Uri == documentId.Uri);
     while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
            compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
-      compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
+      compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     }
 
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
