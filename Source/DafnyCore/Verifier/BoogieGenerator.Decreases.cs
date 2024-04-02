@@ -82,7 +82,7 @@ public partial class BoogieGenerator {
     bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
     Bpl.Expr decrExpr = DecreasesCheck(toks, types0, types1, callee, caller, builder, "", endsWithWinningTopComparison, false);
     if (allowance != null) {
-      decrExpr = Bpl.Expr.Or(allowance, decrExpr);
+      decrExpr = BplOr(allowance, decrExpr);
     }
     builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
   }
@@ -125,7 +125,7 @@ public partial class BoogieGenerator {
         // we only need to check lower bound for integers--sets, sequences, booleans, references, and datatypes all have natural lower bounds
         Bpl.Expr prefixIsLess = Bpl.Expr.False;
         for (int i = 0; i < k; i++) {
-          prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
+          prefixIsLess = BplOr(prefixIsLess, Less[i]);
         };
 
         Bpl.Expr zero = null;
@@ -140,9 +140,9 @@ public partial class BoogieGenerator {
         if (zero != null) {
           Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
           for (int i = 0; i < k; i++) {
-            bounded = Bpl.Expr.Or(bounded, Less[i]);
+            bounded = BplOr(bounded, Less[i]);
           }
-          Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), new PODesc.DecreasesBoundedBelow(N, k, zeroStr, suffixMsg));
+          Bpl.Cmd cmd = Assert(toks[k], BplOr(bounded, Eq[k]), new PODesc.DecreasesBoundedBelow(N, k, zeroStr, suffixMsg));
           builder.Add(cmd);
         }
       }
@@ -154,10 +154,10 @@ public partial class BoogieGenerator {
       Bpl.Expr eq = Eq[i];
       if (allowNoChange) {
         // decrCheck = atmost && (eq ==> decrCheck)
-        decrCheck = Bpl.Expr.And(less, Bpl.Expr.Imp(eq, decrCheck));
+        decrCheck = BplAnd(less, BplImp(eq, decrCheck));
       } else {
         // decrCheck = less || (eq && decrCheck)
-        decrCheck = Bpl.Expr.Or(less, Bpl.Expr.And(eq, decrCheck));
+        decrCheck = BplOr(less, BplAnd(eq, decrCheck));
       }
     }
     return decrCheck;
@@ -236,9 +236,9 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Lt(b0, b1);
       atmost = Bpl.Expr.Le(b0, b1);
     } else if (ty0 is BoolType) {
-      eq = Bpl.Expr.Iff(e0, e1);
-      less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
-      atmost = Bpl.Expr.Imp(e0, e1);
+      eq = BplIff(e0, e1);
+      less = BplAnd(Bpl.Expr.Not(e0), e1);
+      atmost = BplImp(e0, e1);
     } else if (ty0 is CharType) {
       eq = Bpl.Expr.Eq(e0, e1);
       var operand0 = FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, e0);
@@ -263,8 +263,8 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Lt(b0, b1);
       atmost = Bpl.Expr.Le(b0, b1);
       if (ty0.IsNumericBased(Type.NumericPersuasion.Int) && includeLowerBound) {
-        less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
-        atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
+        less = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
+        atmost = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
       }
 
     } else if (ty0.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -272,8 +272,8 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Le(e0, Bpl.Expr.Sub(e1, Bpl.Expr.Literal(BaseTypes.BigDec.FromInt(1))));
       atmost = Bpl.Expr.Le(e0, e1);
       if (includeLowerBound) {
-        less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), less);
-        atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), atmost);
+        less = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), less);
+        atmost = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), atmost);
       }
 
     } else if (ty0 is IteratorDecl.EverIncreasingType) {
@@ -342,9 +342,9 @@ public partial class BoogieGenerator {
       Contract.Assert(ty0.IsRefType);  // otherwise, unexpected type
       var b0 = Bpl.Expr.Neq(e0, predef.Null);
       var b1 = Bpl.Expr.Neq(e1, predef.Null);
-      eq = Bpl.Expr.Iff(b0, b1);
-      less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
-      atmost = Bpl.Expr.Imp(b0, b1);
+      eq = BplIff(b0, b1);
+      less = BplAnd(Bpl.Expr.Not(b0), b1);
+      atmost = BplImp(b0, b1);
     }
   }
 }
