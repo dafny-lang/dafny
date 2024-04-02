@@ -2083,7 +2083,7 @@ namespace Microsoft.Dafny {
         cl.ParentTypeInformation.Record(trait, udt);
         Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
         for (var i = 0; i < trait.TypeArgs.Count; i++) {
-          // there may be duplciate parent traits, which haven't been checked for yet, so add mapping only for the first occurrence of each type parameter
+          // there may be duplicate parent traits, which haven't been checked for yet, so add mapping only for the first occurrence of each type parameter
           if (!cl.ParentFormalTypeParametersToActuals.ContainsKey(trait.TypeArgs[i])) {
             cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
           }
