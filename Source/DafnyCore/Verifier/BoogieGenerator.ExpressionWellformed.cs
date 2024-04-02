@@ -474,7 +474,7 @@ namespace Microsoft.Dafny {
               var tok = idx is IdentifierExpr ? e.tok : idx.tok; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
 
               var desc = new PODesc.InRange(e.Array, e.Indices[idxId], true, $"index {idxId}", idxId);
-              builder.Add(Assert(tok, Bpl.Expr.And(lower, upper), desc, wfOptions.AssertKv));
+              builder.Add(Assert(tok, BplAnd(lower, upper), desc, wfOptions.AssertKv));
             }
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
@@ -829,7 +829,7 @@ namespace Microsoft.Dafny {
               Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(callExpr.tok, e.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
               List<Bpl.Expr> args = etran.FunctionInvocationArguments(e, null, null);
               Bpl.Expr canCallFuncAppl = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
-              builder.Add(TrAssumeCmd(callExpr.tok, allowance == null ? canCallFuncAppl : Bpl.Expr.Or(allowance, canCallFuncAppl)));
+              builder.Add(TrAssumeCmd(callExpr.tok, allowance == null ? canCallFuncAppl : BplOr(allowance, canCallFuncAppl)));
 
               var returnType = e.Type.AsDatatype;
               if (returnType != null && returnType.Ctors.Count == 1) {
@@ -1533,7 +1533,7 @@ namespace Microsoft.Dafny {
               indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
-      var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
+      var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
       var desc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence");
       builder.Add(AssertNS(tok, q, desc));
       if (!forArray && options.DoReadsChecks) {
@@ -1544,7 +1544,7 @@ namespace Microsoft.Dafny {
           objset);
         var reads = new FrameExpression(tok, wrap, null);
         Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> maker = (t, e, d, qk) => {
-          var qe = new Bpl.ForallExpr(t, bvs, Bpl.Expr.Imp(ante, e));
+          var qe = new Bpl.ForallExpr(t, bvs, BplImp(ante, e));
           options.AssertSink(this, builder)(t, qe, d, qk);
         };
         CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
@@ -1558,7 +1558,7 @@ namespace Microsoft.Dafny {
       if (cre != null) {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
-        q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
+        q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, cre));
         builder.Add(AssertNS(init.tok, q, subrangeDesc));
       }
 
@@ -1570,7 +1570,7 @@ namespace Microsoft.Dafny {
         var ai_prime = UnboxUnlessBoxType(tok, ai, elementType);
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
         q = new Bpl.ForallExpr(tok, bvs, tr,
-          Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
+          BplImp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
         builder.Add(new Bpl.AssumeCmd(tok, q));
       }
     }
