@@ -2122,7 +2122,7 @@ namespace Microsoft.Dafny {
       // except when such duplication is purely that one member, say X, is inherited and the other is an override of X.
       var inheritedMembers = new Dictionary<string, MemberDecl>();
       foreach (var trait in cl.ParentTraitHeads) {
-        foreach (var traitMember in GetClassMembers(trait)!.Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
+        foreach (var traitMember in GetClassMembers(trait)!.Values) { // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
           if (!inheritedMembers.TryGetValue(traitMember.Name, out var prevMember)) {
             // record "traitMember" as an inherited member
             inheritedMembers.Add(traitMember.Name, traitMember);
@@ -2271,17 +2271,19 @@ namespace Microsoft.Dafny {
         var traitMember = member.OverriddenMember;
         var trait = traitMember.EnclosingClass;
         if (traitMember.IsStatic) {
-          reporter.Error(MessageSource.Resolver, member.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
-            traitMember.WhatKind, traitMember.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"static {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member.IsStatic) {
-          reporter.Error(MessageSource.Resolver, member.tok, "static member '{0}' overrides non-static member in trait '{1}'", member.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"static member '{member.Name}' overrides non-static member in trait '{trait.Name}'");
         } else if (traitMember is Field) {
           // The class is not allowed to do anything with the field other than silently inherit it.
-          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
-          reporter.Error(MessageSource.Resolver, member.tok, "fully defined {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
-            traitMember.WhatKind, traitMember.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member is Method != traitMember is Method ||
                    member is Lemma != traitMember is Lemma ||
                    member is TwoStateLemma != traitMember is TwoStateLemma ||
@@ -2291,13 +2293,14 @@ namespace Microsoft.Dafny {
                    member is TwoStateFunction != traitMember is TwoStateFunction ||
                    member is LeastPredicate != traitMember is LeastPredicate ||
                    member is GreatestPredicate != traitMember is GreatestPredicate) {
-          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, member.WhatKind);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"{traitMember.WhatKindAndName} in '{trait.Name}' can only be overridden by a {traitMember.WhatKind} (got {member.WhatKind})");
         } else if (member.IsGhost != traitMember.IsGhost) {
-          reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'",
-            traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' has different ghost/compiled status than in trait '{trait.Name}'");
         } else if (!member.IsOpaque && traitMember.IsOpaque) {
-          reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' must be 'opaque' since the member is 'opaque' in trait '{3}'",
-            traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' must be 'opaque' since the member is 'opaque' in trait '{trait.Name}'");
         } else {
           // Copy trait member's extern attribute onto class member if class does not provide one
           if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(traitMember.Attributes, "extern")) {
@@ -2315,7 +2318,8 @@ namespace Microsoft.Dafny {
             var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
             var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
             if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
-              reporter.Error(MessageSource.Resolver, classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
+              reporter.Error(MessageSource.Resolver, classMethod.tok,
+                $"not allowed to override a terminating method with a possibly non-terminating method ('{classMethod.Name}')");
             }
 
           } else if (traitMember is Function) {

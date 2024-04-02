@@ -6,6 +6,7 @@ namespace Microsoft.Dafny;
 
 public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
+  public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public ModuleDefinition EnclosingModuleDefinition;
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
