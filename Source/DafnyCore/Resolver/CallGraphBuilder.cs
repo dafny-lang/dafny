@@ -117,6 +117,8 @@ namespace Microsoft.Dafny {
       }
 
       public override void VisitFunction(Function f) {
+        // reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, f.Tok, f.Name);
+
         if (f.OverriddenFunction != null) {
           // add an edge from the trait function to that of the class/type
           AddCallGraphEdgeRaw(f.OverriddenFunction, f);
@@ -178,6 +180,8 @@ namespace Microsoft.Dafny {
           if (function is ExtremePredicate extremePredicate) {
             extremePredicate.Uses.Add(functionCallExpr);
           }
+          //reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, function.Tok, function.Name);
+
           AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
             IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
 
@@ -270,9 +274,9 @@ namespace Microsoft.Dafny {
           if (context.CodeContext is ICallable caller0) {
             if (caller0 is IteratorDecl iteratorDecl) {
               // use the MoveNext() method as the caller
-              callerModule.InterModuleCallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
+              callerModule.CallGraph.AddEdge(iteratorDecl.Member_MoveNext, callee);
             } else {
-              callerModule.InterModuleCallGraph.AddEdge(caller0, callee);
+              callerModule.CallGraph.AddEdge(caller0, callee);
             }
           }
 
@@ -303,17 +307,9 @@ namespace Microsoft.Dafny {
         ModuleDefinition callerModule = callingContext.EnclosingModule;
         ModuleDefinition calleeModule = callable is SpecialFunction ? null : callable.EnclosingModule;
         if (callerModule != calleeModule) {
-          // inter-module call; add edge in module's inter-module call graph
-          if (callingContext is ICallable context && callable is Function { EnclosingClass: TraitDecl }) {
+          // inter-module call
+          if (callingContext is ICallable context) {
             callerModule.CallGraph.AddEdge(context, callable);
-          }
-          if (callingContext is ICallable caller0) {
-            callerModule.InterModuleCallGraph.AddEdge(caller0, callable);
-            if (caller0 is Function f) {
-              if (e is FunctionCallExpr ee) {
-                // f.AllCalls.Add(ee);
-              }
-            }
           }
 
           return;
