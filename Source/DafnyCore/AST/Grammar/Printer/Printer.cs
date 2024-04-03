@@ -270,19 +270,19 @@ NoGhost - disable printing of functions, ghost methods, and proof
         Indent(indent);
         wr.WriteLine($"digraph {module.Name} {{");
         foreach (var v in graph.GetVertices()) {
-            var height = graph.GetSCCRepresentativePredecessorCount(v.N);
-            var name = v.N.NameRelativeToModule;
-            heights[height] = (heights.TryGetValue(height, out var vs) ? vs : new List<string>()).Append(name);
-            Indent(indent+2);
-            var dashed = v.N.EnclosingModule != module ? "style=dashed, " : "";
-            wr.WriteLine($"\"{name}\" [{dashed}label=\"{name}: {height}\"];");
+          var height = graph.GetSCCRepresentativePredecessorCount(v.N);
+          var name = v.N.NameRelativeToModule;
+          heights[height] = (heights.TryGetValue(height, out var vs) ? vs : new List<string>()).Append(name);
+          Indent(indent + 2);
+          var dashed = v.N.EnclosingModule != module ? "style=dashed, " : "";
+          wr.WriteLine($"\"{name}\" [{dashed}label=\"{name}: {height}\"];");
           foreach (var s in v.Successors) {
-            Indent(indent+2);
+            Indent(indent + 2);
             wr.WriteLine($"\"{name}\" -> \"{s.N.NameRelativeToModule}\";");
           }
         }
         foreach (var (_, vs) in heights) {
-          Indent(indent+2);
+          Indent(indent + 2);
           wr.WriteLine($"{{ rank = same; {Util.Comma("; ", vs, (v => $"\"{v}\""))}; }}");
         }
         Indent(indent);
