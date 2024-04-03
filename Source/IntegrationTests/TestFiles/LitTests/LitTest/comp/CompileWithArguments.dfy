@@ -4,8 +4,8 @@
 // RUN: %run --no-verify --target:cpp --unicode-char:false "%s" Cpp Yipee >> "%t"
 // RUN: %run --no-verify --target:java "%s" -- Java --heya >> "%t"
 // RUN: %run --no-verify --target:js "%s" -- Javascript 2 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:py "%s" --args Python 1 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" --args "Go go" 1 >> "%t"
+// RUN: %run --no-verify --target py "%s" Python 1 >> "%t"
+// RUN: %run --no-verify --target go "%s" "Go go" 1 >> "%t"
 // RUN: %build --no-verify --target:cs "%s" --output:%s.dll
 // RUN: dotnet %s.dll "dotnet" "howdy" >> "%t"
 // RUN: dotnet %s.dll "dotnet" "hello" >> "%t"

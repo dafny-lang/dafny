@@ -1,7 +1,7 @@
 // NONUNIFORM: Multiple testing scenarios (could be split)
-// RUN: %dafny /env:0 /compile:3 /dprint:"%t.dfy" "%s" > "%t.result"
-// RUN: %dafny /env:0 /printMode:DllEmbed /dprint:"%t1.dfy" "%t.dfy"
-// RUN: %dafny /env:0 /printMode:DllEmbed /dprint:"%t2.dfy" /compile:3 "%t1.dfy" > "%t"
+// RUN: %run --print:"%t.dfy" "%s" &> "%t.result"
+// RUN: %build --print-mode Serialization --print:"%t1.dfy" "%t.dfy" &> "%t"
+// RUN: %run --print-mode Serialization --print:"%t2.dfy" "%t1.dfy" &>> "%t"
 // RUN: %diff "%t1.dfy" "%t2.dfy"
 // RUN: %diff "%s.expect" "%t"
 

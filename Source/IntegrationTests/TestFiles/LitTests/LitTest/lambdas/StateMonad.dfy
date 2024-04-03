@@ -1,4 +1,4 @@
-// RUN: %dafny /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module Monad {
