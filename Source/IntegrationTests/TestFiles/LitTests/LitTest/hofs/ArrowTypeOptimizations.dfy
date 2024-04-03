@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %verify --cores 1 --progress "%s" > "%t".raw
-// RUN: %sed 's/time: \d*ms/redacted/g' "%t".raw > %t
+// RUN: %sed 's/taking \d*ms/redacted/g' %t.raw > %t
 // RUN: %diff "%s.expect" "%t"
 
 // These tests make sure that the built-in arrow types are taken into account when
