@@ -12,7 +12,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     Contract.Invariant(tok != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(NamePath is NameSegment || NamePath is ExprDotName);
+    Contract.Invariant(NamePath is NameSegment or ExprDotName);
     Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
   }
 

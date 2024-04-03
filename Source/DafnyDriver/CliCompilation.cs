@@ -14,6 +14,7 @@ using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
+using VC;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
@@ -24,6 +25,7 @@ public class CliCompilation {
   public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
+  private int warningCount;
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
@@ -48,10 +50,13 @@ public class CliCompilation {
     Compilation = createCompilation(executionEngine, input);
   }
 
-  public int ExitCode => (int)ExitValue;
+  public async Task<int> GetAndReportExitCode() {
+    var value = await GetAndReportExitValue();
+    return (int)value;
+  }
 
-  public ExitValue ExitValue {
-    get {
+  public async Task<ExitValue> GetAndReportExitValue() {
+    if (errorCount > 0) {
       if (HasErrorsFromSource(MessageSource.Project)) {
         return ExitValue.PREPROCESSING_ERROR;
       }
@@ -59,11 +64,19 @@ public class CliCompilation {
       if (HasErrorsFromSource(MessageSource.Verifier)) {
         return ExitValue.VERIFICATION_ERROR;
       }
-      return errorCount > 0 ? ExitValue.DAFNY_ERROR : ExitValue.SUCCESS;
+      return ExitValue.DAFNY_ERROR;
+    }
 
-      bool HasErrorsFromSource(MessageSource source) {
-        return errorsPerSource.GetOrAdd(source, _ => 0) != 0;
-      }
+    if (warningCount > 0 && !Options.Get(CommonOptionBag.AllowWarnings)) {
+      await Options.OutputWriter.WriteLineAsync(
+        "Compilation failed because warnings were found and --allow-warnings is false");
+      return ExitValue.DAFNY_ERROR;
+    }
+
+    return ExitValue.SUCCESS;
+
+    bool HasErrorsFromSource(MessageSource source) {
+      return errorsPerSource.GetOrAdd(source, _ => 0) != 0;
     }
   }
 
@@ -104,6 +117,10 @@ public class CliCompilation {
             _ => 1,
             (_, previous) => previous + 1);
           Interlocked.Increment(ref errorCount);
+        }
+
+        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
+          Interlocked.Increment(ref warningCount);
         }
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
         consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
@@ -165,10 +182,13 @@ public class CliCompilation {
 
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+          var runResult = completed.Result;
+          var resourcesUsed = runResult.ResourceCount.ToString("E1", CultureInfo.InvariantCulture);
           Options.OutputWriter.WriteLine(
-            $"Verified part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", on line {token.line} (time: {completed.Result.RunTime.Milliseconds}ms, " +
-            $"resource count: {completed.Result.ResourceCount.ToString("E1", CultureInfo.InvariantCulture)})");
+            $"Verification part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
+            $", on line {token.line}, " +
+            $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
+            $", taking {runResult.RunTime.Milliseconds}ms and consuming {resourcesUsed} resources");
         }
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();
@@ -242,6 +262,19 @@ public class CliCompilation {
 
       canVerifyResults.Remove(canVerify); // Free memory
     }
+  }
+
+  public static string DescribeOutcome(VcOutcome outcome) {
+    return outcome switch {
+      VcOutcome.Correct => "verified successfully",
+      VcOutcome.Errors => "could not prove all assertions",
+      VcOutcome.Inconclusive => "was inconclusive",
+      VcOutcome.TimedOut => "timed out",
+      VcOutcome.OutOfResource => "ran out of resources",
+      VcOutcome.OutOfMemory => "ran out of memory",
+      VcOutcome.SolverException => "ran into a solver exception",
+      _ => throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null)
+    };
   }
 
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /print:"%t.print" /readsClausesOnMethods:1 "%s" > "%t"
+// RUN: %exits-with 4 %build --reads-clauses-on-methods "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Clone of ReadsReads.dfy but using methods instead of functions
