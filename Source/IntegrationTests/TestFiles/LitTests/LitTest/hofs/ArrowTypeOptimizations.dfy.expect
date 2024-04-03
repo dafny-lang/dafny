@@ -1,26 +1,19 @@
-
-Verifying CheckReads (well-formedness) ...
-  [3 proof obligations]  errors
-ArrowTypeOptimizations.dfy(10,2): Error: function precondition could not be proved
-ArrowTypeOptimizations.dfy(10,2): Error: insufficient reads clause to invoke function
-
-Verifying CheckPre (well-formedness) ...
-  [2 proof obligations]  error
-ArrowTypeOptimizations.dfy(16,2): Error: function precondition could not be proved
-
-Verifying CheckReadsTot (well-formedness) ...
-  [1 proof obligation]  verified
-
-Verifying CheckReadsParens (well-formedness) ...
-  [1 proof obligation]  verified
-
-Verifying CheckReadsLambdaGeneral (well-formedness) ...
-  [3 proof obligations]  verified
-
-Verifying CheckReadsLambdaPartial (well-formedness) ...
-  [2 proof obligations]  verified
-
-Verifying CheckReadsLambdaTotal (well-formedness) ...
-  [1 proof obligation]  verified
+Verified 0/7 symbols. Waiting for CheckReads to verify.
+Verification part 1/1 of CheckReads, on line 8, could not prove all assertions, redacted and consuming 1.1E+004 resources
+ArrowTypeOptimizations.dfy(11,2): Error: function precondition could not be proved
+ArrowTypeOptimizations.dfy(11,2): Error: insufficient reads clause to invoke function
+Verified 1/7 symbols. Waiting for CheckPre to verify.
+Verification part 1/1 of CheckPre, on line 14, could not prove all assertions, redacted and consuming 1.0E+004 resources
+ArrowTypeOptimizations.dfy(17,2): Error: function precondition could not be proved
+Verified 2/7 symbols. Waiting for CheckReadsTot to verify.
+Verification part 1/1 of CheckReadsTot, on line 20, verified successfully, redacted and consuming 1.0E+004 resources
+Verified 3/7 symbols. Waiting for CheckReadsParens to verify.
+Verification part 1/1 of CheckReadsParens, on line 26, verified successfully, redacted and consuming 1.0E+004 resources
+Verified 4/7 symbols. Waiting for CheckReadsLambdaGeneral to verify.
+Verification part 1/1 of CheckReadsLambdaGeneral, on line 32, verified successfully, redacted and consuming 1.9E+004 resources
+Verified 5/7 symbols. Waiting for CheckReadsLambdaPartial to verify.
+Verification part 1/1 of CheckReadsLambdaPartial, on line 38, verified successfully, redacted and consuming 1.7E+004 resources
+Verified 6/7 symbols. Waiting for CheckReadsLambdaTotal to verify.
+Verification part 1/1 of CheckReadsLambdaTotal, on line 44, verified successfully, redacted and consuming 1.5E+004 resources
 
 Dafny program verifier finished with 5 verified, 3 errors
