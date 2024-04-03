@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /print:"%t.print" /rprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M0(d: int)
@@ -90,7 +90,7 @@ method Q1<D>(s: D, n: int) returns (a: array<D>)
 
 method QCaller()
 {
-  var s: Six;
+  var s: Six := *;
   var a := Q0(s, 217);
   var b := Q1(s, 2);
 }

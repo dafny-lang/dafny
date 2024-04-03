@@ -1,5 +1,5 @@
-// RUN: %exits-with 4 %dafny /env:0 /dprint:- "%s" > "%t"
-// RUN: %exits-with 4 %dafny /env:0 /rprint:- "%s" >> "%t"
+// RUN: %exits-with 4 %build --print:- "%s" --relax-definite-assignment > "%t"
+// RUN: %exits-with 4 %build --rprint:- "%s" --relax-definite-assignment  >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Tests the pretty printing of + and *
