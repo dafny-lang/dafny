@@ -5572,6 +5572,7 @@ namespace Microsoft.Dafny.Compilers {
         var collectionName = ProtectedFreshId("_coll");
         var setType = e.Type.NormalizeToAncestorType().AsSetType;
         var bwr = CreateIIFE0(setType, e.tok, wr, wStmts);
+        wStmts = bwr.Fork();
         wr = bwr;
         EmitSetBuilder_New(wr, e, collectionName);
         var n = e.BoundVars.Count;
@@ -5618,6 +5619,7 @@ namespace Microsoft.Dafny.Compilers {
         var rantypeName = TypeName(mapType.Range, wr, e.tok);
         var collection_name = ProtectedFreshId("_coll");
         var bwr = CreateIIFE0(mapType, e.tok, wr, wStmts);
+        wStmts = bwr.Fork();
         wr = bwr;
         EmitMapBuilder_New(wr, e, collection_name);
         var n = e.BoundVars.Count;

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:3 /proverOpt:O:smt.qi.eager_threshold=80 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %run --solver-option="O:smt.qi.eager_threshold=80" "%s" > "%t"
 // re-enable the following before long
 // %diff "%s.expect" "%t"
 

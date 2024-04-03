@@ -67,7 +67,7 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()));
+      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
     }
   }
 
@@ -116,7 +116,9 @@ public class DooFile {
   }
 
   public DooFile(Program dafnyProgram) {
-    var tw = new StringWriter();
+    var tw = new StringWriter {
+      NewLine = "\n"
+    };
     var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
@@ -204,7 +206,7 @@ public class DooFile {
     var manifestWr = wr.NewFile(ManifestFileEntry);
     using var manifestWriter = new StringWriter();
     Manifest.Write(manifestWriter);
-    manifestWr.Write(manifestWriter.ToString());
+    manifestWr.Write(manifestWriter.ToString().Replace("\r\n", "\n"));
 
     var programTextWr = wr.NewFile(ProgramFileEntry);
     programTextWr.Write(ProgramText);

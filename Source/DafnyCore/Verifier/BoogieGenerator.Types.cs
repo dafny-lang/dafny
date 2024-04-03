@@ -111,10 +111,10 @@ public partial class BoogieGenerator {
           var bx = BplBoundVar("bx", predef.BoxType, bvars);
           lhs = Bpl.Expr.SelectTok(tok, lhs, bx);
           rhs = Bpl.Expr.SelectTok(tok, rhs, bx);
-          // op = Bpl.Expr.Imp;
+          // op = BplImp;
         }
         if (selectorVar == "r") {
-          op = (u, v) => Bpl.Expr.Imp(v, u);
+          op = (u, v) => BplImp(v, u);
         }
         AddOtherDefinition(GetOrCreateTypeConstructor(ad), new Axiom(tok,
           BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
@@ -998,7 +998,7 @@ public partial class BoogieGenerator {
       comment = $"$Is axiom for {dd.WhatKind} {fullName}";
       // $Is(o, ..)
       is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
-      var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok));
+      var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok), null);
       Bpl.Expr parentConstraint, constraint;
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
         // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
@@ -1248,13 +1248,13 @@ public partial class BoogieGenerator {
         // Check "expr < (1 << toWdith)" in type "int"
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
-        boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
+        boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // Check "Int(expr) < (1 << toWdith)" in type "int"
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
-        boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
+        boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
       } else if (fromType.IsBigOrdinalType) {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
@@ -1397,7 +1397,7 @@ public partial class BoogieGenerator {
 
     currentModule = decl.Module;
     codeContext = new CallableWrapper(decl, true);
-    var etran = new ExpressionTranslator(this, predef, decl.tok);
+    var etran = new ExpressionTranslator(this, predef, decl.tok, null);
 
     // parameters of the procedure
     var inParams = MkTyParamFormals(decl.TypeArgs, true);

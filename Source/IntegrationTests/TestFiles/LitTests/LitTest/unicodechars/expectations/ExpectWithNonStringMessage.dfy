@@ -1,9 +1,9 @@
 // RUN: %verify --verify-included-files "%s" > "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:cs /unicodeChar:1 "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:go /unicodeChar:1 "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:java /unicodeChar:1 "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:js /unicodeChar:1 "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:py /unicodeChar:1 "%s" >> "%t"
+// RUN: ! %run --no-verify --target cs "%s" >> "%t"
+// RUN: ! %run --no-verify --target go "%s" >> "%t"
+// RUN: ! %run --no-verify --target java "%s" >> "%t"
+// RUN: ! %run --no-verify --target js "%s" >> "%t"
+// RUN: ! %run --no-verify --target py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Note this is one good example of printing regressing with /unicodeChar:1

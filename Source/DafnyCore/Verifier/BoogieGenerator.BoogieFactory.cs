@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
         // Bpl.LiteralExpr for a bitvector.
         var zero = new Bpl.LiteralExpr(tok, BaseTypes.BigNum.ZERO, width);
         var absN = new Bpl.LiteralExpr(tok, -n, width);
-        var etran = new ExpressionTranslator(this, predef, tok);
+        var etran = new ExpressionTranslator(this, predef, tok, null);
         return etran.TrToFunctionCall(tok, "sub_bv" + width, BplBvType(width), zero, absN, false);
       } else {
         return new Bpl.LiteralExpr(tok, n, width);
@@ -628,7 +628,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
       Bpl.Expr len0 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e0);
       Bpl.Expr len1 = FunctionCall(tok, BuiltinFunction.SeqLength, null, e1);
-      var result = Bpl.Expr.And(
+      var result = BplAnd(
         Bpl.Expr.Lt(len0, len1),
         FunctionCall(tok, BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
       result.tok = tok;
@@ -698,10 +698,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (a == Bpl.Expr.True) {
+      var aNoLit = RemoveLit(a);
+      var bNoLit = RemoveLit(b);
+
+      if (aNoLit == Bpl.Expr.True) {
         return b;
-      } else if (b == Bpl.Expr.True) {
+      } else if (bNoLit == Bpl.Expr.True) {
         return a;
+      } else if (aNoLit == Bpl.Expr.False || bNoLit == Bpl.Expr.False) {
+        return Bpl.Expr.False;
       } else {
         return Bpl.Expr.Binary(a.tok, Bpl.BinaryOperator.Opcode.And, a, b);
       }
@@ -721,24 +726,42 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (a == Bpl.Expr.False) {
+      var aNoLit = RemoveLit(a);
+      var bNoLit = RemoveLit(b);
+
+      if (aNoLit == Bpl.Expr.False) {
         return b;
-      } else if (b == Bpl.Expr.False) {
+      } else if (bNoLit == Bpl.Expr.False) {
         return a;
+      } else if (aNoLit == Bpl.Expr.True) {
+        return a;
+      } else if (bNoLit == Bpl.Expr.True) {
+        return b;
       } else {
         return Bpl.Expr.Binary(a.tok, Bpl.BinaryOperator.Opcode.Or, a, b);
       }
     }
 
-    Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
+    static Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (a == Bpl.Expr.True) {
+      var aNoLit = RemoveLit(a);
+      var bNoLit = RemoveLit(b);
+
+      if (aNoLit == Bpl.Expr.True) {
         return b;
-      } else if (b == Bpl.Expr.True) {
+      } else if (bNoLit == Bpl.Expr.True) {
         return a;
+      } else if (aNoLit == Bpl.Expr.False) {
+        return Bpl.Expr.Not(b);
+      } else if (bNoLit == Bpl.Expr.False) {
+        return Bpl.Expr.Not(a);
+      } else if (aNoLit == bNoLit) {
+        return Bpl.Expr.True;
+      } else if (aNoLit == Bpl.Expr.Not(b) || bNoLit == Bpl.Expr.Not(a)) {
+        return Bpl.Expr.False;
       } else {
         return Bpl.Expr.Iff(a, b);
       }
@@ -749,9 +772,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (a == Bpl.Expr.True || b == Bpl.Expr.True) {
+      var aNoLit = RemoveLit(a);
+      var bNoLit = RemoveLit(b);
+
+      if (aNoLit == Bpl.Expr.True || bNoLit == Bpl.Expr.True) {
         return b;
-      } else if (a == Bpl.Expr.False) {
+      } else if (aNoLit == Bpl.Expr.False) {
         return Bpl.Expr.True;
       } else {
         return Bpl.Expr.Imp(a, b);
