@@ -300,7 +300,7 @@ public record IdeState(
     ILogger logger,
     TelemetryPublisherBase telemetryPublisher,
     FinishedResolution finishedResolution) {
-    logger.LogInformation("HandleFinishedResolution called"); // temporarily added to debug unstable tests.
+    logger.LogInformation($"HandleFinishedResolution called for {Input.Uri}"); // temporarily added to debug unstable tests.
 
     var previousState = this;
     var errors = finishedResolution.Diagnostics.Where(d =>
@@ -387,7 +387,7 @@ public record IdeState(
   }
 
   private IdeState HandleFinishedParsing(ILogger logger, FinishedParsing finishedParsing) {
-    logger.LogInformation("HandleFinishedParsing called"); // temporarily added to debug unstable tests.
+    logger.LogInformation($"HandleFinishedParsing called for {Input.Uri}"); // temporarily added to debug unstable tests.
 
     var previousState = this;
     var trees = previousState.VerificationTrees;
