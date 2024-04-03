@@ -186,7 +186,7 @@ public record IdeState(
       case CanVerifyPartsIdentified canVerifyPartsIdentified:
         return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
       case FinishedParsing finishedParsing:
-        return HandleFinishedParsing(finishedParsing);
+        return HandleFinishedParsing(logger, finishedParsing);
       case FinishedResolution finishedResolution:
         return HandleFinishedResolution(options, logger, telemetryPublisher, finishedResolution);
       case InternalCompilationException internalCompilationException:
@@ -300,6 +300,8 @@ public record IdeState(
     ILogger logger,
     TelemetryPublisherBase telemetryPublisher,
     FinishedResolution finishedResolution) {
+    logger.LogInformation("HandleFinishedResolution called"); // temporarily added to debug unstable tests.
+
     var previousState = this;
     var errors = finishedResolution.Diagnostics.Where(d =>
       d.Diagnostic.Severity == DiagnosticSeverity.Error && d.Diagnostic.Source != MessageSource.Compiler.ToString()).ToList();
@@ -384,7 +386,9 @@ public record IdeState(
       }), previousIdeCanVerifyState?.Diagnostics ?? new List<Diagnostic>());
   }
 
-  private IdeState HandleFinishedParsing(FinishedParsing finishedParsing) {
+  private IdeState HandleFinishedParsing(ILogger logger, FinishedParsing finishedParsing) {
+    logger.LogInformation("HandleFinishedParsing called"); // temporarily added to debug unstable tests.
+
     var previousState = this;
     var trees = previousState.VerificationTrees;
     foreach (var uri in trees.Keys) {
