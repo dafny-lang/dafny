@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
+/// <summary>
+/// A tree where each node except the root corresponds to a phase.
+///
+/// Each node stores the state for that phase, which right now only is diagnostics
+/// </summary>
 public class PhaseTree {
   public IReadOnlyList<FileDiagnostic> Diagnostics;
 

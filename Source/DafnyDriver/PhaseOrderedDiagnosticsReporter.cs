@@ -47,8 +47,7 @@ class PhaseOrderedDiagnosticsReporter {
     }
   }
 
-  private void ProcessNewCompletedSequence(IPhase phase)
-  {
+  private void ProcessNewCompletedSequence(IPhase phase) {
     var completedPhase = phase;
     while (true) {
       if (IsCompleted(completedPhase)) {
