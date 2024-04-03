@@ -117,8 +117,6 @@ namespace Microsoft.Dafny {
       }
 
       public override void VisitFunction(Function f) {
-        // reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, f.Tok, f.Name);
-
         if (f.OverriddenFunction != null) {
           // add an edge from the trait function to that of the class/type
           AddCallGraphEdgeRaw(f.OverriddenFunction, f);
@@ -180,8 +178,6 @@ namespace Microsoft.Dafny {
           if (function is ExtremePredicate extremePredicate) {
             extremePredicate.Uses.Add(functionCallExpr);
           }
-          //reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, function.Tok, function.Name);
-
           AddCallGraphEdge(context.CodeContext, function, functionCallExpr,
             IsFunctionReturnValue(function, functionCallExpr.Receiver, functionCallExpr.Args, context));
 
