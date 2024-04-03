@@ -51,9 +51,9 @@ solver-path=""doesNotExist""
 ";
     var program = @"
 method Foo() ensures false { }";
-    var path = Path.GetRandomFileName();
+    var path = Path.Combine(Path.GetRandomFileName(), "BadSolverPath");
     var project = CreateAndOpenTestDocument(projectFile, Path.Combine(path, DafnyProject.FileName));
-    var document = CreateAndOpenTestDocument(program, Path.Combine(path, "BadSolverPath.dfy"));
+    var document = CreateAndOpenTestDocument(program, Path.Combine(path, "file.dfy"));
     await WaitUntilAllStatusAreCompleted(document);
     var diagnostics = await GetLastDiagnostics(project);
     Assert.Contains(diagnostics, d => d.Message.Contains("Z3 not found"));

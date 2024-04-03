@@ -204,9 +204,15 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     CancellationToken cancellationToken = default) {
 
     CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLast(s => s.Uri == documentId.Uri);
-    while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
-           compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
-      compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+    try {
+      while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version ||
+             compilationStatusParams.Uri != documentId.Uri ||
+             compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
+        compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
+      }
+    } catch (OperationCanceledException) {
+      logger.LogError($"Was waiting for version {documentId.Version} and uri {documentId.Uri}");
+      throw;
     }
 
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
