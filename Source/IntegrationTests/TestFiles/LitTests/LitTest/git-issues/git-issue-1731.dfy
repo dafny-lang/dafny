@@ -1,4 +1,4 @@
-// RUN: %dafny /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %build --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module PreviouslyAProblem {
