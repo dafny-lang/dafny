@@ -273,9 +273,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var height = graph.GetSCCRepresentativePredecessorCount(v.N);
           var name = v.N.NameRelativeToModule;
           heights[height] = (heights.TryGetValue(height, out var vs) ? vs : new List<string>()).Append(name);
-          Indent(indent + 2);
-          var dashed = v.N.EnclosingModule != module ? "style=dashed, " : "";
-          wr.WriteLine($"\"{name}\" [{dashed}label=\"{name}: {height}\"];");
+          if (v.N.EnclosingModule != module) {
+            Indent(indent + 2);
+            wr.WriteLine($"\"{name}\" [style=dashed];");
+          }
           foreach (var s in v.Successors) {
             Indent(indent + 2);
             wr.WriteLine($"\"{name}\" -> \"{s.N.NameRelativeToModule}\";");
