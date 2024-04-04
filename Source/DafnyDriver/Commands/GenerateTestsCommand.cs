@@ -117,6 +117,7 @@ Path - Generate tests targeting path-coverage.");
     dafnyOptions.ForbidNondeterminism = true;
     dafnyOptions.DefiniteAssignmentLevel = 2;
     dafnyOptions.UseBaseNameForFileName = false;
+    dafnyOptions.EmitUncompilableCode = false;
     dafnyOptions.VerifyAllModules = true;
     dafnyOptions.TypeEncodingMethod = CoreOptions.TypeEncoding.Predicates;
     dafnyOptions.Set(Snippets.ShowSnippets, false);

@@ -361,6 +361,7 @@ namespace Microsoft.Dafny {
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
+    public bool EmitUncompilableCode { get; set; }
 
     public enum IncludesModes {
       None,
@@ -649,6 +650,10 @@ namespace Microsoft.Dafny {
 
         case "verifyAllModules":
           VerifyAllModules = true;
+          return true;
+        
+        case "emitUncompilableCode":
+          EmitUncompilableCode = true;
           return true;
 
         case "separateModuleOutput":
@@ -1361,6 +1366,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /verifyAllModules
     Verify modules that come from an include directive.
+
+/emitUncompilableCode
+    Allow compilers to emit uncompilable code that usually contain useful
+    information about what feature is missing, rather than
+    stopping on the first problem
 
 /separateModuleOutput
     Output verification results for each module separately, rather than

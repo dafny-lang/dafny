@@ -7,14 +7,14 @@ module {:extern "DAST.Format"} DAST.Format
   // - The generated code should look idiomatic and close to the original Dafny file if possible
   // Since the two might conflict, the second one is taken care of by adding formatting information
 
-  datatype UnOpFormat =
+  datatype UnaryOpFormat =
     | NoFormat
-    | CombineNotInner
-  datatype BinOpFormat =
+    | CombineFormat
+  datatype BinaryOpFormat =
     | NoFormat
     | ImpliesFormat
-    | Equivalence
-    | ReverseOperands
+    | EquivalenceFormat
+    | ReverseFormat
 }
 
 module {:extern "DAST"} DAST {
@@ -143,8 +143,8 @@ module {:extern "DAST"} DAST {
     ToMultiset(Expression) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
-    UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnOpFormat) |
-    BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinOpFormat) |
+    UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnaryOpFormat) |
+    BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
     ArrayLen(expr: Expression, dim: nat) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |

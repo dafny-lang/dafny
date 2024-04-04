@@ -243,6 +243,11 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
   };
+  public static readonly Option<bool> EmitUncompilableCode = new("--emit-uncompilable-code",
+    "Rather than throwing an exception, allow compilers to emit uncompilable information including what is " +
+    "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
+    "compiler feature is missing") {
+  };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
@@ -479,6 +484,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(InternalIncludeRuntimeOptionForExecution, (options, value) => { options.IncludeRuntime = value; });
     DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
+    DafnyOptions.RegisterLegacyBinding(EmitUncompilableCode, (o, f) => o.EmitUncompilableCode = f);
     DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
       (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });

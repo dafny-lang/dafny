@@ -404,11 +404,12 @@ public class MultiBackendTest {
 
           if (!File.Exists(sourcePath)) {
             await File.WriteAllTextAsync(sourcePath, checkOutput);
+            await output.WriteLineAsync($"Please modify the new check file {sourcePath} so that it's valid no matter what.");
           } else {
-            await output.WriteLineAsync($"Check file existed but was not imported yet. Ignoring.");
+            await output.WriteLineAsync($"Apparently, the file {sourcePath} already exists so the process isn't going to create one "+
+                                        $" despite DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE set to true and the file {CheckFileForBackend(options, backend)} not existing.\n"+
+                                        " To avoid this message, please rebuild the solution (modifying a .cs file or a .dfy can help).");
           }
-
-          await output.WriteLineAsync($"Please modify the new check file {sourcePath} so that it's valid no matter what.");
           await output.WriteLineAsync(outputString);
           await output.WriteLineAsync("Error:");
           await output.WriteLineAsync(error);

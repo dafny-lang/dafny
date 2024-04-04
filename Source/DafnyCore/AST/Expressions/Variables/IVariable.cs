@@ -24,7 +24,8 @@ public interface IVariable : ISymbol {
   string SanitizedName {
     get;
   }
-  string SanitizedNameShadowable {
+  string SanitizedNameShadowable { // A name suitable for compilation, but without the unique identifier.
+                                   // Useful to generate readable identifiers in the generated source code.
     get;
   }
   string CompileName {

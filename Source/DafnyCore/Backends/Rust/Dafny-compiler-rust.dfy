@@ -195,10 +195,10 @@ module RAST
     Call(Select(underlying, "clone"), [], [])
   }
   function Borrow(underlying: Expr): Expr {
-    UnaryOp("&", underlying, UnOpFormat.NoFormat)
+    UnaryOp("&", underlying, UnaryOpFormat.NoFormat)
   }
   function BorrowMut(underlying: Expr): Expr {
-    UnaryOp("&mut", underlying, UnOpFormat.NoFormat)
+    UnaryOp("&mut", underlying, UnaryOpFormat.NoFormat)
   }
 
   const CloneTrait := RawType("Clone")
@@ -448,8 +448,8 @@ module RAST
     | Block(underlying: Expr)
     | StructBuild(name: string, assignments: seq<AssignIdentifier>)
     | Tuple(arguments: seq<Expr>)
-    | UnaryOp(op1: string, underlying: Expr, format: Format.UnOpFormat)
-    | BinaryOp(op2: string, left: Expr, right: Expr, format2: Format.BinOpFormat)
+    | UnaryOp(op1: string, underlying: Expr, format: Format.UnaryOpFormat)
+    | BinaryOp(op2: string, left: Expr, right: Expr, format2: Format.BinaryOpFormat)
     | TypeAscription(left: Expr, tpe: Type)
     | LiteralInt(value: string)
     | LiteralString(value: string, binary: bool)
@@ -597,22 +597,22 @@ module RAST
             this
 
         case UnaryOp("!", BinaryOp("==", left, right, format),
-          CombineNotInner()) =>
+          CombineFormat()) =>
           assert BinaryOp("==", left, right, format).Height()
-              == BinaryOp("!=", left, right, BinOpFormat.NoFormat()).Height();
-          BinaryOp("!=", left, right, BinOpFormat.NoFormat())
+              == BinaryOp("!=", left, right, BinaryOpFormat.NoFormat()).Height();
+          BinaryOp("!=", left, right, BinaryOpFormat.NoFormat())
 
         case UnaryOp("!", BinaryOp("<", left, right, NoFormat()),
-          CombineNotInner()) =>
-          assert BinaryOp(">=", left, right, BinOpFormat.NoFormat()).Height()
-              == BinaryOp("<", left, right, BinOpFormat.NoFormat()).Height();
-          BinaryOp(">=", left, right, BinOpFormat.NoFormat())
+          CombineFormat()) =>
+          assert BinaryOp(">=", left, right, BinaryOpFormat.NoFormat()).Height()
+              == BinaryOp("<", left, right, BinaryOpFormat.NoFormat()).Height();
+          BinaryOp(">=", left, right, BinaryOpFormat.NoFormat())
 
-        case UnaryOp("!", BinaryOp("<", left, right, ReverseOperands()),
-          CombineNotInner()) =>
-          assert BinaryOp("<=", right, left, BinOpFormat.NoFormat()).Height()
-              == BinaryOp("<", left, right, BinOpFormat.ReverseOperands()).Height();
-          BinaryOp("<=", right, left, BinOpFormat.NoFormat())
+        case UnaryOp("!", BinaryOp("<", left, right, ReverseFormat()),
+          CombineFormat()) =>
+          assert BinaryOp("<=", right, left, BinaryOpFormat.NoFormat()).Height()
+              == BinaryOp("<", left, right, BinaryOpFormat.ReverseFormat()).Height();
+          BinaryOp("<=", right, left, BinaryOpFormat.NoFormat())
 
         case ConversionNum(tpe, expr) =>
           if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
@@ -2439,7 +2439,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
                     r := R.Call(R.RawExpr("::std::rc::Rc::ptr_eq"), [], [left, right]);
                   }
                 } else {
-                  r := R.BinaryOp("==", left, right, DAST.Format.BinOpFormat.NoFormat());
+                  r := R.BinaryOp("==", left, right, DAST.Format.BinaryOpFormat.NoFormat());
                 }
               }
               case EuclidianDiv() => {
@@ -2460,7 +2460,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
       return;
     }
 
-    static method GenExprConvert(
+    static method {:rlimit 2000} {:vcs_split_on_every_assert} GenExprConvert(
       e: Expression,
       selfIdent: Option<string>,
       params: seq<string>,
@@ -2543,6 +2543,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
             }
           }
           case (Primitive(Int), Primitive(Real)) => {
+            assert {:split_here} true;
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, params, OwnershipOwned);
             r := R.RcNew(R.RawExpr("::dafny_runtime::BigRational::from_integer(" + recursiveGen.ToString(IND) + ")"));
             r, resultingOwnership := FromOwned(r, expectedOwnership);
@@ -2873,7 +2874,7 @@ abstract module {:extern "DafnyToRustCompilerAbstract"} DafnyToRustCompilerAbstr
             var genKey := generatedValues[i].0;
             var genValue := generatedValues[i].1;
 
-            arguments := arguments + [R.BinaryOp("=>", genKey, genValue, DAST.Format.BinOpFormat.NoFormat())];
+            arguments := arguments + [R.BinaryOp("=>", genKey, genValue, DAST.Format.BinaryOpFormat.NoFormat())];
             i := i + 1;
           }
           r := R.dafny_runtime.MSel("map!").Apply([],

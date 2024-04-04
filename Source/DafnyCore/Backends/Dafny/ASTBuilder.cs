@@ -10,7 +10,7 @@ using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {
 
-  interface UnsupportedContainer {
+  interface Container {
     public void AddUnsupported(string why);
   }
 
@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface ModuleContainer : UnsupportedContainer {
+  interface ModuleContainer : Container {
     void AddModule(Module item);
 
     public ModuleBuilder Module(string name, bool isExtern) {
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface ClassContainer : UnsupportedContainer {
+  interface ClassContainer : Container {
     void AddClass(Class item);
 
     public ClassBuilder Class(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
@@ -135,7 +135,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface TraitContainer : UnsupportedContainer {
+  interface TraitContainer : Container {
     void AddTrait(Trait item);
 
     public TraitBuilder Trait(string name, List<DAST.Type> typeParams) {
@@ -181,7 +181,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface NewtypeContainer : UnsupportedContainer {
+  interface NewtypeContainer : Container {
     void AddNewtype(Newtype item);
 
     public NewtypeBuilder Newtype(string name, List<DAST.Type> typeParams,
@@ -231,7 +231,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface DatatypeContainer : UnsupportedContainer {
+  interface DatatypeContainer : Container {
     void AddDatatype(Datatype item);
 
     public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
@@ -365,7 +365,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface StatementContainer : UnsupportedContainer {
+  interface StatementContainer : Container {
     void AddStatement(DAST.Statement item);
 
     void AddBuildable(BuildableStatement item);
@@ -569,7 +569,6 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression rhs;
       if (this.value == null) {
         rhs = ExprContainer.UnsupportedToExpr("<i>Cannot assign null value to variable</i>: " + lhs);
-        //throw new InvalidOperationException("Cannot assign null value to variable: " + lhs);
       } else {
         var builtValue = new List<DAST.Expression>();
         ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
@@ -1063,7 +1062,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface ExprContainer : UnsupportedContainer {
+  interface ExprContainer : Container {
     void AddExpr(DAST.Expression item);
 
     void AddBuildable(BuildableExpr item);
@@ -1145,7 +1144,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface LhsContainer : UnsupportedContainer {
+  interface LhsContainer : Container {
     void AddLhs(DAST.AssignLhs lhs);
 
     void AddBuildable(BuildableLhs lhs);
@@ -1222,7 +1221,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public BinOpBuilder(DAST.BinOp op) {
       this.internalBuilder = (DAST.Expression left, DAST.Expression right) =>
-        (DAST.Expression)DAST.Expression.create_BinOp(op, left, right, new BinOpFormat_NoFormat());
+        (DAST.Expression)DAST.Expression.create_BinOp(op, left, right, new BinaryOpFormat_NoFormat());
       this.op = op.ToString();
     }
 
