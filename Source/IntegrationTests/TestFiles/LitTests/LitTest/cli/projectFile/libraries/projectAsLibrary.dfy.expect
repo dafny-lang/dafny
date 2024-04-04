@@ -1,2 +1,3 @@
+CLI: Warning: The file 'dfyconfig.toml' was passed to --library. This might lead to unsound verification because it is not a .doo file
 
 Dafny program verifier did not attempt verification

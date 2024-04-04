@@ -1,4 +1,4 @@
-// RUN: %baredafny resolve --use-basename-for-filename "%S/dfyconfig.toml" > "%t"
+// RUN: %resolve "%S/dfyconfig.toml" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Consumer {

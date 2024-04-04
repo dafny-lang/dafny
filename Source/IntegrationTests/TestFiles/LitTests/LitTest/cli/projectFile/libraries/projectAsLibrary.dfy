@@ -1,4 +1,4 @@
-// RUN: %resolve --library "%S/dfyconfig.toml" > "%t"
+// RUN: %resolve --library "%S/dfyconfig.toml" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module ConsumerConsumer {
