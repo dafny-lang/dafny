@@ -86,6 +86,14 @@ module _System {
     function RotateRight(w: nat): selftype
   }
 
+  type set<+T> { }
+
+  type iset<*T> { }
+
+  type seq<+T> { }
+
+  type multiset<+T> { }
+
   type map<+T, +U> {
     var Keys: set<T>  // immutable
     var Values: set<U>  // immutable
