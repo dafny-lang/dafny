@@ -8,5 +8,4 @@ module Consumer {
   function MaybeInt(): Option<int> {
     Some(42)
   }
-
 }

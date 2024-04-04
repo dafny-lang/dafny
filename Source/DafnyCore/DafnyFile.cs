@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Threading.Tasks;
 using DafnyCore;
 using JetBrains.Annotations;
 
@@ -29,12 +31,12 @@ public class DafnyFile {
     return externalUri;
   }
 
-  public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
+  public static async Task<DafnyFile> CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
     DafnyOptions options, Uri uri, IToken origin, string errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
-      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
+      var result = await CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
       if (result != null) {
         result.Uri = uri;
       }
@@ -149,6 +151,21 @@ public class DafnyFile {
         return null;
       }
       getContent = () => new StringReader(sourceText);
+    } else if (extension == DafnyProject.Extension) {
+      var project = await DafnyProject.Open(fileSystem, options, uri);
+      var roots = project.GetRootSourceUris(fileSystem).ToList();
+
+      if (project.TryGetValue(CommonOptionBag.Libraries, out var projectLibraries)) {
+        var castProjectLibraries = (IList<FileInfo>)projectLibraries;
+        foreach (var projectLibrary in castProjectLibraries) {
+          roots.Add(new Uri(projectLibrary.FullName));
+        }
+      }
+
+      var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
+      getContent = () => new StringReader(stubSource);
+      isPreverified = true;
+      isPrecompiled = false;
     } else {
       if (errorOnNotRecognized != null) {
         reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);

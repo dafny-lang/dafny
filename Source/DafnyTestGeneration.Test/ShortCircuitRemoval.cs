@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
@@ -30,11 +31,11 @@ public class ShortCircuitRemoval : Setup {
   /// <summary>
   /// Perform shared checks and return the target method for further testing on a case by case basis
   /// </summary>
-  private Method ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
+  private async Task<Method> ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
-    var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+    var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);
     var method = program.DefaultModuleDef.Children
@@ -448,7 +449,7 @@ method {:testEntry} Sum(n:int) returns (s:int)
   }
 
   [Fact]
-  public void LetOrFail() {
+  public async Task LetOrFail() {
     var source = @"
 datatype Result<T> = Success(value:T) | Failure {
   predicate IsFailure() {true}
@@ -468,7 +469,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
   return #tmp0;
 }";
-    var resultingMethod = ShortCircuitRemovalTest(source, expected);
+    var resultingMethod = await ShortCircuitRemovalTest(source, expected);
     Assert.True(resultingMethod.Body.Body[1] is BlockStmt);
     var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
     Assert.True(blockStmt.Body[0] is AssignOrReturnStmt);
@@ -479,7 +480,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
 
   [Fact]
-  public void LetOrFailWithAssignment() {
+  public async Task LetOrFailWithAssignment() {
     var source = @"
 datatype Result<T> = Success(value:T) | Failure {
   predicate IsFailure() {true}
@@ -500,7 +501,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
   return #tmp0;
 }";
-    var resultingMethod = ShortCircuitRemovalTest(source, expected);
+    var resultingMethod = await ShortCircuitRemovalTest(source, expected);
     Assert.True(resultingMethod.Body.Body[1] is BlockStmt);
     var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
     Assert.True(blockStmt.Body[0] is VarDeclStmt);
