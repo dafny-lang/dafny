@@ -230,10 +230,16 @@ public class CliCompilation {
     foreach (var canVerify in orderedCanVerifies) {
       var results = canVerifyResults[canVerify];
       try {
-        var timeLimitSeconds = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
+        var timeLimit = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
+        // The time limit is used downstream to cancel verification,
+        // However, it depends on behavior on an external process,
+        // and we have seen instances of the time limit not being respected.
+        // We can add s safe-guard by also cancelling at this level
+        // Albeit with a higher timeout
+        var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(10));
         var tasks = new List<Task> { results.Finished.Task };
-        if (timeLimitSeconds.Seconds != 0) {
-          tasks.Add(Task.Delay(timeLimitSeconds));
+        if (timeLimitNotRespected.Seconds != 0) {
+          tasks.Add(Task.Delay(timeLimitNotRespected));
         }
 
         if (Options.Get(CommonOptionBag.ProgressOption)) {
