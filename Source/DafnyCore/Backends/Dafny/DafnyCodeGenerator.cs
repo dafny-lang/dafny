@@ -695,7 +695,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (type.IsArrowType) {
             if (emitUncompilableCode) {
-              AddUnsupported();
+              this.AdUnsupported("<i>Initializer for arrow type</i>");
             } else {
               throw new RecoverableInvalidOperationException("<i>Initializer for arrow type</i>");
             }
