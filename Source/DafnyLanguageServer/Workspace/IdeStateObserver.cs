@@ -47,6 +47,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
   public void OnNext(IdeState snapshot) {
     lock (lastPublishedStateLock) {
       if (snapshot.Version < LastPublishedState.Version) {
+        logger.LogInformation($"Skipping PublishNotifications because snapshot with status {snapshot.Status} was version {snapshot.Version} and last published version was {LastPublishedState.Version}");
         return;
       }
 

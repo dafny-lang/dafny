@@ -82,6 +82,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var previous = previousState.Status;
 
         if (Equals(current, previous)) {
+          logger.LogInformation($"Skipping global progress notification because it was not changed, for uri {uri} and status {current}");
           continue;
         }
 

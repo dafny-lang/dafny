@@ -343,7 +343,7 @@ public record IdeState(
       : previousState.SignatureAndCompletionTable;
 
     var phase = new MessageSourceBasedPhase(MessageSource.Resolver);
-    return previousState with {
+    var result = previousState with {
       OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
       NewDiagnostics = NewDiagnostics.Add(phase, finishedResolution.Diagnostics),
       Status = status,
@@ -355,6 +355,8 @@ public record IdeState(
       CanVerifyStates = verificationResults,
       VerificationTrees = trees
     };
+    logger.LogInformation($"HandleFinishedResolution for {Input.Uri} returns status {status}, version {result.Input.Version} and uri {result.Uri}"); // temporarily added to debug unstable tests.
+    return result;
   }
 
   private static IdeCanVerifyState MergeResults(IEnumerable<IdeCanVerifyState> results) {
@@ -404,13 +406,15 @@ public record IdeState(
 
     IPhase completedPhase = new MessageSourceBasedPhase(MessageSource.Parser);
     var newDiagnostics = finishedParsing.Diagnostics;
-    return previousState with {
+    var result = previousState with {
       Program = finishedParsing.Program,
       OldDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
       NewDiagnostics = NewDiagnostics.Add(completedPhase, newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
+    logger.LogInformation($"HandleFinishedParsing for {Input.Uri} returns status {status} and version {result.Input.Version} and uri {result.Uri}"); // temporarily added to debug unstable tests.
+    return result;
   }
 
   private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
