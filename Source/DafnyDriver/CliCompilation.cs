@@ -22,6 +22,7 @@ namespace DafnyDriver.Commands;
 public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
 public class CliCompilation {
+  private readonly ILogger<CliCompilation> logger;
   public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
@@ -29,8 +30,10 @@ public class CliCompilation {
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
+    ILogger<CliCompilation> logger,
     CreateCompilation createCompilation,
     DafnyOptions options) {
+    this.logger = logger;
     Options = options;
 
     if (options.DafnyProject == null) {
@@ -86,7 +89,7 @@ public class CliCompilation {
     var fileSystem = OnDiskFileSystem.Instance;
     ILoggerFactory factory = new LoggerFactory();
     var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<TelemetryPublisherBase>());
-    return new CliCompilation(CreateCompilation, options);
+    return new CliCompilation(factory.CreateLogger<CliCompilation>(), CreateCompilation, options);
 
     Compilation CreateCompilation(ExecutionEngine engine, CompilationInput input) =>
       new(factory.CreateLogger<Compilation>(), fileSystem,
@@ -231,12 +234,11 @@ public class CliCompilation {
       var results = canVerifyResults[canVerify];
       try {
         var timeLimit = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
-        // The time limit is used downstream to cancel verification,
-        // However, it depends on behavior on an external process,
-        // and we have seen instances of the time limit not being respected.
-        // We can add s safe-guard by also cancelling at this level
-        // Albeit with a higher timeout
-        var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(10));
+        // The time limit is used downstream by Boogie to cancel verification,
+        // However, this cancellation behavior turns out to be unreliable in practice,
+        // So we also cancel at this level, although with a slightly higher timeout
+        // It should trickle up almost instantly, but we wait 1 second just to be safe
+        var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(1));
         var tasks = new List<Task> { results.Finished.Task };
         if (timeLimitNotRespected.Seconds != 0) {
           tasks.Add(Task.Delay(timeLimitNotRespected));
