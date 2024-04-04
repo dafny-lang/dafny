@@ -352,9 +352,8 @@ Examples:
 ```dafny
 export E extends F reveals f,g provides g,h
 export E reveals *
-export reveals f
+export reveals f,g provides g,h
 export E
-export
 export E ... reveals f
 ```
 
@@ -375,15 +374,16 @@ module using the `import` mechanism.
 An _export set_ enables a module to disallow the
 use of some declarations outside the module.
 
-Export sets have names; those names are used in `import` statements to
-designate which export set of a module is being imported.
-If a module `M` has export sets
-`E1` and `E2`, we can write ``import A = M`E1`` to create a module alias
-`A` that contains only the
-names in `E1`. Or we can write ``import A = M`{E1,E2}`` to import the union
+An export set has an optional name used to disambiguate
+in case of multiple export sets;
+If specified, such names are used in `import` statements
+to designate which export set of a module is being imported.
+If a module `M` has export sets `E1` and `E2`,
+we can write ``import A = M`E1`` to create a module alias
+`A` that contains only the names in `E1`.
+Or we can write ``import A = M`{E1,E2}`` to import the union
 of names in `E1` and `E2` as module alias `A`.
-As before, ``import M`E1`` is an
-abbreviation of ``import M = M`E1``.
+As before, ``import M`E1`` is an abbreviation of ``import M = M`E1``.
 
 If no export set is given in an import
 statement, the default export set of the module is used.

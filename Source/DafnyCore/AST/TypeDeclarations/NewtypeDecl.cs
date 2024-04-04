@@ -166,6 +166,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public bool ShouldVerify => true; // This could be made more accurate
+  public string Designator => WhatKind;
 }
 
 public class NativeType {

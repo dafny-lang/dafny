@@ -19,9 +19,8 @@ namespace Microsoft.Dafny.Compilers {
       if (Builder is StatementContainer statementContainer) {
         return new BuilderSyntaxTree<StatementContainer>(statementContainer.Fork(), Compiler);
       } else {
-        Compiler.AdUnsupported("<i>Builder not StatementContainer</i> but " + Builder.GetType().ToString());
         // Warning: this is an invalid operation: cannot fork builder of type Builder.GetType()
-        throw new InvalidOperationException();
+        throw new InvalidOperationException("<i>Builder not StatementContainer</i> but " + Builder.GetType().ToString());
       }
     }
 

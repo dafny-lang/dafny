@@ -75,7 +75,7 @@ public static class DafnyBackwardsCompatibleCli {
     if (!keywordForNewMode.Contains(first)) {
       if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) &&
           first.IndexOf('.') == -1) {
-        dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+        dafnyOptions.OutputWriter.WriteLine(
           "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension",
           first);
         return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);

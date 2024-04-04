@@ -80,7 +80,7 @@ Path - Generate tests targeting path-coverage.");
 
     if (dafnyFiles.Count > 1 &&
         options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-      options.Printer.ErrorWriteLine(options.OutputWriter,
+      await options.OutputWriter.WriteLineAsync(
         "*** Error: Only one .dfy file can be specified for testing");
       return ExitValue.PREPROCESSING_ERROR;
     }

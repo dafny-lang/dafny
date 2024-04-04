@@ -11,6 +11,11 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
+  public static readonly Option<bool> ProgressOption =
+    new("--progress", "While verifying, output information that helps track progress") {
+      IsHidden = true
+    };
+
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
       IsHidden = true
@@ -199,7 +204,7 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
-true - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart()) {
+true - Use an updated type-inference engine.".TrimStart()) {
     IsHidden = true
   };
 
@@ -220,7 +225,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
   public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
     @"
 false - A newtype can only be based on numeric types or another newtype.
-true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart()) {
+true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart()) {
     IsHidden = true
   };
 
@@ -250,6 +255,10 @@ true - Print debug information for the new type system.".TrimStart()) {
   };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
+  };
+
+  public static readonly Option<bool> WarnAsErrors = new("--warn-as-errors", () => true, "(Deprecated). Please use --allow-warnings instead") {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
@@ -355,6 +364,14 @@ If verification fails, report a detailed counterexample for the first failing as
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
+      if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
+        // If allow warnings is at the default value, and warn-as-errors is not, use the warn-as-errors value
+        options.Set(AllowWarnings, true);
+        options.FailOnWarnings = false;
+      }
+    });
+
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
       options.PrintTooltips = value;
@@ -400,7 +417,7 @@ datatype - A trait is a reference type only if it or one of its ancestor traits 
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
     DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
 0 (default) - A newtype can only be based on numeric types or another newtype.
-1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-ORDINAL type.".TrimStart(), false);
+1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart(), false);
     DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
 0 (default) - Don't print type-inference debug information.
 1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
@@ -567,7 +584,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
         { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
-            if (DooFile.OptionValuesImplied(localValue, libraryValue)) {
+            if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
               return true;
             }
             string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
@@ -578,6 +595,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      WarnAsErrors,
+      ProgressOption,
       LogLocation,
       LogLevelOption,
       ManualTriggerOption,

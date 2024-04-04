@@ -694,7 +694,11 @@ namespace Microsoft.Dafny.Compilers {
               );
             }
           } else if (type.IsArrowType) {
-            throw new InvalidOperationException();
+            if (emitUncompilableCode) {
+              AddUnsupported();
+            } else {
+              throw new RecoverableInvalidOperationException("<i>Initializer for arrow type</i>");
+            }
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
@@ -1230,7 +1234,6 @@ namespace Microsoft.Dafny.Compilers {
             } else {
               AdUnsupported("<i>Char literal without unicode char enabled</i>");
               return;
-              throw new InvalidOperationException();
             }
             break;
           case StringLiteralExpr str:
@@ -1752,7 +1755,7 @@ namespace Microsoft.Dafny.Compilers {
       DAST._ICollKind collKind;
       if (source.Type.IsArrayType) {
         collKind = DAST.CollKind.create_Array();
-      } else if (source.Type.IsMapType) {
+      } else if (source.Type.NormalizeToAncestorType().IsMapType) {
         collKind = DAST.CollKind.create_Map();
       } else {
         collKind = DAST.CollKind.create_Seq();
@@ -2069,8 +2072,7 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var container, out var convert)) {
         switch (op) {
           case ResolvedUnaryOp.BoolNot: {
