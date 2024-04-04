@@ -33,10 +33,20 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
     this.notificationPublisher = notificationPublisher;
   }
 
+  public void ClearState() {
+    var ideState = initialState with {
+      Version = LastPublishedState.Version + 1
+    };
+    logger.LogInformation($"IdeStateObserver ClearState called, publishing version ${ideState.Version} for uri {ideState.Uri}");
+    notificationPublisher.PublishNotifications(LastPublishedState, ideState);
+    telemetryPublisher.PublishUpdateComplete();
+  }
+
   public void OnCompleted() {
     var ideState = initialState with {
       Version = LastPublishedState.Version + 1
     };
+    logger.LogInformation($"IdeStateObserver OnCompleted called, publishing version ${ideState.Version} for uri {ideState.Uri}");
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
   }
@@ -52,15 +62,15 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
       }
 
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
+      logger.LogInformation($"Updating LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
       LastPublishedState = snapshot;
-      logger.LogDebug($"Updated LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }
 
   public void Migrate(DafnyOptions options, Migrator migrator, int version) {
     lock (lastPublishedStateLock) {
+      logger.LogInformation($"Migrating LastPublishedState to version {version}, uri {initialState.Input.Uri.ToUri()}");
       LastPublishedState = LastPublishedState.Migrate(options, migrator, version, true);
-      logger.LogDebug($"Migrated LastPublishedState to version {version}, uri {initialState.Input.Uri.ToUri()}");
     }
   }
 }

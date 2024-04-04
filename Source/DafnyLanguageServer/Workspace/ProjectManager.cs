@@ -246,7 +246,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public void CloseAsync() {
     Compilation.Dispose();
     try {
-      observer.OnCompleted();
+      observer.ClearState();
     } catch (OperationCanceledException) {
     }
     Dispose();
