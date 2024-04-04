@@ -626,6 +626,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,
+      EmitUncompilableCode,
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
       IncludeRuntimeOption,
