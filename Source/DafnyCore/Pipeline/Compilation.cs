@@ -182,7 +182,10 @@ public class Compilation : IDisposable {
 
     if (unverifiedLibrary != null) {
       errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
-        $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. This might lead to unsound verification because it is not a .doo file");
+        $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. " +
+        $"Verification previously done for that file might not be sufficient, " +
+        $"because it might have used options incompatible with the current ones. " +
+        $"Use a .doo file to enable Dafny to check that compatible options were used");
     }
 
     var projectPath = Project.Uri.LocalPath;
