@@ -164,7 +164,7 @@ public class DafnyFile {
 
       var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
       getContent = () => new StringReader(stubSource);
-      isPreverified = true;
+      isPreverified = false;
       isPrecompiled = false;
     } else {
       if (errorOnNotRecognized != null) {

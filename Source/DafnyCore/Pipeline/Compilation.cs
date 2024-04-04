@@ -166,14 +166,23 @@ public class Compilation : IDisposable {
       result.Add(await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
     }
 
+    string? unverifiedLibrary = null;
     var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryFiles) {
       var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
       if (file != null) {
+        if (!file.IsPreverified) {
+          unverifiedLibrary = library;
+        }
         file.IsPreverified = true;
         file.IsPrecompiled = true;
         result.Add(file);
       }
+    }
+
+    if (unverifiedLibrary != null) {
+      errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
+        $"The option --library was used with '{unverifiedLibrary}', which is not a .doo file, which might lead to unsound verification");
     }
 
     var projectPath = Project.Uri.LocalPath;
