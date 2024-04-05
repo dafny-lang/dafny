@@ -160,10 +160,16 @@ public class Compilation : IDisposable {
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        result.Add(await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
+        var targetSpecificFile = await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken);
+        if (targetSpecificFile != null) {
+          result.Add(targetSpecificFile);
+        }
       }
 
-      result.Add(await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
+      if (file != null) {
+        result.Add(file);
+      }
     }
 
     string? unverifiedLibrary = null;
