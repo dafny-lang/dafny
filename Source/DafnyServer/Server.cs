@@ -95,8 +95,7 @@ namespace Microsoft.Dafny {
 
     string ReadPayload(bool inputIsPlaintext) {
       StringBuilder buffer = new StringBuilder();
-      string line = null;
-      while (!EndOfPayload(out line)) {
+      while (!EndOfPayload(out var line)) {
         buffer.Append(line);
         if (inputIsPlaintext) {
           buffer.Append("\n");
