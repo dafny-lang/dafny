@@ -195,6 +195,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
