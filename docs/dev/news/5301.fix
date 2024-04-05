@@ -1,0 +1,1 @@
+Rename the `dafny generate-tests` option `--coverage-report` to `--expected-coverage-report`
