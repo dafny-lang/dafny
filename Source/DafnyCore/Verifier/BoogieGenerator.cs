@@ -673,7 +673,7 @@ namespace Microsoft.Dafny {
       if (options.Get(CommonOptionBag.UnicodeCharacters)) {
         defines.Add("UNICODE_CHAR");
       } else {
-        reporter.Deprecated(MessageSource.Verifier, null, options.DafnyProject.StartingToken,
+        reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
           "the option unicode-char has been deprecated.");
       }
       int errorCount = BplParser.Parse(preludePath, defines, out var prelude);
