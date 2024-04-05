@@ -381,7 +381,7 @@ public class CoverageReporter {
     }
     labeledCodeBuilder.Append(CloseHtmlTag());
 
-    var assembly = System.Reflection.Assembly.GetCallingAssembly();
+    var assembly = System.Reflection.Assembly.GetAssembly(typeof(CoverageReporter))!;
     var templateStream = assembly.GetManifestResourceStream(CoverageReportTemplatePath);
     var labeledCode = labeledCodeBuilder.ToString();
     if (templateStream is null) {
