@@ -62,14 +62,14 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
       }
 
       notificationPublisher.PublishNotifications(LastPublishedState, snapshot);
-      logger.LogInformation($"Updating LastPublishedState to version {snapshot.Version}, uri {initialState.Input.Uri.ToUri()}");
+      logger.LogInformation($"Updating LastPublishedState to version {snapshot.Version}, uri {LastPublishedState.Input.Uri.ToUri()}");
       LastPublishedState = snapshot;
     }
   }
 
   public void Migrate(DafnyOptions options, Migrator migrator, int version) {
     lock (lastPublishedStateLock) {
-      logger.LogInformation($"Migrating LastPublishedState to version {version}, uri {initialState.Input.Uri.ToUri()}");
+      logger.LogInformation($"Migrating LastPublishedState to version {version}, uri {LastPublishedState.Input.Uri.ToUri()}");
       LastPublishedState = LastPublishedState.Migrate(options, migrator, version, true);
     }
   }

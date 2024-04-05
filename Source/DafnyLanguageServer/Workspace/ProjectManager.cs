@@ -117,7 +117,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private const int MaxRememberedChanges = 100;
 
-  public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+  public void HandleChange(DidChangeTextDocumentParams documentChange) {
+
+    observerSubscription.Dispose();
+
     var migrator = createMigrator(documentChange, CancellationToken.None);
 
     var upcomingVersion = version + 1;
@@ -153,14 +156,18 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private void StartNewCompilation() {
     ++version;
-    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     observerSubscription.Dispose();
+    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
 
     Compilation.Dispose();
     var input = new CompilationInput(options, version, Project);
+    latestIdeState = latestIdeState with {
+      Version = version,
+      Input = input
+    };
     Compilation = createCompilation(boogieEngine, input);
-    var migratedUpdates = GetStates(Compilation);
+    var migratedUpdates = GetStates(Compilation, latestIdeState);
     states = new ReplaySubject<IdeState>(1);
     var statesSubscription = observerSubscription =
       migratedUpdates.Do(s => latestIdeState = s).Subscribe(states);
@@ -174,11 +181,8 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     Compilation.Start();
   }
 
-  private IObservable<IdeState> GetStates(Compilation compilation) {
-    var initialState = latestIdeState;
-    var latestCompilationState = initialState with {
-      Input = compilation.Input,
-    };
+  private IObservable<IdeState> GetStates(Compilation compilation, IdeState previousState) {
+    var latestCompilationState = previousState;
 
     return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
 
