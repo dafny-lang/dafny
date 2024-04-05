@@ -35,7 +35,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
 
   public void OnCompleted() {
     var ideState = initialState with {
-      Version = LastPublishedState.Version + 1
+      Input = initialState.Input with { Version = initialState.Version + 1 }
     };
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
