@@ -95,7 +95,7 @@ public class CoverageReporter {
           continue;
         }
         var suffix = indexFileMatch.Groups[1].Value;
-        var index = new StreamReader(pathToIndexFile).ReadToEnd();
+        var index = await new StreamReader(pathToIndexFile).ReadToEndAsync();
         var name = TitleRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
         var units = UnitsRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
         reports.Add(ParseCoverageReport(reportDir, $"{name} ({Path.GetFileName(reportDir)})", units, suffix));

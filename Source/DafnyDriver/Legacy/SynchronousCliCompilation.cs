@@ -145,10 +145,10 @@ namespace Microsoft.Dafny {
             isDafnyFile = true;
           }
         } catch (ArgumentException e) {
-          options.ErrorWriter.WriteLine("*** Error: {0}: ", nameToShow, e.Message);
+          await options.ErrorWriter.WriteLineAsync($"*** Error: {nameToShow}: ");
           return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
         } catch (Exception e) {
-          options.ErrorWriter.WriteLine("*** Error: {0}: {1}", nameToShow, e.Message);
+          await options.ErrorWriter.WriteLineAsync($"*** Error: {nameToShow}: {e.Message}");
           return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
         }
 
@@ -342,7 +342,7 @@ namespace Microsoft.Dafny {
     /// assertion and print it to the console
     /// </summary>
     private static void PrintCounterexample(DafnyOptions options) {
-      var firstCounterexample = (options.Printer as DafnyConsolePrinter).VerificationResults
+      var firstCounterexample = ((DafnyConsolePrinter)options.Printer).VerificationResults
         .Select(result => result.Result)
         .Where(result => result.Outcome == VcOutcome.Errors)
         .Select(result => result.Counterexamples)
