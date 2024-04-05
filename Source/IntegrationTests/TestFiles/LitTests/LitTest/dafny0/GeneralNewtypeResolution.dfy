@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:datatype /generalNewtypes:0 "%s" > "%t"
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:datatype /generalNewtypes:1 "%s" >> "%t"
+// RUN: %exits-with 2 %build --type-system-refresh --general-traits datatype --general-newtypes false "%s" > "%t"
+// RUN: %exits-with 2 %build --type-system-refresh --general-traits datatype --general-newtypes true "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module VariousBaseTypes {

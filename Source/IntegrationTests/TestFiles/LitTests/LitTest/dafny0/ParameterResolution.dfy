@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny "%s" /dprint:"%t.dprint" > "%t"
+// RUN: %exits-with 2 %build "%s" --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Actuals {

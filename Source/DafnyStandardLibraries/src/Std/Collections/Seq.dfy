@@ -530,7 +530,7 @@ module Std.Collections.Seq {
   /* Flattening sequences of sequences is distributive over concatenation. That is, concatenating
      the flattening of two sequences of sequences is the same as flattening the
      concatenation of two sequences of sequences. */
-  lemma {:vcs_split_on_every_assert} LemmaFlattenConcat<T>(xs: seq<seq<T>>, ys: seq<seq<T>>)
+  lemma {:isolate_assertions} LemmaFlattenConcat<T>(xs: seq<seq<T>>, ys: seq<seq<T>>)
     ensures Flatten(xs + ys) == Flatten(xs) + Flatten(ys)
   {
     if |xs| == 0 {
@@ -666,7 +666,7 @@ module Std.Collections.Seq {
     Some((s[..i], s[(i + 1)..]))
   }
 
-  lemma WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
+  lemma {:rlimit 1000} {:vcs_split_on_every_assert} WillSplitOnDelim<T>(s: seq<T>, delim: T, prefix: seq<T>)
     requires |prefix| < |s|
     requires forall i :: 0 <= i < |prefix| ==> prefix[i] == s[i]
     requires delim !in prefix && s[|prefix|] == delim
@@ -781,7 +781,7 @@ module Std.Collections.Seq {
   /* Filtering a sequence is distributive over concatenation. That is, concatenating two sequences
      and then using "Filter" is the same as using "Filter" on each sequence separately, and then
      concatenating the two resulting sequences. */
-  lemma {:vcs_split_on_every_assert}
+  lemma {:isolate_assertions}
   LemmaFilterDistributesOverConcat<T(!new)>(f: (T ~> bool), xs: seq<T>, ys: seq<T>)
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
