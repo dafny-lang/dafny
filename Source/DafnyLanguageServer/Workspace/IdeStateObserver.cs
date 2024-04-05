@@ -35,7 +35,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
 
   public void ClearState() {
     var ideState = initialState with {
-      Version = LastPublishedState.Version + 1
+      Input = initialState.Input with { Version = initialState.Version + 1 }
     };
     logger.LogInformation($"IdeStateObserver ClearState called, publishing version ${ideState.Version} for uri {ideState.Uri}");
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);
@@ -44,7 +44,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
 
   public void OnCompleted() {
     var ideState = initialState with {
-      Version = LastPublishedState.Version + 1
+      Input = initialState.Input with { Version = initialState.Version + 1 }
     };
     logger.LogInformation($"IdeStateObserver OnCompleted called, publishing version ${ideState.Version} for uri {ideState.Uri}");
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);

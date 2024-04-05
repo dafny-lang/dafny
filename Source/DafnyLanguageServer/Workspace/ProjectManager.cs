@@ -117,55 +117,24 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private const int MaxRememberedChanges = 100;
 
-  public void HandleChange(DidChangeTextDocumentParams documentChange) {
-
-    observerSubscription.Dispose();
-
-    var migrator = createMigrator(documentChange, CancellationToken.None);
-
-    var upcomingVersion = version + 1;
-    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-    observer.Migrate(options, migrator, upcomingVersion);
-    latestIdeState = latestIdeState.Migrate(options, migrator, upcomingVersion, false);
-    StartNewCompilation();
-
-    lock (RecentChanges) {
-      var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
-        Select(contentChange => new Location {
-          Range = contentChange.Range!,
-          Uri = documentChange.TextDocument.Uri
-        });
-      var migratedChanges = RecentChanges.Select(location => {
-        if (location.Uri != documentChange.TextDocument.Uri) {
-          return location;
-        }
-
-        var newRange = migrator.MigrateRange(location.Range);
-        if (newRange == null) {
-          return null;
-        }
-        return new Location {
-          Range = newRange,
-          Uri = location.Uri
-        };
-      }).Where(r => r != null);
-      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
-    }
-    TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
+  public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
+    StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), documentChange);
   }
 
-  private void StartNewCompilation() {
-    ++version;
-
+  private void StartNewCompilation(Uri triggeringFile, DidChangeTextDocumentParams? changes) {
     observerSubscription.Dispose();
-    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
+    version += 1;
+
+    Migrator? migrator = null;
+    if (changes != null) {
+      migrator = createMigrator(changes, CancellationToken.None);
+      // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+      observer.Migrate(options, migrator, version);
+      latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
+    }
 
     Compilation.Dispose();
     var input = new CompilationInput(options, version, Project);
-    latestIdeState = latestIdeState with {
-      Version = version,
-      Input = input
-    };
     Compilation = createCompilation(boogieEngine, input);
     var migratedUpdates = GetStates(Compilation, latestIdeState);
     states = new ReplaySubject<IdeState>(1);
@@ -179,6 +148,36 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
     Compilation.Start();
+
+    if (changes != null) {
+      UpdateRecentChanges(changes, migrator);
+    }
+    TriggerVerificationForFile(triggeringFile);
+  }
+
+  private void UpdateRecentChanges(DidChangeTextDocumentParams changes, Migrator? migrator) {
+    lock (RecentChanges) {
+      var newChanges = changes.ContentChanges.Where(c => c.Range != null).
+        Select(contentChange => new Location {
+          Range = contentChange.Range!,
+          Uri = changes.TextDocument.Uri
+        });
+      var migratedChanges = RecentChanges.Select(location => {
+        if (location.Uri != changes.TextDocument.Uri) {
+          return location;
+        }
+
+        var newRange = migrator!.MigrateRange(location.Range);
+        if (newRange == null) {
+          return null;
+        }
+        return new Location {
+          Range = newRange,
+          Uri = location.Uri
+        };
+      }).Where(r => r != null);
+      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
+    }
   }
 
   private IObservable<IdeState> GetStates(Compilation compilation, IdeState previousState) {
@@ -347,8 +346,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
-      StartNewCompilation();
-      TriggerVerificationForFile(uri);
+      StartNewCompilation(uri, null);
     }
   }
 

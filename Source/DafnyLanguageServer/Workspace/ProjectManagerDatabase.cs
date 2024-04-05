@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         throw new ArgumentException($"the document {documentUri} was not loaded before");
       }
 
-      manager.HandleChange(documentChange);
+      manager.UpdateDocument(documentChange);
     }
 
     public async Task SaveDocument(TextDocumentIdentifier documentId) {
@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               // TODO shouldn't this compute DidChangeTextDocumentParams based on the diff between disk and what got loaded?
               // Otherwise, migration might be incorrect.
               // Or otherwise, maybe it should restart the project?
-              projectManagerForFile.HandleChange(new DidChangeTextDocumentParams {
+              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams {
                 ContentChanges = Array.Empty<TextDocumentContentChangeEvent>(),
                 TextDocument = new OptionalVersionedTextDocumentIdentifier {
                   Uri = documentId.Uri
