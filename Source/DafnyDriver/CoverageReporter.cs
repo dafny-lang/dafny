@@ -389,7 +389,7 @@ public class CoverageReporter {
         "Embedded HTML template for coverage report not found. Returning raw HTML.");
       return labeledCode;
     }
-    var templateText = new StreamReader(templateStream).ReadToEnd();
+    var templateText = await new StreamReader(templateStream).ReadToEndAsync();
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
     templateText = IndexLinkRegex.Replace(templateText, Path.GetFileName(GetPath(report, Path.Combine(baseDirectory, $"index{report.Suffix}.html"))));

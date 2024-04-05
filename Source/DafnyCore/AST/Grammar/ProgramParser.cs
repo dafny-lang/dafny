@@ -54,7 +54,7 @@ public class ProgramParser {
     foreach (var dafnyFile in files) {
       cancellationToken.ThrowIfCancellationRequested();
       if (options.Trace) {
-        options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
+        await options.OutputWriter.WriteLineAsync("Parsing " + dafnyFile.FilePath);
       }
 
       if (options.XmlSink is { IsOpen: true } && dafnyFile.Uri.IsFile) {
