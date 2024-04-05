@@ -15,8 +15,8 @@ namespace Microsoft.Dafny {
     private readonly TextReader input;
     private readonly TextWriter outputWriter;
 
-    public static void Main(string[] args) {
-      _ = MainWithWriters(Console.Out, Console.Error, Console.In, args);
+    public static Task<int> Main(string[] args) {
+      return MainWithWriters(Console.Out, Console.Error, Console.In, args);
     }
 
     public static async Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
