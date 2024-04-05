@@ -1,1 +1,1 @@
-// CHECK-L: (0,-1): Error: Feature not supported for this compilation target: Traits
+// CHECK-L: Unhandled exception: System.InvalidOperationException: Expected a buffered value to have been populated because rhs != null

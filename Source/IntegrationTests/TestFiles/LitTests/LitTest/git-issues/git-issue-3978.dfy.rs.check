@@ -1,1 +1,1 @@
-// CHECK-L: git-issue-3978.dfy(5,2): Error: Feature not supported for this compilation target: `for` loops
+// CHECK: .*<i>ForLoops</i>.*

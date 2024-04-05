@@ -1,1 +1,1 @@
-// CHECK-L: (0,-1): Error: Feature not supported for this compilation target: Traits
+// CHECK-L: Unhandled exception: System.NullReferenceException: Object reference not set to an instance of an object.

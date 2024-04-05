@@ -978,8 +978,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AdUnsupported("<i>MultiSelectLValue</i>");
-      throw new InvalidOperationException();
+      throw new InvalidOperationException("<u>Unsupported <i>MultiSelectLValue</i></u>");
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {

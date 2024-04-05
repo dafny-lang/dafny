@@ -351,6 +351,7 @@ public class MultiBackendTest {
     IEnumerable<string> dafnyArgs = new List<string> {
       "run",
       "--no-verify",
+      "--emit-uncompilable-code",
       $"--target:{backend.TargetId}",
       $"--build:{tempOutputDirectory}",
       options.TestFile!,
@@ -389,30 +390,7 @@ public class MultiBackendTest {
           await output.WriteLineAsync(
             "DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");
         } else {
-          var sourcePath = Path.Join(IntegrationTestsRootDir,
-            CheckFileForBackend(options, backend));
-          var contentCheck = (outputString + "\n" + error).Trim();
-          var checkOutput = "";
-          if (contentCheck == "") {
-            checkOutput = string.Join("\n", expectedOutput.Split("\n").Select(line => "// CHECK-NOT: " + line));
-          } else {
-            checkOutput = string.Join("\n",
-              contentCheck.Split("\n").Select(line => "// CHECK-L: " + line));
-          }
-
-          if (!File.Exists(sourcePath)) {
-            await File.WriteAllTextAsync(sourcePath, checkOutput);
-            await output.WriteLineAsync($"Please modify the new check file {sourcePath} so that it's valid no matter what.");
-          } else {
-            await output.WriteLineAsync($"Apparently, the file {sourcePath} already exists so the process isn't going to create one "+
-                                        $" despite DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE set to true and the file {CheckFileForBackend(options, backend)} not existing.\n"+
-                                        " To avoid this message, please rebuild the solution (modifying a .cs file or a .dfy can help).");
-          }
-          await output.WriteLineAsync(outputString);
-          await output.WriteLineAsync("Error:");
-          await output.WriteLineAsync(error);
-
-          return exitCode;
+          return await UpdateBackendCheckFile(options, backend, expectedOutput, outputString, error, exitCode, false);
         }
       }
     }
@@ -456,6 +434,15 @@ public class MultiBackendTest {
         await output.WriteLineAsync($"OutputCheck on {checkFile} failed. Output was:");
         await output.WriteLineAsync(string.Join("\n", outputLines));
         await output.WriteLineAsync("Error:");
+        
+        if (UpdateTargetExpectFile) {
+          if (string.IsNullOrEmpty(IntegrationTestsRootDir)) {
+            await output.WriteLineAsync(
+              "DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");
+          } else {
+            return await UpdateBackendCheckFile(options, backend, expectedOutput, outputString, error, exitCode, true);
+          }
+        }
       }
 
       return checkResult;
@@ -465,6 +452,39 @@ public class MultiBackendTest {
     await output.WriteLineAsync(outputString);
     await output.WriteLineAsync("Error:");
     await output.WriteLineAsync(error);
+    return exitCode;
+  }
+
+  private async Task<int> UpdateBackendCheckFile(ForEachCompilerOptions options, IExecutableBackend backend,
+    string expectedOutput, string outputString, string error, int exitCode, bool expectedCheckFile)
+  {
+    var sourcePath = Path.Join(IntegrationTestsRootDir,
+      CheckFileForBackend(options, backend));
+    // outputString == error iff something crashed
+    var contentCheck = outputString == error ? outputString.Trim() : (outputString + "\n" + error).Trim();
+    var checkOutput = "";
+    if (contentCheck == "") {
+      checkOutput = string.Join("\n", expectedOutput.Split("\n").Select(line => "// CHECK-NOT: " + line));
+    } else {
+      checkOutput = string.Join("\n",
+        contentCheck.Split("\n").Select(line => "// CHECK-L: " + line));
+    }
+
+    if (!File.Exists(sourcePath) || expectedCheckFile) {
+      await File.WriteAllTextAsync(sourcePath, checkOutput);
+      await output.WriteLineAsync(
+        $"Please modify the new check file {sourcePath} so that it's valid no matter what.");
+    } else {
+      await output.WriteLineAsync(
+        $"Apparently, the file {sourcePath} already exists so the process isn't going to create one " +
+        $" despite DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE set to true and the file {CheckFileForBackend(options, backend)} not existing.\n" +
+        " To avoid this message, please rebuild the solution (modifying a .cs file or a .dfy can help).");
+    }
+
+    await output.WriteLineAsync(outputString);
+    await output.WriteLineAsync("Error:");
+    await output.WriteLineAsync(error);
+
     return exitCode;
   }
 

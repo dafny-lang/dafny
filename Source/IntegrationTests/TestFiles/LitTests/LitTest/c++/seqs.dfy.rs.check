@@ -1,1 +1,1 @@
-// CHECK: .*<i>topLevel is SubsetTypeDecl, rhs is UserDefinedType but topLevelType is null</i>.*
+// CHECK: .*use of undeclared crate or module `num`.*

@@ -1,1 +1,1 @@
-// CHECK-L: (0,-1): Error: Feature not supported for this compilation target: `for` loops
+// CHECK: .*<i>Builder not StatementContainer</i>.*
