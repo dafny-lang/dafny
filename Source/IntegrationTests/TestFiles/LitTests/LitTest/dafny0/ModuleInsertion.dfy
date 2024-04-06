@@ -1,6 +1,6 @@
 // NONUNIFORM: Tests printing much more than compilation
-// RUN: %dafny /env:0 /dprint:- /dafnyVerify:0 "%s" > "%t"
-// RUN: %dafny /env:0 /rprint:- /compile:3 "%s" >> "%t"
+// RUN: %build --print:- --no-verify "%s" > "%t"
+// RUN: %run --rprint:- "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

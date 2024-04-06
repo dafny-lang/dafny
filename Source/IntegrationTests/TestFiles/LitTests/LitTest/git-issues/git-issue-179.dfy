@@ -1,9 +1,9 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
 // RUN: %verify --relax-definite-assignment "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %run --no-verify --target cs "%s" >> "%t"
+// RUN: %run --no-verify --target js "%s" >> "%t"
+// RUN: %run --no-verify --target go "%s" >> "%t"
+// RUN: %run --no-verify --target java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
