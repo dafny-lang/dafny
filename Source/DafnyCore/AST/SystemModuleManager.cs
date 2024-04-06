@@ -126,8 +126,8 @@ public class SystemModuleManager {
       new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
       new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
       new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-      new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType,
-        null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
+      new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
+        null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
       new ValuetypeDecl("set", SystemModule,
         new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
         t => t.AsSetType is { Finite: true }, typeArgs => new SetType(true, typeArgs[0])),
