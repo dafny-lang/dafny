@@ -297,9 +297,14 @@ TopDecl<. ModuleDefinition module, bool isTopLevel .>
 /*------------------------------------------------------------------------*/
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule, bool isTopLevel>
 =
-  (. submodule = null; .)
+  (. submodule = null;
+     OrderedModuleDecl oSubmodule = null;  
+  .)
   ( ModuleDefinition<dmod, parent, out submodule>
-  | ModuleImport<parent, out submodule>
+  | ModuleImport<parent, out oSubmodule>
+    (.
+      submodule = oSubmodule;
+    .)
   | ModuleExport<parent, out submodule>
     (. if (isTopLevel) SemErr(ErrorId.p_superfluous_export, submodule.RangeToken,
           "There is no point to an export declaration at the top level");
@@ -349,11 +354,12 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
   .
 
 /*------------------------------------------------------------------------*/
-ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
+ModuleImport<ModuleDefinition parent, out OrderedModuleDecl submodule>
 =  "import"                          (.bool opened = false;
                                       List<IToken> idExports = new List<IToken>();
                                       var startToken = t;
                                       submodule = null;
+                                      List<ModuleQualifiedId> ids;
                                      .)
     ["opened"                        (. opened = true; .) ]
     (. int lookAhead = scanner.Peek().kind; .)
@@ -375,7 +381,27 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
                                          new Name(new RangeToken(startToken,startToken), namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
           .)
     )
+    { 
+      "above" RelationIds<out ids> (. submodule.Add(ids); .)
+    | "below" RelationIds<out ids> (. submodule.Add(ids, false); .)
+    }
     .
+    
+RelationId<out ModuleQualifiedId id> = 
+  (. List<Name> namePath; .)
+  ModuleQualifiedName<out namePath>
+  (. id = new ModuleQualifiedId(namePath); .)
+  .
+
+RelationIds<.out List<ModuleQualifiedId> ids.> =
+    (.
+      ids = new List<ModuleQualifiedId>();
+      ModuleQualifiedId id;
+    .)
+    ( RelationId<out id>       (. ids.Add(id); .)
+      { "," RelationId<out id> (. ids.Add(id); .) }
+    )
+  .
 
 /*------------------------------------------------------------------------*/
 ExportId<out IToken id> = NoUSIdentOrDigits<out id> .

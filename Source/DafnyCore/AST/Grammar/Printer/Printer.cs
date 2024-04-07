@@ -425,6 +425,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (d is ModuleDecl md) {
           wr.WriteLine();
           Indent(indent);
+          void PrintModuleRelations(OrderedModuleDecl decl) {
+            if (decl.Above.Count > 0) {
+              wr.Write($" above {decl.Above.Comma()}");
+            }
+            if (decl.Below.Count > 0) {
+              wr.Write($" below {decl.Below.Comma()}");
+            }
+          }
           if (d is LiteralModuleDecl modDecl) {
             if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(compilation)) {
               // This mode is used to losslessly serialize the source program by the C# and Library backends.
@@ -455,6 +463,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Exports.Count > 1) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
+            PrintModuleRelations(dd);
             wr.WriteLine();
           } else if (d is AbstractModuleDecl) {
             var dd = (AbstractModuleDecl)d;
@@ -468,6 +477,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
+            PrintModuleRelations(dd);
             wr.WriteLine();
 
           } else if (d is ModuleExportDecl) {
