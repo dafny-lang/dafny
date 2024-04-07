@@ -59,8 +59,9 @@ GeneralNewtypeResolution.dfy(277,6): Error: RHS (of type Big) not assignable to 
 GeneralNewtypeResolution.dfy(282,16): Error: type of left argument to << (bv32) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(283,16): Error: type of left argument to >> (bv32) must agree with the result type (BV)
 GeneralNewtypeResolution.dfy(267,11): Error: type of right argument to - (BV) must agree with the result type (Big)
-GeneralNewtypeResolution.dfy(286,36): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
-GeneralNewtypeResolution.dfy(287,22): Error: incorrect argument type for function parameter 'w' (expected nat, found int32)
+GeneralNewtypeResolution.dfy(286,11): Error: member 'RotateLeft' does not exist in newtype 'BV'
+GeneralNewtypeResolution.dfy(287,11): Error: member 'RotateRight' does not exist in newtype 'BV'
+GeneralNewtypeResolution.dfy(288,11): Error: member 'RotateLeft' does not exist in newtype 'BV'
 GeneralNewtypeResolution.dfy(289,6): Error: RHS (of type bv32) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(294,11): Error: arguments to <= must have a common supertype (got BV and bv32)
 GeneralNewtypeResolution.dfy(295,11): Error: arguments to >= must have a common supertype (got BV and bv1024)
@@ -78,12 +79,16 @@ GeneralNewtypeResolution.dfy(305,6): Error: RHS (of type bv32) not assignable to
 GeneralNewtypeResolution.dfy(306,6): Error: RHS (of type bv1024) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(307,6): Error: RHS (of type int) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(308,6): Error: RHS (of type int32) not assignable to LHS (of type BV)
-GeneralNewtypeResolution.dfy(399,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
-GeneralNewtypeResolution.dfy(403,6): Error: RHS (of type bv17) not assignable to LHS (of type BV)
 GeneralNewtypeResolution.dfy(343,10): Error: a newtype ('BV') must be based on some numeric type (got bv17)
 GeneralNewtypeResolution.dfy(344,10): Error: a newtype ('Word') must be based on some numeric type (got bv32)
 GeneralNewtypeResolution.dfy(345,10): Error: a newtype ('Big') must be based on some numeric type (got bv1024)
+GeneralNewtypeResolution.dfy(369,11): Error: member 'RotateLeft' does not exist in newtype 'BV'
+GeneralNewtypeResolution.dfy(370,11): Error: member 'RotateRight' does not exist in newtype 'BV'
+GeneralNewtypeResolution.dfy(369,25): Error: type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got ?65)
+GeneralNewtypeResolution.dfy(370,33): Error: type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got ?67)
 GeneralNewtypeResolution.dfy(395,10): Error: a newtype ('BV') must be based on some numeric type (got bv17)
+GeneralNewtypeResolution.dfy(399,11): Error: member 'RotateLeft' does not exist in newtype 'BV'
+GeneralNewtypeResolution.dfy(403,11): Error: member 'RotateRight' does not exist in newtype 'BV'
 GeneralNewtypeResolution.dfy(408,10): Error: a newtype ('BV') must be based on some numeric type (got bv17)
 GeneralNewtypeResolution.dfy(409,10): Error: a newtype ('Word') must be based on some numeric type (got bv32)
 GeneralNewtypeResolution.dfy(411,10): Error: a newtype ('GhostBits') must be based on some numeric type (got bv109)
@@ -129,7 +134,7 @@ GeneralNewtypeResolution.dfy(621,10): Error: resulting sequence (seq<?94>) type 
 GeneralNewtypeResolution.dfy(622,10): Error: resulting sequence (seq<?95>) type does not agree with source sequence type (MySequence)
 GeneralNewtypeResolution.dfy(623,10): Error: resulting sequence (seq<?96>) type does not agree with source sequence type (MySequence)
 GeneralNewtypeResolution.dfy(624,10): Error: resulting sequence (seq<?97>) type does not agree with source sequence type (MySequence)
-131 resolution/type errors detected in GeneralNewtypeResolution.dfy
+136 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype ('MyOrdinal') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype ('MyObject') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype ('MyTrait') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got Trait)
