@@ -91,6 +91,8 @@ module _System {
 
   type bool { }
 
+  type char { }
+
   type int { }
 
   type real {

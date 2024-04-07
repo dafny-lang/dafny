@@ -123,6 +123,7 @@ public class SystemModuleManager {
 
     valuetypeDecls = new[] {
       new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
+      new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
       new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
       new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
       new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
@@ -546,6 +547,7 @@ declared: {allDeclaredArities.Comma()}");
 
 enum ValuetypeVariety {
   Bool = 0,
+  Char,
   Int,
   Real,
   BigOrdinal,
