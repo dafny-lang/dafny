@@ -831,7 +831,7 @@ namespace Microsoft.Dafny {
         }
         var onProxyAction = () => {
           resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, nd.tok,
-            $"{nd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{nd.Var.Name}'");
+            $"base type of {nd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{nd.Var.Name}'");
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
