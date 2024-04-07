@@ -835,11 +835,11 @@ namespace Microsoft.Dafny {
         };
         if (resolver.Options.Get(CommonOptionBag.GeneralNewtypes)) {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeGeneral, nd.BasePreType, nd.tok,
-            "a newtype must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got {0})",
+            $"a newtype ('{nd.Name}') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got {{0}})",
             onProxyAction);
         } else {
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNewtypeBaseTypeLegacy, nd.BasePreType, nd.tok,
-            "a newtype must be based on some numeric type (got {0})", onProxyAction);
+            $"a newtype ('{nd.Name}') must be based on some numeric type (got {{0}})", onProxyAction);
         }
         ResolveConstraintAndWitness(nd, true);
 

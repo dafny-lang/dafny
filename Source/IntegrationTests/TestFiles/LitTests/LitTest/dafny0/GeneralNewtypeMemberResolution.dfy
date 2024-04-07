@@ -103,7 +103,7 @@ module Members {
     predicate Items(r: real) // error: not allowed to redeclare a member named Items
   }
   
-  newtype IMap = m: imap<int, real> | 10 !in m.Values {
+  newtype IMap = m: imap<int, real> | 10.0 !in m.Values {
     predicate Keys(r: real) // error: not allowed to redeclare a member named Keys
     predicate Values(r: real) // error: not allowed to redeclare a member named Values
 
