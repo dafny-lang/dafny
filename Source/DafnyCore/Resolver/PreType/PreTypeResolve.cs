@@ -747,7 +747,6 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes that the type parameters in scope for "d" have been pushed.
     /// </summary>
-    /// <param name="d"></param>
     public void ResolveDeclarationSignature(Declaration d) {
       Contract.Requires(d is TopLevelDecl or MemberDecl);
 
