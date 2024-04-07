@@ -88,14 +88,15 @@ namespace Microsoft.Dafny {
           new List<Type> { new InferredTypeProxy() }, true).ModifyBuiltins(resolver.SystemModuleManager);
         decl = resolver.SystemModuleManager.arrayTypeDecls[dims];
       } else if (IsBitvectorName(name, out var width)) {
-        var bvDecl = new ValuetypeDecl(name, resolver.SystemModuleManager.SystemModule, t => t.IsBitVectorType,
-          typeArgs => new BitvectorType(resolver.Options, width));
+        var bvDecl = (ValuetypeDecl)resolver.SystemModuleManager.SystemModule.SourceDecls.Find(topLevelDecl => topLevelDecl.Name == name);
+        if (bvDecl == null) {
+          bvDecl = resolver.AddBitvectorTypeDecl(name, width);
+        }
         preTypeInferenceModuleState.PreTypeBuiltins.Add(name, bvDecl);
-        AddRotateMember(bvDecl, "RotateLeft", width);
-        AddRotateMember(bvDecl, "RotateRight", width);
-        resolver.SystemModuleManager.SystemModule.SourceDecls.Add(bvDecl);
-        var memberDictionary = bvDecl.Members.ToDictionary(member => member.Name, member => member);
-        resolver.ProgramResolver.AddSystemClass(bvDecl, memberDictionary);
+        FillInPreTypesInSignature(bvDecl);
+        foreach (var bitvectorMember in bvDecl.Members) {
+          FillInPreTypesInSignature(bitvectorMember);
+        }
         return bvDecl;
       } else {
         decl = null;
@@ -122,25 +123,6 @@ namespace Microsoft.Dafny {
       }
       preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
       return decl;
-    }
-
-    public void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
-      var argumentType = resolver.SystemModuleManager.Nat();
-      var formals = new List<Formal> {
-        new Formal(Token.NoToken, "w", argumentType, true, false, null) {
-          PreType = Type2PreType(argumentType)
-        }
-      };
-      var resultType = new BitvectorType(resolver.Options, width);
-      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.SystemModuleManager.SystemModule, false, false,
-        new List<TypeParameter>(), formals, resultType,
-        new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null), null, null, null) {
-        EnclosingClass = bitvectorTypeDecl,
-        ResultPreType = Type2PreType(resultType)
-      };
-      rotateMember.AddVisibilityScope(resolver.SystemModuleManager.SystemModule.VisibilityScope, false);
-      bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
     TopLevelDecl BuiltInArrowTypeDecl(int arity) {
@@ -661,7 +643,8 @@ namespace Microsoft.Dafny {
     public static void ResolveDeclarations(List<TopLevelDecl> declarations, ModuleResolver resolver, bool firstPhaseOnly = false) {
       // Each (top-level or member) declaration is done in two phases.
       //
-      // The goal of the first phase is to fill in the pre-types in the declaration's signature. For many declarations,
+      // The goal of the first phase is to fill in the pre-types in the declaration's signature (and, if the declaration is a
+      // type with a base type or with parent traits, inherit the members from the base and parent types). For many declarations,
       // this is as easy as calling PreType2Type on each type that appears in the declaration's signature.
       // Since the base type of a newtype or subset type and the type of a const may be omitted in the program text,
       // obtaining the pre-type for these 3 declarations requires doing resolution. It is not clear a-priori which
@@ -698,8 +681,14 @@ namespace Microsoft.Dafny {
       ResolvePreTypeSignature(d, preTypeInferenceModuleState, resolver);
     }
 
+    /// <summary>
+    /// This method resolves the pre-types the signature of declaration "d".
+    /// If the declaration is a newtype (and thus has a base type) or extends some traits, then the members from the base type
+    /// and parent types are inherited.
+    /// </summary>
     private static void ResolvePreTypeSignature(Declaration d, PreTypeInferenceModuleState preTypeInferenceModuleState, ModuleResolver resolver) {
       var preTypeResolver = new PreTypeResolver(resolver, preTypeInferenceModuleState);
+      var previousErrorCount = preTypeResolver.ErrorCount;
 
       // The "allTypeParameters" scope is stored in "resolver", and there's only one such "resolver". Since
       // "ResolvePreTypeSignature" is recursive, a simple "PushMarker()" would still leave previous type parameters
@@ -726,6 +715,14 @@ namespace Microsoft.Dafny {
 
       resolver.allTypeParameters.PopMarker();
       resolver.allTypeParameters = oldAllTypeParameters;
+
+      if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+        DPreType basePreType = null;
+        if (preTypeResolver.ErrorCount == previousErrorCount && topLevelDeclWithMembers is NewtypeDecl newtypeDecl) {
+          basePreType = newtypeDecl.BasePreType.Normalize() as DPreType;
+        }
+        resolver.RegisterInheritedMembers(topLevelDeclWithMembers, basePreType);
+      }
     }
 
     static IEnumerable<Declaration> AllTopLevelOrMemberDeclarations(List<TopLevelDecl> declarations) {
@@ -842,34 +839,6 @@ namespace Microsoft.Dafny {
             $"a newtype ('{nd.Name}') must be based on some numeric type (got {{0}})", onProxyAction);
         }
         ResolveConstraintAndWitness(nd, true);
-
-        // fill in the members inherited from the ancestor built-in type (but be careful, since there may still be cycles among these declarations)
-        if (nd.BasePreType.Normalize() is DPreType basePreType && NewTypeAncestor(basePreType).Decl is ValuetypeDecl valuetypeAncestorDecl) {
-          var memberDictionary = resolver.GetClassMembers(nd);
-          foreach (var member in valuetypeAncestorDecl.Members) {
-            if (memberDictionary.TryGetValue(member.Name, out var previousMember)) {
-              Contract.Assert(previousMember is SpecialField or SpecialFunction);
-              // We get here because "member" has the same name as "previousMember". The typical case is that "member" is user defined and that
-              // this situation constitutes an error. But it may also be that the member is a built-in member of a built-in type.
-              // For a built-in member, one could imagine just ignoring this member and moving on to the next. However, there is a special case
-              // that requires attention:
-              // At this stage of the resolver, all bitvector types are represented by a single, artificial type name "_bv". One may think of "_bv"
-              // as representing a family of types, and its members "RotateLeft" and "RotateRight" in that way represent two families of members.
-              // To assign some type to these and for this purpose uses a special "SelfType" (which was used by the legacy resolver). The pre-type
-              // resolver creates a ValuetypeDecl for each bitvector type (e.g., for "bv7" and "bv12"), and gives each of these its own
-              // "RotateLeft" and "RotateRight" members with the complete signature (that is, without any "SelfType"). In this situation,
-              // "previouMember" will be the member of "_bv" and "member" will be the member for the specific bitvector type. So, rather than
-              // giving an error in this case, we simply replace the "_bv" member with the actual member.
-              if (member is SpecialField or SpecialFunction) {
-                memberDictionary[member.Name] = member;
-              } else {
-                ReportError(previousMember, $"type '{nd.Name}' already inherits a member '{member.Name}' from the built-in ancestor type '{valuetypeAncestorDecl.Name}'");
-              }
-            } else {
-              memberDictionary.Add(member.Name, member);
-            }
-          }
-        }
 
       } else if (declaration is IteratorDecl iter) {
         // Note, iter.Ins are reused with the parameters of the iterator's automatically generated _ctor, and
