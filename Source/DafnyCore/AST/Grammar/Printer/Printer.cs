@@ -1039,6 +1039,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (method.IsGhost && !method.IsLemmaLike) {
         k = "ghost " + k;
       }
+      if (method.IsAlien) { k = "alien " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {

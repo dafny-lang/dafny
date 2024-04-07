@@ -35,6 +35,7 @@ public class Constructor : Method {
     }
   }
   public Constructor(RangeToken rangeToken, Name name,
+    bool isAlien,
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
@@ -45,7 +46,7 @@ public class Constructor : Method {
     Specification<Expression> decreases,
     DividedBlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, false, isAlien, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

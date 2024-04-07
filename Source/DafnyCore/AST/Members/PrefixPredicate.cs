@@ -15,7 +15,7 @@ public class PrefixPredicate : Function {
     List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, ExtremePredicate extremePred)
-    : base(rangeToken, name, hasStaticKeyword, true, false, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
+    : base(rangeToken, name, hasStaticKeyword, false, true, false, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, null, null, attributes, null) {
     Contract.Requires(k != null);
     Contract.Requires(extremePred != null);
     Contract.Requires(formals != null && 1 <= formals.Count && formals[0] == k);

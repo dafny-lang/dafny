@@ -240,6 +240,7 @@ Dafny
 /*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
 = ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "alien"                                (. dmod.IsAlien = true;  CheckAndSetToken(ref dmod.AlienToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "replaceable"                          (. dmod.IsReplaceable = true;  CheckAndSetToken(ref dmod.ReplaceableToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
@@ -1183,7 +1184,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
                                        CheckAndSetTokenOnce(ref dmod.FirstToken);
-                                       allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
+                                       allowed = AllowedDeclModifiers.Alien | AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "lemma";
                                        CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
@@ -1256,23 +1257,23 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   ]
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
-       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
+       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsAlien, dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
-       m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
+       m = new LeastLemma(range, name, dmod.IsStatic, dmod.IsAlien, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isGreatestLemma) {
-       m = new GreatestLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
+       m = new GreatestLemma(range, name, dmod.IsStatic, dmod.IsAlien, kType, typeArgs, ins, outs,
                              req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isLemma) {
-       m = new Lemma(range, name, dmod.IsStatic, typeArgs, ins, outs,
+       m = new Lemma(range, name, dmod.IsStatic, dmod.IsAlien, typeArgs, ins, outs,
                      req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoStateLemma) {
-       m = new TwoStateLemma(range, name, dmod.IsStatic, typeArgs, ins, outs,
+       m = new TwoStateLemma(range, name, dmod.IsStatic, dmod.IsAlien, typeArgs, ins, outs,
                              req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs),
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
-       m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
+       m = new Method(range, name, dmod.IsStatic, dmod.IsAlien, dmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
@@ -1852,7 +1853,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            $"to use a 'by method' implementation with a {what}, declare '{name.Value}' using '{what}', not '{what} method'");
          functionMethodToken = null;
        }
-       AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
+       AllowedDeclModifiers allowed = AllowedDeclModifiers.Alien | AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
        CheckDeclModifiers(ref dmod, what + "-by-method", allowed);
 
      } else {
@@ -1866,7 +1867,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            SemErr(ErrorId.p_twostate_and_extreme_are_always_ghost, functionMethodToken, $"a {adjective} {what} is supported only as ghost, not as a compiled {what}");
            functionMethodToken = null;
          }
-         AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.Alien | AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          CheckDeclModifiers(ref dmod, $"{adjective} {what}", allowed);
 
        } else {
@@ -1898,7 +1899,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          } else if (!dmod.IsGhost && theOptions.FunctionSyntax == FunctionSyntaxOptions.Migration3To4) {
            SemErr(ErrorId.p_migration_syntax, headToken, $"a {what} must be declared as either 'ghost {what}' or '{what} method' when using --function-syntax:migration3to4");
          }
-         AllowedDeclModifiers allowed = AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
+         AllowedDeclModifiers allowed = AllowedDeclModifiers.Alien | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque;
          if (isPredicate && theOptions.FunctionSyntax == FunctionSyntaxOptions.ExperimentalPredicateAlwaysGhost) {
            allowed |= AllowedDeclModifiers.AlreadyGhost;
          } else if (theOptions.FunctionSyntax == FunctionSyntaxOptions.Version3) {
@@ -1979,28 +1980,28 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      var range = new RangeToken(dmod.FirstToken, t);
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
+       f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsAlien, dmod.IsOpaque, typeArgs, formals, result,
                                  reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
+       f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsAlien, dmod.IsOpaque, typeArgs, formals, result, returnType,
                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Predicate(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
+       f = new Predicate(range, name, dmod.IsStatic, dmod.IsAlien, isGhost, dmod.IsOpaque, typeArgs, formals, result,
                          reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new LeastPredicate(range, name, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
+       f = new LeastPredicate(range, name, dmod.IsStatic, dmod.IsAlien, dmod.IsOpaque, kType, typeArgs, formals, result,
                               reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, attrs, signatureEllipsis);
      } else if (isGreatestPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
-       f = new GreatestPredicate(range, name, dmod.IsStatic, dmod.IsOpaque, kType, typeArgs, formals, result,
+       f = new GreatestPredicate(range, name, dmod.IsStatic, dmod.IsAlien, dmod.IsOpaque, kType, typeArgs, formals, result,
                                  reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, body, attrs, signatureEllipsis);
      } else {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
-       f = new Function(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque,
+       f = new Function(range, name, dmod.IsStatic, dmod.IsAlien, isGhost, dmod.IsOpaque,
                         typeArgs, formals, result, returnType,
                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body,
                         byMethodTok, byMethodBody,

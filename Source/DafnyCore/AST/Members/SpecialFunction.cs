@@ -8,7 +8,7 @@ public class SpecialFunction : Function, ICallable {
     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, new Name(name), hasStaticKeyword, isGhost, false, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
+    : base(rangeToken, new Name(name), hasStaticKeyword, false, isGhost, false, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, null, null, attributes, signatureEllipsis) {
     Module = module;
   }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.Module; } }

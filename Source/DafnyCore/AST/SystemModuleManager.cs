@@ -290,7 +290,7 @@ public class SystemModuleManager {
         Type = ObjectSetType(),
       };
       var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
-      var function = new Function(RangeToken.NoToken, new Name(name), false, true, false,
+      var function = new Function(RangeToken.NoToken, new Name(name), false, false, true, false,
         new List<TypeParameter>(), args, null, resultType,
         new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
         new Specification<Expression>(new List<Expression>(), null),

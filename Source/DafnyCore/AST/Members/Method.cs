@@ -122,7 +122,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public Method(RangeToken rangeToken, Name name,
-    bool hasStaticKeyword, bool isGhost,
+    bool hasStaticKeyword, bool isAlien, bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
     [Captured] List<Formal> ins, [Captured] List<Formal> outs,
     [Captured] List<AttributedExpression> req,
@@ -132,7 +132,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+    : base(rangeToken, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null,
       typeArgs, req, ens, decreases) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);

@@ -32,7 +32,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
     // If this function is opaque due to the opaque keyword, include it.
     k = (IsOpaque && !Attributes.Contains(Attributes, "opaque")) ? "opaque " + k : k;
-    return HasStaticKeyword ? "static " + k : k;
+    k = HasStaticKeyword ? "static " + k : k;
+    return IsAlien ? "alien " + k : k;
   }
 
   public override bool IsOpaque { get; }
@@ -217,12 +218,12 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Invariant(Decreases != null);
   }
 
-  public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+  public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases) {
+    : base(range, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);

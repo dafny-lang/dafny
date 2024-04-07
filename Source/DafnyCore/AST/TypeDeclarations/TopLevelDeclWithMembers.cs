@@ -245,7 +245,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               ? new List<AttributedExpression>()
               : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
             extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
-              extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
+              extremeLemma.IsAlien, extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
               req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
               cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
               new Specification<Expression>(decr, null),

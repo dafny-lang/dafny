@@ -8,7 +8,7 @@ public abstract class MethodOrFunction : MemberDecl {
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
 
-  protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
+  protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost,
     Attributes attributes, bool isRefining, List<TypeParameter> typeArgs,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
@@ -18,6 +18,7 @@ public abstract class MethodOrFunction : MemberDecl {
     Req = req;
     Decreases = decreases;
     Ens = ens;
+    this.IsAlien = isAlien;
   }
 
   protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
@@ -25,6 +26,7 @@ public abstract class MethodOrFunction : MemberDecl {
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.IsAlien = original.IsAlien;
   }
 
   protected abstract bool Bodyless { get; }
@@ -32,6 +34,7 @@ public abstract class MethodOrFunction : MemberDecl {
 
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
   public bool IsAbstract => EnclosingClass.EnclosingModuleDefinition.ModuleKind != ModuleKindEnum.Concrete;
+  public bool IsAlien { get; }
 
   public virtual void Resolve(ModuleResolver resolver) {
     ResolveMethodOrFunction(resolver);
