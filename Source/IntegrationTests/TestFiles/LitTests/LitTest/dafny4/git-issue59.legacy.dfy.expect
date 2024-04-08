@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
 
 Verifying foo (correctness) ...
   [1 proof obligation]  error
