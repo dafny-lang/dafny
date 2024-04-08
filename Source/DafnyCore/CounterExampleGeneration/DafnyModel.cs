@@ -186,7 +186,7 @@ namespace Microsoft.Dafny {
     public override string ToString() {
       var result = new StringBuilder();
       AssignConcretePrimitiveValues();
-      result.AppendLine("WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#fn:smt-encoding.");
+      result.AppendLine("WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#sec-counterexamples");
       if (LoopGuards.Count > 0) {
         result.AppendLine("Temporary variables to describe counterexamples: ");
         foreach (var loopGuard in LoopGuards) {

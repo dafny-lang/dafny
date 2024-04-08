@@ -1,6 +1,6 @@
 counterexample_commandline.dfy(31,20): Error: a postcondition could not be proved on this return path
  Related counterexample:
- WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#fn:smt-encoding.
+ WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#sec-counterexamples
  Temporary variables to describe counterexamples: 
  ghost var counterexampleLoopGuard0 : bool := false;
  counterexample_commandline.dfy(21,8): initial state:
