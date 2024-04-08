@@ -339,8 +339,11 @@ public class MultiBackendTest {
 
     var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
+    string unsupportedString;
     if (compilationOutputPrior.Success) {
-      outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
+      unsupportedString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
+    } else {
+      unsupportedString = outputString;
     }
 
     if (exitCode == 0) {
@@ -354,10 +357,10 @@ public class MultiBackendTest {
     }
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
-    if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
+    if (error == "" && OnlyUnsupported(backend, unsupportedString)) {
       return 0;
     }
-
+    
     if (checkFile != null) {
       var outputLines = new List<string>();
       // Concatenate stdout and stderr so either can be checked against
@@ -371,6 +374,11 @@ public class MultiBackendTest {
       }
 
       return checkResult;
+    }
+
+    // If we hit errors, check for known unsupported features or bugs for this compilation target
+    if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
+      return 0;
     }
 
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
@@ -413,6 +421,42 @@ public class MultiBackendTest {
     return (exitCode, outputWriter.ToString(), errorWriter.ToString());
   }
 
+  private static bool OnlyUnsupported(IExecutableBackend backend, string output) {
+    using StringReader sr = new StringReader(output);
+    if (output == "") {
+      return false;
+    }
+    while (sr.ReadLine() is { } line) {
+      if (!IsSupportedFeatureLine(backend, line)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+  
+  private static bool IsSupportedFeatureLine(IExecutableBackend backend, string line) {
+    line = line.Trim();
+    if (line.Length == 0) {
+      return true;
+    }
+
+    var prefixIndex = line.IndexOf(UnsupportedFeatureException.MessagePrefix, StringComparison.Ordinal);
+    if (prefixIndex < 0) {
+      return false;
+    }
+
+    var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
+    var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
+    if (backend.UnsupportedFeatures.Contains(feature)) {
+      return true;
+    }
+
+    // This is an internal inconsistency error
+    throw new Exception(
+      $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
+  }
+  
   private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
     if (output == "") {
