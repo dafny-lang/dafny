@@ -555,8 +555,13 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         compiler.AdUnsupported("<i>Create Getter Setter</i>");
-        setterWriter = new ConcreteSyntaxTree();
-        return new ConcreteSyntaxTree();
+        if (createBody) {
+          setterWriter = new ConcreteSyntaxTree();
+          return new ConcreteSyntaxTree();
+        } else {
+          setterWriter = null;
+          return null;
+        }
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
