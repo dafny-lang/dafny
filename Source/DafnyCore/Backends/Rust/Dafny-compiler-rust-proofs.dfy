@@ -2,7 +2,9 @@ include "../Dafny/AST.dfy"
 
 /*This module does not contain any compiled code because it
   only proves properties about DCOMP. In a sense, it's a test file. */
-module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs refines DafnyToRustCompiler {
+module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs {
+  import opened DafnyToRustCompiler
+
   ghost predicate IsDafnyId(s: string) {
     && |s| > 0 && s[0] in "aqkhd" &&
        IsDafnyIdTail(s[1..])
@@ -119,7 +121,7 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
   {}
 
   // However, if we restrict ourself to a Dafny encoding, it's invertible
-  lemma {:rlimit 500} // {:resource_limit 500e3}
+  lemma {:rlimit 2500} {:vcs_split_on_every_assert} // {:resource_limit 500e3}
   ReplaceDotsInvertible(i: string)
     requires IsDafnyEncodedIdTail(i)
     ensures ReverseReplaceDots(replaceDots(i)) == i
