@@ -1,4 +1,4 @@
-// RUN: %run --target cpp --unicode-char false --input ExternDefs.h "%s" > "%t"
+// RUN: %run --target cpp --allow-deprecation --unicode-char false --input ExternDefs.h "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype uint32 = i:int | 0 <= i < 0x100000000
