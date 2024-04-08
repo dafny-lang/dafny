@@ -3,6 +3,7 @@
 
 // RUN: %verify "%s" > "%t"
 // RUN: %baredafny run %args --allow-deprecation --unicode-char false --no-verify --target:cs "%s" Csharp 1 >> "%t"
+// RUN: %run --no-verify --target:cpp --allow-deprecation --unicode-char false "%s" Cpp Yipee >> "%t"
 // RUN: %baredafny run %args --allow-deprecation --unicode-char false --no-verify --target:java "%s" -- Java --heya >> "%t"
 // RUN: %baredafny run %args --allow-deprecation --unicode-char false --no-verify --target:js "%s" -- Javascript 2 >> "%t"
 // RUN: %run --no-verify --allow-deprecation --unicode-char false --target py "%s" Python 1 >> "%t"
@@ -15,6 +16,10 @@
 // RUN: node %s.js "javascript" 2 >> "%t"
 // RUN: node %s.js "javascript" 1 >> "%t"
 // RUN: node %s.js "javascript" "aloha" >> "%t"
+// RUN: %build --no-verify --target:cpp --allow-deprecation --unicode-char false "%s" --output=%s.exe
+// RUN: %s.exe "cpp" 2 >> "%t"
+// RUN: %s.exe "cpp" 1 >> "%t"
+// RUN: %s.exe "cpp" "aloha" >> "%t"
 // RUN: %baredafny build %args --allow-deprecation --unicode-char false --no-verify --target:java "%s" --output:"%s.jar" >> "%t"
 // RUN: java -jar "%s.jar" Java 2 >> "%t"
 // RUN: java -jar "%s.jar" Java 1 >> "%t"
