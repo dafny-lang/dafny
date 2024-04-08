@@ -20,7 +20,6 @@ Twostate-Verification.dfy(679,22): Warning: Argument to 'old' does not dereferen
 Twostate-Verification.dfy(680,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(681,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(682,22): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-Twostate-Verification.dfy(189,23): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 Twostate-Verification.dfy(33,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 Twostate-Verification.dfy(313,38): Error: assertion might not hold
 Twostate-Verification.dfy(337,23): Error: a precondition for this call could not be proved
