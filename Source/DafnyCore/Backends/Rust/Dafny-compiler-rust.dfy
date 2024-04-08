@@ -2542,15 +2542,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
         }
         readIdents := recIdents;
-  assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
+        assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       } else {
         assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
         r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, params, expectedOwnership);
-  assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
+        assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       }
     }
 
-    
+
     method GenExprConvertFromNewtype(
       e: Expression,
       selfIdent: Option<string>,
@@ -2579,7 +2579,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
         r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, params, expectedOwnership);
       }
-  assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
+      assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
     }
 
     method GenExprConvertNotImplemented(
@@ -2621,7 +2621,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r, resultingOwnership, readIdents := GenExprConvertFromNullable(e, selfIdent, params, expectedOwnership);
           }
           case (_, Nullable(_)) => {
-             r, resultingOwnership, readIdents := GenExprConvertToNullable(e, selfIdent, params, expectedOwnership);
+            r, resultingOwnership, readIdents := GenExprConvertToNullable(e, selfIdent, params, expectedOwnership);
           }
           case (_, Path(_, _, Newtype(b, range, erase))) => {
             r, resultingOwnership, readIdents := GenExprConvertToNewtype(e, selfIdent, params, expectedOwnership);
@@ -2683,9 +2683,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
         }
       }
-        assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
+      assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       return;
-    } 
+    }
     method GenExpr(
       e: Expression,
       selfIdent: Option<string>,
