@@ -58,7 +58,9 @@ public class MultiBackendTest {
   private readonly TextWriter errorWriter;
 
   private static readonly string[] CompilerFilter =
-    (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS") ?? "").Split(",");
+    (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS") ?? "")
+    .Split(",")
+    .Where(name => name.Trim() != "").ToArray();
   private static readonly string? IntegrationTestsRootDir =
     Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR");
   private static readonly bool UpdateTargetExpectFile = DiffCommand.UpdateExpectFile;
