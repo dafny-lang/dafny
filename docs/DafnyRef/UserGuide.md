@@ -2469,7 +2469,7 @@ Legacy options:
   * `1` (default) - in the body of prefix lemmas, rewrite any use of a
     focal predicate `P` to `P#[_k-1]`.
 
-* `-extractCounterexample` - if verification fails, report a possible
+* `-extractCounterexample` - if verification fails, report a potential
   counterexample as a set of assumptions that can be inserted into the code.
   Note that Danfy cannot guarantee that the counterexample
   it reports provably violates the assertion or that the assumptions are not
