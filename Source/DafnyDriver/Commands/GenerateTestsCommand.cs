@@ -28,7 +28,7 @@ static class GenerateTestsCommand {
         BoogieOptionBag.SolverResourceLimit,
         BoogieOptionBag.VerificationTimeLimit,
         PrintBpl,
-        CoverageReport,
+        ExpectedCoverageReport,
         CommonOptionBag.NoTimeStampForCoverageReport,
         ForcePrune,
       }.Concat(DafnyCommands.ConsoleOutputOptions.Except(new[] { CommonOptionBag.AllowWarnings }).ToList()).
@@ -133,7 +133,7 @@ Path - Generate tests targeting path-coverage.");
     "Print the Boogie code used during test generation.") {
     ArgumentHelpName = "filename"
   };
-  public static readonly Option<string> CoverageReport = new("--expected-coverage-report",
+  public static readonly Option<string> ExpectedCoverageReport = new(new[] { "--expected-coverage-report", "--coverage-report" },
     "Emit expected test coverage report to a given directory.") {
     ArgumentHelpName = "directory"
   };
@@ -149,7 +149,7 @@ Path - Generate tests targeting path-coverage.");
     DafnyOptions.RegisterLegacyBinding(PrintBpl, (options, value) => {
       options.TestGenOptions.PrintBpl = value;
     });
-    DafnyOptions.RegisterLegacyBinding(CoverageReport, (options, value) => {
+    DafnyOptions.RegisterLegacyBinding(ExpectedCoverageReport, (options, value) => {
       options.TestGenOptions.CoverageReport = value;
     });
     DafnyOptions.RegisterLegacyBinding(ForcePrune, (options, value) => {
@@ -160,7 +160,7 @@ Path - Generate tests targeting path-coverage.");
       LoopUnroll,
       SequenceLengthLimit,
       PrintBpl,
-      CoverageReport,
+      ExpectedCoverageReport,
       ForcePrune
     );
   }
