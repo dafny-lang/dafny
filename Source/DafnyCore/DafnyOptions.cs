@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
         case "verifyAllModules":
           VerifyAllModules = true;
           return true;
-        
+
         case "emitUncompilableCode":
           EmitUncompilableCode = true;
           return true;

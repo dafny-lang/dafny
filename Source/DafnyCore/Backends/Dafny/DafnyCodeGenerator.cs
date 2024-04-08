@@ -1785,7 +1785,7 @@ namespace Microsoft.Dafny.Compilers {
       statementBuilder = null;
       return false;
     }
-    
+
     protected static bool GetExprBuilder(ConcreteSyntaxTree wr,
       out BuilderSyntaxTree<ExprContainer> builder) {
       if (wr is BuilderSyntaxTree<ExprContainer> exprBuilder) {
@@ -1898,7 +1898,7 @@ namespace Microsoft.Dafny.Compilers {
         List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Apply(
-          convert(function), 
+          convert(function),
           Sequence<DAST.Expression>.FromArray(
             arguments.Select(arg => convert(arg)).ToArray())));
       } else {
@@ -1913,7 +1913,7 @@ namespace Microsoft.Dafny.Compilers {
         var argsAST = arguments.Select((t, i) =>
           (_System.Tuple2<DAST.Formal, DAST.Expression>)
           _System.Tuple2<DAST.Formal, DAST.Expression>.create(
-            (DAST.Formal) DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(boundVars[i]),
+            (DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(boundVars[i]),
               GenType(boundTypes[i])), convert(t))).ToList();
 
         var retType = GenType(resultType);
@@ -2211,10 +2211,10 @@ namespace Microsoft.Dafny.Compilers {
             e0.Type.IsRefType,
             !e0.Type.IsNonNullRefType
           )),
-          BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false,false)),
-          BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false,false)),
-          BinaryExpr.ResolvedOpcode.SeqEq => B((BinOp)BinOp.create_Eq(false,false)),
-          BinaryExpr.ResolvedOpcode.MultiSetEq => B((BinOp)BinOp.create_Eq(false,false)),
+          BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false, false)),
+          BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false, false)),
+          BinaryExpr.ResolvedOpcode.SeqEq => B((BinOp)BinOp.create_Eq(false, false)),
+          BinaryExpr.ResolvedOpcode.MultiSetEq => B((BinOp)BinOp.create_Eq(false, false)),
           BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
             Not(BinaryOp(
               BinOp.create_Eq(
@@ -2248,8 +2248,8 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.InSeq => B(DAST.BinOp.create_In()),
           BinaryExpr.ResolvedOpcode.InMap => B(DAST.BinOp.create_In()),
           BinaryExpr.ResolvedOpcode.InMultiSet => B(DAST.BinOp.create_In()),
-          
-          
+
+
           BinaryExpr.ResolvedOpcode.Union =>
             B(DAST.BinOp.create_SetMerge()),
           BinaryExpr.ResolvedOpcode.SetDifference =>
@@ -2291,12 +2291,12 @@ namespace Microsoft.Dafny.Compilers {
             C((left, right) =>
               BinaryOp(new BinOp_ProperSubmultiset(), right, left,
                 new BinaryOpFormat_ReverseFormat())),
-          
+
           BinaryExpr.ResolvedOpcode.MapMerge =>
             B(DAST.BinOp.create_MapMerge()),
           BinaryExpr.ResolvedOpcode.MapSubtraction =>
             B(DAST.BinOp.create_MapSubtraction()),
-          
+
           BinaryExpr.ResolvedOpcode.ProperPrefix =>
             B(DAST.BinOp.create_SeqProperPrefix()),
           BinaryExpr.ResolvedOpcode.Prefix =>

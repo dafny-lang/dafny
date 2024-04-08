@@ -56,7 +56,7 @@ public class MultiBackendTest {
   private readonly TextReader input;
   private readonly TextWriter output;
   private readonly TextWriter errorWriter;
-  
+
   private static readonly string[] CompilerFilter =
     (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS") ?? "").Split(",");
   private static readonly string? IntegrationTestsRootDir =
@@ -246,13 +246,11 @@ public class MultiBackendTest {
     }
   }
 
-  private static string CheckFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
-  {
+  private static string CheckFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler) {
     return $"{options.TestFile}.{compiler.TargetId}.check";
   }
-  
-  private static string ExpectFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler)
-  {
+
+  private static string ExpectFileForBackend(ForEachCompilerOptions options, IExecutableBackend compiler) {
     return $"{options.TestFile}.{compiler.TargetId}.expect";
   }
 
@@ -394,7 +392,7 @@ public class MultiBackendTest {
         }
       }
     }
-    
+
     if (exitCode == 0) {
       if (diffMessage == null) {
         if (checkFile != null) {
@@ -434,7 +432,7 @@ public class MultiBackendTest {
         await output.WriteLineAsync($"OutputCheck on {checkFile} failed. Output was:");
         await output.WriteLineAsync(string.Join("\n", outputLines));
         await output.WriteLineAsync("Error:");
-        
+
         if (UpdateTargetExpectFile) {
           if (string.IsNullOrEmpty(IntegrationTestsRootDir)) {
             await output.WriteLineAsync(
@@ -456,8 +454,7 @@ public class MultiBackendTest {
   }
 
   private async Task<int> UpdateBackendCheckFile(ForEachCompilerOptions options, IExecutableBackend backend,
-    string expectedOutput, string outputString, string error, int exitCode, bool expectedCheckFile)
-  {
+    string expectedOutput, string outputString, string error, int exitCode, bool expectedCheckFile) {
     var sourcePath = Path.Join(IntegrationTestsRootDir,
       CheckFileForBackend(options, backend));
     // outputString == error iff something crashed
