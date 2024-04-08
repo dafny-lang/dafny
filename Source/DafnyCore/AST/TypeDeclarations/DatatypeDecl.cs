@@ -196,4 +196,5 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
       }
     }
   }
+  public string Designator => WhatKind;
 }

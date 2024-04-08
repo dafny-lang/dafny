@@ -7,7 +7,7 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, bool useRange = true) {
+  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
@@ -23,6 +23,10 @@ public static class ErrorReporterExtensions {
           reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
         }
       }
+    }
+
+    if (counterexampleModel != null) {
+      error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
 
     if (error.Tok is NestedToken { Inner: var innerToken, Message: var msg }) {
@@ -58,6 +62,8 @@ public static class ErrorReporterExtensions {
         message = FormatRelated(rangeToken.PrintOriginal());
       }
     }
+
+    message ??= "this proposition could not be proved";
 
     yield return new DafnyRelatedInformation(token, message);
     if (inner != null) {

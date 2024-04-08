@@ -26,6 +26,7 @@ public static class DafnyNewCli {
 
   private static void AddCommand(Command command) {
     RootCommand.AddCommand(command);
+    RootCommand.TreatUnmatchedTokensAsErrors = false;
   }
 
   static DafnyNewCli() {
@@ -153,7 +154,7 @@ public static class DafnyNewCli {
       dafnyOptions.ApplyBinding(option);
     } catch (Exception e) {
       context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
-      dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+      dafnyOptions.OutputWriter.WriteLine(
         $"Invalid value for option {option.Name}: {e.Message}");
       return false;
     }
@@ -223,11 +224,7 @@ public static class DafnyNewCli {
 
     foreach (var diagnostic in projectFile.Errors.AllMessages) {
       var message = $"{diagnostic.Level}: {diagnostic.Message}";
-      if (diagnostic.Level == ErrorLevel.Error) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync(message);
-      } else {
-        await dafnyOptions.OutputWriter.WriteLineAsync(message);
-      }
+      await dafnyOptions.OutputWriter.WriteLineAsync(message);
     }
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);

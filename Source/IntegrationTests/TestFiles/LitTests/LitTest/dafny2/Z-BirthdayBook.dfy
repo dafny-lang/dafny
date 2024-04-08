@@ -1,5 +1,5 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %run "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The birthday book example from the Z Reference Manual

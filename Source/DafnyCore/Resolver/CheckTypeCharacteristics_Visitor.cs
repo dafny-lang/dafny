@@ -257,6 +257,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       return false;  // we've done what there is to be done
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
+      VisitType(expr.tok, expr.Type, inGhostContext);
       // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
       Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
       for (var i = 0; i < e.Arguments.Count; i++) {
@@ -334,47 +335,61 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     for (var i = 0; i < formalTypeArgs.Count; i++) {
       var formal = formalTypeArgs[i];
       var actual = actualTypeArgs[i];
-      if (!CheckCharacteristics(formal.Characteristics, actual, inGhostContext, out var whatIsWrong, out var hint)) {
-        reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
-          actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
+      if (!CheckCharacteristics(formal.Characteristics, actual, inGhostContext, out var whatIsNeeded, out var hint, out _)) {
+        reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must {4} (got {5}){6}",
+          actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsNeeded, actual, hint);
       }
       VisitType(tok, actual, inGhostContext);
     }
   }
 
-  bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext, out string whatIsWrong, out string hint) {
-    Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
+  /// <summary>
+  /// Grammatically, "whatIsNeeded" is an imperative that says what to do to be in compliance. Concretely, it is one of the following
+  /// strings (not including the words in square brackets):
+  ///     * [type X must] contain no references
+  ///     * [type X must] support equality
+  ///     * [type X must] support auto-initialization
+  ///     * [type X must] be nonempty
+  /// </summary>
+  public static bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext,
+    out string whatIsNeeded, out string hint, out RefinementErrors.ErrorId errorId) {
+    Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsNeeded) != null && Contract.ValueAtReturn(out hint) != null));
     if (!inGhostContext && formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
-      whatIsWrong = "equality";
+      whatIsNeeded = "support equality";
       hint = TypeEqualityErrorMessageHint(actual);
+      errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_equality;
       return false;
     }
     var cl = (actual.Normalize() as UserDefinedType)?.ResolvedClass;
     var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;
     if (formal.HasCompiledValue && (inGhostContext ? !actual.IsNonempty : !actual.HasCompilableValue)) {
-      whatIsWrong = "auto-initialization";
+      whatIsNeeded = "support auto-initialization";
       hint = tp == null ? "" :
         string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(0)', which says it can only be instantiated with a type that supports auto-initialization)", tp.Name, tp.tok.line, tp.WhatKind);
+      errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_autoinit;
       return false;
     }
     if (formal.IsNonempty && !actual.IsNonempty) {
-      whatIsWrong = "nonempty";
+      whatIsNeeded = "be nonempty";
       hint = tp == null ? "" :
         string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(00)', which says it can only be instantiated with a nonempty type)", tp.Name, tp.tok.line, tp.WhatKind);
+      errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_nonempty;
       return false;
     }
     if (formal.ContainsNoReferenceTypes && actual.MayInvolveReferences) {
-      whatIsWrong = "no references";
+      whatIsNeeded = "contain no references";
       hint = tp == null ? "" :
         string.Format(" (perhaps try declaring {2} '{0}' on line {1} as '{0}(!new)', which says it can only be instantiated with a type that contains no references)", tp.Name, tp.tok.line, tp.WhatKind);
+      errorId = RefinementErrors.ErrorId.ref_mismatched_type_characteristics_noreferences;
       return false;
     }
-    whatIsWrong = null;
+    whatIsNeeded = null;
     hint = null;
+    errorId = 0; // to please the compiler; this value will not be used by the caller
     return true;
   }
 
-  string TypeEqualityErrorMessageHint(Type argType) {
+  static string TypeEqualityErrorMessageHint(Type argType) {
     Contract.Requires(argType != null);
     var cl = (argType.Normalize() as UserDefinedType)?.ResolvedClass;
     var tp = (TopLevelDecl)(cl as TypeParameter) ?? cl as AbstractTypeDecl;

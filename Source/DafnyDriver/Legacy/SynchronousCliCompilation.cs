@@ -24,7 +24,6 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
 using Microsoft.Dafny.Compilers;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.Plugins;
 using VC;
 
@@ -82,6 +81,9 @@ namespace Microsoft.Dafny {
     public static ExitValue GetDafnyFiles(DafnyOptions options,
       out List<DafnyFile> dafnyFiles,
       out List<string> otherFiles) {
+      if (options.Printer is NullPrinter) {
+        options.Printer = new DafnyConsolePrinter(options);
+      }
 
       if (options.DafnyProject != null) {
         foreach (var uri in options.DafnyProject.GetRootSourceUris(OnDiskFileSystem.Instance)) {
@@ -98,13 +100,13 @@ namespace Microsoft.Dafny {
         options.CliRootSourceUris.Add(uri);
         dafnyFiles.Add(DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken));
       } else if (options.CliRootSourceUris.Count == 0) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: No input files were specified in command-line. " + options.Environment);
+        options.ErrorWriter.WriteLine("*** Error: No input files were specified in command-line. " + options.Environment);
         return ExitValue.PREPROCESSING_ERROR;
       }
       if (options.XmlSink != null) {
         string errMsg = options.XmlSink.Open();
         if (errMsg != null) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: " + errMsg);
+          options.ErrorWriter.WriteLine("*** Error: " + errMsg);
           return ExitValue.PREPROCESSING_ERROR;
         }
       }
@@ -143,10 +145,10 @@ namespace Microsoft.Dafny {
             isDafnyFile = true;
           }
         } catch (ArgumentException e) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: ", nameToShow, e.Message);
+          options.ErrorWriter.WriteLine("*** Error: {0}: ", nameToShow, e.Message);
           return ExitValue.PREPROCESSING_ERROR;
         } catch (Exception e) {
-          options.Printer.ErrorWriteLine(options.ErrorWriter, "*** Error: {0}: {1}", nameToShow, e.Message);
+          options.ErrorWriter.WriteLine("*** Error: {0}: {1}", nameToShow, e.Message);
           return ExitValue.PREPROCESSING_ERROR;
         }
 
@@ -226,7 +228,7 @@ namespace Microsoft.Dafny {
       if (backend == null) {
         if (options.CompilerName != null) {
           var known = String.Join(", ", backends.Select(c => $"'{c.TargetId}' ({c.TargetName})"));
-          options.Printer.ErrorWriteLine(options.ErrorWriter,
+          options.ErrorWriter.WriteLine(
             $"*** Error: No compiler found for target \"{options.CompilerName}\"{(options.CompilerName.StartsWith("-t") || options.CompilerName.StartsWith("--") ? " (use just a target name, not a -t or --target option)" : "")}; expecting one of {known}");
         } else {
           backend = new NoExecutableBackend(options);
@@ -351,19 +353,8 @@ namespace Microsoft.Dafny {
         return;
       }
       var model = new DafnyModel(firstCounterexample.Model, options);
-      model.AssignConcretePrimitiveValues();
-      options.OutputWriter.WriteLine("WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#fn:smt-encoding.");
-      options.OutputWriter.WriteLine("Counterexample for first failing assertion: ");
-      if (model.LoopGuards.Count > 0) {
-        options.OutputWriter.WriteLine("Temporary variables to describe counterexamples: ");
-        foreach (var loopGuard in model.LoopGuards) {
-          options.OutputWriter.WriteLine($"ghost var {loopGuard} : bool := false;");
-        }
-      }
-      foreach (var state in model.States.Where(state => state.StateContainsPosition())) {
-        options.OutputWriter.WriteLine(state.FullStateName + ":");
-        options.OutputWriter.WriteLine(state.AsAssumption());
-      }
+      options.OutputWriter.Write("The following counterexample refers to the following failing assertion:\n");
+      options.OutputWriter.Write(model.ToString());
     }
 
     private static string BoogieProgramSuffix(string printFile, string suffix) {

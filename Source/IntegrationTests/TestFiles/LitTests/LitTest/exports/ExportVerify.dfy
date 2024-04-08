@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Lib {

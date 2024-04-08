@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 2 %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module ResolutionTests {
