@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" > "%t"
 // RUN: %exits-with 4 %dafny /arith:10 "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 

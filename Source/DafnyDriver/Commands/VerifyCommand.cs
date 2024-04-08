@@ -166,7 +166,7 @@ public static class VerifyCommand {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, result.CanVerify.NameToken,
+        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
           (uint)completed.Result.RunTime.Seconds,
           completed.Result, batchReporter);
       }

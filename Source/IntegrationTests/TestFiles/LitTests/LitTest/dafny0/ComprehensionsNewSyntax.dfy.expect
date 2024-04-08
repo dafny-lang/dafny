@@ -8,7 +8,7 @@ ComprehensionsNewSyntax.dfy(12,13): Error: assertion might not hold
 ComprehensionsNewSyntax.dfy(78,22): Error: assertion might not hold
 ComprehensionsNewSyntax.dfy(99,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
 ComprehensionsNewSyntax.dfy(107,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
-ComprehensionsNewSyntax.dfy(115,40): Error: insufficient reads clause to read field
+ComprehensionsNewSyntax.dfy(115,40): Error: insufficient reads clause to read field; Consider extracting x to a local variable before the lambda expression, or adding 'reads this' in the enclosing lambda specification for resolution
 ComprehensionsNewSyntax.dfy(118,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
 ComprehensionsNewSyntax.dfy(126,4): Error: all sequence indices must be in the domain of the initialization function
 ComprehensionsNewSyntax.dfy(132,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor

@@ -257,6 +257,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       return false;  // we've done what there is to be done
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
+      VisitType(expr.tok, expr.Type, inGhostContext);
       // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
       Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
       for (var i = 0; i < e.Arguments.Count; i++) {
