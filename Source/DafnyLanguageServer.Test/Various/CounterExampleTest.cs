@@ -1401,8 +1401,8 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Single(counterExamples);
       Assert.Contains("c != null", counterExamples[0].Assumption);
-      Assert.Contains("'\\u1023' == c.c1", counterExamples[0].Assumption);
-      Assert.Contains("'\\u1023' == c.c2", counterExamples[0].Assumption);
+      Assert.Contains("'\\U{1023}' == c.c1", counterExamples[0].Assumption);
+      Assert.Contains("'\\U{1023}' == c.c2", counterExamples[0].Assumption);
     }
 
     /// <summary>
