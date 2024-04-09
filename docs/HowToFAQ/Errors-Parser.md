@@ -1017,7 +1017,7 @@ that assist in proving the validity of the asserted expression.
 
 <!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
 
-<!-- %check-legacy %options -compile:0 -noCheating:1 -->
+<!-- %check-resolve %options  -->
 ```dafny
 module M {
   predicate f(i: int) { true }
@@ -1477,7 +1477,7 @@ that is a single underscore is used as a wild-card match.
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 
-<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+<!-- %check-resolve %options -->
 ```dafny
 const c := 5;
 ```
