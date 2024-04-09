@@ -215,11 +215,10 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
     while (result == null) {
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
+      result = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri);
       logger.LogInformation(
         $"GetLastDiagnosticsParams didn't find the right diagnostics after getting status {status}. Waited to get these diagnostics: {diagnostics.Stringify()}");
     }
-    diagnosticsReceiver.ClearQueue();
     return result;
   }
 

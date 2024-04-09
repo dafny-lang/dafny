@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,11 +27,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     }
 
     public void NotificationReceived(TNotification request) {
-      logger.LogTrace($"Received {request.Stringify()}");
       Assert.NotNull(request);
-      notifications.Enqueue(request);
-      notificationHistory.Add(request);
-      availableNotifications.Release();
+      logger.LogTrace($"Received {request.Stringify()}");
+      lock (this) {
+        notifications.Enqueue(request);
+        notificationHistory.Add(request);
+        availableNotifications.Release();
+      }
     }
 
     public bool HasPendingNotifications => !notifications.IsEmpty;
@@ -41,15 +44,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       notificationHistory.Clear();
     }
 
-    public TNotification GetLast(Func<TNotification, bool> predicate) {
-      var result = History.LastOrDefault(predicate);
-      ClearQueue();
-      return result;
-    }
-
-    public void ClearQueue() {
-      notifications.Clear();
-      availableNotifications = new(0);
+    public TNotification? GetLast(Func<TNotification, bool> predicate) {
+      lock (this) {
+        var result = History.LastOrDefault(predicate);
+        notifications.Clear();
+        availableNotifications = new(0);
+        return result;
+      }
     }
 
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
