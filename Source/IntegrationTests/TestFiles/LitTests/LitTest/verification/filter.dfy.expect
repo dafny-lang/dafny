@@ -19,16 +19,16 @@ Dafny program verifier finished with 0 assertions verified, 0 errors
 Dafny program verifier finished with 0 verified, 0 errors
 single-file.dfy(8,11): Error: assertion might not hold
 
-Dafny program verifier finished with 3 assertions verified, 1 error
+Dafny program verifier finished with 0 assertions verified, 1 error
 
-Dafny program verifier finished with 1 assertions verified, 0 errors
+Dafny program verifier finished with 0 assertions verified, 0 errors
 
-Dafny program verifier finished with 1 assertions verified, 0 errors
+Dafny program verifier finished with 0 assertions verified, 0 errors
 single-file.dfy(8,11): Error: assertion might not hold
 
 Dafny program verifier finished with 0 assertions verified, 1 error
 
-Dafny program verifier finished with 1 assertions verified, 0 errors
+Dafny program verifier finished with 0 assertions verified, 0 errors
 single-file.dfy(16,14): Error: loop invariant violation
 
 Dafny program verifier finished with 0 assertions verified, 1 error
