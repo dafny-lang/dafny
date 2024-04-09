@@ -4,7 +4,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// A phase of compilation
 /// 
-/// A phases can have a parent, and so phases form a tree.
+/// Phases can have a parent, and so phases form a tree.
 ///
 /// The children of a phase, are the phases that are discovered and completed as part of that parent.
 /// </summary>
