@@ -3795,7 +3795,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(".({0})", TypeName(to, wr, tok));
           return w;
         }
-      } else if (from.AsNewtype is {} fromNewtypeDecl) {
+      } else if (from.AsNewtype is { } fromNewtypeDecl) {
         var subst = TypeParameter.SubstitutionMap(fromNewtypeDecl.TypeArgs, from.TypeArgs);
         from = fromNewtypeDecl.BaseType.Subst(subst);
         return EmitCoercionIfNecessary(from, to, tok, wr, toOrig);
