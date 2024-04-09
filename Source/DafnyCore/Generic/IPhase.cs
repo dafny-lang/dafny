@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 /// 
 /// A phases can have a parent, and so phases form a tree.
 ///
-/// The children of a phase, are the phases that are discovered and completed as phase of that parent.
+/// The children of a phase, are the phases that are discovered and completed as part of that parent.
 /// </summary>
 public interface IPhase {
   public Cons<IPhase> AncestorsAndSelf {

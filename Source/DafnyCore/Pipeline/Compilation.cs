@@ -376,8 +376,8 @@ public class Compilation : IDisposable {
           tasksForSymbol.Add(task);
         }
 
-        _ = WaitForAndHandleScopeFinished();
-        async Task WaitForAndHandleScopeFinished() {
+        _ = HandleScopeFinishedVerification();
+        async Task HandleScopeFinishedVerification() {
           if (taskFilter != null) {
             return;
           }
@@ -393,8 +393,8 @@ public class Compilation : IDisposable {
         }
       }
 
-      _ = WaitForAndHandleSymbolFinished();
-      async Task WaitForAndHandleSymbolFinished() {
+      _ = HandleSymbolFinishedVerification();
+      async Task HandleSymbolFinishedVerification() {
         if (taskFilter != null) {
           return;
         }
