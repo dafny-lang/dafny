@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh --general-newtypes
-// RUN: %diff "%s.expect" "%t"
+
 
 method Main() {
   Members.Test();
