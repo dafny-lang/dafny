@@ -156,7 +156,7 @@ public class CliCompilation {
       Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
         "the option unicode-char has been deprecated.");
     }
-    
+
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
     using var subscription = Compilation.Updates.Subscribe(ev => {
 

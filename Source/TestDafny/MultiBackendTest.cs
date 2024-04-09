@@ -339,16 +339,10 @@ public class MultiBackendTest {
 
     var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-    
+
     if (compilationOutputPrior.Success) {
       outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
     }
-    // string unsupportedString;
-    // if (compilationOutputPrior.Success) {
-    //   unsupportedString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
-    // } else {
-    //   unsupportedString = outputString;
-    // }
 
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
@@ -364,7 +358,7 @@ public class MultiBackendTest {
     if (error == "" && HasUnsupported(backend, outputString)) {
       return 0;
     }
-    
+
     if (checkFile != null) {
       var outputLines = new List<string>();
       // Concatenate stdout and stderr so either can be checked against
@@ -438,7 +432,7 @@ public class MultiBackendTest {
 
     return false;
   }
-  
+
   private static bool IsSupportedFeatureLine(IExecutableBackend backend, string line) {
     line = line.Trim();
     if (line.Length == 0) {
@@ -460,7 +454,7 @@ public class MultiBackendTest {
     throw new Exception(
       $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
-  
+
   private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
     if (output == "") {
