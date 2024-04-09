@@ -12,6 +12,7 @@ namespace Microsoft.Dafny.Compilers;
 public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected virtual bool PreventShadowing => true;
+  protected virtual bool SupportsUncompilableCode => true;
 
   protected DafnyWrittenCodeGenerator DafnyCodeGenerator;
 
@@ -20,7 +21,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     // becomes this.compiler
-    return new DafnyCodeGenerator(Options, Reporter, PreventShadowing);
+    return new DafnyCodeGenerator(Options, Reporter, PreventShadowing, SupportsUncompilableCode);
   }
 
   protected abstract DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler();

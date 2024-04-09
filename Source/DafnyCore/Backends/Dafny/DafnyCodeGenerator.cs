@@ -36,13 +36,13 @@ namespace Microsoft.Dafny.Compilers {
       return res;
     }
 
-    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, bool preventShadowing = true) : base(options, reporter) {
+    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, bool preventShadowing, bool supportsUncompilableCode) : base(options, reporter) {
       options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
 
-      emitUncompilableCode = options.EmitUncompilableCode;
+      emitUncompilableCode = options.EmitUncompilableCode && supportsUncompilableCode;
       this.preventShadowing = preventShadowing;
     }
 

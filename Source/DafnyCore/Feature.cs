@@ -213,7 +213,7 @@ public class UnsupportedFeatureException : Exception {
 
 public class RecoverableUnsupportedFeatureException : UnsupportedFeatureException {
 
-  public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with with the option " +
+  public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with the option --" +
                                        CommonOptionBag.EmitUncompilableCode.Name;
   public RecoverableUnsupportedFeatureException(IToken token, Feature feature)
     : base(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {

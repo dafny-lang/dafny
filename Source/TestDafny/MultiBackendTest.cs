@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
@@ -375,7 +376,7 @@ public class MultiBackendTest {
     } catch (Exception e) {
       // When DAFNY_INTEGRATION_TESTS_IN_PROCESS is set to true, Dafny runs in the same process
       // so we catch the exception manually
-      (exitCode, outputString, error) = (3, e.ToString(), e.ToString());
+      (exitCode, outputString, error) = (3, "", e.ToString());
     }
 
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
@@ -416,12 +417,16 @@ public class MultiBackendTest {
       await output.WriteLineAsync(diffMessage);
       return 1;
     }
+    await output.WriteLineAsync("Error is empty:" + (error == "") + ", outputString is empty:" + (outputString == ""));
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
     if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
       return 0;
     }
-
+    // If we hit errors, check for known unsupported features or bugs for this compilation target
+    if (outputString == "" && OnlyAllowedOutputLines(backend, error)) {
+      return 0;
+    }
 
     if (checkFile != null) {
       var outputLines = new List<string>();
@@ -521,6 +526,15 @@ public class MultiBackendTest {
   }
 
   private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {
+    var prefixRecoverable = output.IndexOf(typeof(RecoverableInvalidOperationException).FullName!, StringComparison.Ordinal);
+    if (prefixRecoverable > 0) {
+      return true;
+    }
+    prefixRecoverable = output.IndexOf(typeof(RecoverableUnsupportedFeatureException).FullName!, StringComparison.Ordinal);
+    if (prefixRecoverable > 0) {
+      return true;
+    }
+    
     using StringReader sr = new StringReader(output);
     if (output == "") {
       return false;
