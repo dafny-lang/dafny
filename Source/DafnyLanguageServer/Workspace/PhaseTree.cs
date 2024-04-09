@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 /// <summary>
-/// A tree where each node except the root corresponds to a phase.
+/// A tree where each node except the root corresponds to a phase in the verification and compilation process.
 ///
 /// Each node stores the state for that phase, which right now only is diagnostics
 /// </summary>
