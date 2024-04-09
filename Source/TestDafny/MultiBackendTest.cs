@@ -339,12 +339,16 @@ public class MultiBackendTest {
 
     var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-    string unsupportedString;
+    
     if (compilationOutputPrior.Success) {
-      unsupportedString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
-    } else {
-      unsupportedString = outputString;
+      outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
     }
+    // string unsupportedString;
+    // if (compilationOutputPrior.Success) {
+    //   unsupportedString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
+    // } else {
+    //   unsupportedString = outputString;
+    // }
 
     if (exitCode == 0) {
       var diffMessage = AssertWithDiff.GetDiffMessage(expectedOutput, outputString);
@@ -357,7 +361,7 @@ public class MultiBackendTest {
     }
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
-    if (error == "" && OnlyUnsupported(backend, unsupportedString)) {
+    if (error == "" && HasUnsupported(backend, outputString)) {
       return 0;
     }
     
@@ -421,18 +425,18 @@ public class MultiBackendTest {
     return (exitCode, outputWriter.ToString(), errorWriter.ToString());
   }
 
-  private static bool OnlyUnsupported(IExecutableBackend backend, string output) {
+  private static bool HasUnsupported(IExecutableBackend backend, string output) {
     using StringReader sr = new StringReader(output);
     if (output == "") {
       return false;
     }
     while (sr.ReadLine() is { } line) {
-      if (!IsSupportedFeatureLine(backend, line)) {
-        return false;
+      if (IsSupportedFeatureLine(backend, line)) {
+        return true;
       }
     }
 
-    return true;
+    return false;
   }
   
   private static bool IsSupportedFeatureLine(IExecutableBackend backend, string line) {
