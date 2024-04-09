@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference --relax-definite-assignment "%s" > "%t"
+// RUN: %verify --show-hints --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Dt = Green | Dog
