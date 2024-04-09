@@ -12,4 +12,5 @@ TraitsExtendingTraits.dfy(69,8): Error: class 'Diamond' does not implement trait
 TraitsExtendingTraits.dfy(69,8): Error: class 'Diamond' does not implement trait function 'Tio.munspel'
 TraitsExtendingTraits.dfy(69,8): Error: class 'Diamond' does not implement trait function 'Tolv.banjo'
 TraitsExtendingTraits.dfy(95,8): Error: class 'TwoOverrides' inherits a member named 'M' from both trait 'Left2' and trait 'Right2'
-14 resolution/type errors detected in TraitsExtendingTraits.dfy
+TraitsExtendingTraits.dfy(127,8): Error: trait 'D' inherits a member named 'G' from both trait 'C' and trait 'HasG'
+15 resolution/type errors detected in TraitsExtendingTraits.dfy
