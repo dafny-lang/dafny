@@ -15,7 +15,7 @@ static class DeadCodeCommand {
     new Option[] {
       GenerateTestsCommand.LoopUnroll,
       GenerateTestsCommand.SequenceLengthLimit,
-      GenerateTestsCommand.CoverageReport,
+      GenerateTestsCommand.ExpectedCoverageReport,
       GenerateTestsCommand.ForcePrune,
       GenerateTestsCommand.PrintBpl,
       BoogieOptionBag.SolverLog,
