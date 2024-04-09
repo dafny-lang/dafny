@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
 ProofDependencies.dfy(176,11): Warning: unnecessary (or partly unnecessary) assume statement
 ProofDependencies.dfy(185,11): Warning: unnecessary (or partly unnecessary) assume statement
 ProofDependencies.dfy(186,13): Warning: proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)
