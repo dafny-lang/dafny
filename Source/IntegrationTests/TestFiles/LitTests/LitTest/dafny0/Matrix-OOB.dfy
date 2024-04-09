@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-inference "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This is a regression test: OOB errors for matrices used to be reported on the
