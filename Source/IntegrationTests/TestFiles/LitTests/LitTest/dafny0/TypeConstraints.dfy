@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /env:0 /rprint:- "%s" > "%t"
+// RUN: %exits-with 2 %build --rprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {
