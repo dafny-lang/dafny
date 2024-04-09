@@ -1,7 +1,7 @@
 doo_file_version = "1.0"
 dafny_version = "4.0.0.50303"
 solver_identifier = "Z3"
-solver_version = "4.12.1"
+solver_version = "4.12.6"
 what_even_is_this = "who knows"
 [options]
 unicode-char = true
