@@ -140,7 +140,7 @@ Most commonly and for clarity, the intended main method is marked with the attri
 
 ## **Error: Could not find the method named by the -Main option: _name_** {#c_could_not_find_stipulated_main_method}
 
-<!-- %check-run %options --main-method::m -->
+<!-- %check-run %options --main-method:m -->
 ```dafny
 class A { static method mm() {} }
 ```

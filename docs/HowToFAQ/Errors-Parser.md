@@ -1013,25 +1013,6 @@ that assist in proving the validity of the asserted expression.
 
 <!-- TODO -->
 
-## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
-
-<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
-
-<!-- %check-resolve %options  -->
-```dafny
-module M {
-  predicate f(i: int) { true }
-  method  m(a: seq<int>) {
-    forall i | 0 <= i < 10
-       ensures f(i)
-  }
-}
-```
-
-A forall statement without a body is like an assume statement: the ensures clause is assumed in the following code.
-Assumptions like that are a risk to soundness because there is no check that the assumption is true.
-Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
-
 ## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
 
 <!-- TODO-->
