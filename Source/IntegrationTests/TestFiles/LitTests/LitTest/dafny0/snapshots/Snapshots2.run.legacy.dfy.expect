@@ -1,4 +1,4 @@
-Processing command (at Snapshots2.v0.dfy(4,10)) assert {:id "id1"} Lit(false);
+Processing command (at Snapshots2.v0.dfy(4,10)) assert {:id "id1"} false;
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(11,11)) assert {:id "id5"} true;
   >>> DoNothingToAssert
@@ -6,7 +6,7 @@ Processing command (at Snapshots2.v0.dfy(11,15)) assert {:id "id4"} _module.__de
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(14,11)) assert {:id "id8"} true;
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v0.dfy(14,15)) assert {:id "id7"} _module.__default.Q() <==> Lit(_module.__default.R());
+Processing command (at Snapshots2.v0.dfy(14,15)) assert {:id "id7"} _module.__default.Q() <==> _module.__default.R();
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 3 verified, 0 errors
@@ -16,7 +16,7 @@ Processing implementation P (well-formedness) (at Snapshots2.v1.dfy(10,11)):
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
 Processing implementation Q (well-formedness) (at Snapshots2.v1.dfy(13,11)):
   >>> added after assuming the current precondition: a##cached##0 := a##cached##0 && false;
-Processing command (at Snapshots2.v1.dfy(4,10)) assert {:id "id12"} Lit(false);
+Processing command (at Snapshots2.v1.dfy(4,10)) assert {:id "id12"} false;
   >>> DoNothingToAssert
 Snapshots2.v1.dfy(4,9): Error: assertion might not hold
 Processing command (at Snapshots2.v1.dfy(11,11)) assert {:id "id16"} true;
@@ -25,7 +25,7 @@ Processing command (at Snapshots2.v1.dfy(11,15)) assert {:id "id15"} _module.__d
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(14,11)) assert {:id "id19"} true;
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v1.dfy(14,15)) assert {:id "id18"} _module.__default.Q() <==> Lit(_module.__default.R());
+Processing command (at Snapshots2.v1.dfy(14,15)) assert {:id "id18"} _module.__default.Q() <==> _module.__default.R();
   >>> DoNothingToAssert
 
 Dafny program verifier finished with 2 verified, 1 error
