@@ -7,11 +7,35 @@ using Microsoft.Dafny;
 
 namespace DafnyDriver.Commands;
 
+interface IDiagnosticsReporter {
+  void PhaseStart(IPhase phase);
+  void PhaseFinished(IPhase phase);
+  void NewDiagnostic(NewDiagnostic newDiagnostic);
+}
+
+class ImmediateDiagnosticsReporter : IDiagnosticsReporter {
+  private readonly Action<NewDiagnostic> processNewDiagnostic;
+
+  public ImmediateDiagnosticsReporter(Action<NewDiagnostic> processNewDiagnostic) {
+    this.processNewDiagnostic = processNewDiagnostic;
+  }
+
+  public void PhaseStart(IPhase phase) {
+  }
+
+  public void PhaseFinished(IPhase phase) {
+  }
+
+  public void NewDiagnostic(NewDiagnostic newDiagnostic) {
+    processNewDiagnostic(newDiagnostic);
+  }
+}
+
 /// <summary>
 /// Orders phases by their start time.
 /// Reports diagnostics only after all phases that come before the phase of this diagnostics, have finished.
 /// </summary>
-class PhaseOrderedDiagnosticsReporter {
+class PhaseOrderedDiagnosticsReporter : IDiagnosticsReporter {
   private readonly Action<NewDiagnostic> processNewDiagnostic;
   private readonly ConcurrentDictionary<IPhase, IPhase> previousPhases = new();
   private readonly ConcurrentDictionary<IPhase, IPhase> nextPhases = new();

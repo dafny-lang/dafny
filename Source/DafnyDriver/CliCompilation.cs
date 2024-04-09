@@ -27,7 +27,7 @@ public class CliCompilation {
   private int errorCount;
   private int warningCount;
   private readonly ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks = new();
-  private PhaseOrderedDiagnosticsReporter phaseOrderedDiagnosticsReporter;
+  private IDiagnosticsReporter diagnosticsReporter;
 
   public bool DidVerification { get; private set; }
 
@@ -116,21 +116,22 @@ public class CliCompilation {
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
-    phaseOrderedDiagnosticsReporter =
-      new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
+    diagnosticsReporter =
+      new ImmediateDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
+    //new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is PhaseStarted phaseStarted) {
-        phaseOrderedDiagnosticsReporter.PhaseStart(phaseStarted.Phase);
+        diagnosticsReporter.PhaseStart(phaseStarted.Phase);
         phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
       } else if (ev is PhaseFinished phaseFinished) {
-        phaseOrderedDiagnosticsReporter.PhaseFinished(phaseFinished.Phase);
+        diagnosticsReporter.PhaseFinished(phaseFinished.Phase);
         if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {
           phaseTask.TrySetResult();
         }
       } else if (ev is NewDiagnostic newDiagnostic) {
-        phaseOrderedDiagnosticsReporter.NewDiagnostic(newDiagnostic);
+        diagnosticsReporter.NewDiagnostic(newDiagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.Program.Name;
