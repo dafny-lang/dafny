@@ -3722,8 +3722,8 @@ namespace Microsoft.Dafny.Compilers {
         return ToFatPointer(from, wr);
       }
 
-      from = from == null ? null : DatatypeWrapperEraser.SimplifyType(Options, from);
-      to = DatatypeWrapperEraser.SimplifyType(Options, to);
+      from = from == null ? null : DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, from);
+      to = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, to);
       if (from != null && from.IsArrowType && to.IsArrowType && !from.Equals(to)) {
         // Need to convert functions more often, so do this before the
         // EqualsUpToParameters check below
