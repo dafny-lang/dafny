@@ -1,0 +1,6 @@
+includes = ["helloworld.dfy"]
+
+[options]
+no-verify=true
+[options.go]
+module-name="GoModule1"
