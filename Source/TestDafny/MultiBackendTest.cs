@@ -571,6 +571,9 @@ public class MultiBackendTest {
     }
 
     var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
+    if (featureDescription.IndexOf(RecoverableUnsupportedFeatureException.MessageSuffix) is var i and > 0) {
+      featureDescription = featureDescription[..i];
+    }
     var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
     if (backend.UnsupportedFeatures.Contains(feature)) {
       return true;
