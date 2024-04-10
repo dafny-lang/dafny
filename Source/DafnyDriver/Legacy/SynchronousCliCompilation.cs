@@ -145,8 +145,8 @@ namespace Microsoft.Dafny {
             dafnyFiles.Add(df);
             isDafnyFile = true;
           }
-        } catch (ArgumentException e) {
-          options.ErrorWriter.WriteLine("*** Error: {0}: ", nameToShow, e.Message);
+        } catch (ArgumentException) {
+          options.ErrorWriter.WriteLine("*** Error: {0}: ", nameToShow);
           return ExitValue.PREPROCESSING_ERROR;
         } catch (Exception e) {
           options.ErrorWriter.WriteLine("*** Error: {0}: {1}", nameToShow, e.Message);
