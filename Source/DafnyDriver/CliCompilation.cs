@@ -27,7 +27,6 @@ public class CliCompilation {
   private int errorCount;
   private int warningCount;
   private readonly ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks = new();
-  private IDiagnosticsReporter diagnosticsReporter;
 
   public bool DidVerification { get; private set; }
 
@@ -116,7 +115,7 @@ public class CliCompilation {
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
-    diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
+    var diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {

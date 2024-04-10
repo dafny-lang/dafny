@@ -10,14 +10,13 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public record IdeVerificationTaskState(Range Range, PublishedVerificationStatus Status,
-  IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit, IVerificationTask Task, IVerificationStatus RawStatus);
+  bool HitErrorLimit, IVerificationTask Task, IVerificationStatus RawStatus);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
 public record IdeCanVerifyState(VerificationPreparationState PreparationProgress,
@@ -128,7 +127,6 @@ public record IdeState(
         if (newInnerRange != null) {
           newValue = newValue.Add(innerEntry.Key, innerEntry.Value with {
             Range = newInnerRange,
-            Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
           });
         }
       }
@@ -145,12 +143,8 @@ public record IdeState(
   }
 
   public IEnumerable<FileDiagnostic> GetAllDiagnostics() {
-    var verificationDiagnostics = CanVerifyStates.SelectMany(s =>
-      s.Value.Values.SelectMany(cvs =>
-        cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))
-          ));
     var genericDiagnostics = OldDiagnostics.AllDiagnostics.Concat(NewDiagnostics.AllDiagnostics);
-    return genericDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
+    return genericDiagnostics.Concat(GetErrorLimitDiagnostics());
   }
 
   private IEnumerable<FileDiagnostic> GetErrorLimitDiagnostics() {
@@ -256,7 +250,6 @@ public record IdeState(
     var verificationResult = new IdeCanVerifyState(PreparationProgress: preparationProgress,
       VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
-        Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
     return previousState with {
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
@@ -384,7 +377,6 @@ public record IdeState(
     return new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.NotStarted,
       VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
-        Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
       }));
   }
 
@@ -430,7 +422,6 @@ public record IdeState(
         k => {
           var previous = previousImplementations.GetValueOrDefault(Compilation.GetTaskName(k));
           return new IdeVerificationTaskState(range, PublishedVerificationStatus.Queued,
-            previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
             previous?.HitErrorLimit ?? false, k, new Stale());
         }));
     return previousState with {
@@ -449,7 +440,6 @@ public record IdeState(
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
     var previousView = previousImplementations.GetValueOrDefault(name);
-    var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
     var hitErrorLimit = previousView?.HitErrorLimit ?? false;
 
     var internalErrorDiagnostic = new Diagnostic {
@@ -457,11 +447,11 @@ public record IdeState(
       Severity = DiagnosticSeverity.Error,
       Range = range
     };
-    diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic }).ToList();
 
-    var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, diagnostics.ToList(), hitErrorLimit, boogieException.Task, new Stale());
+    var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, hitErrorLimit, boogieException.Task, new Stale());
 
     return previousState with {
+      NewDiagnostics = previousState.NewDiagnostics.Add(InternalExceptions.Instance, new [] { new FileDiagnostic(uri, internalErrorDiagnostic) }),
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
           VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
@@ -483,9 +473,7 @@ public record IdeState(
     var counterExamples = previousState.Counterexamples;
     bool hitErrorLimit = previousView?.HitErrorLimit ?? false;
     IVerificationStatus rawStatus = boogieUpdate.BoogieStatus;
-    var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
     if (boogieUpdate.BoogieStatus is Running) {
-      diagnostics = Array.Empty<Diagnostic>();
       hitErrorLimit = false;
     }
 
@@ -497,10 +485,10 @@ public record IdeState(
       counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
       logger.LogTrace(
-        $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics and #{completed.Result.CounterExamples.Count} counterexamples.");
+        $"Completed received for {previousState.Input} and found #{completed.Result.CounterExamples.Count} counterexamples.");
     }
 
-    var taskState = new IdeVerificationTaskState(range, status, diagnostics.ToList(),
+    var taskState = new IdeVerificationTaskState(range, status,
       hitErrorLimit, boogieUpdate.VerificationTask, rawStatus);
     var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
 
