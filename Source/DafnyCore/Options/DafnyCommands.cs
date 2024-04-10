@@ -48,7 +48,6 @@ public static class DafnyCommands {
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
-    CommonOptionBag.ShowInference,
     CommonOptionBag.ManualTriggerOption
   }.ToList();
 
@@ -103,6 +102,7 @@ public static class DafnyCommands {
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
+    CommonOptionBag.ShowHints,
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
