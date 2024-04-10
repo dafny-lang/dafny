@@ -31,8 +31,8 @@ public class CommonOptionBag {
       IsHidden = true
     };
 
-  public static readonly Option<bool> ShowInference =
-    new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
+  public static readonly Option<bool> ShowHints =
+    new("--show-hints", () => false, "Show hints that might help you better understand your code, such as what triggers Dafny generators for quantifiers") {
       IsHidden = true
     };
 
@@ -369,7 +369,7 @@ If verification fails, report a detailed counterexample for the first failing as
     });
 
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
-    DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
+    DafnyOptions.RegisterLegacyBinding(ShowHints, (options, value) => {
       options.PrintTooltips = value;
     });
 
@@ -595,7 +595,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       LogLocation,
       LogLevelOption,
       ManualTriggerOption,
-      ShowInference,
+      ShowHints,
       Check,
       Libraries,
       Output,
