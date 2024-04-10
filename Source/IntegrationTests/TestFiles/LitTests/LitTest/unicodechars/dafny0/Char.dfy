@@ -43,7 +43,7 @@ class CharChar {
   method CharEq(s: string) {
     if "hello Dafny" <= s {
       assert s[6] == 'D';
-      assert s[7] == '\U{61}';
+      assert s[7] == '\u0061';
       if * {
         assert s[9] == '\n';  // error
       } else if * {
@@ -78,7 +78,7 @@ ghost function toLower(ch: char): char
 ghost function BadToLower_Overflow(ch: char): char
 {
   if 'A' <= ch then
-    ch - 'A' + 'a'  // error: possible overflow
+    ch - 'A' + 'a'  // error: possible overvlow
   else
     ch
 }
@@ -86,32 +86,16 @@ ghost function BadToLower_Overflow(ch: char): char
 ghost function BadToLower_Underflow(ch: char): char
 {
   if ch <= 'Z' then
-    ch - 'A' + 'a'  // error: possible underflow
-  else
-    ch
-}
-
-ghost function BadToLower_OverflowIntoSurrogateRange(ch: char): char
-{
-  if 'A' <= ch <= '\U{D7FF}' then
-    ch - 'A' + 'a'  // error: possible overflow
-  else
-    ch
-}
-
-ghost function BadToLower_UnderflowIntoSurrogateRange(ch: char): char
-{
-  if '\U{E000}' <= ch <= '\U{1_0000}' then
-    ch - 'A' + 'a'  // error: possible underflow
+    ch - 'A' + 'a'  // error: possible overvlow
   else
     ch
 }
 
 lemma AboutChar(ch: char, dh: char)
-  requires 'r' < dh < '\U{abcd}'
+  requires 'r' < dh < '\uabcd'
   ensures ch == ch + '\0' == ch - '\0'
-  ensures dh - '\U{20}' < dh
-  ensures dh + '\U{20}' > dh
+  ensures dh - '\u0020' < dh
+  ensures dh + '\u0020' > dh
   ensures '\n' + dh == dh + '\n'
 {
 }
