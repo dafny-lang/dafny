@@ -115,7 +115,7 @@ public static class StringifyUtil {
     writer.Flush();
   }
 
-  public static string Stringify(this object root, bool showNullChildren = false) {
+  public static string Stringify(this object? root, bool showNullChildren = false) {
     var stringWriter = new StringWriter();
     Stringify(root, stringWriter, showNullChildren);
     return stringWriter.ToString();

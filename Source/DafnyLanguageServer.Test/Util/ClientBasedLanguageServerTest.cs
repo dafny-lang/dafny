@@ -212,10 +212,12 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
-    var result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
+    var result = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri);
     while (result == null) {
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      result = diagnosticsReceiver.GetLast(d => d.Uri == documentItem.Uri);
+      var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      if (diagnostics.Uri == documentItem.Uri) {
+        result = diagnostics;
+      }
       logger.LogInformation(
         $"GetLastDiagnosticsParams didn't find the right diagnostics after getting status {status}. Waited to get these diagnostics: {diagnostics.Stringify()}");
     }
