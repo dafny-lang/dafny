@@ -44,12 +44,13 @@ public record IdeState(
   public Uri Uri => Input.Uri.ToUri();
   public int Version => Input.Version;
 
-  public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
-    return diagnostics.Select(MarkDiagnosticAsOutdated);
-  }
-
-  private static Diagnostic MarkDiagnosticAsOutdated(Diagnostic diagnostic) {
+  private static Diagnostic? MarkDiagnosticAsOutdated(Migrator migrator, Diagnostic diagnostic) {
+    var newRange = migrator.MigrateRange(diagnostic.Range);
+    if (newRange == null) {
+      return null;
+    }
     return diagnostic with {
+      Range = newRange,
       Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
       Message = diagnostic.Message.StartsWith(OutdatedPrefix)
         ? diagnostic.Message
@@ -85,8 +86,7 @@ public record IdeState(
       ? CanVerifyStates
       : MigrateImplementationViews(migrator, CanVerifyStates);
 
-    var oldDiagnostics = PhaseTree.Empty().
-      Merge(NewDiagnostics, MigrateFileDiagnostic).
+    var oldDiagnostics = NewDiagnostics.UpdateState(MigrateFileDiagnostic).
       Merge(OldDiagnostics, MigrateFileDiagnostic);
     return this with {
       Input = Input with {
@@ -101,8 +101,14 @@ public record IdeState(
       VerificationTrees = migratedVerificationTrees
     };
 
-    FileDiagnostic MigrateFileDiagnostic(FileDiagnostic s) {
-      return s with { Diagnostic = MarkDiagnosticAsOutdated(s.Diagnostic) };
+    FileDiagnostic? MigrateFileDiagnostic(FileDiagnostic fileDiagnostic) {
+      var d = MarkDiagnosticAsOutdated(migrator, fileDiagnostic.Diagnostic);
+      if (d == null) {
+        return null;
+      }
+      return fileDiagnostic with {
+        Diagnostic = d
+      };
     }
   }
 
@@ -451,7 +457,7 @@ public record IdeState(
     var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, hitErrorLimit, boogieException.Task, new Stale());
 
     return previousState with {
-      NewDiagnostics = previousState.NewDiagnostics.Add(InternalExceptions.Instance, new [] { new FileDiagnostic(uri, internalErrorDiagnostic) }),
+      NewDiagnostics = previousState.NewDiagnostics.Add(InternalExceptions.Instance, new[] { new FileDiagnostic(uri, internalErrorDiagnostic) }),
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
           VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)

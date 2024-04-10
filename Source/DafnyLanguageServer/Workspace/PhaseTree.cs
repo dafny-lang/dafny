@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -20,7 +19,13 @@ public class PhaseTree {
     }
   }
 
-  public PhaseTree Merge(PhaseTree source, Func<FileDiagnostic, FileDiagnostic> updateDiagnostic) {
+  public PhaseTree UpdateState(Func<FileDiagnostic, FileDiagnostic?> updateDiagnostic) {
+    return new PhaseTree(Diagnostics.Select(updateDiagnostic).OfType<FileDiagnostic>().ToList(),
+      Children.ToImmutableDictionary(kv => kv.Key, kv => kv.Value.UpdateState(updateDiagnostic)));
+  }
+
+
+  public PhaseTree Merge(PhaseTree source, Func<FileDiagnostic, FileDiagnostic?> updateDiagnostic) {
     var newChildren = source.Children.Aggregate(Children,
       (newChildren, kv) => {
         if (kv.Key == IdeState.InternalExceptions.Instance) {
@@ -29,11 +34,11 @@ public class PhaseTree {
 
         if (newChildren.TryGetValue(kv.Key, out var existingChild)) {
           return newChildren.SetItem(kv.Key, existingChild.Merge(kv.Value, updateDiagnostic));
-        } else {
-          return newChildren.SetItem(kv.Key, kv.Value);
         }
+
+        return newChildren.SetItem(kv.Key, kv.Value.UpdateState(updateDiagnostic));
       });
-    return new PhaseTree(Diagnostics.Concat(source.Diagnostics.Select(updateDiagnostic)).ToList(), newChildren);
+    return new PhaseTree(Diagnostics.Concat(source.Diagnostics.Select(updateDiagnostic).OfType<FileDiagnostic>()).ToList(), newChildren);
   }
 
   public PhaseTree Add(IPhase phase, IReadOnlyList<FileDiagnostic> newDiagnostics) {
