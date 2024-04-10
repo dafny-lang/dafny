@@ -220,9 +220,7 @@ public class RecoverableUnsupportedFeatureException : UnsupportedFeatureExceptio
   }
 }
 
-public class RecoverableInvalidOperationException : InvalidOperationException {
-  public RecoverableInvalidOperationException(string why) : base(why + RecoverableUnsupportedFeatureException
-    .MessageSuffix) {
-
+public class UnsupportedInvalidOperationException : InvalidOperationException {
+  public UnsupportedInvalidOperationException(string why) : base(why) {
   }
 }

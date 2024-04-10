@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.Compilers {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported(why);
       } else {
-        throw new RecoverableInvalidOperationException(why);
+        throw new UnsupportedInvalidOperationException(why);
       }
     }
 
@@ -90,7 +90,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.TuplesWiderThan20,
       Feature.ForLoops,
       Feature.Traits,
-      Feature.RuntimeCoverageReport
+      Feature.RuntimeCoverageReport,
+      Feature.MultiDimensionalArrays
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
@@ -191,7 +192,7 @@ namespace Microsoft.Dafny.Compilers {
             if (emitUncompilableCode) {
               compileName += $"{why}";
             } else {
-              throw new RecoverableInvalidOperationException(why);
+              throw new UnsupportedInvalidOperationException(why);
             }
           }
 
@@ -388,7 +389,7 @@ namespace Microsoft.Dafny.Compilers {
             if (emitUncompilableCode) {
               compileName += $"({why})";
             } else {
-              throw new RecoverableInvalidOperationException(why);
+              throw new UnsupportedInvalidOperationException(why);
             }
           }
 
@@ -434,7 +435,7 @@ namespace Microsoft.Dafny.Compilers {
             if (compiler.emitUncompilableCode) {
               compileName += $"({why})";
             } else {
-              throw new RecoverableInvalidOperationException(why);
+              throw new UnsupportedInvalidOperationException(why);
             }
           }
 
@@ -702,7 +703,7 @@ namespace Microsoft.Dafny.Compilers {
             if (emitUncompilableCode) {
               this.AddUnsupported("<i>Initializer for arrow type</i>");
             } else {
-              throw new RecoverableInvalidOperationException("<i>Initializer for arrow type</i>");
+              throw new UnsupportedInvalidOperationException("<i>Initializer for arrow type</i>");
             }
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
@@ -983,7 +984,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new InvalidOperationException("<u>Unsupported <i>MultiSelectLValue</i></u>");
+      throw new UnsupportedFeatureException(ll.tok, Feature.MultiDimensionalArrays);
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {

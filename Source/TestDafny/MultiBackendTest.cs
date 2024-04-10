@@ -525,7 +525,7 @@ public class MultiBackendTest {
   }
 
   private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {
-    var prefixRecoverable = output.IndexOf(typeof(RecoverableInvalidOperationException).FullName!, StringComparison.Ordinal);
+    var prefixRecoverable = output.IndexOf(typeof(UnsupportedInvalidOperationException).FullName!, StringComparison.Ordinal);
     if (prefixRecoverable > 0) {
       return true;
     }
