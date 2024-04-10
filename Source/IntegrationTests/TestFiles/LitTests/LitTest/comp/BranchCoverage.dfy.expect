@@ -1,4 +1,4 @@
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
@@ -85,7 +85,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 39: 10
 40: 1
 41: 3
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
@@ -172,7 +172,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 39: 10
 40: 1
 41: 3
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
@@ -259,7 +259,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 39: 10
 40: 1
 41: 3
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
@@ -346,7 +346,7 @@ Dafny program verifier finished with 6 verified, 0 errors
 39: 10
 40: 1
 41: 3
-Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for a newer Dafny CLI format
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 6 verified, 0 errors
 0: BranchCoverage.dfy(20,21): entry to method _module._default.NeverCalled
