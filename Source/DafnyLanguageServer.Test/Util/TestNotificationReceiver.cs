@@ -28,10 +28,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       Assert.NotNull(request);
       logger.LogTrace($"Received {request.Stringify()}");
 
-      // The order here is important. It's OK to have something be in the history before it's in the queue
-      // But it's not OK for something not to be in history that's already available through the queue
-      notificationHistory.Add(request);
-      notifications.Enqueue(request);
+      lock (this) {
+        notificationHistory.Add(request);
+        notifications.Enqueue(request);
+      }
     }
 
     public bool HasPendingNotifications => notifications.Size != 0;
@@ -42,13 +42,14 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       notificationHistory.Clear();
     }
 
-    public TNotification? GetLast(Func<TNotification, bool> predicate) {
-      // The order here is important.
-      // It's not OK to remove items from the queue after getting the last item from history
-      while (notifications.Size > 0) {
-        _ = notifications.Dequeue(CancellationToken.None);
+    public TNotification? GetLatestAndClearQueue(Func<TNotification, bool> predicate) {
+      lock (this) {
+        while (notifications.Size > 0) {
+          _ = notifications.Dequeue(CancellationToken.None);
+        }
+
+        return History.LastOrDefault(predicate);
       }
-      return History.LastOrDefault(predicate);
     }
 
     public Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
