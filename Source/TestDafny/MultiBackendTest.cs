@@ -533,7 +533,7 @@ public class MultiBackendTest {
     if (prefixRecoverable > 0) {
       return true;
     }
-    
+
     using StringReader sr = new StringReader(output);
     if (output == "") {
       return false;

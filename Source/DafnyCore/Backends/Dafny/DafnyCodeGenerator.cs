@@ -1799,8 +1799,8 @@ namespace Microsoft.Dafny.Compilers {
     protected bool GetExprConverter(ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
       out BuilderSyntaxTree<ExprContainer> builder,
       out Func<Expression, DAST.Expression> converter) {
-      if (wr is BuilderSyntaxTree<ExprContainer> b && wStmts is BuilderSyntaxTree<StatementContainer> s) {
-        converter = (Expression expr) => ConvertExpression(expr, s);
+      if (wr is BuilderSyntaxTree<ExprContainer> b) {
+        converter = (Expression expr) => ConvertExpression(expr, wStmts);
         builder = b;
         return true;
       }
@@ -2520,7 +2520,8 @@ namespace Microsoft.Dafny.Compilers {
       //throw new InvalidOperationException();
     }
 
-    private DAST.Expression ConvertExpression(Expression term, BuilderSyntaxTree<StatementContainer> wStmt) {
+    // Normally wStmt is a BuilderSyntaxTree<StatementContainer> but it might not while the compiler is being developed
+    private DAST.Expression ConvertExpression(Expression term, ConcreteSyntaxTree wStmt) {
       var buffer0 = new ExprBuffer(null);
       EmitExpr(term, false, new BuilderSyntaxTree<ExprContainer>(buffer0, this), wStmt);
       return buffer0.Finish();
