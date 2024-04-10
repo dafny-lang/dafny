@@ -13,24 +13,6 @@ interface IDiagnosticsReporter {
   void NewDiagnostic(NewDiagnostic newDiagnostic);
 }
 
-class ImmediateDiagnosticsReporter : IDiagnosticsReporter {
-  private readonly Action<NewDiagnostic> processNewDiagnostic;
-
-  public ImmediateDiagnosticsReporter(Action<NewDiagnostic> processNewDiagnostic) {
-    this.processNewDiagnostic = processNewDiagnostic;
-  }
-
-  public void PhaseStart(IPhase phase) {
-  }
-
-  public void PhaseFinished(IPhase phase) {
-  }
-
-  public void NewDiagnostic(NewDiagnostic newDiagnostic) {
-    processNewDiagnostic(newDiagnostic);
-  }
-}
-
 /// <summary>
 /// Orders phases by their start time.
 /// Reports diagnostics only after all phases that come before the phase of this diagnostics, have finished.

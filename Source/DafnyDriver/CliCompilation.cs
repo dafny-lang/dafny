@@ -116,9 +116,7 @@ public class CliCompilation {
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
-    diagnosticsReporter =
-      new ImmediateDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
-    //new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
+    diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
