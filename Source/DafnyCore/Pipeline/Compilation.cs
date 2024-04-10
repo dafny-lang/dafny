@@ -407,7 +407,7 @@ public class Compilation : IDisposable {
 
         var batchReporter = new BatchErrorReporter(Options);
         var results = statuses.OfType<Completed>().ToList();
-        for(var index = 0; index < results.Count; index++) {
+        for (var index = 0; index < results.Count; index++) {
           var completed = results[index];
           var task = orderedVerificationTasks[index];
           ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, task.Token,
@@ -419,7 +419,7 @@ public class Compilation : IDisposable {
           errorReporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
             diagnostic.Message);
         }
-        
+
         updates.OnNext(new PhaseFinished(verificationOfSymbol));
       }
     }
