@@ -11,7 +11,6 @@ on:
   pull_request:
     branches: [ master, main-* ]
   merge_group:
-    branches: [ master, main-* ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
