@@ -210,7 +210,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
   }
 
-  public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
+  public async Task<PublishDiagnosticsParams> GetLatestDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
     var result = diagnosticsReceiver.GetLatestAndClearQueue(d => d.Uri == documentItem.Uri);
     while (result == null) {
@@ -226,7 +226,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning,
     CancellationToken? cancellationToken = null, bool allowStale = false) {
-    var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
+    var paramsResult = await GetLatestDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
     return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
 
