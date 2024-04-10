@@ -73,6 +73,7 @@ public partial class BoogieGenerator {
         N = i;
         break;
       }
+      // TODO: add e0, e1 to Expression lists es0, es1
       toks.Add(new NestedToken(tok, e1.tok));
       types0.Add(e0.Type.NormalizeExpand());
       types1.Add(e1.Type.NormalizeExpand());
@@ -84,6 +85,7 @@ public partial class BoogieGenerator {
     if (allowance != null) {
       decrExpr = BplOr(allowance, decrExpr);
     }
+    // TODO: pass in allowance (once it's in Dafny), es0, es1
     builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
   }
 
