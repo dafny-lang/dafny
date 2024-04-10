@@ -2,11 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.IO;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
@@ -158,25 +155,6 @@ public static class VerifyCommand {
     await output.WriteLineAsync();
     await output.FlushAsync();
   }
-
-  // TODO change this so CliCompilation emits NewDiagnostic
-  // public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {
-  //   verificationResults.Subscribe(result => {
-  //     // We use an intermediate reporter so we can sort the diagnostics from all parts by token
-  //     var batchReporter = new BatchErrorReporter(compilation.Options);
-  //     foreach (var completed in result.Results) {
-  //       Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
-  //         (uint)completed.Result.RunTime.Seconds,
-  //         completed.Result, batchReporter);
-  //     }
-  //
-  //     foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-  //       compilation.Compilation.Reporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-  //         diagnostic.Message);
-  //     }
-  //   });
-  // }
-
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {
