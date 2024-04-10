@@ -417,7 +417,6 @@ public class MultiBackendTest {
       await output.WriteLineAsync(diffMessage);
       return 1;
     }
-    await output.WriteLineAsync("Error is empty:" + (error == "") + ", outputString is empty:" + (outputString == ""));
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
     if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
