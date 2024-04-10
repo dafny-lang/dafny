@@ -533,18 +533,6 @@ public class Compilation : IDisposable {
     CancelPendingUpdates();
   }
 
-  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, ICanVerify canVerify,
-    IVerificationTask task, VerificationRunResult result) {
-    var errorReporter = new ObservableErrorReporter(options, uri);
-    List<DafnyDiagnostic> diagnostics = new();
-    errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
-
-    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
-      task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
-
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
-  }
-
   private static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
     uint timeLimit,
     VerificationRunResult result,
