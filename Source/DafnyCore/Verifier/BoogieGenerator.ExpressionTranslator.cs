@@ -2233,7 +2233,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               }
               break;
             case BinaryExpr.ResolvedOpcode.SetDifference:
-            case BinaryExpr.ResolvedOpcode.Union:
+            case BinaryExpr.ResolvedOpcode.Union: {
               var subset = Expression.CreateSubset(e.E1, e.E0);
               var equality = Expression.CreateEq(e.E0, Expression.CreateUnion(Expression.CreateSetDifference(e.E0, e.E1), e.E1), e.E0.Type);
               // B <= A ==> A == (A - B) + B
@@ -2245,12 +2245,16 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               // A!!B ==> (A - B) + (A * B) == A
               //return BplImp(TrExpr(disjoint), TrExpr(Expression.CreateEq(Expression.CreateUnion(difference, intersection), e.E0, e.E0.Type)));
               // (A - B) + (A * B) == A
-              return BplAnd(s0, TrExpr(Expression.CreateEq(Expression.CreateUnion(difference, intersection), e.E0, e.E0.Type)));
+              var r = BplAnd(BplAnd(t0, t1), BplAnd(s0, TrExpr(Expression.CreateEq(Expression.CreateUnion(difference, intersection), e.E0, e.E0.Type))));
+              return BplAnd(BplAnd(t0, t1), r);
+            }
             case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+            case BinaryExpr.ResolvedOpcode.MultiSetUnion: {
               //(A - B) + (A * B) == A
-              return TrExpr(Expression.CreateEq(e.E0, Expression.CreateMultisetUnion(Expression.CreateMultisetDifference(e.E0, e.E1), Expression.CreateMultisetIntersection(e.E0, e.E1)), e.E0.Type));
-            case BinaryExpr.ResolvedOpcode.Concat:
+              var r = TrExpr(Expression.CreateEq(e.E0, Expression.CreateMultisetUnion(Expression.CreateMultisetDifference(e.E0, e.E1), Expression.CreateMultisetIntersection(e.E0, e.E1)), e.E0.Type));
+              return BplAnd(BplAnd(t0, t1), r);
+            }
+            case BinaryExpr.ResolvedOpcode.Concat: {
               // (a+b)[..|a|] == a
               var seqsel0 = new SeqSelectExpr(e.tok, false, e, null,
                 Expression.CreateCardinality(e.E0, null), null);
@@ -2259,17 +2263,20 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               var seqsel1 = new SeqSelectExpr(e.tok, false, e,
                 Expression.CreateCardinality(e.E0, null), null, null);
               seqsel1.Type = e.Type;
-              return BplAnd(TrExpr(Expression.CreateEq(seqsel0, e.E0, e.E0.Type)), TrExpr(Expression.CreateEq(seqsel1, e.E1, e.E0.Type)));
+              var r = BplAnd(TrExpr(Expression.CreateEq(seqsel0, e.E0, e.E0.Type)), TrExpr(Expression.CreateEq(seqsel1, e.E1, e.E0.Type)));
+              return BplAnd(BplAnd(t0, t1), r);
+            }
             case BinaryExpr.ResolvedOpcode.MapMerge:
               if(!(e.E0.Type.IsIMapType && e.E1.Type.IsIMapType)) {
-                // (A.keys !! B.keys) ==> A == A + B - B.keys && B == A+B - A.keys 
+                // (A.keys !! B.keys) ==> A == A + B - B.keys && B == A+B - A.keys
                 var keys = (Field)(BoogieGenerator.systemModuleManager.getMap()).Members.Find(member => member.Name == "Keys");
                 Contract.Assert(keys != null); //we expect that map has Keys field
                 var disjoint2 = Expression.CreateDisjoint(Expression.CreateResolvedFieldSelect(e.tok, e.E0, keys), Expression.CreateResolvedFieldSelect(e.tok, e.E1, keys));
                 var eq1 = Expression.CreateEq(e.E0, Expression.CreateMapSubtract(e, Expression.CreateResolvedFieldSelect(e.tok, e.E1, keys)), e.E0.Type);
                 var eq2 = Expression.CreateEq(e.E1, Expression.CreateMapSubtract(e, Expression.CreateResolvedFieldSelect(e.tok, e.E0, keys)), e.E0.Type);
 
-                return BplImp(TrExpr(disjoint2), BplAnd(TrExpr(eq1), TrExpr(eq2)));
+                var r = BplImp(TrExpr(disjoint2), BplAnd(TrExpr(eq1), TrExpr(eq2)));
+                return BplAnd(BplAnd(t0, t1), r);
               }
               break;
             default:
