@@ -496,10 +496,10 @@ public record IdeState(
 
       counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
-      var newDiagnostics =
-        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.CanVerify,
-          boogieUpdate.VerificationTask, completed.Result);
-      diagnostics = newDiagnostics.Select(d => d.ToLspDiagnostic()).ToList();
+      // var newDiagnostics =
+      //   Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.CanVerify,
+      //     boogieUpdate.VerificationTask, completed.Result);
+      // diagnostics = newDiagnostics.Select(d => d.ToLspDiagnostic()).ToList();
       logger.LogTrace(
         $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics and #{completed.Result.CounterExamples.Count} counterexamples.");
     }

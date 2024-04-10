@@ -316,6 +316,10 @@ public class Compilation : IDisposable {
   private async Task VerifyUnverifiedSymbol(ICanVerify canVerify,
     ResolutionResult resolution, Func<IVerificationTask, bool>? taskFilter, int? randomSeed) {
 
+    var verificationOfSymbol = new VerificationOfSymbol(canVerify);
+    if (taskFilter == null) {
+      updates.OnNext(new PhaseStarted(verificationOfSymbol));
+    }
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -361,11 +365,8 @@ public class Compilation : IDisposable {
 
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
-      var verificationOfSymbol = new VerificationOfSymbol(canVerify);
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
-      if (taskFilter == null) {
-        updates.OnNext(new PhaseStarted(verificationOfSymbol));
-      }
+      var orderedVerificationTasks = new List<IVerificationTask>();
       foreach (var scope in verificationTaskPerScope) {
         var tasksForScope = new List<Task<IVerificationStatus>>();
         var scopeVerificationTasks = scope.ToList();
@@ -374,6 +375,7 @@ public class Compilation : IDisposable {
           var task = VerifyTask(canVerify, seededTask);
           tasksForScope.Add(task);
           tasksForSymbol.Add(task);
+          orderedVerificationTasks.Add(verificationTask);
         }
 
         _ = HandleScopeFinishedVerification();
@@ -403,6 +405,21 @@ public class Compilation : IDisposable {
           return;
         }
 
+        var batchReporter = new BatchErrorReporter(Options);
+        var results = statuses.OfType<Completed>().ToList();
+        for(var index = 0; index < results.Count; index++) {
+          var completed = results[index];
+          var task = orderedVerificationTasks[index];
+          ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, task.Token,
+            (uint)completed.Result.RunTime.Seconds,
+            completed.Result, batchReporter);
+        }
+
+        foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+          errorReporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+            diagnostic.Message);
+        }
+        
         updates.OnNext(new PhaseFinished(verificationOfSymbol));
       }
     }
@@ -528,7 +545,7 @@ public class Compilation : IDisposable {
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
   }
 
-  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+  private static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
     uint timeLimit,
     VerificationRunResult result,
     ErrorReporter errorReporter) {

@@ -60,7 +60,6 @@ public static class VerifyCommand {
     if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
-      ReportVerificationDiagnostics(compilation, verificationResults);
       var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
       ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
@@ -161,22 +160,22 @@ public static class VerifyCommand {
   }
 
   // TODO change this so CliCompilation emits NewDiagnostic
-  public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {
-    verificationResults.Subscribe(result => {
-      // We use an intermediate reporter so we can sort the diagnostics from all parts by token
-      var batchReporter = new BatchErrorReporter(compilation.Options);
-      foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
-          (uint)completed.Result.RunTime.Seconds,
-          completed.Result, batchReporter);
-      }
-
-      foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-        compilation.Compilation.Reporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-          diagnostic.Message);
-      }
-    });
-  }
+  // public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {
+  //   verificationResults.Subscribe(result => {
+  //     // We use an intermediate reporter so we can sort the diagnostics from all parts by token
+  //     var batchReporter = new BatchErrorReporter(compilation.Options);
+  //     foreach (var completed in result.Results) {
+  //       Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
+  //         (uint)completed.Result.RunTime.Seconds,
+  //         completed.Result, batchReporter);
+  //     }
+  //
+  //     foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+  //       compilation.Compilation.Reporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+  //         diagnostic.Message);
+  //     }
+  //   });
+  // }
 
 
   public static async Task LogVerificationResults(CliCompilation cliCompilation, ResolutionResult resolution,
