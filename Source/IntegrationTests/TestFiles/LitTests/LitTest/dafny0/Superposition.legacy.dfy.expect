@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 Superposition.legacy.dfy(38,9): Warning: the ... refinement feature in statements is deprecated
 
 Verifying M0.C.M (correctness) ...
