@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --show-inference "%s" > "%t"
+// RUN: %exits-with 2 %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // resolution errors
