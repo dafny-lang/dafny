@@ -740,6 +740,9 @@ namespace Microsoft.Dafny.Compilers {
             DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
           container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass)));
         } else {
+          if (type.AsTopLevelTypeWithMembers == null) {
+            throw new UnsupportedFeatureException(tok, Feature.RunAllTests);
+          }
           container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
         }
       } else {
