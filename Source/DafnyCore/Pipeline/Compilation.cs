@@ -416,7 +416,7 @@ public class Compilation : IDisposable {
         }
 
         foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-          errorReporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+          errorReporter.Message(verificationOfSymbol, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
             diagnostic.Message);
         }
 
