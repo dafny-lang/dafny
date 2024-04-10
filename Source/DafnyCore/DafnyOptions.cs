@@ -481,7 +481,7 @@ namespace Microsoft.Dafny {
       return base.ParseOption(name, ps);
     }
 
-    public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
+    public override string Help => "Use 'dafny --help' to see help for the new Dafny CLI format.\n" +
       LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
