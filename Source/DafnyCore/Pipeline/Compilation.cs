@@ -161,15 +161,11 @@ public class Compilation : IDisposable {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
         var targetSpecificFile = await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken);
-        if (targetSpecificFile != null) {
-          result.Add(targetSpecificFile);
-        }
+        result.Add(targetSpecificFile);
       }
 
       var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
-      if (file != null) {
-        result.Add(file);
-      }
+      result.Add(file);
     }
 
     string? unverifiedLibrary = null;
@@ -189,9 +185,8 @@ public class Compilation : IDisposable {
     if (unverifiedLibrary != null) {
       errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
         $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. " +
-        $"Verification previously done for that file might not be sufficient, " +
-        $"because it might have used options incompatible with the current ones. " +
-        $"Use a .doo file to enable Dafny to check that compatible options were used");
+        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
+        $"Use a .doo file to enable Dafny to check that verification was done using compatible options");
     }
 
     var projectPath = Project.Uri.LocalPath;
