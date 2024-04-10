@@ -740,7 +740,7 @@ namespace Microsoft.Dafny.Compilers {
             DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
           container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass)));
         } else {
-          if (type.AsTopLevelTypeWithMembers == null) {
+          if (type.AsTopLevelTypeWithMembers == null) { // git-issues/git-issue-697g.dfy while iterating over "nat"
             throw new UnsupportedFeatureException(tok, Feature.RunAllTests);
           }
           container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
@@ -2473,6 +2473,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       if (GetStatementBuilder(wr, out var builder)) {
         var eType = e.Type.AsSetType;
+        if (eType == null) {// dafny0/GeneralNewtypeCollections
+          throw new UnsupportedFeatureException(e.tok, Feature.NonNativeNewtypes);
+        }
         var elemType = GenType(eType.Arg);
         var setBuilderType = DAST.Type.create_SetBuilder(elemType);
         builder.Builder.AddStatement(
