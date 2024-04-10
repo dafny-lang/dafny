@@ -20,7 +20,7 @@ import ntpath
 # Configuration
 
 Z3_VERSIONS = [ "4.12.1", "4.12.6" ]
-Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-09"
+Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10"
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
