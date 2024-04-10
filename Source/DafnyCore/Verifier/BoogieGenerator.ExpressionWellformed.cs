@@ -782,21 +782,14 @@ namespace Microsoft.Dafny {
                     List<Expression> contextDecreases = codeContext.Decreases.Expressions;
                     List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
                     if (e.Function == wfOptions.SelfCallsAllowance) {
-                      //allowance = Bpl.Expr.True;
                       allowanceInDafny = Expression.CreateBoolLiteral(e.tok, true);
                       if (!e.Function.IsStatic) {
-                        //allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
                         allowanceInDafny = Expression.CreateAnd(allowanceInDafny, Expression.CreateEq(e.Receiver, new ThisExpr(e.Function), e.Receiver.Type));
                       }
                       for (int i = 0; i < e.Args.Count; i++) {
                         Expression ee = e.Args[i];
                         Formal ff = e.Function.Formals[i];
-                        //allowance = BplAnd(allowance,
-                        //  Bpl.Expr.Eq(etran.TrExpr(ee),
-                        //    new Bpl.IdentifierExpr(e.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), TrType(ff.Type))));
-                        //Expression freshExpr = new IdentifierExpr(ff.tok, new Formal(ff.tok, ff.AssignUniqueName(currentDeclaration.IdGenerator), ff.Type, ff.InParam, ff.IsGhost, ff.DefaultValue, ff.Attributes, ff.IsOld, ff.IsNameOnly, ff.IsOlder, ff.NameForCompilation));
-                        //allowanceInDafny = Expression.CreateAnd(allowanceInDafny,
-                        //  Expression.CreateEq(ee, freshExpr, ff.Type));
+                        allowanceInDafny = Expression.CreateAnd(allowanceInDafny, Expression.CreateEq(ee, Expression.CreateIdentExpr(ff), ff.Type));
                       }
 
                       allowance = etran.TrExpr(allowanceInDafny);
