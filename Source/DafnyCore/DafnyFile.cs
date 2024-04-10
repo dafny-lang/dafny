@@ -108,7 +108,7 @@ public class DafnyFile {
           throw new Exception($"Cannot find embedded resource: {resourceName}");
         }
 
-        dooFile = DooFile.Read(stream);
+        dooFile = await DooFile.Read(stream);
       } else {
         if (!fileSystem.Exists(uri)) {
           reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
@@ -116,7 +116,7 @@ public class DafnyFile {
         }
 
         try {
-          dooFile = DooFile.Read(filePath);
+          dooFile = await DooFile.Read(filePath);
         } catch (InvalidDataException) {
           reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
           return null;
