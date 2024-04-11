@@ -33,16 +33,15 @@ public partial class BoogieGenerator {
   ///     allowance || (calleeDecreases LESS contextDecreases).
   /// </summary>
   void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
-                            Bpl.Expr allowance,
+                            Expression allowance,
                             Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
                             Dictionary<TypeParameter, Type> typeMap,
-                            ExpressionTranslator etranCurrent, ExpressionTranslator etranInitial, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
+                            ExpressionTranslator etranCurrent, bool oldCaller, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(contextDecreases));
     Contract.Requires(cce.NonNullElements(calleeDecreases));
     Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
     Contract.Requires(etranCurrent != null);
-    Contract.Requires(etranInitial != null);
     Contract.Requires(builder != null);
 
     // The interpretation of the given decreases-clause expression tuples is as a lexicographic tuple, extended into
@@ -69,6 +68,9 @@ public partial class BoogieGenerator {
     for (int i = 0; i < N; i++) {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
       Expression e1 = contextDecreases[i];
+      if (oldCaller) {
+        e1 = new OldExpr(e1.tok, e1);
+      }
       if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
         N = i;
         break;
@@ -78,14 +80,14 @@ public partial class BoogieGenerator {
       types0.Add(e0.Type.NormalizeExpand());
       types1.Add(e1.Type.NormalizeExpand());
       callee.Add(etranCurrent.TrExpr(e0));
-      caller.Add(etranInitial.TrExpr(e1));
+      caller.Add(etranCurrent.TrExpr(e1));
     }
     bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
     Bpl.Expr decrExpr = DecreasesCheck(toks, types0, types1, callee, caller, builder, "", endsWithWinningTopComparison, false);
     if (allowance != null) {
-      decrExpr = BplOr(allowance, decrExpr);
+      decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
-    // TODO: pass in allowance (once it's in Dafny), es0, es1
+    // TODO: pass in allowance, es0, es1
     builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
   }
 
