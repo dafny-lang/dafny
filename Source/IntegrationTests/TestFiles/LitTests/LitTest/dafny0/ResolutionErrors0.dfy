@@ -126,7 +126,7 @@ module HereAreMoreGhostTests {
         case Cons(dd, tt, gg) =>
           r := G(dd, dd);  // fine
           r := G(dd, gg);  // fine
-          r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
+
       }
       var dd;
       dd := GhostDt.Nil(g);  // fine
@@ -514,3 +514,25 @@ module MiscAgain {
                         // ghost -- and rightly so, since an assume is used
   }
 }  // MiscAgain
+
+// ----- One more phase of HereAreMoreGhostTests from above
+
+module HereAreMoreGhostTests' {
+  datatype GhostDt =
+    Nil(ghost extraInfo: int) |
+    Cons(data: int, tail: GhostDt, ghost moreInfo: int)
+
+  class GhostTests {
+    method M(dt: GhostDt) returns (r: int) {
+      ghost var g := 5;
+      match (dt) {
+        case Nil(gg) =>
+        case Cons(dd, tt, gg) =>
+          r := G(dd, dd);  // fine
+          r := G(dd, gg);  // fine
+          r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
+      }
+    }
+    function G(x: int, ghost y: int): int
+  }
+} // HereAreMoreGhostTests'
