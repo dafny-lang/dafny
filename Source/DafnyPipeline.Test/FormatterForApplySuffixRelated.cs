@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForApplySuffixRelated")]
 public class FormatterForApplySuffixRelated : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForArguments() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForArguments() {
+    await FormatterWorksFor(@"
 method Test()
 {
   me(func(arg(5,

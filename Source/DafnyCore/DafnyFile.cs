@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Threading.Tasks;
 using DafnyCore;
 using JetBrains.Annotations;
 
@@ -29,12 +31,12 @@ public class DafnyFile {
     return externalUri;
   }
 
-  public static DafnyFile CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
+  public static async Task<DafnyFile> CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
     DafnyOptions options, Uri uri, IToken origin, string errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
-      var result = CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
+      var result = await CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
       if (result != null) {
         result.Uri = uri;
       }
@@ -106,7 +108,7 @@ public class DafnyFile {
           throw new Exception($"Cannot find embedded resource: {resourceName}");
         }
 
-        dooFile = DooFile.Read(stream);
+        dooFile = await DooFile.Read(stream);
       } else {
         if (!fileSystem.Exists(uri)) {
           reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
@@ -114,7 +116,7 @@ public class DafnyFile {
         }
 
         try {
-          dooFile = DooFile.Read(filePath);
+          dooFile = await DooFile.Read(filePath);
         } catch (InvalidDataException) {
           reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
           return null;
