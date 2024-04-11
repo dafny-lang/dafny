@@ -44,9 +44,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
 
     public TNotification? GetLatestAndClearQueue(Func<TNotification, bool> predicate) {
       lock (this) {
-while (notifications.Size > 0) {
-  _ = notifications.Dequeue(CancellationToken.None);
-}
+        while (notifications.Size > 0) {
+          _ = notifications.Dequeue(CancellationToken.None);
+        }
 
         return History.LastOrDefault(predicate);
       }
