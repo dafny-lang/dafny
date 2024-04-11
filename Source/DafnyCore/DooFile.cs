@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
@@ -69,24 +70,25 @@ public class DooFile {
   // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
-  public static DooFile Read(string path) {
+  public static Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     return Read(archive);
   }
 
-  public static DooFile Read(Stream stream) {
+  public static Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
     return Read(archive);
   }
 
-  private static DooFile Read(ZipArchive archive) {
+  private static async Task<DooFile> Read(ZipArchive archive) {
     var result = new DooFile();
 
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
-    using (var manifestStream = manifestEntry.Open()) {
+
+    await using (var manifestStream = manifestEntry.Open()) {
       result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
@@ -94,9 +96,10 @@ public class DooFile {
     if (programTextEntry == null) {
       throw new ArgumentException(".doo file missing program text entry");
     }
-    using (var programTextStream = programTextEntry.Open()) {
+
+    await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = reader.ReadToEnd();
+      result.ProgramText = await reader.ReadToEndAsync();
     }
 
     return result;

@@ -30,8 +30,8 @@ public class DiagnosticsReceiver : TestNotificationReceiver<PublishDiagnosticsPa
     return result.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToArray();
   }
 
-  public Diagnostic[] GetLast(TextDocumentIdentifier document, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
-    var last = GetLast(d => d.Uri == document.Uri);
+  public Diagnostic[] GetLatestAndClearQueue(TextDocumentIdentifier document, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning) {
+    var last = GetLatestAndClearQueue(d => d.Uri == document.Uri);
     return last.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
 
