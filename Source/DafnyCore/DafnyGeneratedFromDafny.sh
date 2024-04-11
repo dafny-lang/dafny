@@ -30,12 +30,20 @@ fi
 ../../Scripts/dafny translate cs dfyconfig.toml --output $output.cs $noverify
 
 # We will remove all the namespaces Std.* except Std.Wrappers
+# Also, we will replace every Dafny.HaltException("Backends\\Rust\\ by Dafny.HaltException("Backends/Rust/
+# to ensure the source is built the same on linux
+# It requires 16 backslashes for escaping because
+# - 2 as there are two backslashes
+# - 2 as it's a bash string
+# - 2 as it's a python string
+# - 2 as it's an escaped backslash
 python3 -c "
 import re
 with open ('$output.cs', 'r' ) as f:
   content = f.read()
   content_trimmed = re.sub('\\[assembly[\\s\\S]*?(?=namespace Formatting)|namespace\\s+\\w+\\s*\\{\\s*\\}\\s*//.*|_\\d_', '', content, flags = re.M)
   content_new = re.sub('\\r?\\nnamespace\\s+(Std\\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\\S+)\\s*\\{[\\s\\S]*?\\}\\s*// end of namespace \\\\1', '', content_trimmed, flags = re.M)
+  content_new = re.sub('Backends\\\\\\\\\\\\\\\\Rust\\\\\\\\\\\\\\\\', 'Backends/Rust/', content_new, flags = re.M)
 
 with open('$output.cs', 'w') as w:
   w.write(content_new)
