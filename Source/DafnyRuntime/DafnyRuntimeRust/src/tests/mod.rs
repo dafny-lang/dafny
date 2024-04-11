@@ -193,39 +193,5 @@ mod tests {
         assert_eq!(m_4b.cardinality_usize(), 4);
         assert_eq!(m_4b.contains(&3), false)
     }
-
-    enum Test {
-        A {
-            i: DafnyInt,
-            j: DafnyChar,
-            k: *mut ClassType,
-            l: dafny_runtime::set<i32>,
-        },
-        B {
-            b: bool,
-        },
-        C {
-            head: Rc<Test>,
-            tw: Rc<TestWrapper>,
-        },
-    }
-    enum TestWrapper {
-        T { t: Rc<Test> },
-    }
-    impl TestWrapper {
-        fn t(&self) -> Rc<Test> {
-            match self {
-                TestWrapper::T { t } => t.clone(),
-            }
-        }
-    }
-    fn Read(tw: &Rc<TestWrapper>) {
-        let mut t = &tw.t();
-        Handle(&t); // Error. Dafny wrongly believes that Handle will take a &Rc<Test>
-        print!("{}", t);
-    }
-
-    // And in another external module
-    fn Handle(t: Box<TestWrapper>);
 }
 // Struct containing two reference-counted fields

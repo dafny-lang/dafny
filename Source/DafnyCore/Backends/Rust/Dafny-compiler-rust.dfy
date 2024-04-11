@@ -347,7 +347,7 @@ module RAST
   datatype MatchCase =
     MatchCase(pattern: Pattern, rhs: Expr)
   {
-    function Height(): nat {
+    ghost function Height(): nat {
       1 + rhs.Height()
     }
     function ToString(ind: string): string
@@ -365,7 +365,7 @@ module RAST
   datatype AssignIdentifier =
     AssignIdentifier(identifier: string, rhs: Expr)
   {
-    function Height(): nat {
+    ghost function Height(): nat {
       1 + rhs.Height()
     }
 
@@ -471,6 +471,16 @@ module RAST
       DeclareVar? || AssignVar? || Break? || Continue? || Return? ||
       (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
     }
+    static method TestNoExtraSemicolonAfter() {
+      expect RawExpr(";").NoExtraSemicolonAfter();
+      expect !RawExpr("a").NoExtraSemicolonAfter();
+      expect Return(None).NoExtraSemicolonAfter();
+      expect Continue(None).NoExtraSemicolonAfter();
+      expect Break(None).NoExtraSemicolonAfter();
+      expect AssignVar("x", Identifier("y")).NoExtraSemicolonAfter();
+      expect DeclareVar(MUT, "x", None, None).NoExtraSemicolonAfter();
+      expect !Identifier("x").NoExtraSemicolonAfter();
+    }
     // Taken from https://doc.rust-lang.org/reference/expressions.html
     const printingInfo: PrintingInfo :=
       match this {
@@ -512,7 +522,61 @@ module RAST
         case _ => UnknownPrecedence()
       }
 
-    function Height(): nat {
+    static method TestPrintingInfo() {
+      var x := Identifier("x");
+      var y := Identifier("y");
+      var bnf := BinaryOpFormat.NoFormat;
+      expect RawExpr("x").printingInfo.UnknownPrecedence?;
+      expect x.printingInfo == Precedence(1);
+      expect LiteralInt("3").printingInfo == Precedence(1);
+      expect LiteralString("abc", true).printingInfo == Precedence(1);
+      expect UnaryOp("?", x, UnaryOpFormat.NoFormat).printingInfo == SuffixPrecedence(5);
+      expect UnaryOp("-", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6);
+      expect UnaryOp("*", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6);
+      expect UnaryOp("!", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6);
+      expect UnaryOp("&", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6);
+      expect UnaryOp("&mut", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6);
+      expect UnaryOp("!!", x, UnaryOpFormat.NoFormat).printingInfo == UnknownPrecedence();
+      expect Select(x, "name").printingInfo == PrecedenceAssociativity(2, LeftToRight);
+      expect MemberSelect(x, "name").printingInfo == PrecedenceAssociativity(2, LeftToRight);
+      expect Call(x, [], []).printingInfo == PrecedenceAssociativity(2, LeftToRight);
+      expect TypeAscription(x, I128).printingInfo == PrecedenceAssociativity(10, LeftToRight);
+      expect BinaryOp("*", x, y, bnf).printingInfo == PrecedenceAssociativity(20, LeftToRight);
+      expect BinaryOp("/", x, y, bnf).printingInfo == PrecedenceAssociativity(20, LeftToRight);
+      expect BinaryOp("%", x, y, bnf).printingInfo == PrecedenceAssociativity(20, LeftToRight);
+      expect BinaryOp("+", x, y, bnf).printingInfo == PrecedenceAssociativity(30, LeftToRight);
+      expect BinaryOp("-", x, y, bnf).printingInfo == PrecedenceAssociativity(30, LeftToRight);
+      expect BinaryOp("<<", x, y, bnf).printingInfo == PrecedenceAssociativity(40, LeftToRight);
+      expect BinaryOp(">>", x, y, bnf).printingInfo == PrecedenceAssociativity(40, LeftToRight);
+      expect BinaryOp("&", x, y, bnf).printingInfo == PrecedenceAssociativity(50, LeftToRight);
+      expect BinaryOp("^", x, y, bnf).printingInfo == PrecedenceAssociativity(60, LeftToRight);
+      expect BinaryOp("|", x, y, bnf).printingInfo == PrecedenceAssociativity(70, LeftToRight);
+      expect BinaryOp("==", x, y, bnf).printingInfo == PrecedenceAssociativity(80, RequiresParentheses);
+      expect BinaryOp("!=", x, y, bnf).printingInfo == PrecedenceAssociativity(80, RequiresParentheses);
+      expect BinaryOp("<", x, y, bnf).printingInfo == PrecedenceAssociativity(80, RequiresParentheses);
+      expect BinaryOp(">", x, y, bnf).printingInfo == PrecedenceAssociativity(80, RequiresParentheses);
+      expect BinaryOp("<=", x, y, bnf).printingInfo == PrecedenceAssociativity(80, RequiresParentheses);
+      expect BinaryOp(">=", x, y, bnf).printingInfo == PrecedenceAssociativity(80, RequiresParentheses);
+      expect BinaryOp("&&", x, y, bnf).printingInfo == PrecedenceAssociativity(90, LeftToRight);
+      expect BinaryOp("||", x, y, bnf).printingInfo == PrecedenceAssociativity(100, LeftToRight);
+      expect BinaryOp("..", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RequiresParentheses);
+      expect BinaryOp("..=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RequiresParentheses);
+      expect BinaryOp("=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("+=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("-=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("*=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("/=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("%=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("&=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("|=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("^=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("<<=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp(">>=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft);
+      expect BinaryOp("?!?", x, y, bnf).printingInfo == PrecedenceAssociativity(0, RequiresParentheses);
+      expect Break(None).printingInfo == UnknownPrecedence();
+    }
+
+    ghost function Height(): nat {
       match this {
         case Identifier(_) => 1
         case LiteralInt(_) => 1
@@ -647,6 +711,43 @@ module RAST
             this
         case _ => this
       }
+    }
+
+    static method TestNoOptimize(e: Expr) {
+      expect e.Optimize() == e;
+    }
+
+    static method TestOptimize() {
+      var x := Identifier("x");
+      var y := Identifier("y");
+      expect UnaryOp("&", Call(Select(x, "clone"), [], []), UnaryOpFormat.NoFormat).Optimize()
+        == UnaryOp("&", x, UnaryOpFormat.NoFormat);
+      TestNoOptimize(UnaryOp("&", Call(Select(x, "clone"), [], [y]), UnaryOpFormat.NoFormat));
+      expect UnaryOp("!", BinaryOp("==", x, y, BinaryOpFormat.NoFormat),
+          CombineFormat()).Optimize() == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat);
+      expect UnaryOp("!", BinaryOp("<", x, y, BinaryOpFormat.NoFormat),
+          CombineFormat()).Optimize() == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat());
+      expect UnaryOp("!", BinaryOp("<", x, y, ReverseFormat()),
+          CombineFormat()).Optimize() == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat());
+      expect ConversionNum(I128, Call(MemberSelect(
+                MemberSelect(MemberSelect(
+                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralInt("1")])).Optimize()
+             == LiteralInt("/*optimized*/1");
+      expect ConversionNum(I128, Call(MemberSelect(
+                MemberSelect(MemberSelect(
+                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralString("1", false)])).Optimize()
+             == LiteralInt("/*optimized*/1");
+      TestNoOptimize(ConversionNum(I128, Call(MemberSelect(
+                MemberSelect(MemberSelect(
+                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [x])).Optimize());
+      TestNoOptimize(ConversionNum(I128, Call(MemberSelect(
+                MemberSelect(MemberSelect(
+                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralInt("1"), LiteralInt("2")])).Optimize());
+      TestNoOptimize(ConversionNum(I128, x));
+      expect StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))).Optimize()
+             == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return"));
+      TestNoOptimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("w", y), RawExpr("return"))));
+      TestNoOptimize(x);
     }
 
     predicate LeftRequiresParentheses(left: Expr) {
@@ -829,6 +930,12 @@ module RAST
     function Apply1(argument: Expr): Expr {
       Call(this, [], [argument])
     }
+
+    static method TestExpr() {
+      TestOptimize();
+      TestPrintingInfo();
+      TestNoExtraSemicolonAfter();
+    }
   }
 
   const global := Identifier("")
@@ -885,8 +992,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   const IND := R.IND
   type Type = DAST.Type
   type Formal = DAST.Formal
-
-  const UnicodeChars: bool
 
   // List taken from https://doc.rust-lang.org/book/appendix-01-keywords.html
   const reserved_rust := {
