@@ -11,12 +11,9 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.CodeAnalysis;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
-using Diagnostic = OmniSharp.Extensions.LanguageServer.Protocol.Models.Diagnostic;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -45,8 +42,6 @@ public class Compilation : IDisposable {
   public bool Started => started.Task.IsCompleted;
 
   private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> staticDiagnostics = new();
-  public DafnyDiagnostic[] GetDiagnosticsForUri(Uri uri) =>
-    staticDiagnostics.TryGetValue(uri, out var forUri) ? forUri.ToArray() : Array.Empty<DafnyDiagnostic>();
 
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
@@ -72,12 +67,12 @@ public class Compilation : IDisposable {
   private bool disposed;
   private readonly ObservableErrorReporter errorReporter;
 
-  public Task<Program> ParsedProgram { get; }
-  public Task<ResolutionResult> Resolution { get; }
+  public Task<Program?> ParsedProgram { get; }
+  public Task<ResolutionResult?> Resolution { get; }
 
   public ErrorReporter Reporter => errorReporter;
 
-  public IReadOnlyList<DafnyFile>? RootFiles { get; set; }
+  public Task<IReadOnlyList<DafnyFile>> RootFiles { get; set; }
   public bool HasErrors { get; private set; }
 
   public Compilation(
@@ -110,6 +105,7 @@ public class Compilation : IDisposable {
 
     verificationTickets.Enqueue(Unit.Default);
 
+    RootFiles = DetermineRootFiles();
     ParsedProgram = ParseAsync();
     Resolution = ResolveAsync();
   }
@@ -120,22 +116,26 @@ public class Compilation : IDisposable {
     }
 
     Project.Errors.CopyDiagnostics(errorReporter);
-    RootFiles = DetermineRootFiles();
 
-    updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopy()));
     started.TrySetResult();
   }
 
-  private ImmutableDictionary<Uri, ImmutableList<Diagnostic>> GetDiagnosticsCopy() {
-    return staticDiagnostics.ToImmutableDictionary(k => k.Key,
-      kv => kv.Value.Select(d => d.ToLspDiagnostic()).ToImmutableList());
+  private ImmutableList<FileDiagnostic> GetDiagnosticsCopyAndClear() {
+    var result = staticDiagnostics.SelectMany(k =>
+      k.Value.Select(v => new FileDiagnostic(k.Key, v.ToLspDiagnostic()))).ToImmutableList();
+    staticDiagnostics.Clear();
+    return result;
   }
 
-  private IReadOnlyList<DafnyFile> DetermineRootFiles() {
+
+
+  private async Task<IReadOnlyList<DafnyFile>> DetermineRootFiles() {
+    await started.Task;
+
     var result = new List<DafnyFile>();
 
     foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
       if (file != null) {
         result.Add(file);
       }
@@ -143,7 +143,7 @@ public class Compilation : IDisposable {
 
     foreach (var uri in Options.CliRootSourceUris) {
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
         $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
       if (file != null) {
         result.Add(file);
@@ -153,27 +153,44 @@ public class Compilation : IDisposable {
     }
     if (Options.UseStdin) {
       var uri = new Uri("stdin:///");
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli));
+      result.Add(await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli));
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
+        var targetSpecificFile = await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken);
+        if (targetSpecificFile != null) {
+          result.Add(targetSpecificFile);
+        }
       }
 
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
+      if (file != null) {
+        result.Add(file);
+      }
     }
 
+    string? unverifiedLibrary = null;
     var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryFiles) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
       if (file != null) {
+        if (!file.IsPreverified) {
+          unverifiedLibrary = library;
+        }
         file.IsPreverified = true;
         file.IsPrecompiled = true;
         result.Add(file);
       }
+    }
+
+    if (unverifiedLibrary != null) {
+      errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
+        $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. " +
+        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
+        $"Use a .doo file to enable Dafny to check that compatible options were used");
     }
 
     var projectPath = Project.Uri.LocalPath;
@@ -191,14 +208,17 @@ public class Compilation : IDisposable {
     }
 
     // Allow specifying the same file twice on the CLI
-    return result.DistinctBy(d => d.Uri).ToList();
+    var distinctResults = result.DistinctBy(d => d.Uri).ToList();
+
+    updates.OnNext(new DeterminedRootFiles(Project, distinctResults, GetDiagnosticsCopyAndClear()));
+    return distinctResults;
   }
 
-  private async Task<Program> ParseAsync() {
+  private async Task<Program?> ParseAsync() {
     try {
-      await started.Task;
+      await RootFiles;
       if (HasErrors) {
-        throw new OperationCanceledException();
+        return null;
       }
 
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
@@ -207,7 +227,7 @@ public class Compilation : IDisposable {
       var cloner = new Cloner(true, false);
       programAfterParsing = new Program(cloner, transformedProgram);
 
-      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopy()));
+      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;
@@ -215,19 +235,25 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(e));
+      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Parser), e));
       throw;
     }
   }
 
-  private async Task<ResolutionResult> ResolveAsync() {
+  private async Task<ResolutionResult?> ResolveAsync() {
     try {
       await ParsedProgram;
+      if (transformedProgram == null) {
+        return null;
+      }
       var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
+      if (resolution == null) {
+        return null;
+      }
 
       updates.OnNext(new FinishedResolution(
         resolution,
-        GetDiagnosticsCopy()));
+        GetDiagnosticsCopyAndClear()));
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
@@ -235,7 +261,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(e));
+      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Resolver), e));
       throw;
     }
   }
@@ -260,8 +286,8 @@ public class Compilation : IDisposable {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
-    if (resolution.HasErrors) {
-      throw new TaskCanceledException();
+    if (resolution == null || resolution.HasErrors) {
+      return false;
     }
 
     var canVerify = resolution.ResolvedProgram.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
@@ -287,6 +313,10 @@ public class Compilation : IDisposable {
     bool onlyPrepareVerificationForGutterTests = false) {
 
     var resolution = await Resolution;
+    if (resolution == null) {
+      return false;
+    }
+
     var containingModule = canVerify.ContainingModule;
     if (!containingModule.ShouldVerify(resolution.ResolvedProgram.Compilation)) {
       return false;
@@ -330,7 +360,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(e));
+        updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Verifier), e));
         throw;
       }
 
@@ -398,6 +428,10 @@ public class Compilation : IDisposable {
 
   public async Task Cancel(FilePosition filePosition) {
     var resolution = await Resolution;
+    if (resolution == null) {
+      return;
+    }
+
     var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
     if (canVerify != null) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
@@ -425,6 +459,9 @@ public class Compilation : IDisposable {
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
     // TODO https://github.com/dafny-lang/dafny/issues/3416
     var program = await ParsedProgram;
+    if (program == null) {
+      return null;
+    }
 
     if (program.HasParseErrors) {
       return null;
@@ -482,14 +519,16 @@ public class Compilation : IDisposable {
     result.CounterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
-      errorReporter.ReportBoogieError(counterExample.CreateErrorInformation(outcome, options.ForceBplErrors));
+      var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+      var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
+      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, false),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
       timeLimit, result.CounterExamples);
   }

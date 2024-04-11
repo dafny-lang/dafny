@@ -74,7 +74,7 @@ After doing these steps once, for other PRs, one only needs to re-run deep check
 - If some required tests fail, investigate and push more commits, but know that each CI run takes a lot of time, so try to fix the problem with as few commits as possible (ideally 1)
   It is also possible you find some tests that fail randomly, in that case, re-run them and report to the team. Avoid using the re-run all failed jobs here, because it will re-run _all_ jobs, so select them individually instead.
 - Have someone approve the PR and merge it (or auto-merge).
-- Once the PR with the fix to the CI is merged to master, go to https://github.com/dafny-lang/dafny/actions/workflows/deep-tests.yml
+- Once the PR with the fix to the CI is merged to master, go to https://github.com/dafny-lang/dafny/actions/workflows/nightly-build.yml
 - Select "Run workflow..."
 - Select master
 - Wait for this new run to succeed.
@@ -101,3 +101,9 @@ For example, `Formatting.dfy`
 ### What is the release process?
 
 You can find a description of the release process in [docs/dev/RELEASE.md](https://github.com/dafny-lang/dafny/blob/master/docs/dev/RELEASE.md).
+
+### Backwards compatibility
+
+Dafny is still changing and backwards incompatible changes may be made. Any backwards compatibility breaking change must be easy to adapt to, such as by adding a command line option. In the future, we plan to add a `dafny migrate` command which should support migrating any Dafny codebase from the previous to the current CLI version. 
+
+As rule, Dafny features must be marked as deprecated, including migration instructions, at least one release before they are removed.

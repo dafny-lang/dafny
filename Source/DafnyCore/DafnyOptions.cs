@@ -271,8 +271,7 @@ namespace Microsoft.Dafny {
       NormalizeNames = true;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
-      Printer = new DafnyConsolePrinter(this);
-      Printer.Options = this;
+      Printer = new NullPrinter();
     }
 
     public override string VersionNumber {
@@ -481,7 +480,7 @@ namespace Microsoft.Dafny {
       return base.ParseOption(name, ps);
     }
 
-    public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
+    public override string Help => "Use 'dafny --help' to see help for the new Dafny CLI format.\n" +
       LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {

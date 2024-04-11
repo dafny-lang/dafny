@@ -8,7 +8,6 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Dafny.LanguageServer.CounterExampleGeneration;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
@@ -96,7 +95,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
       }
 
       private DafnyModel GetLanguageSpecificModel(Model model) {
-        return new(model, options);
+        var dafnyModel = new DafnyModel(model, options);
+        dafnyModel.AssignConcretePrimitiveValues();
+        return dafnyModel;
       }
 
       private IEnumerable<CounterExampleItem> GetCounterExamples(DafnyModel model) {
@@ -105,15 +106,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers.Custom {
           .Select(GetCounterExample);
       }
 
-      private CounterExampleItem GetCounterExample(DafnyModelState state) {
-        List<DafnyModelVariable> vars = state.ExpandedVariableSet(counterExampleDepth);
+      private CounterExampleItem GetCounterExample(PartialState state) {
         return new(
           new Position(state.GetLineId() - 1, state.GetCharId()),
-          vars.WithCancellation(cancellationToken).ToDictionary(
-            variable => variable.ShortName + ":" + DafnyModelTypeUtils.GetInDafnyFormat(variable.Type),
-            variable => variable.Value
-          )
-        );
+           state.AsAssumption().ToString()
+         );
       }
     }
   }

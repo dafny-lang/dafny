@@ -713,7 +713,13 @@ namespace Microsoft.Dafny.Compilers {
         case RealType:
           return $"{DafnyRuntimeModule}.BigRational()";
         case CollectionType:
-          return $"{TypeHelperName(xType)}({{}})";
+          if (xType is SeqType { Arg: { IsCharType: true } }) {
+            var wrString = new ConcreteSyntaxTree();
+            StringLiteralWrapper(wrString).Write("\"\"");
+            return wrString.ToString();
+          } else {
+            return $"{TypeHelperName(xType)}({{}})";
+          }
         case UserDefinedType udt: {
             var cl = udt.ResolvedClass;
             Contract.Assert(cl != null);
@@ -1027,16 +1033,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case StringLiteralExpr str:
-          if (UnicodeCharEnabled) {
-            wr.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, ");
-            TrStringLiteral(str, wr);
-            wr.Write("))");
-          } else {
-            wr.Write($"{DafnySeqMakerFunction}(");
-            TrStringLiteral(str, wr);
-            wr.Write(")");
-          }
-
+          TrStringLiteral(str, StringLiteralWrapper(wr));
           break;
         case StaticReceiverExpr:
           wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1061,6 +1058,20 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
       }
+    }
+
+    private ConcreteSyntaxTree StringLiteralWrapper(ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree wrStringGoesHere;
+      if (UnicodeCharEnabled) {
+        wr.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, ");
+        wrStringGoesHere = wr.Fork();
+        wr.Write("))");
+      } else {
+        wr.Write($"{DafnySeqMakerFunction}(");
+        wrStringGoesHere = wr.Fork();
+        wr.Write(")");
+      }
+      return wrStringGoesHere;
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {

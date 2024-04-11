@@ -52,9 +52,8 @@ static class MeasureComplexityCommand {
     var compilation = CliCompilation.Create(options);
     compilation.Start();
 
-    try {
-      var resolution = await compilation.Resolution;
-
+    var resolution = await compilation.Resolution;
+    if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
       // We should redesign the output of this command 
@@ -64,16 +63,16 @@ static class MeasureComplexityCommand {
       // Performance data of individual verification tasks (VCs) should be grouped by VcNum (the assertion batch).
       VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
       var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
-      VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
+      var proofDependenciesReported = VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
 
       await RunVerificationIterations(options, compilation, verificationResults);
       await summaryReported;
       await verificationResultsLogged;
-    } catch (TaskCanceledException) {
+      await proofDependenciesReported;
     }
 
-    return compilation.ExitCode;
+    return await compilation.GetAndReportExitCode();
   }
 
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,

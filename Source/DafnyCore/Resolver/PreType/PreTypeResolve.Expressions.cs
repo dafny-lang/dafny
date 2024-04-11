@@ -153,8 +153,8 @@ namespace Microsoft.Dafny {
           AddSubtypeConstraint(rangePreType, p.B.PreType, p.B.tok,
             "All elements of display must have some common supertype (got {1}, but needed type or type of previous elements is {0})");
         }
-        var argTypes = new List<PreType>() { domainPreType, rangePreType };
-        expr.PreType = new DPreType(BuiltInTypeDecl(PreType.MapTypeName(e.Finite)), argTypes);
+
+        ResolveMapProducingExpr(e.Finite, "display", expr, domainPreType, rangePreType);
 
       } else if (expr is NameSegment) {
         var e = (NameSegment)expr;
@@ -664,9 +664,6 @@ namespace Microsoft.Dafny {
         foreach (BoundVar v in e.BoundVars) {
           resolver.ResolveType(v.tok, v.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           ScopePushAndReport(v, "bound-variable", true);
-          if (v.Type is InferredTypeProxy inferredProxy) {
-            Contract.Assert(!inferredProxy.KeepConstraints);  // in general, this proxy is inferred to be a base type
-          }
         }
         ResolveExpression(e.Range, resolutionContext);
         ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
@@ -677,8 +674,8 @@ namespace Microsoft.Dafny {
 
         ResolveAttributes(e, resolutionContext, false);
         scope.PopMarker();
-        expr.PreType = new DPreType(BuiltInTypeDecl(PreType.MapTypeName(e.Finite)),
-          new List<PreType>() { e.TermLeft != null ? e.TermLeft.PreType : e.BoundVars[0].PreType, e.Term.PreType });
+
+        ResolveMapProducingExpr(e.Finite, "comprehension", expr, e.TermLeft?.PreType ?? e.BoundVars[0].PreType, e.Term.PreType);
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
@@ -754,19 +751,35 @@ namespace Microsoft.Dafny {
       AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
     }
 
-    private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType) {
+    private void ResolveMapProducingExpr(bool finite, string exprKindSuffix, Expression expr, PreType keyPreType, PreType valuePreType) {
+      var typeName = PreType.MapTypeName(finite);
+      PreTypeConstraints.CommonConfirmationBag confirmationFamily =
+        finite ? PreTypeConstraints.CommonConfirmationBag.InMapFamily : PreTypeConstraints.CommonConfirmationBag.InImapFamily;
+      var exprKind = $"{typeName} {exprKindSuffix}";
+
+      SetupCollectionProducingExpr(typeName, exprKind, expr, keyPreType, valuePreType);
+      AddConfirmation(confirmationFamily, expr.PreType, expr.tok, $"{exprKind} used as if it had type {{0}}");
+    }
+
+    private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
       expr.PreType = CreatePreTypeProxy($"{exprKind}");
 
-      var defaultType = new DPreType(BuiltInTypeDecl(typeName), new List<PreType>() { elementPreType });
+      var arguments = valuePreType == null ? new List<PreType>() { elementPreType } : new List<PreType>() { elementPreType, valuePreType };
+      var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments);
       Constraints.AddDefaultAdvice(expr.PreType, defaultType);
 
       Constraints.AddGuardedConstraint(() => {
         if (expr.PreType.UrAncestor(this) is DPreType dPreType) {
-          if (dPreType.Decl.Name == typeName) {
+          if (dPreType.Decl.Name != typeName) {
+            ReportError(expr, $"{exprKind} used as if it had type {{0}}", expr.PreType);
+          } else if (valuePreType == null) {
             AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, expr.tok,
               $"element type of {exprKind} expected to be {{0}} (got {{1}})");
           } else {
-            ReportError(expr, $"{exprKind} used as if it had type {{0}}", expr.PreType);
+            AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, expr.tok,
+              $"key type of {exprKind} expected to be {{0}} (got {{1}})");
+            AddSubtypeConstraint(dPreType.Arguments[1], valuePreType, expr.tok,
+              $"value type of {exprKind} expected to be {{0}} (got {{1}})");
           }
           return true;
         }
@@ -893,21 +906,33 @@ namespace Microsoft.Dafny {
             // that only the expected types are allowed.
             var a0 = e0.PreType;
             var a1 = e1.PreType;
-            var left = a0.NormalizeWrtScope() as DPreType;
-            var right = a1.NormalizeWrtScope() as DPreType;
             var familyDeclNameLeft = AncestorName(a0);
             var familyDeclNameRight = AncestorName(a1);
             if (familyDeclNameLeft is PreType.TypeNameMap or PreType.TypeNameImap) {
+              var left = (DPreType)a0.UrAncestor(this);
               Contract.Assert(left.Arguments.Count == 2);
               var st = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), new List<PreType>() { left.Arguments[0] });
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
-              AddSubtypeConstraint(st, a1, tok,
-                "map subtraction expects right-hand operand to have type {0} (instead got {1})");
+              Constraints.AddDefaultAdvice(a1, st);
+
+              var messageFormat = $"map subtraction expects right-hand operand to have type {st} (instead got {{0}})";
+              Constraints.AddGuardedConstraint(() => {
+                if (a1.UrAncestor(this) is DPreType dPreType) {
+                  if (dPreType.Decl.Name != PreType.TypeNameSet) {
+                    ReportError(e1, messageFormat, a1);
+                  } else {
+                    AddSubtypeConstraint(dPreType.Arguments[0], left.Arguments[0], e1.tok,
+                      $"element type of {PreType.TypeNameSet} expected to be {{0}} (got {{1}})");
+                  }
+                  return true;
+                }
+                return false;
+              });
+              AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSetFamily, a1, e1.tok, messageFormat);
               return true;
             } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != PreType.TypeNameSet)) {
               Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
-              AddSubtypeConstraint(a0, a1, tok,
-                "type of right argument to - ({0}) must agree with the result type ({1})");
+              AddSubtypeConstraint(a0, a1, tok, "type of right argument to - ({0}) must agree with the result type ({1})");
               return true;
             }
             return false;

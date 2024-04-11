@@ -79,3 +79,5 @@ Source/IntegrationTests/TestFiles/LitTests/LitTest/server/*.bvd
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/separate-verification/assumptions-lib
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/log.smt2
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/model
+Source/IntegrationTests/TestFiles/LitTests/LitTest/logger/*.html
+Source/IntegrationTests/TestFiles/LitTests/LitTest/comp/**/*.html

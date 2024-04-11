@@ -11,6 +11,11 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
+  public static readonly Option<bool> ProgressOption =
+    new("--progress", "While verifying, output information that helps track progress") {
+      IsHidden = true
+    };
+
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
       IsHidden = true
@@ -26,8 +31,8 @@ public class CommonOptionBag {
       IsHidden = true
     };
 
-  public static readonly Option<bool> ShowInference =
-    new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
+  public static readonly Option<bool> ShowHints =
+    new("--show-hints", () => false, "Show hints that might help you better understand your code, such as what triggers Dafny generators for quantifiers") {
       IsHidden = true
     };
 
@@ -247,6 +252,10 @@ true - Print debug information for the new type system.".TrimStart()) {
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
 
+  public static readonly Option<bool> WarnAsErrors = new("--warn-as-errors", () => true, "(Deprecated). Please use --allow-warnings instead") {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
     "Allow compilation to continue and succeed when warnings occur. Errors will still halt and fail compilation.");
 
@@ -350,8 +359,16 @@ If verification fails, report a detailed counterexample for the first failing as
   };
 
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
+      if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
+        // If allow warnings is at the default value, and warn-as-errors is not, use the warn-as-errors value
+        options.Set(AllowWarnings, true);
+        options.FailOnWarnings = false;
+      }
+    });
+
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
-    DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
+    DafnyOptions.RegisterLegacyBinding(ShowHints, (options, value) => {
       options.PrintTooltips = value;
     });
 
@@ -572,10 +589,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     );
     DooFile.RegisterNoChecksNeeded(
+      WarnAsErrors,
+      ProgressOption,
       LogLocation,
       LogLevelOption,
       ManualTriggerOption,
-      ShowInference,
+      ShowHints,
       Check,
       Libraries,
       Output,

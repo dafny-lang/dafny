@@ -1,5 +1,5 @@
 
-// RUN: %exits-with 4 %dafny /compile:0 /warnShadowing /extractCounterexample "%s" > "%t"
+// RUN: %exits-with 4 %verify --extract-counterexample "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The following method performs string equality comparison whereas its 
@@ -19,6 +19,7 @@ module Patterns {
                     s[n] == p[n] || 
                     p[n] == '?'
         { 
+            b := false;
             var i := 0;
             while (i < |s|) 
                 invariant i <= |s|
@@ -27,7 +28,7 @@ module Patterns {
                     p[n] == '?'
             {
                 if (s[i] != p[i]) { // must add && (p[i] != '?') to verify
-                    return false;
+                    return;
                 } 
                 i := i + 1;
             }

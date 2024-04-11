@@ -118,44 +118,20 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private const int MaxRememberedChanges = 100;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    var migrator = createMigrator(documentChange, CancellationToken.None);
-
-    var upcomingVersion = version + 1;
-    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-    observer.Migrate(options, migrator, upcomingVersion);
-    latestIdeState = latestIdeState.Migrate(options, migrator, upcomingVersion, false);
-    StartNewCompilation();
-
-    lock (RecentChanges) {
-      var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
-        Select(contentChange => new Location {
-          Range = contentChange.Range!,
-          Uri = documentChange.TextDocument.Uri
-        });
-      var migratedChanges = RecentChanges.Select(location => {
-        if (location.Uri != documentChange.TextDocument.Uri) {
-          return location;
-        }
-
-        var newRange = migrator.MigrateRange(location.Range);
-        if (newRange == null) {
-          return null;
-        }
-        return new Location {
-          Range = newRange,
-          Uri = location.Uri
-        };
-      }).Where(r => r != null);
-      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
-    }
-    TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
+    StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), documentChange);
   }
 
-  private void StartNewCompilation() {
-    ++version;
-    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-
+  private void StartNewCompilation(Uri triggeringFile, DidChangeTextDocumentParams? changes) {
     observerSubscription.Dispose();
+    version += 1;
+
+    Migrator? migrator = null;
+    if (changes != null) {
+      migrator = createMigrator(changes, CancellationToken.None);
+      // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+      observer.Migrate(options, migrator, version);
+      latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
+    }
 
     Compilation.Dispose();
     var input = new CompilationInput(options, version, Project);
@@ -172,6 +148,36 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
     Compilation.Start();
+
+    if (changes != null) {
+      UpdateRecentChanges(changes, migrator);
+    }
+    TriggerVerificationForFile(triggeringFile);
+  }
+
+  private void UpdateRecentChanges(DidChangeTextDocumentParams changes, Migrator? migrator) {
+    lock (RecentChanges) {
+      var newChanges = changes.ContentChanges.Where(c => c.Range != null).
+        Select(contentChange => new Location {
+          Range = contentChange.Range!,
+          Uri = changes.TextDocument.Uri
+        });
+      var migratedChanges = RecentChanges.Select(location => {
+        if (location.Uri != changes.TextDocument.Uri) {
+          return location;
+        }
+
+        var newRange = migrator!.MigrateRange(location.Range);
+        if (newRange == null) {
+          return null;
+        }
+        return new Location {
+          Range = newRange,
+          Uri = location.Uri
+        };
+      }).Where(r => r != null);
+      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
+    }
   }
 
   private IObservable<IdeState> GetStates(Compilation compilation) {
@@ -246,7 +252,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public void CloseAsync() {
     Compilation.Dispose();
     try {
-      observer.OnCompleted();
+      observer.Clear();
     } catch (OperationCanceledException) {
     }
     Dispose();
@@ -267,58 +273,52 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public async Task VerifyEverythingAsync(Uri? uri) {
     var compilation = Compilation;
-    try {
-      var resolution = await compilation.Resolution;
-
-      var canVerifies = resolution.CanVerifies?.ToList();
-      if (canVerifies == null) {
-        return;
-      }
-
-      if (uri != null) {
-        canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
-      }
-
-      List<FilePosition> changedVerifiables;
-      lock (RecentChanges) {
-        changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
-      }
-
-      int GetPriorityAttribute(ISymbol symbol) {
-        if (symbol is IAttributeBearingDeclaration hasAttributes &&
-            hasAttributes.HasUserAttribute("priority", out var attribute) &&
-            attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
-          return (int)priority;
-        }
-        return 0;
-      }
-
-      int TopToBottomPriority(ISymbol symbol) {
-        return symbol.Tok.pos;
-      }
-      var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = canVerifies
-        .OrderByDescending(GetPriorityAttribute)
-        .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
-        .ThenBy(TopToBottomPriority).ToList();
-      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
-
-      var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
-      if (GutterIconTesting) {
-        foreach (var canVerify in orderedVerifiableLocations) {
-          await compilation.VerifyLocation(canVerify, true);
-        }
-
-        logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
-      }
-
-      foreach (var canVerify in orderedVerifiableLocations) {
-        // Wait for each task to try and run, so the order is respected.
-        await compilation.VerifyLocation(canVerify);
-      }
+    var resolution = await compilation.Resolution;
+    var canVerifies = resolution?.CanVerifies?.ToList();
+    if (canVerifies == null) {
+      return;
     }
-    finally {
-      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+
+    if (uri != null) {
+      canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
+    }
+
+    List<FilePosition> changedVerifiables;
+    lock (RecentChanges) {
+      changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
+    }
+
+    int GetPriorityAttribute(ISymbol symbol) {
+      if (symbol is IAttributeBearingDeclaration hasAttributes &&
+          hasAttributes.HasUserAttribute("priority", out var attribute) &&
+          attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+        return (int)priority;
+      }
+      return 0;
+    }
+
+    int TopToBottomPriority(ISymbol symbol) {
+      return symbol.Tok.pos;
+    }
+    var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+    var orderedVerifiables = canVerifies
+      .OrderByDescending(GetPriorityAttribute)
+      .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
+      .ThenBy(TopToBottomPriority).ToList();
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
+
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
+    if (GutterIconTesting) {
+      foreach (var canVerify in orderedVerifiableLocations) {
+        await compilation.VerifyLocation(canVerify, true);
+      }
+
+      logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
+    }
+
+    foreach (var canVerify in orderedVerifiableLocations) {
+      // Wait for each task to try and run, so the order is respected.
+      await compilation.VerifyLocation(canVerify);
     }
   }
 
@@ -349,8 +349,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
-      StartNewCompilation();
-      TriggerVerificationForFile(uri);
+      StartNewCompilation(uri, null);
     }
   }
 
