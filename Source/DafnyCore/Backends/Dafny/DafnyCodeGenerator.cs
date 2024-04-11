@@ -91,7 +91,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ForLoops,
       Feature.Traits,
       Feature.RuntimeCoverageReport,
-      Feature.MultiDimensionalArrays
+      Feature.MultiDimensionalArrays,
+      Feature.NonNativeNewtypes
     };
 
     private readonly List<string> Imports = new() { DafnyDefaultModule };
@@ -790,7 +791,8 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (rhs == "BUFFERED") {
           if (bufferedInitializationValue == null) {
-            throw new InvalidOperationException("Expected a buffered value to have been populated because rhs != null");
+            throw new InvalidOperationException(
+              "Expected a buffered value to have been populated because rhs != null");
           }
 
           var rhsValue = bufferedInitializationValue;
@@ -1314,14 +1316,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
-      AddUnsupported("<i>EmitStringLiteral</i>");
-      throw new InvalidOperationException();
+      throw new UnsupportedInvalidOperationException("<i>EmitStringLiteral</i>");
     }
 
     protected override ConcreteSyntaxTree EmitBitvectorTruncation(BitvectorType bvType, [CanBeNull] NativeType nativeType,
       bool surroundByUnchecked, ConcreteSyntaxTree wr) {
-      AddUnsupported("<i>EmitBitvectorTruncation</i>");
-      throw new InvalidOperationException();
+      throw new UnsupportedInvalidOperationException("<i>EmitBitvectorTruncation</i>");
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,

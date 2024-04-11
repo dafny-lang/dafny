@@ -1,1 +1,1 @@
-// CHECK: .*<i>EmitIndexCollectionUpdate for multiset<()></i>.*
+// CHECK: .*<i>EmitIndexCollectionUpdate for multiset<\(\)></i>.*

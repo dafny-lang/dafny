@@ -1,1 +1,1 @@
-// CHECK: .*<i>Bitvector types</i>.*
+// CHECK-L: error: `_` cannot be a raw identifier

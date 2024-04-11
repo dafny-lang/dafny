@@ -467,10 +467,13 @@ public class MultiBackendTest {
     var contentCheck = outputString == error ? outputString.Trim() : (outputString + "\n" + error).Trim();
     var checkOutput = "";
     if (contentCheck == "") {
-      checkOutput = string.Join("\n", expectedOutput.Split("\n").Select(line => "// CHECK-NOT: " + line));
+      checkOutput = string.Join("\n",
+        expectedOutput.Split("\n").Select(line => "// CHECK-NOT: " + line));
     } else {
       checkOutput = string.Join("\n",
-        contentCheck.Split("\n").Select(line => "// CHECK-L: " + line));
+        contentCheck.Split("\n")
+          .Where(line => line != "")  
+          .Select(line => "// CHECK-L: " + line));
     }
 
     if (!File.Exists(sourcePath) || expectedCheckFile) {
