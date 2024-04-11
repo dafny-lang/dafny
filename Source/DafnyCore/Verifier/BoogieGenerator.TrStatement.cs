@@ -2612,7 +2612,7 @@ namespace Microsoft.Dafny {
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
             var desc = new PODesc.NonNegative(tRhs.ArrayDimensions.Count == 1
-              ? "array size" : $"array size (dimension {i})");
+              ? "array size" : $"array size (dimension {i})", dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc));
             i++;
           }

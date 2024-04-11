@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -50,9 +51,11 @@ public class DivisorNonZero : ProofObligationDescription {
 
 public abstract class ShiftOrRotateBound : ProofObligationDescription {
   protected readonly string shiftOrRotate;
+  protected readonly Expression amount;
 
-  public ShiftOrRotateBound(bool shift) {
+  public ShiftOrRotateBound(bool shift, Expression amount) {
     shiftOrRotate = shift ? "shift" : "rotate";
+    this.amount = amount;
   }
 }
 
@@ -65,8 +68,12 @@ public class ShiftLowerBound : ShiftOrRotateBound {
 
   public override string ShortDescription => $"{shiftOrRotate} lower bound";
 
-  public ShiftLowerBound(bool shift)
-    : base(shift) {
+  public ShiftLowerBound(bool shift, Expression amount)
+    : base(shift, amount) {
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateAtMost(Expression.CreateIntLiteral(amount.tok, 0), amount);
   }
 }
 
@@ -81,9 +88,13 @@ public class ShiftUpperBound : ShiftOrRotateBound {
 
   private readonly int width;
 
-  public ShiftUpperBound(int width, bool shift)
-    : base(shift) {
+  public ShiftUpperBound(int width, bool shift, Expression amount)
+    : base(shift, amount) {
     this.width = width;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateAtMost(amount, Expression.CreateIntLiteral(amount.tok, width));
   }
 }
 
@@ -97,9 +108,15 @@ public class ConversionIsNatural : ProofObligationDescription {
   public override string ShortDescription => "converted value is natural";
 
   private readonly string prefix;
+  private readonly Expression value;
 
-  public ConversionIsNatural(string prefix) {
+  public ConversionIsNatural(string prefix, Expression value) {
     this.prefix = prefix;
+    this.value = value;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new TypeTestExpr(value.tok, value, Type.Nat());
   }
 }
 
@@ -115,11 +132,19 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
   private readonly string prefix;
   private readonly string kind;
   private readonly string name;
+  private readonly Expression expr;
+  private readonly Type toType;
 
-  public ConversionSatisfiesConstraints(string prefix, string kind, string name) {
+  public ConversionSatisfiesConstraints(string prefix, string kind, string name, Expression expr, Type toType) {
     this.prefix = prefix;
     this.kind = kind;
     this.name = name;
+    this.expr = expr;
+    this.toType = toType;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new TypeTestExpr(expr.tok, expr, toType);
   }
 }
 
@@ -131,6 +156,16 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
     "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger";
 
   public override string ShortDescription => "ordinal subtraction is natural";
+
+  private readonly Expression rhs;
+
+  public OrdinalSubtractionIsNatural(Expression rhs) {
+    this.rhs = rhs;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ExprDotName(rhs.tok, rhs, "IsNat", null);
+  }
 }
 
 public class OrdinalSubtractionUnderflow : ProofObligationDescription {
@@ -141,6 +176,21 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
     "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)";
 
   public override string ShortDescription => "ordinal subtraction underflow";
+
+  private readonly Expression lhs;
+  private readonly Expression rhs;
+
+  public OrdinalSubtractionUnderflow(Expression lhs, Expression rhs) {
+    this.lhs = lhs;
+    this.rhs = rhs;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateAtMost(
+      new ExprDotName(rhs.tok, rhs, "Offset", null),
+      new ExprDotName(lhs.tok, lhs, "Offset", null)
+    );
+  }
 }
 
 public class CharOverflow : ProofObligationDescription {
@@ -151,6 +201,19 @@ public class CharOverflow : ProofObligationDescription {
     "char addition might overflow";
 
   public override string ShortDescription => "char overflow";
+
+  private readonly Expression e0;
+  private readonly Expression e1;
+
+  public CharOverflow(Expression e0, Expression e1) {
+    this.e0 = e0;
+    this.e1 = e1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var sum = Expression.CreateAdd(new ConversionExpr(e0.tok, e0, Type.Int), new ConversionExpr(e1.tok, e1, Type.Int));
+    return new TypeTestExpr(sum.tok, sum, Type.Char);
+  }
 }
 
 public class CharUnderflow : ProofObligationDescription {
@@ -161,6 +224,19 @@ public class CharUnderflow : ProofObligationDescription {
     "char subtraction might underflow";
 
   public override string ShortDescription => "char underflow";
+
+  private readonly Expression e0;
+  private readonly Expression e1;
+
+  public CharUnderflow(Expression e0, Expression e1) {
+    this.e0 = e0;
+    this.e1 = e1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var diff = Expression.CreateSubtract(new ConversionExpr(e0.tok, e0, Type.Int), new ConversionExpr(e1.tok, e1, Type.Int));
+    return new TypeTestExpr(diff.tok, diff, Type.Char);
+  }
 }
 
 public class ConversionFit : ProofObligationDescription {
@@ -175,11 +251,17 @@ public class ConversionFit : ProofObligationDescription {
   private readonly string prefix;
   private readonly string what;
   private readonly Type toType;
+  private readonly Expression boundsCheck;
 
-  public ConversionFit(string what, Type toType, string prefix = "") {
+  public ConversionFit(string what, Type toType, Expression boundsCheck, string prefix = "") {
     this.prefix = prefix;
     this.what = what;
+    this.boundsCheck = boundsCheck;
     this.toType = toType;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return boundsCheck;
   }
 }
 
@@ -193,9 +275,15 @@ public class NonNegative : ProofObligationDescription {
   public override string ShortDescription => "non-negative";
 
   private readonly string what;
+  private readonly Expression expr;
 
-  public NonNegative(string what) {
+  public NonNegative(string what, Expression expr) {
     this.what = what;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateAtMost(Expression.CreateIntLiteral(expr.tok, 0), expr);
   }
 }
 
@@ -211,11 +299,17 @@ public class ConversionPositive : ProofObligationDescription {
   private readonly string prefix;
   private readonly string what;
   private readonly Type toType;
+  private readonly Expression expr;
 
-  public ConversionPositive(string what, Type toType, string prefix = "") {
+  public ConversionPositive(string what, Type toType, Expression expr, string prefix = "") {
     this.prefix = prefix;
     this.what = what;
     this.toType = toType;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateAtMost(Expression.CreateIntLiteral(expr.tok, 0), expr);
   }
 }
 
@@ -229,9 +323,19 @@ public class IsInteger : ProofObligationDescription {
   public override string ShortDescription => "is integer";
 
   private readonly string prefix;
+  private readonly Expression expr;
 
-  public IsInteger(string prefix = "") {
+  public IsInteger(Expression expr, string prefix = "") {
+    this.expr = expr;
     this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateEq(
+      expr,
+      new ConversionExpr(expr.tok, new ExprDotName(expr.tok, expr, "Floor", null), Type.Real),
+      Type.Real
+    );
   }
 }
 
@@ -246,13 +350,19 @@ public class NonNull : ProofObligationDescription {
 
   public override string ShortDescription => $"{what} non-null";
   private readonly string what;
+  private readonly Expression expr;
   private bool plural;
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
 
-  public NonNull(string what, bool plural = false) {
+  public NonNull(string what, Expression expr, bool plural = false) {
     this.what = what;
+    this.expr = expr;
     this.plural = plural;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(expr.tok, BinaryExpr.Opcode.Neq, expr, new LiteralExpr(expr.tok));
   }
 }
 

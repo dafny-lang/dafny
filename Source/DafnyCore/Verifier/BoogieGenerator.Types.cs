@@ -1223,19 +1223,21 @@ public partial class BoogieGenerator {
       Bpl.Expr from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
       Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
       e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
-      builder.Add(Assert(tok, e, new PODesc.IsInteger(errorMsgPrefix)));
+      builder.Add(Assert(tok, e, new PODesc.IsInteger(expr, errorMsgPrefix)));
     }
 
     if (fromType.IsBigOrdinalType && !toType.IsBigOrdinalType) {
       PutSourceIntoLocal();
       Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
-      builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionIsNatural(errorMsgPrefix)));
+      builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionIsNatural(errorMsgPrefix, expr)));
     }
 
     if (toTypeFamily.IsBitVectorType) {
       var toWidth = toTypeFamily.AsBitVectorType.Width;
       var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
       Bpl.Expr boundsCheck = null;
+      var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
+      Expression dafnyBoundsCheck = null;
       if (fromTypeFamily.IsBitVectorType) {
         var fromWidth = fromTypeFamily.AsBitVectorType.Width;
         if (toWidth < fromWidth) {
@@ -1243,38 +1245,78 @@ public partial class BoogieGenerator {
           PutSourceIntoLocal();
           var bound = BplBvLiteralExpr(tok, toBound, fromTypeFamily.AsBitVectorType);
           boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
+          dafnyBoundsCheck = Expression.CreateAnd(
+            Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), expr),
+            Expression.CreateAtMost(expr, dafnyBound));
         }
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromTypeFamily.IsCharType) {
-        // Check "expr < (1 << toWdith)" in type "int"
+        // Check "expr < (1 << toWidth)" in type "int"
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
+        dafnyBoundsCheck = Expression.CreateAnd(
+          Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), expr),
+          Expression.CreateAtMost(expr, dafnyBound));
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // Check "Int(expr) < (1 << toWdith)" in type "int"
+        // Check "Int(expr) < (1 << toWidth)" in type "int"
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
+        var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        dafnyBoundsCheck = Expression.CreateAnd(
+          Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), intExpr),
+          Expression.CreateAtMost(intExpr, dafnyBound));
       } else if (fromType.IsBigOrdinalType) {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
         boundsCheck = Bpl.Expr.Lt(oi, bound);
+        var intExpr = new ExprDotName(expr.tok, expr, "Offset", null);
+        dafnyBoundsCheck = Expression.CreateAnd(
+          Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), intExpr),
+          Expression.CreateAtMost(intExpr, dafnyBound));
       }
 
       if (boundsCheck != null) {
-        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, errorMsgPrefix)));
+        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, dafnyBoundsCheck, errorMsgPrefix)));
       }
 
     } else if (toType.IsCharType) {
+      Expression DafnyBoundsCheck(Expression intExpr) {
+        if (!Options.Get(CommonOptionBag.UnicodeCharacters)) {
+          return new BinaryExpr(intExpr.tok, BinaryExpr.Opcode.And,
+            new BinaryExpr(
+              intExpr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), intExpr),
+            new BinaryExpr(
+              intExpr.tok, BinaryExpr.Opcode.Lt, intExpr, Expression.CreateIntLiteral(intExpr.tok, 0x1_0000))
+          );
+        }
+
+        Expression lowRange = new BinaryExpr(intExpr.tok, BinaryExpr.Opcode.And,
+          new BinaryExpr(
+            intExpr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), intExpr),
+          new BinaryExpr(
+            intExpr.tok, BinaryExpr.Opcode.Lt, intExpr, Expression.CreateIntLiteral(intExpr.tok, 0xD800))
+        );
+        Expression highRange = new BinaryExpr(intExpr.tok, BinaryExpr.Opcode.And,
+          new BinaryExpr(
+            intExpr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0xE000), intExpr),
+          new BinaryExpr(
+            intExpr.tok, BinaryExpr.Opcode.Lt, intExpr, Expression.CreateIntLiteral(intExpr.tok, 0x11_0000))
+        );
+        return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
+      }
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
         PutSourceIntoLocal();
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, o);
-        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, errorMsgPrefix)));
+        var dafnyBoundsCheck = DafnyBoundsCheck(expr);
+        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, dafnyBoundsCheck, errorMsgPrefix)));
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
-        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("real value", toType, errorMsgPrefix)));
+        var dafnyBoundsCheck = DafnyBoundsCheck(new ExprDotName(expr.tok, expr, "Floor", null));
+        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("real value", toType, dafnyBoundsCheck, errorMsgPrefix)));
       } else if (fromType.IsBitVectorType) {
         PutSourceIntoLocal();
         var fromWidth = fromType.AsBitVectorType.Width;
@@ -1285,7 +1327,9 @@ public partial class BoogieGenerator {
           var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
           var bound = BplBvLiteralExpr(tok, toBound, fromType.AsBitVectorType);
           var boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
-          builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("bit-vector value", toType, errorMsgPrefix)));
+          var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
+          var dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, dafnyBound);
+          builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("bit-vector value", toType, dafnyBoundsCheck, errorMsgPrefix)));
         }
       } else if (fromType.IsBigOrdinalType) {
         PutSourceIntoLocal();
@@ -1294,21 +1338,25 @@ public partial class BoogieGenerator {
         var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
         var bound = Bpl.Expr.Literal(toBound);
         var boundsCheck = Bpl.Expr.Lt(oi, bound);
-        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("ORDINAL value", toType, errorMsgPrefix)));
+        var dafnyBound = new BinaryExpr(expr.tok, BinaryExpr.Opcode.LeftShift, Expression.CreateIntLiteral(expr.tok, 1), Expression.CreateIntLiteral(expr.tok, toWidth));
+        var offset = new ExprDotName(expr.tok, expr, "Offset", null);
+        var dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, offset, dafnyBound);
+        builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("ORDINAL value", toType, dafnyBoundsCheck, errorMsgPrefix)));
       }
 
     } else if (toType.IsBigOrdinalType) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
         PutSourceIntoLocal();
         Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
-        var desc = new PODesc.ConversionPositive("integer", toType, errorMsgPrefix);
+        var desc = new PODesc.ConversionPositive("integer", toType, expr, errorMsgPrefix);
         builder.Add(Assert(tok, boundsCheck, desc));
       }
       if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-        var desc = new PODesc.ConversionPositive("real", toType, errorMsgPrefix);
+        var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        var desc = new PODesc.ConversionPositive("real", toType, intExpr, errorMsgPrefix);
         builder.Add(Assert(tok, boundsCheck, desc));
       }
 
@@ -1368,7 +1416,7 @@ public partial class BoogieGenerator {
       substMap.Add(rdt.Var, expr);
       var typeMap = TypeParameter.SubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
       var constraint = etran.TrExpr(Substitute(rdt.Constraint, null, substMap, typeMap));
-      builder.Add(Assert(tok, constraint, new PODesc.ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name)));
+      builder.Add(Assert(tok, constraint, new PODesc.ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name, expr, toType)));
     }
   }
 
