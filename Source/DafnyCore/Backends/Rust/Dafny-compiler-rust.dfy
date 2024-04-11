@@ -721,31 +721,31 @@ module RAST
       var x := Identifier("x");
       var y := Identifier("y");
       expect UnaryOp("&", Call(Select(x, "clone"), [], []), UnaryOpFormat.NoFormat).Optimize()
-        == UnaryOp("&", x, UnaryOpFormat.NoFormat);
+          == UnaryOp("&", x, UnaryOpFormat.NoFormat);
       TestNoOptimize(UnaryOp("&", Call(Select(x, "clone"), [], [y]), UnaryOpFormat.NoFormat));
       expect UnaryOp("!", BinaryOp("==", x, y, BinaryOpFormat.NoFormat),
-          CombineFormat()).Optimize() == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat);
+                     CombineFormat()).Optimize() == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat);
       expect UnaryOp("!", BinaryOp("<", x, y, BinaryOpFormat.NoFormat),
-          CombineFormat()).Optimize() == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat());
+                     CombineFormat()).Optimize() == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat());
       expect UnaryOp("!", BinaryOp("<", x, y, ReverseFormat()),
-          CombineFormat()).Optimize() == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat());
+                     CombineFormat()).Optimize() == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat());
       expect ConversionNum(I128, Call(MemberSelect(
-                MemberSelect(MemberSelect(
-                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralInt("1")])).Optimize()
-             == LiteralInt("/*optimized*/1");
+                                        MemberSelect(MemberSelect(
+                                                       Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralInt("1")])).Optimize()
+          == LiteralInt("/*optimized*/1");
       expect ConversionNum(I128, Call(MemberSelect(
-                MemberSelect(MemberSelect(
-                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralString("1", false)])).Optimize()
-             == LiteralInt("/*optimized*/1");
+                                        MemberSelect(MemberSelect(
+                                                       Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralString("1", false)])).Optimize()
+          == LiteralInt("/*optimized*/1");
       TestNoOptimize(ConversionNum(I128, Call(MemberSelect(
-                MemberSelect(MemberSelect(
-                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [x])).Optimize());
+                                                MemberSelect(MemberSelect(
+                                                               Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [x])).Optimize());
       TestNoOptimize(ConversionNum(I128, Call(MemberSelect(
-                MemberSelect(MemberSelect(
-                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralInt("1"), LiteralInt("2")])).Optimize());
+                                                MemberSelect(MemberSelect(
+                                                               Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), [], [LiteralInt("1"), LiteralInt("2")])).Optimize());
       TestNoOptimize(ConversionNum(I128, x));
       expect StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))).Optimize()
-             == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return"));
+          == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return"));
       TestNoOptimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("w", y), RawExpr("return"))));
       TestNoOptimize(x);
     }

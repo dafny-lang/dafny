@@ -19,6 +19,8 @@ build-regenerated-from-dafny:
 test: build-regenerated-from-dafny
 	(diff $(GENERATED_FROM_DAFNY) $(REGENERATED_FROM_DAFNY) || (echo 'Consider fixing it'; exit 1; ))
 
+format:
+	../../Scripts/dafny format .
 
 check-format:
 	../../Scripts/dafny format . --check
