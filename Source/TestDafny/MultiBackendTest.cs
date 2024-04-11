@@ -437,7 +437,6 @@ public class MultiBackendTest {
       if (checkResult != 0) {
         await output.WriteLineAsync($"OutputCheck on {checkFile} failed. Output was:");
         await output.WriteLineAsync(string.Join("\n", outputLines));
-        await output.WriteLineAsync("Error:");
 
         if (UpdateTargetExpectFile) {
           if (string.IsNullOrEmpty(IntegrationTestsRootDir)) {
@@ -466,20 +465,40 @@ public class MultiBackendTest {
     // outputString == error iff something crashed
     var contentCheck = outputString == error ? outputString.Trim() : (outputString + "\n" + error).Trim();
     var checkOutput = "";
+    var shouldSuffice = true;
     if (contentCheck == "") {
+      shouldSuffice = false;
       checkOutput = string.Join("\n",
         expectedOutput.Split("\n").Select(line => "// CHECK-NOT: " + line));
     } else {
-      checkOutput = string.Join("\n",
-        contentCheck.Split("\n")
-          .Where(line => line != "")  
-          .Select(line => "// CHECK-L: " + line));
+      // A few heuristics to create the .ext.check files
+      if (new Regex("<i>.*?</i>").Matches(contentCheck) is { Count: > 0 } m1) {
+        checkOutput = "// CHECK: .*" + Regex.Escape(m1[0].Value.Trim()) + ".*";
+      } else if (new Regex("<i>.*").Matches(contentCheck) is { Count: > 0 } m2) {
+        checkOutput = "// CHECK: .*" + Regex.Escape(m2[0].Value.Trim()) + ".*";
+      } else if (new Regex("^Unhandled exception.*$", RegexOptions.Multiline).Matches(contentCheck) is { Count: > 0 } m3) {
+        checkOutput = "// CHECK-L: " + m3[0].Value.Trim();
+      } else if (new Regex("^error: failed to get `as-any` as a dependency of package$", RegexOptions.Multiline).Matches(contentCheck)
+                 is { Count: > 0 } m4) {
+        checkOutput = "// CHECK: .*error: failed to get `as-any` as a dependency.*";
+      } else {
+        shouldSuffice = false;
+        checkOutput = string.Join("\n",
+          contentCheck.Split("\n")
+            .Where(line => line != "")
+            .Select(line => "// CHECK-L: " + line));
+      }
     }
 
     if (!File.Exists(sourcePath) || expectedCheckFile) {
       await File.WriteAllTextAsync(sourcePath, checkOutput);
-      await output.WriteLineAsync(
-        $"Please modify the new check file {sourcePath} so that it's valid no matter what.");
+      if (shouldSuffice) {
+        await output.WriteLineAsync(
+          $"The new .check file {sourcePath} should capture this error. Please relaunch this test");
+      } else {
+        await output.WriteLineAsync(
+          $"Please modify the new check file {sourcePath} so that it's valid no matter what.");
+      }
     } else {
       await output.WriteLineAsync(
         $"Apparently, the file {sourcePath} already exists so the process isn't going to create one " +
