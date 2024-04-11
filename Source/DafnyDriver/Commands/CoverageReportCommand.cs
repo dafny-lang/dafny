@@ -43,11 +43,11 @@ static class CoverageReportCommand {
       result.AddOption(option);
     }
 
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       var coverageReporter = new CoverageReporter(options);
-      coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName),
+      await coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName),
         options.Get(OutDirArgument));
-      return Task.FromResult(0);
+      return 0;
     });
     return result;
   }

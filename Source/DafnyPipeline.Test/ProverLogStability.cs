@@ -116,7 +116,7 @@ type ImapSimulator<!A, B> =
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);
       expectation = expectation.Replace("\r", "");
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(options, originalProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       regularProverLog = regularProverLog.Replace("\r", "");
       if (updateProverLog) {
         var path = Path.GetFullPath(filePath).Replace("bin" + Path.DirectorySeparatorChar + "Debug" + Path.DirectorySeparatorChar + "net6.0" + Path.DirectorySeparatorChar, "");
@@ -151,9 +151,9 @@ type ImapSimulator<!A, B> =
       }
     }
 
-    IEnumerable<BoogieProgram> GetBoogie(DafnyOptions options, string dafnyProgramText) {
+    async Task<IReadOnlyList<BoogieProgram>> GetBoogie(DafnyOptions options, string dafnyProgramText) {
       var reporter = new BatchErrorReporter(options);
-      var dafnyProgram = Utils.Parse(reporter, dafnyProgramText, false);
+      var dafnyProgram = await Utils.Parse(reporter, dafnyProgramText, false);
       Assert.NotNull(dafnyProgram);
       DafnyMain.Resolve(dafnyProgram);
       Assert.Equal(0, reporter.ErrorCount);
