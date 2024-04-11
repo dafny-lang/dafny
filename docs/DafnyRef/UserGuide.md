@@ -1013,6 +1013,13 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br><br><br><br><br>&nbsp;&nbsp;`  var x := m_mod(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  modify this, i; // Temporarily`<br>&nbsp;&nbsp;`  var x: T;     // Temporarily`<br>&nbsp;&nbsp;`  assume B(k, x);`<br>&nbsp;&nbsp;`//  var x := m_mod(k);`<br>&nbsp;&nbsp;`  assert P(x);`
   <br>`modify x, y;`<br>`assert P(x, y, z);` | `assert x != z && y != z;`<br>`modify x, y;`<br>`assert P(x, y, z);`
 
+#### 13.7.1.4. Counterexamples {#sec-counterexamples}
+
+When verification fails, we can rerun Dafny with `--extract-counterexample` flag to get a counterexample that can potentially explain the proof failure.
+Note that Danfy cannot guarantee that the counterexample it reports provably violates the assertion it was generated for (see [^smt-encoding])
+The counterexample takes the form of assumptions that can be inserted into the code to describe the potential conditions under which the given assertion is violated. 
+This output should be inspected manually and treated as a hint.
+
 ### 13.7.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
 
 In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or times out.
@@ -2316,6 +2323,12 @@ and what information it produces about the verification process.
 
 * `--isolate-assertions` - verify assertions individually
 
+* `--extract-counterexample` - if verification fails, report a potential
+  counterexample as a set of assumptions that can be inserted into the code.
+  Note that Danfy cannot guarantee that the counterexample
+  it reports provably violates the assertion or that the assumptions are not
+  mutually inconsistent (see [^smt-encoding]), so this output should be inspected manually and treated as a hint.
+
 Controlling the proof engine:
 
 * `--cores:<n>` - sets the number or percent of the available cores to be used for verification
@@ -2468,13 +2481,6 @@ Legacy options:
 
   * `1` (default) - in the body of prefix lemmas, rewrite any use of a
     focal predicate `P` to `P#[_k-1]`.
-
-* `-extractCounterexample` - control generation of counterexamples. If
-  verification fails, report a detailed counterexample for the first
-  failing assertion. Requires specifying the `-mv` option, to specify
-  where to write the counterexample, as well as the
-  `-proverOpt:O:model_compress=false` and
-  `-proverOpt:O:model.completion=true` options.
 
 ### 13.9.8. Controlling compilation {#sec-controlling-compilation}
 

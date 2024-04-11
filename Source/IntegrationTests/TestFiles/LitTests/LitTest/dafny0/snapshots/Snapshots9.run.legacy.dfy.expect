@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 Processing command (at Snapshots9.v0.dfy(2,11)) assert {:id "id2"} ok#0;
   >>> DoNothingToAssert
 Snapshots9.v0.dfy(4,7): Error: a postcondition could not be proved on this return path

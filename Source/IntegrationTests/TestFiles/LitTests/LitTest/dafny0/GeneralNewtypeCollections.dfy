@@ -9,6 +9,8 @@ method Main() {
   Multiset.Test();
   Seq.Test();
   SeqToMultisetConversion.Test();
+  Map.Test();
+  Imap.Test();
 }
 
 module Set {
@@ -405,5 +407,107 @@ module SeqToMultisetConversion {
     m1' := multiset(s');
     assert m0' == m1';
     print m0' == m1', " ", |m0'|, "\n"; // true 4
+  }
+}
+
+module Map {
+  newtype IntMap = m: map<int, real> | true
+  newtype IntSet = s: set<int> | true
+
+  method Test() {
+    var m: IntMap;
+    m := map[];
+    print m, " "; // map[]
+    m := map[6 := 2.0, 19 := 2.1];
+    var n: IntMap := m;
+    print |m|, " "; // 2
+    print 7 in m, " ", 6 in m, "\n"; // false true
+    print m[6], " ", m[19], "\n"; // 2.0 2.1
+    m := m[17 := 3.0][1800 := 0.0][6 := 1.0];
+    print m[6], " ", m[19], " ", m[17], "\n"; // 1.0 2.1 3.0
+
+    m := m + n;
+    // m is now:  map[6 := 2.0, 17 := 3.0, 19 := 2.1, 1800 := 0.0]
+    print |m|, " ", m[6], "\n"; // 4 2.0
+
+    var sf: set<int> := {3, 4, 5, 17, 20};
+    m := m - sf;
+    var nf: IntSet := {3, 1800, 4, 5};
+    m := m - nf;
+    // m is now:  map[6 := 2.0, 19 := 2.1]
+    print |m|, " ", m[6] + m[19], "\n"; // 2 4.1
+
+    var u: map<int, real>;
+    u := m as map<int, real>;
+    m := u as IntMap;
+    var b0 := m is map<int, real>;
+    var b1 := u is IntMap;
+
+    print |m|, " ", |u|, " ", b0, " ", b1, "\n"; // 2 2 true true
+
+    b0 := m == n;
+    b1 := m != n;
+    print b0, " ", b1, "\n"; // true false
+
+    TestComprehensions();
+  }
+
+  method TestComprehensions() {
+    var m: IntMap := map x: int | 2 <= x < 5 :: (2 * x) as real;
+    var n: IntMap := map x: int | 2 <= x < 5 :: 2 * x := 10.0 - x as real;
+    expect |m| == |n| == 3;
+    print 2 in m, " ", 2 in n, " ", 4 in m, " ", 4 in n, "\n"; // true false true true
+    assert 2 * 3 in n;
+    print m[3], " ", n[6], "\n"; // 6.0 7.0
+  }
+}
+
+module Imap {
+  newtype IntImap = m: imap<int, real> | true
+  newtype IntSet = s: set<int> | true
+
+  method Test() {
+    var m: IntImap;
+    m := imap[];
+    print m, " "; // imap[]
+    m := imap[6 := 2.0, 19 := 2.1];
+    var n: IntImap := m;
+    print 7 in m, " ", 6 in m, "\n"; // false true
+    print m[6], " ", m[19], "\n"; // 2.0 2.1
+    m := m[17 := 3.0][1800 := 0.0][6 := 1.0];
+    print m[6], " ", m[19], " ", m[17], "\n"; // 1.0 2.1 3.0
+
+    m := m + n;
+    // m is now:  imap[6 := 2.0, 17 := 3.0, 19 := 2.1, 1800 := 0.0]
+    print m[6], "\n"; // 2.0
+
+    var sf: set<int> := {3, 4, 5, 17, 20};
+    m := m - sf;
+    var nf: IntSet := {3, 1800, 4, 5};
+    m := m - nf;
+    // m is now:  imap[6 := 2.0, 19 := 2.1]
+    print m[6] + m[19], "\n"; // 4.1
+
+    var u: imap<int, real>;
+    u := m as imap<int, real>;
+    m := u as IntImap;
+    var b0 := m is imap<int, real>;
+    var b1 := u is IntImap;
+
+    print b0, " ", b1, "\n"; // true true
+
+    b0 := m == n;
+    b1 := m != n;
+    print b0, " ", b1, "\n"; // true false
+
+    TestComprehensions();
+  }
+
+  method TestComprehensions() {
+    var m: IntImap := imap x: int | 2 <= x < 5 :: (2 * x) as real;
+    var n: IntImap := imap x: int | 2 <= x < 5 :: 2 * x := 10.0 - x as real;
+    print 2 in m, " ", 2 in n, " ", 4 in m, " ", 4 in n, "\n"; // true false true true
+    assert 2 * 3 in n;
+    print m[3], " ", n[6], "\n"; // 6.0 7.0
   }
 }
