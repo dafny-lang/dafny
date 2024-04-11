@@ -69,7 +69,9 @@ public partial class BoogieGenerator {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
       Expression e1 = contextDecreases[i];
       if (oldCaller) {
+        Type t = e1.Type;
         e1 = new OldExpr(e1.tok, e1);
+        e1.Type = t; // To ensure e1 is still fully-resolved
       }
       if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
         N = i;
