@@ -5,7 +5,7 @@ using Xunit;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest;
 
 public class PhaseTreeTest {
-  
+
   record Root(int Index) : IPhase {
     public IPhase MaybeParent => null;
   }

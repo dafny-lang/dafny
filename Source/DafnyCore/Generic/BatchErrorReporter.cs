@@ -39,7 +39,7 @@ public class BatchErrorReporter : ErrorReporter {
           nestedToken.Inner, nestedToken.Message, usingSnippets)
       );
     }
-    
+
     var dafnyDiagnostic = new DafnyDiagnostic(phase, errorId, rootTok, msg, level, relatedInformation);
     AllMessages.Add(dafnyDiagnostic);
     AllMessagesByLevel[level].Add(dafnyDiagnostic);

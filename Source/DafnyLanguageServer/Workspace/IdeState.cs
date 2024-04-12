@@ -44,27 +44,6 @@ public record IdeState(
   public Uri Uri => Input.Uri.ToUri();
   public int Version => Input.Version;
 
-  private static Diagnostic? MigrateDiagnostics(Migrator migrator, Diagnostic diagnostic) {
-    var newRange = migrator.MigrateRange(diagnostic.Range);
-    if (newRange == null) {
-      return null;
-    }
-
-    if (diagnostic.Source == MessageSource.Verifier.ToString()) {
-      return diagnostic with {
-        Range = newRange,
-        Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
-        Message = diagnostic.Message.StartsWith(OutdatedPrefix)
-          ? diagnostic.Message
-          : OutdatedPrefix + diagnostic.Message
-      };
-    }
-
-    return diagnostic with {
-      Range = newRange
-    };
-  }
-
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
     return new IdeState(ImmutableHashSet<Uri>.Empty,
@@ -109,7 +88,7 @@ public record IdeState(
     };
 
     FileDiagnostic? MigrateFileDiagnostic(FileDiagnostic fileDiagnostic) {
-      var d = MigrateDiagnostics(migrator, fileDiagnostic.Diagnostic);
+      var d = migrator.MigrateDiagnostics(fileDiagnostic.Diagnostic);
       if (d == null) {
         return null;
       }

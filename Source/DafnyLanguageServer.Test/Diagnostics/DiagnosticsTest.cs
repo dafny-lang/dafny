@@ -238,7 +238,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var diagnostics1 = diagnosticsReceiver.GetLast(documentItem);
       Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
-      
+
       var migrated2 = await GetNextDiagnostics(documentItem);
       var diagnostics2 = await GetNextDiagnostics(documentItem);
       Assert.Equal(5, diagnostics2.Length);

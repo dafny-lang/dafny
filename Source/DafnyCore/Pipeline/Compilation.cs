@@ -378,9 +378,9 @@ public class Compilation : IDisposable {
       foreach (var scope in verificationTaskPerScope) {
 
         var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
-        
+
         updates.OnNext(new PhaseDiscovered(scopePhase, Array.Empty<IPhase>()));
-        
+
         var tasksForScope = new List<Task<IVerificationStatus>>();
         var scopeVerificationTasks = scope.ToList();
         foreach (var verificationTask in scopeVerificationTasks) {

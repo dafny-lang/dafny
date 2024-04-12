@@ -284,6 +284,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     });
   }
 
+
+  protected void ApplyChanges(ref TextDocumentItem documentItem, IReadOnlyList<TextDocumentContentChangeEvent> changes) {
+    documentItem = documentItem with { Version = documentItem.Version + 1 };
+    client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      TextDocument = new OptionalVersionedTextDocumentIdentifier {
+        Uri = documentItem.Uri,
+        Version = documentItem.Version
+      },
+      ContentChanges = changes.ToArray()
+    });
+  }
+
   protected void ApplyChanges(ref TextDocumentItem documentItem, List<Change> changes) {
     documentItem = documentItem with { Version = documentItem.Version + 1 };
     client.DidChangeTextDocument(new DidChangeTextDocumentParams {
