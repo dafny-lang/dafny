@@ -14,14 +14,27 @@ output = sys.argv[1]
 # - 2 as it's an escaped backslash
 # Last step is to split the generated file by namespace and put each in a separate directory inside Generated/
 # according to the namespace. It will make formatting easier.
+
+# test if the file exists before opening it. If not, fail gracefully
+if not os.path.exists(output + '.cs'):
+  print(f"File {output} was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
+  exit()
+
 with open (output + '.cs', 'r' ) as f:
   content = f.read()
   content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*|_\d_', '', content, flags = re.M)
   content_new = re.sub('\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \\1', '', content_trimmed, flags = re.M)
   content_new = re.sub('Backends\\\\\\\\Rust\\\\\\\\', 'Backends/Rust/', content_new, flags = re.M)
 
+  # Any test looking like "  if()"
+
+  test_output = "../DafnyCore.Test/"
+
   if not os.path.exists(output):
     os.makedirs(output)
+  
+  if not os.path.exists(test_output+output):
+    os.makedirs(test_output+output)
 
   prelude_match = re.match(r'(.*?)\nnamespace', content_new, re.DOTALL)
   prelude = prelude_match.group(1).strip() if prelude_match else ""
@@ -37,8 +50,14 @@ with open (output + '.cs', 'r' ) as f:
     namespace_name = match[1]
     file_content = f"{prelude}\n\n{namespace_content}"
 
+    # If the name of the namespace ends with "coverage", we move this test
+    # to ../DafnyCore.Test/{output}/....
+    file_path_prefix = ""
+    if namespace_name.endswith("Coverage"):
+      file_path_prefix = test_output
+    
     # Write content to a file
-    file_path = f"{output}/{namespace_name.replace('.', '_')}.cs"  # Replace dots with underscores in file name
+    file_path = f"{file_path_prefix}{output}/{namespace_name.replace('.', '_')}.cs"  # Replace dots with underscores in file name
     with open(file_path, 'w') as file:
       file.write(file_content)
 

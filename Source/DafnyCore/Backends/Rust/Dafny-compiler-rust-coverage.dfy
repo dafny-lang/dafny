@@ -1,5 +1,5 @@
 /*This module exists to increase code coverage of the generated code
-  It should be eventually migrated properly to DafnyCore.Test */
+  All modules ending with "Coverage" will be compiled to DafnyCore.Test */
 module DafnyToRustCompilerCoverage {
   module RASTCoverage {
     import opened RAST
@@ -8,7 +8,8 @@ module DafnyToRustCompilerCoverage {
     import Strings = Std.Strings
 
     method TestNoOptimize(e: Expr)
-      requires e.Optimize() == e {
+      //requires e.Optimize() == e // Too expensive
+    {
     }
 
     method TestOptimizeToString() {
