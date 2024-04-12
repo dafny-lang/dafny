@@ -361,14 +361,14 @@ namespace Microsoft.Dafny {
               if (e.Member is TwoStateFunction) {
                 Bpl.Expr wh = GetWhereClause(selectExpr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                 if (wh != null) {
-                  var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
+                  var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state", e.Obj);
                   builder.Add(Assert(GetToken(expr), wh, desc));
                 }
               } else if (etran.UsesOldHeap) {
                 Bpl.Expr wh = GetWhereClause(selectExpr.tok, etran.TrExpr(e.Obj), e.Obj.Type, etran, ISALLOC, true);
                 if (wh != null) {
                   var desc = new PODesc.IsAllocated("receiver",
-                    $"in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed");
+                    $"in the state in which its {(e.Member is Field ? "fields" : "members")} are accessed", e.Obj);
                   builder.Add(Assert(GetToken(expr), wh, desc));
                 }
               }
@@ -389,7 +389,7 @@ namespace Microsoft.Dafny {
             if (eSeqType.IsArrayType) {
               builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array", e.Seq)));
               if (etran.UsesOldHeap) {
-                builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
+                builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null, e.Seq)));
               }
             }
             Bpl.Expr e0 = null;
@@ -460,7 +460,7 @@ namespace Microsoft.Dafny {
             Bpl.Expr array = etran.TrExpr(e.Array);
             builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array", e.Array)));
             if (etran.UsesOldHeap) {
-              builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null)));
+              builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null, e.Array)));
             }
             for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
               var idx = e.Indices[idxId];
@@ -536,14 +536,14 @@ namespace Microsoft.Dafny {
             if (etran.UsesOldHeap) {
               Bpl.Expr wh = GetWhereClause(e.Function.tok, etran.TrExpr(e.Function), e.Function.Type, etran, ISALLOC, true);
               if (wh != null) {
-                var desc = new PODesc.IsAllocated("function", "in the state in which the function is invoked");
+                var desc = new PODesc.IsAllocated("function", "in the state in which the function is invoked", e.Function);
                 builder.Add(Assert(GetToken(e.Function), wh, desc));
               }
               for (int i = 0; i < e.Args.Count; i++) {
                 Expression ee = e.Args[i];
                 wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
                 if (wh != null) {
-                  var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
+                  var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked", ee);
                   builder.Add(Assert(GetToken(ee), wh, desc));
                 }
               }
@@ -683,7 +683,7 @@ namespace Microsoft.Dafny {
                 if (!e.Function.IsStatic) {
                   Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran, ISALLOC, true);
                   if (wh != null) {
-                    var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the function is invoked");
+                    var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the function is invoked", e.Receiver);
                     builder.Add(Assert(GetToken(e.Receiver), wh, desc));
                   }
                 }
@@ -691,7 +691,7 @@ namespace Microsoft.Dafny {
                   Expression ee = e.Args[i];
                   Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
                   if (wh != null) {
-                    var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked");
+                    var desc = new PODesc.IsAllocated("argument", "in the state in which the function is invoked", ee);
                     builder.Add(Assert(GetToken(ee), wh, desc));
                   }
                 }
@@ -699,7 +699,7 @@ namespace Microsoft.Dafny {
                 if (!e.Function.IsStatic) {
                   Bpl.Expr wh = GetWhereClause(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                   if (wh != null) {
-                    var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state");
+                    var desc = new PODesc.IsAllocated("receiver argument", "in the two-state function's previous state", e.Receiver);
                     builder.Add(Assert(GetToken(e.Receiver), wh, desc));
                   }
                 }
@@ -711,10 +711,11 @@ namespace Microsoft.Dafny {
                     Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
                     if (wh != null) {
                       var pIdx = e.Args.Count == 1 ? "" : " at index " + i;
-                      var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
-                        "in the two-state function's previous state" +
-                          PODesc.IsAllocated.HelperFormal(formal)
-                        );
+                      var desc = new PODesc.IsAllocated(
+                        $"argument{pIdx} for parameter '{formal.Name}'",
+                        "in the two-state function's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+                        ee
+                      );
                       builder.Add(Assert(GetToken(ee), wh, desc));
                     }
                   }
@@ -884,7 +885,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr wh = GetWhereClause(fe.E.tok, r, ty, etran.OldAt(e.AtLabel), ISALLOC, true);
               if (wh != null) {
                 var desc = new PODesc.IsAllocated(description, "in the old-state of the 'unchanged' predicate",
-                  description != "object");
+                  fe.E, description != "object");
                 builder.Add(Assert(GetToken(fe.E), BplImp(BplAnd(ante, nonNull), wh), desc));
               }
               // check that the 'unchanged' argument reads only what the context is allowed to read

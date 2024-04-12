@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Linq.Expressions;
@@ -377,6 +378,7 @@ public class IsAllocated : ProofObligationDescription {
 
   private readonly string what;
   [CanBeNull] private readonly string when;
+  private readonly Expression expr;
   private bool plural;
   private string WhenSuffix => when is null ? "" : $" {when}";
   private string PluralSuccess => plural ? "each " : "";
@@ -387,10 +389,15 @@ public class IsAllocated : ProofObligationDescription {
            + " arguments can refer to expressions possibly unallocated in the previous state";
   }
 
-  public IsAllocated(string what, string when, bool plural = false) {
+  public IsAllocated(string what, string when, Expression expr, bool plural = false) {
     this.what = what;
     this.when = when;
+    this.expr = expr;
     this.plural = plural;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Allocated, expr);
   }
 }
 
@@ -584,6 +591,16 @@ public class ForallPostcondition : ProofObligationDescription {
     "possible violation of postcondition of forall statement";
 
   public override string ShortDescription => "forall ensures";
+
+  private readonly Expression expr;
+
+  public ForallPostcondition(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class YieldEnsures : ProofObligationDescription {
@@ -984,9 +1001,21 @@ public class WitnessCheck : ProofObligationDescription {
   private readonly string hintMsg =
     "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
   private readonly string witnessString;
+  [CanBeNull] private readonly Type type;
+  [CanBeNull] private readonly Expression witness;
 
-  public WitnessCheck(string witnessString) {
+  public WitnessCheck(string witnessString, Type type = null, Expression witness = null) {
     this.witnessString = witnessString;
+    this.type = type;
+    this.witness = witness;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    if (type == null || witness == null) {
+      return base.GetAssertedExpr(options);
+    }
+
+    return new TypeTestExpr(witness.tok, witness, type);
   }
 }
 
@@ -1226,9 +1255,15 @@ public class ArrayInitSizeValid : ProofObligationDescription {
   public override string ShortDescription => "array initializer size";
 
   private readonly int size;
+  private readonly Expression dim;
 
-  public ArrayInitSizeValid(int size) {
+  public ArrayInitSizeValid(int size, Expression dim) {
     this.size = size;
+    this.dim = dim;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Expression.CreateEq(dim, Expression.CreateIntLiteral(dim.tok, size), Type.Int);
   }
 }
 
@@ -1242,9 +1277,20 @@ public class ArrayInitEmpty : ProofObligationDescription {
   public override string ShortDescription => "array initializer empty";
 
   private readonly string typeDesc;
+  private readonly ImmutableList<Expression> dims;
 
-  public ArrayInitEmpty(string typeDesc) {
+  public ArrayInitEmpty(string typeDesc, List<Expression> dims) {
     this.typeDesc = typeDesc;
+    this.dims = dims.ToImmutableList();
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    Expression zeroSize = Expression.CreateBoolLiteral(dims[0].tok, false);
+    Expression zero = Expression.CreateIntLiteral(dims[0].tok, 0);
+    foreach (Expression dim in dims) {
+      zeroSize = Expression.CreateOr(zeroSize, Expression.CreateEq(dim, zero, Type.Int));
+    }
+    return zeroSize;
   }
 }
 

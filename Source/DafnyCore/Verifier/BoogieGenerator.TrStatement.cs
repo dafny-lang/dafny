@@ -1100,7 +1100,7 @@ namespace Microsoft.Dafny {
         foreach (var ens in s.Ens) {
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition()));
+              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition(ens.E)));
             }
           }
         }
@@ -1875,7 +1875,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked");
+            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1883,7 +1883,7 @@ namespace Microsoft.Dafny {
           Expression ee = Args[i];
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked");
+            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked", ee);
             builder.Add(Assert(ee.tok, wh, desc));
           }
         }
@@ -1891,7 +1891,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state");
+            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1903,10 +1903,11 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " at index " + i;
-              var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
-                "in the two-state lemma's previous state" +
-                PODesc.IsAllocated.HelperFormal(formal)
-                );
+              var desc = new PODesc.IsAllocated(
+                $"argument{pIdx} for parameter '{formal.Name}'",
+                "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+                ee
+              );
               builder.Add(Assert(ee.tok, wh, desc));
             }
           }
@@ -2620,7 +2621,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
           } else if (tRhs.InitDisplay != null) {
             var dim = tRhs.ArrayDimensions[0];
-            var desc = new PODesc.ArrayInitSizeValid(tRhs.InitDisplay.Count);
+            var desc = new PODesc.ArrayInitSizeValid(tRhs.InitDisplay.Count, dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc));
             foreach (var v in tRhs.InitDisplay) {
               CheckWellformed(v, new WFOptions(), locals, builder, etran);
@@ -2635,7 +2636,7 @@ namespace Microsoft.Dafny {
             foreach (Expression dim in tRhs.ArrayDimensions) {
               zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
             }
-            var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString());
+            var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
             builder.Add(Assert(tRhs.Tok, zeroSize, desc));
           }
         }
