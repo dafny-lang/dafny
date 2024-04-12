@@ -10,7 +10,7 @@
 // RUN: %build --verbose --target java "%s" >> "%t"
 // RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/CompileAndThenRun.jar CompileAndThenRun >> "%t"
 
-// RUN: %build --allow-deprecation --unicode-char false --verbose --target cpp "%s" >> "%t"
+// RUN: %build --unicode-char false --verbose --target cpp "%s" >> "%t"
 // RUN: %S/CompileAndThenRun.exe >> "%t"
 
 // RUN: %build --verbose --target py "%s" >> "%t"

@@ -3,7 +3,7 @@
 // RUN: %exits-with 3 %run --no-verify --target java "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --target js "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --target go "%s" >> "%t"
-// RUN: %exits-with 3 %run --no-verify --allow-deprecation --unicode-char false --target cpp "%s" >> "%t"
+// RUN: %exits-with 3 %run --no-verify --unicode-char false --target cpp "%s" >> "%t"
 // RUN: %exits-with 3 %run --no-verify --target py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 

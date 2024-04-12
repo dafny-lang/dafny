@@ -184,7 +184,7 @@ go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
-cpp - Compile to C++.
+cpp - (experimental) Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
