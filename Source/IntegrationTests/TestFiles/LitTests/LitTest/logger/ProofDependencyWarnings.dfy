@@ -2,6 +2,6 @@
 // RUN: %diff "%s.expect" "%t.new"
 // Also test old CLI
 // RUN: %baredafny /compile:0 /useBaseNameForFileName /verifyAllModules /warnContradictoryAssumptions /warnRedundantAssumptions "%s" > "%t.old"
-// RUN: %diff "%s.expect" "%t.old"
+// RUN: %diff "%s.expect2" "%t.old"
 
 include "ProofDependencies.dfy"
