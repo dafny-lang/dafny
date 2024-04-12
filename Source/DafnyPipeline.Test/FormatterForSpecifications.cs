@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForSpecifications")]
 public class FormatterForSpecifications : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForModifyStatements() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForModifyStatements() {
+    await FormatterWorksFor(@"
 method Test() {
   modify x {
     x := 2;
@@ -32,8 +33,8 @@ method Test() {
   }
 
   [Fact]
-  public void FormatterWorksForDecreasesInvariantComments() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForDecreasesInvariantComments() {
+    await FormatterWorksFor(@"
 method Test() {
   while X
     decreases true || false
@@ -47,8 +48,8 @@ method Test() {
   }
 
   [Fact]
-  public void FormatterWorksForAssertAssumeExpectPrintReveal() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForAssertAssumeExpectPrintReveal() {
+    await FormatterWorksFor(@"
 method Test(z: int) {
   assert z == 1;
   assert z == 1
@@ -100,8 +101,8 @@ method Test(z: int) {
   }
 
   [Fact]
-  public void FormatterWorksForCommentsAndAlignmentAmpStatements() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCommentsAndAlignmentAmpStatements() {
+    await FormatterWorksFor(@"
 module Test {
   /** A comment
     * Followed by newline
@@ -217,8 +218,8 @@ method topLevel(
   }
 
   [Fact]
-  public void FormatterWorksForMethodBeforeAClass() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForMethodBeforeAClass() {
+    await FormatterWorksFor(@"
 method Test()
   ensures true || false
   // comment should be between ensures and not attached to true/false

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration;
 using Bpl = Microsoft.Boogie;
@@ -26,7 +27,7 @@ namespace DafnyPipeline.Test {
     private Newlines currentNewlines;
 
     [Fact]
-    public void TriviaSplitWorksOnLinuxMacAndWindows() {
+    public async Task TriviaSplitWorksOnLinuxMacAndWindows() {
       var options = DafnyOptions.Create(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
@@ -80,7 +81,7 @@ ensures true
         programString = AdjustNewlines(programString);
 
         var reporter = new BatchErrorReporter(options);
-        var dafnyProgram = Utils.Parse(reporter, programString, false);
+        var dafnyProgram = await Utils.Parse(reporter, programString, false);
         Assert.Equal(0, reporter.ErrorCount);
         var topLevelDecls = dafnyProgram.DefaultModuleDef.TopLevelDecls.ToList();
         Assert.Equal(6, topLevelDecls.Count());
