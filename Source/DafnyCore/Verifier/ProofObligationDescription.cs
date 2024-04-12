@@ -1060,6 +1060,18 @@ public class ForRangeBoundsValid : ProofObligationDescription {
     "lower bound must not exceed upper bound";
 
   public override string ShortDescription => "for range bounds";
+
+  private readonly Expression lo;
+  private readonly Expression hi;
+
+  public ForRangeBoundsValid(Expression lo, Expression hi) {
+    this.lo = lo;
+    this.hi = hi;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(lo.tok, BinaryExpr.Opcode.Le, lo, hi);
+  }
 }
 
 public class ForRangeAssignable : ProofObligationDescription {
@@ -1072,9 +1084,17 @@ public class ForRangeAssignable : ProofObligationDescription {
   public override string ShortDescription => "for range assignable";
 
   private readonly ProofObligationDescription desc;
+  private readonly Expression expr;
+  private readonly Type type;
 
-  public ForRangeAssignable(ProofObligationDescription desc) {
+  public ForRangeAssignable(ProofObligationDescription desc, Expression expr, Type type) {
     this.desc = desc;
+    this.expr = expr;
+    this.type = type;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new TypeTestExpr(expr.tok, expr, type);
   }
 }
 
