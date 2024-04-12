@@ -395,7 +395,7 @@ public class Compilation : IDisposable {
           async Task HandleTaskFinished() {
             var status = await task;
             if (status is Completed completed) {
-              ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, verificationTask.Token,
+              ReportDiagnosticsInResult(Options, scopePhase, canVerify.FullDafnyName, verificationTask.Token,
                 (uint)completed.Result.RunTime.Seconds,
                 completed.Result, errorReporter);
             }
@@ -412,16 +412,10 @@ public class Compilation : IDisposable {
             return;
           }
 
-          var batchReporter = new BatchErrorReporter(Options);
-
           ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, scopePhase,
-            batchReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
+            errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
 
-          var diagnostics = new List<NewDiagnostic>();
-          foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-            diagnostics.Add(new NewDiagnostic(canVerify.Tok.Uri, diagnostic));
-          }
-          updates.OnNext(new PhaseFinished(scopePhase, diagnostics));
+          updates.OnNext(new PhaseFinished(scopePhase));
         }
       }
 
@@ -435,7 +429,7 @@ public class Compilation : IDisposable {
           return;
         }
 
-        updates.OnNext(new PhaseFinished(verificationOfSymbol, Array.Empty<NewDiagnostic>()));
+        updates.OnNext(new PhaseFinished(verificationOfSymbol));
       }
     }
     finally {
@@ -548,7 +542,7 @@ public class Compilation : IDisposable {
     CancelPendingUpdates();
   }
 
-  private static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+  private static void ReportDiagnosticsInResult(DafnyOptions options, IPhase phase, string name, Boogie.IToken token,
     uint timeLimit,
     VerificationRunResult result,
     ErrorReporter errorReporter) {
@@ -558,14 +552,14 @@ public class Compilation : IDisposable {
     {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
       var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
-      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
+      errorReporter.ReportBoogieError(phase, errorInformation, dafnyCounterExampleModel);
     }
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(phase, outcomeError, null, false),
       name, token, null, TextWriter.Null,
       timeLimit, result.CounterExamples);
   }

@@ -176,6 +176,12 @@ public abstract class ErrorReporter {
     }
   }
 
+  public void Info(IPhase phase, IToken tok, string msg, object errorId = null) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    Message(phase, ErrorLevel.Info, errorId?.ToString(), tok, msg);
+  }
+  
   public void Info(MessageSource source, IToken tok, string msg, object errorId = null) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);

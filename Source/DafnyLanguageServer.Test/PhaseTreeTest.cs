@@ -28,6 +28,5 @@ public class PhaseTreeTest {
     tree = tree.Add(p1, Array.Empty<FileDiagnostic>());
     tree = tree.ClearDiagnosticsAndPruneChildren(null, new[] { p0 });
     tree = tree.Remove(p01);
-    var b = 3;
   }
 }

@@ -9,6 +9,6 @@ public record BoogieUpdate(ProofDependencyManager ProofDependencyManager,
 
 }
 
-public record PhaseFinished(IPhase Phase, IReadOnlyList<NewDiagnostic> NewDiagnostics) : ICompilationEvent;
+public record PhaseFinished(IPhase Phase) : ICompilationEvent;
 public record PhaseStarted(IPhase Phase) : ICompilationEvent;
 public record PhaseDiscovered(IPhase Phase, IReadOnlyList<IPhase> Children) : ICompilationEvent;
