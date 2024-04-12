@@ -1130,10 +1130,8 @@ method test() {
       // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
-      var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
-      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
+      var migratedDiagnostics2 = await GetNextDiagnostics(documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, migratedDiagnostics2);
       var secondVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
       var firstVerificationDiagnostics2 = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToArray();
       Assert.Empty(firstVerificationDiagnostics2); // Still contains second failing method

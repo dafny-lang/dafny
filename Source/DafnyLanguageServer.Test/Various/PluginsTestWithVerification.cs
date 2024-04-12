@@ -25,9 +25,9 @@ public class PluginsTestWithVerification : PluginsTestBase {
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem);
     AssertM.Equal(2, diagnostics.Length, LibraryPath + " did not raise an error.");
-    Assert.Equal("Plugin Error that does not prevent verification", diagnostics[0].Message);
-    Assert.Equal("value does not satisfy the subset constraints of 'nat'", diagnostics[1].Message);
-    Assert.Equal(new Range((0, 23), (0, 24)), diagnostics[1].Range);
+    Assert.Equal("Plugin Error that does not prevent verification", diagnostics[1].Message);
+    Assert.Equal("value does not satisfy the subset constraints of 'nat'", diagnostics[0].Message);
+    Assert.Equal(new Range((0, 23), (0, 24)), diagnostics[0].Range);
   }
 
   public PluginsTestWithVerification(ITestOutputHelper output) : base(output) {
