@@ -1382,11 +1382,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      if (s.Labels is null || s.Labels.Data is null) {
-        s.Labels = new LList<Label>(new Label(s.tok, CurrentIdGenerator.FreshId("LoopLabel#")), null);
-      }
-      var loopLabel = s.Labels.Data;
-
       var suffix = CurrentIdGenerator.FreshId("loop#");
 
       var theDecreases = s.Decreases.Expressions;
@@ -1558,16 +1553,18 @@ namespace Microsoft.Dafny {
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
             types.Add(e.Type.NormalizeExpand());
-            var olde = new OldExpr(e.tok, e, loopLabel.Name) {
+            // Note: this label doesn't exist in the program, and is useful
+            // only for explanatory purposes.
+            var olde = new OldExpr(e.tok, e, "LoopEntry") {
               Type = e.Type
             };
-            oldDecreases.Add(e);
+            oldDecreases.Add(olde);
             decrs.Add(etran.TrExpr(e));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            // TODO: pass in allowance = null, oldExprs = oldDecreases, newExprs = theDecreases, maybe loopLabel?
+            // TODO: pass in allowance = null, oldExprs = oldDecreases, newExprs = theDecreases
             loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases, true)));
           }
         }

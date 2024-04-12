@@ -69,9 +69,9 @@ public partial class BoogieGenerator {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
       Expression e1 = contextDecreases[i];
       if (oldCaller) {
-        Type t = e1.Type;
-        e1 = new OldExpr(e1.tok, e1);
-        e1.Type = t; // To ensure e1 is still fully-resolved
+        e1 = new OldExpr(e1.tok, e1) {
+          Type = e1.Type // To ensure that e1 stays resolved
+        };
       }
       if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
         N = i;
@@ -89,7 +89,7 @@ public partial class BoogieGenerator {
     if (allowance != null) {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
-    // TODO: pass in allowance, es0, es1
+    // TODO: pass in allowance, newExprs = es0, oldExprs = es1
     builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
   }
 
