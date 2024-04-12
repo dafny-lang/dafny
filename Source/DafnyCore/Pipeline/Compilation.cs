@@ -375,8 +375,12 @@ public class Compilation : IDisposable {
       // updates.OnNext(new PhaseDiscovered(verificationOfSymbol,
       //   verificationTaskPerScope.Select(s => new MessageSourceBasedPhase(s)).ToList()));
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
-      var orderedVerificationTasks = new List<IVerificationTask>();
       foreach (var scope in verificationTaskPerScope) {
+
+        var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
+        
+        updates.OnNext(new PhaseDiscovered(scopePhase, Array.Empty<IPhase>()));
+        
         var tasksForScope = new List<Task<IVerificationStatus>>();
         var scopeVerificationTasks = scope.ToList();
         foreach (var verificationTask in scopeVerificationTasks) {
@@ -384,7 +388,18 @@ public class Compilation : IDisposable {
           var task = VerifyTask(canVerify, seededTask);
           tasksForScope.Add(task);
           tasksForSymbol.Add(task);
-          orderedVerificationTasks.Add(verificationTask);
+
+          // In master, the verification diagnostics get cleared when the thing starts running.
+          // We don't have a good key for a task.
+          _ = HandleTaskFinished();
+          async Task HandleTaskFinished() {
+            var status = await task;
+            if (status is Completed completed) {
+              ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, verificationTask.Token,
+                (uint)completed.Result.RunTime.Seconds,
+                completed.Result, errorReporter);
+            }
+          }
         }
 
         _ = HandleScopeFinishedVerification();
@@ -398,17 +413,6 @@ public class Compilation : IDisposable {
           }
 
           var batchReporter = new BatchErrorReporter(Options);
-          var results = statuses.OfType<Completed>().ToList();
-          for (var index = 0; index < results.Count; index++) {
-            var completed = results[index];
-            var task = orderedVerificationTasks[index];
-            ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, task.Token,
-              (uint)completed.Result.RunTime.Seconds,
-              completed.Result, batchReporter);
-          }
-
-
-          var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
 
           ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, scopePhase,
             batchReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());

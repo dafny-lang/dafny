@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -22,13 +23,24 @@ public class BatchErrorReporter : ErrorReporter {
     };
   }
 
-  protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
+  protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken rootTok, string msg) {
     if (ErrorsOnly && level != ErrorLevel.Error) {
       // discard the message
       return false;
     }
 
-    var dafnyDiagnostic = new DafnyDiagnostic(phase, errorId, tok, msg, level, new List<DafnyRelatedInformation>());
+    // TODO remove duplication with OER
+    var relatedInformation = new List<DafnyRelatedInformation>();
+
+    var usingSnippets = Options.Get(Snippets.ShowSnippets);
+    if (rootTok is NestedToken nestedToken) {
+      relatedInformation.AddRange(
+        ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
+          nestedToken.Inner, nestedToken.Message, usingSnippets)
+      );
+    }
+    
+    var dafnyDiagnostic = new DafnyDiagnostic(phase, errorId, rootTok, msg, level, relatedInformation);
     AllMessages.Add(dafnyDiagnostic);
     AllMessagesByLevel[level].Add(dafnyDiagnostic);
     return true;
