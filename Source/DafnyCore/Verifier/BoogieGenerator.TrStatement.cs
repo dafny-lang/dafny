@@ -939,7 +939,26 @@ namespace Microsoft.Dafny {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc)));
+          Expression dafnyRange = new LiteralExpr(stmt.tok, true);
+          if (lo != null) {
+            dafnyRange = new BinaryExpr(
+              stmt.tok,
+              BinaryExpr.Opcode.And,
+              dafnyRange,
+              new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex)
+            );
+          }
+          if (hi != null) {
+            dafnyRange = new BinaryExpr(
+              stmt.tok,
+              BinaryExpr.Opcode.And,
+              dafnyRange,
+              new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi)
+            );
+          }
+          var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
+            dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
+          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc, dafnyAssertion)));
         }
       }
 

@@ -1085,16 +1085,14 @@ public class ForRangeAssignable : ProofObligationDescription {
 
   private readonly ProofObligationDescription desc;
   private readonly Expression expr;
-  private readonly Type type;
 
-  public ForRangeAssignable(ProofObligationDescription desc, Expression expr, Type type) {
+  public ForRangeAssignable(ProofObligationDescription desc, Expression expr) {
     this.desc = desc;
     this.expr = expr;
-    this.type = type;
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new TypeTestExpr(expr.tok, expr, type);
+    return expr;
   }
 }
 
