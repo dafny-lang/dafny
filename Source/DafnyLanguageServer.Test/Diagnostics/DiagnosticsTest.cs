@@ -1094,19 +1094,16 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
-      var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
-      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
+      var migratedDiagnostics2 = await GetNextDiagnostics(documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, migratedDiagnostics2);
       var firstVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
       Assert.Single(firstVerificationDiagnostics2); // Still contains second failing method
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
       // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics3 = await GetNextDiagnostics(documentItem);
-      var resolutionDiagnostics3 = await GetNextDiagnostics(documentItem);
-      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, resolutionDiagnostics3);
+      var migratedDiagnostics3 = await GetNextDiagnostics(documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, migratedDiagnostics3);
       var secondVerificationDiagnostics3 = await GetLastDiagnostics(documentItem);
       Assert.Empty(secondVerificationDiagnostics3);
 
@@ -1168,8 +1165,11 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
+      var migratedDiagnosticsAfter = await GetNextDiagnostics(documentItem);
       var resolutionDiagnosticsAfter = await GetNextDiagnostics(documentItem);
+      var verificationDiagnosticsAfter = await GetNextDiagnostics(documentItem);
       Assert.Single(resolutionDiagnosticsAfter);
+      Assert.Single(verificationDiagnosticsAfter);
     }
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {

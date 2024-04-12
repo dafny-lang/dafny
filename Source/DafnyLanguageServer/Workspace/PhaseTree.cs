@@ -64,17 +64,15 @@ public class PhaseTree {
     var ancestors = phase.AncestorsAndSelf();
 
     return Recursive(this, ancestors)!;
-    PhaseTree? Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
+    PhaseTree Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
       if (phases is Cons<IPhase> cons) {
         if (tree.Children.TryGetValue(cons.Head, out var child)) {
           var recursiveResult = Recursive(child, cons.Tail);
           if (recursiveResult == child) {
             // Nothing changed
-            return this;
+            return tree;
           }
-          return recursiveResult == null
-            ? new PhaseTree(tree.Diagnostics, tree.Children.Remove(cons.Head))
-            : new PhaseTree(tree.Diagnostics, tree.Children.SetItem(cons.Head, recursiveResult));
+          return new PhaseTree(tree.Diagnostics, tree.Children.SetItem(cons.Head, recursiveResult));
         }
 
         // Could not find phase to change. Returning the same tree.
@@ -82,10 +80,14 @@ public class PhaseTree {
       }
 
       // Found phase to set children for.
-      var remainingChildren = Children;
-      var childrenToRemove = Children.Keys.Except<IPhase>(newChildren);
+      var remainingChildren = tree.Children;
+      var childrenToRemove = tree.Children.Keys.Except(newChildren);
       foreach (var childToRemove in childrenToRemove) {
         remainingChildren = remainingChildren.Remove(childToRemove);
+      }
+
+      if (remainingChildren == tree.Children) {
+        return tree;
       }
 
       return new PhaseTree(Array.Empty<FileDiagnostic>(), remainingChildren);
@@ -96,13 +98,13 @@ public class PhaseTree {
     var ancestors = phase.AncestorsAndSelf();
 
     return Recursive(this, ancestors)!;
-    PhaseTree? Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
+    static PhaseTree? Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
       if (phases is Cons<IPhase> cons) {
         if (tree.Children.TryGetValue(cons.Head, out var child)) {
           var recursiveResult = Recursive(child, cons.Tail);
           if (recursiveResult == child) {
             // Nothing changed
-            return this;
+            return tree;
           }
           return recursiveResult == null
             ? new PhaseTree(tree.Diagnostics, tree.Children.Remove(cons.Head))
