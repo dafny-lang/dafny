@@ -118,6 +118,8 @@ public class Compilation : IDisposable {
     RootFiles = DetermineRootFiles();
 
     updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopyAndClear()));
+    updates.OnNext(new PhaseDiscovered(null,
+      Enum.GetValues<MessageSource>().Select(s => new MessageSourceBasedPhase(s)).ToList()));
     started.TrySetResult();
   }
 
@@ -231,6 +233,10 @@ public class Compilation : IDisposable {
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopyAndClear()));
+      var canVerifies = resolution.CanVerifies ?? Array.Empty<ICanVerify>();
+      updates.OnNext(new PhaseDiscovered(new MessageSourceBasedPhase(MessageSource.Verifier),
+        canVerifies.Select(c => (IPhase)new VerificationOfSymbol(c)).ToList()));
+
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
@@ -365,6 +371,9 @@ public class Compilation : IDisposable {
 
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
+      //
+      // updates.OnNext(new PhaseDiscovered(verificationOfSymbol,
+      //   verificationTaskPerScope.Select(s => new MessageSourceBasedPhase(s)).ToList()));
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
       var orderedVerificationTasks = new List<IVerificationTask>();
       foreach (var scope in verificationTaskPerScope) {
@@ -415,12 +424,17 @@ public class Compilation : IDisposable {
             completed.Result, batchReporter);
         }
 
+        updates.OnNext(new PhaseFinished(verificationOfSymbol));
+        // TODO: the new Diagnostics should be part of the phaseFinished notification.
+        // We could also let HandlePhaseStarted remove the old phase.
+        // Seems too aggressive because it also removes the children of the old phase.
+        // I should not have state from two phases at the same time.
+        // But I can have state from an old child if the new child does not exist yet.
         foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
           errorReporter.Message(verificationOfSymbol, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
             diagnostic.Message);
         }
 
-        updates.OnNext(new PhaseFinished(verificationOfSymbol));
       }
     }
     finally {

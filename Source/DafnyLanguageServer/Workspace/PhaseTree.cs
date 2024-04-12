@@ -42,12 +42,13 @@ public class PhaseTree {
   }
 
   public PhaseTree Add(IPhase phase, IReadOnlyList<FileDiagnostic> newDiagnostics) {
-    var ancestors = phase.AncestorsAndSelf;
+    var ancestors = phase.AncestorsAndSelf();
 
     return Recursive(this, ancestors);
     PhaseTree Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
       if (phases is Cons<IPhase> cons) {
         if (!tree.Children.TryGetValue(cons.Head, out var child)) {
+          // An ancestor was not added yet.
           child = new PhaseTree(ImmutableList<FileDiagnostic>.Empty);
         }
 
@@ -59,22 +60,60 @@ public class PhaseTree {
     }
   }
 
-  public PhaseTree Remove(IPhase phase) {
-    var ancestors = phase.AncestorsAndSelf;
+  public PhaseTree ClearDiagnosticsAndPruneChildren(IPhase phase, IReadOnlyList<IPhase> newChildren) {
+    var ancestors = phase.AncestorsAndSelf();
 
     return Recursive(this, ancestors)!;
     PhaseTree? Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
       if (phases is Cons<IPhase> cons) {
         if (tree.Children.TryGetValue(cons.Head, out var child)) {
           var recursiveResult = Recursive(child, cons.Tail);
+          if (recursiveResult == child) {
+            // Nothing changed
+            return this;
+          }
           return recursiveResult == null
             ? new PhaseTree(tree.Diagnostics, tree.Children.Remove(cons.Head))
             : new PhaseTree(tree.Diagnostics, tree.Children.SetItem(cons.Head, recursiveResult));
         }
 
+        // Could not find phase to change. Returning the same tree.
         return tree;
       }
 
+      // Found phase to set children for.
+      var remainingChildren = Children;
+      var childrenToRemove = Children.Keys.Except<IPhase>(newChildren);
+      foreach (var childToRemove in childrenToRemove) {
+        remainingChildren = remainingChildren.Remove(childToRemove);
+      }
+
+      return new PhaseTree(Array.Empty<FileDiagnostic>(), remainingChildren);
+    }
+  }
+
+  public PhaseTree Remove(IPhase phase) {
+    var ancestors = phase.AncestorsAndSelf();
+
+    return Recursive(this, ancestors)!;
+    PhaseTree? Recursive(PhaseTree tree, SinglyLinkedList<IPhase> phases) {
+      if (phases is Cons<IPhase> cons) {
+        if (tree.Children.TryGetValue(cons.Head, out var child)) {
+          var recursiveResult = Recursive(child, cons.Tail);
+          if (recursiveResult == child) {
+            // Nothing changed
+            return this;
+          }
+          return recursiveResult == null
+            ? new PhaseTree(tree.Diagnostics, tree.Children.Remove(cons.Head))
+            : new PhaseTree(tree.Diagnostics, tree.Children.SetItem(cons.Head, recursiveResult));
+        }
+
+        // Could not find phase to remove. Returning the same tree.
+        return tree;
+      }
+
+      // Found phase to remove.
       return null;
     }
   }

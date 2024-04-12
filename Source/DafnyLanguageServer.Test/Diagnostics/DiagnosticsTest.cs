@@ -116,6 +116,10 @@ function HasResolutionError(): int {
       var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
       Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
       ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
+
+      // Unnecessary diagnostics caused by: https://github.com/dafny-lang/dafny/issues/4377
+      _ = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+
       var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(parseDiagnostics2);
       Assert.Equal(MessageSource.Resolver.ToString(), parseDiagnostics2[0].Source);
@@ -1112,11 +1116,11 @@ method test2() {
 
     [Fact]
     public async Task ApplyChangeBeforeVerificationFinishes() {
-      var source = @"
+      var firstMethodSource = @"
 method test() {
   assert false;
-}
-".TrimStart() + SlowToVerifyNoLimit;
+}".TrimStart();
+      var source = firstMethodSource + SlowToVerifyNoLimit;
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
@@ -1129,7 +1133,6 @@ method test() {
 
       // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
       var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
-      // https://github.com/dafny-lang/dafny/issues/4377
       var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
       var secondVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
@@ -1241,11 +1244,16 @@ method Foo() {
       var verificationDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(verificationDiagnostics);
       ApplyChange(ref documentItem, new Range(0, 0, 0, 1), "");
+
+      // Bug: https://github.com/dafny-lang/dafny/issues/4377
+      _ = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+
       var brokenSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.True(brokenSyntaxDiagnostics.Length > 1);
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
+
       // Next line is made obsolete by resolving https://github.com/dafny-lang/dafny/issues/4377
       var unnecessaryDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
 

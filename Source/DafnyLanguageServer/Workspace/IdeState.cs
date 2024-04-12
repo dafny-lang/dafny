@@ -44,17 +44,24 @@ public record IdeState(
   public Uri Uri => Input.Uri.ToUri();
   public int Version => Input.Version;
 
-  private static Diagnostic? MarkDiagnosticAsOutdated(Migrator migrator, Diagnostic diagnostic) {
+  private static Diagnostic? MigrateDiagnostics(Migrator migrator, Diagnostic diagnostic) {
     var newRange = migrator.MigrateRange(diagnostic.Range);
     if (newRange == null) {
       return null;
     }
+
+    if (diagnostic.Source == MessageSource.Verifier.ToString()) {
+      return diagnostic with {
+        Range = newRange,
+        Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
+        Message = diagnostic.Message.StartsWith(OutdatedPrefix)
+          ? diagnostic.Message
+          : OutdatedPrefix + diagnostic.Message
+      };
+    }
+
     return diagnostic with {
-      Range = newRange,
-      Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
-      Message = diagnostic.Message.StartsWith(OutdatedPrefix)
-        ? diagnostic.Message
-        : OutdatedPrefix + diagnostic.Message
+      Range = newRange
     };
   }
 
@@ -102,7 +109,7 @@ public record IdeState(
     };
 
     FileDiagnostic? MigrateFileDiagnostic(FileDiagnostic fileDiagnostic) {
-      var d = MarkDiagnosticAsOutdated(migrator, fileDiagnostic.Diagnostic);
+      var d = MigrateDiagnostics(migrator, fileDiagnostic.Diagnostic);
       if (d == null) {
         return null;
       }
@@ -187,6 +194,8 @@ public record IdeState(
         return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
       case PhaseFinished phaseFinished:
         return HandlePhaseFinished(phaseFinished);
+      case PhaseDiscovered phaseDiscovered:
+        return HandlePhaseDiscovered(phaseDiscovered);
       case FinishedParsing finishedParsing:
         return HandleFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
@@ -202,6 +211,12 @@ public record IdeState(
       default:
         return this;
     }
+  }
+
+  private IdeState HandlePhaseDiscovered(PhaseDiscovered phaseDiscovered) {
+    return this with {
+      OldDiagnostics = OldDiagnostics.ClearDiagnosticsAndPruneChildren(phaseDiscovered.Phase, phaseDiscovered.Children)
+    };
   }
 
   private IdeState HandlePhaseFinished(PhaseFinished phaseFinished) {
