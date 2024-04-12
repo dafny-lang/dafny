@@ -74,7 +74,7 @@ public class ShiftLowerBound : ShiftOrRotateBound {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateAtMost(Expression.CreateIntLiteral(amount.tok, 0), amount);
+    return new BinaryExpr(amount.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(amount.tok, 0), amount);
   }
 }
 
@@ -95,7 +95,7 @@ public class ShiftUpperBound : ShiftOrRotateBound {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateAtMost(amount, Expression.CreateIntLiteral(amount.tok, width));
+    return new BinaryExpr(amount.tok, BinaryExpr.Opcode.Le, amount, Expression.CreateIntLiteral(amount.tok, width));
   }
 }
 
@@ -187,7 +187,9 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateAtMost(
+    return new BinaryExpr(
+      rhs.tok,
+      BinaryExpr.Opcode.Le,
       new ExprDotName(rhs.tok, rhs, "Offset", null),
       new ExprDotName(lhs.tok, lhs, "Offset", null)
     );
@@ -212,7 +214,12 @@ public class CharOverflow : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var sum = Expression.CreateAdd(new ConversionExpr(e0.tok, e0, Type.Int), new ConversionExpr(e1.tok, e1, Type.Int));
+    var sum = new BinaryExpr(
+      e0.tok,
+      BinaryExpr.Opcode.Add,
+      new ConversionExpr(e0.tok, e0, Type.Int),
+      new ConversionExpr(e1.tok, e1, Type.Int)
+    );
     return new TypeTestExpr(sum.tok, sum, Type.Char);
   }
 }
@@ -235,7 +242,12 @@ public class CharUnderflow : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var diff = Expression.CreateSubtract(new ConversionExpr(e0.tok, e0, Type.Int), new ConversionExpr(e1.tok, e1, Type.Int));
+    var diff = new BinaryExpr(
+      e0.tok,
+      BinaryExpr.Opcode.Sub,
+      new ConversionExpr(e0.tok, e0, Type.Int),
+      new ConversionExpr(e1.tok, e1, Type.Int)
+    );
     return new TypeTestExpr(diff.tok, diff, Type.Char);
   }
 }
@@ -284,7 +296,12 @@ public class NonNegative : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateAtMost(Expression.CreateIntLiteral(expr.tok, 0), expr);
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.Le,
+      Expression.CreateIntLiteral(expr.tok, 0),
+      expr
+    );
   }
 }
 
@@ -310,7 +327,12 @@ public class ConversionPositive : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateAtMost(Expression.CreateIntLiteral(expr.tok, 0), expr);
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.Le,
+      Expression.CreateIntLiteral(expr.tok, 0),
+      expr
+    );
   }
 }
 
@@ -332,10 +354,11 @@ public class IsInteger : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateEq(
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.Eq,
       expr,
-      new ConversionExpr(expr.tok, new ExprDotName(expr.tok, expr, "Floor", null), Type.Real),
-      Type.Real
+      new ConversionExpr(expr.tok, new ExprDotName(expr.tok, expr, "Floor", null), Type.Real)
     );
   }
 }
@@ -1263,7 +1286,7 @@ public class ArrayInitSizeValid : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return Expression.CreateEq(dim, Expression.CreateIntLiteral(dim.tok, size), Type.Int);
+    return new BinaryExpr(dim.tok, BinaryExpr.Opcode.Eq, dim, Expression.CreateIntLiteral(dim.tok, size));
   }
 }
 
@@ -1288,7 +1311,12 @@ public class ArrayInitEmpty : ProofObligationDescription {
     Expression zeroSize = Expression.CreateBoolLiteral(dims[0].tok, false);
     Expression zero = Expression.CreateIntLiteral(dims[0].tok, 0);
     foreach (Expression dim in dims) {
-      zeroSize = Expression.CreateOr(zeroSize, Expression.CreateEq(dim, zero, Type.Int));
+      zeroSize = new BinaryExpr(
+        dim.tok,
+        BinaryExpr.Opcode.Or,
+        zeroSize,
+        new BinaryExpr(dim.tok, BinaryExpr.Opcode.Eq, dim, zero)
+      );
     }
     return zeroSize;
   }

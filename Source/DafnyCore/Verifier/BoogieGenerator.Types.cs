@@ -1245,9 +1245,10 @@ public partial class BoogieGenerator {
           PutSourceIntoLocal();
           var bound = BplBvLiteralExpr(tok, toBound, fromTypeFamily.AsBitVectorType);
           boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
-          dafnyBoundsCheck = Expression.CreateAnd(
-            Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), expr),
-            Expression.CreateAtMost(expr, dafnyBound));
+          dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
+            new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), expr),
+            new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, dafnyBound)
+        );
         }
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromTypeFamily.IsCharType) {
         // Check "expr < (1 << toWidth)" in type "int"
@@ -1264,17 +1265,19 @@ public partial class BoogieGenerator {
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         boundsCheck = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
         var intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
-        dafnyBoundsCheck = Expression.CreateAnd(
-          Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), intExpr),
-          Expression.CreateAtMost(intExpr, dafnyBound));
+        dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
+          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), intExpr),
+          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
+        );
       } else if (fromType.IsBigOrdinalType) {
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
         boundsCheck = Bpl.Expr.Lt(oi, bound);
         var intExpr = new ExprDotName(expr.tok, expr, "Offset", null);
-        dafnyBoundsCheck = Expression.CreateAnd(
-          Expression.CreateLess(Expression.CreateIntLiteral(expr.tok, 0), intExpr),
-          Expression.CreateAtMost(intExpr, dafnyBound));
+        dafnyBoundsCheck = new BinaryExpr(expr.tok, BinaryExpr.Opcode.And,
+          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, new LiteralExpr(expr.tok, 0), intExpr),
+          new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, intExpr, dafnyBound)
+        );
       }
 
       if (boundsCheck != null) {
