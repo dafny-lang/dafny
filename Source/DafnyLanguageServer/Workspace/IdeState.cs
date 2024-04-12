@@ -221,6 +221,8 @@ public record IdeState(
 
   private IdeState HandlePhaseFinished(PhaseFinished phaseFinished) {
     return this with {
+      NewDiagnostics = NewDiagnostics.Add(phaseFinished.Phase,
+        phaseFinished.NewDiagnostics.Select(n => new FileDiagnostic(n.Uri, n.Diagnostic.ToLspDiagnostic())).ToList()),
       OldDiagnostics = OldDiagnostics.Remove(phaseFinished.Phase)
     };
   }

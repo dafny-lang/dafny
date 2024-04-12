@@ -45,6 +45,10 @@ public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
 
 public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;
 
+public record VerificationOfScope(VerificationOfSymbol Parent, string ScopeId) : IPhase {
+  public IPhase? MaybeParent => Parent;
+}
+
 public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
   public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
 

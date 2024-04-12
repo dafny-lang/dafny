@@ -397,10 +397,27 @@ public class Compilation : IDisposable {
             return;
           }
 
-          var proofDependingWarningComputation = new PhaseFromObject((typeof(ProofDependencyWarnings), scope.Key), verificationOfSymbol);
-          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, proofDependingWarningComputation,
-            errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
-          updates.OnNext(new PhaseFinished(proofDependingWarningComputation));
+          var batchReporter = new BatchErrorReporter(Options);
+          var results = statuses.OfType<Completed>().ToList();
+          for (var index = 0; index < results.Count; index++) {
+            var completed = results[index];
+            var task = orderedVerificationTasks[index];
+            ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, task.Token,
+              (uint)completed.Result.RunTime.Seconds,
+              completed.Result, batchReporter);
+          }
+
+
+          var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
+
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, scopePhase,
+            batchReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
+
+          var diagnostics = new List<NewDiagnostic>();
+          foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
+            diagnostics.Add(new NewDiagnostic(canVerify.Tok.Uri, diagnostic));
+          }
+          updates.OnNext(new PhaseFinished(scopePhase, diagnostics));
         }
       }
 
@@ -414,27 +431,7 @@ public class Compilation : IDisposable {
           return;
         }
 
-        var batchReporter = new BatchErrorReporter(Options);
-        var results = statuses.OfType<Completed>().ToList();
-        for (var index = 0; index < results.Count; index++) {
-          var completed = results[index];
-          var task = orderedVerificationTasks[index];
-          ReportDiagnosticsInResult(Options, canVerify.FullDafnyName, task.Token,
-            (uint)completed.Result.RunTime.Seconds,
-            completed.Result, batchReporter);
-        }
-
-        updates.OnNext(new PhaseFinished(verificationOfSymbol));
-        // TODO: the new Diagnostics should be part of the phaseFinished notification.
-        // We could also let HandlePhaseStarted remove the old phase.
-        // Seems too aggressive because it also removes the children of the old phase.
-        // I should not have state from two phases at the same time.
-        // But I can have state from an old child if the new child does not exist yet.
-        foreach (var diagnostic in batchReporter.AllMessages.OrderBy(m => m.Token)) {
-          errorReporter.Message(verificationOfSymbol, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-            diagnostic.Message);
-        }
-
+        updates.OnNext(new PhaseFinished(verificationOfSymbol, Array.Empty<NewDiagnostic>()));
       }
     }
     finally {

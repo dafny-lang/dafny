@@ -27,7 +27,7 @@ public class ProofDependencyWarnings {
     }
   }
 
-  public static void WarnAboutSuspiciousDependenciesForScope(DafnyOptions dafnyOptions, PhaseFromObject phase,
+  public static void WarnAboutSuspiciousDependenciesForScope(DafnyOptions dafnyOptions, IPhase phase,
     ErrorReporter reporter,
     ProofDependencyManager depManager, string name,
     IReadOnlyList<VerificationRunResult> results) {
