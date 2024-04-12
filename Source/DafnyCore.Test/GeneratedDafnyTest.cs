@@ -6,6 +6,6 @@ namespace DafnyCore.Test;
 public class GeneratedDafnyTest {
   [Fact]
   public void TestDafnyGeneratedCode() {
-    RAST.Expr.TestExpr();
+    DafnyToRustCompilerCoverage.RASTCoverage.__default.TestExpr();
   }
 }
