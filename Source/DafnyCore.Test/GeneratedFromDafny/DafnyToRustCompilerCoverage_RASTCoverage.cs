@@ -12,9 +12,11 @@ using System.Collections;
 namespace DafnyToRustCompilerCoverage.RASTCoverage {
 
   public partial class __default {
-    public static void TestNoOptimize(RAST._IExpr e) {
+    public static void TestNoOptimize(RAST._IExpr e)
+    {
     }
-    public static void TestOptimizeToString() {
+    public static void TestOptimizeToString()
+    {
       RAST._IExpr _1833_x;
       _1833_x = RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"));
       RAST._IExpr _1834_y;
@@ -53,7 +55,7 @@ namespace DafnyToRustCompilerCoverage.RASTCoverage {
         _1838___v0 = (_1837_c).printingInfo;
         RAST._IExpr _1839___v1;
         _1839___v1 = (_1837_c).Optimize();
-        Dafny.IMap<RAST._IExpr, Dafny.ISequence<Dafny.Rune>> _1840___v2;
+        Dafny.IMap<RAST._IExpr,Dafny.ISequence<Dafny.Rune>> _1840___v2;
         _1840___v2 = Dafny.Map<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>.FromElements(new Dafny.Pair<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>(_1837_c, (_1837_c)._ToString(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
         RAST._IExpr _1841___v3;
         _1841___v3 = (RAST.Expr.create_StmtExpr(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_MUT(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("abc"), Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_I128()), Std.Wrappers.Option<RAST._IExpr>.create_None()), _1837_c)).Optimize();
@@ -79,7 +81,8 @@ namespace DafnyToRustCompilerCoverage.RASTCoverage {
         _1851___v13 = (_1837_c).RightMostIdentifier();
       }
     }
-    public static void TestPrintingInfo() {
+    public static void TestPrintingInfo()
+    {
       RAST._IExpr _1852_x;
       _1852_x = RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("x"));
       RAST._IExpr _1853_y;
@@ -135,14 +138,17 @@ namespace DafnyToRustCompilerCoverage.RASTCoverage {
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage(object.Equals((RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?!?"), _1852_x, _1853_y, _1854_bnf)).printingInfo, RAST.PrintingInfo.create_PrecedenceAssociativity(BigInteger.Zero, RAST.Associativity.create_RequiresParentheses())));
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage(object.Equals((RAST.Expr.create_Break(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())).printingInfo, RAST.PrintingInfo.create_UnknownPrecedence()));
     }
-    public static void TestExpr() {
+    public static void TestExpr()
+    {
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestOptimizeToString();
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestPrintingInfo();
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestNoExtraSemicolonAfter();
     }
-    public static void AssertCoverage(bool x) {
+    public static void AssertCoverage(bool x)
+    {
     }
-    public static void TestNoExtraSemicolonAfter() {
+    public static void TestNoExtraSemicolonAfter()
+    {
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage((RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"))).NoExtraSemicolonAfter());
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage(!((RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("a"))).NoExtraSemicolonAfter()));
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage((RAST.Expr.create_Return(Std.Wrappers.Option<RAST._IExpr>.create_None())).NoExtraSemicolonAfter());
