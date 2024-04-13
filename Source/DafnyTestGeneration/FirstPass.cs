@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Type = Microsoft.Dafny.Type;
 
@@ -44,9 +45,9 @@ public class FirstPass {
   /// Return false, if test generation should preemptively terminated,
   /// i.e. if there are any errors or if there are warnings and the --ignore-warnings flag is not used
   /// </summary>
-  public bool IsOk(string source, Uri uri) {
+  public async Task<bool> IsOk(string source, Uri uri) {
     var errorReporter = new ConsoleErrorReporter(options);
-    var program = Utils.Parse(errorReporter, source, true, uri);
+    var program = await Utils.Parse(errorReporter, source, true, uri);
     diagnostics = new();
     if (errorReporter.FailCompilation) {
       NonZeroExitCode = true;

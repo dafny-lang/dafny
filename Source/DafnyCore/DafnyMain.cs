@@ -40,23 +40,23 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns null on success, or an error string otherwise.
     /// </summary>
-    public static string ParseCheck(TextReader stdIn, IReadOnlyList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
-        DafnyOptions options, out Program program)
+    public static async Task<(Program Program, string Error)> ParseCheck(TextReader stdIn,
+        IReadOnlyList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
+        DafnyOptions options)
     //modifies Bpl.options.XmlSink.*;
     {
-      string err = Parse(files, programName, options, out program);
+      var (program, err) = await Parse(files, programName, options);
       if (err != null) {
-        return err;
+        return (program, err);
       }
 
-      return Resolve(program);
+      return (program, Resolve(program));
     }
 
-    public static string Parse(IReadOnlyList<DafnyFile> files, string programName, DafnyOptions options,
-      out Program program) {
+    public static async Task<(Program Program, string Error)> Parse(IReadOnlyList<DafnyFile> files,
+      string programName, DafnyOptions options) {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
-      program = null;
 
       ErrorReporter reporter = options.DiagnosticsFormat switch {
         DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
@@ -64,12 +64,12 @@ namespace Microsoft.Dafny {
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      program = new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
+      var program = await new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
       var errorCount = program.Reporter.ErrorCount;
       if (errorCount != 0) {
-        return $"{errorCount} parse errors detected in {program.Name}";
+        return (program, $"{errorCount} parse errors detected in {program.Name}");
       }
-      return null;
+      return (program, null);
     }
 
     public static readonly CustomStackSizePoolTaskScheduler LargeThreadScheduler =

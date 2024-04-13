@@ -58,11 +58,12 @@ public static class VerifyCommand {
       Subject<CanVerifyResult> verificationResults = new();
 
       var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
-      ReportProofDependencies(compilation, resolution, verificationResults);
+      var proofDependenciesReported = ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
       compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
       await verificationSummarized;
       await verificationResultsLogged;
+      await proofDependenciesReported;
     }
     await compilation.FinishedPhases();
 
@@ -176,7 +177,7 @@ public static class VerifyCommand {
     }
   }
 
-  public static void ReportProofDependencies(
+  public static async Task ReportProofDependencies(
     CliCompilation cliCompilation,
     ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {
@@ -187,16 +188,14 @@ public static class VerifyCommand {
       foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
         usedDependencies.Add(used);
       }
-    },
-      e => { },
-      () => {
-        var coverageReportDir = cliCompilation.Options.Get(CommonOptionBag.VerificationCoverageReport);
-        if (coverageReportDir != null) {
-          new CoverageReporter(cliCompilation.Options).SerializeVerificationCoverageReport(
-            proofDependencyManager, resolution.ResolvedProgram,
-            usedDependencies,
-            coverageReportDir);
-        }
-      });
+    }, e => { }, () => { });
+    await verificationResults.WaitForComplete();
+    var coverageReportDir = cliCompilation.Options.Get(CommonOptionBag.VerificationCoverageReport);
+    if (coverageReportDir != null) {
+      await new CoverageReporter(cliCompilation.Options).SerializeVerificationCoverageReport(
+        proofDependencyManager, resolution.ResolvedProgram,
+        usedDependencies,
+        coverageReportDir);
+    }
   }
 }
