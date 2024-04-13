@@ -360,7 +360,7 @@ namespace Microsoft.Dafny {
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
-    public bool EmitUncompilableCode { get; set; }
+    public bool EmitUncompilableCode = false;
 
     public enum IncludesModes {
       None,
