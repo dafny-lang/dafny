@@ -417,8 +417,9 @@ public class Compilation : IDisposable {
           _ = HandleTaskFinished();
           async Task HandleTaskFinished() {
             var status = await task;
+            var phase = new VerificationOfTask(scopePhase);
             if (status is Completed completed) {
-              ReportDiagnosticsInResult(Options, scopePhase, canVerify.FullDafnyName, verificationTask.Token,
+              ReportDiagnosticsInResult(Options, phase, canVerify.FullDafnyName, verificationTask.Token,
                 (uint)completed.Result.RunTime.Seconds,
                 completed.Result, errorReporter);
             }

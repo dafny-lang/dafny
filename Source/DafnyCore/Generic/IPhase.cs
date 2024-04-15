@@ -49,6 +49,16 @@ public record VerificationOfScope(VerificationOfSymbol Parent, string ScopeId) :
   public IPhase? MaybeParent => Parent;
 }
 
+public class VerificationOfTask : IPhase {
+  private VerificationOfScope Scope;
+
+  public VerificationOfTask(VerificationOfScope scope) {
+    Scope = scope;
+  }
+
+  public IPhase? MaybeParent => Scope;
+}
+
 public record VerificationOfSymbol(ICanVerify CanVerify) : IPhase {
   public IPhase? MaybeParent => new MessageSourceBasedPhase(MessageSource.Verifier);
 

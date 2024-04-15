@@ -1167,7 +1167,7 @@ method test2() {
 
       var migratedDiagnosticsAfter = await GetNextDiagnostics(documentItem);
       var resolutionDiagnosticsAfter = await GetNextDiagnostics(documentItem);
-      var verificationDiagnosticsAfter = await GetNextDiagnostics(documentItem);
+      var verificationDiagnosticsAfter = await GetLastDiagnostics(documentItem);
       Assert.Single(resolutionDiagnosticsAfter);
       Assert.Single(verificationDiagnosticsAfter);
     }
