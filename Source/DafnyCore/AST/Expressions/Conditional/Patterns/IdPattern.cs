@@ -108,8 +108,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         };
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, Type);
-        boundVar.IsGhost = isGhost;
+        var boundVar = new BoundVar(Tok, Id, Type) {
+          IsGhost = isGhost
+        };
         BoundVar = boundVar;
       }
 

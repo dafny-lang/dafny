@@ -7,7 +7,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 namespace Microsoft.Dafny;
 
 public class ExpressionTester {
-  private DafnyOptions options;
+  private readonly DafnyOptions options;
   private bool ReportErrors => reporter != null;
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
@@ -35,11 +35,11 @@ public class ExpressionTester {
     return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
   }
 
-  public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
   }
 
@@ -219,11 +219,11 @@ public class ExpressionTester {
     } else if (expr is LetExpr letExpr) {
       if (letExpr.Exact) {
         Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
-        var i = 0;
-        foreach (var ee in letExpr.RHSs) {
+        for (var i = 0; i < letExpr.RHSs.Count; i++) {
+          var rhs = letExpr.RHSs[i];
           var lhs = letExpr.LHSs[i];
           // Make LHS vars ghost if the RHS is a ghost
-          if (UsesSpecFeatures(ee)) {
+          if (UsesSpecFeatures(rhs)) {
             foreach (var bv in lhs.Vars) {
               if (!bv.IsGhost) {
                 bv.MakeGhost();
@@ -233,9 +233,8 @@ public class ExpressionTester {
           }
 
           if (!lhs.Vars.All(bv => bv.IsGhost)) {
-            isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
+            isCompilable = CheckIsCompilable(rhs, codeContext) && isCompilable;
           }
-          i++;
         }
         isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
       } else {
