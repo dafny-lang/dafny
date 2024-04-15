@@ -233,26 +233,11 @@ public class CliCompilation {
     foreach (var canVerify in orderedCanVerifies) {
       var results = canVerifyResults[canVerify];
       try {
-        var timeLimit = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
-        // The time limit is used downstream by Boogie to cancel verification,
-        // However, this cancellation behavior turns out to be unreliable in practice,
-        // So we also cancel at this level, although with a slightly higher timeout
-        // It should trickle up almost instantly, but we wait 10 seconds just to be safe
-        var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(10));
-        List<Task> tasks = new List<Task> { results.Finished.Task };
-        if (timeLimitNotRespected.TotalSeconds != 0) {
-          tasks.Add(Task.Delay(timeLimitNotRespected));
-        }
-
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           await Options.OutputWriter.WriteLineAsync($"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
         }
-        await Task.WhenAny(tasks);
-        done++;
-        if (!results.Finished.Task.IsCompleted) {
-          throw new Exception($"Dafny encountered an internal error while waiting for {canVerify.FullDafnyName} to verify.");
-        }
         await results.Finished.Task;
+        done++;
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
         yield break;
