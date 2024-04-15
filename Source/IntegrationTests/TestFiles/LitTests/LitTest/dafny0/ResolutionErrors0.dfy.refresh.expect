@@ -37,7 +37,8 @@ ResolutionErrors0.dfy(343,18): Error: arguments must have comparable types (got 
 ResolutionErrors0.dfy(344,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors0.dfy(345,27): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors0.dfy(358,17): Error: ghost variables such as b are allowed only in specification contexts. b was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors0.dfy(382,7): Error: incorrect argument type at index 1 for method in-parameter 'b' (expected GenericClass<int>, found GenericClass<bool>) (non-variant type parameter would require int = bool)
+ResolutionErrors0.dfy(384,11): Error: RHS (of type int) not assignable to LHS (of type bool)
+ResolutionErrors0.dfy(385,21): Error: integer literal used as if it had type bool
 ResolutionErrors0.dfy(396,19): Error: integer literal used as if it had type _T0
 ResolutionErrors0.dfy(397,15): Error: integer literal used as if it had type _T0
 ResolutionErrors0.dfy(406,8): Error: all lines in a calculation must have the same type (got int after bool)
@@ -57,8 +58,8 @@ ResolutionErrors0.dfy(443,13): Error: in a hint, calls are allowed only to lemma
 ResolutionErrors0.dfy(445,10): Error: a hint is not allowed to make heap updates
 ResolutionErrors0.dfy(447,10): Error: a hint is not allowed to update a variable it doesn't declare
 ResolutionErrors0.dfy(468,4): Error: More than one anonymous constructor
-68 resolution/type errors detected in ResolutionErrors0.dfy
 ResolutionErrors0.dfy(481,15): Error: class 'Lamb' does not have an anonymous constructor
 ResolutionErrors0.dfy(532,15): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(540,21): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(541,35): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
+63 resolution/type errors detected in ResolutionErrors0.dfy
