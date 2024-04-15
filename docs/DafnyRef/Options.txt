@@ -1,5 +1,5 @@
 ```
-Use 'dafny --help' to see help for a newer Dafny CLI format.
+Use 'dafny --help' to see help for the new Dafny CLI format.
 Usage: dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------

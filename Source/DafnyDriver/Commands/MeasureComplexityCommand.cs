@@ -63,12 +63,13 @@ static class MeasureComplexityCommand {
       // Performance data of individual verification tasks (VCs) should be grouped by VcNum (the assertion batch).
       VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
       var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
-      VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
+      var proofDependenciesReported = VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
 
       await RunVerificationIterations(options, compilation, verificationResults);
       await summaryReported;
       await verificationResultsLogged;
+      await proofDependenciesReported;
     }
 
     return await compilation.GetAndReportExitCode();

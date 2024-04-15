@@ -180,7 +180,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       return null;
     }
 
-    var fileVerificationStatus = verificationStatusReceiver.GetLast(v => v.Uri == documentId.Uri);
+    var fileVerificationStatus = verificationStatusReceiver.GetLatestAndClearQueue(v => v.Uri == documentId.Uri);
     if (fileVerificationStatus != null && fileVerificationStatus.Version == documentId.Version) {
       while (fileVerificationStatus.Uri != documentId.Uri || !fileVerificationStatus.NamedVerifiables.All(FinishedStatus)) {
         fileVerificationStatus = await verificationStatusReceiver.AwaitNextNotificationAsync(cancellationToken.Value);
@@ -201,7 +201,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId,
     CancellationToken cancellationToken = default) {
 
-    CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLast(s => s.Uri == documentId.Uri);
+    CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLatestAndClearQueue(s => s.Uri == documentId.Uri);
     while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
            compilationStatusParams.Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted) {
       compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
@@ -210,22 +210,23 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
   }
 
-  public async Task<PublishDiagnosticsParams> GetLastDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
+  public async Task<PublishDiagnosticsParams> GetLatestDiagnosticsParams(TextDocumentItem documentItem, CancellationToken cancellationToken, bool allowStale = false) {
     var status = await WaitUntilAllStatusAreCompleted(documentItem, cancellationToken, allowStale);
-    var result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
+    var result = diagnosticsReceiver.GetLatestAndClearQueue(d => d.Uri == documentItem.Uri);
     while (result == null) {
-      var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      result = diagnosticsReceiver.History.LastOrDefault(d => d.Uri == documentItem.Uri);
+      var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      if (diagnostics.Uri == documentItem.Uri) {
+        result = diagnostics;
+      }
       logger.LogInformation(
         $"GetLastDiagnosticsParams didn't find the right diagnostics after getting status {status}. Waited to get these diagnostics: {diagnostics.Stringify()}");
     }
-    diagnosticsReceiver.ClearQueue();
     return result;
   }
 
   public async Task<Diagnostic[]> GetLastDiagnostics(TextDocumentItem documentItem, DiagnosticSeverity minimumSeverity = DiagnosticSeverity.Warning,
     CancellationToken? cancellationToken = null, bool allowStale = false) {
-    var paramsResult = await GetLastDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
+    var paramsResult = await GetLatestDiagnosticsParams(documentItem, cancellationToken ?? CancellationToken, allowStale);
     return paramsResult.Diagnostics.Where(d => d.Severity <= minimumSeverity).ToArray();
   }
 
