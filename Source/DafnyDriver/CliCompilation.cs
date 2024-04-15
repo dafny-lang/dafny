@@ -237,8 +237,8 @@ public class CliCompilation {
         // The time limit is used downstream by Boogie to cancel verification,
         // However, this cancellation behavior turns out to be unreliable in practice,
         // So we also cancel at this level, although with a slightly higher timeout
-        // It should trickle up almost instantly, but we wait 1 second just to be safe
-        var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(1));
+        // It should trickle up almost instantly, but we wait 10 seconds just to be safe
+        var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(10));
         var tasks = new List<Task> { results.Finished.Task };
         if (timeLimitNotRespected.Seconds != 0) {
           tasks.Add(Task.Delay(timeLimitNotRespected));
@@ -250,11 +250,8 @@ public class CliCompilation {
         await Task.WhenAny(tasks);
         done++;
         if (!results.Finished.Task.IsCompleted) {
-          Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
-            "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
-          break;
+          throw new Exception($"Dafny encountered an internal error while waiting for {canVerify.FullDafnyName} to verify.");
         }
-
         await results.Finished.Task;
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
