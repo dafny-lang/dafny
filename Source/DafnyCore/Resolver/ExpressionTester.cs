@@ -675,14 +675,16 @@ public class ExpressionTester {
     } else if (extendedPattern is LitPattern) {
       // nothing to do
     } else if (extendedPattern is IdPattern idPattern) {
-      if (idPattern.Ctor != null) {
+      if (idPattern.BoundVar != null) {
+        if (inGhostContext && !idPattern.BoundVar.IsGhost) {
+          idPattern.BoundVar.MakeGhost();
+        }
+      } else if (idPattern.Ctor != null) {
         var argumentCount = idPattern.Ctor.Formals.Count;
         Contract.Assert(argumentCount == (idPattern.Arguments?.Count ?? 0));
         for (var i = 0; i < argumentCount; i++) {
           MakeGhostAsNeeded(idPattern.Arguments[i], inGhostContext || idPattern.Ctor.Formals[i].IsGhost);
         }
-      } else if (inGhostContext && idPattern.BoundVar is { IsGhost: false }) {
-        idPattern.BoundVar.MakeGhost();
       }
     } else {
       Contract.Assert(false); // unexpected ExtendedPattern
