@@ -26,13 +26,21 @@ public class ExpressionTester {
     this.options = options;
   }
 
-  // Static call to CheckIsCompilable
+  /// <summary>
+  /// Determines whether or not "expr" is compilable, and returns the answer.
+  /// If "resolver" is non-null and "expr" is not compilable, then an error is reported.
+  /// Also, updates various bookkeeping information (see instance method CheckIsCompilable for more details).
+  /// </summary>
   public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] ModuleResolver resolver, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public static bool CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
+  /// <summary>
+  /// Checks that "expr" is compilable and report an error if it is not.
+  /// Also, updates various bookkeeping information (see instance method CheckIsCompilable for more details).
+  /// </summary>
+  public static void CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+    new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
   private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
@@ -44,7 +52,9 @@ public class ExpressionTester {
   }
 
   /// <summary>
-  /// Checks that "expr" is compilable and reports an error if it is not.
+  /// Determines and returns whether or not "expr" is compilable.
+  /// If it is not, it calls ReportError. (Note, whether or not ReportError reports an error depends on if "reporter" is non-null.)
+  ///
   /// Also, updates bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
   /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
   /// must determine the value uniquely.
