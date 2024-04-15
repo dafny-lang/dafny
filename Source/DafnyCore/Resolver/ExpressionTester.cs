@@ -255,13 +255,19 @@ public class ExpressionTester {
         isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
 
         // fill in bounds for this to-be-compiled let-such-that expression
-        Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
+        Contract.Assert(letExpr.RHSs.Count == 1); // if we got this far, the resolver will have checked this condition successfully
         var constraint = letExpr.RHSs[0];
         if (resolver != null) {
           letExpr.Constraint_Bounds = ModuleResolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
         }
       }
       return isCompilable;
+
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      foreach (var kase in nestedMatchExpr.Cases) {
+        MakeGhostAsNeeded(kase.Pat, false);
+      }
+
     } else if (expr is LambdaExpr lambdaExpr) {
       return CheckIsCompilable(lambdaExpr.Body, codeContext);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
@@ -658,6 +664,28 @@ public class ExpressionTester {
     }
     if (arg.Ctor != null) {
       MakeGhostAsNeeded(arg);
+    }
+  }
+
+  public static void MakeGhostAsNeeded(ExtendedPattern extendedPattern, bool inGhostContext) {
+    if (extendedPattern is DisjunctivePattern disjunctivePattern) {
+      foreach (var alternative in disjunctivePattern.Alternatives) {
+        MakeGhostAsNeeded(alternative, inGhostContext);
+      }
+    } else if (extendedPattern is LitPattern) {
+      // nothing to do
+    } else if (extendedPattern is IdPattern idPattern) {
+      if (idPattern.Ctor != null) {
+        var argumentCount = idPattern.Ctor.Formals.Count;
+        Contract.Assert(argumentCount == (idPattern.Arguments?.Count ?? 0));
+        for (var i = 0; i < argumentCount; i++) {
+          MakeGhostAsNeeded(idPattern.Arguments[i], inGhostContext || idPattern.Ctor.Formals[i].IsGhost);
+        }
+      } else if (inGhostContext && idPattern.BoundVar is { IsGhost: false }) {
+        idPattern.BoundVar.MakeGhost();
+      }
+    } else {
+      Contract.Assert(false); // unexpected ExtendedPattern
     }
   }
 
