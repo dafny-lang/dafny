@@ -544,7 +544,9 @@ namespace Microsoft.Dafny {
 #if SOON
           // reuse the error object if we're on the dummy line; this prevents a duplicate error message
 #endif
-          AddSubtypeConstraint(linePreType, e1.PreType, e1.tok, "all lines in a calculation must have the same type (got {1} after {0})");
+          if (i < s.Lines.Count - 1) {
+            AddSubtypeConstraint(linePreType, e1.PreType, e1.tok, "all lines in a calculation must have the same type (got {1} after {0})");
+          }
           var step = (s.StepOps[i - 1] ?? s.Op).StepExpr(e0, e1); // Use custom line operator
           ResolveExpression(step, resolutionContext);
           s.Steps.Add(step);
