@@ -39,8 +39,13 @@ public interface IPhase {
   }
 }
 
-public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
+public record RootPhase : IPhase {
+  public static readonly IPhase Instance = new RootPhase();
   public IPhase? MaybeParent => null;
+}
+
+public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
+  public IPhase? MaybeParent => RootPhase.Instance;
 }
 
 public record PhaseFromObject(object Owner, IPhase? MaybeParent) : IPhase;

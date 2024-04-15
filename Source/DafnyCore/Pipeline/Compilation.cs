@@ -117,8 +117,10 @@ public class Compilation : IDisposable {
 
     Project.Errors.CopyDiagnostics(errorReporter);
 
-    updates.OnNext(new PhaseDiscovered(null,
+    updates.OnNext(new PhaseDiscovered(RootPhase.Instance,
       Enum.GetValues<MessageSource>().Select(s => new MessageSourceBasedPhase(s)).ToList()));
+
+
     started.TrySetResult();
   }
 
@@ -213,6 +215,8 @@ public class Compilation : IDisposable {
     var distinctResults = result.DistinctBy(d => d.Uri).ToList();
 
     updates.OnNext(new DeterminedRootFiles(Project, distinctResults, GetDiagnosticsCopyAndClear()));
+
+    updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Project)));
     return distinctResults;
   }
 
@@ -232,6 +236,7 @@ public class Compilation : IDisposable {
       updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Parser)));
       return programAfterParsing;
 
     } catch (OperationCanceledException) {
@@ -261,6 +266,13 @@ public class Compilation : IDisposable {
         canVerifies.Select(c => (IPhase)new VerificationOfSymbol(c)).ToList()));
 
       staticDiagnosticsSubscription.Dispose();
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Cloner)));
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.RefinementTransformer)));
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Rewriter)));
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Resolver)));
+
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Translator)));
+      //Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration, Unknown
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
 
@@ -393,19 +405,21 @@ public class Compilation : IDisposable {
       await ticket;
 
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
-      var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId);
-      //
-      // updates.OnNext(new PhaseDiscovered(verificationOfSymbol,
-      //   verificationTaskPerScope.Select(s => new MessageSourceBasedPhase(s)).ToList()));
+      var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId).ToList();
+
+      updates.OnNext(new PhaseDiscovered(verificationOfSymbol,
+        verificationTaskPerScope.Select(s => new VerificationOfScope(verificationOfSymbol, s.Key)).ToList()));
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
+
       foreach (var scope in verificationTaskPerScope) {
 
         var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
 
-        updates.OnNext(new PhaseDiscovered(scopePhase, Array.Empty<IPhase>()));
+        var scopeVerificationTasks = scope.ToList();
+        updates.OnNext(new PhaseDiscovered(scopePhase,
+          scopeVerificationTasks.Select(t => new VerificationOfTask(scopePhase)).ToList()));
 
         var tasksForScope = new List<Task<IVerificationStatus>>();
-        var scopeVerificationTasks = scope.ToList();
         foreach (var verificationTask in scopeVerificationTasks) {
           var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
           var task = VerifyTask(canVerify, seededTask);
@@ -423,6 +437,7 @@ public class Compilation : IDisposable {
                 (uint)completed.Result.RunTime.Seconds,
                 completed.Result, errorReporter);
             }
+            updates.OnNext(new PhaseFinished(phase));
           }
         }
 
@@ -439,7 +454,6 @@ public class Compilation : IDisposable {
           ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, scopePhase,
             errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
 
-          updates.OnNext(new PhaseFinished(scopePhase));
         }
       }
 

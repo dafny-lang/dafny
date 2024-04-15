@@ -115,13 +115,15 @@ public class CliCompilation {
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
-    var diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
+    IDiagnosticsReporter diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is PhaseStarted phaseStarted) {
         diagnosticsReporter.PhaseStart(phaseStarted.Phase);
         phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
+      } else if (ev is PhaseDiscovered phaseDiscovered) {
+        diagnosticsReporter.PhaseDiscovered(phaseDiscovered);
       } else if (ev is PhaseFinished phaseFinished) {
         diagnosticsReporter.PhaseFinished(phaseFinished.Phase);
         if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {
