@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-axioms
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
 
 
 module Misc {
@@ -139,11 +139,11 @@ module HereAreMoreGhostTests {
     function G(x: int, ghost y: int): int {
       y  // error: cannot return a ghost from a non-ghost function
     }
-    function H(dt: GhostDt): int {
-      match dt
-      case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
-      case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
-    }
+
+
+
+
+
     method N(x: int, ghost y: int) returns (r: int) {
       r := x;
     }
@@ -522,17 +522,22 @@ module HereAreMoreGhostTests' {
     Nil(ghost extraInfo: int) |
     Cons(data: int, tail: GhostDt, ghost moreInfo: int)
 
-  class GhostTests {
-    method M(dt: GhostDt) returns (r: int) {
-      ghost var g := 5;
-      match (dt) {
-        case Nil(gg) =>
-        case Cons(dd, tt, gg) =>
-          r := G(dd, dd);  // fine
-          r := G(dd, gg);  // fine
-          r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
-      }
+  method M(dt: GhostDt) returns (r: int) {
+    ghost var g := 5;
+    match (dt) {
+      case Nil(gg) =>
+      case Cons(dd, tt, gg) =>
+        r := G(dd, dd);  // fine
+        r := G(dd, gg);  // fine
+        r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
     }
-    function G(x: int, ghost y: int): int
+  }
+
+  function G(x: int, ghost y: int): int
+
+  function H(dt: GhostDt): int {
+    match dt
+    case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
+    case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
   }
 } // HereAreMoreGhostTests'
