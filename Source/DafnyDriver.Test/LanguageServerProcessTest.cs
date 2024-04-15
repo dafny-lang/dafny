@@ -207,7 +207,7 @@ public class ShortLivedProcessStarter {{
             tfm = "net8.0",
             framework = new {
               name = "Microsoft.NETCore.App",
-              version = "6.0.0",
+              version = "8.0.0",
               rollForward = "LatestMinor"
             }
           }
