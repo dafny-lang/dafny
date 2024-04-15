@@ -204,7 +204,7 @@ public class ShortLivedProcessStarter {{
       var configuration = JsonSerializer.Serialize(
         new {
           runtimeOptions = new {
-            tfm = "net6.0",
+            tfm = "net8.0",
             framework = new {
               name = "Microsoft.NETCore.App",
               version = "6.0.0",
