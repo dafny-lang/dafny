@@ -10,12 +10,8 @@ ResolutionErrors3.dfy(58,8): Error: the type of this variable is underspecified
 ResolutionErrors3.dfy(59,8): Error: the type of this local variable is underspecified
 ResolutionErrors3.dfy(60,8): Error: the type of this variable is underspecified
 ResolutionErrors3.dfy(61,8): Error: the type of this local variable is underspecified
-ResolutionErrors3.dfy(68,30): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(68,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(75,8): Error: the type of this local variable is underspecified
 ResolutionErrors3.dfy(78,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
-ResolutionErrors3.dfy(66,40): Error: arguments must have comparable types (got set<?171> and set<?64>)
-ResolutionErrors3.dfy(67,45): Error: arguments must have comparable types (got set<?70> and set<?75>)
 ResolutionErrors3.dfy(89,21): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 ResolutionErrors3.dfy(90,24): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 ResolutionErrors3.dfy(127,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
@@ -85,4 +81,8 @@ ResolutionErrors3.dfy(535,27): Error: type of bound variable 'u' could not be de
 ResolutionErrors3.dfy(539,40): Error: type of bound variable 'u' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(541,38): Error: type of bound variable 'u' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(541,38): Error: type of bound variable 'u' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(555,40): Error: arguments must have comparable types (got set<?36> and set<?5>)
+ResolutionErrors3.dfy(556,45): Error: arguments must have comparable types (got set<?11> and set<?16>)
+ResolutionErrors3.dfy(557,30): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(557,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 77 resolution/type errors detected in ResolutionErrors3.dfy

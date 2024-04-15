@@ -63,9 +63,9 @@ module NonInferredTypeVariables {
 
   method MoreBadClient()
   {
-    var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
-    var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
-    var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
+
+
+
 
     // In the following, the type of the bound variable is completely determined.
     var S: set<set<int>>;
@@ -542,5 +542,18 @@ module UnderspecifiedTypesInAttributes {
     {
       5;
     }
+  }
+}
+
+module NonInferredTypeVariables' {
+  class C<CT> {
+    var f: CT
+  }
+
+  method MoreBadClient()
+  {
+    var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
+    var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
+    var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
   }
 }
