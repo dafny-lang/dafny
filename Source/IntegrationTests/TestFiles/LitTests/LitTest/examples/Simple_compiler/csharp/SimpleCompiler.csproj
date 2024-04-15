@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <NoWarn>CS3021; CS0162; CS0164</NoWarn>
+    <NoWarn>CS8981; CS3021; CS0162; CS0164</NoWarn>
     <!-- <Nullable>enable</Nullable> -->
   </PropertyGroup>
 
