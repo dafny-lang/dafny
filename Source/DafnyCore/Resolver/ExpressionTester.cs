@@ -237,7 +237,6 @@ public class ExpressionTester {
             foreach (var bv in lhs.Vars) {
               if (!bv.IsGhost) {
                 bv.MakeGhost();
-                isCompilable = false;
               }
             }
           }
