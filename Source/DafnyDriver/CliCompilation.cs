@@ -239,8 +239,8 @@ public class CliCompilation {
         // So we also cancel at this level, although with a slightly higher timeout
         // It should trickle up almost instantly, but we wait 10 seconds just to be safe
         var timeLimitNotRespected = timeLimit.Add(TimeSpan.FromSeconds(10));
-        var tasks = new List<Task> { results.Finished.Task };
-        if (timeLimitNotRespected.Seconds != 0) {
+        List<Task> tasks = new List<Task> { results.Finished.Task };
+        if (timeLimitNotRespected.TotalSeconds != 0) {
           tasks.Add(Task.Delay(timeLimitNotRespected));
         }
 
