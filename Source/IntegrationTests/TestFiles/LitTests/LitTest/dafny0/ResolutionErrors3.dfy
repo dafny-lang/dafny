@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-axioms
+
 
 // ------------ type variables whose values are not inferred ----------
 
@@ -63,9 +63,9 @@ module NonInferredTypeVariables {
 
   method MoreBadClient()
   {
-    var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
-    var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
-    var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
+
+
+
 
     // In the following, the type of the bound variable is completely determined.
     var S: set<set<int>>;
@@ -542,5 +542,28 @@ module UnderspecifiedTypesInAttributes {
     {
       5;
     }
+  }
+}
+
+module NonInferredTypeVariables' {
+  class C<CT> {
+    var f: CT
+  }
+
+  method MoreBadClient0()
+  {
+    var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
+    var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
+  }
+}
+
+module NonInferredTypeVariables'' {
+  class C<CT> {
+    var f: CT
+  }
+
+  method MoreBadClient1()
+  {
+    var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
   }
 }
