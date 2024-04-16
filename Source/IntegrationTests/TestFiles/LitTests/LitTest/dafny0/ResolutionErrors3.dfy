@@ -550,10 +550,20 @@ module NonInferredTypeVariables' {
     var f: CT
   }
 
-  method MoreBadClient()
+  method MoreBadClient0()
   {
     var b0 := forall s :: s <= {} ==> s == {};  // error: type of s underspecified
     var b1 := forall s: set :: s <= {} ==> s == {};  // error: type of s underspecified
+  }
+}
+
+module NonInferredTypeVariables'' {
+  class C<CT> {
+    var f: CT
+  }
+
+  method MoreBadClient1()
+  {
     var b2 := forall c: C? :: c in {null} ==> c == null;  // error: type parameter of c underspecified
   }
 }

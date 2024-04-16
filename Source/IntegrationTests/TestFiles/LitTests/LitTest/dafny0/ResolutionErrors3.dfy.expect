@@ -82,6 +82,6 @@ ResolutionErrors3.dfy(555,26): Error: the type of this variable is underspecifie
 ResolutionErrors3.dfy(555,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(556,31): Error: the type of this variable is underspecified
 ResolutionErrors3.dfy(556,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
-ResolutionErrors3.dfy(557,30): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(557,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(567,30): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(567,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 86 resolution/type errors detected in ResolutionErrors3.dfy
