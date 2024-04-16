@@ -104,3 +104,26 @@ module DuplicateMembers {
     method M()
   }
 }
+
+module ExtendsMustBeDirect {
+  trait HasG {
+    function G(): int
+  }
+
+  trait A extends HasG { // yes, A does extend HasG
+    function G(): int { 2 }
+  }
+
+  trait B extends A, HasG { // yes, since A extends HasG, so does B
+  }
+
+  trait B' extends HasG, A { // yes again (order of "extends" parents does not matter)
+  }
+
+  trait C { // C quacks like a HasG, but does not declare "extends HasG"
+    function G(): int { 2 }
+  }
+
+  trait D extends C, HasG { // error: D does not declare G by itself and C is not declared to extend HasG
+  }
+}
