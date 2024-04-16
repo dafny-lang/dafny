@@ -156,6 +156,15 @@ namespace Microsoft.Dafny {
       return proxy;
     }
 
+    /// <summary>
+    /// This method can be used when .PreType has been found to be erroneous and its current value
+    /// would be unexpected by the rest of the resolver. This method then sets .Type and .PreType to neutral values.
+    /// </summary>
+    void ResetTypeAssignment(Expression expr) {
+      expr.PreType = CreatePreTypeProxy();
+      expr.ResetTypeAssignment();
+    }
+
     public enum Type2PreTypeOption { GoodForInference, GoodForPrinting, GoodForBoth }
 
     public PreType Type2PreType(Type type, string description = null, Type2PreTypeOption option = Type2PreTypeOption.GoodForBoth) {
@@ -868,14 +877,14 @@ namespace Microsoft.Dafny {
           // bitvector types. That's now handled in a different way, which does not use SelfType.
         } else {
           ComputePreTypeFunction(function);
-          if (function is ExtremePredicate extremePredicate) {
-            ComputePreTypeFunction(extremePredicate.PrefixPredicate);
+          if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+            ComputePreTypeFunction(prefixPredicate);
           }
         }
       } else if (declaration is Method method) {
         ComputePreTypeMethod(method);
-        if (method is ExtremeLemma extremeLemma) {
-          ComputePreTypeMethod(extremeLemma.PrefixLemma);
+        if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+          ComputePreTypeMethod(prefixLemma);
         }
       } else {
         Contract.Assert(false); // unexpected declaration
