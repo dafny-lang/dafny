@@ -22,7 +22,6 @@ namespace DafnyDriver.Commands;
 public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
 public class CliCompilation {
-  private readonly ILogger<CliCompilation> logger;
   public Compilation Compilation { get; }
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
@@ -30,10 +29,8 @@ public class CliCompilation {
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
-    ILogger<CliCompilation> logger,
     CreateCompilation createCompilation,
     DafnyOptions options) {
-    this.logger = logger;
     Options = options;
 
     if (options.DafnyProject == null) {
@@ -89,7 +86,7 @@ public class CliCompilation {
     var fileSystem = OnDiskFileSystem.Instance;
     ILoggerFactory factory = new LoggerFactory();
     var telemetryPublisher = new CliTelemetryPublisher(factory.CreateLogger<TelemetryPublisherBase>());
-    return new CliCompilation(factory.CreateLogger<CliCompilation>(), CreateCompilation, options);
+    return new CliCompilation(CreateCompilation, options);
 
     Compilation CreateCompilation(ExecutionEngine engine, CompilationInput input) =>
       new(factory.CreateLogger<Compilation>(), fileSystem,
