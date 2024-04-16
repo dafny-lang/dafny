@@ -1,9 +1,9 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4108 and https://github.com/dafny-lang/dafny/issues/2582
 // RUN: %verify --unicode-char false --relax-definite-assignment "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:0 /compileTarget:java "%s" >> "%t"
+// RUN: %run --no-verify --unicode-char false --target cs "%s" >> "%t"
+// RUN: %run --no-verify --unicode-char false --target js "%s" >> "%t"
+// RUN: %run --no-verify --unicode-char false --target go "%s" >> "%t"
+// RUN: %run --no-verify --unicode-char false --target java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Python salts hashes so they are not deterministic.

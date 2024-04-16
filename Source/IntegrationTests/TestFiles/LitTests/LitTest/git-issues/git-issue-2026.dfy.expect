@@ -1,36 +1,21 @@
-TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(18,18): Error: this invariant could not be proved to be maintained by the loop
+git-issue-2026.dfy(18,18): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
  Related counterexample:
- TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(12,0): initial state:
- 	n : int = 2
- 	ret : ? = ?
- TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(13,24):
- 	n : int = 2
- 	ret : _System.array?<seq<char>> = (Length := 2, [0] := @0)
- 	@0 : seq<char> = ['o', 'd', 'd']
- TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(15,14):
- 	n : int = 2
- 	ret : _System.array?<seq<char>> = (Length := 2, [0] := @0)
- 	i : int = 0
- 	@0 : seq<char> = ['o', 'd', 'd']
- TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(16,4): after some loop iterations:
- 	n : int = 2
- 	ret : _System.array?<seq<char>> = (Length := 2)
- 	i : int = 0
- TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(22,27):
- 	n : int = 2
- 	ret : _System.array?<seq<char>> = (Length := 2, [0] := @0)
- 	i : int = 0
- 	@0 : seq<char> = ['o', 'd', 'd']
- TestFiles/LitTests/LitTest/git-issues/git-issue-2026.dfy(26,18):
- 	n : int = 2
- 	ret : _System.array?<seq<char>> = (Length := 2, [0] := @0)
- 	i : int = 1
- 	@0 : seq<char> = ['o', 'd', 'd']
+ WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#sec-counterexamples
+ Temporary variables to describe counterexamples: 
+ ghost var counterexampleLoopGuard0 : bool := false;
+ git-issue-2026.dfy(12,0): initial state:
+ assume 2 == n;
+ git-issue-2026.dfy(13,24):
+ assume ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0];
+ git-issue-2026.dfy(15,14):
+ assume ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0] && 0 == i;
+ git-issue-2026.dfy(16,4): after some loop iterations:
+ counterexampleLoopGuard0 := ret != null && 2 == n && 2 == ret.Length && 0 == i;
+ git-issue-2026.dfy(22,27):
+ assume counterexampleLoopGuard0 ==> ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0] && 0 == i;
+ git-issue-2026.dfy(26,18):
+ assume counterexampleLoopGuard0 ==> ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0] && 1 == i;
  
-   |
-18 |         invariant forall j :: 0 <= j < i ==> j % 2 == 0 ==> ret[j] == "even"
-   |                   ^^^^^^
-
 
 Dafny program verifier finished with 0 verified, 1 error

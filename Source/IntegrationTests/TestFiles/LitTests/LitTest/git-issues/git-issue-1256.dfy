@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function f<X(0)>(): X

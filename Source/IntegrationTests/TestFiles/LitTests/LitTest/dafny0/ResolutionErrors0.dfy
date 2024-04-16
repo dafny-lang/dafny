@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module Misc {
   //Should not verify, as ghost loops should not be allowed to diverge.
@@ -126,7 +126,7 @@ module HereAreMoreGhostTests {
         case Cons(dd, tt, gg) =>
           r := G(dd, dd);  // fine
           r := G(dd, gg);  // fine
-          r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
+
       }
       var dd;
       dd := GhostDt.Nil(g);  // fine
@@ -139,11 +139,11 @@ module HereAreMoreGhostTests {
     function G(x: int, ghost y: int): int {
       y  // error: cannot return a ghost from a non-ghost function
     }
-    function H(dt: GhostDt): int {
-      match dt
-      case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
-      case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
-    }
+
+
+
+
+
     method N(x: int, ghost y: int) returns (r: int) {
       r := x;
     }
@@ -514,3 +514,30 @@ module MiscAgain {
                         // ghost -- and rightly so, since an assume is used
   }
 }  // MiscAgain
+
+// ----- One more phase of HereAreMoreGhostTests from above
+
+module HereAreMoreGhostTests' {
+  datatype GhostDt =
+    Nil(ghost extraInfo: int) |
+    Cons(data: int, tail: GhostDt, ghost moreInfo: int)
+
+  method M(dt: GhostDt) returns (r: int) {
+    ghost var g := 5;
+    match (dt) {
+      case Nil(gg) =>
+      case Cons(dd, tt, gg) =>
+        r := G(dd, dd);  // fine
+        r := G(dd, gg);  // fine
+        r := G(gg, gg);  // error: cannot pass ghost 'gg' as non-ghost parameter to 'G'
+    }
+  }
+
+  function G(x: int, ghost y: int): int
+
+  function H(dt: GhostDt): int {
+    match dt
+    case Nil(gg) =>  gg  // error: cannot return a ghost from a non-ghost function
+    case Cons(dd, tt, gg) =>  dd + gg  // error: ditto
+  }
+} // HereAreMoreGhostTests'

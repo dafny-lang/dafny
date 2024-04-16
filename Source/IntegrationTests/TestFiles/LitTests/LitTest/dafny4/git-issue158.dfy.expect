@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 4 verified, 0 errors
 map[Record.Make(null, null, _module.Class, 5, 10) := 0.8]
@@ -24,6 +25,7 @@ false
 false false
 false false
 true true
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 
 Dafny program verifier finished with 4 verified, 0 errors
 map[Record.Make(null, null, _module.Class, 5, 10) := 0.8]

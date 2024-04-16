@@ -49,10 +49,33 @@ namespace Microsoft.Dafny {
       if (preType is DPreType dPreType) {
         return dPreType;
       }
-      var proxy = (PreTypeProxy)preType;
+      if (preType is not PreTypeProxy proxy) {
+        // preType could be a PreTypePlaceholder, resulting from an error somewhere
+        return null;
+      }
 
+      var approximateReceiverType = ApproximateReceiverTypeViaBounds(proxy, memberName, out var subProxies);
+      if (approximateReceiverType != null) {
+        return approximateReceiverType;
+      }
+
+      // The bounds didn't give any results, but perhaps one of the proxies visited (in the sub direction) has
+      // associated default advice.
+      foreach (var subProxy in subProxies) {
+        TryApplyDefaultAdviceFor(subProxy);
+        if (proxy.Normalize() is DPreType defaultType) {
+          return defaultType;
+        }
+      }
+
+      // Try once more, in case the application of default advice changed the situation
+      return ApproximateReceiverTypeViaBounds(proxy, memberName, out _);
+    }
+
+    [CanBeNull]
+    private DPreType ApproximateReceiverTypeViaBounds(PreTypeProxy proxy, [CanBeNull] string memberName, out HashSet<PreTypeProxy> subProxies) {
       // If there is a subtype constraint "proxy :> sub<X>", then (if the program is legal at all, then) "sub" must have the member "memberName".
-      var subProxies = new HashSet<PreTypeProxy>();
+      subProxies = new HashSet<PreTypeProxy>();
       foreach (var sub in AllSubBounds(proxy, subProxies)) {
         return sub;
       }
@@ -68,16 +91,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // The bounds didn't give any results, but perhaps one of the proxies visited (in the sub direction) has
-      // associated default advice.
-      foreach (var subProxy in subProxies) {
-        TryApplyDefaultAdviceFor(subProxy);
-        if (proxy.Normalize() is DPreType defaultType) {
-          return defaultType;
-        }
-      }
-
-      return null; // could not be determined
+      return null;
     }
 
     /// <summary>
@@ -536,10 +550,12 @@ namespace Microsoft.Dafny {
       InRealFamily,
       InBoolFamily,
       InCharFamily,
-      InSeqFamily,
       InSetFamily,
       InIsetFamily,
       InMultisetFamily,
+      InSeqFamily,
+      InMapFamily,
+      InImapFamily,
       IsNullableRefType,
       IsBitvector,
       IntLikeOrBitvector,
@@ -590,6 +606,10 @@ namespace Microsoft.Dafny {
           return familyDeclName == PreType.TypeNameMultiset;
         case CommonConfirmationBag.InSeqFamily:
           return familyDeclName == PreType.TypeNameSeq;
+        case CommonConfirmationBag.InMapFamily:
+          return familyDeclName == PreType.TypeNameMap;
+        case CommonConfirmationBag.InImapFamily:
+          return familyDeclName == PreType.TypeNameImap;
         case CommonConfirmationBag.IsNullableRefType:
           return DPreType.IsReferenceTypeDecl(pt.Decl);
         case CommonConfirmationBag.IsBitvector:
@@ -695,7 +715,7 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IsNewtypeBaseTypeLegacy:
           return pt.Decl is NewtypeDecl || pt.Decl.Name is PreType.TypeNameInt or PreType.TypeNameReal;
         case CommonConfirmationBag.IsNewtypeBaseTypeGeneral:
-          if (familyDeclName is PreType.TypeNameMap or PreType.TypeNameImap || pt.Decl is DatatypeDecl) {
+          if (pt.Decl is DatatypeDecl) {
             // These base types are not yet supported, but they will be soon.
             return false;
           }

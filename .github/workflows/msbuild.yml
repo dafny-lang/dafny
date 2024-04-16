@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ master, main-* ]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -5,8 +5,8 @@
 // RUN: %baredafny run %args --unicode-char --no-verify --target:cs "%s" Csharp 1 >> "%t"
 // RUN: %baredafny run %args --unicode-char --no-verify --target:java "%s" -- Java --heya >> "%t"
 // RUN: %baredafny run %args --unicode-char --no-verify --target:js "%s" -- Javascript 2 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:1 /compileTarget:py "%s" --args Python 1 >> "%t"
-// RUN: %dafny /noVerify /compile:4 /unicodeChar:1 /compileTarget:go "%s" --args "Go go" 1 >> "%t"
+// RUN: %run --no-verify --unicode-char --target py "%s" Python 1 >> "%t"
+// RUN: %run --no-verify --unicode-char --target go "%s" "Go go" 1 >> "%t"
 // RUN: %baredafny build %args --unicode-char --no-verify --target:cs "%s" --output:%s.dll
 // RUN: dotnet %s.dll "dotnet" "howdy" >> "%t"
 // RUN: dotnet %s.dll "dotnet" "hello" >> "%t"

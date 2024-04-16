@@ -1716,7 +1716,7 @@ e[ .. ]
 A subsequence suffix applied to a sequence produces a new sequence whose
 elements are taken from a contiguous part of the original sequence. For
 example, expression `s[lo..hi]` for sequence `s`, and integer-based
-numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
+numeric bounds `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 [the section about other sequence expressions](#sec-other-sequence-expressions) for details.
 
 A subsequence suffix applied to an array produces a _sequence_ consisting of 
