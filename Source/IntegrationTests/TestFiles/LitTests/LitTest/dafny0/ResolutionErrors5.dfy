@@ -1,5 +1,5 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-axioms
-
+// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // ----- constructor-less classes with need for initialization -----
 

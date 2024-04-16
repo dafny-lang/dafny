@@ -1,5 +1,5 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
-
+// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 // ----- bad use of types without auto-initializers -----
 
