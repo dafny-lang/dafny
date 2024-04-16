@@ -10,7 +10,7 @@
 // RUN: %build --target java "%s" >> "%t"
 // RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/CompileRunQuietly.jar CompileRunQuietly >> "%t"
 
-// RUN: %build --target cpp "%s" >> "%t"
+// RUN: %build --unicode-char false --target cpp "%s" >> "%t"
 // RUN: %S/CompileRunQuietly.exe >> "%t"
 
 // RUN: %build --target py "%s" >> "%t"

@@ -1,5 +1,5 @@
 // NONUNIFORM: Javascript-specific extern test
-// RUN: %run --target js "%s" > "%t"
+// RUN: %run --unicode-char false --target js "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // "url" is a built-in package in node, so it should be accessible to the
@@ -10,8 +10,7 @@ module {:extern "url", "url"} URL {
     var pathname: string
     var search: string
   }
-  // Note that passing a Dafny string directly as a JS string in --unicode-char true mode
-  // only happens to work here because we only test on an ASCII string!
+  // Note that passing a Dafny string directly as a JS string only works in --unicode-char false mode
   method {:extern "parse"} Parse(address: string, b: bool) returns (u: Url)
 }
 
