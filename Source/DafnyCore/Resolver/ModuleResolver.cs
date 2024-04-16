@@ -2169,8 +2169,12 @@ namespace Microsoft.Dafny {
 
     private void AddToInheritedMembers(TopLevelDeclWithMembers cl, TopLevelDeclWithMembers baseOrParentTypeDecl,
       Dictionary<string, MemberDecl> inheritedMembers, List<string> membersWithErrors) {
-      // TODO: in the following line, rather than using .Values, it would be nice to use something that gave a deterministic order
-      foreach (var inheritedMember in GetClassMembers(baseOrParentTypeDecl)!.Values) {
+      var members = GetClassMembers(baseOrParentTypeDecl)!;
+      var sortedKeys = members.Keys.ToList();
+      sortedKeys.Sort();
+      foreach (var key in sortedKeys) {
+        var inheritedMemberName := key;
+        var inheritedMemberDecl := sortedKeys[key];
         if (!inheritedMembers.TryGetValue(inheritedMember.Name, out var prevMember)) {
           // all good; record "inheritedMember" as an inherited member
           inheritedMembers.Add(inheritedMember.Name, inheritedMember);
