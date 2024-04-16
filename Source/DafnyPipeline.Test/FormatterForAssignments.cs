@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForAssignments")]
 public class FormatterForAssignments : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForAssignments() {
-    FormatterWorksFor(@"method test() {
+  public async Task FormatterWorksForAssignments() {
+    await FormatterWorksFor(@"method test() {
   var
     x
     :=
@@ -29,8 +30,8 @@ public class FormatterForAssignments : FormatterBaseTest {
 }");
   }
   [Fact]
-  public void FormatterWorksForVarAssignments() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForVarAssignments() {
+    await FormatterWorksFor(@"
 method Test() {
   var y,
       z
@@ -79,8 +80,8 @@ method Test() {
   }
 
   [Fact]
-  public void FormatterWorksForObjectCreation() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForObjectCreation() {
+    await FormatterWorksFor(@"
 method Test() {
   g := new ClassName.ConstructorName(
     argument1b,
@@ -148,8 +149,8 @@ method Test() {
 ", reduceBlockiness: true);
   }
   [Fact]
-  public void FormatterWorksForObjectCreationBlockly() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForObjectCreationBlockly() {
+    await FormatterWorksFor(@"
 method Test() {
   :- Module.Need(
        arg3,

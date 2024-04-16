@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForExpressions")]
 public class FormatterForExpressions : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForFunctionsIfExprAndMatchCases() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForFunctionsIfExprAndMatchCases() {
+    await FormatterWorksFor(@"
 function Zipper2<T>(a: List<T>, b: List<T>)
   : List<T>
   decreases /* max(a,b) */ if a < b then b else a,
@@ -51,8 +52,8 @@ function topLevel(
   }
 
   [Fact]
-  public void FormatterWorksForCaseComments() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCaseComments() {
+    await FormatterWorksFor(@"
 predicate SmallOdd(i: int) {
   match i
   // Case small odd
@@ -85,8 +86,8 @@ method SmallOdd(i: int) returns (j: bool) {
   }
 
   [Fact]
-  public void FormatterWorksForMatchStatementsAndExpressions() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForMatchStatementsAndExpressions() {
+    await FormatterWorksFor(@"
 method Test(z: int) {
   match
     z {
@@ -139,8 +140,8 @@ method Test(z: int) {
   }
 
   [Fact]
-  public void FormatWorksForChainedImplications() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForChainedImplications() {
+    await FormatterWorksFor(@"
 method Test() {
   assert (1 ==>
             2 ==> 
@@ -158,8 +159,8 @@ method Test() {
   }
 
   [Fact]
-  public void FormatWorksForFirstNestedElephantAssignments() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForFirstNestedElephantAssignments() {
+    await FormatterWorksFor(@"
 function TestExpressionParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome): NatOutcome {
   var expr1: nat :- (var x := if b then o1 else o2; x);
   var use_expr1: nat := expr1;
@@ -171,7 +172,7 @@ function TestExpressionParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome):
   }
 
   [Fact]
-  public void FormatterWorksForNestedIfElse() {
+  public async Task FormatterWorksForNestedIfElse() {
     var testCase = @"
 function test(): int {
   if a then
@@ -182,12 +183,12 @@ function test(): int {
     e
 }
 ";
-    FormatterWorksFor(testCase, testCase);
+    await FormatterWorksFor(testCase, testCase);
   }
 
   [Fact]
-  public void FormatterWorksForNestedConstructors() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForNestedConstructors() {
+    await FormatterWorksFor(@"
 function test(): int {
   assert X;
   Some(Result(
@@ -198,8 +199,8 @@ function test(): int {
 ");
   }
   [Fact]
-  public void FormatterWorksForEqualPlus() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForEqualPlus() {
+    await FormatterWorksFor(@"
 function test(a: int, b: int, c: int): int 
   requires a == b + d + e +
                 f + g + h
@@ -208,8 +209,8 @@ function test(a: int, b: int, c: int): int
   }
 
   [Fact]
-  public void FormatterWorksForCommentBeforeElse() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCommentBeforeElse() {
+    await FormatterWorksFor(@"
 function test(i: int): int {
   if true then
     Class.StaticMethod(argument)
@@ -221,8 +222,8 @@ function test(i: int): int {
   }
 
   [Fact]
-  public void FormatterWorksForElseWithComplexContent() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForElseWithComplexContent() {
+    await FormatterWorksFor(@"
 function Test(value: string): bool {
   if value == """" then Constructor(arg)
   else if value == ""1"" then Constructor1(arg)
@@ -235,8 +236,8 @@ function Test(value: string): bool {
   }
 
   [Fact]
-  public void FormatterWorksForAlignedOrVar() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForAlignedOrVar() {
+    await FormatterWorksFor(@"
 predicate IsBinary(s: seq<int>) {
   forall i | 0 <= i < |s| ::
     || s[i] == 0
@@ -245,8 +246,8 @@ predicate IsBinary(s: seq<int>) {
   }
 
   [Fact]
-  public void FormatterWorksForAlignedAmpVar() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForAlignedAmpVar() {
+    await FormatterWorksFor(@"
 method Test()
   ensures
     && P()
@@ -268,8 +269,8 @@ function Align(longVariableName: bool): int
   }
 
   [Fact]
-  public void FormatterWorksForEqualityOnItsOwnLine() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForEqualityOnItsOwnLine() {
+    await FormatterWorksFor(@"
 function Test(): int {
   if A then
     assert C(a1, b1, c1)
@@ -296,8 +297,8 @@ function Test(): int {
   }
 
   [Fact]
-  public void FormatterWorksForMatchInMap() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForMatchInMap() {
+    await FormatterWorksFor(@"
 method AlignMapComplex(a: int) returns (r: map<string, string>) {
   return ComputeMap(map[
                       ""a"" := Compute(
@@ -310,8 +311,8 @@ method AlignMapComplex(a: int) returns (r: map<string, string>) {
   }
 
   [Fact]
-  public void FormatterWorksForSeqSetMapDisplay() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForSeqSetMapDisplay() {
+    await FormatterWorksFor(@"
 function AlignSeq(): seq<seq<int>> {
   [ [ 1, 2, 3 ],
     [ 4,
@@ -344,8 +345,8 @@ function AlignSet(): set<int> {
 
 
   [Fact]
-  public void FormatterWorksForChainingEquality() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForChainingEquality() {
+    await FormatterWorksFor(@"
 
 lemma SeventeenIsNotEven()
   ensures !Even(N(17))
@@ -365,7 +366,7 @@ lemma SeventeenIsNotEven()
 ");
   }
   [Fact]
-  public void FormatterWorksForAligningThenAndElseIfAligned() {
+  public async Task FormatterWorksForAligningThenAndElseIfAligned() {
     var testCase = @"
 predicate Valid()
 {
@@ -376,7 +377,7 @@ predicate Valid()
                                   else data[start..] + data[..start+len-N]
 }
 ";
-    FormatterWorksFor(testCase, testCase);
+    await FormatterWorksFor(testCase, testCase);
   }
 
   public FormatterForExpressions([NotNull] ITestOutputHelper output) : base(output) {
