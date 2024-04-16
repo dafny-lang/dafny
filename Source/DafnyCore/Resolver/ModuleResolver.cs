@@ -2172,9 +2172,8 @@ namespace Microsoft.Dafny {
       var members = GetClassMembers(baseOrParentTypeDecl)!;
       var sortedKeys = members.Keys.ToList();
       sortedKeys.Sort();
-      foreach (var key in sortedKeys) {
-        var inheritedMemberName := key;
-        var inheritedMemberDecl := sortedKeys[key];
+      foreach (var inheritedMemberName in sortedKeys) {
+        var inheritedMember = members[inheritedMemberName];
         if (!inheritedMembers.TryGetValue(inheritedMember.Name, out var prevMember)) {
           // all good; record "inheritedMember" as an inherited member
           inheritedMembers.Add(inheritedMember.Name, inheritedMember);
