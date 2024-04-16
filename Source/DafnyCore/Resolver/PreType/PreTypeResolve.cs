@@ -387,7 +387,7 @@ namespace Microsoft.Dafny {
     public static bool IsArrayName(string name, out int dimensions) {
       Contract.Requires(name != null);
       if (name.StartsWith(PreType.TypeNameArray)) {
-        var dims = name[5..];
+        var dims = name[PreType.TypeNameArray.Length..];
         if (dims.Length == 0) {
           dimensions = 1;
           return true;
