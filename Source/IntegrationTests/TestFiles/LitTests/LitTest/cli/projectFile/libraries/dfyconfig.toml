@@ -1,5 +1,4 @@
-
-excludes = ["wrappersLib.dfy"]
+includes = ["usesLibrary.dfy"]
 
 [options]
 library = [

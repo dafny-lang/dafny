@@ -19,6 +19,7 @@ module Patterns {
                     s[n] == p[n] || 
                     p[n] == '?'
         { 
+            b := false;
             var i := 0;
             while (i < |s|) 
                 invariant i <= |s|
@@ -27,7 +28,7 @@ module Patterns {
                     p[n] == '?'
             {
                 if (s[i] != p[i]) { // must add && (p[i] != '?') to verify
-                    return false;
+                    return;
                 } 
                 i := i + 1;
             }

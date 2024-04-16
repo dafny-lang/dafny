@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -45,30 +46,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void SelfTest(DafnyOptions options, ExecutionEngine engine) {
+    internal static async Task SelfTest(DafnyOptions options, ExecutionEngine engine) {
       var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
       try {
-        task.Run(options, engine);
+        await task.Run(options, engine);
         Interaction.Eom(options.OutputWriter, Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
         Interaction.Eom(options.OutputWriter, Interaction.FAILURE, ex);
       }
     }
 
-    internal void Run(DafnyOptions options, ExecutionEngine engine) {
-      new DafnyHelper(options, engine, args, filename, ProgramSource).Verify();
+    internal Task<bool> Run(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).Verify();
     }
 
-    internal void Symbols(DafnyOptions options, ExecutionEngine engine) {
-      new DafnyHelper(options, engine, args, filename, ProgramSource).Symbols();
+    internal Task Symbols(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).Symbols();
     }
 
-    public void CounterExample(DafnyOptions options, ExecutionEngine engine) {
-      new DafnyHelper(options, engine, args, filename, ProgramSource).CounterExample();
+    public Task CounterExample(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).CounterExample();
     }
 
-    public void DotGraph(DafnyOptions options, ExecutionEngine engine) {
-      new DafnyHelper(options, engine, args, filename, ProgramSource).DotGraph();
+    public Task DotGraph(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {

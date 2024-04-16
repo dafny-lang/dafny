@@ -20,5 +20,5 @@ method Main() {
   print "2 in seq? ", f(2),"\n";
   var g := InSeq2([1, 2]);
   print "2 in seq? ", g(2),"\n";
-  print "All right";
+  print "All right", "\n";
 }

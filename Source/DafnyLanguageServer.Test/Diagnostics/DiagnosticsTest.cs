@@ -232,7 +232,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
-      var diagnostics1 = diagnosticsReceiver.GetLast(documentItem);
+      var diagnostics1 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
       var diagnostics2 = await GetNextDiagnostics(documentItem);
@@ -244,7 +244,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
-      var diagnostics3 = diagnosticsReceiver.GetLast(documentItem);
+      var diagnostics3 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(6, diagnostics3.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -1122,7 +1122,7 @@ method test() {
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
       var status = await WaitForStatus(new Range(0, 7, 0, 11), PublishedVerificationStatus.Error);
-      var firstVerificationDiagnostics = diagnosticsReceiver.GetLast(documentItem);
+      var firstVerificationDiagnostics = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Single(firstVerificationDiagnostics);
 
       // Second verification diagnostics get cancelled.
