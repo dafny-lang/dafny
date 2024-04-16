@@ -162,10 +162,10 @@ namespace Microsoft.Dafny {
 
         if (e.PreType is PreTypePlaceholderModule) {
           ReportError(e.tok, "name of module ({0}) is used as a variable", e.Name);
-          e.ResetTypeAssignment(); // the rest of type checking assumes actual types
+          ResetTypeAssignment(e); // the rest of type checking assumes actual types
         } else if (e.PreType is PreTypePlaceholderType) {
           ReportError(e.tok, "name of type ({0}) is used as a variable", e.Name);
-          e.ResetTypeAssignment(); // the rest of type checking assumes actual types
+          ResetTypeAssignment(e); // the rest of type checking assumes actual types
         }
 
       } else if (expr is ExprDotName) {
@@ -173,10 +173,10 @@ namespace Microsoft.Dafny {
         ResolveDotSuffix(e, true, null, resolutionContext, false);
         if (e.PreType is PreTypePlaceholderModule) {
           ReportError(e.tok, "name of module ({0}) is used as a variable", e.SuffixName);
-          e.ResetTypeAssignment();  // the rest of type checking assumes actual types
+          ResetTypeAssignment(e);  // the rest of type checking assumes actual types
         } else if (e.PreType is PreTypePlaceholderType) {
           ReportError(e.tok, "name of type ({0}) is used as a variable", e.SuffixName);
-          e.ResetTypeAssignment();  // the rest of type checking assumes actual types
+          ResetTypeAssignment(e);  // the rest of type checking assumes actual types
         }
 
       } else if (expr is ApplySuffix applySuffix) {

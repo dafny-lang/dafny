@@ -174,6 +174,15 @@ namespace Microsoft.Dafny {
       return proxy;
     }
 
+    /// <summary>
+    /// This method can be used when .PreType has been found to be erroneous and its current value
+    /// would be unexpected by the rest of the resolver. This method then sets .Type and .PreType to neutral values.
+    /// </summary>
+    void ResetTypeAssignment(Expression expr) {
+      expr.PreType = CreatePreTypeProxy();
+      expr.ResetTypeAssignment();
+    }
+
     public enum Type2PreTypeOption { GoodForInference, GoodForPrinting, GoodForBoth }
 
     public PreType Type2PreType(Type type, string description = null, Type2PreTypeOption option = Type2PreTypeOption.GoodForBoth) {
