@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // ------------------------- statements in expressions ------------------------------
 
@@ -226,6 +226,26 @@ module ModifyStatementClass_More {
 }
 
 module LhsLvalue {
+  datatype MyRecord = Make(x: int, y: int)
+
+  method MyMethod() returns (w: int)
+
+  method M0() returns (mySeq: seq<int>) {
+    mySeq[0] := 5;  // error: cannot assign to a sequence element
+  }
+
+  method M1() returns (mySeq: seq<int>) {
+    mySeq[0] := MyMethod();  // error: cannot assign to a sequence element
+  }
+
+  method M2() returns (mySeq: seq<int>) {
+    mySeq[0..4] := 5;  // error: cannot assign to a range
+  }
+
+  method M3() returns (mySeq: seq<int>) {
+    mySeq[0..4] := MyMethod();  // error: cannot assign to a range
+  }
+
   method M()
   {
     var mySeq: seq<int>;
@@ -233,23 +253,15 @@ module LhsLvalue {
     var b := new int[100, 200];
     var c := new MyRecord[29];
 
-    mySeq[0] := 5;  // error: cannot assign to a sequence element
-    mySeq[0] := MyMethod();  // error: ditto
     a[0] := 5;
     a[0] := MyMethod();
     b[20, 18] := 5;
     b[20, 18] := MyMethod();
     c[25].x := 5;  // error: cannot assign to a destructor
     c[25].x := MyMethod();  // error: ditto
-    mySeq[0..4] := 5;  // error: cannot assign to a range
-    mySeq[0..4] := MyMethod();  // error: ditto
     a[0..4] := 5;  // error: cannot assign to a range
     a[0..4] := MyMethod();  // error: ditto
   }
-
-  datatype MyRecord = Make(x: int, y: int)
-
-  method MyMethod() returns (w: int)
 }
 
 // ------------------- dirty loops -------------------

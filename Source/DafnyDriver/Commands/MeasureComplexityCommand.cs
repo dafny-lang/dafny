@@ -13,6 +13,8 @@ static class MeasureComplexityCommand {
   public static IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
+    VerifyCommand.FilterSymbol,
+    VerifyCommand.FilterPosition,
   }.Concat(DafnyCommands.VerificationOptions).
     Concat(DafnyCommands.ResolverOptions);
 
