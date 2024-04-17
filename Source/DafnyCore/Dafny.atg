@@ -3601,6 +3601,7 @@ PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
     { IF(IsSuffix()) Suffix<ref e> }
   | SeqDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
+  | DecreasesToExpr<out e>
   | ConstAtomExpression<out e>
     { IF(IsSuffix()) Suffix<ref e> }
   )
@@ -3846,6 +3847,30 @@ SeqDisplayExpr<out Expression e>
     [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
                                              .)
     "]"
+  )
+  (.  e.RangeToken = new RangeToken(x, t); .)
+  .
+
+/*------------------------------------------------------------------------*/
+DecreasesToExpr<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken x = null;
+     e = dummyExpr;
+  .)
+  (
+    "decreasesto"                          (. x = t; .)
+    "["                                      (. List<Expression> oldExprs = new List<Expression/*!*/>();
+                                                x = t;
+
+                                             .)
+    [ Expressions<oldExprs> ]
+    ";"                                      (. List<Expression> newExprs = new List<Expression/*!*/>();
+                                                x = t;
+
+                                             .)
+    [ Expressions<newExprs> ]
+    "]"                                      (. e = new DecreasesToExpr(x, oldExprs, newExprs);
+                                             .)
   )
   (.  e.RangeToken = new RangeToken(x, t); .)
   .

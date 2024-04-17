@@ -1248,6 +1248,12 @@ namespace Microsoft.Dafny {
 
             break;
           }
+        case DecreasesToExpr decreasesToExpr: {
+            foreach (var subexpr in decreasesToExpr.SubExpressions) {
+              CheckWellformed(subexpr, wfOptions, locals, builder, etran);
+            }
+            break;
+          }
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

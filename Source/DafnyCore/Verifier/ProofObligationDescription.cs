@@ -787,6 +787,14 @@ public class Terminates : ProofObligationDescription {
   private readonly List<Expression> newExpressions;
   private readonly List<VarDeclStmt> prevGhostLocals;
 
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    Expression expr = new DecreasesToExpr(Token.NoToken, oldExpressions, newExpressions);
+    if (allowance is not null) {
+      expr = Expression.CreateOr(allowance, expr);
+    }
+    return expr;
+  }
+
   public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;

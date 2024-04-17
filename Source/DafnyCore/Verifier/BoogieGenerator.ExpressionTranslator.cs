@@ -1485,6 +1485,25 @@ namespace Microsoft.Dafny {
               UnboxingCastExpr e = castExpr;
               return BoogieGenerator.CondApplyUnbox(GetToken(e), TrExpr(e.E), e.FromType, e.ToType);
             }
+          case DecreasesToExpr decreasesToExpr:
+            List<Type> newTypes = new();
+            List<Type> oldTypes = new();
+            List<Expr> newExprs = new();
+            List<Expr> oldExprs = new();
+            List<IToken> toks = new();
+            foreach (var newExpr in decreasesToExpr.NewExpressions) {
+              newTypes.Add(newExpr.Type);
+              newExprs.Add(TrExpr(newExpr));
+            }
+            foreach (var oldExpr in decreasesToExpr.OldExpressions) {
+              oldTypes.Add(oldExpr.Type);
+              oldExprs.Add(TrExpr(oldExpr));
+              toks.Add(new NestedToken(decreasesToExpr.tok, oldExpr.tok));
+            }
+            BoogieStmtListBuilder builder = null;
+            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, builder,
+              "TODO", false, false);
+            return decreasesExpr;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
@@ -2407,6 +2426,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         } else if (expr is UnboxingCastExpr) {
           var e = (UnboxingCastExpr)expr;
           return CanCallAssumption(e.E);
+        } else if (expr is DecreasesToExpr decreasesToExpr) {
+          var oldCanCall = CanCallAssumption(decreasesToExpr.OldExpressions.ToList());
+          var newCanCall = CanCallAssumption(decreasesToExpr.NewExpressions.ToList());
+          return BplAnd(oldCanCall, newCanCall);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }

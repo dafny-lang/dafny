@@ -16,6 +16,7 @@ using System.Reflection;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
+using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
@@ -1165,6 +1166,23 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
+
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        foreach (var subexpr in decreasesToExpr.SubExpressions) {
+          ResolveExpression(subexpr, resolutionContext);
+        }
+
+        var oldEs = decreasesToExpr.OldExpressions.ToList();
+        var newEs = decreasesToExpr.NewExpressions.ToList();
+        var N = Math.Min(oldEs.Count(), newEs.Count());
+        for (int i = 0; i < N; i++) {
+          var o = oldEs[i];
+          var n = newEs[i];
+          // TODO: maybe move CompatibleDecreasesTypes and make it work in the type checker?
+          AddAssignableConstraint(o.tok, o.Type, n.Type, "TODO: incompatible expression");
+        }
+
+        decreasesToExpr.Type = Type.Bool;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

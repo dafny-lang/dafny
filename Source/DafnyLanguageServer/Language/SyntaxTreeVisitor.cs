@@ -1,4 +1,6 @@
-﻿namespace Microsoft.Dafny.LanguageServer.Language {
+﻿using Microsoft.Boogie;
+
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Base syntax tree visitor implementation that visits all nodes,
   /// except auto-generated expressions and attributes.
@@ -494,6 +496,9 @@
         case LetExpr letExpression:
           Visit(letExpression);
           break;
+        case DecreasesToExpr decreasesToExpr:
+          Visit(decreasesToExpr);
+          break;
         default:
           if (expression != null) {
             VisitUnknown(expression, expression.tok);
@@ -698,8 +703,13 @@
       foreach (var rhs in letExpression.RHSs) {
         VisitNullableExpression(rhs);
       }
+
       VisitNullableAttributes(letExpression.Attributes);
       Visit(letExpression.Body);
+    }
+
+    public virtual void Visit(DecreasesToExpr decreasesToExpr) {
+      decreasesToExpr.SubExpressions.ForEach(Visit);
     }
   }
 }

@@ -1198,6 +1198,26 @@ namespace Microsoft.Dafny {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        wr.Write("decreasesto[");
+        var comma = false;
+        foreach (var oldExpr in decreasesToExpr.OldExpressions) {
+          if (comma) {
+            wr.Write(", ");
+          }
+          PrintExpression(oldExpr, false);
+          comma = true;
+        }
+        wr.Write(" ; ");
+        comma = false;
+        foreach (var newExpr in decreasesToExpr.NewExpressions) {
+          if (comma) {
+            wr.Write(", ");
+          }
+          PrintExpression(newExpr, false);
+          comma = true;
+        }
+        wr.Write("]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

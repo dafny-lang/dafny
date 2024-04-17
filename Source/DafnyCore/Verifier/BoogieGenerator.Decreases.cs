@@ -173,7 +173,7 @@ public partial class BoogieGenerator {
     return decrCheck;
   }
 
-  bool CompatibleDecreasesTypes(Type t, Type u) {
+  static bool CompatibleDecreasesTypes(Type t, Type u) {
     Contract.Requires(t != null);
     Contract.Requires(u != null);
     t = t.NormalizeToAncestorType();
