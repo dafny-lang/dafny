@@ -153,7 +153,8 @@ public class Compilation : IDisposable {
     }
     if (Options.UseStdin) {
       var uri = new Uri("stdin:///");
-      result.Add(await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli));
+      var stdFile = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli);
+      result.Add(stdFile!);
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
@@ -161,11 +162,15 @@ public class Compilation : IDisposable {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
         var targetSpecificFile = await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken);
-        result.Add(targetSpecificFile);
+        if (targetSpecificFile != null) {
+          result.Add(targetSpecificFile);
+        }
       }
 
       var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
-      result.Add(file);
+      if (file != null) {
+        result.Add(file!);
+      }
     }
 
     string? unverifiedLibrary = null;

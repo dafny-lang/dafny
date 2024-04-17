@@ -9,7 +9,6 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 using DafnyCore;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -23,7 +22,7 @@ public class DafnyFile {
   public DafnyOptions ParseOptions { get; set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; private set; }
-  [CanBeNull] public IToken Origin { get; }
+  public IToken? Origin { get; }
 
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
@@ -34,7 +33,7 @@ public class DafnyFile {
   }
 
   public static async Task<DafnyFile?> CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, IToken origin, string? errorOnNotRecognized = null) {
+    DafnyOptions options, Uri uri, IToken? origin, string? errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
@@ -105,32 +104,30 @@ public class DafnyFile {
       if (0 < options.VerifySnapshots) {
         // For snapshots, we first create broken DafnyFile without content,
         // then look for the real files and create DafnuFiles for them.
-        return new DafnyFile(extension, canonicalPath, baseName, null, uri, origin);
+        return new DafnyFile(extension, canonicalPath, baseName, null!, uri, origin, null!);
       }
 
       reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
-      return null;
+      return null!;
     }
 
-    return new DafnyFile(extension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin) {
+    return new DafnyFile(extension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin, parseOptions) {
       IsPrecompiled = false,
       IsPreverified = false,
-      ParseOptions = parseOptions,
     };
   }
 
   private static DafnyFile HandleStandardInput(DafnyOptions options, Uri uri, IToken origin, string extension) {
-    return new DafnyFile(extension, "<stdin>", "<stdin>", () => options.Input, uri, origin) {
+    return new DafnyFile(extension, "<stdin>", "<stdin>", () => options.Input, uri, origin, options) {
       IsPrecompiled = false,
       IsPreverified = false,
-      ParseOptions = options,
     };
   }
 
   /// <summary>
   /// Technically only for C#, this is for backwards compatability
   /// </summary>
-  private static DafnyFile HandleDll(DafnyOptions parseOptions, Uri uri, IToken origin, string filePath,
+  private static DafnyFile? HandleDll(DafnyOptions parseOptions, Uri uri, IToken origin, string filePath,
     string extension, string canonicalPath,
     string baseName) {
     var sourceText = GetDafnySourceAttributeText(filePath);
@@ -138,14 +135,14 @@ public class DafnyFile {
       return null;
     }
 
-    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(sourceText), uri, origin) {
+    return new DafnyFile(extension, canonicalPath, baseName, 
+      () => new StringReader(sourceText), uri, origin, parseOptions) {
       IsPrecompiled = true,
       IsPreverified = true,
-      ParseOptions = parseOptions,
     };
   }
 
-  private static async Task<DafnyFile> HandleDafnyProject(DafnyOptions options,
+  private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
     Uri uri,
     IToken origin,
@@ -166,14 +163,13 @@ public class DafnyFile {
     }
 
     var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
-    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin) {
+    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin, libraryOptions) {
       IsPrecompiled = false,
       IsPreverified = false,
-      ParseOptions = libraryOptions,
     };
   }
 
-  private static async Task<DafnyFile> HandleDooFile(DafnyOptions options,
+  private static async Task<DafnyFile?> HandleDooFile(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
     Uri uri,
     IToken origin, string filePathForErrors, string filePath, string extension, string canonicalPath, string baseName) {
@@ -216,21 +212,22 @@ public class DafnyFile {
     // more efficiently inside a .doo file, at which point
     // the DooFile class should encapsulate the serialization logic better
     // and expose a Program instead of the program text.
-    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(dooFile.ProgramText), uri, origin) {
+    return new DafnyFile(extension, canonicalPath, baseName, 
+      () => new StringReader(dooFile.ProgramText), uri, origin, validDooOptions) {
       IsPrecompiled = false,
       IsPreverified = true,
-      ParseOptions = validDooOptions,
     };
   }
 
   protected DafnyFile(string extension, string canonicalPath, string baseName,
-    Func<TextReader> getContent, Uri uri, [CanBeNull] IToken origin) {
+    Func<TextReader> getContent, Uri uri, IToken? origin, DafnyOptions parseOptions) {
     Extension = extension;
     CanonicalPath = canonicalPath;
     BaseName = baseName;
     GetContent = getContent;
     Uri = uri;
     Origin = origin;
+    ParseOptions = parseOptions;
   }
 
   // Returns a canonical string for the given file path, namely one which is the same
@@ -238,9 +235,9 @@ public class DafnyFile {
   // make the path absolute -- detecting case and canonicalizing symbolic and hard
   // links are difficult across file systems (which may mount parts of other filesystems,
   // with different characteristics) and is not supported by .Net libraries
-  public static Uri Canonicalize(string filePath) {
+  public static Uri Canonicalize(string? filePath) {
     if (filePath == null || !filePath.StartsWith("file:")) {
-      return new Uri(Path.GetFullPath(filePath));
+      return new Uri(Path.GetFullPath(filePath!));
     }
 
     if (Uri.IsWellFormedUriString(filePath, UriKind.RelativeOrAbsolute)) {
@@ -269,7 +266,7 @@ public class DafnyFile {
     return sourceFiles;
   }
 
-  private static string GetDafnySourceAttributeText(string dllPath) {
+  private static string? GetDafnySourceAttributeText(string dllPath) {
     if (!File.Exists(dllPath)) {
       return null;
     }
@@ -287,7 +284,7 @@ public class DafnyFile {
         var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
         if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
           var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-          return (string)decoded.FixedArguments[0].Value;
+          return decoded.FixedArguments[0].Value as string;
         }
       } catch (InvalidCastException) {
         // Ignore - the Handle casts are handled as custom explicit operators,
