@@ -50,7 +50,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   }
 
   /* Given the same sequence, ToNatRight and ToNatLeft return the same nat. */
-  lemma {:vcs_split_on_every_assert} LemmaToNatLeftEqToNatRight(xs: seq<digit>)
+  lemma {:isolate_assertions} LemmaToNatLeftEqToNatRight(xs: seq<digit>)
     ensures ToNatRight(xs) == ToNatLeft(xs)
   {
     reveal ToNatRight();
@@ -177,7 +177,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence can be calculated using the nat
   representation of its prefix. */
-  lemma {:vcs_split_on_every_assert} LemmaSeqPrefix(xs: seq<digit>, i: nat)
+  lemma {:isolate_assertions} LemmaSeqPrefix(xs: seq<digit>, i: nat)
     requires 0 <= i <= |xs|
     ensures ToNatRight(xs[..i]) + ToNatRight(xs[i..]) * Pow(BASE(), i) == ToNatRight(xs)
   {
@@ -228,7 +228,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* Two sequences do not have the same nat representations if their prefixes
   do not have the same nat representations. Helper lemma for LemmaSeqNeq. */
-  lemma LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
+  lemma {:isolate_assertions} LemmaSeqPrefixNeq(xs: seq<digit>, ys: seq<digit>, i: nat)
     requires 0 <= i <= |xs| == |ys|
     requires ToNatRight(xs[..i]) != ToNatRight(ys[..i])
     ensures ToNatRight(xs) != ToNatRight(ys)
@@ -452,7 +452,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* If the nat representation of a sequence is zero, then the sequence is a
   sequence of zeros. */
-  lemma LemmaSeqZero(xs: seq<digit>)
+  lemma {:resource_limit "10e6"} LemmaSeqZero(xs: seq<digit>)
     requires ToNatRight(xs) == 0
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
   {
@@ -524,7 +524,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* SeqAdd returns the same value as converting the sequences to nats, then
   adding them. */
-  lemma {:vcs_split_on_every_assert} LemmaSeqAdd(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
+  lemma {:isolate_assertions} LemmaSeqAdd(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
     requires |xs| == |ys|
     requires SeqAdd(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) + ToNatRight(ys) == ToNatRight(zs) + cout * Pow(BASE(), |xs|)
@@ -581,7 +581,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* SeqSub returns the same value as converting the sequences to nats, then
   subtracting them. */
-  lemma {:vcs_split_on_every_assert} LemmaSeqSub(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
+  lemma {:isolate_assertions} LemmaSeqSub(xs: seq<digit>, ys: seq<digit>, zs: seq<digit>, cout: nat)
     requires |xs| == |ys|
     requires SeqSub(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|) == ToNatRight(zs)

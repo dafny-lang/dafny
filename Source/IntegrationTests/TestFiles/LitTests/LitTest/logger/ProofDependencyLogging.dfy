@@ -1,4 +1,4 @@
-// RUN: %baredafny verify --log-format:text --verify-included-files --boogie -trackVerificationCoverage "%s" > "%t"
+// RUN: %baredafny verify --log-format:text --verify-included-files --allow-axioms --boogie -trackVerificationCoverage "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Results for M.RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -111,7 +111,7 @@
 // CHECK:       ProofDependencies.dfy\(337,12\)-\(337,16\): requires clause
 // CHECK:       ProofDependencies.dfy\(338,11\)-\(338,15\): ensures clause
 // CHECK:       ProofDependencies.dfy\(341,3\)-\(341,39\): function call result
-// CHECK:       ProofDependencies.dfy\(341,3\)-\(341,3\): function precondition satisfied
+// CHECK:       ProofDependencies.dfy\(341,3\)-\(341,35\): function precondition satisfied
 //
 // CHECK: Results for M.CallContradictoryMethodMethod \(correctness\)
 // CHECK:     Proof dependencies:

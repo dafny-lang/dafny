@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -18,12 +19,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
   public sealed class DafnyLangParser : IDafnyParser {
     private readonly DafnyOptions options;
     private readonly IFileSystem fileSystem;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
     private readonly ILogger<DafnyLangParser> logger;
     private readonly SemaphoreSlim mutex = new(1);
     private readonly ProgramParser programParser;
 
-    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, ITelemetryPublisher telemetryPublisher,
+    public DafnyLangParser(DafnyOptions options, IFileSystem fileSystem, TelemetryPublisherBase telemetryPublisher,
       ILogger<DafnyLangParser> logger, ILogger<CachingParser> innerParserLogger) {
       this.options = options;
       this.fileSystem = fileSystem;
@@ -34,12 +35,13 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         : new ProgramParser(innerParserLogger, fileSystem);
     }
 
-    public Program Parse(Compilation compilation, CancellationToken cancellationToken) {
-      mutex.Wait(cancellationToken);
+    public async Task<Program> Parse(Compilation compilation, CancellationToken cancellationToken) {
+      await mutex.WaitAsync(cancellationToken);
 
+      var rootFiles = await compilation.RootFiles;
       var beforeParsing = DateTime.Now;
       try {
-        return programParser.ParseFiles(compilation.Project.ProjectName, compilation.RootFiles, compilation.Reporter, cancellationToken);
+        return await programParser.ParseFiles(compilation.Project.ProjectName, rootFiles, compilation.Reporter, cancellationToken);
       }
       finally {
         telemetryPublisher.PublishTime("Parse", compilation.Project.Uri.ToString(), DateTime.Now - beforeParsing);

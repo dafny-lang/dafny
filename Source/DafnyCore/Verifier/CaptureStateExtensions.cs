@@ -3,10 +3,12 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  static class CaptureStateExtensions {
+  public static class CaptureStateExtensions {
 
-    public static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
-      if (builder.Options.ModelViewFile != null || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+    public const string AfterLoopIterationsStateMarker = "after some loop iterations";
+
+    internal static void AddCaptureState(this BoogieStmtListBuilder builder, Statement statement) {
+      if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, statement));
       }
     }
@@ -17,8 +19,8 @@ namespace Microsoft.Dafny {
       return CaptureState(options, stmt.RangeToken.EndToken, true, null);
     }
 
-    public static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
-      if (builder.Options.ModelViewFile != null || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
+    internal static void AddCaptureState(this BoogieStmtListBuilder builder, IToken tok, bool isEndToken, string /*?*/ additionalInfo) {
+      if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, tok, isEndToken, additionalInfo));
       }
     }

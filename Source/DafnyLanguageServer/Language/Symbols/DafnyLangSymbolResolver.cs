@@ -1,7 +1,6 @@
 ﻿using System;
 using System.CommandLine;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
@@ -23,54 +22,41 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     private readonly ILogger logger;
     private readonly ILogger<CachingResolver> innerLogger;
     private readonly SemaphoreSlim resolverMutex = new(1);
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly TelemetryPublisherBase telemetryPublisher;
 
-    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, ITelemetryPublisher telemetryPublisher) {
+    public DafnyLangSymbolResolver(ILogger<DafnyLangSymbolResolver> logger, ILogger<CachingResolver> innerLogger, TelemetryPublisherBase telemetryPublisher) {
       this.logger = logger;
       this.innerLogger = innerLogger;
       this.telemetryPublisher = telemetryPublisher;
     }
 
     private readonly ResolutionCache resolutionCache = new();
-    public CompilationUnit ResolveSymbols(DafnyProject project, Program program, CancellationToken cancellationToken) {
+    public void ResolveSymbols(Compilation compilation, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
       resolverMutex.Wait(cancellationToken);
       try {
-        RunDafnyResolver(project, program, cancellationToken);
-        // We cannot proceed without a successful resolution. Due to the contracts in dafny-lang, we cannot
-        // access a property without potential contract violations. For example, a variable may have an
-        // unresolved type represented by null. However, the contract prohibits the use of the type property
-        // because it must not be null.
-        if (program.Reporter.HasErrorsUntilResolver) {
-          return new CompilationUnit(project.Uri, program);
-        }
+        RunDafnyResolver(compilation, program, cancellationToken);
       }
       finally {
         resolverMutex.Release();
       }
-      var beforeLegacyServerResolution = DateTime.Now;
-      var compilationUnit = new SymbolDeclarationResolver(logger, cancellationToken).ProcessProgram(project.Uri, program);
-      telemetryPublisher.PublishTime("LegacyServerResolution", project.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
-      return compilationUnit;
     }
 
-    private void RunDafnyResolver(DafnyProject project, Program program, CancellationToken cancellationToken) {
+    private void RunDafnyResolver(Compilation compilation, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = program.Options.Get(UseCaching)
           ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
           : new ProgramResolver(program);
         resolver.Resolve(cancellationToken);
-        int resolverErrors = resolver.Reporter.ErrorCountUntilResolver;
-        if (resolverErrors > 0) {
-          logger.LogDebug("encountered {ErrorCount} errors while resolving {DocumentUri}", resolverErrors,
-          project.Uri);
+        if (compilation.HasErrors) {
+          logger.LogDebug($"encountered errors while resolving {compilation.Project.Uri}");
         }
       }
       finally {
-        telemetryPublisher.PublishTime("Resolution", project.Uri.ToString(), DateTime.Now - beforeResolution);
+        telemetryPublisher.PublishTime("Resolution", compilation.Project.Uri.ToString(), DateTime.Now - beforeResolution);
       }
     }
   }

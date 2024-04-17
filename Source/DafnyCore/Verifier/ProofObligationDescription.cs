@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -47,28 +48,41 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class ShiftLowerBound : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "shift amount is always non-negative";
+public abstract class ShiftOrRotateBound : ProofObligationDescription {
+  protected readonly string shiftOrRotate;
 
-  public override string FailureDescription =>
-    "shift amount must be non-negative";
-
-  public override string ShortDescription => "shift lower bound";
+  public ShiftOrRotateBound(bool shift) {
+    shiftOrRotate = shift ? "shift" : "rotate";
+  }
 }
 
-public class ShiftUpperBound : ProofObligationDescription {
+public class ShiftLowerBound : ShiftOrRotateBound {
   public override string SuccessDescription =>
-    $"shift amount is always within the width of the result ({width})";
+    $"{shiftOrRotate} amount is always non-negative";
 
   public override string FailureDescription =>
-    $"shift amount must not exceed the width of the result ({width})";
+    $"{shiftOrRotate} amount must be non-negative";
 
-  public override string ShortDescription => "shift upper bound";
+  public override string ShortDescription => $"{shiftOrRotate} lower bound";
+
+  public ShiftLowerBound(bool shift)
+    : base(shift) {
+  }
+}
+
+public class ShiftUpperBound : ShiftOrRotateBound {
+  public override string SuccessDescription =>
+    $"{shiftOrRotate} amount is always within the width of the result ({width})";
+
+  public override string FailureDescription =>
+    $"{shiftOrRotate} amount must not exceed the width of the result ({width})";
+
+  public override string ShortDescription => $"{shiftOrRotate} upper bound";
 
   private readonly int width;
 
-  public ShiftUpperBound(int width) {
+  public ShiftUpperBound(int width, bool shift)
+    : base(shift) {
     this.width = width;
   }
 }
@@ -247,7 +261,7 @@ public class IsAllocated : ProofObligationDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might not be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
@@ -257,6 +271,11 @@ public class IsAllocated : ProofObligationDescription {
   private string WhenSuffix => when is null ? "" : $" {when}";
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
+
+  public static string HelperFormal(Formal formal) {
+    return $" -- if you add 'new' before the parameter declaration, like 'new {formal.Name}: {formal.Type.ToString()}',"
+           + " arguments can refer to expressions possibly unallocated in the previous state";
+  }
 
   public IsAllocated(string what, string when, bool plural = false) {
     this.what = what;
@@ -331,7 +350,7 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
   }
 }
 
-public class AssertStatement : ProofObligationDescriptionCustomMessages {
+public class AssertStatementDescription : ProofObligationDescriptionCustomMessages {
   public override string DefaultSuccessDescription =>
     "assertion always holds";
 
@@ -341,14 +360,20 @@ public class AssertStatement : ProofObligationDescriptionCustomMessages {
   public override string ShortDescription => "assert statement";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return predicate;
+    return AssertStatement.Expr;
   }
 
-  private Expression predicate;
+  public AssertStmt AssertStatement { get; }
 
-  public AssertStatement(Expression predicate, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  // We provide a way to mark an assertion as an intentional element of a
+  // proof by contradiction with the `{:contradiction}` attribute. Dafny
+  // skips warning about such assertions being proved due to contradictory
+  // assumptions.
+  public bool IsIntentionalContradiction => Attributes.Contains(AssertStatement.Attributes, "contradiction");
+
+  public AssertStatementDescription(AssertStmt assertStmt, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
-    this.predicate = predicate;
+    this.AssertStatement = assertStmt;
   }
 
   public override bool IsImplicit => false;
@@ -502,25 +527,81 @@ public class TraitDecreases : ProofObligationDescription {
   }
 }
 
-public class FrameSubset : ProofObligationDescription {
+public class ReadFrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
-    isWrite
-      ? $"{whatKind} is allowed by context's modifies clause"
-      : $"sufficient reads clause to {whatKind}";
+    $"sufficient reads clause to {whatKind}";
 
   public override string FailureDescription =>
-    isWrite
-      ? $"{whatKind} might violate context's modifies clause"
-      : $"insufficient reads clause to {whatKind}";
+    $"insufficient reads clause to {whatKind}" + ExtendedFailureHint();
 
-  public override string ShortDescription => "frame subset";
+  public string ExtendedFailureHint() {
+    if (readExpression is null) {
+      return "";
+    }
+    if (scope is { Designator: var designator }) {
+      var lambdaScope = scope as LambdaExpr;
+      var extraHint = "";
+      var obj = "object";
+      if (readExpression is MemberSelectExpr e) {
+        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, e.Obj, new PrintFlags(UseOriginalDafnyNames: true));
+      } else if (readExpression is SeqSelectExpr s) {
+        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, s.Seq, new PrintFlags(UseOriginalDafnyNames: true));
+      } else if (readExpression is MultiSelectExpr m) {
+        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
+          new PrintFlags(UseOriginalDafnyNames: true));
+      }
+
+      if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
+      } else {
+        if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
+          extraHint = $" or 'reads {obj}`{field}'";
+        }
+        var hint = $"adding 'reads {obj}'{extraHint} in the enclosing {designator} specification for resolution";
+        if (lambdaScope != null && lambdaScope.Reads.Expressions.Count == 0) {
+          hint = $"extracting {readExpression} to a local variable before the lambda expression, or {hint}";
+        }
+
+        return $"; Consider {hint}";
+      }
+    }
+
+    string whyNotWhat = "Memory locations";
+
+    if (whatKind == "read field") {
+      whyNotWhat = "Mutable fields";
+    } else if (whatKind is "read array element" or "read the indicated range of array elements") {
+      whyNotWhat = "Array elements";
+    }
+    return $"; {whyNotWhat} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls";
+
+  }
+
+  public override string ShortDescription => "read frame subset";
 
   private readonly string whatKind;
-  private readonly bool isWrite;
+  private readonly Expression readExpression;
+  [CanBeNull] private readonly IFrameScope scope;
 
-  public FrameSubset(string whatKind, bool isWrite) {
+  public ReadFrameSubset(string whatKind, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
     this.whatKind = whatKind;
-    this.isWrite = isWrite;
+    this.readExpression = readExpression;
+    this.scope = scope;
+  }
+}
+
+public class ModifyFrameSubset : ProofObligationDescription {
+  public override string SuccessDescription =>
+      $"{whatKind} is allowed by context's modifies clause";
+
+  public override string FailureDescription =>
+      $"{whatKind} might violate context's modifies clause";
+
+  public override string ShortDescription => "modify frame subset";
+
+  private readonly string whatKind;
+
+  public ModifyFrameSubset(string whatKind) {
+    this.whatKind = whatKind;
   }
 }
 

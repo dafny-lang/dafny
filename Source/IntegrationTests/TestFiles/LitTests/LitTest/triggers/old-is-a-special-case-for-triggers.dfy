@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file ensures that `old()` receives the special treatment that it

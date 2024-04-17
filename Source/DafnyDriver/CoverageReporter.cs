@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
 
@@ -31,7 +32,22 @@ public class CoverageReporter {
 
   private readonly ErrorReporter reporter;
   private readonly DafnyOptions options;
+  private readonly Dictionary<(CoverageReport, string), string> paths = new();
 
+  public string GetPath(CoverageReport report, string desiredPath) {
+    return paths.GetOrCreate((report, desiredPath), () => {
+      var index = 0;
+      var extension = Path.GetExtension(desiredPath);
+      var withoutExtension = Path.GetFileNameWithoutExtension(desiredPath);
+      var actualPath = desiredPath;
+      while (File.Exists(actualPath)) {
+        actualPath = withoutExtension + "_" + index + extension;
+        index++;
+      }
+
+      return actualPath;
+    });
+  }
   public CoverageReporter(DafnyOptions options) {
     reporter = options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
@@ -42,7 +58,7 @@ public class CoverageReporter {
   }
 
 
-  public void SerializeVerificationCoverageReport(ProofDependencyManager depManager, Program dafnyProgram, IEnumerable<TrackedNodeComponent> usedComponents, string coverageReportDir) {
+  public async Task SerializeVerificationCoverageReport(ProofDependencyManager depManager, Program dafnyProgram, IEnumerable<TrackedNodeComponent> usedComponents, string coverageReportDir) {
     var usedDependencies =
       usedComponents.Select(depManager.GetFullIdDependency).ToHashSet();
     var allDependencies =
@@ -50,20 +66,20 @@ public class CoverageReporter {
         .GetAllPotentialDependencies()
         .OrderBy(dep => dep.Range.StartToken);
     var coverageReport = new CoverageReport("Verification coverage", "Proof Dependencies", "_verification", dafnyProgram);
-    foreach (var dep in allDependencies) {
-      if (dep is FunctionDefinitionDependency) {
+    foreach (var proofDependency in allDependencies) {
+      if (proofDependency is FunctionDefinitionDependency) {
         continue;
       }
-      coverageReport.LabelCode(dep.Range,
-        usedDependencies.Contains(dep)
+      coverageReport.LabelCode(proofDependency.Range,
+        usedDependencies.Contains(proofDependency)
           ? CoverageLabel.FullyCovered
           : CoverageLabel.NotCovered);
     }
 
-    SerializeCoverageReports(coverageReport, coverageReportDir);
+    await SerializeCoverageReports(coverageReport, coverageReportDir);
   }
 
-  public void Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {
+  public async Task Merge(List<string> coverageReportsToMerge, string coverageReportOutDir) {
     List<CoverageReport> reports = new();
     var mergedReport = new CoverageReport("Combined Coverage Report", "Locations", "_combined", null);
     foreach (var reportDir in coverageReportsToMerge) {
@@ -79,7 +95,7 @@ public class CoverageReporter {
           continue;
         }
         var suffix = indexFileMatch.Groups[1].Value;
-        var index = new StreamReader(pathToIndexFile).ReadToEnd();
+        var index = await new StreamReader(pathToIndexFile).ReadToEndAsync();
         var name = TitleRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
         var units = UnitsRegexInverse.Match(index)?.Groups?[1]?.Value ?? "";
         reports.Add(ParseCoverageReport(reportDir, $"{name} ({Path.GetFileName(reportDir)})", units, suffix));
@@ -98,7 +114,7 @@ public class CoverageReporter {
       }
     }
     reports.Add(mergedReport);
-    SerializeCoverageReports(reports, coverageReportOutDir);
+    await SerializeCoverageReports(reports, coverageReportOutDir);
   }
 
   /// <summary>
@@ -145,15 +161,15 @@ public class CoverageReporter {
   }
 
   /// <summary> Serialize a single coverage report to disk </summary>
-  public void SerializeCoverageReports(CoverageReport report, string directory) {
-    SerializeCoverageReports(new List<CoverageReport> { report }, directory);
+  public Task SerializeCoverageReports(CoverageReport report, string directory) {
+    return SerializeCoverageReports(new List<CoverageReport> { report }, directory);
   }
 
   /// <summary>
   /// Create a directory with HTML files to display a set of coverage reports for the same program. The reports
   /// will have links to each other to make comparison easier
   /// </summary>
-  private void SerializeCoverageReports(List<CoverageReport> reports, string reportsDirectory) {
+  private async Task SerializeCoverageReports(List<CoverageReport> reports, string reportsDirectory) {
     var sessionDirectory = reportsDirectory;
     if (!options.Get(CommonOptionBag.NoTimeStampForCoverageReport)) {
       var sessionName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
@@ -178,18 +194,19 @@ public class CoverageReporter {
       // TODO: Handle arbitrary Uris better
       var fileName = uri.ToString();
       var directoryForFile = Path.Combine(sessionDirectory, Path.GetDirectoryName(fileName)?[prefixLength..].TrimStart('/') ?? "");
+      sourceFileToCoverageReport[uri] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
       var pathToRoot = Path.GetRelativePath(directoryForFile, sessionDirectory);
       Directory.CreateDirectory(directoryForFile);
-      for (int i = 0; i < reports.Count; i++) {
-        var linksToOtherReports = GetHtmlLinksToOtherReports(reports[i], Path.GetFileName(fileName), reports);
-        var reportForFile = HtmlReportForFile(reports[i], uri, pathToRoot, linksToOtherReports);
-        sourceFileToCoverageReport[uri] = Path.Combine(directoryForFile, Path.GetFileName(fileName));
-        File.WriteAllText(Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{reports[i].UniqueSuffix}.html", reportForFile);
+      foreach (var report in reports) {
+        var linksToOtherReports = GetHtmlLinksToOtherReports(report, fileName, reports);
+        var reportForFile = await HtmlReportForFile(report, uri, pathToRoot, linksToOtherReports);
+        var desiredPath = Path.Combine(directoryForFile, Path.GetFileName(fileName)) + $"{report.Suffix}.html";
+        await File.WriteAllTextAsync(GetPath(report, desiredPath), reportForFile);
       }
     }
 
     foreach (var report in reports) {
-      var linksToOtherReports = GetHtmlLinksToOtherReports(report, "index", reports);
+      var linksToOtherReports = GetHtmlLinksToOtherReports(report, Path.Combine(sessionDirectory, "index"), reports);
       CreateIndexFile(report, sourceFileToCoverageReport, sessionDirectory, linksToOtherReports);
     }
   }
@@ -225,11 +242,13 @@ public class CoverageReporter {
 
     List<List<object>> body = new();
     foreach (var sourceFile in sourceFileToCoverageReportFile.Keys) {
-      var relativePath = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
+      var desiredPath = sourceFileToCoverageReportFile[sourceFile] + $"{report.Suffix}.html";
+      var relativePath = Path.GetRelativePath(baseDirectory, GetPath(report, desiredPath));
+      var linkName = Path.GetRelativePath(baseDirectory, sourceFileToCoverageReportFile[sourceFile]);
 
       body.Add(new() {
-        $"<a href = \"{relativePath}{report.UniqueSuffix}.html\"" +
-        $"class = \"el_package\">{relativePath}</a>",
+        $"<a href = \"{relativePath}\"" +
+        $"class = \"el_package\">{linkName}</a>",
         "All modules"
       });
 
@@ -268,20 +287,20 @@ public class CoverageReporter {
     templateText = TableHeaderRegex.Replace(templateText, MakeIndexFileTableRow(header));
     templateText = TableFooterRegex.Replace(templateText, MakeIndexFileTableRow(footer));
     templateText = TableBodyRegex.Replace(templateText, string.Join("\n", body.Select(MakeIndexFileTableRow)));
-    File.WriteAllText(Path.Combine(baseDirectory, $"index{report.UniqueSuffix}.html"), templateText);
+    File.WriteAllText(GetPath(report, Path.Combine(baseDirectory, $"index{report.Suffix}.html")), templateText);
   }
 
   /// <summary>
   /// Creates a set of links to be inserted in <param name="thisReport"></param> that point to corresponding
-  /// report files for the same <param name="sourceFileName"></param>
+  /// report files for the same <param name="reportAgnosticPath"></param>
   /// </summary>
-  private static string GetHtmlLinksToOtherReports(CoverageReport thisReport, string sourceFileName, List<CoverageReport> allReports) {
+  private string GetHtmlLinksToOtherReports(CoverageReport thisReport, string reportAgnosticPath, List<CoverageReport> allReports) {
     var result = new StringBuilder();
     foreach (var report in allReports) {
       if (report == thisReport) {
         continue;
       }
-      result.Append($"<a href=\"{sourceFileName}{report.UniqueSuffix}.html\" class=\"el_report\">{report.Name}</a>");
+      result.Append($"<a href=\"{Path.GetFileName(GetPath(thisReport, reportAgnosticPath + $"{report.Suffix}.html"))}\" class=\"el_report\">{report.Name}</a>");
     }
     return result.ToString();
   }
@@ -316,9 +335,9 @@ public class CoverageReporter {
     }
   }
 
-  private string HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
-    var dafnyFile = DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli);
-    var source = dafnyFile.GetContent().ReadToEnd();
+  private async Task<string> HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
+    var dafnyFile = await DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli);
+    var source = await dafnyFile.GetContent().ReadToEndAsync();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];
     for (int i = 0; i < lines.Length; i++) {
@@ -362,7 +381,7 @@ public class CoverageReporter {
     }
     labeledCodeBuilder.Append(CloseHtmlTag());
 
-    var assembly = System.Reflection.Assembly.GetCallingAssembly();
+    var assembly = System.Reflection.Assembly.GetAssembly(typeof(CoverageReporter))!;
     var templateStream = assembly.GetManifestResourceStream(CoverageReportTemplatePath);
     var labeledCode = labeledCodeBuilder.ToString();
     if (templateStream is null) {
@@ -370,10 +389,10 @@ public class CoverageReporter {
         "Embedded HTML template for coverage report not found. Returning raw HTML.");
       return labeledCode;
     }
-    var templateText = new StreamReader(templateStream).ReadToEnd();
+    var templateText = await new StreamReader(templateStream).ReadToEndAsync();
     templateText = PathToRootRegex.Replace(templateText, baseDirectory);
     templateText = LinksToOtherReportsRegex.Replace(templateText, linksToOtherReports);
-    templateText = IndexLinkRegex.Replace(templateText, $"index{report.UniqueSuffix}.html");
+    templateText = IndexLinkRegex.Replace(templateText, Path.GetFileName(GetPath(report, Path.Combine(baseDirectory, $"index{report.Suffix}.html"))));
     templateText = FileNameRegex.Replace(templateText, $"{Path.GetFileName(uri.LocalPath)}, {report.Name}");
     templateText = UriRegex.Replace(templateText, uri.ToString());
     return LabeledCodeRegex.Replace(templateText, labeledCode);

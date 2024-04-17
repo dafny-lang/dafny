@@ -81,7 +81,7 @@ class A { var j: int }
 
 ## **Error: The method '_name_' is not permitted as a main method (_reason_).** {#c_method_may_not_be_main_method}
 
-<!-- %check-legacy %options -compile:2 -Main:mmm -->
+<!-- %check-run %options --main-method:mmm -->
 ```dafny
 method mmm(i: int) {}
 ```
@@ -90,7 +90,7 @@ method mmm(i: int) {}
 
 ## **Error: Could not find the method named by the -Main option: _name_** {#c_could_not_find_stipulated_main_method}
 
-<!-- %check-legacy %options /compile:2 -Main:m -->
+<!-- %check-run %options --main-method:m -->
 ```dafny
 class A { static method mm() {} }
 ```
@@ -137,7 +137,7 @@ method Main(i: int) {}
 
 <!-- INSERT-TEXT -->
 
-## **Error: Function _name_ has no body** {#c_function_has_no_body}
+## **Error: Function _name_ has no body so it cannot be compiled** {#c_function_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -160,7 +160,7 @@ ghost function {:test} f(): int { 42 }
 <!-- TODO: Need example? -->
 <!-- INSERT-TEXT -->
 
-## **Error: Method _name_ has no body** {#c_method_has_no_body}
+## **Error: Method _name_ has no body so it cannot be compiled** {#c_method_has_no_body}
 
 <!-- %check-run -->
 ```dafny
@@ -169,7 +169,7 @@ method m()
 
 <!-- INSERT-TEXT -->
 
-## **Error: an assume statement cannot be compiled (use the {:axiom} attribute to let the compiler ignore the statement)** {#c_assume_statement_may_not_be_compiled}
+## **Warning: assume statement has no {:axiom} annotation** {#r_assume_statement_without_axiom}
 
 <!-- %check-run -->
 ```dafny

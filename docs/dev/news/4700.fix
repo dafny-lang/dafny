@@ -1,0 +1,1 @@
+Fix a soundness issue that could be triggered by calling ensures fresh in the post-condition of a constructor

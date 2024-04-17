@@ -13,7 +13,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Contains a collection of ProjectManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
-    private object myLock = new();
+    private readonly object myLock = new();
     public const int ProjectFileCacheExpiryTime = 100;
 
     private readonly CreateProjectManager createProjectManager;
@@ -49,7 +49,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
-      fileSystem.UpdateDocument(documentChange);
+      var success = fileSystem.UpdateDocument(documentChange);
+      if (!success) {
+        throw new ArgumentException("the document change ranges did not match ranges inside the documents");
+      }
       var documentUri = documentChange.TextDocument.Uri;
       var manager = await GetProjectManager(documentUri, false);
       if (manager == null) {

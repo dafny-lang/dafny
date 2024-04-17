@@ -544,14 +544,16 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
 ExtendsClause<. List<Type> parentTraits, out IToken tokenWithTrailingDocString, string requiresNonReferenceTraitsFor .>
 = (. Type parentTrait;
   .)
-  "extends"                   (. if (requiresNonReferenceTraitsFor == "newtype" && theOptions.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Full) {
-                                   SemErr(ErrorId.p_general_traits_beta, t,
-                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:full to engage");
-                                 } else if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy) {
-                                   SemErr(ErrorId.p_general_traits_beta, t,
-                                     $"{requiresNonReferenceTraitsFor} extending traits is a beta feature; use /generalTraits:datatype to engage");
-                                 }
-                              .)
+  "extends"
+    (. if (requiresNonReferenceTraitsFor == "newtype" && theOptions.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Full) {
+       SemErr(ErrorId.p_general_traits_full, t,
+         $"{requiresNonReferenceTraitsFor} extending traits is not fully supported (specifically, compilation of such types is not supported); " +
+         "to use them for verification only, use --general-traits=full");
+     } else if (requiresNonReferenceTraitsFor != null && theOptions.Get(CommonOptionBag.GeneralTraits) == CommonOptionBag.GeneralTraitsOptions.Legacy) {
+       SemErr(ErrorId.p_general_traits_datatype, t,
+         $"{requiresNonReferenceTraitsFor} extending traits is not yet enabled by default; use --general-traits=datatype to enable it");
+     }
+    .)
   Type<out parentTrait>       (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .)
   {"," Type<out parentTrait>  (. parentTraits.Add(parentTrait); tokenWithTrailingDocString = t; .) }
   .
@@ -964,16 +966,19 @@ IdentTypeOptional<out BoundVar var>
      }; .)
   .
 
-TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*!*/ ty, out bool isGhost, out Expression defaultValue, out bool isNameOnly>
+TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*!*/ ty, 
+  out bool isGhost, out Expression defaultValue, out bool isNameOnly, out Attributes attributes>
 = (.Contract.Ensures(Contract.ValueAtReturn(out range)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out ty)!=null);
      Contract.Ensures(Contract.ValueAtReturn(out identName)!=null);
      IToken nameToken = null; ty = new BoolType()/*dummy*/; isGhost = false;
      IToken nameonlyToken = null;
+     attributes = null;
      identName = null;
      defaultValue = null;
   .)
   (. var beforeStartToken = t; .)
+  { Attribute<ref attributes> }
   { "ghost"                            (. isGhost = true; .)
   | "nameonly"                         (. nameonlyToken = t; .)
   }
@@ -1403,19 +1408,23 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      Expression defaultValue;
      bool isNameOnly;
      bool isOlder;
+     Attributes attributes = null;
      RangeToken range;
      Name name;
   .)
   "("
   [
+    { Attribute<ref attributes> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
                         { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
                     ); .)
-    { "," GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
-    ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, isOld, isNameOnly, isOlder)
+    { "," 
+      { Attribute<ref attributes> }
+      GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
+      ParameterDefaultValue<incoming, out defaultValue>
+                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
                         { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
                     ); .)
     }
@@ -1441,16 +1450,17 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
 = (. Contract.Requires(cce.NonNullElements(formals));
      RangeToken/*!*/ range;  Type/*!*/ ty;  Name/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
      bool isNameOnly;
+     Attributes attributes;
   .)
   "("
   [
-    TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
-            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, false, isNameOnly) 
+    TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
+            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
                     { RangeToken = range, IsTypeExplicit = ty != null}
                ); 
             .)
-    { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly>
-            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, false, isNameOnly)
+    { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
+            (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
                     { RangeToken = range, IsTypeExplicit = ty != null}
                ); 
             .)
@@ -1740,7 +1750,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
          "("
            GIdentType<false, false, false, false, out var range2, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
-              result = new Formal(resultName.Tok, resultName.Value, ty, false, false, null, false)
+              result = new Formal(resultName.Tok, resultName.Value, ty, false, false, null, null, false)
                 { RangeToken = range2, IsTypeExplicit = ty != null };
            .)
          ")"
@@ -1763,8 +1773,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                   "a formal [ ] declaration is only allowed for least and greatest predicates");
         .)
       ]
-      [ Formals<true, true, isTwoState, true, formals>
-      ]
+      Formals<true, true, isTwoState, true, formals>
       [ PredicateResult<"predicate", out result> ]
     | ellipsis   (. signatureEllipsis = t; .)
     )
@@ -2035,16 +2044,18 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
 PredicateResult<string name, out Formal result>
 = (. Type/*!*/ returnType = new BoolType();
      result = null;
+     Attributes attributes = null;
   .)
   ":"
   (  IF(IsParenIdentsColon())
      "("
+       { Attribute<ref attributes> }
        GIdentType<false, false, false, false, out var range, out var nameId, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
        (.
           if (ty is not BoolType) {
             SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
-          result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, false)
+          result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, attributes, false)
             { RangeToken = range, IsTypeExplicit = ty != null };
        .)
      ")"
@@ -3747,6 +3758,7 @@ ParensExpression<out Expression e>
        SystemModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
        e = new DatatypeValue(lp, SystemModuleManager.TupleTypeName(argumentGhostness), SystemModuleManager.TupleTypeCtorName(args.Count), args);
      }
+     e.RangeToken = new RangeToken(lp, rp);
   .)
   .
 

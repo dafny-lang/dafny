@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -23,14 +24,6 @@ public enum ImplementationKind {
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
-
-  /// <summary>
-  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
-  /// and use it to set this field. 
-  /// </summary>
-  [FilledInDuringResolution]
-  public ModuleDefinition Replacement { get; set; }
-
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -61,8 +54,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public readonly List<IToken> PrefixIds; // The qualified module name, except the last segment when a
                                           // nested module declaration is outside its enclosing module
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
-  public readonly Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  public Attributes Attributes { get; set; }
   public readonly Implements Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
   public readonly ModuleKindEnum ModuleKind;
@@ -435,26 +427,23 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     sig.VisibilityScope.Augment(resolver.ProgramResolver.SystemModuleManager.systemNameInfo.VisibilityScope);
     // make sure all imported modules were successfully resolved
     foreach (var d in TopLevelDecls) {
-      if (d is AliasModuleDecl || d is AbstractModuleDecl) {
-        ModuleSignature importSig;
-        if (d is AliasModuleDecl) {
-          var alias = (AliasModuleDecl)d;
-          importSig = alias.TargetQId.Root != null ? alias.TargetQId.Root.Signature : alias.Signature;
-        } else {
-          importSig = ((AbstractModuleDecl)d).OriginalSignature;
-        }
-
+      if (d is AliasModuleDecl importDecl) {
+        var importSig = importDecl.TargetQId.Root != null ? importDecl.TargetQId.Root.Signature : importDecl.Signature;
         if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
           return false;
         }
-      } else if (d is LiteralModuleDecl) {
-        var nested = (LiteralModuleDecl)d;
-        if (!nested.ModuleDef.SuccessfullyResolved) {
+      } else if (d is AbstractModuleDecl abstractImportDecl) {
+        var importSig = abstractImportDecl.OriginalSignature;
+        if (importSig is not { ModuleDef: { SuccessfullyResolved: true } }) {
+          return false;
+        }
+      } else if (d is LiteralModuleDecl nestedModuleDecl) {
+        if (!nestedModuleDecl.ModuleDef.SuccessfullyResolved) {
           if (!IsEssentiallyEmptyModuleBody()) {
             // say something only if this will cause any testing to be omitted
-            resolver.reporter.Error(MessageSource.Resolver, nested,
+            resolver.reporter.Error(MessageSource.Resolver, nestedModuleDecl,
               "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", Name,
-              nested.Name);
+              nestedModuleDecl.Name);
           }
 
           return false;
@@ -689,6 +678,22 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return prefixNameModule with { Parts = rest };
   }
 
+  private static readonly List<(string, string)> incompatibleAttributePairs =
+    new() {
+      ("rlimit", "resource_limit")
+    };
+
+  private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes attrs) {
+    foreach (var pair in incompatibleAttributePairs) {
+      var attr1 = Attributes.Find(attrs, pair.Item1);
+      var attr2 = Attributes.Find(attrs, pair.Item2);
+      if (attr1 is not null && attr2 is not null) {
+        resolver.reporter.Error(MessageSource.Resolver, attr1.tok,
+            $"the {pair.Item1} and {pair.Item2} attributes cannot be used together");
+      }
+    }
+  }
+
   public ModuleSignature RegisterTopLevelDecls(ModuleResolver resolver, bool useImports) {
     Contract.Requires(this != null);
     var sig = new ModuleSignature();
@@ -767,6 +772,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
         foreach (MemberDecl m in members.Values) {
           Contract.Assert(!m.HasStaticKeyword || Attributes.Contains(m.Attributes, "opaque_reveal"));
+
+          CheckIncompatibleAttributes(resolver, m.Attributes);
+
           if (m is Function or Method or ConstantField) {
             sig.StaticMembers[m.Name] = m;
           }
@@ -933,6 +941,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     // In the following dictionary, a TraitDecl not being present among the keys means it has not been visited in the InheritsFromObject traversal.
     // If a TraitDecl is a key and maps to "false", then it is currently being visited.
     // If a TraitDecl is a key and maps to "true", then its .IsReferenceTypeDecl has been computed and is ready to be used.
+    var openedImports = TopLevelDecls.OfType<ModuleDecl>().Where(d => d.Opened).ToList();
     var traitsProgress = new Dictionary<TraitDecl, bool>();
     foreach (var decl in TopLevelDecls.Where(d => d is TraitDecl)) {
       // Resolve a "path" to a top-level declaration, if possible. On error, return null.
@@ -950,9 +959,22 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
             // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
             // the original declaration.
             return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
-          } else {
-            return null;
           }
+          // Look through opened imports (which haven't yet been added to the module's signature). There may be ambiguities among the declarations
+          // of these opened imports. Still, we'll just pick the first declaration that matches, if any. If this declaration turns out to be
+          // ambiguous, then an error will be reported later; in the meantime, all that would have happened is that the resolved name path here
+          // is referring to some top-level declaration that won't accurately answer the question of whether "path" is referring to a reference
+          // type or not.
+          foreach (var importDecl in openedImports) {
+            Contract.Assert(importDecl is AliasModuleDecl or AbstractModuleDecl); // only these ModuleDecl's can be .Opened
+            if (importDecl.AccessibleSignature(false).TopLevels.TryGetValue(nameSegment.Name, out topLevelDecl)) {
+              // For "object" and other reference-type declarations from other modules, we're picking up the NonNullTypeDecl; if so, return
+              // the original declaration.
+              return topLevelDecl is NonNullTypeDecl nntd ? nntd.ViewAsClass : topLevelDecl;
+            }
+          }
+          // We didn't find "path"
+          return null;
         }
 
         // convert the ExprDotName to a list of strings
@@ -1027,7 +1049,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return Enumerable.Empty<ISymbol>();
   });
 
-  public DafnySymbolKind Kind => DafnySymbolKind.Namespace;
+  public SymbolKind Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

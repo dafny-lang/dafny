@@ -14,7 +14,7 @@ public delegate IdeStateObserver CreateIdeStateObserver(IdeState initialState);
 
 public class IdeStateObserver : IObserver<IdeState> { // Inheriting from ObserverBase prevents this observer from recovering after a problem
   private readonly ILogger logger;
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly INotificationPublisher notificationPublisher;
 
   private readonly object lastPublishedStateLock = new();
@@ -23,7 +23,7 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
   public IdeState LastPublishedState { get; private set; }
 
   public IdeStateObserver(ILogger logger,
-    ITelemetryPublisher telemetryPublisher,
+    TelemetryPublisherBase telemetryPublisher,
     INotificationPublisher notificationPublisher,
     IdeState initialState) {
     this.initialState = initialState;
@@ -33,12 +33,15 @@ public class IdeStateObserver : IObserver<IdeState> { // Inheriting from Observe
     this.notificationPublisher = notificationPublisher;
   }
 
-  public void OnCompleted() {
+  public void Clear() {
     var ideState = initialState with {
-      Version = LastPublishedState.Version + 1
+      Input = initialState.Input with { Version = LastPublishedState.Version + 1 }
     };
     notificationPublisher.PublishNotifications(LastPublishedState, ideState);
     telemetryPublisher.PublishUpdateComplete();
+  }
+
+  public void OnCompleted() {
   }
 
   public void OnError(Exception exception) {

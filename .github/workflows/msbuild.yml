@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ master, main-* ]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -108,12 +109,13 @@ jobs:
           dotnet tool run coco "Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "Source/DafnyCore/Coco"
 
       - name: Download integration test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: integration-test-results-ubuntu-20.04
+          pattern: integration-test-results-ubuntu-20.04-*
+          merge-multiple: true
 
       - name: Download unit test artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: unit-test-results-ubuntu-20.04
 
@@ -174,7 +176,7 @@ jobs:
           # Report "yellow" status if less than 90% total coverage.
           thresholds: '86 90'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always() # Upload results even if the job fails
         with:
           name: test-coverage-results

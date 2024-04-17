@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -49,7 +50,7 @@ public class CodeContextWrapper : ICodeContext {
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
-public interface ICallable : ICodeContext, ISymbol {
+public interface ICallable : ICodeContext, ISymbol, IFrameScope {
   string WhatKind { get; }
   string NameRelativeToModule { get; }
   Specification<Expression> Decreases { get; }
@@ -93,10 +94,12 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
   public RangeToken RangeToken => CwInner.RangeToken;
   public IToken NameToken => CwInner.NameToken;
-  public DafnySymbolKind Kind => CwInner.Kind;
+  public SymbolKind Kind => CwInner.Kind;
   public string GetDescription(DafnyOptions options) {
     return CwInner.GetDescription(options);
   }
+
+  public string Designator => WhatKind;
 }
 
 
@@ -127,10 +130,11 @@ public class DontUseICallable : ICallable {
   public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
   public RangeToken RangeToken => throw new cce.UnreachableException();
   public IToken NameToken => throw new cce.UnreachableException();
-  public DafnySymbolKind Kind => throw new cce.UnreachableException();
+  public SymbolKind Kind => throw new cce.UnreachableException();
   public string GetDescription(DafnyOptions options) {
     throw new cce.UnreachableException();
   }
+  public string Designator => WhatKind;
 }
 
 /// <summary>
@@ -161,6 +165,8 @@ public class NoContext : ICodeContext {
 
 public interface RedirectingTypeDecl : ICallable {
   string Name { get; }
+
+  string FullDafnyName { get; }
 
   IToken tok { get; }
   Attributes Attributes { get; }

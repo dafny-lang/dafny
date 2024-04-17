@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 
@@ -12,15 +13,16 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 
 public class CachingParser : ProgramParser {
   private readonly PruneIfNotUsedSinceLastPruneCache<byte[], DfyParseResult> parseCache = new(new HashEquality());
-  private readonly ITelemetryPublisher telemetryPublisher;
+  private readonly TelemetryPublisherBase telemetryPublisher;
 
   public CachingParser(ILogger<ProgramParser> logger,
     IFileSystem fileSystem,
-    ITelemetryPublisher telemetryPublisher) : base(logger, fileSystem) {
+    TelemetryPublisherBase telemetryPublisher) : base(logger, fileSystem) {
     this.telemetryPublisher = telemetryPublisher;
   }
 
-  public override Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files, ErrorReporter errorReporter,
+  public override Task<Program> ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
+    ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     return parseCache.ProfileAndPruneCache(() =>
       base.ParseFiles(programName, files, errorReporter, cancellationToken),

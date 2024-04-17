@@ -1,0 +1,87 @@
+ResolutionErrors3.dfy(53,13): Error: type parameter 'PT' (inferred to be '?') in the function call to 'P' could not be determined
+ResolutionErrors3.dfy(54,14): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(54,19): Error: type parameter 'QT' (inferred to be '?') in the function call to 'Q' could not be determined
+ResolutionErrors3.dfy(54,20): Error: the type of this expression is underspecified
+ResolutionErrors3.dfy(55,4): Error: type parameter 'MT' (inferred to be '?') to the method 'M' could not be determined
+ResolutionErrors3.dfy(56,8): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(56,13): Error: type parameter 'NT' (inferred to be '?') to the method 'N' could not be determined
+ResolutionErrors3.dfy(57,8): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(58,8): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(59,8): Error: the type of this local variable is underspecified
+ResolutionErrors3.dfy(60,8): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(61,8): Error: the type of this local variable is underspecified
+ResolutionErrors3.dfy(75,8): Error: the type of this local variable is underspecified
+ResolutionErrors3.dfy(78,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(89,21): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ResolutionErrors3.dfy(90,24): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ResolutionErrors3.dfy(127,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (y)
+ResolutionErrors3.dfy(144,18): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors3.dfy(174,15): Error: The name Inner ambiguously refers to a type in one of the modules A, B (try qualifying the type name with the module name)
+ResolutionErrors3.dfy(184,29): Error: ghost variables such as tmp are allowed only in specification contexts. tmp was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors3.dfy(186,49): Error: ghost variables such as a0 are allowed only in specification contexts. a0 was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors3.dfy(186,54): Error: ghost variables such as a1 are allowed only in specification contexts. a1 was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors3.dfy(195,33): Error: set argument type must support equality (got (int, int -> bool))
+ResolutionErrors3.dfy(207,11): Error: name of type (X) is used as a variable
+ResolutionErrors3.dfy(207,16): Error: name of type (X) is used as a variable
+ResolutionErrors3.dfy(208,11): Error: name of module (Y) is used as a variable
+ResolutionErrors3.dfy(208,16): Error: name of module (Y) is used as a variable
+ResolutionErrors3.dfy(209,11): Error: name of type (X) is used as a variable
+ResolutionErrors3.dfy(210,11): Error: name of module (Y) is used as a variable
+ResolutionErrors3.dfy(215,16): Error: name of type (X) is used as a variable
+ResolutionErrors3.dfy(216,16): Error: name of module (Y) is used as a variable
+ResolutionErrors3.dfy(217,4): Error: name of type (X) is used as a variable
+ResolutionErrors3.dfy(218,4): Error: name of module (Y) is used as a variable
+ResolutionErrors3.dfy(228,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors3.dfy(227,11): Error: type of left argument to + (int) must agree with the result type (bool)
+ResolutionErrors3.dfy(227,11): Error: type of right argument to + (int) must agree with the result type (bool)
+ResolutionErrors3.dfy(227,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+ResolutionErrors3.dfy(229,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
+ResolutionErrors3.dfy(232,15): Error: type of left argument to + (int) must agree with the result type (bool)
+ResolutionErrors3.dfy(232,15): Error: type of right argument to + (int) must agree with the result type (bool)
+ResolutionErrors3.dfy(232,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
+ResolutionErrors3.dfy(248,29): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(250,17): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(275,20): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(285,24): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(298,18): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost function
+ResolutionErrors3.dfy(299,10): Error: a hint is not allowed to make heap updates
+ResolutionErrors3.dfy(300,20): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(303,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+ResolutionErrors3.dfy(322,24): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(329,18): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors3.dfy(330,10): Error: a hint is not allowed to make heap updates
+ResolutionErrors3.dfy(331,11): Error: in a hint, calls are allowed only to lemmas
+ResolutionErrors3.dfy(334,21): Error: a loop in a hint is not allowed to use 'modifies' clauses
+ResolutionErrors3.dfy(360,29): Error: in a statement expression, calls are allowed only to lemmas
+ResolutionErrors3.dfy(372,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+ResolutionErrors3.dfy(391,12): Error: a 'break break break' statement is allowed only in contexts with 3 enclosing loops, but the current context only has 2
+ResolutionErrors3.dfy(403,20): Error: a ghost field is allowed only in specification contexts
+ResolutionErrors3.dfy(411,9): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors3.dfy(417,4): Error: non-ghost variable cannot be assigned a value that depends on a ghost
+ResolutionErrors3.dfy(434,8): Error: print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors3.dfy(443,29): Error: ghost variables such as z are allowed only in specification contexts. z was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors3.dfy(451,10): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors3.dfy(451,10): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors3.dfy(451,10): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors3.dfy(451,10): Error: the type of the bound variable 't' could not be determined
+ResolutionErrors3.dfy(468,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors3.dfy(470,10): Error: assignment to non-ghost field is not allowed in this context, because this is a ghost method
+ResolutionErrors3.dfy(493,15): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
+ResolutionErrors3.dfy(495,25): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors3.dfy(496,35): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors3.dfy(505,4): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors3.dfy(509,8): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors3.dfy(518,4): Error: 'decreases *' is not allowed on ghost loops
+ResolutionErrors3.dfy(522,29): Error: assignment to non-ghost variable is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors3.dfy(531,21): Error: the type of the bound variable 'u' could not be determined
+ResolutionErrors3.dfy(532,23): Error: the type of the bound variable 'u' could not be determined
+ResolutionErrors3.dfy(535,27): Error: the type of the bound variable 'u' could not be determined
+ResolutionErrors3.dfy(539,40): Error: the type of the bound variable 'u' could not be determined
+ResolutionErrors3.dfy(541,38): Error: the type of the bound variable 'u' could not be determined
+ResolutionErrors3.dfy(555,26): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(555,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(556,31): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(556,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(567,30): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(567,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
+86 resolution/type errors detected in ResolutionErrors3.dfy

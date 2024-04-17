@@ -93,6 +93,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     _ = client.RunSymbolVerification(documentItem1, new Position(0, 7), CancellationToken);
     _ = client.RunSymbolVerification(documentItem1, new Position(4, 7), CancellationToken);
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Queued) == 2) {
         Assert.Contains(status.NamedVerifiables, v => v.Status == PublishedVerificationStatus.Stale);
@@ -105,6 +106,7 @@ method Zap() returns (x: int) ensures x / 2 == 1; {
     }
 
     while (true) {
+      CancellationToken.ThrowIfCancellationRequested();
       var status = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       if (status.NamedVerifiables.Count(v => v.Status == PublishedVerificationStatus.Stale) > 1) {
         Assert.Fail("May not become stale after both being queued. ");
@@ -368,8 +370,8 @@ method Bar() { assert false; }";
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     ApplyChange(ref documentItem, new Range(0, 22, 0, 26), "false");
     var methodHeader = new Position(0, 7);
-    await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
-    await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+    var startedVerification = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
+    Assert.True(startedVerification);
     var preSaveDiagnostics = await GetLastDiagnostics(documentItem, allowStale: true);
     Assert.Single(preSaveDiagnostics);
     await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
@@ -430,7 +432,7 @@ method Bar() { assert false; }";
 
     var successfulRun = await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     Assert.True(successfulRun);
-    var range = new Range(0, 20, 0, 42);
+    var range = new Range(0, 31, 0, 53);
     await WaitForStatus(range, PublishedVerificationStatus.Running, CancellationToken);
     await WaitForStatus(range, PublishedVerificationStatus.Error, CancellationToken);
 
@@ -520,12 +522,14 @@ method Bar() { assert true; }";
     await WaitUntilAllStatusAreCompleted(documentItem);
 
     ApplyChange(ref documentItem, new Range(new Position(1, 22), new Position(1, 26)), "false");
+
+    var stale = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     await AssertNoResolutionErrors(documentItem);
-    var correct = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
+
     // Uncomment when caching works
     // Assert.Equal(PublishedVerificationStatus.Correct, correct.NamedVerifiables[0].Status);
-    Assert.Equal(PublishedVerificationStatus.Stale, correct.NamedVerifiables[0].Status);
-    Assert.True(correct.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
+    Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
+    Assert.True(stale.NamedVerifiables[1].Status < PublishedVerificationStatus.Error);
   }
 
 

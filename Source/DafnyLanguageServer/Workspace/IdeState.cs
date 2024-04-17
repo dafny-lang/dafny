@@ -2,41 +2,51 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
-public record IdeImplementationView(Range Range, PublishedVerificationStatus Status,
-  IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit);
+public record IdeVerificationTaskState(Range Range, PublishedVerificationStatus Status,
+  IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit, IVerificationTask Task, IVerificationStatus RawStatus);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
-public record IdeVerificationResult(VerificationPreparationState PreparationProgress, ImmutableDictionary<string, IdeImplementationView> Implementations);
+public record IdeCanVerifyState(VerificationPreparationState PreparationProgress,
+  ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks,
+  IReadOnlyList<Diagnostic> Diagnostics);
+
+
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  int Version,
   ISet<Uri> OwnedUris,
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> StaticDiagnostics,
+  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> OldDiagnostics,
+  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> NewDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
-  ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> VerificationResults,
+  ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> CanVerifyStates,
   IReadOnlyList<Counterexample> Counterexamples,
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
   public Uri Uri => Input.Uri.ToUri();
+  public int Version => Input.Version;
 
   public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
     return diagnostics.Select(diagnostic => diagnostic with {
@@ -47,6 +57,23 @@ public record IdeState(
     });
   }
 
+  public static IdeState InitialIdeState(CompilationInput input) {
+    var program = new EmptyNode();
+    return new IdeState(ImmutableHashSet<Uri>.Empty,
+      input,
+      CompilationStatus.Parsing,
+      program,
+      ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty,
+      ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      program,
+      SymbolTable.Empty(),
+      LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>>.Empty,
+      Array.Empty<Counterexample>(),
+      ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty,
+      ImmutableDictionary<Uri, DocumentVerificationTree>.Empty
+    );
+  }
+
   public const string OutdatedPrefix = "Outdated: ";
 
   public IdeState Migrate(DafnyOptions options, Migrator migrator, int newVersion, bool clientSide) {
@@ -55,35 +82,50 @@ public record IdeState(
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
 
     var verificationResults = clientSide
-      ? VerificationResults
-      : MigrateImplementationViews(migrator, VerificationResults);
+      ? CanVerifyStates
+      : MigrateImplementationViews(migrator, CanVerifyStates);
+
+    var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
+    foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
+      if (phase.Parent == InternalExceptions.Instance) {
+        continue;
+      }
+
+      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).
+        Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
+      oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
+    }
     return this with {
-      Version = newVersion,
+      Input = Input with {
+        Version = newVersion
+      },
+      OldDiagnostics = oldDiagnostics,
+      NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
       Status = CompilationStatus.Parsing,
-      VerificationResults = verificationResults,
+      CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
     };
   }
 
-  private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> MigrateImplementationViews(
+  private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> MigrateImplementationViews(
     Migrator migrator,
-    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeVerificationResult>> oldVerificationDiagnostics) {
+    ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> oldVerificationDiagnostics) {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
     if (previous == null) {
       return oldVerificationDiagnostics;
     }
-    var result = ImmutableDictionary<Range, IdeVerificationResult>.Empty;
+    var result = ImmutableDictionary<Range, IdeCanVerifyState>.Empty;
     foreach (var entry in previous) {
       var newOuterRange = migrator.MigrateRange(entry.Key);
       if (newOuterRange == null) {
         continue;
       }
 
-      var newValue = ImmutableDictionary<string, IdeImplementationView>.Empty;
-      foreach (var innerEntry in entry.Value.Implementations) {
+      var newValue = ImmutableDictionary<string, IdeVerificationTaskState>.Empty;
+      foreach (var innerEntry in entry.Value.VerificationTasks) {
         var newInnerRange = migrator.MigrateRange(innerEntry.Value.Range);
         if (newInnerRange != null) {
           newValue = newValue.Add(innerEntry.Key, innerEntry.Value with {
@@ -93,50 +135,462 @@ public record IdeState(
         }
       }
 
-      result = result.Add(newOuterRange, entry.Value with { Implementations = newValue });
+      result = result.Add(newOuterRange, entry.Value with { VerificationTasks = newValue });
     }
 
     return oldVerificationDiagnostics.SetItem(uri, result);
   }
 
-  public IReadOnlyDictionary<Range, IdeVerificationResult> GetVerificationResults(Uri uri) {
-    return VerificationResults.GetValueOrDefault(uri) ??
-      ((IReadOnlyDictionary<Range, IdeVerificationResult>)ImmutableDictionary<Range, IdeVerificationResult>.Empty);
+  public IReadOnlyDictionary<Range, IdeCanVerifyState> GetVerificationResults(Uri uri) {
+    return CanVerifyStates.GetValueOrDefault(uri) ??
+      ((IReadOnlyDictionary<Range, IdeCanVerifyState>)ImmutableDictionary<Range, IdeCanVerifyState>.Empty);
   }
 
-  public IEnumerable<Diagnostic> GetAllDiagnostics() {
-    return GetDiagnosticUris().SelectMany(GetDiagnosticsForUri);
+  public IEnumerable<FileDiagnostic> GetAllDiagnostics() {
+    var verificationDiagnostics = CanVerifyStates.SelectMany(s =>
+      s.Value.Values.SelectMany(cvs =>
+        cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))).
+          Concat(cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
+    var genericDiagnostics = (OldDiagnostics.Values.Concat(NewDiagnostics.Values)).SelectMany(x => x);
+    return genericDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
   }
 
-  public IEnumerable<Diagnostic> GetDiagnosticsForUri(Uri uri) {
-    var resolutionDiagnostics = StaticDiagnostics.GetValueOrDefault(uri) ?? Enumerable.Empty<Diagnostic>();
-    var verificationDiagnostics = GetVerificationResults(uri).SelectMany(x => {
-      return x.Value.Implementations.Values.SelectMany(v => v.Diagnostics).Concat(GetErrorLimitDiagnostics(x));
-    });
-    return resolutionDiagnostics.Concat(verificationDiagnostics);
-  }
-
-  private static IEnumerable<Diagnostic> GetErrorLimitDiagnostics(KeyValuePair<Range, IdeVerificationResult> x) {
-    var anyImplementationHitErrorLimit = x.Value.Implementations.Values.Any(i => i.HitErrorLimit);
-    IEnumerable<Diagnostic> result;
-    if (anyImplementationHitErrorLimit) {
+  private IEnumerable<FileDiagnostic> GetErrorLimitDiagnostics() {
+    var anyVerificationHitErrorLimit = CanVerifyStates.Values.SelectMany(x => x.Values)
+      .SelectMany(s => s.VerificationTasks.Select(t => t.Value.HitErrorLimit)).Any(x => x);
+    IEnumerable<FileDiagnostic> result;
+    if (anyVerificationHitErrorLimit) {
       var diagnostic = new Diagnostic() {
         Severity = DiagnosticSeverity.Warning,
         Code = new DiagnosticCode("errorLimitHit"),
         Message =
           "Verification hit error limit so not all errors may be shown. Configure this limit using --error-limit",
-        Range = x.Key,
+        Range = Input.Project.StartingToken.GetLspRange(),
         Source = MessageSource.Verifier.ToString()
       };
-      result = new[] { diagnostic };
+      result = new[] { new FileDiagnostic(Input.Project.Uri, diagnostic) };
     } else {
-      result = Enumerable.Empty<Diagnostic>();
+      result = Enumerable.Empty<FileDiagnostic>();
     }
 
     return result;
   }
 
-  public IEnumerable<Uri> GetDiagnosticUris() {
-    return StaticDiagnostics.Keys.Concat(VerificationResults.Keys);
+  public async Task<IdeState> UpdateState(DafnyOptions options,
+    ILogger logger,
+    TelemetryPublisherBase telemetryPublisher,
+    IProjectDatabase projectDatabase, ICompilationEvent e) {
+    switch (e) {
+      case DeterminedRootFiles determinedRootFiles:
+        return await HandleDeterminedRootFiles(options, logger, projectDatabase, determinedRootFiles);
+      case BoogieUpdate boogieUpdate:
+        return HandleBoogieUpdate(options, logger, boogieUpdate);
+      case CanVerifyPartsIdentified canVerifyPartsIdentified:
+        return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
+      case FinishedParsing finishedParsing:
+        return HandleFinishedParsing(finishedParsing);
+      case FinishedResolution finishedResolution:
+        return HandleFinishedResolution(options, logger, telemetryPublisher, finishedResolution);
+      case InternalCompilationException internalCompilationException:
+        return HandleInternalCompilationException(internalCompilationException);
+      case BoogieException boogieException:
+        return HandleBoogieException(boogieException);
+      case NewDiagnostic newDiagnostic:
+        return HandleNewDiagnostic(newDiagnostic);
+      case ScheduledVerification scheduledVerification:
+        return HandleScheduledVerification(scheduledVerification);
+      default:
+        throw new ArgumentOutOfRangeException(nameof(e));
+    }
+  }
+
+  record RootFilesPhase : IPhase {
+    public static readonly RootFilesPhase Instance = new();
+    public IPhase? Parent => null;
+  }
+
+  private async Task<IdeState> HandleDeterminedRootFiles(DafnyOptions options, ILogger logger,
+    IProjectDatabase projectDatabase, DeterminedRootFiles determinedRootFiles) {
+
+    var errors = determinedRootFiles.Diagnostics.
+      Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
+    var status = errors.Any() ? CompilationStatus.ParsingFailed : Status;
+
+    var ownedUris = new HashSet<Uri>();
+    foreach (var file in determinedRootFiles.Roots) {
+      var uriProject = await projectDatabase.GetProject(file.Uri);
+      var ownedUri = uriProject.Equals(determinedRootFiles.Project);
+      if (ownedUri) {
+        ownedUris.Add(file.Uri);
+      }
+    }
+    ownedUris.Add(determinedRootFiles.Project.Uri);
+
+    return this with {
+      OwnedUris = ownedUris,
+      OldDiagnostics = GetOldDiagnosticsAfterPhase(RootFilesPhase.Instance),
+      NewDiagnostics = NewDiagnostics.Add(RootFilesPhase.Instance, determinedRootFiles.Diagnostics),
+      Status = status,
+      VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
+        file => file.Uri,
+        file => VerificationTrees.GetValueOrDefault(file.Uri) ??
+                new DocumentVerificationTree(this.Program, file.Uri))
+    };
+  }
+
+  private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
+    var previousState = this;
+
+    var uri = scheduledVerification.CanVerify.Tok.Uri;
+    var range = scheduledVerification.CanVerify.NameToken.GetLspRange();
+    var previousVerificationResult = previousState.CanVerifyStates[uri][range];
+    var previousImplementations = previousVerificationResult.VerificationTasks;
+    var preparationProgress = new[]
+      { previousVerificationResult.PreparationProgress, VerificationPreparationState.InProgress }.Max();
+    var verificationResult = new IdeCanVerifyState(PreparationProgress: preparationProgress,
+      VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
+        Status = PublishedVerificationStatus.Stale,
+        Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
+      }), previousVerificationResult.Diagnostics);
+    return previousState with {
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, verificationResult))
+    };
+  }
+
+  private IdeState HandleNewDiagnostic(NewDiagnostic newDiagnostic) {
+    var previousState = this;
+
+    // Until resolution is finished, keep showing the old diagnostics. 
+    if (previousState.Status > CompilationStatus.ResolutionStarted) {
+      var phase = new SingletonPhase(new MessageSourceBasedPhase(newDiagnostic.Diagnostic.Source), newDiagnostic.Diagnostic);
+      var newDiagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()));
+      return previousState with {
+        OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
+        NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+      };
+    }
+
+    return previousState;
+  }
+
+  public record InternalExceptions : IPhase {
+    public static readonly IPhase Instance = new InternalExceptions();
+    public IPhase? Parent => null;
+  }
+
+  private IdeState HandleInternalCompilationException(InternalCompilationException internalCompilationException) {
+    var previousState = this;
+    var internalErrorDiagnostic = new Diagnostic {
+      Message =
+        "Dafny encountered an internal error. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n" +
+        internalCompilationException.Exception,
+      Severity = DiagnosticSeverity.Error,
+      Range = new Range(0, 0, 0, 1)
+    };
+
+    var phase = new SingletonPhase(InternalExceptions.Instance, internalErrorDiagnostic);
+    var newDiagnostics = ImmutableList.Create(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic));
+    return previousState with {
+      Status = CompilationStatus.InternalException,
+      OldDiagnostics = OldDiagnostics,
+      NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+    };
+  }
+
+  private IdeState HandleFinishedResolution(DafnyOptions options,
+    ILogger logger,
+    TelemetryPublisherBase telemetryPublisher,
+    FinishedResolution finishedResolution) {
+    var previousState = this;
+    var errors = finishedResolution.Diagnostics.Where(d =>
+      d.Diagnostic.Severity == DiagnosticSeverity.Error && d.Diagnostic.Source != MessageSource.Compiler.ToString()).ToList();
+    var status = errors.Any() ? CompilationStatus.ResolutionFailed : CompilationStatus.ResolutionSucceeded;
+
+    var cancellationToken = CancellationToken.None; // TODO ?
+    SymbolTable? symbolTable = null;
+    try {
+      symbolTable = SymbolTable.CreateFrom(logger, finishedResolution.Result.ResolvedProgram, cancellationToken);
+    } catch (Exception e) {
+      logger.LogError(e, "failed to create symbol table");
+    }
+
+    var beforeLegacyServerResolution = DateTime.Now;
+    var legacySignatureAndCompletionTable = new SymbolTableFactory(logger).CreateFrom(Input,
+      finishedResolution.Result, cancellationToken);
+    telemetryPublisher.PublishTime("LegacyServerResolution", options.DafnyProject.Uri.ToString(), DateTime.Now - beforeLegacyServerResolution);
+
+    IReadOnlyDictionary<Uri, IReadOnlyList<Range>> ghostRanges = new GhostStateDiagnosticCollector(options, logger).
+      GetGhostStateDiagnostics(legacySignatureAndCompletionTable, cancellationToken);
+
+    var trees = previousState.VerificationTrees;
+    if (status == CompilationStatus.ResolutionSucceeded) {
+      foreach (var uri in trees.Keys) {
+        trees = trees.SetItem(uri,
+          GutterIconAndHoverVerificationDetailsManager.UpdateTree(options, finishedResolution.Result.ResolvedProgram,
+            previousState.VerificationTrees[uri]));
+      }
+    }
+
+    var verificationResults = finishedResolution.Result.CanVerifies == null
+      ? previousState.CanVerifyStates
+      : finishedResolution.Result.CanVerifies.GroupBy(l => l.NameToken.Uri).ToImmutableDictionary(k => k.Key,
+        k => k.GroupBy<ICanVerify, Range>(l => l.NameToken.GetLspRange()).ToImmutableDictionary(
+          l => l.Key,
+          l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
+    var signatureAndCompletionTable = legacySignatureAndCompletionTable.Resolved
+      ? legacySignatureAndCompletionTable
+      : previousState.SignatureAndCompletionTable;
+
+    var phase = new MessageSourceBasedPhase(MessageSource.Resolver);
+    return previousState with {
+      OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
+      NewDiagnostics = NewDiagnostics.Add(phase, finishedResolution.Diagnostics),
+      Status = status,
+      Counterexamples = Array.Empty<Counterexample>(),
+      ResolvedProgram = finishedResolution.Result.ResolvedProgram,
+      SymbolTable = symbolTable ?? previousState.SymbolTable,
+      SignatureAndCompletionTable = signatureAndCompletionTable,
+      GhostRanges = ghostRanges,
+      CanVerifyStates = verificationResults,
+      VerificationTrees = trees
+    };
+  }
+
+  private static IdeCanVerifyState MergeResults(IEnumerable<IdeCanVerifyState> results) {
+    return results.Aggregate((a, b) => new IdeCanVerifyState(
+      MergeStates(a.PreparationProgress, b.PreparationProgress),
+      a.VerificationTasks.ToImmutableDictionary().Merge(b.VerificationTasks,
+        (aView, bView) => aView /* Merge should not occur */),
+      a.Diagnostics.Concat(b.Diagnostics)));
+  }
+
+  private static VerificationPreparationState MergeStates(VerificationPreparationState a, VerificationPreparationState b) {
+    return new[] { a, b }.Max();
+  }
+
+  private static PublishedVerificationStatus Combine(PublishedVerificationStatus first, PublishedVerificationStatus second) {
+    return new[] { first, second }.Min();
+  }
+
+  private static IdeCanVerifyState MergeVerifiable(IdeState previousState, ICanVerify canVerify) {
+    var range = canVerify.NameToken.GetLspRange();
+    var previousIdeCanVerifyState = previousState.GetVerificationResults(canVerify.NameToken.Uri).GetValueOrDefault(range);
+    var previousImplementations =
+      previousIdeCanVerifyState?.VerificationTasks ??
+      ImmutableDictionary<string, IdeVerificationTaskState>.Empty;
+    return new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.NotStarted,
+      VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
+        Status = PublishedVerificationStatus.Stale,
+        Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
+      }), previousIdeCanVerifyState?.Diagnostics ?? new List<Diagnostic>());
+  }
+
+  private IdeState HandleFinishedParsing(FinishedParsing finishedParsing) {
+    var previousState = this;
+    var trees = previousState.VerificationTrees;
+    foreach (var uri in trees.Keys) {
+      trees = trees.SetItem(uri,
+        new DocumentVerificationTree(finishedParsing.Program, uri) {
+          Children = trees[uri].Children
+        });
+    }
+
+    var errors = finishedParsing.Diagnostics
+      .Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
+    var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
+
+    IPhase completedPhase = new MessageSourceBasedPhase(MessageSource.Parser);
+    var newDiagnostics = finishedParsing.Diagnostics;
+    return previousState with {
+      Program = finishedParsing.Program,
+      OldDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
+      NewDiagnostics = NewDiagnostics.Add(completedPhase, newDiagnostics),
+      Status = status,
+      VerificationTrees = trees
+    };
+  }
+
+  private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
+    return OldDiagnostics.Where(
+      kv => {
+        var phase = kv.Key;
+        while (phase != null) {
+          if (phase.Equals(completedPhase)) {
+            return false;
+          }
+
+          phase = phase.Parent;
+        }
+
+        return true;
+      }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
+  }
+
+  private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
+    var previousState = this;
+    var implementations = canVerifyPartsIdentified.Parts.Select(t => t.Split.Implementation).Distinct();
+    var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
+
+    var uri = canVerifyPartsIdentified.CanVerify.Tok.Uri;
+    gutterIconManager.ReportImplementationsBeforeVerification(previousState,
+      canVerifyPartsIdentified.CanVerify, implementations.ToArray());
+
+    var range = canVerifyPartsIdentified.CanVerify.NameToken.GetLspRange();
+    var previousImplementations = previousState.CanVerifyStates[uri][range].VerificationTasks;
+    var names = canVerifyPartsIdentified.Parts.Select(Compilation.GetTaskName);
+    var verificationResult = new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.Done,
+      VerificationTasks: canVerifyPartsIdentified.Parts.ToImmutableDictionary(Compilation.GetTaskName,
+        k => {
+          var previous = previousImplementations.GetValueOrDefault(Compilation.GetTaskName(k));
+          return new IdeVerificationTaskState(range, PublishedVerificationStatus.Queued,
+            previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
+            previous?.HitErrorLimit ?? false, k, new Stale());
+        }), new List<Diagnostic>());
+    return previousState with {
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, verificationResult))
+    };
+  }
+
+  private IdeState HandleBoogieException(BoogieException boogieException) {
+    var previousState = this;
+
+    var name = Compilation.GetTaskName(boogieException.Task);
+    var uri = boogieException.CanVerify.Tok.Uri;
+    var range = boogieException.CanVerify.NameToken.GetLspRange();
+
+    var previousVerificationResult = previousState.CanVerifyStates[uri][range];
+    var previousImplementations = previousVerificationResult.VerificationTasks;
+    var previousView = previousImplementations.GetValueOrDefault(name);
+    var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
+    var hitErrorLimit = previousView?.HitErrorLimit ?? false;
+
+    var internalErrorDiagnostic = new Diagnostic {
+      Message = boogieException.Exception.Message,
+      Severity = DiagnosticSeverity.Error,
+      Range = range
+    };
+    diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic }).ToList();
+
+    var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, diagnostics.ToList(), hitErrorLimit, boogieException.Task, new Stale());
+
+    return previousState with {
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
+          VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
+        }))
+    };
+  }
+
+  private IdeState HandleBoogieUpdate(DafnyOptions options, ILogger logger, BoogieUpdate boogieUpdate) {
+    var previousState = this;
+
+    var name = Compilation.GetTaskName(boogieUpdate.VerificationTask);
+    var status = StatusFromBoogieStatus(boogieUpdate.BoogieStatus);
+    var uri = boogieUpdate.CanVerify.Tok.Uri;
+    var range = boogieUpdate.CanVerify.NameToken.GetLspRange();
+
+    var previousVerificationResult = previousState.CanVerifyStates[uri][range];
+    var previousImplementations = previousVerificationResult.VerificationTasks;
+    var previousView = previousImplementations.GetValueOrDefault(name);
+    var counterExamples = previousState.Counterexamples;
+    bool hitErrorLimit = previousView?.HitErrorLimit ?? false;
+    IVerificationStatus rawStatus = boogieUpdate.BoogieStatus;
+    var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
+    if (boogieUpdate.BoogieStatus is Running) {
+      diagnostics = Array.Empty<Diagnostic>();
+      hitErrorLimit = false;
+    }
+
+    if (boogieUpdate.BoogieStatus is Completed completed) {
+      // WarnContradictoryAssumptions should be computable after completing a single assertion batch.
+      // And we should do this because it allows this warning to be shown when doing --filter-position on a single assertion
+      // https://github.com/dafny-lang/dafny/issues/5039 
+
+      counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
+      hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
+      var newDiagnostics =
+        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.CanVerify,
+          boogieUpdate.VerificationTask, completed.Result);
+      diagnostics = newDiagnostics.Select(d => d.ToLspDiagnostic()).ToList();
+      logger.LogTrace(
+        $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics and #{completed.Result.CounterExamples.Count} counterexamples.");
+    }
+
+    var newCanVerifyDiagnostics = new List<Diagnostic>();
+    var taskState = new IdeVerificationTaskState(range, status, diagnostics.ToList(),
+      hitErrorLimit, boogieUpdate.VerificationTask, rawStatus);
+    var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
+
+    var scopeGroup = newTaskStates.Values.Where(s => s.Task.ScopeId == boogieUpdate.VerificationTask.ScopeId).ToList();
+    var allTasksAreCompleted = scopeGroup.All(s => s.Status >= PublishedVerificationStatus.Error);
+    if (allTasksAreCompleted) {
+
+      var errorReporter = new ObservableErrorReporter(options, uri);
+      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
+      errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
+
+      ProofDependencyWarnings.ReportSuspiciousDependencies(options,
+        scopeGroup.Select(s => new VerificationTaskResult(s.Task, ((Completed)s.RawStatus).Result)),
+        errorReporter, boogieUpdate.ProofDependencyManager);
+
+      newCanVerifyDiagnostics = previousVerificationResult.Diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
+    }
+
+    UpdateGutterIconTrees(logger, boogieUpdate, scopeGroup);
+
+    return previousState with {
+      Counterexamples = counterExamples,
+      CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
+        previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
+          VerificationTasks = newTaskStates,
+          Diagnostics = newCanVerifyDiagnostics
+        }))
+    };
+  }
+
+  private void UpdateGutterIconTrees(ILogger logger, BoogieUpdate boogieUpdate, IReadOnlyList<IdeVerificationTaskState> scopeGroup) {
+    var gutterIconManager = new GutterIconAndHoverVerificationDetailsManager(logger);
+    if (boogieUpdate.BoogieStatus is Running && scopeGroup.Count(e => e.Status == PublishedVerificationStatus.Running) == 1) {
+      gutterIconManager.ReportVerifyImplementationRunning(this, boogieUpdate.VerificationTask.Split.Implementation);
+    }
+
+    if (boogieUpdate.BoogieStatus is Completed completed) {
+      gutterIconManager.ReportAssertionBatchResult(this,
+        new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, completed.Result));
+    }
+
+    if (scopeGroup.All(e => e.Status >= PublishedVerificationStatus.Error)) {
+      var results = scopeGroup.Select(e => e.RawStatus).OfType<Completed>().Select(c => c.Result).ToList();
+
+      foreach (var result in results) {
+        logger.LogDebug(
+          $"Possibly duplicate reporting assertion batch {result.VcNum}, version {Version}");
+        gutterIconManager.ReportAssertionBatchResult(this,
+          new AssertionBatchResult(boogieUpdate.VerificationTask.Split.Implementation, result));
+      }
+
+      var resourceCount = results.Sum(e => e.ResourceCount);
+      var outcome = results.Select(e => Compilation.GetOutcome(e.Outcome)).Max();
+      gutterIconManager.ReportEndVerifyImplementation(this, boogieUpdate.VerificationTask.Split.Implementation, resourceCount, outcome);
+    }
+  }
+
+  private static PublishedVerificationStatus StatusFromBoogieStatus(IVerificationStatus verificationStatus) {
+    switch (verificationStatus) {
+      case Stale:
+        return PublishedVerificationStatus.Stale;
+      case Queued:
+        return PublishedVerificationStatus.Queued;
+      case Running:
+        return PublishedVerificationStatus.Running;
+      case Completed completed:
+        return completed.Result.Outcome == SolverOutcome.Valid
+          ? PublishedVerificationStatus.Correct
+          : PublishedVerificationStatus.Error;
+      default:
+        throw new ArgumentOutOfRangeException();
+    }
   }
 }

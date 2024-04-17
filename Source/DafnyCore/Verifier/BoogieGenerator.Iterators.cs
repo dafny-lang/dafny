@@ -69,7 +69,7 @@ namespace Microsoft.Dafny {
       currentModule = iter.EnclosingModuleDefinition;
       codeContext = iter;
 
-      var etran = new ExpressionTranslator(this, predef, iter.tok);
+      var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
 
       var inParams = new List<Bpl.Variable>();
       List<Variable> outParams;
@@ -146,7 +146,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(proc.OutParams.Count == 0);
 
       var builder = new BoogieStmtListBuilder(this, options);
-      var etran = new ExpressionTranslator(this, predef, iter.tok);
+      var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
@@ -156,7 +156,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran);
+        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
       }
@@ -210,7 +210,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>()));
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
-      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType));
+      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType), iter);
       var old_nw = new OldExpr(iter.tok, nw);
       old_nw.Type = nw.Type;  // resolve here
       var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
@@ -279,7 +279,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(proc.OutParams.Count == 0);
 
       var builder = new BoogieStmtListBuilder(this, options);
-      var etran = new ExpressionTranslator(this, predef, iter.tok);
+      var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
@@ -338,11 +338,11 @@ namespace Microsoft.Dafny {
       Bpl.Expr wh = Bpl.Expr.True;
       foreach (var ys in iter.OutsHistoryFields) {
         // add the conjunct:  _yieldCount == |this.ys|
-        wh = Bpl.Expr.And(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
+        wh = BplAnd(wh, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable),
           FunctionCall(iter.tok, BuiltinFunction.SeqLength, null,
-            ReadHeap(iter.tok, etran.HeapExpr,
+            ApplyUnbox(iter.tok, ReadHeap(iter.tok, etran.HeapExpr,
               new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType),
-              new Bpl.IdentifierExpr(iter.tok, GetField(ys))))));
+              new Bpl.IdentifierExpr(iter.tok, GetField(ys))), TrType(ys.Type)))));
       }
       return wh;
     }

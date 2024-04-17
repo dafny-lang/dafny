@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This module contains checks that (==) types are inferred and required as they should.
@@ -148,6 +148,15 @@ module BBB {
   type Syn<A> = Dt<A>
   type SubsetCo<A> = co: Co<A> | true  // error: Co and subset type SubsetCo have a mutual dependency
   type Noeq = int -> int
+}
+
+module BBB' {
+  class MyClass<A(==)> { }
+  datatype Dt<A> = Dt(s: set<A>)
+  codatatype Co<A> = Co(s: iset<A>, more: Co<A>)
+  type Syn<A> = Dt<A>
+  type SubsetCo<A> = co: Co<A> | true
+  type Noeq = int -> int
 
   method Test() {
     var a: MyClass<Noeq>;  // error: Noeq does not support equality
@@ -169,6 +178,19 @@ module CCC {
   type Syn<A> = Dt<A>
   type SubsetCo<A> = co: Co<A> | true  // error: Co and subset type SubsetCo have a mutual dependency
   type Noeq = int -> int
+}
+
+module CCC' {
+  export reveals Co, Syn, SubsetCo, Dt
+  export Alt reveals MyClass, Dt, SubsetCo, Co
+  export More reveals Syn provides Dt
+
+  class MyClass<A(==)> { }
+  datatype Dt<A(==)> = Dt(s: set<A>)
+  codatatype Co<A> = Co(s: iset<A>, more: Co<A>)
+  type Syn<A> = Dt<A>
+  type SubsetCo<A> = co: Co<A> | true
+  type Noeq = int -> int
 
   method Test() {
     var a: MyClass<Noeq>;  // error: Noeq does not support equality
@@ -189,6 +211,19 @@ module DDD {
   codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)  // error: A is not inferred to be (==), so iset<A> is not allowed
   type Syn<A> = Dt<A>
   type SubsetCo<A> = co: Co<A> | true  // error: Co and subset type SubsetCo have a mutual dependency
+  type Noeq = int -> int
+}
+
+module DDD' {
+  export reveals Syn, SubsetCo provides Dt, Co
+  export Alt reveals MyClass, Dt, SubsetCo, Co
+  export More reveals Syn, Dt
+
+  class MyClass<A(==)> { }
+  datatype Dt<A> = Dt(s: set<A>)  // error: A is not inferred to be (==), so set<A> is not allowed
+  codatatype Co<A> = Co(s: iset<A>, more: Co<A>)  // error: A is not inferred to be (==), so iset<A> is not allowed
+  type Syn<A> = Dt<A>
+  type SubsetCo<A> = co: Co<A> | true
   type Noeq = int -> int
 
   method Test() {

@@ -84,25 +84,6 @@ namespace DafnyTestGeneration {
     /// Setup DafnyOptions to prepare for counterexample extraction
     /// </summary>
     private static void SetupForCounterexamples(DafnyOptions options) {
-      // Figure out the Z3 version in use:
-      var proverOptions = new SMTLibSolverOptions(options);
-      proverOptions.Parse(options.ProverOptions);
-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
-      // Based on Z3 version, determine the options to use:
-      var optionsToAdd = new List<string>() {
-        "O:model_evaluator.completion=true",
-        "O:model.completion=true"
-      };
-      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
-        optionsToAdd.Add("O:model_compress=false");
-      } else {
-        optionsToAdd.Add("O:model.compact=false");
-      }
-      // (Re)set the options necessary for counterexample extraction:
-      foreach (var option in optionsToAdd) {
-        options.ProverOptions.RemoveAll(o => o.Split("=") == option.Split("="));
-        options.ProverOptions.Add(option);
-      }
       options.NormalizeNames = false;
       options.EmitDebugInformation = true;
       options.ErrorTrace = 1;

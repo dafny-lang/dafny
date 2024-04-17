@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /typeSystemRefresh:1 /generalTraits:full "%s" > "%t"
+// RUN: %exits-with 4 %build --type-system-refresh --general-traits full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
 
 
 class BreadthFirstSearch<Vertex(==)>
@@ -27,8 +27,8 @@ class BreadthFirstSearch<Vertex(==)>
   // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
   method
-    {:rlimit 8000}
-    {:vcs_split_on_every_assert}
+    {:resource_limit "8e6"}
+    {:isolate_assertions}
   BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
@@ -199,7 +199,7 @@ class BreadthFirstSearch<Vertex(==)>
     }
   }
 
-  lemma {:vcs_split_on_every_assert} IsReachFixpoint(source: Vertex, m: nat, n: nat, AllVertices: set<Vertex>)
+  lemma {:isolate_assertions} IsReachFixpoint(source: Vertex, m: nat, n: nat, AllVertices: set<Vertex>)
     requires R(source, m, AllVertices) == R(source, m+1, AllVertices);
     requires m <= n;
     ensures R(source, m, AllVertices) == R(source, n, AllVertices);

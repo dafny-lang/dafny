@@ -12,7 +12,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public String Id;
   public PreType PreType;
-  public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
+  public Type Type; // This is the syntactic type, ExtendedPatterns disappear during resolution.
   public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
@@ -33,11 +33,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Id = original.Id;
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
+    Type = cloner.CloneType(original.Type);
     if (cloner.CloneResolvedFields) {
       BoundVar = cloner.CloneIVariable(original.BoundVar, false);
-      Type = original.Type;
-    } else {
-      Type = new InferredTypeProxy();
     }
   }
 
@@ -54,7 +52,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     this.Id = id;
-    this.Type = type == null ? new InferredTypeProxy() : type;
+    this.Type = type ?? new InferredTypeProxy();
     this.Arguments = arguments;
     this.IsGhost = isGhost;
   }
@@ -110,8 +108,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         };
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, Type);
-        boundVar.IsGhost = isGhost;
+        var boundVar = new BoundVar(Tok, Id, Type) {
+          IsGhost = isGhost
+        };
         BoundVar = boundVar;
       }
 

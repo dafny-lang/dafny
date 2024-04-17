@@ -36,7 +36,7 @@ module M {
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NoTestEntryError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
@@ -51,7 +51,7 @@ method {:testEntry} m (i:int) { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NoExternalModuleError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
@@ -72,7 +72,7 @@ method {:testInline 1} b() {}
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.InlinedMethodNotReachableWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -93,7 +93,7 @@ method {:testInline 1} b() {}
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Equal(0, Count(Errors, outputString));
     Assert.Equal(0, Count(Warnings, outputString));
@@ -113,7 +113,7 @@ method {:testInline -1} b() {}
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.MalformedAttributeError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
@@ -131,7 +131,7 @@ method {:testEntry} m (t:T) { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.UnsupportedInputTypeError, outputString);
     Assert.Equal(1, Count(Errors, outputString));
@@ -149,7 +149,7 @@ method {:testEntry} m (c:C) { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -168,7 +168,7 @@ method {:testEntry} m (d:D) { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -186,7 +186,7 @@ method {:testEntry} m (s:seq<C>) { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -208,7 +208,7 @@ module M {
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NotFullySupportedInputTypeWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -225,7 +225,7 @@ method {:testEntry} {:timeLimit 100} m () { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.SmallTimeLimitWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -243,7 +243,7 @@ method {:testEntry} m (w:why) { }
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains(FirstPass.NoWitnessWarning, outputString);
     Assert.Equal(0, Count(Errors, outputString));
@@ -258,7 +258,7 @@ This is an unparsable program
 ".TrimStart());
     var output = new StringBuilder();
     var options = GetDafnyOptions(optionSettings, new StringWriter(output));
-    await Main.GetTestClassForProgram(source, null, options).ToListAsync();
+    await TestGenerator.GetTestClassForProgram(source, null, options).ToListAsync();
     var outputString = output.ToString();
     Assert.Contains("Error", outputString);
   }

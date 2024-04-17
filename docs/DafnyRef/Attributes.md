@@ -393,11 +393,14 @@ Print effects are enforced only with `--track-print-effects`.
 `{:priority N}` assigns a positive priority 'N' to a method or function to control the order
 in which methods or functions are verified (default: N = 1).
 
-### 11.2.14. `{:rlimit}` {#sec-rlimit}
+### 11.2.14. `{:resource_limit}` and `{:rlimit}` {#sec-rlimit}
 
-`{:rlimit N}` limits the verifier resource usage to verify the method or function at `N * 1000`.
-This is the per-method equivalent of the command-line flag `/rlimit:N`.
-If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as well, the limit will be set for each assertion.
+`{:resource_limit N}` limits the verifier resource usage to verify the method or function to `N`.
+
+This is the per-method equivalent of the command-line flag `/rlimit:N` or `--resource-limit N`.
+If using [`{:isolate_assertions}`](#sec-isolate_assertions) as well, the limit will be set for each assertion.
+
+The attribute `{:rlimit N}` is also available, and limits the verifier resource usage to verify the method or function to `N * 1000`. This version is deprecated, however.
 
 To give orders of magnitude about resource usage, here is a list of examples indicating how many resources are used to verify each method:
 
@@ -419,10 +422,10 @@ To give orders of magnitude about resource usage, here is a list of examples ind
   }
   ```
 
-* 40K total resource usage using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert)
+* 40K total resource usage using [`{:isolate_assertions}`](#sec-isolate_assertions)
 <!-- %check-verify -->
   ```dafny
-  method {:vcs_split_on_every_assert} f(a: bool, b: bool) {
+  method {:isolate_assertions} f(a: bool, b: bool) {
     assert a: (a ==> b) <==> (!b ==> !a);
     assert b: (a ==> b) <==> (!b ==> !a);
     assert c: (a ==> b) <==> (!b ==> !a);
@@ -605,7 +608,7 @@ The [assertion batch](#sec-assertion-batches) of a method
 will not be split unless the cost of an [assertion batch](#sec-assertion-batches) exceeds this
 number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
-If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
 ### 11.2.23. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
@@ -616,7 +619,7 @@ until we succeed proving them, or there is only one
 single assertion that it timeouts (in which
 case an error is reported for that assertion).
 Defaults to 1.
-If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
 ### 11.2.24. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
@@ -624,10 +627,10 @@ Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
 In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 Defaults to 1.
-If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
-### 11.2.25. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
-Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
+### 11.2.25. `{:isolate_assertions}` {#sec-isolate_assertions}
+Per-method version of the command-line option<span id="sec-vcs_split_on_every_assert"></span> `/vcsSplitOnEveryAssert`
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.
@@ -848,6 +851,10 @@ method Test()
 
 The success message is optional but is recommended if errorMessage is set.
 
+### 11.4.6. `{:contradiction}`
+
+Silences warnings about this assertion being involved in a proof using contradictory assumptions when `--warn-contradictory-assumptions` is enabled. This allows clear identification of intentional proofs by contradiction.
+
 ## 11.5. Attributes on variable declarations
 
 ### 11.5.1. `{:assumption}` {#sec-assumption}
@@ -879,7 +886,7 @@ Here is an example:
 predicate P(i: int)
 predicate Q(i: int)
 
-lemma PHoldEvenly()
+lemma {:axiom} PHoldEvenly()
   ensures  forall i {:trigger Q(i)} :: P(i) ==> P(i + 2) && Q(i)
 
 lemma PHoldsForTwo()

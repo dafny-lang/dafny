@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -23,6 +24,14 @@ public class MapType : CollectionType {
     this.finite = finite;
     this.range = range;
   }
+
+  public MapType(Cloner cloner, MapType original) : base(cloner, original) {
+    Finite = original.Finite;
+    range = cloner.CloneType(original.Range);
+    var arg = HasTypeArg() ? Arg : null;
+    TypeArgs = new List<Type>() { arg, range };
+  }
+
   public Type Domain {
     get { return Arg; }
   }
@@ -70,7 +79,7 @@ public class MapType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMap;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.MapBoundedPool(source, Domain, Domain, Finite);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new MapBoundedPool(source, Domain, Domain, Finite);
   }
 }

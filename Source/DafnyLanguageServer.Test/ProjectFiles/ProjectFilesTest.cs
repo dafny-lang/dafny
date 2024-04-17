@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -39,7 +41,8 @@ library = [""{producerPath}""]".TrimStart();
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var diagnostics = await GetLastDiagnostics(projectFile);
+    Assert.Single(diagnostics);
   }
 
   /// <summary>
@@ -80,7 +83,7 @@ module Consumer {
     var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
     Assert.Single(diagnostics);
-    Assert.Equal("Project references no files", diagnostics.First().Message);
+    Assert.Equal("no Dafny source files were specified as input", diagnostics.First().Message);
   }
 
   [Fact]

@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(fc != null);
       } else {
         // const f: Field ty;
-        Bpl.Type ty = predef.FieldName(f.tok, TrType(f.Type));
+        Bpl.Type ty = predef.FieldName(f.tok);
         fc = new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, f.FullSanitizedName, ty), false);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
@@ -34,9 +34,9 @@ namespace Microsoft.Dafny {
         //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.tok, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
-        Bpl.Expr cond = Bpl.Expr.And(fdim, declType);
+        Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
-        cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
+        cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
         AddOtherDefinition(fc, ax);
       }
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
-            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
+            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
             if (!IsOpaque(cf)) {
               sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
             }
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
       currentModule = decl.EnclosingModule;
       codeContext = decl;
       fuelContext = FuelSetting.NewFuelContext(decl);
-      var etran = new ExpressionTranslator(this, predef, decl.tok);
+      var etran = new ExpressionTranslator(this, predef, decl.tok, null);
 
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass), true);
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(VisibleInScope(receiverType));
 
         var th = new Bpl.IdentifierExpr(decl.tok, "this", TrReceiverType(decl));
-        var wh = Bpl.Expr.And(
+        var wh = BplAnd(
           ReceiverNotNull(th),
           etran.GoodRef(decl.tok, th, receiverType));
         // for class constructors, the receiver is encoded as an output parameter

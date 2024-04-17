@@ -196,7 +196,7 @@ namespace Microsoft.Dafny {
               Bpl.Expr eqComponents = Bpl.Expr.True;
               foreach (var c in CoPrefixEquality(tok, codecl, e1type.TypeArgs, e2type.TypeArgs, kMinusOne, layer, A2, B2, true)) {
                 eqComponents = BplAnd(eqComponents, c);
-                var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, Bpl.Expr.Imp(kHasSuccessor, c));
+                var p = Bpl.Expr.Binary(c.tok, BinaryOperator.Opcode.Or, prefixEqK, BplImp(kHasSuccessor, c));
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }
               if (e.E0.Type.IsBigOrdinalType) {
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny {
                   Bpl.Expr.Neq(k, FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(0))),
                   FunctionCall(k.tok, "ORD#IsLimit", Bpl.Type.Bool, k));
                 var eq = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, null, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B);
-                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, prefixEqK, BplOr(BplImp(kHasSuccessor, eqComponents), Bpl.Expr.Imp(kIsNonZeroLimit, eq)));
+                var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Or, prefixEqK, BplOr(BplImp(kHasSuccessor, eqComponents), BplImp(kIsNonZeroLimit, eq)));
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }
               splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, prefixEqK));
@@ -319,12 +319,12 @@ namespace Microsoft.Dafny {
                 if (!position) {
                   ihBody = Bpl.Expr.Not(ihBody);
                 }
-                ihBody = Bpl.Expr.Imp(less, ihBody);
+                ihBody = BplImp(less, ihBody);
                 List<Variable> bvars = new List<Variable>();
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
                 var tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
-                ih = new Bpl.ForallExpr(expr.tok, bvars, tr, Bpl.Expr.Imp(typeAntecedent, ihBody));
+                ih = new Bpl.ForallExpr(expr.tok, bvars, tr, BplImp(typeAntecedent, ihBody));
 
                 // More precisely now:
                 //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
@@ -349,7 +349,7 @@ namespace Microsoft.Dafny {
                   caseProduct = newCases;
                   i++;
                 }
-                List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+                List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
                 bvars = new List<Variable>();
                 typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
                 foreach (var kase in caseProduct) {
@@ -359,9 +359,9 @@ namespace Microsoft.Dafny {
                   Bpl.Expr q;
                   var trig = TrTrigger(etranBody, e.Attributes, expr.tok);
                   if (position) {
-                    q = new Bpl.ForallExpr(kase.tok, bvars, trig, Bpl.Expr.Imp(ante, bdy));
+                    q = new Bpl.ForallExpr(kase.tok, bvars, trig, BplImp(ante, bdy));
                   } else {
-                    q = new Bpl.ExistsExpr(kase.tok, bvars, trig, Bpl.Expr.And(ante, bdy));
+                    q = new Bpl.ExistsExpr(kase.tok, bvars, trig, BplAnd(ante, bdy));
                   }
                   splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, q));
                 }
@@ -519,7 +519,7 @@ namespace Microsoft.Dafny {
             var p = Bpl.Expr.Binary(fargs.tok, BinaryOperator.Opcode.Imp, canCall, fargs);
             splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
             // F#canCall(args) && F(args)
-            var fr = Bpl.Expr.And(canCall, fargs);
+            var fr = BplAnd(canCall, fargs);
             splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, fr));
           } else {
             // inline this body
@@ -533,7 +533,7 @@ namespace Microsoft.Dafny {
             foreach (var s in ss) {
               if (s.IsChecked) {
                 var unboxedConjunct = CondApplyUnbox(s.E.tok, s.E, typeSpecializedResultType, expr.Type);
-                var bodyOrConjunct = Bpl.Expr.Or(fargs, unboxedConjunct);
+                var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
                   ? (IToken)new ForceCheckToken(typeSpecializedBody.tok)
                   : (IToken)new NestedToken(GetToken(fexp), s.Tok);
@@ -551,7 +551,7 @@ namespace Microsoft.Dafny {
                 Expr tr_ee = etran.TrExpr(ee);
                 Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
                 if (wh != null) {
-                  fargs = Bpl.Expr.And(fargs, wh);
+                  fargs = BplAnd(fargs, wh);
                 }
               }
             }
@@ -560,7 +560,7 @@ namespace Microsoft.Dafny {
             var trBody = etran.TrExpr(typeSpecializedBody);
             trBody = CondApplyUnbox(trBody.tok, trBody, typeSpecializedResultType, expr.Type);
             // F#canCall(args) && F(args) && (b0 && b1 && b2)
-            var fr = Bpl.Expr.And(canCall, BplAnd(fargs, trBody));
+            var fr = BplAnd(canCall, BplAnd(fargs, trBody));
             splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, fr));
           }
 

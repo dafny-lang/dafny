@@ -1,3 +1,7 @@
+---
+title: Verification Optimization
+---
+
 # Overview
 
 Dafny verifies your program using a type of theorem prover known as a Satisfiability Modulo Theories (SMT) solver. More specifically, it uses the [Z3](https://github.com/Z3Prover/z3) solver. In many cases, it's possible to state only the final properties you want your program to have, with annotations such as `requires` and `ensures` clauses, and let the prover do the rest for you, automatically.
@@ -74,9 +78,9 @@ Dafny provides several attributes that tell it to verify certain assertions sepa
 
 * The [`{:focus}`](../DafnyRef/DafnyRef#sec-focus) attribute on an `assert` or `assume` statement tells Dafny to verify all assertions in the containing block, and everything that _always_ follows it, in one batch, and the rest of the definition in another batch (potentially subject to further splitting due to other occurrences of `{:focus}`).
 
-* The [`{:vcs_split_on_every_assert}`](../DafnyRef/DafnyRef#sec-vcs_split_on_every_assert) attribute on a definition tells Dafny to verify each assertion in that definition in its own batch. You can think of this as being similar to having many `{:focus}` or `{:split_here}` occurrences, including on assertions that arise implicitly, such as preconditions of calls or side conditions on partial operations.
+* The [`{:isolate_assertions}`](../DafnyRef/DafnyRef#sec-isolate_assertions) attribute on a definition tells Dafny to verify each assertion in that definition in its own batch. You can think of this as being similar to having many `{:focus}` or `{:split_here}` occurrences, including on assertions that arise implicitly, such as preconditions of calls or side conditions on partial operations.
 
-We recommend using `{:vcs_split_on_every_assert}` over either of the other attributes under most circumstances.  It can also be specified globally, applying to all definitions, with `dafny verify --isolate-assertions`. If you're using the legacy options without top-level commands, use the `/vcsSplitOnEveryAssert` flag, instead.
+We recommend using `{:isolate_assertions}` over either of the other attributes under most circumstances.  It can also be specified globally, applying to all definitions, with `dafny verify --isolate-assertions`. If you're using the legacy options without top-level commands, use the `/vcsSplitOnEveryAssert` flag, instead.
 
 When Dafny verifies a definition in smaller batches, the VS Code plugin will display performance statistics for each batch when you hover over a particular definition.
 
@@ -87,7 +91,7 @@ Consider the following method, which proves a few simple arithmetic facts.
 const TWO_TO_THE_32:  int := 0x1_00000000
 newtype uint32 = x: int | 0 <= x < TWO_TO_THE_32
 
-method {:vcs_split_on_every_assert} ProveSomeArithmetic(x: uint32) {
+method {:isolate_assertions} ProveSomeArithmetic(x: uint32) {
   assert forall y :: y * y != 115249; // 115249 is prime
   assert (x as bv32) as uint32 <= x;
   assert x < 65535 ==> x * 2 == x + x;
@@ -100,7 +104,7 @@ Hovering over the name of the definition will show you performance statistics fo
 
 Although the time taken to complete verification is ultimately the factor that most impacts the development cycle, this time can depend on CPU frequency scaling, other processes, etc., so Z3 provides a separate measurement of verification difficulty known as a _resource count_. When running the same build of Z3 on the same platform multiple times, the resource count is deterministic, unlike time. Therefore, the IDE displays performance information in terms of Resource Units (RU).
 
-Hovering over a specific assertion will show you performance statistics for the specific batch containing that assertion (and, in the case of `{:vcs_split_on_every_assert}`, only that assertion).
+Hovering over a specific assertion will show you performance statistics for the specific batch containing that assertion (and, in the case of `{:isolate_assertions}`, only that assertion).
 
 ![image](hover-assertion.png)
 

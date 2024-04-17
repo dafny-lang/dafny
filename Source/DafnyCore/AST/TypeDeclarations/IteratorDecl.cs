@@ -438,7 +438,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
-      null, null, null);
+      null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes predicate Valid()
     var valid = new Predicate(rangeToken, new Name(NameNode.RangeToken, "Valid"), false, true, false,
       new List<TypeParameter>(),
@@ -448,7 +448,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new Specification<FrameExpression>(),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
-      null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
+      null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
     var moveNext = new Method(rangeToken, new Name(NameNode.RangeToken, "MoveNext"), false, false,
       new List<TypeParameter>(),
@@ -458,7 +458,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
-      null, Attributes.Find(Attributes, "print"), null);
+      null, SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);
@@ -513,4 +513,5 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public string Designator => WhatKind;
 }

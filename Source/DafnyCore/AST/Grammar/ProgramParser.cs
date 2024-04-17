@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using DafnyCore;
+using System.Threading.Tasks;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -32,7 +32,7 @@ public class ProgramParser {
     this.fileSystem = fileSystem;
   }
 
-  public virtual Program ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
+  public virtual async Task<Program> ParseFiles(string programName, IReadOnlyList<DafnyFile> files,
     ErrorReporter errorReporter,
     CancellationToken cancellationToken) {
     var options = errorReporter.Options;
@@ -54,7 +54,7 @@ public class ProgramParser {
     foreach (var dafnyFile in files) {
       cancellationToken.ThrowIfCancellationRequested();
       if (options.Trace) {
-        options.OutputWriter.WriteLine("Parsing " + dafnyFile.FilePath);
+        await options.OutputWriter.WriteLineAsync("Parsing " + dafnyFile.FilePath);
       }
 
       if (options.XmlSink is { IsOpen: true } && dafnyFile.Uri.IsFile) {
@@ -67,7 +67,7 @@ public class ProgramParser {
         dafnyFile.Origin,
         dafnyFile.Uri,
         cancellationToken);
-      if (parseResult.ErrorReporter.ErrorCount != 0) {
+      if (parseResult.ErrorReporter.HasErrors) {
         logger.LogDebug($"encountered {parseResult.ErrorReporter.ErrorCount} errors while parsing {dafnyFile.Uri}");
       }
 
@@ -75,7 +75,7 @@ public class ProgramParser {
     }
 
     if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-      var includedModules = TryParseIncludes(files, defaultModule.Includes.ToList(),
+      var includedModules = await TryParseIncludes(files, defaultModule.Includes.ToList(),
         builtIns, errorReporter, cancellationToken);
 
       foreach (var module in includedModules) {
@@ -89,14 +89,14 @@ public class ProgramParser {
       dependencyMap.PrintMap(options);
     }
 
-    if (errorReporter.ErrorCount == 0) {
+    if (!errorReporter.HasErrors) {
       DafnyMain.MaybePrintProgram(program, options.DafnyPrintFile, false);
 
       // Capture the original program text before resolution
       // if we're building a .doo file.
       // See comment on LibraryBackend.DooFile.
       if (program.Options.Backend is LibraryBackend libBackend) {
-        libBackend.DooFile = new DooFile(program);
+        libBackend.ProgramAfterParsing = new Program(new Cloner(true), program);
       }
     }
 
@@ -205,7 +205,7 @@ public class ProgramParser {
     }
   }
 
-  public IList<DfyParseResult> TryParseIncludes(
+  public async Task<IList<DfyParseResult>> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     SystemModuleManager systemModuleManager,
@@ -220,7 +220,7 @@ public class ProgramParser {
     }
 
     foreach (var root in roots) {
-      var dafnyFile = IncludeToDafnyFile(systemModuleManager, errorReporter, root);
+      var dafnyFile = await IncludeToDafnyFile(systemModuleManager, errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);
       }
@@ -242,7 +242,7 @@ public class ProgramParser {
       result.Add(parseIncludeResult);
 
       foreach (var include in parseIncludeResult.Module.Includes) {
-        var dafnyFile = IncludeToDafnyFile(systemModuleManager, errorReporter, include);
+        var dafnyFile = await IncludeToDafnyFile(systemModuleManager, errorReporter, include);
         if (dafnyFile != null) {
           stack.Push(dafnyFile);
         }
@@ -252,7 +252,7 @@ public class ProgramParser {
     return result;
   }
 
-  private DafnyFile IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
+  private Task<DafnyFile> IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     return DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
   }
 
@@ -307,10 +307,10 @@ public class ProgramParser {
     return new Parser(errorReporter.Options, scanner, errors, cancellationToken);
   }
 
-  public Program Parse(string source, Uri uri, ErrorReporter reporter) {
+  public async Task<Program> Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-    var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+    var file = await DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
     var files = file == null ? Array.Empty<DafnyFile>() : new[] { file };
-    return ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
+    return await ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

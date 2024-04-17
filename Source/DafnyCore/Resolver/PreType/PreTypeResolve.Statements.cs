@@ -7,19 +7,26 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Runtime.Intrinsics.X86;
 using JetBrains.Annotations;
-using Bpl = Microsoft.Boogie;
-using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
-  public partial class PreTypeResolver {
+  public partial class PreTypeResolver : INewOrOldResolver {
     private Scope<Statement> enclosingStatementLabels;
     private readonly Scope<Label> dominatingStatementLabels;
+    public Scope<Label> DominatingStatementLabels => dominatingStatementLabels;
+
+    public Scope<Statement> EnclosingStatementLabels {
+      get => enclosingStatementLabels;
+      set => enclosingStatementLabels = value;
+    }
+
+    public List<Statement> LoopStack {
+      get => loopStack;
+      set => loopStack = value;
+    }
+
     private List<Statement> loopStack = new();  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
@@ -50,18 +57,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
-      enclosingStatementLabels.PushMarker();
+      EnclosingStatementLabels.PushMarker();
       // push labels
       for (var l = stmt.Labels; l != null; l = l.Next) {
         var lnode = l.Data;
         Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-        var prev = enclosingStatementLabels.Find(lnode.Name);
+        var prev = EnclosingStatementLabels.Find(lnode.Name);
         if (prev == stmt) {
           ReportError(lnode.Tok, "duplicate label");
         } else if (prev != null) {
           ReportError(lnode.Tok, "label shadows an enclosing label");
         } else {
-          var r = enclosingStatementLabels.Push(lnode.Name, stmt);
+          var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
           Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           if (dominatingStatementLabels.Find(lnode.Name) != null) {
             ReportError(lnode.Tok, "label shadows a dominating label");
@@ -72,7 +79,7 @@ namespace Microsoft.Dafny {
         }
       }
       ResolveStatement(stmt, resolutionContext);
-      enclosingStatementLabels.PopMarker();
+      EnclosingStatementLabels.PopMarker();
     }
 
     Label/*?*/ ResolveDominatingLabelInExpr(IToken tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
@@ -96,40 +103,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
+      if (stmt is ICanResolveNewAndOld canResolve) {
+        canResolve.GenResolve(this, resolutionContext);
+        return;
+      }
+
       if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt, resolutionContext, false);
       }
-      if (stmt is PredicateStmt) {
-        var s = (PredicateStmt)stmt;
-        var assertStmt = stmt as AssertStmt;
-        if (assertStmt != null && assertStmt.Label != null) {
-          if (dominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
-            ReportError(assertStmt.Label.Tok, "assert label shadows a dominating label");
-          } else {
-            var rr = dominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
-            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          }
-        }
-        ResolveExpression(s.Expr, resolutionContext);
-        ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
-        if (assertStmt != null && assertStmt.Proof != null) {
-          // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
-          var prevLblStmts = enclosingStatementLabels;
-          var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>(resolver.Options);
-          loopStack = new List<Statement>();
-          ResolveStatement(assertStmt.Proof, resolutionContext);
-          enclosingStatementLabels = prevLblStmts;
-          loopStack = prevLoopStack;
-        }
-        if (stmt is ExpectStmt expectStmt) {
-          if (expectStmt.Message == null) {
-            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
-          }
-          ResolveExpression(expectStmt.Message, resolutionContext);
-        }
-
-      } else if (stmt is PrintStmt) {
+      if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
         foreach (var e in s.Args) {
           ResolveExpression(e, resolutionContext);
@@ -147,7 +129,7 @@ namespace Microsoft.Dafny {
             if (expr is ApplySuffix applySuffix) {
               var methodCallInfo = ResolveApplySuffix(applySuffix, revealResolutionContext, true);
               if (methodCallInfo == null) {
-                ReportError(expr.tok, "expression has no reveal lemma");
+                // error has already been reported
               } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
                 ReportError(methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
@@ -184,7 +166,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = enclosingStatementLabels.Find(s.TargetLabel.val);
+          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
           if (target == null) {
             ReportError(s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
@@ -391,12 +373,12 @@ namespace Microsoft.Dafny {
 
         if (s.Body != null) {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
-          var prevLblStmts = enclosingStatementLabels;
+          var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = loopStack;
-          enclosingStatementLabels = new Scope<Statement>(resolver.Options);
+          EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
           loopStack = new List<Statement>();
           ResolveStatement(s.Body, resolutionContext);
-          enclosingStatementLabels = prevLblStmts;
+          EnclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         }
         scope.PopMarker();
@@ -562,7 +544,9 @@ namespace Microsoft.Dafny {
 #if SOON
           // reuse the error object if we're on the dummy line; this prevents a duplicate error message
 #endif
-          AddSubtypeConstraint(linePreType, e1.PreType, e1.tok, "all lines in a calculation must have the same type (got {1} after {0})");
+          if (i < s.Lines.Count - 1) {
+            AddSubtypeConstraint(linePreType, e1.PreType, e1.tok, "all lines in a calculation must have the same type (got {1} after {0})");
+          }
           var step = (s.StepOps[i - 1] ?? s.Op).StepExpr(e0, e1); // Use custom line operator
           ResolveExpression(step, resolutionContext);
           s.Steps.Add(step);
@@ -570,9 +554,9 @@ namespace Microsoft.Dafny {
         }
 
         // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
-        var prevLblStmts = enclosingStatementLabels;
+        var prevLblStmts = EnclosingStatementLabels;
         var prevLoopStack = loopStack;
-        enclosingStatementLabels = new Scope<Statement>(resolver.Options);
+        EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
         loopStack = new List<Statement>();
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {
@@ -581,7 +565,7 @@ namespace Microsoft.Dafny {
             dominatingStatementLabels.PopMarker();
           }
         }
-        enclosingStatementLabels = prevLblStmts;
+        EnclosingStatementLabels = prevLblStmts;
         loopStack = prevLoopStack;
       }
       if (prevErrorCount == ErrorCount && s.Lines.Count > 0) {
@@ -618,6 +602,8 @@ namespace Microsoft.Dafny {
           ResolveAssignmentRhs(rhs, updateStatement, resolutionContext);
         }
       } else if (update is AssignOrReturnStmt elephantStmt) {
+        elephantStmt.ResolveKeywordToken(this, resolutionContext);
+
         ResolveAssignmentRhs(elephantStmt.Rhs, elephantStmt, resolutionContext);
         if (elephantStmt.Rhss != null) {
           foreach (var rhs in elephantStmt.Rhss) {
@@ -640,21 +626,23 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Resolve the LHSs
-      if (update != null) {
-        foreach (var lhs in update.Lhss) {
-          ResolveExpression(lhs, resolutionContext);
-        }
-      }
-
       if (update is AssignSuchThatStmt assignSuchThatStmt) {
-        ResolveAssignSuchThatStmt(assignSuchThatStmt, resolutionContext);
-      } else if (update is UpdateStmt updateStmt) {
-        ResolveUpdateStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
-      } else if (update is AssignOrReturnStmt assignOrReturnStmt) {
-        ResolveAssignOrReturnStmt(assignOrReturnStmt, resolutionContext);
+        assignSuchThatStmt.GenResolve(this, resolutionContext);
       } else {
-        Contract.Assert(update == null);
+        // Resolve the LHSs
+        if (update != null) {
+          foreach (var lhs in update.Lhss) {
+            ResolveExpression(lhs, resolutionContext);
+          }
+        }
+
+        if (update is UpdateStmt updateStmt) {
+          ResolveUpdateStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
+        } else if (update is AssignOrReturnStmt assignOrReturnStmt) {
+          ResolveAssignOrReturnStmt(assignOrReturnStmt, resolutionContext);
+        } else {
+          Contract.Assert(update == null);
+        }
       }
     }
 
@@ -686,7 +674,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
-      ModuleResolver.MethodCallInformation methodCallInfo = null;
+      MethodCallInformation methodCallInfo = null;
       update.ResolvedStatements = new();
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
@@ -773,43 +761,6 @@ namespace Microsoft.Dafny {
       foreach (var a in update.ResolvedStatements) {
         ResolveStatement(a, resolutionContext);
       }
-    }
-
-    /// <summary>
-    /// Resolve an assign-such-that statement. It is assumed that the LHSs have already been resolved,
-    /// but not the RHSs.
-    /// </summary>
-    private void ResolveAssignSuchThatStmt(AssignSuchThatStmt s, ResolutionContext resolutionContext) {
-      Contract.Requires(s != null);
-      Contract.Requires(resolutionContext != null);
-
-      if (s.AssumeToken != null) {
-        ResolveAttributes(s.AssumeToken, resolutionContext, false);
-      }
-
-      var lhsSimpleVariables = new HashSet<IVariable>();
-      foreach (var lhs in s.Lhss) {
-        if (lhs.Resolved != null) {
-          CheckIsLvalue(lhs.Resolved, resolutionContext);
-        } else {
-          Contract.Assert(ErrorCount > 0);
-        }
-        if (lhs.Resolved is IdentifierExpr ide) {
-          if (lhsSimpleVariables.Contains(ide.Var)) {
-            // syntactically forbid duplicate simple-variables on the LHS
-            ReportError(lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
-          } else {
-            lhsSimpleVariables.Add(ide.Var);
-          }
-        }
-        // to ease in the verification of the existence check, only allow local variables as LHSs
-        if (s.AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
-          ReportError(lhs, "an assign-such-that statement (without an 'assume' clause) currently supports only local-variable LHSs");
-        }
-      }
-
-      ResolveExpression(s.Expr, resolutionContext);
-      ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
     }
 
     private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants,
@@ -1119,7 +1070,7 @@ namespace Microsoft.Dafny {
           // "expect !temp.IsFailure(), temp"
           ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, s.KeywordToken.Attrs);
+          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
           ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
@@ -1162,35 +1113,35 @@ namespace Microsoft.Dafny {
       }
 
       s.ResolvedStatements.ForEach(a => ResolveStatement(a, resolutionContext));
-      EnsureSupportsErrorHandling(s.Tok, failureSupportingType, expectExtract, s.KeywordToken != null);
+      EnsureSupportsErrorHandling(s.Tok, failureSupportingType, expectExtract, s.KeywordToken?.Token.val);
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, TopLevelDeclWithMembers failureSupportingType, bool expectExtract, bool hasKeywordToken) {
+    private void EnsureSupportsErrorHandling(IToken tok, TopLevelDeclWithMembers failureSupportingType, bool expectExtract, [CanBeNull] string keyword) {
 
       var isFailure = failureSupportingType.Members.Find(x => x.Name == "IsFailure");
       var propagateFailure = failureSupportingType.Members.Find(x => x.Name == "PropagateFailure");
       var extract = failureSupportingType.Members.Find(x => x.Name == "Extract");
 
-      if (hasKeywordToken) {
+      if (keyword != null) {
         if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
-          ReportError(tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have function{1}", failureSupportingType,
-            expectExtract ? "s 'IsFailure()' and 'Extract()'" : " 'IsFailure()', but not 'Extract()'");
+          var requiredMembers = expectExtract
+            ? "functions 'IsFailure()' and 'Extract()'"
+            : "function 'IsFailure()', but not 'Extract()'";
+          ReportError(tok, $"The right-hand side of ':- {keyword}', which is of type '{failureSupportingType}', must have {requiredMembers}");
         }
       } else {
         if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
-          ReportError(tok,
-            "The right-hand side of ':-', which is of type '{0}', must have function{1}", failureSupportingType,
-            expectExtract
-              ? "s 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
-              : "s 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'");
+          var requiredMembers = expectExtract
+            ? "functions 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
+            : "functions 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'";
+          ReportError(tok, $"The right-hand side of ':-', which is of type '{failureSupportingType}', must have {requiredMembers}");
         }
       }
 
-      void checkIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
-        if (memberDecl == null || memberDecl is Function) {
+      void CheckIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
+        if (memberDecl is null or Function) {
           // fine
         } else if (allowMethod && memberDecl is Method) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
@@ -1204,16 +1155,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      checkIsFunction(isFailure, false);
-      if (!hasKeywordToken) {
-        checkIsFunction(propagateFailure, true);
+      CheckIsFunction(isFailure, false);
+      if (keyword == null) {
+        CheckIsFunction(propagateFailure, true);
       }
       if (expectExtract) {
-        checkIsFunction(extract, true);
+        CheckIsFunction(extract, true);
       }
     }
 
-    void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(rr != null);
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
@@ -1331,7 +1282,7 @@ namespace Microsoft.Dafny {
     /// that can be assigned to.  In particular, this means that lhs denotes a mutable variable, field,
     /// or array element.  If a violation is detected, an error is reported.
     /// </summary>
-    void CheckIsLvalue(Expression lhs, ResolutionContext resolutionContext) {
+    public void CheckIsLvalue(Expression lhs, ResolutionContext resolutionContext) {
       Contract.Requires(lhs != null);
       Contract.Requires(resolutionContext != null);
       if (lhs is IdentifierExpr) {
@@ -1359,7 +1310,7 @@ namespace Microsoft.Dafny {
         var arrayType = resolver.ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), resolutionContext, true);
         AddSubtypeConstraint(Type2PreType(arrayType), ll.Seq.PreType, ll.Seq.tok, "LHS of array assignment must denote an array element (found {1})");
         if (!ll.SelectOne) {
-          ReportError(ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
+          ReportError(ll, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
       } else if (lhs is MultiSelectExpr) {
         // nothing to check; this can only denote an array element
