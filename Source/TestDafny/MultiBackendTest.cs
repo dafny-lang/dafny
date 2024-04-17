@@ -129,7 +129,8 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).
+      Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(
@@ -271,7 +272,7 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new("legacy", new string[] { }, new string[] { ".expect" },
@@ -356,7 +357,7 @@ public class MultiBackendTest {
       $"--target:{backend.TargetId}",
       $"--build:{tempOutputDirectory}",
       options.TestFile!,
-    }.Concat(options.OtherArgs);
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs);
     if (!includeRuntime) {
       // We have to provide the path to DafnyRuntime.dll manually, since the program will be run
       // in the directory containing the DLL built from Dafny code, not the Dafny distribution.
@@ -523,10 +524,9 @@ public class MultiBackendTest {
   }
 
   private static async Task<(int, string, string)> RunDafny(IEnumerable<string> arguments) {
-    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, arguments.ToArray());
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);
@@ -537,8 +537,7 @@ public class MultiBackendTest {
       return await RunDafny(arguments);
     }
 
-    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
-    ILitCommand command = new ShellLitCommand(dafnyCliPath, argumentsWithDefaults, DafnyCliTests.ReferencedEnvironmentVariables);
+    ILitCommand command = new ShellLitCommand(dafnyCliPath, arguments, DafnyCliTests.ReferencedEnvironmentVariables);
 
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();

@@ -16,6 +16,6 @@ ResolutionErrors1.dfy(141,14): Error: new allocation not supported in aggregate 
 ResolutionErrors1.dfy(148,14): Error: a forall statement is not allowed to use 'new'
 ResolutionErrors1.dfy(148,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 ResolutionErrors1.dfy(164,26): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got bool)
-ResolutionErrors1.dfy(159,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got ?)
-ResolutionErrors1.dfy(177,13): Error: lemmas are not allowed to have modifies clauses
+ResolutionErrors1.dfy(171,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got ?)
+ResolutionErrors1.dfy(183,13): Error: lemmas are not allowed to have modifies clauses
 20 resolution/type errors detected in ResolutionErrors1.dfy
