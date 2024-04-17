@@ -501,7 +501,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(InternalIncludeRuntimeOptionForExecution, (options, value) => { options.IncludeRuntime = value; });
     DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
-    DafnyOptions.RegisterLegacyBinding(EmitUncompilableCode, (o, f) => o.EmitUncompilableCode = f);
     DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
       (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });

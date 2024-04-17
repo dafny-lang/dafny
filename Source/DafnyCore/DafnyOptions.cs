@@ -360,7 +360,6 @@ namespace Microsoft.Dafny {
     public int DeprecationNoise = 1;
     public bool VerifyAllModules = false;
     public bool SeparateModuleOutput = false;
-    public bool EmitUncompilableCode = false;
 
     public enum IncludesModes {
       None,
@@ -652,7 +651,7 @@ namespace Microsoft.Dafny {
           return true;
 
         case "emitUncompilableCode":
-          EmitUncompilableCode = true;
+          this.Set(CommonOptionBag.EmitUncompilableCode, true);
           return true;
 
         case "separateModuleOutput":
