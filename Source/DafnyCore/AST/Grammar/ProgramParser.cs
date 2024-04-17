@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -254,7 +255,9 @@ public class ProgramParser {
 
   private async Task<DafnyFile> IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
     var result = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
-    result.ParseOptions = include.ParseOptions;
+    if (result != null) {
+      result.ParseOptions = include.ParseOptions;
+    }
     return result;
   }
 

@@ -186,7 +186,7 @@ public class Compilation : IDisposable {
       errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
         $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. " +
         $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
-        $"Use a .doo file to enable Dafny to check that verification was done using compatible options");
+        $"Use a .doo file to enable Dafny to check that compatible options were used");
     }
 
     var projectPath = Project.Uri.LocalPath;
