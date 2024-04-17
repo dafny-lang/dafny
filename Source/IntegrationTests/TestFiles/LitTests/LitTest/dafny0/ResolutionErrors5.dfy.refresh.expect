@@ -22,6 +22,7 @@ ResolutionErrors5.dfy(94,8): Error: an ORDINAL type is not allowed to be used as
 ResolutionErrors5.dfy(96,25): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors5.dfy(127,36): Error: Name of yield-parameter is used by another member of the iterator: u
 ResolutionErrors5.dfy(128,37): Error: Name of implicit yield-history variable 'u' is already used by another member of the iterator
+ResolutionErrors5.dfy(142,13): Error: prefix-equality limit argument must be an ORDINAL or integer expression (got ?5)
 ResolutionErrors5.dfy(153,15): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
 ResolutionErrors5.dfy(167,15): Error: name of type (MyClass) is used as a variable
 ResolutionErrors5.dfy(168,15): Error: name of type (MyClass?) is used as a variable
@@ -104,4 +105,4 @@ ResolutionErrors5.dfy(623,13): Error: no label 'FutureLabel' in scope at this ti
 ResolutionErrors5.dfy(633,13): Error: no label 'Treasure' in scope at this time
 ResolutionErrors5.dfy(634,13): Error: no label 'WonderfulLabel' in scope at this time
 ResolutionErrors5.dfy(636,13): Error: no label 'FutureLabel' in scope at this time
-106 resolution/type errors detected in ResolutionErrors5.dfy
+107 resolution/type errors detected in ResolutionErrors5.dfy
