@@ -4,5 +4,5 @@
 // and Python.
 method Main() {
   var f: nat -> nat -> bool;
-  print f, "\n";
+  print f(0)(1), "\n";
 }
