@@ -61,6 +61,8 @@ public partial class BoogieGenerator {
     var types1 = new List<Type>();
     var callee = new List<Expr>();
     var caller = new List<Expr>();
+    var oldExpressions = new List<Expression>();
+    var newExpressions = new List<Expression>();
     if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
       tok = new ForceCheckToken(tok);
@@ -77,7 +79,8 @@ public partial class BoogieGenerator {
         N = i;
         break;
       }
-      // TODO: add e0, e1 to Expression lists es0, es1
+      oldExpressions.Add(e1);
+      newExpressions.Add(e0);
       toks.Add(new NestedToken(tok, e1.tok));
       types0.Add(e0.Type.NormalizeExpand());
       types1.Add(e1.Type.NormalizeExpand());
@@ -89,8 +92,9 @@ public partial class BoogieGenerator {
     if (allowance != null) {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
-    // TODO: pass in allowance, newExprs = es0, oldExprs = es1
-    builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
+    builder.Add(Assert(tok, decrExpr, new
+      PODesc.Terminates(inferredDecreases, false, allowance,
+                        oldExpressions, newExpressions, hint)));
   }
 
   /// <summary>

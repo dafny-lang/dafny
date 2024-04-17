@@ -632,9 +632,16 @@ public class Terminates : ProofObligationDescription {
   private readonly string hint;
   private string FormDescription => isLoop ? "expression" : "clause";
 
-  public Terminates(bool inferredDescreases, bool isLoop, string hint = null) {
+  private readonly Expression allowance;
+  private readonly List<Expression> oldExpressions;
+  private readonly List<Expression> newExpressions;
+
+  public Terminates(bool inferredDescreases, bool isLoop, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.isLoop = isLoop;
+    this.allowance = allowance;
+    this.oldExpressions = oldExpressions;
+    this.newExpressions = newExpressions;
     this.hint = hint;
   }
 }
