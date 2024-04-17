@@ -24,21 +24,18 @@ public record AssumptionDescription(
     Issue: "Function with [{:extern}] attribute.",
     Mitigation: "Turn into a [method] with [modifies {}] and test thoroughly for lack of side effects.",
     MitigationIetf: "SHOULD use [method] with [modifies {}] instead.",
-    IsExplicit: false,
-    allowedInLibraries: false);
+    IsExplicit: false);
 
   public static AssumptionDescription ExternWithPrecondition = new(
     Issue: "Declaration with [{:extern}] has a requires clause.",
     Mitigation: "Test any external callers (maybe with [/testContracts]).",
     MitigationIetf: "MUST test any external callers.",
-    IsExplicit: false,
-    allowedInLibraries: false);
+    IsExplicit: false);
   public static AssumptionDescription ExternWithPostcondition = new(
     Issue: "Declaration with [{:extern}] has a ensures clause.",
     Mitigation: "Test external callee (maybe with [/testContracts]).",
     MitigationIetf: "MUST test external callee.",
-    IsExplicit: false,
-    allowedInLibraries: false);
+    IsExplicit: false);
 
   public static AssumptionDescription AssumeStatement(bool hasAxiomAttribute) {
     return new(
@@ -54,41 +51,36 @@ public record AssumptionDescription(
         hasAxiomAttribute
           ? "SHOULD replace with [assert] and prove."
           : "MUST replace with [assert] and prove or add [{:axiom}].",
-      IsExplicit: false,
-      allowedInLibraries: hasAxiomAttribute
+      IsExplicit: false
     );
   }
   public static AssumptionDescription MayNotTerminate = new(
     Issue: "Method may not terminate (uses [decreases *]).",
     Mitigation: "Provide a valid [decreases] clause.",
     MitigationIetf: "SHOULD provide a valid [decreases] clause.",
-    IsExplicit: false,
-    allowedInLibraries: true);
+    IsExplicit: false);
   public static AssumptionDescription HasTerminationFalseAttribute = new(
     Issue: "Trait method calls may not terminate (uses [{:termination false}]).",
     Mitigation: "Remove if possible.",
     MitigationIetf: "MUST remove [{:termination false}] or justify.",
-    IsExplicit: false,
-    allowedInLibraries: false);
+    IsExplicit: false);
   public static AssumptionDescription ForallWithoutBody = new(
     Issue: "Definition contains [forall] statement with no body.",
     Mitigation: "Provide a body.",
     MitigationIetf: "MUST provide a body.",
-    IsExplicit: false,
-    allowedInLibraries: false);
+    IsExplicit: false);
   public static AssumptionDescription LoopWithoutBody = new(
     Issue: "Definition contains loop with no body.",
     Mitigation: "Provide a body.",
     MitigationIetf: "MUST provide a body.",
-    IsExplicit: false,
-    allowedInLibraries: false);
+    IsExplicit: false);
+
   public static AssumptionDescription HasAssumeConcurrentAttribute(bool isModifies) {
     return new AssumptionDescription(
       Issue: (isModifies ? "Modifies" : "Reads") + " clause has [{:assume_concurrent}] attribute.",
       Mitigation: "Manually review and test in a concurrent setting.",
       MitigationIetf: "MUST manually review and test in a concurrent setting.",
-      IsExplicit: true,
-      allowedInLibraries: false);
+      IsExplicit: true);
   }
 
   public static AssumptionDescription NoBody(bool isGhost) {
@@ -97,24 +89,21 @@ public record AssumptionDescription(
              " declaration has no body and has an ensures clause.",
       Mitigation: "Provide a body or add [{:axiom}].",
       MitigationIetf: (isGhost ? "MUST" : "SHOULD") + " provide a body or add [{:axiom}].",
-      IsExplicit: false,
-      allowedInLibraries: false);
+      IsExplicit: false);
   }
 
   public static readonly AssumptionDescription AssertOnly = new(
     Issue: "Assertion has explicit temporary [{:only}] attribute.",
     Mitigation: "Remove the [{:only}] attribute.",
     MitigationIetf: "MUST remove the [{:only}] attribute.",
-    IsExplicit: true,
-    allowedInLibraries: false
+    IsExplicit: true
   );
 
   public static readonly AssumptionDescription MemberOnly = new(
     Issue: "Member has explicit temporary [{:only}] attribute.",
     Mitigation: "Remove the [{:only}] attribute.",
     MitigationIetf: "MUST remove the [{:only}] attribute.",
-    IsExplicit: true,
-    allowedInLibraries: false
+    IsExplicit: true
   );
 }
 public record Assumption(Declaration decl, IToken tok, AssumptionDescription desc) {

@@ -1317,7 +1317,7 @@ namespace Microsoft.Dafny {
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
 
-      m.ResolveMethodOrFunction(this);
+      m.ResolveNewOrOldPart(this);
 
       try {
         currentMethod = m;

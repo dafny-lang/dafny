@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using RAST;
 
 namespace Microsoft.Dafny;
@@ -8,9 +9,10 @@ public abstract class MethodOrFunction : MemberDecl {
   public readonly List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
+  public readonly List<Formal> Ins;
 
   protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
-    Attributes attributes, bool isRefining, List<TypeParameter> typeArgs,
+    Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     Specification<Expression> decreases)
@@ -19,6 +21,7 @@ public abstract class MethodOrFunction : MemberDecl {
     Req = req;
     Decreases = decreases;
     Ens = ens;
+    Ins = ins;
   }
 
   protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
@@ -26,6 +29,7 @@ public abstract class MethodOrFunction : MemberDecl {
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
   }
 
   protected abstract bool Bodyless { get; }
@@ -39,10 +43,10 @@ public abstract class MethodOrFunction : MemberDecl {
   }
 
   public void ResolveMethodOrFunction(INewOrOldResolver resolver) {
-    
-    var hasPrecondition = Req.Count > 0 || this.Formals.Any(f => f.Type.AsSubsetType is not null);
-    if (hasPrecondition) {
-      
+    if (HasPrecondition && !Bodyless && this.IsExtern(resolver.Options)) {
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
+        $"A {WhatKind} that is exported, meaning it has a body and an {{:extern}} annotation, " +
+        $"may not have preconditions or take subset types as inputs.");
     }
     if (HasVerifyFalseAttribute) {
       resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
@@ -59,6 +63,11 @@ public abstract class MethodOrFunction : MemberDecl {
 
     }
   }
+
+  public bool HasPrecondition =>
+    Req.Count > 0
+    // The following check is incomplete, which is a bug.
+    || Ins.Any(f => f.Type.AsSubsetType is not null);
 
   protected MethodOrFunction(RangeToken tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
   }

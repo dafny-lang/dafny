@@ -55,9 +55,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool HasPostcondition =>
     Ens.Count > 0 || ResultType.AsSubsetType is not null;
 
-  public bool HasPrecondition =>
-    Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
-
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var a in base.Assumptions(this)) {
       yield return a;
@@ -96,7 +93,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly List<Formal> Ins;
   public readonly Formal Result;
   public PreType ResultPreType;
   public readonly Type ResultType;
@@ -222,7 +218,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases) {
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, ins, req, ens, decreases) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -235,7 +231,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Requires(decreases != null);
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
-    this.Ins = ins;
     this.Result = result;
     this.ResultType = result != null ? result.Type : resultType;
     this.Reads = reads;

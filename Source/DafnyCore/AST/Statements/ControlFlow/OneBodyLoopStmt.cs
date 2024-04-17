@@ -85,7 +85,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     if (BodySurrogate.UsesHeap) {
       text += text.Length == 0 ? "$Heap" : ", $Heap";
     }
-    text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
+    text = $"note, this loop has no body{(text.Length == 0 ? "" : " (loop frame: " + text + ")")}";
     reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Tok, text);
   }
 
