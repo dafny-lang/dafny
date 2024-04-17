@@ -1,4 +1,2 @@
 dafny: Error: Boogie option 'noDashAtStart' must start with - or /
 Use /help for available options
-
-Dafny program verifier finished with 0 verified, 0 errors
