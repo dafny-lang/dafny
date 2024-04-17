@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -58,7 +59,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
         exitValue = ExitValue.PREPROCESSING_ERROR;
         continue;
       }
-      if (dafnyFile.Extension == ".doo" && !doCheck && !doPrint) {
+      if (dafnyFile.Extension == DooFile.Extension && !doCheck && !doPrint) {
         await errorWriter.WriteLineAsync("Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.");
         exitValue = ExitValue.PREPROCESSING_ERROR;
         continue;

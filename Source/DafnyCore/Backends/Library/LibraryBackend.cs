@@ -88,7 +88,7 @@ public class LibraryBackend : ExecutableBackend {
   }
 
   private string DooFilePath(string dafnyProgramName) {
-    return Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".doo"));
+    return Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, DooFile.Extension));
   }
 
   public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,

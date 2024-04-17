@@ -49,10 +49,6 @@ public class DafnyFile {
 
     string canonicalPath;
     string baseName;
-    Func<TextReader> getContent = null;
-    bool isPreverified;
-    bool isPrecompiled;
-    var parseOptions = options;
     var extension = ".dfy";
     if (uri.IsFile) {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
@@ -62,10 +58,6 @@ public class DafnyFile {
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
       canonicalPath = Canonicalize(filePath).LocalPath;
-    } else if (uri.Scheme == "stdin") {
-      getContent = () => options.Input;
-      baseName = "<stdin>";
-      canonicalPath = "<stdin>";
     } else if (uri.Scheme == "dllresource") {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
       baseName = uri.LocalPath;
@@ -76,107 +68,153 @@ public class DafnyFile {
     }
 
     var filePathForErrors = options.GetPrintPath(filePath);
-    if (getContent != null) {
-      isPreverified = false;
-      isPrecompiled = false;
-    } else if (uri.Scheme == "untitled" || extension == ".dfy" || extension == ".dfyi") {
-      isPreverified = false;
-      isPrecompiled = false;
-      if (!fileSystem.Exists(uri)) {
-        if (0 < options.VerifySnapshots) {
-          // For snapshots, we first create broken DafnyFile without content,
-          // then look for the real files and create DafnuFiles for them.
-          return new DafnyFile(extension, canonicalPath, baseName, null, uri, origin);
-        }
+    if (uri.Scheme == "stdin") {
+      return HandleStandardInput(options, uri, origin, extension, options);
+    }
 
+    if (uri.Scheme == "untitled" || extension == ".dfy" || extension == ".dfyi") {
+      return HandleDafnyFile(options, reporter, fileSystem, uri, 
+        origin, extension, canonicalPath, baseName, filePathForErrors, options);
+    }
+    
+    if (extension == DooFile.Extension) {
+      return await HandleDooFile(options, reporter, fileSystem, 
+        uri, origin, filePathForErrors, filePath, extension, canonicalPath, baseName);
+    }
+
+    if (extension == ".dll") {
+      return HandleDll(options, uri, origin, filePath, extension, canonicalPath, baseName);
+    }
+    if (extension == DafnyProject.Extension) {
+      return await HandleDafnyProject(options, fileSystem, uri, origin, extension, canonicalPath, baseName);
+    }
+    if (errorOnNotRecognized != null) {
+      reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
+    }
+    return null;
+  }
+
+  private static DafnyFile HandleDafnyFile(DafnyOptions options, ErrorReporter reporter, IFileSystem fileSystem,
+    Uri uri,
+    IToken origin, string extension, string canonicalPath, string baseName, string filePathForErrors,
+    DafnyOptions parseOptions)
+  {
+    if (!fileSystem.Exists(uri)) {
+      if (0 < options.VerifySnapshots) {
+        // For snapshots, we first create broken DafnyFile without content,
+        // then look for the real files and create DafnuFiles for them.
+        return new DafnyFile(extension, canonicalPath, baseName, null, uri, origin);
+      }
+
+      reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
+      return null;
+    }
+
+    return new DafnyFile(extension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin) {
+      IsPrecompiled = false,
+      IsPreverified = false,
+      ParseOptions = parseOptions,
+    };
+  }
+
+  private static DafnyFile HandleStandardInput(DafnyOptions options, Uri uri, IToken origin, string extension,
+    DafnyOptions parseOptions)
+  {
+    return new DafnyFile(extension, "<stdin>", "<stdin>", () => options.Input, uri, origin) {
+      IsPrecompiled = false,
+      IsPreverified = false,
+      ParseOptions = parseOptions,
+    };
+  }
+
+  /// <summary>
+  /// Technically only for C#, this is for backwards compatability
+  /// </summary>
+  private static DafnyFile HandleDll(DafnyOptions parseOptions, Uri uri, IToken origin, string filePath,
+    string extension, string canonicalPath,
+    string baseName)
+  {
+    var sourceText = GetDafnySourceAttributeText(filePath);
+    if (sourceText == null) {
+      return null;
+    }
+
+    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(sourceText), uri, origin) {
+      IsPrecompiled = true,
+      IsPreverified = true,
+      ParseOptions = parseOptions,
+    };
+  }
+
+  private static async Task<DafnyFile> HandleDafnyProject(DafnyOptions options, IFileSystem fileSystem, Uri uri,
+    IToken origin,
+    string extension, string canonicalPath, string baseName)
+  {
+    var project = await DafnyProject.Open(fileSystem, options, uri);
+    var roots = project.GetRootSourceUris(fileSystem).ToList();
+
+    if (project.TryGetValue(CommonOptionBag.Libraries, out var projectLibraries)) {
+      var castProjectLibraries = (IList<FileInfo>)projectLibraries;
+      foreach (var projectLibrary in castProjectLibraries) {
+        roots.Add(new Uri(projectLibrary.FullName));
+      }
+    }
+
+    var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
+    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin) {
+      IsPrecompiled = false,
+      IsPreverified = false,
+      ParseOptions = options,
+    };
+  }
+
+  private static async Task<DafnyFile> HandleDooFile(DafnyOptions options, ErrorReporter reporter,
+    IFileSystem fileSystem, Uri uri,
+    IToken origin, string filePathForErrors, string filePath, string extension, string canonicalPath, string baseName)
+  {
+    DooFile dooFile;
+    if (uri.Scheme == "dllresource") {
+      var assembly = Assembly.Load(uri.Host);
+      // Skip the leading "/"
+      var resourceName = uri.LocalPath[1..];
+      await using var stream = assembly.GetManifestResourceStream(resourceName);
+      if (stream is null) {
+        throw new Exception($"Cannot find embedded resource: {resourceName}");
+      }
+
+      dooFile = await DooFile.Read(stream);
+    } else {
+      if (!fileSystem.Exists(uri)) {
         reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
         return null;
       }
 
-      getContent = () => fileSystem.ReadFile(uri);
-    } else if (extension == ".doo") {
-      isPreverified = true;
-      isPrecompiled = false;
-
-      DooFile dooFile;
-      if (uri.Scheme == "dllresource") {
-        var assembly = Assembly.Load(uri.Host);
-        // Skip the leading "/"
-        var resourceName = uri.LocalPath[1..];
-        using var stream = assembly.GetManifestResourceStream(resourceName);
-        if (stream is null) {
-          throw new Exception($"Cannot find embedded resource: {resourceName}");
-        }
-
-        dooFile = await DooFile.Read(stream);
-      } else {
-        if (!fileSystem.Exists(uri)) {
-          reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
-          return null;
-        }
-
-        try {
-          dooFile = await DooFile.Read(filePath);
-        } catch (InvalidDataException) {
-          reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
-          return null;
-        } catch (ArgumentException e) {
-          reporter.Error(MessageSource.Project, origin, e.Message);
-          return null;
-        }
-
-      }
-
-      var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, origin);
-      if (validDooOptions == null) {
+      try {
+        dooFile = await DooFile.Read(filePath);
+      } catch (InvalidDataException) {
+        reporter.Error(MessageSource.Project, origin, $"malformed doo file {options.GetPrintPath(filePath)}");
+        return null;
+      } catch (ArgumentException e) {
+        reporter.Error(MessageSource.Project, origin, e.Message);
         return null;
       }
+    }
 
-      parseOptions = validDooOptions;
-
-      // For now it's simpler to let the rest of the pipeline parse the
-      // program text back into the AST representation.
-      // At some point we'll likely want to serialize a program
-      // more efficiently inside a .doo file, at which point
-      // the DooFile class should encapsulate the serialization logic better
-      // and expose a Program instead of the program text.
-      getContent = () => new StringReader(dooFile.ProgramText);
-    } else if (extension == ".dll") {
-      isPreverified = true;
-      // Technically only for C#, this is for backwards compatability
-      isPrecompiled = true;
-
-      var sourceText = GetDafnySourceAttributeText(filePath);
-      if (sourceText == null) {
-        return null;
-      }
-      getContent = () => new StringReader(sourceText);
-    } else if (extension == DafnyProject.Extension) {
-      var project = await DafnyProject.Open(fileSystem, options, uri);
-      var roots = project.GetRootSourceUris(fileSystem).ToList();
-
-      if (project.TryGetValue(CommonOptionBag.Libraries, out var projectLibraries)) {
-        var castProjectLibraries = (IList<FileInfo>)projectLibraries;
-        foreach (var projectLibrary in castProjectLibraries) {
-          roots.Add(new Uri(projectLibrary.FullName));
-        }
-      }
-
-      var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
-      getContent = () => new StringReader(stubSource);
-      isPreverified = false;
-      isPrecompiled = false;
-    } else {
-      if (errorOnNotRecognized != null) {
-        reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
-      }
+    var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, origin);
+    if (validDooOptions == null) {
       return null;
     }
 
-    return new DafnyFile(extension, canonicalPath, baseName, getContent, uri, origin) {
-      IsPrecompiled = isPrecompiled,
-      IsPreverified = isPreverified,
-      ParseOptions = parseOptions,
+    // For now it's simpler to let the rest of the pipeline parse the
+    // program text back into the AST representation.
+    // At some point we'll likely want to serialize a program
+    // more efficiently inside a .doo file, at which point
+    // the DooFile class should encapsulate the serialization logic better
+    // and expose a Program instead of the program text.
+    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(dooFile.ProgramText), uri, origin) {
+      IsPrecompiled = false,
+      IsPreverified = true,
+      ParseOptions = validDooOptions,
     };
   }
 

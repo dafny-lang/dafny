@@ -15,6 +15,7 @@ namespace DafnyCore;
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.
 public class DooFile {
+  public const string Extension = ".doo";
 
   private const string ProgramFileEntry = "program";
 
