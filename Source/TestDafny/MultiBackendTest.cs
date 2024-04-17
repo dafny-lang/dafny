@@ -355,7 +355,7 @@ public class MultiBackendTest {
     }
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
-    if (error == "" && HasUnsupported(backend, outputString)) {
+    if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
       return 0;
     }
 
@@ -417,42 +417,6 @@ public class MultiBackendTest {
     var errorWriter = new StringWriter();
     var exitCode = await command.Execute(TextReader.Null, outputWriter, errorWriter);
     return (exitCode, outputWriter.ToString(), errorWriter.ToString());
-  }
-
-  private static bool HasUnsupported(IExecutableBackend backend, string output) {
-    using StringReader sr = new StringReader(output);
-    if (output == "") {
-      return false;
-    }
-    while (sr.ReadLine() is { } line) {
-      if (IsSupportedFeatureLine(backend, line)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static bool IsSupportedFeatureLine(IExecutableBackend backend, string line) {
-    line = line.Trim();
-    if (line.Length == 0) {
-      return true;
-    }
-
-    var prefixIndex = line.IndexOf(UnsupportedFeatureException.MessagePrefix, StringComparison.Ordinal);
-    if (prefixIndex < 0) {
-      return false;
-    }
-
-    var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
-    var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
-    if (backend.UnsupportedFeatures.Contains(feature)) {
-      return true;
-    }
-
-    // This is an internal inconsistency error
-    throw new Exception(
-      $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 
   private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {
