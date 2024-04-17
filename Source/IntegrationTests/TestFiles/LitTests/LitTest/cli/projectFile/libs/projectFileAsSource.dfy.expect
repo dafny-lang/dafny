@@ -1,0 +1,7 @@
+Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+projectFileAsSource.dfyconfig.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+
+Dafny program verifier did not attempt verification
+Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+projectFileAsSource.dfyconfig.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+projectFileAsSource.dfyconfig.toml(1,0): Error: cannot load dfyconfig.toml: --unicode-char is set locally to False, but the library was built with True

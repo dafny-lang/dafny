@@ -234,7 +234,7 @@ public class ProgramParser {
 
       cancellationToken.ThrowIfCancellationRequested();
       var parseIncludeResult = ParseFileWithErrorHandling(
-        errorReporter.Options,
+        top.ParseOptions,
         top.GetContent,
         top.Origin,
         top.Uri,
@@ -252,8 +252,10 @@ public class ProgramParser {
     return result;
   }
 
-  private Task<DafnyFile> IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
-    return DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
+  private async Task<DafnyFile> IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
+    var result = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
+    result.ParseOptions = include.ParseOptions;
+    return result;
   }
 
   ///<summary>

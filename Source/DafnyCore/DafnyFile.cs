@@ -18,7 +18,7 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public DafnyOptions ParseOptions { get; private set; }
+  public DafnyOptions ParseOptions { get; set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; private set; }
   [CanBeNull] public IToken Origin { get; }

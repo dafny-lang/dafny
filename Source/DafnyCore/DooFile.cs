@@ -147,7 +147,7 @@ public class DooFile {
   public static DafnyOptions CompareOptions(ErrorReporter reporter, string libraryFile,
     DafnyOptions options, IToken origin,
     Dictionary<string, object> libraryOptions) {
-    var result = new DafnyOptions(options);
+    var result = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
@@ -169,10 +169,14 @@ public class DooFile {
       } else if (option.ValueType == typeof(IEnumerable<string>)) {
         // This can happen because Tomlyn will drop aggregate properties with no values.
         libraryValue = Array.Empty<string>();
+      } else {
+        // Use default
+        libraryValue = option.Parse("").GetValueForOption(option);
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      success = success && check(reporter, origin, option, localValue, libraryFile, libraryValue);
+      success = success && check(reporter, origin, option, localValue,
+        options.GetPrintPath(libraryFile), libraryValue);
     }
 
     if (!success) {
