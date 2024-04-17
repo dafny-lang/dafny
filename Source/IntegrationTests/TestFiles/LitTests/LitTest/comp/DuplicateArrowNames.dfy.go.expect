@@ -1,0 +1,1 @@
+func(dafny.Int) func(dafny.Int) bool
