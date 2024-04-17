@@ -75,7 +75,7 @@ public class DafnyFile {
 
     if (uri.Scheme == "untitled" || extension == ".dfy" || extension == ".dfyi") {
       return HandleDafnyFile(options, fileSystem, reporter,
-        uri, origin, extension, canonicalPath, baseName, filePathForErrors, options);
+        uri, origin, extension, canonicalPath, baseName, filePathForErrors);
     }
 
     if (extension == DooFile.Extension) {
@@ -97,9 +97,7 @@ public class DafnyFile {
 
   private static DafnyFile HandleDafnyFile(DafnyOptions options, IFileSystem fileSystem,
     ErrorReporter reporter,
-    Uri uri,
-    IToken origin, string extension, string canonicalPath, string baseName, string filePathForErrors,
-    DafnyOptions parseOptions) {
+    Uri uri, IToken origin, string extension, string canonicalPath, string baseName, string filePathForErrors) {
     if (!fileSystem.Exists(uri)) {
       if (0 < options.VerifySnapshots) {
         // For snapshots, we first create broken DafnyFile without content,
@@ -111,7 +109,7 @@ public class DafnyFile {
       return null!;
     }
 
-    return new DafnyFile(extension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin, parseOptions) {
+    return new DafnyFile(extension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin, options) {
       IsPrecompiled = false,
       IsPreverified = false,
     };
