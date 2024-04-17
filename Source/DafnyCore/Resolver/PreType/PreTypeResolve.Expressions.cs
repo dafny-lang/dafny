@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
     }
 
     private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
-      expr.PreType = CreatePreTypeProxy($"{exprKind}");
+      expr.PreType = CreatePreTypeProxy(exprKind);
 
       var arguments = valuePreType == null ? new List<PreType>() { elementPreType } : new List<PreType>() { elementPreType, valuePreType };
       var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments);
