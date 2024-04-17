@@ -81,7 +81,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
   private readonly CreateCompilation createCompilation;
-  private readonly ExecutionEngine? boogieEngine;
+  private ExecutionEngine? boogieEngine;
   private readonly IFileSystem fileSystem;
   private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly IProjectDatabase projectDatabase;
@@ -114,9 +114,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     options.Printer = new OutputLogger(logger);
     this.cache = cache;
     this.scheduler = scheduler;
-    if (options.Get(ReuseSolvers)) {
-      boogieEngine = new ExecutionEngine(options, cache, scheduler);
-    }
     var compilationInput = new CompilationInput(options, version, Project);
     var initialIdeState = IdeState.InitialIdeState(compilationInput);
     latestIdeState = initialIdeState;
@@ -168,7 +165,13 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   private ExecutionEngine GetBoogie() {
-    return boogieEngine ?? new ExecutionEngine(options, cache, scheduler);
+    if (options.Get(ReuseSolvers)) {
+      boogieEngine ??= new ExecutionEngine(options, cache, scheduler);
+    } else {
+      boogieEngine?.Dispose();
+      boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    }
+    return boogieEngine;
   }
 
   private void UpdateRecentChanges(DidChangeTextDocumentParams changes, Migrator? migrator) {
