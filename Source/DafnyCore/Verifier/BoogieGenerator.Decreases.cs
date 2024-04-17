@@ -93,7 +93,7 @@ public partial class BoogieGenerator {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
     builder.Add(Assert(tok, decrExpr, new
-      PODesc.Terminates(inferredDecreases, false, allowance,
+      PODesc.Terminates(inferredDecreases, null, allowance,
                         oldExpressions, newExpressions, hint)));
   }
 

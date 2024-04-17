@@ -628,17 +628,18 @@ public class Terminates : ProofObligationDescription {
   public override string ShortDescription => "termination";
 
   private readonly bool inferredDescreases;
-  private readonly bool isLoop;
+  private bool isLoop => prevGhostLocals is not null;
   private readonly string hint;
   private string FormDescription => isLoop ? "expression" : "clause";
 
   private readonly Expression allowance;
   private readonly List<Expression> oldExpressions;
   private readonly List<Expression> newExpressions;
+  private readonly List<VarDeclStmt> prevGhostLocals;
 
-  public Terminates(bool inferredDescreases, bool isLoop, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
     this.inferredDescreases = inferredDescreases;
-    this.isLoop = isLoop;
+    this.prevGhostLocals = prevGhostLocals;
     this.allowance = allowance;
     this.oldExpressions = oldExpressions;
     this.newExpressions = newExpressions;

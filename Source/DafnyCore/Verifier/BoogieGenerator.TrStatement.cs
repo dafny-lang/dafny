@@ -1550,23 +1550,22 @@ namespace Microsoft.Dafny {
           var types = new List<Type>();
           var decrs = new List<Expr>();
           var oldDecreases = new List<Expression>();
+          var prevGhostLocals = new List<VarDeclStmt>();
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
             types.Add(e.Type.NormalizeExpand());
-            // Note: this label doesn't exist in the program, and is useful
-            // only for explanatory purposes.
-            var olde = new OldExpr(e.tok, e, "LoopEntry") {
-              Type = e.Type
-            };
+            // Note: the label "LoopEntry" doesn't exist in the program, and is
+            // useful only for explanatory purposes.
+            var (vars, olde) = TranslateToLoopEntry(s.Mod, e, "LoopEntry");
             oldDecreases.Add(olde);
+            prevGhostLocals.AddRange(vars);
             decrs.Add(etran.TrExpr(e));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
             loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new
-              PODesc.Terminates(s.InferredDecreases, true, null,
-                                oldDecreases, theDecreases)));
+              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, oldDecreases, theDecreases)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1591,6 +1590,30 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
+    }
+
+    // Return the version of e that holds at the beginnging of the loop,
+    // Along with the local variable assignments that need to happen at
+    // the beginning of the loop for it to be valid.
+    private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(Specification<FrameExpression> mod, Expression e, string loopLabel) {
+      var prevGhostLocals = new List<VarDeclStmt>();
+      Expression olde = new OldExpr(e.tok, e, "LoopEntry") {
+        Type = e.Type
+      };
+
+      foreach (var x in mod.Expressions) {
+        if (x.E is IdentifierExpr { Var: LocalVariable v }) {
+          var prevName = $"prev_{v.Name}";
+          var prevVar = new LocalVariable(RangeToken.NoToken, prevName, v.Type, true);
+          var declStmt = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, x.E);
+          prevGhostLocals.Add(declStmt);
+          var prevExpr = new IdentifierExpr(x.E.tok, prevVar);
+          olde = Substitute(olde, v, prevExpr);
+        }
+      }
+
+      return (prevGhostLocals, olde);
+
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
