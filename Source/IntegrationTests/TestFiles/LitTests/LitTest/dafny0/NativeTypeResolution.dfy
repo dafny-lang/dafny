@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %build --show-inference --target cs "%s" > "%t"
+// RUN: %exits-with 2 %build --show-hints --target cs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype V = x | 0 <= x < 200  // byte

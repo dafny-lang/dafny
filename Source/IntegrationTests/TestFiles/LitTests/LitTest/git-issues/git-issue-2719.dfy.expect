@@ -1,1 +1,2 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 *** Error: file foobar.dll not found
