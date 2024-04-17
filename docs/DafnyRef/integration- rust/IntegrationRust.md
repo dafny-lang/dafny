@@ -34,7 +34,7 @@ Primitive types like `bool`, `u8`, `i8`, `u16`... but also any references `& T`,
 Move semantics are the default for any type that does not implement the `Copy` trait.
 
 Dafny has only Copy semantics, which as said offer a straight encoding for primitive types and reference types.
-However, immutable types and datatypes are a bit harder, because variable containing them would have
+However, immutable types and datatypes are a bit harder, because variables containing them would have
 move semantics by default. Fortunately, there exist a method `Cloneable::clone(&self)` that borrows an object of a struct or enum that implements the trait `Clone` and can create a duplicate. That method is a no-op for types implementing the `Copy` trait.
 
 Hence, whenever a variable with move semantics (borrowed or owned) is used in a place that expects an owned value (such as an addition), Dafny inserts a `.Clone()` call in Rust so that the result can be used independently of the variable. Moreover, to pass a variable to any function, it must be either borrowed (prefixed with `&`) or cloned, unless Dafny could theoretically determine it's the last occurrence of this variable.
