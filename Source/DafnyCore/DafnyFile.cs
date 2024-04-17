@@ -69,24 +69,24 @@ public class DafnyFile {
 
     var filePathForErrors = options.GetPrintPath(filePath);
     if (uri.Scheme == "stdin") {
-      return HandleStandardInput(options, uri, origin, extension, options);
+      return HandleStandardInput(options, uri, origin, extension);
     }
 
     if (uri.Scheme == "untitled" || extension == ".dfy" || extension == ".dfyi") {
-      return HandleDafnyFile(options, reporter, fileSystem, uri, 
-        origin, extension, canonicalPath, baseName, filePathForErrors, options);
+      return HandleDafnyFile(options, fileSystem, reporter,
+        uri, origin, extension, canonicalPath, baseName, filePathForErrors, options);
     }
-    
+
     if (extension == DooFile.Extension) {
-      return await HandleDooFile(options, reporter, fileSystem, 
-        uri, origin, filePathForErrors, filePath, extension, canonicalPath, baseName);
+      return await HandleDooFile(options, fileSystem,
+        reporter, uri, origin, filePathForErrors, filePath, extension, canonicalPath, baseName);
     }
 
     if (extension == ".dll") {
       return HandleDll(options, uri, origin, filePath, extension, canonicalPath, baseName);
     }
     if (extension == DafnyProject.Extension) {
-      return await HandleDafnyProject(options, fileSystem, uri, origin, extension, canonicalPath, baseName);
+      return await HandleDafnyProject(options, fileSystem, reporter, uri, origin, extension, canonicalPath, baseName);
     }
     if (errorOnNotRecognized != null) {
       reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
@@ -94,11 +94,11 @@ public class DafnyFile {
     return null;
   }
 
-  private static DafnyFile HandleDafnyFile(DafnyOptions options, ErrorReporter reporter, IFileSystem fileSystem,
+  private static DafnyFile HandleDafnyFile(DafnyOptions options, IFileSystem fileSystem,
+    ErrorReporter reporter,
     Uri uri,
     IToken origin, string extension, string canonicalPath, string baseName, string filePathForErrors,
-    DafnyOptions parseOptions)
-  {
+    DafnyOptions parseOptions) {
     if (!fileSystem.Exists(uri)) {
       if (0 < options.VerifySnapshots) {
         // For snapshots, we first create broken DafnyFile without content,
@@ -117,13 +117,11 @@ public class DafnyFile {
     };
   }
 
-  private static DafnyFile HandleStandardInput(DafnyOptions options, Uri uri, IToken origin, string extension,
-    DafnyOptions parseOptions)
-  {
+  private static DafnyFile HandleStandardInput(DafnyOptions options, Uri uri, IToken origin, string extension) {
     return new DafnyFile(extension, "<stdin>", "<stdin>", () => options.Input, uri, origin) {
       IsPrecompiled = false,
       IsPreverified = false,
-      ParseOptions = parseOptions,
+      ParseOptions = options,
     };
   }
 
@@ -132,8 +130,7 @@ public class DafnyFile {
   /// </summary>
   private static DafnyFile HandleDll(DafnyOptions parseOptions, Uri uri, IToken origin, string filePath,
     string extension, string canonicalPath,
-    string baseName)
-  {
+    string baseName) {
     var sourceText = GetDafnySourceAttributeText(filePath);
     if (sourceText == null) {
       return null;
@@ -146,10 +143,11 @@ public class DafnyFile {
     };
   }
 
-  private static async Task<DafnyFile> HandleDafnyProject(DafnyOptions options, IFileSystem fileSystem, Uri uri,
+  private static async Task<DafnyFile> HandleDafnyProject(DafnyOptions options,
+    IFileSystem fileSystem, ErrorReporter reporter,
+    Uri uri,
     IToken origin,
-    string extension, string canonicalPath, string baseName)
-  {
+    string extension, string canonicalPath, string baseName) {
     var project = await DafnyProject.Open(fileSystem, options, uri);
     var roots = project.GetRootSourceUris(fileSystem).ToList();
 
@@ -160,18 +158,23 @@ public class DafnyFile {
       }
     }
 
+    var libraryOptions = DooFile.CompareOptions(reporter, uri.LocalPath, options, origin, project.Options);
+    if (libraryOptions == null) {
+      return null;
+    }
+
     var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
     return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin) {
       IsPrecompiled = false,
       IsPreverified = false,
-      ParseOptions = options,
+      ParseOptions = libraryOptions,
     };
   }
 
-  private static async Task<DafnyFile> HandleDooFile(DafnyOptions options, ErrorReporter reporter,
-    IFileSystem fileSystem, Uri uri,
-    IToken origin, string filePathForErrors, string filePath, string extension, string canonicalPath, string baseName)
-  {
+  private static async Task<DafnyFile> HandleDooFile(DafnyOptions options,
+    IFileSystem fileSystem, ErrorReporter reporter,
+    Uri uri,
+    IToken origin, string filePathForErrors, string filePath, string extension, string canonicalPath, string baseName) {
     DooFile dooFile;
     if (uri.Scheme == "dllresource") {
       var assembly = Assembly.Load(uri.Host);

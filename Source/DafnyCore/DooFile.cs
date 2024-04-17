@@ -139,6 +139,14 @@ public class DooFile {
       return null;
     }
 
+    var secondOptions = Manifest.Options;
+
+    return CompareOptions(reporter, filePath, options, origin, secondOptions);
+  }
+
+  public static DafnyOptions CompareOptions(ErrorReporter reporter, string libraryFile,
+    DafnyOptions options, IToken origin,
+    Dictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
@@ -153,7 +161,7 @@ public class DooFile {
       var localValue = options.Get(option);
 
       object libraryValue = null;
-      if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
+      if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
         if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return null;
@@ -164,7 +172,7 @@ public class DooFile {
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      success = success && check(reporter, origin, option, localValue, filePath, libraryValue);
+      success = success && check(reporter, origin, option, localValue, libraryFile, libraryValue);
     }
 
     if (!success) {
