@@ -1601,6 +1601,10 @@ namespace Microsoft.Dafny {
         Type = e.Type
       };
 
+      if (mod is null || mod.Expressions is null) {
+        return (prevGhostLocals, olde);
+      }
+
       foreach (var x in mod.Expressions) {
         if (x.E is IdentifierExpr { Var: LocalVariable v }) {
           var prevName = $"prev_{v.Name}";
