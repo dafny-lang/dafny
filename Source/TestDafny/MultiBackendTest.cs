@@ -120,7 +120,8 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).
+      Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(
@@ -243,7 +244,7 @@ public class MultiBackendTest {
       $"--print:{tmpDPrint}",
       options.OtherArgs.Any(option => option.StartsWith("--print")) ? "" : $"--rprint:{tmpRPrint}",
       $"--bprint:{tmpPrint}"
-    }.Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
       new("legacy", new string[] { }, new string[] { ".expect" },
@@ -325,7 +326,7 @@ public class MultiBackendTest {
       $"--target:{backend.TargetId}",
       $"--build:{tempOutputDirectory}",
       options.TestFile!,
-    }.Concat(options.OtherArgs);
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs);
     if (!includeRuntime) {
       // We have to provide the path to DafnyRuntime.dll manually, since the program will be run
       // in the directory containing the DLL built from Dafny code, not the Dafny distribution.
@@ -355,7 +356,7 @@ public class MultiBackendTest {
     }
 
     // If we hit errors, check for known unsupported features or bugs for this compilation target
-    if (error == "" && HasUnsupported(backend, outputString)) {
+    if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
       return 0;
     }
 
@@ -396,10 +397,9 @@ public class MultiBackendTest {
   }
 
   private static async Task<(int, string, string)> RunDafny(IEnumerable<string> arguments) {
-    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, argumentsWithDefaults.ToArray());
+    var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(outputWriter, errorWriter, TextReader.Null, arguments.ToArray());
     var outputString = outputWriter.ToString();
     var error = errorWriter.ToString();
     return (exitCode, outputString, error);
@@ -410,49 +410,12 @@ public class MultiBackendTest {
       return await RunDafny(arguments);
     }
 
-    var argumentsWithDefaults = arguments.Concat(DafnyCliTests.NewDefaultArgumentsForTesting);
-    ILitCommand command = new ShellLitCommand(dafnyCliPath, argumentsWithDefaults, DafnyCliTests.ReferencedEnvironmentVariables);
+    ILitCommand command = new ShellLitCommand(dafnyCliPath, arguments, DafnyCliTests.ReferencedEnvironmentVariables);
 
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
     var exitCode = await command.Execute(TextReader.Null, outputWriter, errorWriter);
     return (exitCode, outputWriter.ToString(), errorWriter.ToString());
-  }
-
-  private static bool HasUnsupported(IExecutableBackend backend, string output) {
-    using StringReader sr = new StringReader(output);
-    if (output == "") {
-      return false;
-    }
-    while (sr.ReadLine() is { } line) {
-      if (IsSupportedFeatureLine(backend, line)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private static bool IsSupportedFeatureLine(IExecutableBackend backend, string line) {
-    line = line.Trim();
-    if (line.Length == 0) {
-      return true;
-    }
-
-    var prefixIndex = line.IndexOf(UnsupportedFeatureException.MessagePrefix, StringComparison.Ordinal);
-    if (prefixIndex < 0) {
-      return false;
-    }
-
-    var featureDescription = line[(prefixIndex + UnsupportedFeatureException.MessagePrefix.Length)..];
-    var feature = FeatureDescriptionAttribute.ForDescription(featureDescription);
-    if (backend.UnsupportedFeatures.Contains(feature)) {
-      return true;
-    }
-
-    // This is an internal inconsistency error
-    throw new Exception(
-      $"Compiler rejected feature '{feature}', which is not an element of its UnsupportedFeatures set");
   }
 
   private static bool OnlyAllowedOutputLines(IExecutableBackend backend, string output) {

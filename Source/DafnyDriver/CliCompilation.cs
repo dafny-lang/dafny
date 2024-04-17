@@ -236,24 +236,11 @@ public class CliCompilation {
     foreach (var canVerify in orderedCanVerifies) {
       var results = canVerifyResults[canVerify];
       try {
-        var timeLimitSeconds = TimeSpan.FromSeconds(Options.Get(BoogieOptionBag.VerificationTimeLimit));
-        var tasks = new List<Task> { results.Finished.Task };
-        if (timeLimitSeconds.Seconds != 0) {
-          tasks.Add(Task.Delay(timeLimitSeconds));
-        }
-
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           await Options.OutputWriter.WriteLineAsync($"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
         }
-        await Task.WhenAny(tasks);
-        done++;
-        if (!results.Finished.Task.IsCompleted) {
-          Compilation.Reporter.Error(MessageSource.Verifier, canVerify.Tok,
-            "Dafny encountered an internal error while waiting for this symbol to verify. Please report it at <https://github.com/dafny-lang/dafny/issues>.\n");
-          break;
-        }
-
         await results.Finished.Task;
+        done++;
       } catch (ProverException e) {
         Compilation.Reporter.Error(MessageSource.Verifier, ResolutionErrors.ErrorId.none, canVerify.Tok, e.Message);
         yield break;

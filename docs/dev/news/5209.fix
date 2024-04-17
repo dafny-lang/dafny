@@ -1,0 +1,1 @@
+No longer emit an incorrect internal error while waiting for verification message

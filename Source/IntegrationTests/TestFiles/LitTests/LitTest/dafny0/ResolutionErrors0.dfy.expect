@@ -22,11 +22,8 @@ ResolutionErrors0.dfy(116,11): Error: ghost variables such as g are allowed only
 ResolutionErrors0.dfy(117,11): Error: a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
 ResolutionErrors0.dfy(121,13): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(122,12): Error: actual out-parameter is required to be a ghost variable
-ResolutionErrors0.dfy(129,17): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(133,25): Error: ghost variables such as g are allowed only in specification contexts. g was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(140,6): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors0.dfy(144,23): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
-ResolutionErrors0.dfy(145,37): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors0.dfy(154,12): Error: only ghost methods can be called from this context
 ResolutionErrors0.dfy(244,29): Error: ghost-context break statement is not allowed to break out of non-ghost structure
 ResolutionErrors0.dfy(267,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
@@ -67,4 +64,7 @@ ResolutionErrors0.dfy(445,10): Error: a hint is not allowed to make heap updates
 ResolutionErrors0.dfy(447,10): Error: a hint is not allowed to update a variable it doesn't declare
 ResolutionErrors0.dfy(468,4): Error: More than one anonymous constructor
 ResolutionErrors0.dfy(481,15): Error: class Lamb does not have an anonymous constructor
+ResolutionErrors0.dfy(532,15): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(540,21): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
+ResolutionErrors0.dfy(541,35): Error: ghost variables such as gg are allowed only in specification contexts. gg was inferred to be ghost based on its declaration or initialization.
 68 resolution/type errors detected in ResolutionErrors0.dfy
