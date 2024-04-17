@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
 
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
-      var formals = f.Formals.ConvertAll(p => CloneFormal(p, false));
+      var formals = f.Ins.ConvertAll(p => CloneFormal(p, false));
       var result = f.Result != null ? CloneFormal(f.Result, false) : null;
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = CloneSpecFrameExpr(f.Reads);

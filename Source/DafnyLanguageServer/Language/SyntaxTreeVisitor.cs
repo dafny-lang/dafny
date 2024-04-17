@@ -120,7 +120,7 @@
       foreach (var typeArgument in function.TypeArgs) {
         Visit(typeArgument);
       }
-      foreach (var formal in function.Formals) {
+      foreach (var formal in function.Ins) {
         Visit(formal);
       }
       if (function.Result != null) {

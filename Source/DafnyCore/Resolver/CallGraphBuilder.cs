@@ -204,10 +204,10 @@ namespace Microsoft.Dafny {
       /// </summary>
       private bool IsFunctionReturnValue(Function fn, Expression receiver, List<Expression> args, CallGraphBuilderContext context) {
         if (context.CodeContext == fn && context.InFunctionPostcondition) {
-          Contract.Assert(fn.Formals.Count == args.Count);
+          Contract.Assert(fn.Ins.Count == args.Count);
           return
             (fn.IsStatic || receiver.Resolved is ThisExpr) &&
-            Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Formals[i]);
+            Enumerable.Range(0, args.Count).All(i => (args[i].Resolved as IdentifierExpr)?.Var == fn.Ins[i]);
         }
         return false;
       }

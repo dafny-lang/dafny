@@ -108,9 +108,9 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       }
 
     } else if (expr is FunctionCallExpr functionCallExpr) {
-      Contract.Assert(functionCallExpr.Args.Count == functionCallExpr.Function.Formals.Count);
+      Contract.Assert(functionCallExpr.Args.Count == functionCallExpr.Function.Ins.Count);
       for (var i = 0; i < functionCallExpr.Args.Count; i++) {
-        var formal = functionCallExpr.Function.Formals[i];
+        var formal = functionCallExpr.Function.Ins[i];
         var actual = functionCallExpr.Args[i];
         flows.Add(new FlowBetweenComputedTypes(() => {
           var typeMap = functionCallExpr.TypeArgumentSubstitutionsWithParents();

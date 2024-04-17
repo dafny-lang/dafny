@@ -723,7 +723,7 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public static Expression CreateResolvedCall(IToken tok, Expression receiver, Function function, List<Expression> arguments,
     List<Type> typeArguments, SystemModuleManager systemModuleManager) {
-    Contract.Requires(function.Formals.Count == arguments.Count);
+    Contract.Requires(function.Ins.Count == arguments.Count);
     Contract.Requires(function.TypeArgs.Count == typeArguments.Count);
 
     var call = new FunctionCallExpr(tok, function.Name, receiver, tok, tok, arguments) {

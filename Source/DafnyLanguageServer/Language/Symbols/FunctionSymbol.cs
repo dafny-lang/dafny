@@ -32,7 +32,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     public string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
-      return $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Formals.AsCommaSeperatedText()}): {Declaration.ResultType.AsText(options)}";
+      return $"{Declaration.WhatKind} {TypePrefix}{Declaration.Name}({Declaration.Ins.AsCommaSeperatedText()}): {Declaration.ResultType.AsText(options)}";
     }
 
     public override TResult Accept<TResult>(ISymbolVisitor<TResult> visitor) {

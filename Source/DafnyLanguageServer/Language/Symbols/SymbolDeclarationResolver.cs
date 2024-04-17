@@ -104,7 +104,7 @@ internal class SymbolDeclarationResolver {
 
   private FunctionSymbol ProcessFunction(Symbol scope, Function function) {
     var functionSymbol = new FunctionSymbol(scope, function);
-    foreach (var parameter in function.Formals) {
+    foreach (var parameter in function.Ins) {
       cancellationToken.ThrowIfCancellationRequested();
       functionSymbol.Parameters.Add(ProcessFormal(scope, parameter));
     }

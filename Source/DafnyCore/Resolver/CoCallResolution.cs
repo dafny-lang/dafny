@@ -120,10 +120,10 @@ class CoCallResolution {
       if (!Attributes.ContainsBool(e.Function.Attributes, "abstemious", ref abstemious)) {
         abstemious = false;
       }
-      Contract.Assert(e.Args.Count == e.Function.Formals.Count);
+      Contract.Assert(e.Args.Count == e.Function.Ins.Count);
       for (var i = 0; i < e.Args.Count; i++) {
         var arg = e.Args[i];
-        if (!e.Function.Formals[i].Type.IsCoDatatype) {
+        if (!e.Function.Ins[i].Type.IsCoDatatype) {
           CheckCoCalls(arg, int.MaxValue, null, coCandidates);
         } else if (abstemious) {
           CheckCoCalls(arg, 0, coContext, coCandidates);

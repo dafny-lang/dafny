@@ -924,7 +924,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (f is ExtremePredicate) {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
-        PrintFormals(f.Formals, f, f.Name);
+        PrintFormals(f.Ins, f, f.Name);
         if (f.Result != null || (f is not Predicate && f is not ExtremePredicate && f is not TwoStatePredicate && f is not PrefixPredicate)) {
           wr.Write(": ");
           if (f.Result != null) {

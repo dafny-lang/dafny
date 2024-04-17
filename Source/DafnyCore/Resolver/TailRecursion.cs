@@ -424,8 +424,8 @@ class TailRecursion {
     if (expr is FunctionCallExpr) {
       var e = (FunctionCallExpr)expr;
       var status = e.Function == enclosingFunction ? Function.TailStatus.TailRecursive : Function.TailStatus.TriviallyTailRecursive;
-      for (var i = 0; i < e.Function.Formals.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost) {
+      for (var i = 0; i < e.Function.Ins.Count; i++) {
+        if (!e.Function.Ins[i].IsGhost) {
           var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
           status = TRES_Or(status, s);
         }
@@ -614,8 +614,8 @@ class TailRecursion {
         status = Function.TailStatus.NotTailRecursive;
       }
       // skip ghost subexpressions
-      for (var i = 0; i < e.Function.Formals.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost) {
+      for (var i = 0; i < e.Function.Ins.Count; i++) {
+        if (!e.Function.Ins[i].IsGhost) {
           var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
           status = TRES_Or(status, s);
         }

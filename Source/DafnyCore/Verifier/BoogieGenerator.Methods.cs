@@ -894,7 +894,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(sink != null && predef != null);
       Contract.Requires(f.OverriddenFunction != null);
-      Contract.Requires(f.Formals.Count == f.OverriddenFunction.Formals.Count);
+      Contract.Requires(f.Ins.Count == f.OverriddenFunction.Ins.Count);
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
 
@@ -936,7 +936,7 @@ namespace Microsoft.Dafny {
         Boogie.Formal thVar = new Boogie.Formal(f.tok, new Boogie.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
-      foreach (Formal p in f.Formals) {
+      foreach (Formal p in f.Ins) {
         Boogie.Type varType = TrType(p.Type);
         Boogie.Expr wh = GetWhereClause(p.tok, new Boogie.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
         inParams.Add(new Boogie.Formal(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
@@ -1002,7 +1002,7 @@ namespace Microsoft.Dafny {
       }
 
       var substMap = new Dictionary<IVariable, Expression>();
-      foreach (var (formal, overriddenFormal) in f.Formals.Zip(f.OverriddenFunction.Formals, Tuple.Create)) {
+      foreach (var (formal, overriddenFormal) in f.Ins.Zip(f.OverriddenFunction.Ins, Tuple.Create)) {
         // get corresponding formal in the class
         var ie = new IdentifierExpr(formal.tok, formal.AssignUniqueName(f.IdGenerator)) { Var = formal, Type = formal.Type };
         substMap.Add(overriddenFormal, ie);
@@ -1053,7 +1053,7 @@ namespace Microsoft.Dafny {
       Dictionary<TypeParameter, Type> typeMap,
       List<Bpl.Variable> implInParams,
       Bpl.Variable/*?*/ resultVariable) {
-      Contract.Requires(f.Formals.Count <= implInParams.Count);
+      Contract.Requires(f.Ins.Count <= implInParams.Count);
 
       //generating class post-conditions
       foreach (var en in f.Ens) {
@@ -1301,7 +1301,7 @@ namespace Microsoft.Dafny {
 
       // Add other arguments
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
-      foreach (Formal p in f.Formals) {
+      foreach (Formal p in f.Ins) {
         var pType = p.Type.Subst(typeMap);
         var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);

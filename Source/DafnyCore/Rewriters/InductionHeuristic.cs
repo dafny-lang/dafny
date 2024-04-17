@@ -69,9 +69,9 @@ public static class InductionHeuristic {
       if (VarOccursInArgumentToRecursiveFunction(options, e.Receiver, n, variantArgument || subExprIsProminent)) {
         return true;
       }
-      Contract.Assert(e.Function.Formals.Count == e.Args.Count);
-      for (int i = 0; i < e.Function.Formals.Count; i++) {
-        var f = e.Function.Formals[i];
+      Contract.Assert(e.Function.Ins.Count == e.Args.Count);
+      for (int i = 0; i < e.Function.Ins.Count; i++) {
+        var f = e.Function.Ins[i];
         var exp = e.Args[i];
         if (options.InductionHeuristic < 6) {
           variantArgument = rec;
