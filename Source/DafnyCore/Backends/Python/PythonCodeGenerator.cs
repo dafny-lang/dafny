@@ -862,7 +862,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      if (UnicodeCharEnabled && arg.Type.IsStringType) {
+      if (UnicodeCharEnabled && DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType) {
         TrParenExpr(arg, wr, false, wStmts);
         wr.Write(".VerbatimString(False)");
       } else {
