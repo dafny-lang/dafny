@@ -36,13 +36,13 @@ namespace Microsoft.Dafny.Compilers {
       return res;
     }
 
-    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, bool preventShadowing, bool supportsUncompilableCode) : base(options, reporter) {
+    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, bool preventShadowing, bool canEmitUncompilableCode) : base(options, reporter) {
       options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
 
-      emitUncompilableCode = options.EmitUncompilableCode && supportsUncompilableCode;
+      emitUncompilableCode = options.Get(CommonOptionBag.EmitUncompilableCode) && canEmitUncompilableCode;
       this.preventShadowing = preventShadowing;
     }
 
@@ -190,11 +190,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in typeParameters) {
           var compileName = IdProtect(tp.GetCompileName(Options));
           if (!isTpSupported(tp, out var why)) {
-            if (emitUncompilableCode) {
-              compileName += $"{why}";
-            } else {
-              throw new UnsupportedInvalidOperationException(why);
-            }
+            AddUnsupported(why);
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
@@ -247,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in dt.TypeArgs) {
           var compileName = IdProtect(tp.GetCompileName(Options));
           if (!isTpSupported(tp, out var why) && !(dt is TupleTypeDecl)) {
-            compileName += $"({why})";
+            AddUnsupported(why);
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
@@ -387,11 +383,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in sst.TypeArgs) {
           var compileName = tp.Name;
           if (!isTpSupported(tp, out var why)) {
-            if (emitUncompilableCode) {
-              compileName += $"({why})";
-            } else {
-              throw new UnsupportedInvalidOperationException(why);
-            }
+            AddUnsupported(why);
           }
 
           typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
@@ -433,11 +425,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var typeArg in typeArgs) {
           var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
           if (!isTpSupported(typeArg.Formal, out var why)) {
-            if (compiler.emitUncompilableCode) {
-              compileName += $"({why})";
-            } else {
-              throw new UnsupportedInvalidOperationException(why);
-            }
+            compiler.AddUnsupported(why);
           }
 
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
@@ -494,7 +482,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var typeArg in typeArgs) {
           var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
           if (!isTpSupported(typeArg.Formal, out var why)) {
-            compileName += $"({why})";
+            compiler.AddUnsupported(why);
           }
 
           astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));

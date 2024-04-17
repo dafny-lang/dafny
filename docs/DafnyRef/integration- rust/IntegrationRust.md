@@ -43,7 +43,7 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
 - Function parameters always take primitive types without borrowing them (`bool`, `u32`, etc.) 
 - Function parameters always borrows variables of other types (`DafnyString`, structs, etc.), because
   borrowing is always cheaper than cloning for non-Copy types.  
-  Open question: There are at least two more alternatives make
+  Open question: There are at least two more possible alternatives
   - We could actually have parameters be always owned, which require `.clone()` also to be used at the call site
   - We could have parameter attributes like `{:rc_owned true}` so that users can choose which API to precisely give to their functions.
 - Functions always return an owned type, otherwise we would need to have an automated theory about lifetimes of returned borrowed references, which Dafny does not support. Moreover, borrowing a variable makes its lifetime not `'static`, so it's not possible to use that trait.
@@ -75,6 +75,7 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
 |                               | or optimized to `u8`..`i128`|
 | `(T1, T2...)`                 | `(T1, T2...)`               |
 | `array<T>`                    | `*mut [T]`                  |
+| `array2<T>`                   | `*mut array2<T>`            |
 | `seq<T>`                      | `Sequence<T: DafnyType>` (*)|
 | `set<T>`, `iset<T>`           | `Set<T: DafnyTypeEq>` (*)      |
 | `multiset<T>`                 | `MultiSet<T: DafnyTypeEq>` (*) |
