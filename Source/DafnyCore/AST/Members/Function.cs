@@ -317,6 +317,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     });
 
     DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
+    DooFile.RegisterLibraryCheck(AllowExternalFunction, DooFile.CheckOptionLibraryImpliesLocal);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -359,6 +360,17 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   protected override bool Bodyless => Body == null;
   protected override string TypeName => "function";
 
+  public static readonly Option<bool> AllowExternalFunction = new("--allow-external-function",
+    "When false, a warning is emitted for functions marked with the {:extern} attribute. Dafny warns about such functions because a function can always be implemented in pure Dafny code. Using an externally implemented function may improve performance or reduce development time, but means less code is verified");
+
+  public void ResolveNewOrOldPart(INewOrOldResolver resolver) {
+    if (!resolver.Options.Get(AllowExternalFunction) && Bodyless && this.IsExtern(resolver.Options)) {
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
+        $"Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists");
+    }
+    ResolveMethodOrFunction(resolver);
+  }
+
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
@@ -367,7 +379,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    base.Resolve(resolver);
+    ResolveNewOrOldPart(resolver);
 
     // make note of the warnShadowing attribute
     bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
