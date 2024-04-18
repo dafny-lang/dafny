@@ -340,7 +340,6 @@ public class MultiBackendTest {
 
     var (exitCode, outputString, error) = await RunDafny(options.DafnyCliPath, dafnyArgs);
     var compilationOutputPrior = new Regex("\r?\nDafny program verifier[^\r\n]*\r?\n").Match(outputString);
-
     if (compilationOutputPrior.Success) {
       outputString = outputString.Remove(0, compilationOutputPrior.Index + compilationOutputPrior.Length);
     }
@@ -373,11 +372,6 @@ public class MultiBackendTest {
       }
 
       return checkResult;
-    }
-
-    // If we hit errors, check for known unsupported features or bugs for this compilation target
-    if (error == "" && OnlyAllowedOutputLines(backend, outputString)) {
-      return 0;
     }
 
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
