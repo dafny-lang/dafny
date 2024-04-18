@@ -338,9 +338,6 @@ namespace Microsoft.Dafny {
 
       var translationConfigOutput = options.Get(CommonOptionBag.TranslationConfigOutput);
       if (translationConfigOutput != null) {
-        // TODO: Recalculating because dafnyProgram.TranslationConfig already merged
-        // all the --library-translation-config files,
-        // which seems silly.
         var translationConfig = new TranslationConfig(dafnyProgram);
         await using var writer = new StreamWriter(translationConfigOutput.FullName);
         // TODO: Make async
