@@ -471,7 +471,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public string Designator => WhatKind;
 
   public void ResolveNewOrOldPart(INewOrOldResolver resolver) {
-    if (HasPostcondition && Bodyless && this.IsExtern(resolver.Options)) {
+    if (!resolver.Options.Get(AllowExternalContracts) && HasPostcondition && Bodyless && this.IsExtern(resolver.Options)) {
       resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
         $"A {WhatKind} that is imported, meaning it has no body and an {{:extern}} annotation, " +
         $"may not have post-conditions or have subset types as outputs.");

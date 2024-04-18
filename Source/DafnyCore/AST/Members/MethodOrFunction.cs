@@ -1,10 +1,18 @@
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
-using RAST;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
 public abstract class MethodOrFunction : MemberDecl {
+  public static readonly Option<bool> AllowExternalContracts = new("--allow-external-contracts",
+    "Allow exporting callables with preconditions, and importing callables with postconditions");
+
+  static MethodOrFunction() {
+    DooFile.RegisterLibraryCheck(AllowExternalContracts, DooFile.CheckOptionLibraryImpliesLocal);
+  }
+
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
@@ -43,7 +51,7 @@ public abstract class MethodOrFunction : MemberDecl {
   }
 
   public void ResolveMethodOrFunction(INewOrOldResolver resolver) {
-    if (HasPrecondition && !Bodyless && this.IsExtern(resolver.Options)) {
+    if (!resolver.Options.Get(AllowExternalContracts) && HasPrecondition && !Bodyless && this.IsExtern(resolver.Options)) {
       resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
         $"A {WhatKind} that is exported, meaning it has a body and an {{:extern}} annotation, " +
         $"may not have preconditions or take subset types as inputs.");

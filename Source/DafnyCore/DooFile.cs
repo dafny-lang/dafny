@@ -301,12 +301,16 @@ public class DooFile {
     return value.ToString();
   }
 
+  public static void RegisterLibraryCheck(Option option, OptionCheck check) {
+    if (NoChecksNeeded.Contains(option)) {
+      throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
+    }
+    OptionChecks.Add(option, check);
+  }
+
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
     foreach (var (option, check) in checks) {
-      if (NoChecksNeeded.Contains(option)) {
-        throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-      }
-      OptionChecks.Add(option, check);
+      RegisterLibraryCheck(option, check);
     }
   }
 
