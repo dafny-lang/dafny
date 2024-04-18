@@ -50,6 +50,10 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   protected void ProcessOuterModules(Program dafnyProgram) {
+    
+    // TODO: insert outer modules above modules from libraries as well
+    // according to dafnyProgram.Compilation.TranslationConfig.
+    
     var outerModules = GetOuterModules();
     ModuleDefinition rootUserModule = null;
     foreach (var outerModule in outerModules) {
