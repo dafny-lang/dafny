@@ -742,7 +742,7 @@ namespace Microsoft.Dafny.Compilers {
                     var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
                       constructTypeParameterDefaultsFromTypeDescriptors);
                     // The final TypeArg contains the result type
-                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => $"x{i}");
+                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => idGenerator.FreshId("x"));
                     return $"(lambda {arguments}: {rangeDefaultValue})";
                   default:
                     return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue,
