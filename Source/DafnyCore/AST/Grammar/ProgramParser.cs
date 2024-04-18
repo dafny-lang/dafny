@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -102,6 +103,14 @@ public class ProgramParser {
 
     ShowWarningsForIncludeCycles(program);
 
+    // TODO: Inside CompilationData constructor instead?
+    compilation.TranslationConfig = new TranslationConfig();
+    foreach (var path in options.Get(CommonOptionBag.LibraryTranslationConfig)) {
+      using var reader = new StreamReader(path.FullName);
+      var libraryConfig = TranslationConfig.Read(reader);
+      compilation.TranslationConfig.Merge(libraryConfig);
+    }
+    
     return program;
   }
 

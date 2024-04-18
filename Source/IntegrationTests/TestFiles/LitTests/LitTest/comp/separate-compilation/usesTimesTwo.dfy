@@ -2,10 +2,10 @@
 
 // C#
 
-// RUN: %baredafny translate cs %args --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy
+// RUN: %baredafny translate cs %args --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --outer-module Csharp --translation-config-output %S/Inputs/producer/tconfig.toml
 // RUN: dotnet build %S/Inputs/producer
 
-// RUN: %baredafny translate cs %args --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s
+// RUN: %baredafny translate cs %args --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s --library-translation-config %S/Inputs/producer/tconfig.toml
 
 // RUN: dotnet run --project %S/consumer > "%t"
 

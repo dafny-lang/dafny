@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using VC;
@@ -334,6 +335,18 @@ namespace Microsoft.Dafny {
       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(options);
       }
+
+      var translationConfigOutput = options.Get(CommonOptionBag.TranslationConfigOutput);
+      if (translationConfigOutput != null) {
+        // TODO: Recalculating because dafnyProgram.TranslationConfig already merged
+        // all the --library-translation-config files,
+        // which seems silly.
+        var translationConfig = new TranslationConfig(dafnyProgram);
+        await using var writer = new StreamWriter(translationConfigOutput.FullName);
+        // TODO: Make async
+        translationConfig.Write(writer);
+      }
+      
       return exitValue;
     }
 

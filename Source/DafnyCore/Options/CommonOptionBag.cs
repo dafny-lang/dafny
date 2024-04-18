@@ -357,6 +357,16 @@ Not compatible with the --unicode-char:false option.
     @"
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
+  
+  public static readonly Option<IList<FileInfo>> LibraryTranslationConfig = new("--library-translation-config", 
+    @"
+The translation configuration that was used for any --library code.".TrimStart()) {
+  };
+  
+  public static readonly Option<FileInfo> TranslationConfigOutput = new("--translation-config-output", 
+    @"
+Where to output the translation configuration file.".TrimStart()) {
+  };
 
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
@@ -634,7 +644,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       AddCompileSuffix,
       SystemModule,
       ExecutionCoverageReport,
-      ExtractCounterexample
+      ExtractCounterexample,
+      TranslationConfigOutput,
+      LibraryTranslationConfig
       );
   }
 
