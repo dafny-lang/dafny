@@ -86,7 +86,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
     var result = matcher.Execute(fileSystem.GetDirectoryInfoBase(searchRoot));
     var files = result.Files.Select(f => Path.Combine(searchRoot, f.Path));
-    return files.OrderBy(file => file).Select(file => new Uri(Path.GetFullPath(file)));
+    return files.OrderBy(file => file).Select(file => new Uri(Path.GetFullPath(file))).Where(uri => !uri.Equals(Uri));
   }
 
   public bool ContainsSourceFile(Uri uri) {
