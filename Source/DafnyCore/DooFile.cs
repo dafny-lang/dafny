@@ -150,13 +150,10 @@ public class DooFile {
   public static DafnyOptions CompareOptions(ErrorReporter reporter, string libraryFile,
     DafnyOptions options, IToken origin,
     Dictionary<string, object> libraryOptions) {
-    // For some reason, this line does not work but the next one does.
-    // var result = new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var option in relevantOptions) {
-
       var localValue = options.Get(option);
 
       object libraryValue = null;
@@ -167,12 +164,13 @@ public class DooFile {
         }
       } else {
         // Use default
-        //libraryValue = options.Options.OptionArguments[option]; //option.Parse("").GetValueForOption(option);
         libraryValue = option.Parse("").GetValueForOption(option);
       }
 
-      result.Options.OptionArguments[option] = libraryValue;
-      result.ApplyBinding(option);
+      if (ModuleLevelOptions.Contains(option)) {
+        result.Options.OptionArguments[option] = libraryValue;
+        result.ApplyBinding(option);
+      }
       var check = OptionChecks.GetValueOrDefault(option);
       if (check != null) {
         success = success && check(reporter, origin, option, localValue,
@@ -244,6 +242,7 @@ public class DooFile {
   public delegate bool OptionCheck(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue);
   private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
   private static readonly HashSet<Option> NoChecksNeeded = new();
+  private static readonly HashSet<Option> ModuleLevelOptions = new();
 
   public static bool CheckOptionMatches(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
     if (OptionValuesEqual(option, localValue, libraryValue)) {
@@ -315,12 +314,22 @@ public class DooFile {
     return value.ToString();
   }
 
+  public static void RegisterLibraryCheck(Option option, OptionCheck check) {
+    if (NoChecksNeeded.Contains(option)) {
+      throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
+    }
+    OptionChecks.Add(option, check);
+  }
+
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
     foreach (var (option, check) in checks) {
-      if (NoChecksNeeded.Contains(option)) {
-        throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-      }
-      OptionChecks.Add(option, check);
+      RegisterLibraryCheck(option, check);
+    }
+  }
+
+  public static void RegisterModuleLevelOptions(params Option[] options) {
+    foreach (var option in options) {
+      ModuleLevelOptions.Add(option);
     }
   }
 
