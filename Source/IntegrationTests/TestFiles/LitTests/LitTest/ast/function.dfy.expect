@@ -6,19 +6,15 @@ function.dfy(12,19): Warning: Function implemented externally. Read the document
 function.dfy(13,25): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 function.dfy(14,28): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 function.dfy(15,34): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(23,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
-function.dfy(27,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
-function.dfy(28,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, may not have preconditions or take subset types as inputs.
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 9 verified, 0 errors
 Compilation failed because warnings were found and --allow-warnings is false
 function.dfy(8,33): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(8,47): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(9,36): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(9,50): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-function.dfy(23,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 9 verified, 0 errors
 Compilation failed because warnings were found and --allow-warnings is false
 function.dfy(8,33): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(8,47): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
@@ -28,11 +24,8 @@ function.dfy(12,19): Warning: Function implemented externally. Read the document
 function.dfy(13,25): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 function.dfy(14,28): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 function.dfy(15,34): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(23,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
-function.dfy(27,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
-function.dfy(28,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, may not have preconditions or take subset types as inputs.
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 9 verified, 0 errors
 function.dfy(8,9): Error: Function _module._default.Compiled has no body so it cannot be compiled
 function.dfy(10,18): Error: Function _module._default.Axiom has no body so it cannot be compiled
 function.dfy(17,9): Error: Function _module._default.Fonk has no body so it cannot be compiled

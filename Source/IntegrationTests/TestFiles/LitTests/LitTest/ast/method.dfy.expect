@@ -1,18 +1,40 @@
-method.dfy(6,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(6,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(7,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(7,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(16,2): Warning: note, this loop has no body
+method.dfy(8,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(8,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(9,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(9,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(12,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(13,23): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(14,26): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(15,32): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(21,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+method.dfy(25,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(26,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, may not have preconditions or take subset types as inputs.
+method.dfy(18,2): Warning: note, this loop has no body
 
-Dafny program verifier finished with 1 verified, 0 errors
-method.dfy(6,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(6,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(7,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(7,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
-method.dfy(16,2): Warning: note, this loop has no body
+Dafny program verifier finished with 2 verified, 0 errors
+method.dfy(8,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(8,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(9,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(9,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(21,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+method.dfy(18,2): Warning: note, this loop has no body
 
-Dafny program verifier finished with 1 verified, 0 errors
-method.dfy(6,7): Error: Method _module._default.Compiled has no body so it cannot be compiled
-method.dfy(8,16): Error: Method _module._default.Axiom has no body so it cannot be compiled
-method.dfy(16,2): Error: a loop without a body cannot be compiled
+Dafny program verifier finished with 2 verified, 0 errors
+method.dfy(8,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(8,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(9,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(9,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(12,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(13,23): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(14,26): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(15,32): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(21,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
+method.dfy(25,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+method.dfy(26,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, may not have preconditions or take subset types as inputs.
+method.dfy(18,2): Warning: note, this loop has no body
+
+Dafny program verifier finished with 2 verified, 0 errors
+method.dfy(8,7): Error: Method _module._default.Compiled has no body so it cannot be compiled
+method.dfy(10,16): Error: Method _module._default.Axiom has no body so it cannot be compiled
+method.dfy(18,2): Error: a loop without a body cannot be compiled
 Translation was aborted because errors were found

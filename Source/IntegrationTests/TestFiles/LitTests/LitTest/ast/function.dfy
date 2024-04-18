@@ -1,5 +1,5 @@
 // RUN: ! %verify --allow-axioms:false --type-system-refresh "%s" &> "%t"
-// RUN: ! %verify --allow-axioms:false --type-system-refresh --allow-external-contracts --allow-external-function "%s" &>> "%t"
+// RUN: ! %verify --allow-axioms:false --type-system-refresh --allow-external-function "%s" &>> "%t"
 // NONUNIFORM: warning will be the same for all back-end
 // RUN: ! %run --allow-axioms:false "%s" &>> "%t"
 // RUN: %diff "%s.expect" "%t"
@@ -18,13 +18,4 @@ function Fonk(): int ensures {:axiom} false
 
 trait Far {
   function Foo(): int
-}
-
-method {:verify false} Brap() {
-  assert false;
-}
-
-method {:extern} Brrr() ensures false
-method {:extern} Booo() requires false {
-  assert false;
 }
