@@ -922,11 +922,11 @@ namespace Microsoft.Dafny.Compilers {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigNumber";
       } else if (xType.AsNewtype != null && member == null) {  // when member is given, use UserDefinedType case below
-        NativeType nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
+        var newtypeDecl = xType.AsNewtype;
+        if (newtypeDecl.NativeType is {} nativeType) {
           return GetNativeTypeName(nativeType);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok);
+        return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok);
       } else if (xType.IsObjectQ) {
         return "object";
       } else if (xType.IsArrayType) {
@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (td.NativeType != null) {
           return "0";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
