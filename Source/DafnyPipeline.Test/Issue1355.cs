@@ -21,7 +21,7 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public async Task Test() {
-      var options = DafnyOptions.Create(output);
+      var options = DafnyOptions.CreateUsingOldParser(output);
       options.DafnyPrelude = "../../../../../Binaries/DafnyPrelude.bpl";
 
       var programString = @"trait Trait<A, B> { }";

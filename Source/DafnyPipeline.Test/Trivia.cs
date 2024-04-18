@@ -28,7 +28,7 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public async Task TriviaSplitWorksOnLinuxMacAndWindows() {
-      var options = DafnyOptions.Create(output);
+      var options = DafnyOptions.CreateUsingOldParser(output);
       foreach (Newlines newLinesType in Enum.GetValues(typeof(Newlines))) {
         currentNewlines = newLinesType;
         var programString = @"

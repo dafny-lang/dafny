@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 public class CompilationManagerTest {
   [Fact]
   public async Task CancelUnstartedCompilationLeadsToCancelledTasks() {
-    var dafnyOptions = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
+    var dafnyOptions = DafnyOptions.CreateUsingOldParser(TextWriter.Null, TextReader.Null);
     var compilationManager = new Compilation(new Mock<ILogger<Compilation>>().Object,
       new Mock<IFileSystem>().Object,
       new Mock<ITextDocumentLoader>().Object,

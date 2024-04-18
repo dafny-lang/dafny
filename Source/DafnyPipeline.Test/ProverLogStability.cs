@@ -111,7 +111,7 @@ type ImapSimulator<!A, B> =
     /// </summary>
     [Fact]
     public async Task ProverLogRegression() {
-      var options = DafnyOptions.Create(new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser(new WriterFromOutputHelper(testOutputHelper));
 
       var filePath = Path.Combine(Directory.GetCurrentDirectory(), "expectedProverLog.smt2");
       var expectation = await File.ReadAllTextAsync(filePath);

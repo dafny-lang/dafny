@@ -221,7 +221,7 @@ public class ProgramParser {
     }
 
     foreach (var root in roots) {
-      var dafnyFile = await IncludeToDafnyFile(systemModuleManager, errorReporter, root);
+      var dafnyFile = await IncludeToDafnyFile(errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);
       }
@@ -243,7 +243,7 @@ public class ProgramParser {
       result.Add(parseIncludeResult);
 
       foreach (var include in parseIncludeResult.Module.Includes) {
-        var dafnyFile = await IncludeToDafnyFile(systemModuleManager, errorReporter, include);
+        var dafnyFile = await IncludeToDafnyFile(errorReporter, include);
         if (dafnyFile != null) {
           stack.Push(dafnyFile);
         }
@@ -253,12 +253,8 @@ public class ProgramParser {
     return result;
   }
 
-  private async Task<DafnyFile> IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
-    var result = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
-    if (result != null) {
-      result.ParseOptions = include.ParseOptions;
-    }
-    return result;
+  private async Task<DafnyFile> IncludeToDafnyFile(ErrorReporter errorReporter, Include include) {
+    return await DafnyFile.CreateAndValidate(errorReporter, fileSystem, include.ParseOptions, include.IncludedFilename, include.tok);
   }
 
   ///<summary>

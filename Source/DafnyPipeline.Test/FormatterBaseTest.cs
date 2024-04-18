@@ -45,7 +45,7 @@ namespace DafnyPipeline.Test {
 
     protected async Task FormatterWorksFor(string testCase, string? expectedProgramString = null, bool expectNoToken = false,
       bool reduceBlockiness = true) {
-      var options = DafnyOptions.Create(output);
+      var options = DafnyOptions.CreateUsingOldParser(output);
       options.DisallowIncludes = true;
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {

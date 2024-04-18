@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
 
 namespace DafnyCore;
@@ -144,19 +146,16 @@ public class DooFile {
     return CompareOptions(reporter, filePath, options, origin, secondOptions);
   }
 
+
   public static DafnyOptions CompareOptions(ErrorReporter reporter, string libraryFile,
     DafnyOptions options, IToken origin,
     Dictionary<string, object> libraryOptions) {
-    var result = DafnyOptions.Create(TextWriter.Null, TextReader.Null);
+    // For some reason, this line does not work but the next one does.
+    // var result = new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
+    var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
-    foreach (var (option, check) in OptionChecks) {
-      // It's important to only look at the options the current command uses,
-      // because other options won't be initialized to the correct default value.
-      // See CommandRegistry.Create().
-      if (!relevantOptions.Contains(option)) {
-        continue;
-      }
+    foreach (var option in relevantOptions) {
 
       var localValue = options.Get(option);
 
@@ -166,17 +165,19 @@ public class DooFile {
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return null;
         }
-      } else if (option.ValueType == typeof(IEnumerable<string>)) {
-        // This can happen because Tomlyn will drop aggregate properties with no values.
-        libraryValue = Array.Empty<string>();
       } else {
         // Use default
+        //libraryValue = options.Options.OptionArguments[option]; //option.Parse("").GetValueForOption(option);
         libraryValue = option.Parse("").GetValueForOption(option);
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      success = success && check(reporter, origin, option, localValue,
-        options.GetPrintPath(libraryFile), libraryValue);
+      result.ApplyBinding(option);
+      var check = OptionChecks.GetValueOrDefault(option);
+      if (check != null) {
+        success = success && check(reporter, origin, option, localValue,
+          options.GetPrintPath(libraryFile), libraryValue);
+      }
     }
 
     if (!success) {

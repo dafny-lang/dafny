@@ -19,7 +19,7 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; set; }
   public bool IsPrecompiled { get; set; }
-  public DafnyOptions ParseOptions { get; set; }
+  public DafnyOptions ParseOptions { get; private set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; private set; }
   public IToken? Origin { get; }
@@ -133,7 +133,7 @@ public class DafnyFile {
       return null;
     }
 
-    return new DafnyFile(extension, canonicalPath, baseName, 
+    return new DafnyFile(extension, canonicalPath, baseName,
       () => new StringReader(sourceText), uri, origin, parseOptions) {
       IsPrecompiled = true,
       IsPreverified = true,
@@ -210,7 +210,7 @@ public class DafnyFile {
     // more efficiently inside a .doo file, at which point
     // the DooFile class should encapsulate the serialization logic better
     // and expose a Program instead of the program text.
-    return new DafnyFile(extension, canonicalPath, baseName, 
+    return new DafnyFile(extension, canonicalPath, baseName,
       () => new StringReader(dooFile.ProgramText), uri, origin, validDooOptions) {
       IsPrecompiled = false,
       IsPreverified = true,

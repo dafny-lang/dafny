@@ -14,7 +14,7 @@ namespace DafnyTestGeneration.Test {
 
   public class Setup {
     protected static DafnyOptions GetDafnyOptions(List<Action<DafnyOptions>> optionSettings, TextWriter writer, params string[] arguments) {
-      var options = DafnyOptions.Create(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
+      var options = DafnyOptions.CreateUsingOldParser(writer, TextReader.Null, arguments ?? System.Array.Empty<string>());
       options.DefiniteAssignmentLevel = 3;
       options.WarnShadowing = true;
       options.VerifyAllModules = true;

@@ -169,9 +169,9 @@ namespace Microsoft.Dafny {
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out, Console.In);
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= CreateUsingOldParser(Console.Out, Console.In);
 
-    public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
+    public static DafnyOptions CreateUsingOldParser(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
       input ??= TextReader.Null;
       var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
