@@ -31,9 +31,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, Type baseType, List<Type> parentTraits,
+  public NewtypeDecl(RangeToken rangeToken, Name name, List<TypeParameter> typeParameters, ModuleDefinition module, Type baseType, List<Type> parentTraits,
     List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
+    : base(rangeToken, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -42,8 +42,9 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     BaseType = baseType;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(RangeToken rangeToken, Name name, ModuleDefinition module, BoundVar bv, Expression constraint,
-    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining) : base(rangeToken, name, module, new List<TypeParameter>(), members, attributes, isRefining, parentTraits) {
+  public NewtypeDecl(RangeToken rangeToken, Name name, List<TypeParameter> typeParameters, ModuleDefinition module, BoundVar bv, Expression constraint,
+    SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(rangeToken, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
@@ -121,7 +122,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   bool ICodeContext.IsGhost {
     get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
+  List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }

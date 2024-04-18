@@ -769,10 +769,12 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
+     var typeParameters = new List<TypeParameter>();
   .)
   "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   NewtypeName<out name>
+  [ GenericParameters<typeParameters, true> ]
   [ ExtendsClause<parentTraits, out _, "newtype"> ]
   (
   "="
@@ -795,7 +797,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       )
     ]
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, 
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
          new BoundVar(bvId, bvId.val, baseType){ 
             IsTypeExplicit = true 
          }, 
@@ -803,12 +805,12 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     .)
   | Type<out baseType>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType, parentTraits, members, attrs, isRefining: false); .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: true);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType, parentTraits, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
