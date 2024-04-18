@@ -705,7 +705,7 @@ namespace Microsoft.Dafny.Compilers {
         return boxed ? "Boolean" : "boolean";
       } else if (xType is CharType) {
         return CharTypeName(boxed);
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "java.math.BigInteger";
       } else if (xType is RealType) {
         return DafnyBigRationalClass;
@@ -3141,7 +3141,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return UnicodeCharEnabled ? $"((int){CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "java.math.BigInteger.ZERO";
       } else if (xType is RealType) {
         return $"{DafnyBigRationalClass}.ZERO";

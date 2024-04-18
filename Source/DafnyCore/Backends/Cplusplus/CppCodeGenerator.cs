@@ -923,7 +923,7 @@ namespace Microsoft.Dafny.Compilers {
         return "bool";
       } else if (xType is CharType) {
         return "char";
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         UnsupportedFeatureError(tok, Feature.UnboundedIntegers);
         return "BigNumber";
       } else if (xType is RealType) {

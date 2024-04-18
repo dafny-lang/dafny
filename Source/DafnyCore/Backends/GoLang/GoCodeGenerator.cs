@@ -1597,7 +1597,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return $"{CharTypeName}({CharType.DefaultValueAsString})";
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "_dafny.Zero";
       } else if (xType is RealType) {
         return "_dafny.ZeroReal";

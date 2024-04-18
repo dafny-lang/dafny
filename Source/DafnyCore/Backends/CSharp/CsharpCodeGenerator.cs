@@ -1575,7 +1575,7 @@ namespace Microsoft.Dafny.Compilers {
         return "bool";
       } else if (xType is CharType) {
         return CharTypeName;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
@@ -1682,7 +1682,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return UnicodeCharEnabled ? $"new {CharTypeName}({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
