@@ -1903,7 +1903,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      var isString = arg.Type.IsStringType;
+      var isString = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType;
       var wStmts = wr.Fork();
       if (isString && UnicodeCharEnabled) {
         wr.Write("_dafny.Print(");
