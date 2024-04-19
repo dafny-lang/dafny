@@ -171,25 +171,20 @@ public class Compilation : IDisposable {
       }
     }
 
-    string? unverifiedLibrary = null;
     var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryFiles) {
       var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
       if (file != null) {
-        if (!file.IsPreverified) {
-          unverifiedLibrary = library;
+        if (file.Extension == DafnyFile.DafnyFileExtension) {
+          errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
+            $"The file '{Options.GetPrintPath(library)}' was passed to --library. " +
+            $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
+            $"Use a .doo file to enable Dafny to check that compatible options were used");
         }
         file.IsPreverified = true;
         file.IsPrecompiled = true;
         result.Add(file);
       }
-    }
-
-    if (unverifiedLibrary != null) {
-      errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
-        $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. " +
-        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
-        $"Use a .doo file to enable Dafny to check that compatible options were used");
     }
 
     var projectPath = Project.Uri.LocalPath;

@@ -13,6 +13,7 @@ using DafnyCore;
 namespace Microsoft.Dafny;
 
 public class DafnyFile {
+  public const string DafnyFileExtension = ".dfy";
   public string FilePath => CanonicalPath;
   public string Extension { get; private set; }
   public string CanonicalPath { get; }
@@ -50,7 +51,7 @@ public class DafnyFile {
 
     string canonicalPath;
     string baseName;
-    var extension = ".dfy";
+    var extension = DafnyFileExtension;
     if (uri.IsFile) {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
       baseName = Path.GetFileName(uri.LocalPath);
@@ -73,7 +74,7 @@ public class DafnyFile {
       return HandleStandardInput(options, uri, origin, extension);
     }
 
-    if (uri.Scheme == "untitled" || extension == ".dfy" || extension == ".dfyi") {
+    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
       return HandleDafnyFile(options, fileSystem, reporter,
         uri, origin, extension, canonicalPath, baseName, filePathForErrors);
     }
@@ -155,7 +156,7 @@ public class DafnyFile {
       }
     }
 
-    var libraryOptions = DooFile.CompareOptions(reporter, uri.LocalPath, options, origin, project.Options);
+    var libraryOptions = DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, origin, project.Options);
     if (libraryOptions == null) {
       return null;
     }

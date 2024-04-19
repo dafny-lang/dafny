@@ -143,11 +143,11 @@ public class DooFile {
 
     var secondOptions = Manifest.Options;
 
-    return CompareOptions(reporter, filePath, options, origin, secondOptions);
+    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, secondOptions);
   }
 
 
-  public static DafnyOptions CompareOptions(ErrorReporter reporter, string libraryFile,
+  public static DafnyOptions CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
     DafnyOptions options, IToken origin,
     Dictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
