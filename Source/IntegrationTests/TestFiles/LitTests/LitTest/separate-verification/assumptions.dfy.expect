@@ -1,5 +1,13 @@
+TestAuditor.dfy(24,25): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TestAuditor.dfy(38,2): Warning: assume statement has no {:axiom} annotation
+TestAuditor.dfy(45,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+TestAuditor.dfy(50,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, may not have preconditions or take subset types as inputs.
+TestAuditor.dfy(72,19): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
+TestAuditor.dfy(136,2): Warning: assume statement has no {:axiom} annotation
 TestAuditor.dfy(150,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(154,7): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
+TestAuditor.dfy(160,26): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+TestAuditor.dfy(164,28): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
 TestAuditor.dfy(139,2): Warning: note, this forall statement has no body
@@ -9,24 +17,4 @@ TestAuditor.dfy(95,4): Warning: Could not find a trigger for this quantifier. Wi
 TestAuditor.dfy(139,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
 
 Dafny program verifier did not attempt verification
-TestAuditor.dfy(22,6): Error: Ghost declaration has no body and has an ensures clause.
-TestAuditor.dfy(38,2): Error: Definition has [assume] statement in body.
-TestAuditor.dfy(45,17): Error: Declaration with [{:extern}] has a ensures clause.
-TestAuditor.dfy(45,17): Error: Declaration with [{:extern}] has a requires clause.
-TestAuditor.dfy(50,17): Error: Declaration with [{:extern}] has a ensures clause.
-TestAuditor.dfy(50,17): Error: Declaration with [{:extern}] has a requires clause.
-TestAuditor.dfy(68,17): Error: Declaration with [{:extern}] has a requires clause.
-TestAuditor.dfy(72,19): Error: Function with [{:extern}] attribute.
-TestAuditor.dfy(72,19): Error: Declaration with [{:extern}] has a ensures clause.
-TestAuditor.dfy(95,4): Error: Definition contains [forall] statement with no body.
-TestAuditor.dfy(102,4): Error: Definition contains loop with no body.
-TestAuditor.dfy(128,27): Error: Reads clause has [{:assume_concurrent}] attribute.
-TestAuditor.dfy(128,27): Error: Modifies clause has [{:assume_concurrent}] attribute.
-TestAuditor.dfy(136,2): Error: Definition has [assume] statement in body.
-TestAuditor.dfy(139,2): Error: Definition contains [forall] statement with no body.
-TestAuditor.dfy(143,2): Error: Definition contains loop with no body.
-TestAuditor.dfy(150,2): Error: Assertion has explicit temporary [{:only}] attribute.
-TestAuditor.dfy(154,15): Error: Member has explicit temporary [{:only}] attribute.
-TestAuditor.dfy(164,28): Error: Function with [{:extern}] attribute.
-TestAuditor.dfy(89,27): Error: Trait method calls may not terminate (uses [{:termination false}]).
-Translation was aborted because errors were found
+Translation was aborted because warnings were found and --allow-warnings was not specified

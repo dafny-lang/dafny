@@ -1,4 +1,4 @@
-// RUN: %run --target cpp --unicode-char false "%s" --input ExternDefs.h > "%t"
+// RUN: %run --target cpp --allow-external-contracts --unicode-char false "%s" --input ExternDefs.h > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "Extern"} Extern {
