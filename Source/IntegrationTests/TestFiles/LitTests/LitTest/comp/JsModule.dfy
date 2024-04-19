@@ -10,6 +10,7 @@ module {:extern "url", "url"} URL {
     var pathname: string
     var search: string
   }
+  // Note that passing a Dafny string directly as a JS string only works in --unicode-char false mode
   method {:extern "parse"} Parse(address: string, b: bool) returns (u: Url)
 }
 

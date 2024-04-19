@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
@@ -152,6 +153,11 @@ public class CliCompilation {
   public bool VerifiedAssertions { get; private set; }
 
   public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed) {
+    if (!Options.Get(CommonOptionBag.UnicodeCharacters) && Options.Backend is not CppBackend) {
+      Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
+        "the option unicode-char has been deprecated.");
+    }
+
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
     using var subscription = Compilation.Updates.Subscribe(ev => {
 
