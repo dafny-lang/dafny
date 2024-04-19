@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
           if (!DetectUnderspecificationVisitor.IsDetermined(dd.Var.PreType)) {
-            ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+            ReportError(dd, $"base type of {dd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
           }
           CheckExpression(dd.Constraint, context);
           if (dd.Witness != null) {
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           if (dd.Var != null) {
             if (!DetectUnderspecificationVisitor.IsDetermined(dd.BasePreType)) {
-              ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+              ReportError(dd, $"base type of {dd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
             }
             CheckExpression(dd.Constraint, context);
             if (dd.Witness != null) {
@@ -143,8 +143,8 @@ namespace Microsoft.Dafny {
           CheckStatement(method.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (method is ExtremeLemma extremeLemma) {
-            CheckMember(extremeLemma.PrefixLemma);
+          if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+            CheckMember(prefixLemma);
           }
         }
 
@@ -158,8 +158,8 @@ namespace Microsoft.Dafny {
           CheckExpression(function.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (function is ExtremePredicate extremePredicate) {
-            CheckMember(extremePredicate.PrefixPredicate);
+          if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+            CheckMember(prefixPredicate);
           } else if (function.ByMethodDecl != null) {
             CheckMember(function.ByMethodDecl);
           }

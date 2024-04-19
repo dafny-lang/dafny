@@ -49,7 +49,10 @@ namespace Microsoft.Dafny {
       if (preType is DPreType dPreType) {
         return dPreType;
       }
-      var proxy = (PreTypeProxy)preType;
+      if (preType is not PreTypeProxy proxy) {
+        // preType could be a PreTypePlaceholder, resulting from an error somewhere
+        return null;
+      }
 
       var approximateReceiverType = ApproximateReceiverTypeViaBounds(proxy, memberName, out var subProxies);
       if (approximateReceiverType != null) {
