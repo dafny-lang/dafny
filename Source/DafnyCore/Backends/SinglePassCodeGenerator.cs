@@ -1528,8 +1528,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
       foreach (TopLevelDecl d in module.TopLevelDecls) {
-        bool compileIt = true;
-        if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
+        if (!ProgramResolver.ShouldCompile(d)) {
           continue;
         }
 

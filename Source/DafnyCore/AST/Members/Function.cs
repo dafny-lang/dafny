@@ -52,7 +52,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     return true;
   }
 
-  public bool HasPostcondition =>
+  public override bool HasPostcondition =>
     Ens.Count > 0 || ResultType.AsSubsetType is not null;
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {

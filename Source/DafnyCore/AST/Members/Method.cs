@@ -31,7 +31,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
 
-  public bool HasPostcondition =>
+  public override bool HasPostcondition =>
     Ens.Count > 0
     // This check is incomplete, which is a bug
     || Outs.Any(f => f.Type.AsSubsetType is not null);
@@ -248,7 +248,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    ResolveNewOrOldPart(resolver);
+    ResolveMethodOrFunction(resolver);
 
     try {
       resolver.currentMethod = this;
@@ -471,11 +471,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public string Designator => WhatKind;
 
   public void ResolveNewOrOldPart(INewOrOldResolver resolver) {
-    if (!resolver.Options.Get(AllowExternalContracts) && HasPostcondition && Bodyless && this.IsExtern(resolver.Options)) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
-        $"A {WhatKind} that is imported, meaning it has no body and an {{:extern}} annotation, " +
-        $"may not have post-conditions or have subset types as outputs.");
-    }
     ResolveMethodOrFunction(resolver);
   }
 }
