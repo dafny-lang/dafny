@@ -87,10 +87,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
       Not compatible with the /unicodeChar:0 option.
 
-  /unicodeChar:<value>
-      0 - The char type represents any UTF-16 code unit.
-      1 (default) - The char type represents any Unicode scalar value.
-
   /noIncludes
       Ignore include directives.
   

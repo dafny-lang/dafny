@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" --
 
 method Main() {
   var c := '\0';
@@ -6,7 +6,7 @@ method Main() {
   expect c == 0 as char;
 
   var s := "\03";
-  
+
   assert |s| == 2;
   expect |s| == 2;
 

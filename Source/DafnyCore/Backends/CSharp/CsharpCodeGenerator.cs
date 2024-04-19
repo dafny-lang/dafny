@@ -1993,8 +1993,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
-      var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      var suffix = arg.Type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
+      var type = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type);
+      var typeArgs = type.AsArrowType == null ? "" : $"<{TypeName(type, wr, null, null)}>";
+      var suffix = type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
