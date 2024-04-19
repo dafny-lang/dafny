@@ -148,8 +148,6 @@ public class Compilation : IDisposable {
         $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
       if (file != null) {
         result.Add(file);
-      } else {
-        return result;
       }
     }
     if (Options.UseStdin) {
@@ -225,7 +223,7 @@ public class Compilation : IDisposable {
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
       transformedProgram.HasParseErrors = HasErrors;
 
-      var cloner = new Cloner(true, false);
+      var cloner = new Cloner(true);
       programAfterParsing = new Program(cloner, transformedProgram);
 
       updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));

@@ -19,15 +19,15 @@ TraitResolution1.dfy(121,14): Error: new can be applied only to class types (got
 TraitResolution1.dfy(122,14): Error: new can be applied only to class types (got Tr?<int>)
 TraitResolution1.dfy(123,14): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution1.dfy(124,14): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution1.dfy(136,8): Error: class 'P' inherits a member named 'data' from both traits 'A' and 'B'
+TraitResolution1.dfy(136,8): Error: class 'P' inherits a member named 'data' from both trait 'A' and trait 'B'
 TraitResolution1.dfy(139,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<Even> and C<int>
 TraitResolution1.dfy(140,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<int> and C<real>
 TraitResolution1.dfy(140,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<int> and C<Even>
 TraitResolution1.dfy(150,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<(real, int)> (via X6, X4, X3) and C<seq<bool>> (via X7, X2)
 TraitResolution1.dfy(151,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<seq<bool>> (via X7, X2) and C<(real, int)> (via X6, X4, X3)
-TraitResolution1.dfy(168,8): Error: class 'P' inherits a member named 'data' from both traits 'B' and 'A'
-TraitResolution1.dfy(169,8): Error: class 'Q' inherits a member named 'data' from both traits 'C' and 'A'
-TraitResolution1.dfy(170,8): Error: class 'R' inherits a member named 'data' from both traits 'D' and 'A'
+TraitResolution1.dfy(168,8): Error: class 'P' inherits a member named 'data' from both trait 'B' and trait 'A'
+TraitResolution1.dfy(169,8): Error: class 'Q' inherits a member named 'data' from both trait 'C' and trait 'A'
+TraitResolution1.dfy(170,8): Error: class 'R' inherits a member named 'data' from both trait 'D' and trait 'A'
 TraitResolution1.dfy(175,17): Error: static non-ghost const field 'Cnst' of type 'object' (which does not have a default compiled value) must give a defining value
 TraitResolution1.dfy(236,8): Error: field 'civ' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(237,14): Error: field 'giv' is inherited from trait 'Tr' and is not allowed to be re-declared
