@@ -519,7 +519,7 @@ public class Compilation : IDisposable {
     foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
-      if (options.ShowProofObligationExpressions && errorInformation.Kind != null) {
+      if (options.ShowProofObligationExpressions) {
         AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
       }
       var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
