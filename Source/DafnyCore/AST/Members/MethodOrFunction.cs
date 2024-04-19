@@ -51,7 +51,7 @@ public abstract class MethodOrFunction : MemberDecl {
   }
 
   public abstract bool HasPostcondition { get; }
-  
+
   public void ResolveMethodOrFunction(INewOrOldResolver resolver) {
     var isImported = (Bodyless || !ProgramResolver.ShouldCompile(this)) && this.IsExtern(resolver.Options);
     if (!resolver.Options.Get(AllowExternalContracts) && HasPostcondition && isImported && !HasAxiomAttribute) {

@@ -213,8 +213,7 @@ public class ProgramResolver {
     }
   }
 
-  public static bool ShouldCompile(IAttributeBearingDeclaration m)
-  {
+  public static bool ShouldCompile(IAttributeBearingDeclaration m) {
     var compileIt = true;
     Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
     return compileIt;
