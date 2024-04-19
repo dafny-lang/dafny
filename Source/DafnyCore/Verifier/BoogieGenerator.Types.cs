@@ -1394,8 +1394,8 @@ public partial class BoogieGenerator {
     if (rdt.Var != null) {
       // TODO: use TrSplitExpr
       var typeMap = TypeParameter.SubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
-      var dafnyConstraint = Substitute(rdt.Constraint, null, new() { {rdt.Var, origExpr} }, typeMap);
-      var boogieConstraint = etran.TrExpr(Substitute(rdt.Constraint, null, new() { {rdt.Var, boogieExpr} }, typeMap));
+      var dafnyConstraint = Substitute(rdt.Constraint, null, new() { { rdt.Var, origExpr } }, typeMap);
+      var boogieConstraint = etran.TrExpr(Substitute(rdt.Constraint, null, new() { { rdt.Var, boogieExpr } }, typeMap));
       builder.Add(Assert(tok, boogieConstraint, new PODesc.ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name, dafnyConstraint)));
     }
   }

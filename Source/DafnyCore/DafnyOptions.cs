@@ -797,7 +797,7 @@ namespace Microsoft.Dafny {
           ExtractCounterexample = true;
           EnhancedErrorMessages = 1;
           return true;
-        
+
         case "showProofObligationExpressions":
           ShowProofObligationExpressions = true;
           return true;

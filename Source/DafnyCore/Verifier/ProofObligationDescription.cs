@@ -1452,14 +1452,14 @@ internal class Utils {
   }
 
   public static Expression MakeCharBoundsCheckNonUnicode(Expression expr) {
-      return new BinaryExpr(
-        expr.tok,
-        BinaryExpr.Opcode.And,
-        new BinaryExpr(
-          expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), expr),
-        new BinaryExpr(
-          expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x1_0000))
-      );
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.And,
+      new BinaryExpr(
+        expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), expr),
+      new BinaryExpr(
+        expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x1_0000))
+    );
   }
 
   public static Expression MakeCharBoundsCheckUnicode(Expression expr) {
