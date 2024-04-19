@@ -15,7 +15,7 @@ are in the [Dafny project wiki](https://github.com/dafny-lang/dafny/wiki/INSTALL
 System Requirements
 ===================
 
-The `dafny tool` is a .NET 6.0 artifact, but it compiles to native executables on supported platforms.
+The `dafny tool` is a .NET 8.0 artifact, but it compiles to native executables on supported platforms.
 That and the Z3 tool are all that is needed to use dafny for verification; additional tools are 
 need for compilation, as described below.
 
@@ -41,7 +41,7 @@ In addition, the Dafny toolkit supplies runtime libraries, either in source form
 ### C#
 
 - Dafny targeting C# produces C#10-compatible source code.
-- Only the .NET 6.0 set of tools (which includes the C# compiler) is needed to compile and run the generated C# code.
+- Only the .NET 8.0 set of tools (which includes the C# compiler) is needed to compile and run the generated C# code.
 - The Dafny runtime library is included as C# source along with the generated C# code, so the user can compile those sources
 and any user code in one project.
 
@@ -86,9 +86,9 @@ For most users, we recommend using Dafny with VS Code, which has an easy install
 ## Visual Studio Code {#Visual-Studio-Code}
 
 0. Install [Visual Studio Code](https://code.visualstudio.com/)
-1. If you are on a Mac or Linux, install .NET 6.0, as described under those platforms below.  
+1. If you are on a Mac or Linux, install .NET 8.0, as described under those platforms below.
 2. In Visual Studio Code, press `Ctrl+P` (or `⌘P` on a Mac), and enter `ext install dafny-lang.ide-vscode`.
-3. If you open a `.dfy` file, Dafny VSCode will offer to download and install the latest Dafny. You can also browse extensions: 
+3. If you open a `.dfy` file, Dafny VSCode will offer to download and install the latest Dafny. You can also browse extensions:
   ![vs-code-dafny-2 0 1-install](https://user-images.githubusercontent.com/3601079/141353551-5cb5e23b-5536-47be-ba17-e5af494b775c.gif)
 
 ## Emacs {#Emacs}
@@ -118,7 +118,7 @@ install the correct dependencies for the desired language.
 
 To install Dafny on your own machine, 
 
-* Install (if not already present) .NET Core 6.0: `https://dotnet.microsoft.com/download/dotnet/6.0`
+* Install (if not already present) .NET Core 8.0: `https://dotnet.microsoft.com/download/dotnet/8.0`
 * Download the windows zip file from the [releases page](https://github.com/dafny-lang/dafny/releases/latest) and **save** it to your disk. 
 * Then, **before you open or unzip it**, right-click on it and select Properties; at the bottom of the dialog, click the **Unblock** button and then the OK button. 
 * Now, open the zip file and copy its contents into a directory on your machine. (You can now delete the zip file.)
@@ -130,7 +130,7 @@ Then:
 ## Linux (Binary) {#linux-binary}
 
 To install a binary installation of dafny on Linux (e.g., Ubuntu), do the following:
-* Install .NET 6.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-6.0`
+* Install .NET 8.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-8.0`
 * Install the Linux binary version of Dafny, from `https://github.com/dafny-lang/dafny/releases/latest`
 * Unzip the downloaded file in a (empty) location of your choice
 
@@ -165,7 +165,7 @@ After the compiler dependencies are installed, you can run a quick test of the i
 
 The .NET [NuGet](https://www.nuget.org/) repository collects .NET libraries and tools for easy installation. Dafny is available on NuGet, and can be installed as follows:
 
-* Install .NET 6.0 as described for your platform in one of the subsections above.
+* Install .NET 8.0 as described for your platform in one of the subsections above.
 * Install a binary version of Z3 4.12.1 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/Z3-4.12.1) and put the `z3` executable in your `PATH`.
 * Install Dafny using `dotnet tool install --global dafny` (or leave out the `--global` to use with `dotnet tool run` from the source directory of a .NET project).
 
@@ -181,10 +181,10 @@ Additional instructions are found in the [Dafny User Guide](DafnyRef/DafnyRef#se
 
 ### C# (.Net)
 
-Install .NET 6.0:
-* Windows) `https://dotnet.microsoft.com/download/dotnet/6.0`
-* Linux) Install .NET 6.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-6.0`
-* Mac) Install .NET 6.0: `brew install dotnet-sdk` or from `https://docs.microsoft.com/dotnet/core/install/macos`
+Install .NET 8.0:
+* Windows) `https://dotnet.microsoft.com/download/dotnet/8.0`
+* Linux) Install .NET 8.0. See: `https://docs.microsoft.com/dotnet/core/install/linux` or `sudo apt install dotnet-sdk-8.0`
+* Mac) Install .NET 8.0: `brew install dotnet-sdk` or from `https://docs.microsoft.com/dotnet/core/install/macos`
 
 
 To separately compile and run your program for .NET:

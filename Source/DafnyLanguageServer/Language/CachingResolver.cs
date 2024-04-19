@@ -75,7 +75,7 @@ public class CachingResolver : ProgramResolver {
   private byte[] GetHash(ModuleDecl moduleDeclaration) {
     if (!hashes.TryGetValue(moduleDeclaration, out var result)) {
       var moduleVertex = dependencies.FindVertex(moduleDeclaration);
-      var hashAlgorithm = HashAlgorithm.Create("SHA256")!;
+      var hashAlgorithm = SHA256.Create()!;
       hashAlgorithm.Initialize();
       // We don't want the order of Successors to influence the hash, so we order by the content hash, for which CloneId is currently a proxy
       var orderedSuccessors = moduleVertex.Successors.OrderBy(s => s.N.CloneId);

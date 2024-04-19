@@ -2,7 +2,7 @@
 
 // RUN: %translate cs --verbose --include-runtime "%s" > "%t"
 // RUN: dotnet build %S/ManualCompile.csproj
-// RUN: dotnet %S/bin/Debug/net6.0/ManualCompile.dll >> "%t"
+// RUN: dotnet %S/bin/Debug/net8.0/ManualCompile.dll >> "%t"
 
 // RUN: %translate js --verbose --include-runtime "%s" >> "%t"
 // RUN: node %S/ManualCompile.js >> "%t"

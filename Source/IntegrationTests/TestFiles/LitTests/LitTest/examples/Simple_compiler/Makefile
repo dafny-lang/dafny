@@ -21,7 +21,7 @@ $(dafny_csharp_dir)/%.cs: %.dfy | $(dafny_csharp_dir)
 
 # Step 3: compile resulting C# project
 csproj := SimpleCompiler.csproj
-csharp_dll := $(csharp_dir)/bin/Debug/net6.0/SimpleCompiler.dll
+csharp_dll := $(csharp_dir)/bin/Debug/net8.0/SimpleCompiler.dll
 csharp_files :=  $(wildcard $(csharp_dir)/*)
 csharp_shared_deps := $(patsubst %,$(csharp_dir)/%,$(shared_deps))
 csharp_dafny_deps := $(patsubst %.dfy,$(dafny_csharp_dir)/%.cs,$(dafny_files))
