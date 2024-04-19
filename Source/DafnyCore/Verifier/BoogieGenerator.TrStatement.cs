@@ -939,23 +939,17 @@ namespace Microsoft.Dafny {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          Expression dafnyRange = new LiteralExpr(stmt.tok, true);
+          List<Expression> dafnyRangeBounds = new();
           if (lo != null) {
-            dafnyRange = new BinaryExpr(
-              stmt.tok,
-              BinaryExpr.Opcode.And,
-              dafnyRange,
-              new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex)
-            );
+            dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex));
           }
           if (hi != null) {
-            dafnyRange = new BinaryExpr(
-              stmt.tok,
-              BinaryExpr.Opcode.And,
-              dafnyRange,
-              new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi)
-            );
+            dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi));
           }
+
+          Expression dafnyRange = dafnyRangeBounds.Count == 1
+            ? dafnyRangeBounds[0]
+            : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
           var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
             dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
           builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc, dafnyAssertion)));
