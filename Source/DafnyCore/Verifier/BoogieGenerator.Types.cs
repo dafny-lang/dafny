@@ -1359,13 +1359,14 @@ public partial class BoogieGenerator {
       } else {
         be = o;
       }
-      CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, toTypeFamily), toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
+      CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, toTypeFamily), expr, toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
     }
   }
 
-  void CheckResultToBeInType_Aux(IToken tok, Expression expr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix) {
+  void CheckResultToBeInType_Aux(IToken tok, Expression boogieExpr, Expression origExpr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix) {
     Contract.Requires(tok != null);
-    Contract.Requires(expr != null);
+    Contract.Requires(boogieExpr != null);
+    Contract.Requires(origExpr != null);
     Contract.Requires(toType != null && toType.AsRedirectingType != null);
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
@@ -1387,16 +1388,15 @@ public partial class BoogieGenerator {
     }
 
     if (baseType.AsRedirectingType != null) {
-      CheckResultToBeInType_Aux(tok, expr, baseType, builder, etran, errorMsgPrefix);
+      CheckResultToBeInType_Aux(tok, boogieExpr, origExpr, baseType, builder, etran, errorMsgPrefix);
     }
     // Check any constraint defined in 'dd'
     if (rdt.Var != null) {
       // TODO: use TrSplitExpr
-      var substMap = new Dictionary<IVariable, Expression>();
-      substMap.Add(rdt.Var, expr);
       var typeMap = TypeParameter.SubstitutionMap(rdt.TypeArgs, udt.TypeArgs);
-      var constraint = etran.TrExpr(Substitute(rdt.Constraint, null, substMap, typeMap));
-      builder.Add(Assert(tok, constraint, new PODesc.ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name, expr, toType)));
+      var dafnyConstraint = Substitute(rdt.Constraint, null, new() { {rdt.Var, origExpr} }, typeMap);
+      var boogieConstraint = etran.TrExpr(Substitute(rdt.Constraint, null, new() { {rdt.Var, boogieExpr} }, typeMap));
+      builder.Add(Assert(tok, boogieConstraint, new PODesc.ConversionSatisfiesConstraints(errorMsgPrefix, kind, rdt.Name, dafnyConstraint)));
     }
   }
 

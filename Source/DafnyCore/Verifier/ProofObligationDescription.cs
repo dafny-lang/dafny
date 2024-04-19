@@ -133,19 +133,17 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
   private readonly string prefix;
   private readonly string kind;
   private readonly string name;
-  private readonly Expression expr;
-  private readonly Type toType;
+  private readonly Expression constraint;
 
-  public ConversionSatisfiesConstraints(string prefix, string kind, string name, Expression expr, Type toType) {
+  public ConversionSatisfiesConstraints(string prefix, string kind, string name, Expression constraint) {
     this.prefix = prefix;
     this.kind = kind;
     this.name = name;
-    this.expr = expr;
-    this.toType = toType;
+    this.constraint = constraint;
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new TypeTestExpr(expr.tok, expr, toType);
+    return constraint;
   }
 }
 
