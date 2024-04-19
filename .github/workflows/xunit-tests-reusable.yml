@@ -71,6 +71,7 @@ jobs:
         timeout_minutes: 45
         max_attempts: 3
         command: |
+          cd dafny
           dotnet restore ${{env.solutionPath}}
           dotnet tool install dotnet-coverage
           dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
