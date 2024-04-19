@@ -821,7 +821,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
       Assert.Equal(2, counterExamples.Length);
-      Assert.Contains("3 == |s2|", counterExamples[1].Assumption);
+      Assert.Contains("|s2| > 2", counterExamples[1].Assumption);
       Assert.Contains("'a' == s2[0]", counterExamples[1].Assumption);
       Assert.Contains("'d' == s2[1]", counterExamples[1].Assumption);
       Assert.Contains("'c' == s2[2]", counterExamples[1].Assumption);
