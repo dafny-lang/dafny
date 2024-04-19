@@ -17,7 +17,7 @@ static class TranslateCommand {
       IExecutableBackend.OuterModule,
       CommonOptionBag.IncludeRuntimeOption,
       RunAllTestsMainMethod.IncludeTestRunner,
-      CommonOptionBag.TranslationConfigOutput
+      CommonOptionBag.TranslationRecordOutput
     }.Concat(DafnyCommands.TranslationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

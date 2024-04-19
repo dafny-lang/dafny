@@ -59,7 +59,7 @@ public static class DafnyCommands {
     DeveloperOptionBag.Bootstrapping,
     CommonOptionBag.AddCompileSuffix,
     CommonOptionBag.SystemModule,
-    CommonOptionBag.LibraryTranslationConfig,
+    CommonOptionBag.TranslationRecords,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {

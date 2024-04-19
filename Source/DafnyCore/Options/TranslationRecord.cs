@@ -9,7 +9,7 @@ using Tomlyn;
 
 namespace DafnyCore.Options; 
 
-public class TranslationConfig {
+public class TranslationRecord {
 
   public const string CurrentFileFormatVersion = "1.0";
   public string FileFormatVersion { get; set; }
@@ -19,7 +19,7 @@ public class TranslationConfig {
   public Dictionary<string, Dictionary<string, object>> OptionsByModule { get; set;  }
 
 
-  public TranslationConfig(Program program) {
+  public TranslationRecord(Program program) {
     FileFormatVersion = CurrentFileFormatVersion;
     DafnyVersion = program.Options.VersionNumber;
 
@@ -38,12 +38,12 @@ public class TranslationConfig {
     }
   }
   
-  public TranslationConfig() {
+  public TranslationRecord() {
     OptionsByModule = new();
   }
   
-  public static TranslationConfig Read(TextReader reader) {
-    return Toml.ToModel<TranslationConfig>(reader.ReadToEnd(), null, new TomlModelOptions());
+  public static TranslationRecord Read(TextReader reader) {
+    return Toml.ToModel<TranslationRecord>(reader.ReadToEnd(), null, new TomlModelOptions());
   }
   
   public void Write(TextWriter writer) {
@@ -63,7 +63,7 @@ public class TranslationConfig {
     return null;
   }
 
-  public void Merge(TranslationConfig other) {
+  public void Merge(TranslationRecord other) {
     // TODO: check versions
     
     // TODO: This will error if any modules overlap, which is what we want,

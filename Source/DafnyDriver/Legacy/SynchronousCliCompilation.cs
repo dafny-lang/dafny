@@ -336,9 +336,9 @@ namespace Microsoft.Dafny {
         PrintCounterexample(options);
       }
 
-      var translationConfigOutput = options.Get(CommonOptionBag.TranslationConfigOutput);
+      var translationConfigOutput = options.Get(CommonOptionBag.TranslationRecordOutput);
       if (translationConfigOutput != null) {
-        var translationConfig = new TranslationConfig(dafnyProgram);
+        var translationConfig = new TranslationRecord(dafnyProgram);
         await using var writer = new StreamWriter(translationConfigOutput.FullName);
         // TODO: Make async
         translationConfig.Write(writer);

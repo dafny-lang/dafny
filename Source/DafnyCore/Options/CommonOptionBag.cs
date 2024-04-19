@@ -358,14 +358,14 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
   
-  public static readonly Option<IList<FileInfo>> LibraryTranslationConfig = new("--library-translation-config", 
+  public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record", 
     @"
-The translation configuration that was used for any --library code.".TrimStart()) {
+A translation record file for previously translated Dafny code. Can be specified multiple times.".TrimStart()) {
   };
   
-  public static readonly Option<FileInfo> TranslationConfigOutput = new("--translation-config-output", 
+  public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output", 
     @"
-Where to output the translation configuration file.".TrimStart()) {
+Where to output the translation record file. Defaults to the output directory.".TrimStart()) {
   };
 
   static CommonOptionBag() {
@@ -645,8 +645,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SystemModule,
       ExecutionCoverageReport,
       ExtractCounterexample,
-      TranslationConfigOutput,
-      LibraryTranslationConfig
+      TranslationRecordOutput,
+      TranslationRecords
       );
   }
 
