@@ -220,7 +220,7 @@ public class CharOverflow : ProofObligationDescription {
       new ConversionExpr(e0.tok, e0, Type.Int),
       new ConversionExpr(e1.tok, e1, Type.Int)
     );
-    return new TypeTestExpr(sum.tok, sum, Type.Char);
+    return Utils.MakeCharBoundsCheck(options, sum);
   }
 }
 
@@ -248,7 +248,7 @@ public class CharUnderflow : ProofObligationDescription {
       new ConversionExpr(e0.tok, e0, Type.Int),
       new ConversionExpr(e1.tok, e1, Type.Int)
     );
-    return new TypeTestExpr(diff.tok, diff, Type.Char);
+    return Utils.MakeCharBoundsCheck(options, diff);
   }
 }
 
@@ -1445,5 +1445,40 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
     : base(errorMessage, successMessage) {
     this.DefaultSuccessDescription = comment;
     this.DefaultFailureDescription = comment;
+  }
+}
+
+internal class Utils {
+  public static Expression MakeCharBoundsCheck(DafnyOptions options, Expression expr) {
+    return options.Get(CommonOptionBag.UnicodeCharacters)
+      ? MakeCharBoundsCheckUnicode(expr)
+      : MakeCharBoundsCheckNonUnicode(expr);
+  }
+
+  public static Expression MakeCharBoundsCheckNonUnicode(Expression expr) {
+      return new BinaryExpr(
+        expr.tok,
+        BinaryExpr.Opcode.And,
+        new BinaryExpr(
+          expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), expr),
+        new BinaryExpr(
+          expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x1_0000))
+      );
+  }
+
+  public static Expression MakeCharBoundsCheckUnicode(Expression expr) {
+    Expression lowRange = new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.And,
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), expr),
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0xD800))
+    );
+    Expression highRange = new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.And,
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0xE000), expr),
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x11_0000))
+    );
+    return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
   }
 }

@@ -1285,40 +1285,17 @@ public partial class BoogieGenerator {
       }
 
     } else if (toType.IsCharType) {
-      Expression DafnyBoundsCheck(Expression intExpr) {
-        if (!Options.Get(CommonOptionBag.UnicodeCharacters)) {
-          return new BinaryExpr(intExpr.tok, BinaryExpr.Opcode.And,
-            new BinaryExpr(
-              intExpr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), intExpr),
-            new BinaryExpr(
-              intExpr.tok, BinaryExpr.Opcode.Lt, intExpr, Expression.CreateIntLiteral(intExpr.tok, 0x1_0000))
-          );
-        }
-
-        Expression lowRange = new BinaryExpr(intExpr.tok, BinaryExpr.Opcode.And,
-          new BinaryExpr(
-            intExpr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), intExpr),
-          new BinaryExpr(
-            intExpr.tok, BinaryExpr.Opcode.Lt, intExpr, Expression.CreateIntLiteral(intExpr.tok, 0xD800))
-        );
-        Expression highRange = new BinaryExpr(intExpr.tok, BinaryExpr.Opcode.And,
-          new BinaryExpr(
-            intExpr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0xE000), intExpr),
-          new BinaryExpr(
-            intExpr.tok, BinaryExpr.Opcode.Lt, intExpr, Expression.CreateIntLiteral(intExpr.tok, 0x11_0000))
-        );
-        return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
-      }
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
         PutSourceIntoLocal();
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, o);
-        var dafnyBoundsCheck = DafnyBoundsCheck(expr);
+        var dafnyBoundsCheck = PODesc.Utils.MakeCharBoundsCheck(options, expr);
         builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("value", toType, dafnyBoundsCheck, errorMsgPrefix)));
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
         PutSourceIntoLocal();
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         var boundsCheck = FunctionCall(Token.NoToken, BuiltinFunction.IsChar, null, oi);
-        var dafnyBoundsCheck = DafnyBoundsCheck(new ExprDotName(expr.tok, expr, "Floor", null));
+        Expression intExpr = new ExprDotName(expr.tok, expr, "Floor", null);
+        var dafnyBoundsCheck = PODesc.Utils.MakeCharBoundsCheck(options, intExpr);
         builder.Add(Assert(tok, boundsCheck, new PODesc.ConversionFit("real value", toType, dafnyBoundsCheck, errorMsgPrefix)));
       } else if (fromType.IsBitVectorType) {
         PutSourceIntoLocal();
