@@ -13,7 +13,7 @@
   * of the `char` type and hence the `string` type,
   * this module must be implemented differently for each option value.
   * Currently, the only available implementation is for `--unicode-char:true`,
-  * and the implementation for `--unicode-char:false` is upcoming.
+  * and the implementation for `--unicode-char false` is upcoming.
   *
   * If you also want to maintain code that works for either `--unicode-char` value,
   * implement your logic in an abstract module that imports this one.

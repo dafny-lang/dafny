@@ -1,6 +1,6 @@
 // NONUNIFORM: Go-specific regression test
-// RUN: %baredafny translate go %args --unicode-char:false "%s" > "%t"
-// RUN: %baredafny translate go %args --unicode-char:true "%s" >> "%t"
+// RUN: %baredafny translate go %args --allow-deprecation --unicode-char false "%s" > "%t"
+// RUN: %baredafny translate go %args --unicode-char true "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t" 
 
 method Main() {

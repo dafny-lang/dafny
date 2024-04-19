@@ -109,8 +109,11 @@ namespace SimpleCompiler {
 
   namespace CSharpUtils {
     public partial class StringUtils {
-      public static Dafny.ISequence<char> StringAsDafnyString(String s) {
-        return Dafny.Sequence<char>.FromString(s);
+      public static Dafny.ISequence<Dafny.Rune> StringAsDafnyString(String s) {
+        return Dafny.Sequence<Dafny.Rune>.UnicodeFromString(s);
+      }
+      public static String DafnyStringAsString(Dafny.ISequence<Dafny.Rune> ds) {
+        return ds.ToVerbatimString(false);
       }
     }
 
