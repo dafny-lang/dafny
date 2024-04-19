@@ -1519,7 +1519,7 @@ public partial class BoogieGenerator {
 
       bool splitHappened;
       var ss = TrSplitExpr(witnessExpr, etran, true, out splitHappened);
-      var desc = new PODesc.WitnessCheck(witnessString, decl.Var.Type, witnessExpr);
+      var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
       if (!splitHappened) {
         witnessCheckBuilder.Add(Assert(witnessCheckTok, etran.TrExpr(witnessExpr), desc));
       } else {

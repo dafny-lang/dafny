@@ -1024,21 +1024,15 @@ public class WitnessCheck : ProofObligationDescription {
   private readonly string hintMsg =
     "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
   private readonly string witnessString;
-  [CanBeNull] private readonly Type type;
-  [CanBeNull] private readonly Expression witness;
+  [CanBeNull] private readonly Expression witnessExpr;
 
-  public WitnessCheck(string witnessString, Type type = null, Expression witness = null) {
+  public WitnessCheck(string witnessString, Expression witnessExpr = null) {
     this.witnessString = witnessString;
-    this.type = type;
-    this.witness = witness;
+    this.witnessExpr = witnessExpr;
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    if (type == null || witness == null) {
-      return base.GetAssertedExpr(options);
-    }
-
-    return new TypeTestExpr(witness.tok, witness, type);
+    return witnessExpr ?? base.GetAssertedExpr(options);
   }
 }
 
@@ -1295,16 +1289,18 @@ public class ArrayInitSizeValid : ProofObligationDescription {
 
   public override string ShortDescription => "array initializer size";
 
-  private readonly int size;
+  private readonly TypeRhs rhs;
   private readonly Expression dim;
+  private int size => rhs.InitDisplay.Count;
 
-  public ArrayInitSizeValid(int size, Expression dim) {
-    this.size = size;
+  public ArrayInitSizeValid(TypeRhs rhs, Expression dim) {
+    this.rhs = rhs;
     this.dim = dim;
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new BinaryExpr(dim.tok, BinaryExpr.Opcode.Eq, dim, Expression.CreateIntLiteral(dim.tok, size));
+    var initDisplaySize = new UnaryOpExpr(rhs.tok, UnaryOpExpr.Opcode.Cardinality, new SeqDisplayExpr(rhs.tok, rhs.InitDisplay));
+    return new BinaryExpr(dim.tok, BinaryExpr.Opcode.Eq, dim, initDisplaySize);
   }
 }
 
@@ -1326,9 +1322,9 @@ public class ArrayInitEmpty : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    Expression zeroSize = Expression.CreateBoolLiteral(dims[0].tok, false);
     Expression zero = Expression.CreateIntLiteral(dims[0].tok, 0);
-    foreach (Expression dim in dims) {
+    Expression zeroSize = new BinaryExpr(dims[0].tok, BinaryExpr.Opcode.Eq, dims[0], zero);
+    foreach (Expression dim in dims.Skip(1)) {
       zeroSize = new BinaryExpr(
         dim.tok,
         BinaryExpr.Opcode.Or,
