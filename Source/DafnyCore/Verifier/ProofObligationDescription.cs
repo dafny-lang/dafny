@@ -400,6 +400,7 @@ public class IsAllocated : ProofObligationDescription {
   private readonly string what;
   [CanBeNull] private readonly string when;
   private readonly Expression expr;
+  [CanBeNull] private readonly Label atLabel;
   private bool plural;
   private string WhenSuffix => when is null ? "" : $" {when}";
   private string PluralSuccess => plural ? "each " : "";
@@ -410,15 +411,16 @@ public class IsAllocated : ProofObligationDescription {
            + " arguments can refer to expressions possibly unallocated in the previous state";
   }
 
-  public IsAllocated(string what, string when, Expression expr, bool plural = false) {
+  public IsAllocated(string what, string when, Expression expr, [CanBeNull] Label atLabel = null, bool plural = false) {
     this.what = what;
     this.when = when;
     this.expr = expr;
+    this.atLabel = atLabel;
     this.plural = plural;
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Allocated, expr);
+    return new OldExpr(expr.tok, new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Allocated, expr), atLabel?.Name);
   }
 }
 

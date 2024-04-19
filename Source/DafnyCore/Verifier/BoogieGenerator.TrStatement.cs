@@ -1910,7 +1910,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver);
+            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1925,7 +1925,8 @@ namespace Microsoft.Dafny {
               var desc = new PODesc.IsAllocated(
                 $"argument{pIdx} for parameter '{formal.Name}'",
                 "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
-                ee
+                ee,
+                atLabel
               );
               builder.Add(Assert(ee.tok, wh, desc));
             }
