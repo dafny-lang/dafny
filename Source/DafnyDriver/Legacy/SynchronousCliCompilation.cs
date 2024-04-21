@@ -336,14 +336,6 @@ namespace Microsoft.Dafny {
         PrintCounterexample(options);
       }
 
-      var translationConfigOutput = options.Get(CommonOptionBag.TranslationRecordOutput);
-      if (translationConfigOutput != null) {
-        var translationConfig = new TranslationRecord(dafnyProgram);
-        await using var writer = new StreamWriter(translationConfigOutput.FullName);
-        // TODO: Make async
-        translationConfig.Write(writer);
-      }
-      
       return exitValue;
     }
 
@@ -676,7 +668,14 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
+        
+        var translationRecord = new TranslationRecord(dafnyProgram);
+        string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+        var dtrFile = output.NewFile($"{baseName}.dtr");
+        translationRecord.Write(dtrFile);
+
         await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, output));
+        
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();

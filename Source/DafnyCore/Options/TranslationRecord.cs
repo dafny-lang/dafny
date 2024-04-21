@@ -46,12 +46,12 @@ public class TranslationRecord {
     return Toml.ToModel<TranslationRecord>(reader.ReadToEnd(), null, new TomlModelOptions());
   }
   
-  public void Write(TextWriter writer) {
+  public void Write(ConcreteSyntaxTree writer) {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
   }
 
-  public object Get(ErrorReporter reporter, ModuleDecl module, Option option) {
-    if (OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions)) {
+  public object Get(ErrorReporter reporter, string moduleName, Option option) {
+    if (OptionsByModule.TryGetValue(moduleName, out var moduleOptions)) {
       if (moduleOptions.TryGetValue(option.Name, out var manifestValue)) {
         if (TomlUtil.TryGetValueFromToml(reporter, Token.NoToken, null,
               option.Name, option.ValueType, manifestValue, out var libraryValue)) {

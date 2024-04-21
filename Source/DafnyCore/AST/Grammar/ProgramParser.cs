@@ -105,12 +105,15 @@ public class ProgramParser {
 
     // TODO: Inside CompilationData constructor instead?
     compilation.TranslationRecord = new TranslationRecord();
-    foreach (var path in options.Get(CommonOptionBag.TranslationRecords)) {
-      using var reader = new StreamReader(path.FullName);
-      var libraryConfig = TranslationRecord.Read(reader);
-      compilation.TranslationRecord.Merge(libraryConfig);
+    var records = options.Get(CommonOptionBag.TranslationRecords);
+    if (records != null) {
+      foreach (var path in options.Get(CommonOptionBag.TranslationRecords)) {
+        using var reader = new StreamReader(path.FullName);
+        var libraryConfig = TranslationRecord.Read(reader);
+        compilation.TranslationRecord.Merge(libraryConfig);
+      }
     }
-    
+
     return program;
   }
 

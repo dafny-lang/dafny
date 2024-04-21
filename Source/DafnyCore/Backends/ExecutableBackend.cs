@@ -50,30 +50,49 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   protected void ProcessOuterModules(Program dafnyProgram) {
-    
-    // TODO: insert outer modules above modules from libraries as well
-    // according to dafnyProgram.Compilation.TranslationConfig.
-    
-    var outerModules = GetOuterModules();
-    ModuleDefinition rootUserModule = null;
-    foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
-        ModuleKindEnum.Concrete, false,
-        null, null, null);
-      newRoot.EnclosingModule = rootUserModule;
-      rootUserModule = newRoot;
-    }
-
-    if (rootUserModule != null) {
+    // Apply the local --output-module option if there is one
+    var outerModuleName = Options.Get(OuterModule);
+    if (outerModuleName != null) {
+      ModuleDefinition rootUserModule = CreateModule(outerModuleName);
       dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
       dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
     }
 
+    // Apply the --outer-module option from any translation records for libraries,
+    // but only to top-level modules.
+    // TODO: Check the invariant that a module isn't in both a translation record
+    // and being compiled in this pipeline instance!
+    foreach (var child in dafnyProgram.DefaultModule.Children) {
+      if (child is ModuleDefinition module) {
+        string recordedOuterModuleName = (string)dafnyProgram.Compilation.TranslationRecord.Get(null, module.FullDafnyName, OuterModule);
+        if (recordedOuterModuleName != null) {
+          // TODO: Need to cache these so we don't create duplicate modules
+          ModuleDefinition outerModule = CreateModule(recordedOuterModuleName);
+          module.EnclosingModule = outerModule;
+        }
+      }
+    }
+    
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
   }
 
+  private ModuleDefinition CreateModule(string moduleName) {
+    var outerModules = moduleName.Split(".");
+    
+    ModuleDefinition module = null;
+    foreach (var outerModule in outerModules) {
+      var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
+        null, null, null);
+      thisModule.EnclosingModule = module;
+      module = thisModule;
+    }
+
+    return module;
+  }
+  
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     base.OnPreCompile(reporter, otherFileNames);
     codeGenerator = CreateCodeGenerator();

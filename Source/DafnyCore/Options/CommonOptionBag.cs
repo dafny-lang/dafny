@@ -579,6 +579,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.ExtractCounterexample = value;
       options.EnhancedErrorMessages = 1;
     });
+    
+    DafnyOptions.RegisterLegacyUi(TranslationRecords, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
 
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
