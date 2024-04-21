@@ -1013,25 +1013,6 @@ that assist in proving the validity of the asserted expression.
 
 <!-- TODO -->
 
-## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
-
-<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
-
-<!-- %check-legacy %options -compile:0 -noCheating:1 -->
-```dafny
-module M {
-  predicate f(i: int) { true }
-  method  m(a: seq<int>) {
-    forall i | 0 <= i < 10
-       ensures f(i)
-  }
-}
-```
-
-A forall statement without a body is like an assume statement: the ensures clause is assumed in the following code.
-Assumptions like that are a risk to soundness because there is no check that the assumption is true.
-Thus in a context in which open assumptions are not allowed, body-less forall statements are also not allowed.
-
 ## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
 
 <!-- TODO-->
@@ -1284,7 +1265,7 @@ are grouped. The example `5 | 6 & 7` should be written as either `(5 | 6) & 7` o
 
 ## **Error: too many characters in character literal** {#p_invalid_char_literal}
 
-<!-- %check-resolve --unicode-char:false -->
+<!-- %check-resolve %options --allow-deprecation --unicode-char:false -->
 ```dafny
 const c := '🚀'
 ```
@@ -1477,7 +1458,7 @@ that is a single underscore is used as a wild-card match.
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 
-<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+<!-- %check-resolve %options -->
 ```dafny
 const c := 5;
 ```

@@ -1,5 +1,5 @@
 // RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
-// RUN: %dafny -compile:0 -unicodeChar:0 -spillTargetCode:3 "-out:%S/csharp/Compiler.cs" "%s"
+// RUN: %translate cs --include-runtime --output:%S/csharp/Compiler.cs "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -237,7 +237,7 @@ module StackMachine {
     }
   }
 
-  const EmptyState := State(Nil, map[], []);
+  const EmptyState := State(Nil, map[], [])
 
   function interpProg(p: Prog, input: RegisterFile) : seq<int> {
     interpProg'(p, EmptyState.(regs := input)).output
@@ -398,22 +398,14 @@ module {:extern "SimpleCompiler.CSharpUtils"} CSharpUtils {
     // calling the method twice produces equal results).
     static function {:extern}
       StringAsDafnyString(s: String): string
+    
+    static method {:extern}
+      DafnyStringAsString(ds: string) returns (s: String)
   }
 
   class ListUtils {
     static function {:extern}
       FoldR<A, B>(f: (A, B) -> B, b0: B, l: List<A>) : B
-
-    static method LinkedListToCList<T>(ll: LinkedList.List<T>) returns (l: List<T>) {
-      l := new List<T>();
-      var it := ll;
-      while it.Cons?
-        decreases it
-      {
-        l.Add(it.hd);
-        it := it.tl;
-      }
-    }
   }
 }
 
@@ -461,7 +453,7 @@ module {:extern "SimpleCompiler.CSharpAST"} CSharpAST {
   }
 
   trait {:compile false} {:extern} Assign extends Stmt {
-    var v: System.String;
+    var v: System.String
     var e: Expr
   }
 
@@ -544,8 +536,10 @@ module Translator {
 /// Alternatively, we could have chosen to expose the stack machine types to C# directly and do the pretty-printing from there.
 
 module PrettyPrint {
-  import opened LinkedList
   import opened StackMachine
+  import opened System
+  import opened CSharpUtils
+  import opened System.Collections.Generic
 
   function prettyPrintNum(n: int, zero: string) : string
     decreases n < 0, if n < 0 then -n else n
@@ -568,10 +562,16 @@ module PrettyPrint {
     }
   }
 
-  function prettyPrint(p: Prog) : List<string> {
-    match p {
-      case Nil => Nil
-      case Cons(instr, p) => Cons(prettyPrintInstr(instr), prettyPrint(p))
+  method prettyPrint(p: Prog) returns (l: System.Collections.Generic.List<String>) {
+    l := new List<String>();
+    var it := p;
+    while it.Cons?
+      decreases it
+    {
+      var ds := prettyPrintInstr(it.hd);
+      var s := StringUtils.DafnyStringAsString(ds);
+      l.Add(s);
+      it := it.tl;
     }
   }
 }
@@ -594,6 +594,7 @@ module {:extern "SimpleCompiler"} Interop {
   import PrettyPrint
   import CSharpUtils
   import Generics = System.Collections.Generic
+  import System
 
   class DafnyCompiler {
     static method Compile(dAST: DafnyAST.Stmt) returns (dSM: StackMachine.Prog)
@@ -619,12 +620,11 @@ module {:extern "SimpleCompiler"} Interop {
     }
 
     static method CompileAndExport(cAST: CSharpAST.Prog)
-      returns (output: Generics.List<string>)
+      returns (output: Generics.List<System.String>)
     {
       var translated: DafnyAST.Stmt := Translator.translateProg(cAST);
       var compiled: StackMachine.Prog := Compile(translated);
-      var prettyPrinted: LinkedList.List<string> := PrettyPrint.prettyPrint(compiled);
-      output := CSharpUtils.ListUtils.LinkedListToCList(prettyPrinted);
+      output := PrettyPrint.prettyPrint(compiled);
     }
   }
 }

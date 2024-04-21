@@ -1,13 +1,13 @@
 // NONUNIFORM: Multiple test scenarios (could be split)
 // RUN: %verify "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs /Main:A.B.Main "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:A.B.Main "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go /Main:A.B.Main "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:A.B.Main "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs /Main:A.C.Test "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js /Main:A.C.Test "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go /Main:A.C.Test "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java /Main:A.C.Test "%s" >> "%t"
+// RUN: %run --no-verify --target cs --main-method A.B.Main "%s" >> "%t"
+// RUN: %run --no-verify --target js --main-method A.B.Main "%s" >> "%t"
+// RUN: %run --no-verify --target go --main-method A.B.Main "%s" >> "%t"
+// RUN: %run --no-verify --target js --main-method A.B.Main "%s" >> "%t"
+// RUN: %run --no-verify --target cs --main-method A.C.Test "%s" >> "%t"
+// RUN: %run --no-verify --target js --main-method A.C.Test "%s" >> "%t"
+// RUN: %run --no-verify --target go --main-method A.C.Test "%s" >> "%t"
+// RUN: %run --no-verify --target java --main-method A.C.Test "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

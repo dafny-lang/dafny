@@ -31,8 +31,8 @@ public class CommonOptionBag {
       IsHidden = true
     };
 
-  public static readonly Option<bool> ShowInference =
-    new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
+  public static readonly Option<bool> ShowHints =
+    new("--show-hints", () => false, "Show hints that might help you better understand your code, such as what triggers Dafny generators for quantifiers") {
       IsHidden = true
     };
 
@@ -184,7 +184,7 @@ go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
-cpp - Compile to C++.
+cpp - (experimental) Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
@@ -195,6 +195,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
@@ -358,6 +359,12 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
 
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
+  };
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
       if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
@@ -368,7 +375,7 @@ If verification fails, report a detailed counterexample for the first failing as
     });
 
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
-    DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
+    DafnyOptions.RegisterLegacyBinding(ShowHints, (options, value) => {
       options.PrintTooltips = value;
     });
 
@@ -570,6 +577,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
 
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
@@ -594,7 +605,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       LogLocation,
       LogLevelOption,
       ManualTriggerOption,
-      ShowInference,
+      ShowHints,
       Check,
       Libraries,
       Output,
@@ -634,7 +645,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       AddCompileSuffix,
       SystemModule,
       ExecutionCoverageReport,
-      ExtractCounterexample
+      ExtractCounterexample,
+      ShowProofObligationExpressions
       );
   }
 

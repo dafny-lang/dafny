@@ -14,6 +14,7 @@ using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
+using VCGeneration;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -72,7 +73,7 @@ public class Compilation : IDisposable {
 
   public ErrorReporter Reporter => errorReporter;
 
-  public IReadOnlyList<DafnyFile>? RootFiles { get; set; }
+  public Task<IReadOnlyList<DafnyFile>> RootFiles { get; set; }
   public bool HasErrors { get; private set; }
 
   public Compilation(
@@ -105,6 +106,7 @@ public class Compilation : IDisposable {
 
     verificationTickets.Enqueue(Unit.Default);
 
+    RootFiles = DetermineRootFiles();
     ParsedProgram = ParseAsync();
     Resolution = ResolveAsync();
   }
@@ -115,9 +117,7 @@ public class Compilation : IDisposable {
     }
 
     Project.Errors.CopyDiagnostics(errorReporter);
-    RootFiles = DetermineRootFiles();
 
-    updates.OnNext(new DeterminedRootFiles(Project, RootFiles!, GetDiagnosticsCopyAndClear()));
     started.TrySetResult();
   }
 
@@ -128,11 +128,15 @@ public class Compilation : IDisposable {
     return result;
   }
 
-  private IReadOnlyList<DafnyFile> DetermineRootFiles() {
+
+
+  private async Task<IReadOnlyList<DafnyFile>> DetermineRootFiles() {
+    await started.Task;
+
     var result = new List<DafnyFile>();
 
     foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
       if (file != null) {
         result.Add(file);
       }
@@ -140,37 +144,52 @@ public class Compilation : IDisposable {
 
     foreach (var uri in Options.CliRootSourceUris) {
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
         $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
       if (file != null) {
         result.Add(file);
-      } else {
-        return result;
       }
     }
     if (Options.UseStdin) {
       var uri = new Uri("stdin:///");
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli));
+      result.Add(await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli));
     }
 
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        result.Add(DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken));
+        var targetSpecificFile = await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken);
+        if (targetSpecificFile != null) {
+          result.Add(targetSpecificFile);
+        }
       }
 
-      result.Add(DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken));
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken);
+      if (file != null) {
+        result.Add(file);
+      }
     }
 
+    string? unverifiedLibrary = null;
     var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryFiles) {
-      var file = DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
       if (file != null) {
+        if (!file.IsPreverified) {
+          unverifiedLibrary = library;
+        }
         file.IsPreverified = true;
         file.IsPrecompiled = true;
         result.Add(file);
       }
+    }
+
+    if (unverifiedLibrary != null) {
+      errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
+        $"The file '{Options.GetPrintPath(unverifiedLibrary)}' was passed to --library. " +
+        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
+        $"Use a .doo file to enable Dafny to check that compatible options were used");
     }
 
     var projectPath = Project.Uri.LocalPath;
@@ -188,12 +207,15 @@ public class Compilation : IDisposable {
     }
 
     // Allow specifying the same file twice on the CLI
-    return result.DistinctBy(d => d.Uri).ToList();
+    var distinctResults = result.DistinctBy(d => d.Uri).ToList();
+
+    updates.OnNext(new DeterminedRootFiles(Project, distinctResults, GetDiagnosticsCopyAndClear()));
+    return distinctResults;
   }
 
   private async Task<Program?> ParseAsync() {
     try {
-      await started.Task;
+      await RootFiles;
       if (HasErrors) {
         return null;
       }
@@ -201,7 +223,7 @@ public class Compilation : IDisposable {
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
       transformedProgram.HasParseErrors = HasErrors;
 
-      var cloner = new Cloner(true, false);
+      var cloner = new Cloner(true);
       programAfterParsing = new Program(cloner, transformedProgram);
 
       updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
@@ -497,6 +519,9 @@ public class Compilation : IDisposable {
     foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+      if (options.ShowProofObligationExpressions) {
+        AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
+      }
       var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
       errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
@@ -508,6 +533,40 @@ public class Compilation : IDisposable {
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
       timeLimit, result.CounterExamples);
+  }
+
+  private static void AddAssertedExprToCounterExampleErrorInfo(
+      DafnyOptions options, Counterexample counterExample, ErrorInformation errorInformation) {
+    Boogie.ProofObligationDescription? boogieProofObligationDesc = null;
+    switch (errorInformation.Kind) {
+      case ErrorKind.Assertion:
+        boogieProofObligationDesc = ((AssertCounterexample)counterExample).FailingAssert.Description;
+        break;
+      case ErrorKind.Precondition:
+        boogieProofObligationDesc = ((CallCounterexample)counterExample).FailingCall.Description;
+        break;
+      case ErrorKind.Postcondition:
+        boogieProofObligationDesc = ((ReturnCounterexample)counterExample).FailingReturn.Description;
+        break;
+      case ErrorKind.InvariantEntry:
+      case ErrorKind.InvariantMaintainance:
+        AssertCmd failingAssert = ((AssertCounterexample)counterExample).FailingAssert;
+        if (failingAssert is LoopInitAssertCmd loopInitAssertCmd) {
+          boogieProofObligationDesc = loopInitAssertCmd.originalAssert.Description;
+        } else if (failingAssert is LoopInvMaintainedAssertCmd maintainedAssertCmd) {
+          boogieProofObligationDesc = maintainedAssertCmd.originalAssert.Description;
+        }
+        break;
+      default:
+        throw new ArgumentOutOfRangeException($"Unexpected ErrorKind: {errorInformation.Kind}");
+    }
+
+    if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
+      var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
+      if (expr != null) {
+        errorInformation.AddAuxInfo(errorInformation.Tok, expr.ToString(), ErrorReporterExtensions.AssertedExprCategory);
+      }
+    }
   }
 
   public static VcOutcome GetOutcome(SolverOutcome outcome) {

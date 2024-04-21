@@ -811,23 +811,6 @@ method m() {
 
 <!-- INSERT-TEXT -->
 
-## **Error: a forall statement with an ensures clause must have a body** {#p_forall_with_ensures_must_have_body}
-
-<!-- TODO: This example does not yet work in the new CLI because there is no way to turn on /noCheating in the new CLI -->
-
-<!-- %check-legacy %options -compile:0 -noCheating:1 -->
-```dafny
-module M {
-  predicate f(i: int) { true }
-  method  m(a: seq<int>) {
-    forall i | 0 <= i < 10
-       ensures f(i)
-  }
-}
-```
-
-<!-- INSERT-TEXT -->
-
 ## **Warning: the modify statement with a block statement is deprecated** {#p_deprecated_modify_statement_with_block}
 
 <!-- INSERT-TEXT -->
@@ -1000,7 +983,7 @@ const i: int := 5 | 6 & 7
 
 ## **Error: too many characters in character literal** {#p_invalid_char_literal}
 
-<!-- %check-resolve --unicode-char:false -->
+<!-- %check-resolve %options --allow-deprecation --unicode-char:false -->
 ```dafny
 const c := '🚀'
 ```
@@ -1133,7 +1116,7 @@ const _myconst := 5
 
 ## **Warning: deprecated style: a semi-colon is not needed here {#p_deprecated_semicolon}
 
-<!-- %check-legacy %exit 0 %options /compile:0 /deprecation:2 -->
+<!-- %check-resolve %options -->
 ```dafny
 const c := 5;
 ```
