@@ -976,9 +976,36 @@ public class IndicesInDomain : ProofObligationDescription {
   public override string ShortDescription => "indices in domain";
 
   private readonly string objType;
+  private readonly List<Expression> dims;
+  private readonly Expression init;
 
-  public IndicesInDomain(string objType) {
+  public IndicesInDomain(string objType, List<Expression> dims, Expression init) {
+    Contract.Requires(dims is { Count: > 0 });
     this.objType = objType;
+    this.dims = dims;
+    this.init = init;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var zero = new LiteralExpr(Token.NoToken, 0);
+    var indexVars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
+    var indexVarExprs = indexVars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
+    var indexRanges = dims.Select((dim, i) => new ChainingExpression(
+      Token.NoToken, 
+      new() { zero, indexVarExprs[i], dim },
+      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
+      new() { Token.NoToken, Token.NoToken },
+      new() { null, null }
+    ) as Expression).ToList();
+    var indicesRange = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
+      Token.NoToken,
+      indexRanges,
+      Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
+      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
+      Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
+    );
+    var precond = new FunctionCallExpr(Token.NoToken, "requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, indexVars, indicesRange, precond, null);
   }
 }
 

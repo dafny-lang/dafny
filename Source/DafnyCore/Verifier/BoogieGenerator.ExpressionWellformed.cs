@@ -1534,7 +1534,7 @@ namespace Microsoft.Dafny {
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
-      var desc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence");
+      var desc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence", dims, init);
       builder.Add(AssertNS(tok, q, desc));
       if (!forArray && options.DoReadsChecks) {
         // check read effects
