@@ -196,7 +196,7 @@ public class SystemModuleManager {
     var rotateMember = new SpecialFunction(RangeToken.NoToken, name, SystemModule, false, false,
       new List<TypeParameter>(), formals, resultType,
       new List<AttributedExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      new Specification<Expression>(new List<Expression>(), null), new List<(Expression, bool)>(), null, null, null);
     rotateMember.EnclosingClass = enclosingType;
     rotateMember.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(rotateMember);
@@ -293,7 +293,7 @@ public class SystemModuleManager {
       var function = new Function(RangeToken.NoToken, new Name(name), false, false, true, false,
         new List<TypeParameter>(), args, null, resultType,
         new List<AttributedExpression>(), new Specification<FrameExpression>(readsFrame, null), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null),
+        new Specification<Expression>(new List<Expression>(), null), new List<(Expression, bool)>(),
         null, null, null, null, null);
       readsIS.Function = readsFunction ?? function; // just so we can really claim the member declarations are resolved
       readsIS.TypeApplication_AtEnclosingClass = tys; // ditto

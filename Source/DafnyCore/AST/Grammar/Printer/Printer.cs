@@ -990,6 +990,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintFrameSpecLine("reads", f.Reads, ind);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
+      PrintCallsSpec(f.Calls, ind);
       wr.WriteLine();
       if (f.Body != null && !printSignatureOnly) {
         Indent(indent);
@@ -1085,6 +1086,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
+      PrintCallsSpec(method.Calls, ind);
       wr.WriteLine();
 
       if (method.Body != null && !printSignatureOnly) {
@@ -1168,6 +1170,24 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write(" ");
         PrintExpressionList(decs.Expressions, true);
       }
+    }
+
+    internal void PrintCallsSpec(List<(Expression callable, bool recursive)> calls, int indent) {
+      void PrintCalls(bool recursive) {
+        var names = calls.FindAll(tp => tp.recursive == recursive).ConvertAll(tp => tp.callable);
+        if (names.Count == 0) {
+          return;
+        }
+
+        wr.WriteLine();
+        Indent(indent);
+        wr.Write($"calls {names.Comma()}");
+        if(recursive) { wr.Write(" recursively"); }
+      }
+
+      if (printMode == PrintModes.NoGhost) { return; }
+      PrintCalls(false);
+      PrintCalls(true);
     }
 
     internal void PrintFrameSpecLine(string kind, Specification<FrameExpression> ee, int indent) {

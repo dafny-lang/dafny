@@ -522,6 +522,7 @@ namespace Microsoft.Dafny {
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = CloneSpecFrameExpr(f.Reads);
       var decreases = CloneSpecExpr(f.Decreases);
+      var calls = f.Calls.ConvertAll((item=> (CloneExpr(item.callable), item.recursive)));
       var ens = f.Ens.ConvertAll(CloneAttributedExpr);
       Expression body = CloneExpr(f.Body);
       BlockStmt byMethodBody = CloneBlockStmt(f.ByMethodBody);
@@ -535,7 +536,7 @@ namespace Microsoft.Dafny {
       if (f is Predicate) {
         return new Predicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsGhost, f.IsOpaque, tps, formals,
           result,
-          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited,
+          req, reads, ens, decreases, calls, body, Predicate.BodyOriginKind.OriginalOrInherited,
           f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       } else if (f is LeastPredicate) {
@@ -549,15 +550,15 @@ namespace Microsoft.Dafny {
       } else if (f is TwoStatePredicate) {
         return new TwoStatePredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsOpaque, tps, formals,
           result,
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, calls, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStateFunction) {
         return new TwoStateFunction(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsOpaque, tps, formals,
           result, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, calls, body, CloneAttributes(f.Attributes), null);
       } else {
         return new Function(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsGhost, f.IsOpaque, tps, formals,
           result, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
+          req, reads, ens, decreases, calls, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       }
     }

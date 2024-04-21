@@ -135,7 +135,7 @@ namespace Microsoft.Dafny {
       var rotateMember = new SpecialFunction(RangeToken.NoToken, name, resolver.SystemModuleManager.SystemModule, false, false,
         new List<TypeParameter>(), formals, resultType,
         new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(),
-        new Specification<Expression>(new List<Expression>(), null), null, null, null) {
+        new Specification<Expression>(new List<Expression>(), null), new List<(Expression, bool)>(), null, null, null) {
         EnclosingClass = bitvectorTypeDecl,
         ResultPreType = Type2PreType(resultType)
       };

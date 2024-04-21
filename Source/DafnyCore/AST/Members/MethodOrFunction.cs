@@ -7,25 +7,29 @@ public abstract class MethodOrFunction : MemberDecl {
   public readonly List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
+  public readonly List<(Expression callable, bool recursive)> Calls;
 
   protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost,
     Attributes attributes, bool isRefining, List<TypeParameter> typeArgs,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
-    Specification<Expression> decreases)
+    Specification<Expression> decreases,
+    List<(Expression, bool)> calls)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, isRefining) {
     TypeArgs = typeArgs;
     Req = req;
-    Decreases = decreases;
     Ens = ens;
-    this.IsAlien = isAlien;
+    Decreases = decreases;
+    Calls = calls;
+    IsAlien = isAlien;
   }
 
   protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
     this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
-    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
+    this.Calls = original.Calls.ConvertAll((item=> (cloner.CloneExpr(item.callable), item.recursive)));
     this.IsAlien = original.IsAlien;
   }
 

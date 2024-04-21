@@ -44,9 +44,10 @@ public class Constructor : Method {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
+    List<(Expression, bool)> calls,
     DividedBlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, false, isAlien, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, false, isAlien, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

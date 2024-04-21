@@ -130,10 +130,11 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
+    [Captured] List<(Expression, bool)> calls,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
     : base(rangeToken, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null,
-      typeArgs, req, ens, decreases) {
+      typeArgs, req, ens, decreases, calls) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

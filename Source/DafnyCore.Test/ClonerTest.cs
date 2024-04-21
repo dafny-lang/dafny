@@ -33,7 +33,7 @@ public class ClonerTest {
       new List<Formal>(), new List<AttributedExpression>(),
       new Specification<FrameExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-      new BlockStmt(rangeToken, new List<Statement>()), null, Token.NoToken, false);
+      new List<(Expression, bool)>(), new BlockStmt(rangeToken, new List<Statement>()), null, Token.NoToken, false);
 
     dummyDecl.BodyStartTok = tokenBodyStart;
     var cloner = new Cloner();

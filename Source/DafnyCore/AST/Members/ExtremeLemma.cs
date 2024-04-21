@@ -27,9 +27,10 @@ public abstract class ExtremeLemma : Method {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
+    List<(Expression, bool)> calls,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, isAlien, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, isAlien, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -57,9 +58,10 @@ public class LeastLemma : ExtremeLemma {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
+    List<(Expression, bool)> calls,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, isAlien, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, isAlien, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -87,9 +89,10 @@ public class GreatestLemma : ExtremeLemma {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
+    List<(Expression, bool)> calls,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, isAlien, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, isAlien, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

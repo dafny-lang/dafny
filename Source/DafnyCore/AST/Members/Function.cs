@@ -221,9 +221,9 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
+    List<(Expression, bool)> calls, Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases) {
+    : base(range, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases, calls) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
