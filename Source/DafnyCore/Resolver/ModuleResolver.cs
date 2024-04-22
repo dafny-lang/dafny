@@ -182,6 +182,9 @@ namespace Microsoft.Dafny {
 
     public ModuleResolutionResult ResolveModuleDeclaration(CompilationData compilation, ModuleDecl decl) {
       Dictionary<ModuleDefinition, ModuleSignature> signatures = new();
+      if (decl is OrderedModuleDecl ordered) {
+        ordered.Above.Concat(ordered.Below).ForEach(qid => qid.ResolveTarget(reporter));
+      }
       if (decl is LiteralModuleDecl literalModuleDecl) {
         var signature = literalModuleDecl.Resolve(this, compilation);
         signatures[literalModuleDecl.ModuleDef] = signature;

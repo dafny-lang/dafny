@@ -427,13 +427,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
           Indent(indent);
           void PrintModuleRelations(OrderedModuleDecl decl) {
             if (decl.Above.Count > 0) {
-              wr.Write($" above {decl.Above.Comma()}");
+              wr.Write($" above {decl.Above.Select(qid => qid.Decl.Name).Comma()}");
             }
             if (decl.Below.Count > 0) {
-              wr.Write($" below {decl.Below.Comma()}");
+              wr.Write($" below {decl.Below.Select(qid => qid.Decl.Name).Comma()}");
             }
           }
-          if (d is LiteralModuleDecl modDecl) {
+          if (md is LiteralModuleDecl modDecl) {
             if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(compilation)) {
               // This mode is used to losslessly serialize the source program by the C# and Library backends.
               // Backends don't compile any code for modules not marked for compilation,
@@ -446,7 +446,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
               scope = modDecl.Signature.VisibilityScope;
             }
             PrintModuleDefinition(compilation, modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
-          } else if (d is AliasModuleDecl) {
+          } else if (md is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
             wr.Write("import");
@@ -465,7 +465,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             }
             PrintModuleRelations(dd);
             wr.WriteLine();
-          } else if (d is AbstractModuleDecl) {
+          } else if (md is AbstractModuleDecl) {
             var dd = (AbstractModuleDecl)d;
 
             wr.Write("import");
@@ -480,7 +480,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
             PrintModuleRelations(dd);
             wr.WriteLine();
 
-          } else if (d is ModuleExportDecl) {
+          } else if (md is ModuleExportDecl) {
             ModuleExportDecl e = (ModuleExportDecl)d;
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
