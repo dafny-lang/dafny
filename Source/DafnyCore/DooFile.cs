@@ -167,7 +167,8 @@ public class DooFile {
           return null;
         }
       } else {
-        // Use default
+        // This else can occur because Tomlyn will drop aggregate properties with no values.
+        // When this happens, use the default value
         libraryValue = option.Parse("").GetValueForOption(option);
       }
 
