@@ -3556,7 +3556,7 @@ namespace Microsoft.Dafny {
 
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etr);
 
-    List<Bpl.Expr> trTypeArgs(Dictionary<TypeParameter, Type> tySubst, List<TypeParameter> tyArgs) {
+    List<Bpl.Expr> TrTypeArgs(Dictionary<TypeParameter, Type> tySubst, List<TypeParameter> tyArgs) {
       var res = new List<Bpl.Expr>();
       foreach (var p in tyArgs) {
         res.Add(TypeToTy(tySubst[p]));
