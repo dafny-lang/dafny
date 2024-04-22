@@ -50,20 +50,12 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   protected void ProcessOuterModules(Program dafnyProgram) {
-    // Apply the local --output-module option if there is one
-    var outerModuleName = Options.Get(OuterModule);
-    if (outerModuleName != null) {
-      ModuleDefinition rootUserModule = CreateModule(outerModuleName);
-      dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
-      dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
-    }
-
     // Apply the --outer-module option from any translation records for libraries,
     // but only to top-level modules.
     // TODO: Check the invariant that a module isn't in both a translation record
     // and being compiled in this pipeline instance!
-    foreach (var child in dafnyProgram.DefaultModule.Children) {
-      if (child is ModuleDefinition module) {
+    foreach (var module in dafnyProgram.CompileModules) {
+      if (module.EnclosingModule is DefaultModuleDefinition) {
         string recordedOuterModuleName = (string)dafnyProgram.Compilation.TranslationRecord.Get(null, module.FullDafnyName, OuterModule);
         if (recordedOuterModuleName != null) {
           // TODO: Need to cache these so we don't create duplicate modules
@@ -71,6 +63,14 @@ public abstract class ExecutableBackend : IExecutableBackend {
           module.EnclosingModule = outerModule;
         }
       }
+    }
+    
+    // Apply the local --output-module option if there is one
+    var outerModuleName = Options.Get(OuterModule);
+    if (outerModuleName != null) {
+      ModuleDefinition rootUserModule = CreateModule(outerModuleName);
+      dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
+      dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
     }
     
     foreach (var module in dafnyProgram.CompileModules) {
