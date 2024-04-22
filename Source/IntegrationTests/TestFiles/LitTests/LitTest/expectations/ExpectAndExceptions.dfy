@@ -1,7 +1,7 @@
-// RUN: ! %run --target cs --unicode-char false "%s" > "%t"
-// RUN: ! %run --target go --unicode-char false "%s" >> "%t"
-// RUN: ! %run --target java --unicode-char false "%s" >> "%t"
-// RUN: ! %run --target js --unicode-char false "%s" >> "%t"
+// RUN: ! %run --target cs "%s" > "%t"
+// RUN: ! %run --target go "%s" >> "%t"
+// RUN: ! %run --target java "%s" >> "%t"
+// RUN: ! %run --target js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../exceptions/NatOutcomeDt.dfy"
