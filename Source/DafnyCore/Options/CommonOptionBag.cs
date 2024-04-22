@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 using Serilog.Events;
 
 namespace Microsoft.Dafny;
@@ -583,17 +584,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyUi(TranslationRecords, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
 
     DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, DooFile.OptionCheck>() {
-        { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
-        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
+      new Dictionary<Option, OptionCompatibility.OptionCheck>() {
+        { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
+        { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, OptionCompatibility.CheckOptionLibraryImpliesLocal },
+        { ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary },
+        { AllowAxioms, OptionCompatibility.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
-            if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
+            if (OptionCompatibility.OptionValuesImplied(libraryValue, localValue)) {
               return true;
             }
-            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            string message = OptionCompatibility.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
             reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
             return false;
           }

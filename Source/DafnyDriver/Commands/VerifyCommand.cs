@@ -15,6 +15,7 @@ namespace Microsoft.Dafny;
 public static class VerifyCommand {
 
   static VerifyCommand() {
+    // TODO: This should be recorded and checked somehow for the same reason --no-verify is
     DooFile.RegisterNoChecksNeeded(FilterSymbol);
     DooFile.RegisterNoChecksNeeded(FilterPosition);
   }

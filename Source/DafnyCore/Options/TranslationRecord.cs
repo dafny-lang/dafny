@@ -26,6 +26,9 @@ public class TranslationRecord {
     OptionsByModule = new();
     
     foreach (var module in program.RawModules()) {
+      // TODO: Don't include the default module,
+      // which is the only one that can cross compilation units
+      
       if (!module.ShouldCompile(program.Compilation)) {
         continue;
       }
@@ -48,6 +51,12 @@ public class TranslationRecord {
   
   public void Write(ConcreteSyntaxTree writer) {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
+  }
+
+  public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+    // TODO: Check uniqueness of module names across all records/local compilation?
+
+    return true;
   }
 
   public object Get(ErrorReporter reporter, string moduleName, Option option) {
