@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Plugins;
@@ -192,6 +193,11 @@ public abstract class IExecutableBackend {
 
   static IExecutableBackend() {
     DooFile.RegisterNoChecksNeeded(OuterModule);
+    TranslationRecord.RegisterLibraryChecks(
+      new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { OuterModule, OptionCompatibility.NoOpOptionCheck },
+      }
+    );
   }
 
   public virtual Command GetCommand() {

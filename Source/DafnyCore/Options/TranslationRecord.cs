@@ -36,8 +36,10 @@ public class TranslationRecord {
       Dictionary<string, object> recordedOptions = new();
       OptionsByModule[module.FullDafnyName] = recordedOptions;
       
-      // TODO: Just recording one option for a POC first
-      recordedOptions["outer-module"] = program.Options.Get(IExecutableBackend.OuterModule);
+      foreach (var (option, _) in OptionChecks) {
+        var optionValue = program.Options.Get((dynamic)option);
+        recordedOptions.Add(option.Name, optionValue);
+      }
     }
   }
   
@@ -52,11 +54,40 @@ public class TranslationRecord {
   public void Write(ConcreteSyntaxTree writer) {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
   }
-
+  
   public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
-    // TODO: Check uniqueness of module names across all records/local compilation?
+    var messagePrefix = $"cannot load {filePath}";
+    if (!options.UsingNewCli) {
+      reporter.Error(MessageSource.Project, origin,
+        $"{messagePrefix}: .dtr files cannot be used with the legacy CLI");
+      return false;
+    }
 
-    return true;
+    if (options.VersionNumber != DafnyVersion) {
+      reporter.Error(MessageSource.Project, origin,
+        $"{messagePrefix}: it was built with Dafny {DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+      return false;
+    }
+
+    var success = true;
+    var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
+    foreach (var (option, check) in OptionChecks) {
+      // It's important to only look at the options the current command uses,
+      // because other options won't be initialized to the correct default value.
+      // See CommandRegistry.Create().
+      if (!relevantOptions.Contains(option)) {
+        continue;
+      }
+
+      var localValue = options.Get(option);
+
+      foreach (var moduleName in OptionsByModule.Keys) {
+        var libraryValue = Get(reporter, moduleName, option);
+        success = success && check(reporter, origin, messagePrefix, option, localValue, libraryValue);
+      }
+    }
+
+    return success;
   }
 
   public object Get(ErrorReporter reporter, string moduleName, Option option) {
@@ -78,5 +109,13 @@ public class TranslationRecord {
     // TODO: This will error if any modules overlap, which is what we want,
     // but we can do much better in terms of error messages.
     OptionsByModule = OptionsByModule.Union(other.OptionsByModule).ToDictionary(p => p.Key, p => p.Value);
+  }
+  
+  private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
+  
+  public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
+    foreach (var (option, check) in checks) {
+      OptionChecks.Add(option, check);
+    }
   }
 }

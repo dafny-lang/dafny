@@ -46,7 +46,7 @@ public class DooFile {
 
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
-        var optionValue = GetOptionValue(options, option);
+        var optionValue = options.Get((dynamic)option);
         Options.Add(option.Name, optionValue);
       }
     }

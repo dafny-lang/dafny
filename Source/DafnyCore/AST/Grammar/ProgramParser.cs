@@ -11,6 +11,7 @@ using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Tomlyn;
 using static Microsoft.Dafny.ParseErrors;
 
 namespace Microsoft.Dafny;
@@ -103,14 +104,20 @@ public class ProgramParser {
 
     ShowWarningsForIncludeCycles(program);
 
-    // TODO: Inside CompilationData constructor instead?
     compilation.TranslationRecord = new TranslationRecord();
     var records = options.Get(CommonOptionBag.TranslationRecords);
     if (records != null) {
       foreach (var path in options.Get(CommonOptionBag.TranslationRecords)) {
         using var reader = new StreamReader(path.FullName);
-        var libraryConfig = TranslationRecord.Read(reader);
-        compilation.TranslationRecord.Merge(libraryConfig);
+        var pathForErrors = options.GetPrintPath(path.FullName);
+        try {
+          var libraryRecord = TranslationRecord.Read(reader);
+          if (libraryRecord.Validate(errorReporter, pathForErrors, options, Token.NoToken)) {
+            compilation.TranslationRecord.Merge(libraryRecord);
+          }
+        } catch (Exception e) when (e is TomlException) {
+          errorReporter.Error(MessageSource.Project, Token.NoToken, $"malformed dtr file {pathForErrors}");
+        }
       }
     }
 

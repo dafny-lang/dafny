@@ -78,4 +78,10 @@ public class OptionCompatibility {
   public static string LocalImpliesLibraryMessage(string prefix, Option option, object localValue, object libraryValue) {
     return $"{prefix}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
   }
+  
+    
+  // Placeholder no-op check, used for options that need to be recorded but don't require any compatibility check.
+  public static bool NoOpOptionCheck(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue) {
+    return true;
+  }
 }
