@@ -10,17 +10,17 @@ namespace Microsoft.Dafny;
 public class Method : MethodOrFunction, TypeParameter.ParentType,
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
-    Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
-    Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
+    Concat(Ins).Concat(Outs).Concat(TypeArgs).
+    Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions).Concat(Calls);
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
   public readonly IToken SignatureEllipsis;
   public readonly bool IsByMethod;
-  public bool MustReverify;
+  public override bool MustReverify { get;  }
   public bool IsEntryPoint = false;
-  public readonly List<Formal> Ins;
+  public override List<Formal> Ins { get; }
   public readonly List<Formal> Outs;
   public readonly Specification<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
@@ -130,7 +130,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
-    [Captured] List<(Expression, bool)> calls,
+    [Captured] List<Call> calls,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
     : base(rangeToken, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null,
@@ -156,11 +156,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return this.Ins; } }
   List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
   Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
-  string ICallable.NameRelativeToModule {
+  public override string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
         return Name;
@@ -170,22 +168,17 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
   }
   Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
-  bool _inferredDecr;
-  bool ICallable.InferredDecreases {
-    set { _inferredDecr = value; }
-    get { return _inferredDecr; }
-  }
+  public override bool InferredDecreases { set; get; }
 
-  public virtual bool AllowsAllocation => true;
+  public override bool AllowsAllocation => true;
 
-  ModuleDefinition IASTVisitorContext.EnclosingModule {
+  public override ModuleDefinition EnclosingModule {
     get {
       Contract.Assert(this.EnclosingClass != null);  // this getter is supposed to be called only after signature-resolution is complete
       return this.EnclosingClass.EnclosingModuleDefinition;
     }
   }
-  bool ICodeContext.MustReverify { get { return this.MustReverify; } }
-  public bool AllowsNontermination {
+  public override bool AllowsNontermination {
     get {
       return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
     }
@@ -384,8 +377,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual SymbolKind Kind => SymbolKind.Method;
-  public string GetDescription(DafnyOptions options) {
+  public override SymbolKind Kind => SymbolKind.Method;
+  public override string GetDescription(DafnyOptions options) {
     var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
     if (Outs.Count == 0) {
@@ -473,5 +466,5 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
-  public string Designator => WhatKind;
+  public override string Designator => WhatKind;
 }

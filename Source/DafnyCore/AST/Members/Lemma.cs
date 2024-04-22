@@ -15,7 +15,7 @@ public class Lemma : Method {
     [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
-    [Captured] List<(Expression, bool)> calls,
+    [Captured] List<Call> calls,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
@@ -40,7 +40,7 @@ public class TwoStateLemma : Method {
     [Captured] Specification<FrameExpression> mod,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
-    List<(Expression, bool)> calls,
+    List<Call> calls,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {

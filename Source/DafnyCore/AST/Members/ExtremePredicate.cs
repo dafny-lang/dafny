@@ -24,7 +24,7 @@ public abstract class ExtremePredicate : Function {
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, true, isOpaque, typeArgs, formals, result, Type.Bool,
-      req, reads, ens, new Specification<Expression>(new List<Expression>(), null), new List<(Expression, bool)>(), body, null, null, attributes, signatureEllipsis) {
+      req, reads, ens, new Specification<Expression>(new List<Expression>(), null), new List<Call>(), body, null, null, attributes, signatureEllipsis) {
     TypeOfK = typeOfK;
   }
 

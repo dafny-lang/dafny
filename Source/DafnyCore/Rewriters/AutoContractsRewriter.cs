@@ -89,7 +89,7 @@ public class AutoContractsRewriter : IRewriter {
     if (!cl.Members.Exists(member => member is Function && member.Name == "Valid" && !member.IsStatic)) {
       var valid = new Predicate(range, new Name(cl.NameNode.RangeToken, "Valid"), false, false, true, false, new List<TypeParameter>(), new List<Formal>(), null,
         new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-        new List<(Expression, bool)>(), null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
+        new List<Call>(), null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, null, null);
       cl.Members.Add(valid);
       // It will be added to hover text later
     }

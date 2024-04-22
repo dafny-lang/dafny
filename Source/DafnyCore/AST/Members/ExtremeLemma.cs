@@ -27,7 +27,7 @@ public abstract class ExtremeLemma : Method {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
-    List<(Expression, bool)> calls,
+    List<Call> calls,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
@@ -58,7 +58,7 @@ public class LeastLemma : ExtremeLemma {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
-    List<(Expression, bool)> calls,
+    List<Call> calls,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {
@@ -89,7 +89,7 @@ public class GreatestLemma : ExtremeLemma {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
-    List<(Expression, bool)> calls,
+    List<Call> calls,
     BlockStmt body,
     Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, calls, body, attributes, signatureEllipsis) {

@@ -216,6 +216,10 @@ namespace Microsoft.Dafny {
       });
     }
 
+    public virtual Call CloneCall(Call call) {
+      return new Call(this, call);
+    }
+
     public virtual Type CloneType(Type t) {
       if (t == null) {
         return null;
@@ -522,7 +526,7 @@ namespace Microsoft.Dafny {
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = CloneSpecFrameExpr(f.Reads);
       var decreases = CloneSpecExpr(f.Decreases);
-      var calls = f.Calls.ConvertAll((item=> (CloneExpr(item.callable), item.recursive)));
+      var calls = f.Calls.ConvertAll(CloneCall);
       var ens = f.Ens.ConvertAll(CloneAttributedExpr);
       Expression body = CloneExpr(f.Body);
       BlockStmt byMethodBody = CloneBlockStmt(f.ByMethodBody);

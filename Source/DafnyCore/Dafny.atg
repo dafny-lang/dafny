@@ -1189,7 +1189,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
      List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
-     List<(Expression, bool)> calls = new List<(Expression, bool)>();
+     List<Call> calls = new List<Call>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
      Attributes readsAttrs = null;
@@ -1381,7 +1381,7 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
   .
 
 /*------------------------------------------------------------------------*/
-CallsClause<.List<(Expression callable, bool recursive)> calls.> =
+CallsClause<.List<Call> calls.> =
   "calls"                  (. Attributes attrs = null;
                               var localCalls = new List<Expression>();
                               var recursive = false;
@@ -1391,7 +1391,7 @@ CallsClause<.List<(Expression callable, bool recursive)> calls.> =
   Lhs<out callable>        (. localCalls.Add(callable); .)
   { "," Lhs<out callable>  (. localCalls.Add(callable); .) }
   [ "recursively"          (. recursive = true; .) ]
-  (.localCalls.ForEach(c => calls.Add((c, recursive)));.)
+  (.localCalls.ForEach(c => calls.Add(new Call(c, recursive)));.)
   OldSemi
   .
 
@@ -1407,7 +1407,7 @@ InvariantClause<. List<AttributedExpression> invariants.> =
 
 /*------------------------------------------------------------------------*/
 MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> reads, List<FrameExpression> mod, List<AttributedExpression> ens,
-            List<Expression> decreases, List<(Expression, bool)> calls, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption, bool performThisDeprecatedCheck.>
+            List<Expression> decreases, List<Call> calls, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(cce.NonNullElements(mod));
@@ -1728,7 +1728,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      List<AttributedExpression> ens = new List<AttributedExpression>();
      List<FrameExpression> reads = new List<FrameExpression>();
      List<Expression> decreases;
-     List<(Expression, bool)> calls = new List<(Expression, bool)>();
+     List<Call> calls = new List<Call>();
      Attributes decAttrs = null;
      Attributes readsAttrs = null;
      Expression body = null;
@@ -2062,7 +2062,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, List<(Expression, bool)> calls, ref Attributes decAttrs, ref Attributes readsAttrs.>
+FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, List<Call> calls, ref Attributes decAttrs, ref Attributes readsAttrs.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));

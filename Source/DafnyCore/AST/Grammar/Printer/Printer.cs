@@ -1168,16 +1168,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    internal void PrintCallsSpec(List<(Expression callable, bool recursive)> calls, int indent) {
+    internal void PrintCallsSpec(List<Call> calls, int indent) {
       void PrintCalls(bool recursive) {
-        var names = calls.FindAll(tp => tp.recursive == recursive).ConvertAll(tp => tp.callable);
+        var names = calls.FindAll(tp => tp.Recursive == recursive).ConvertAll(tp => tp.QualifiedName);
         if (names.Count == 0) {
           return;
         }
 
         wr.WriteLine();
         Indent(indent);
-        wr.Write($"calls {names.Comma()}");
+        wr.Write("calls ");
+        PrintExpressionList(names, false);
         if(recursive) { wr.Write(" recursively"); }
       }
 

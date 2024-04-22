@@ -14,7 +14,7 @@ public class Predicate : Function {
   public Predicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals,
     Formal result,
-    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases, List<(Expression, bool)> calls,
+    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases, List<Call> calls,
     Expression body, BodyOriginKind bodyOrigin, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IToken signatureEllipsis)
     : base(rangeToken, name, hasStaticKeyword, isAlien, isGhost, isOpaque, typeArgs, formals, result, Type.Bool, req, reads, ens, decreases, calls, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
     Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);

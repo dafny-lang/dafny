@@ -470,8 +470,7 @@ namespace Microsoft.Dafny {
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = refinementCloner.CloneSpecFrameExpr(previousFunction.Reads);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
-      var calls = previousFunction.Calls.ConvertAll((item =>
-        (refinementCloner.CloneExpr(item.callable), item.recursive)));
+      var calls = previousFunction.Calls.ConvertAll(refinementCloner.CloneCall);
       var result = previousFunction.Result ?? newFunction.Result;
       if (result != null) {
         result = refinementCloner.CloneFormal(result, false);
@@ -542,8 +541,7 @@ namespace Microsoft.Dafny {
       var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = refinementCloner.CloneSpecFrameExpr(previousMethod.Reads);
       var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
-      var calls = previousMethod.Calls.ConvertAll((item =>
-        (refinementCloner.CloneExpr(item.callable), item.recursive)));
+      var calls = previousMethod.Calls.ConvertAll(refinementCloner.CloneCall);
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
         () => previousMethod.Ens.ConvertAll(refinementCloner.CloneAttributedExpr), !checkPreviousPostconditions);

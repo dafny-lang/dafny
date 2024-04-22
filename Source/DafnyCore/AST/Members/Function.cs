@@ -9,7 +9,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring,
+public class Function : MethodOrFunction, TypeParameter.ParentType, ICanFormat, IHasDocstring,
   ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
@@ -111,7 +111,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
-  public bool AllowsAllocation => true;
+  public override bool AllowsAllocation => true;
   public bool containsQuantifier;
 
   public bool ContainsQuantifier {
@@ -187,7 +187,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
   }
 
-  public bool AllowsNontermination {
+  public override bool AllowsNontermination {
     get {
       return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
     }
@@ -221,7 +221,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    List<(Expression, bool)> calls, Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
+    List<Call> calls, Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
     : base(range, name, hasStaticKeyword, isAlien, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases, calls) {
 
@@ -265,11 +265,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
       }
     }
   }
-
-  bool ICodeContext.IsGhost { get { return IsGhost; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return Formals; } }
-  string ICallable.NameRelativeToModule {
+  public override List<Formal> Ins => Formals;
+  public override string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
         return Name;
@@ -278,14 +275,11 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
       }
     }
   }
-  Specification<Expression> ICallable.Decreases { get { return Decreases; } }
-  bool _inferredDecr;
-  bool ICallable.InferredDecreases {
-    set { _inferredDecr = value; }
-    get { return _inferredDecr; }
-  }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingClass.EnclosingModuleDefinition; } }
-  bool ICodeContext.MustReverify { get { return false; } }
+
+  public override bool InferredDecreases { set; get; }
+
+  public override ModuleDefinition EnclosingModule => EnclosingClass.EnclosingModuleDefinition;
+  public override bool MustReverify => false;
 
   [Pure]
   public bool IsFuelAware() { return IsRecursive || IsFueled || (OverriddenFunction != null && OverriddenFunction.IsFuelAware()); }
@@ -485,10 +479,10 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return null;
   }
 
-  public SymbolKind Kind => SymbolKind.Function;
+  public override SymbolKind Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
-  public string GetDescription(DafnyOptions options) {
+  public override string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     var resultType = ResultType.TypeName(options, null, false);
     return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";
@@ -565,5 +559,5 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
-  public string Designator => WhatKind;
+  public override string Designator => WhatKind;
 }
