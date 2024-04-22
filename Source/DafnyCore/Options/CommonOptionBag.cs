@@ -185,7 +185,7 @@ go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
-cpp - Compile to C++.
+cpp - (experimental) Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
@@ -196,6 +196,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
@@ -367,6 +368,12 @@ A translation record file for previously translated Dafny code. Can be specified
   public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output", 
     @"
 Where to output the translation record file. Defaults to the output directory.".TrimStart()) {
+  };
+
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
   };
 
   static CommonOptionBag() {
@@ -583,6 +590,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
     
     DafnyOptions.RegisterLegacyUi(TranslationRecords, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
 
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, OptionCompatibility.OptionCheck>() {
         { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
@@ -648,6 +659,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SystemModule,
       ExecutionCoverageReport,
       ExtractCounterexample,
+      ShowProofObligationExpressions,
       TranslationRecordOutput,
       TranslationRecords
       );

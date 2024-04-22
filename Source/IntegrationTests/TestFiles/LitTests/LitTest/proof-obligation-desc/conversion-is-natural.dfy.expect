@@ -1,0 +1,4 @@
+﻿conversion-is-natural.dfy(6,8): Error: value to be converted might be bigger than every natural number
+ Asserted expression: ord is nat
+
+Dafny program verifier finished with 0 verified, 1 error
