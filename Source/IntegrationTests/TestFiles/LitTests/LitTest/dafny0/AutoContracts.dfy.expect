@@ -31,7 +31,7 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
-  type {:compile false} /*_#Func1*/ -T0 ~> +R {
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
     ghost function requires(x0: T0): bool
       reads reads(x0)
 
@@ -47,7 +47,7 @@ module _System {
     | forall x0: T0 :: f.requires(x0)
     /*special witness*/
 
-  type {:compile false} /*_#Func0*/ () ~> +R {
+  class {:compile false} /*_#Func0*/ () ~> +R {
     ghost function requires(): bool
       reads reads()
 
@@ -63,7 +63,7 @@ module _System {
     | f.requires()
     /*special witness*/
 
-  datatype /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
 
   type bool { }
 
@@ -108,7 +108,7 @@ module _System {
     const Items: iset<(T, U)>
   }
 
-  datatype /*_tuple#0*/ () = _#Make0
+  datatype {:compile false} /*_tuple#0*/ () = _#Make0
 }
 // bitvector types in use:
 */
@@ -394,7 +394,7 @@ module N1 refines N0 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C ... {
+  class {:autocontracts} C ...  {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)
@@ -496,7 +496,7 @@ module N2 refines N1 {
    * SCC at height 0:
    *   C.Valid
    */
-  class {:autocontracts} C ... {
+  class {:autocontracts} C ...  {
     constructor X()
       ensures Valid()
       ensures fresh(Repr)
@@ -573,24 +573,29 @@ module N2 refines N1 {
   */
 }
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(12,20): Related location: this proposition could not be proved
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(12,20): Related location
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(12,20): Related location: this proposition could not be proved
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(12,20): Related location
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(12,20): Related location: this proposition could not be proved
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(12,20): Related location
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(17,4): Error: a postcondition could not be proved on this return path
-AutoContracts.dfy(12,20): Related location: this proposition could not be proved
-AutoContracts.dfy(5,25): Related location: this proposition could not be proved
+AutoContracts.dfy(17,4): Related location: this is the postcondition that could not be proved
+AutoContracts.dfy(12,20): Related location
+AutoContracts.dfy(5,25): Related location
 AutoContracts.dfy(50,4): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(49,24): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
+AutoContracts.dfy[N1](65,20): Related location
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
+AutoContracts.dfy[N1](65,20): Related location
 
 Dafny program verifier finished with 37 verified, 9 errors

@@ -425,7 +425,7 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
 {
   match t {
     case A => </span><span class="nc" id="410:15">return 1;</span><span class="na" id="410:24"> // unreachable
-    case B => </span><span class="fc" id="411:15">return 2;
+    case B => </span><span class="pc" id="411:15">return 2;
 </span><span class="na" id="412:1">  }
 </span><span class="pc" id="413:1">}
 
@@ -434,7 +434,7 @@ method {:testEntry} ObviouslyUnreachableMatchStatementCaseMethod(t: T) returns (
     ensures r > 1 // alt: r > 0
   {
     if !t.A? {
-      </span><span class="fc" id="420:7">return 2;
+      </span><span class="pc" id="420:7">return 2;
 </span><span class="na" id="421:1">    }
 
     </span><span class="nc" id="423:5">return 1;</span><span class="na" id="423:14"> // unreachable

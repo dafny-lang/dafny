@@ -1,7 +1,4 @@
 git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
-git-issue-370.dfy(43,7): Related location: this is the postcondition that could not be proved
-git-issue-370.dfy(19,5): Related location: this proposition could not be proved
-git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
 git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
 git-issue-370.dfy(29,9): Related location: this proposition could not be proved
 git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
@@ -13,5 +10,8 @@ git-issue-370.dfy(31,9): Related location: this proposition could not be proved
 git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
 git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
 git-issue-370.dfy(32,9): Related location: this proposition could not be proved
+git-issue-370.dfy(45,0): Error: a postcondition could not be proved on this return path
+git-issue-370.dfy(44,7): Related location: this is the postcondition that could not be proved
+git-issue-370.dfy(33,9): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 1 verified, 5 errors

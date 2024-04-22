@@ -736,6 +736,11 @@ namespace Microsoft.Dafny {
         AddBitvectorNatConversionFunction(w);
       }
 
+      foreach (ModuleDefinition m in program.RawModules()) {
+        CheckFuelUsage(m);
+      }
+      CheckFuelUsage(program.SystemModuleManager.SystemModule);
+
       foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
@@ -828,6 +833,13 @@ namespace Microsoft.Dafny {
       Type.DisableScopes();
       return sink;
 
+    }
+
+    private void CheckFuelUsage(ModuleDefinition m) {
+      m.UsesFuel = m.TopLevelDecls.OfType<TopLevelDeclWithMembers>()
+        .SelectMany(c => c.Members)
+        .OfType<Function>()
+        .Any(f => RevealedInScope(f) && f.IsFuelAware());
     }
 
     // Don't verify modules which only contain other modules
@@ -2098,7 +2110,7 @@ namespace Microsoft.Dafny {
       var o = new Bpl.IdentifierExpr(tok, oVar);
       var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok)));
       var f = new Bpl.IdentifierExpr(tok, fVar);
-      var ante = Bpl.Expr.And(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
+      var ante = BplAnd(Bpl.Expr.Neq(o, predef.Null), etran.IsAlloced(tok, o));
       var oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       var inEnclosingFrame = Bpl.Expr.Select(enclosingFrame, o, f);
 

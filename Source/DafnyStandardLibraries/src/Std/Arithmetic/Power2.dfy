@@ -74,7 +74,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     }
   }
 
-  lemma Lemma2To64()
+  lemma {:fuel Pow, 32} {:resource_limit "5e6"} Lemma2To64()
     ensures Pow2(0) == 0x1
     ensures Pow2(1) == 0x2
     ensures Pow2(2) == 0x4
@@ -108,6 +108,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     ensures Pow2(30) == 0x40000000
     ensures Pow2(31) == 0x80000000
     ensures Pow2(32) == 0x100000000
+    // The fuel and resource limit are required for this last clause
     ensures Pow2(64) == 0x10000000000000000
   {
     reveal Pow2();
