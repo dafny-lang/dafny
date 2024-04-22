@@ -63,7 +63,7 @@ public class ProgramParser {
       }
 
       var parseResult = ParseFileWithErrorHandling(
-        dafnyFile.ParseOptions,
+        dafnyFile.FileOptions,
         dafnyFile.GetContent,
         dafnyFile.Origin,
         dafnyFile.Uri,
@@ -235,7 +235,7 @@ public class ProgramParser {
 
       cancellationToken.ThrowIfCancellationRequested();
       var parseIncludeResult = ParseFileWithErrorHandling(
-        top.ParseOptions,
+        top.FileOptions,
         top.GetContent,
         top.Origin,
         top.Uri,

@@ -23,7 +23,7 @@ public class DafnyFile {
   public string BaseName { get; private set; }
   public bool IsPreverified { get; private set; }
   public bool IsPrecompiled { get; private set; }
-  public DafnyOptions ParseOptions { get; private set; }
+  public DafnyOptions FileOptions { get; private set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; private set; }
   public IToken? Origin { get; }
@@ -249,14 +249,14 @@ public class DafnyFile {
   }
 
   protected DafnyFile(string extension, string canonicalPath, string baseName,
-    Func<TextReader> getContent, Uri uri, IToken? origin, DafnyOptions parseOptions) {
+    Func<TextReader> getContent, Uri uri, IToken? origin, DafnyOptions fileOptions) {
     Extension = extension;
     CanonicalPath = canonicalPath;
     BaseName = baseName;
     GetContent = getContent;
     Uri = uri;
     Origin = origin;
-    ParseOptions = parseOptions;
+    FileOptions = fileOptions;
   }
 
   // Returns a canonical string for the given file path, namely one which is the same
