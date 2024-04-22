@@ -2530,7 +2530,7 @@ namespace Microsoft.Dafny {
       } else if (e is StaticReceiverExpr) {
         // also ok
       } else {
-        builder.Add(Assert(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), new PODesc.NonNull("target object"), kv));
+        builder.Add(Assert(tok, Bpl.Expr.Neq(etran.TrExpr(e), predef.Null), new PODesc.NonNull("target object", e), kv));
       }
     }
 

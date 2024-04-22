@@ -689,7 +689,7 @@ namespace Microsoft.Dafny {
             if (formal.IsOld) {
               Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
               if (wh != null) {
-                var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state");
+                var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state", e);
                 builder.Add(Assert(e.RangeToken, wh, desc));
               }
             }
@@ -1671,8 +1671,9 @@ namespace Microsoft.Dafny {
             var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
             var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
             var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
-              "in the two-state lemma's previous state" +
-              PODesc.IsAllocated.HelperFormal(formal));
+              "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+              dafnyFormalIdExpr
+            );
             var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, desc.SuccessDescription, null);
             require.Description = desc;

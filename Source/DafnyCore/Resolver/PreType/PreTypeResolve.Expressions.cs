@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
     }
 
     private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
-      expr.PreType = CreatePreTypeProxy($"{exprKind}");
+      expr.PreType = CreatePreTypeProxy(exprKind);
 
       var arguments = valuePreType == null ? new List<PreType>() { elementPreType } : new List<PreType>() { elementPreType, valuePreType };
       var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments);
@@ -1071,9 +1071,9 @@ namespace Microsoft.Dafny {
           }
         }
         if (members == null) {
-          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKindAndName}");
         } else if (!members.TryGetValue(nameToBeRevealed, out var member)) {
-          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKindAndName}");
         } else if (member is not (ConstantField or Function)) {
           Contract.Assert(!member.IsOpaque);
           ReportError(tok,
@@ -1082,12 +1082,12 @@ namespace Microsoft.Dafny {
           ReportError(tok, $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it is not opaque");
         } else if (member is Function { Body: null }) {
           ReportError(tok,
-            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKindAndName}");
         } else {
           ReportError(tok, $"cannot reveal '{nameToBeRevealed}'");
         }
       } else {
-        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKindAndName}");
       }
     }
 
