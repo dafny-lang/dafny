@@ -2,10 +2,6 @@ function.dfy(8,33): Warning: This ensures clause is part of a bodyless function.
 function.dfy(8,47): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(9,36): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(9,50): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-function.dfy(12,19): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(13,25): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(14,28): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(15,34): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 
 Dafny program verifier finished with 9 verified, 0 errors
 Compilation failed because warnings were found and --allow-warnings is false
@@ -20,10 +16,6 @@ function.dfy(8,33): Warning: This ensures clause is part of a bodyless function.
 function.dfy(8,47): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(9,36): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 function.dfy(9,50): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-function.dfy(12,19): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(13,25): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(14,28): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
-function.dfy(15,34): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 
 Dafny program verifier finished with 9 verified, 0 errors
 function.dfy(8,9): Error: Function _module._default.Compiled has no body so it cannot be compiled

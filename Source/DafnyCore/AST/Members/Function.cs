@@ -317,7 +317,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     });
 
     DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
-    DooFile.RegisterLibraryCheck(AllowExternalFunction, DooFile.CheckOptionLibraryImpliesLocal);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -360,19 +359,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
   protected override bool Bodyless => Body == null;
   protected override string TypeName => "function";
 
-  public static readonly Option<bool> AllowExternalFunction = new("--allow-external-function",
-    "Implementing a function using non-Dafny code can be used to improve performance, or save on development time. " +
-    "However, all functions can be implemented in Dafny, and not doing so introduces a correctness risk. " +
-    "When this option is turned off, the default, Dafny emits a warning whenever a function is implemented externally, " +
-    "unless it is marked with {:axiom}.");
-
   public void ResolveNewOrOldPart(INewOrOldResolver resolver) {
-    if (!resolver.Options.Get(AllowExternalFunction) && Bodyless && this.IsExtern(resolver.Options) && !this.IsExplicitAxiom()) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
-        $"Implementing a function using non-Dafny code can be used to improve performance or use a non-Dafny library. " +
-        $"However, all functions can be implemented in Dafny, and not doing so introduces a correctness risk. " +
-        $"To silence this warning, add the {{:axiom}} to it, or use the option `--allow-external-function`.");
-    }
     ResolveMethodOrFunction(resolver);
   }
 

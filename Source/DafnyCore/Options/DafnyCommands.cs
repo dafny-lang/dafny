@@ -108,7 +108,6 @@ public static class DafnyCommands {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
     CommonOptionBag.AllowAxioms,
-    MethodOrFunction.AllowExternalContracts,
-    Function.AllowExternalFunction
+    MethodOrFunction.AllowExternalContracts
   }).Concat(ParserOptions).ToList();
 }
