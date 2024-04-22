@@ -154,6 +154,16 @@ public abstract class ErrorReporter {
     Message(source, ErrorLevel.Warning, errorId, tok, msg);
   }
 
+  public void Deprecated(MessageSource source, string errorId, IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    if (Options.DeprecationNoise != 0) {
+      Warning(source, errorId, tok, msg);
+    } else {
+      Info(source, tok, msg, errorId);
+    }
+  }
+
   public void Deprecated(MessageSource source, Enum errorId, IToken tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);

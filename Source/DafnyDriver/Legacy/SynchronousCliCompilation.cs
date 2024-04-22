@@ -711,7 +711,8 @@ namespace Microsoft.Dafny {
       }
 
       // compile the program into an assembly
-      var (compiledCorrectly, compilationResult) = await compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
+      var (compiledCorrectly, compilationResult) = await compiler.CompileTargetProgram(dafnyProgramName,
+        targetProgramText, callToMain, targetPaths.Filename, otherFileNames,
         hasMain && options.RunAfterCompile, outputWriter);
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {

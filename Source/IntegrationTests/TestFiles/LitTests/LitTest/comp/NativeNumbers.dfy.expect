@@ -28,7 +28,7 @@ Cast from cardinality operator:
 4 4 4 4 4 4 4 4 4
 
 Characters:
-C 67 67 67 67 67 67 67 67 67
+'C' 67 67 67 67 67 67 67 67 67
 0 127 32767 65535 65535 255 65535 65535 65535
 
 Defaults:
