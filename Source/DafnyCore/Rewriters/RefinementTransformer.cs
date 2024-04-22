@@ -470,6 +470,7 @@ namespace Microsoft.Dafny {
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = refinementCloner.CloneSpecFrameExpr(previousFunction.Reads);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
+      var calls = previousFunction.Calls.ConvertAll(refinementCloner.CloneCall);
       var result = previousFunction.Result ?? newFunction.Result;
       if (result != null) {
         result = refinementCloner.CloneFormal(result, false);
@@ -506,25 +507,25 @@ namespace Microsoft.Dafny {
       var nameNode = newFunction.NameNode;
 
       if (previousFunction is Predicate) {
-        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
-          req, reads, ens, decreases, body, bodyOrigin,
+        return new Predicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsAlien, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result,
+          req, reads, ens, decreases, calls, body, bodyOrigin,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is LeastPredicate) {
-        return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new LeastPredicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsAlien, previousFunction.IsOpaque, ((LeastPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is GreatestPredicate) {
-        return new GreatestPredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
+        return new GreatestPredicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsAlien, previousFunction.IsOpaque, ((GreatestPredicate)previousFunction).TypeOfK, tps, formals, result,
           req, reads, ens, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStatePredicate) {
-        return new TwoStatePredicate(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result,
-          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
+        return new TwoStatePredicate(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsAlien, previousFunction.IsOpaque, tps, formals, result,
+          req, reads, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else if (previousFunction is TwoStateFunction) {
-        return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
-          req, reads, ens, decreases, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
+        return new TwoStateFunction(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsAlien, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+          req, reads, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       } else {
-        return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
-          req, reads, ens, decreases, body,
+        return new Function(range, nameNode, previousFunction.HasStaticKeyword, newFunction.IsAlien, newFunction.IsGhost, previousFunction.IsOpaque, tps, formals, result, refinementCloner.CloneType(previousFunction.ResultType),
+          req, reads, ens, decreases, calls, body,
           previousFunction.ByMethodTok == null ? null : refinementCloner.Tok(previousFunction.ByMethodTok), byMethodBody,
           refinementCloner.MergeAttributes(previousFunction.Attributes, moreAttributes), null);
       }
@@ -540,6 +541,7 @@ namespace Microsoft.Dafny {
       var req = previousMethod.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = refinementCloner.CloneSpecFrameExpr(previousMethod.Reads);
       var mod = refinementCloner.CloneSpecFrameExpr(previousMethod.Mod);
+      var calls = previousMethod.Calls.ConvertAll(refinementCloner.CloneCall);
 
       var ens = refinementCloner.WithRefinementTokenWrapping(
         () => previousMethod.Ens.ConvertAll(refinementCloner.CloneAttributedExpr), !checkPreviousPostconditions);
@@ -550,33 +552,33 @@ namespace Microsoft.Dafny {
 
       if (previousMethod is Constructor) {
         var dividedBody = (DividedBlockStmt)newBody ?? refinementCloner.CloneDividedBlockStmt((DividedBlockStmt)previousMethod.Body);
-        return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsGhost, tps, ins,
-          req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+        return new Constructor(previousMethod.RangeToken.MakeRefined(moduleUnderConstruction), previousMethod.NameNode.Clone(refinementCloner), previousMethod.IsAlien, previousMethod.IsGhost, tps, ins,
+          req, reads, mod, ens, decreases, calls, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
       var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
       var newRange = currentMethod.RangeToken.MakeRefined(moduleUnderConstruction);
       var newName = currentMethod.NameNode.Clone(refinementCloner);
       if (previousMethod is LeastLemma) {
-        return new LeastLemma(newRange, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
+        return new LeastLemma(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsAlien, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is GreatestLemma) {
-        return new GreatestLemma(newRange, newName, previousMethod.HasStaticKeyword, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
+        return new GreatestLemma(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsAlien, ((GreatestLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is Lemma) {
-        return new Lemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
+        return new Lemma(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsAlien, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is TwoStateLemma) {
         var two = (TwoStateLemma)previousMethod;
-        return new TwoStateLemma(newRange, newName, previousMethod.HasStaticKeyword, tps, ins,
+        return new TwoStateLemma(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsAlien, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+          req, reads, mod, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
+        return new Method(newRange, newName, previousMethod.HasStaticKeyword, previousMethod.IsAlien, previousMethod.IsGhost, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
+          req, reads, mod, ens, decreases, calls, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
       }
     }
 

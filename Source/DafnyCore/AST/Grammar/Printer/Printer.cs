@@ -230,23 +230,22 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintCallGraph(ModuleDefinition module, int indent) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
-      if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
-        // print call graph
-        Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
-        var SCCs = module.CallGraph.TopologicallySortedComponents();
+
+      void PrintGraph(Graph<ICallable> graph) {
+        var SCCs = graph.TopologicallySortedComponents();
         // Sort output SCCs in order of: descending height, then decreasing size of SCC, then alphabetical order of the name of
         // the representative element. By being this specific, we reduce changes in output from minor changes in the code. (With
         // more effort, we could be even more deterministic, if needed in the future.)
         SCCs.Sort((m, n) => {
-          var mm = module.CallGraph.GetSCCRepresentativePredecessorCount(m);
-          var nn = module.CallGraph.GetSCCRepresentativePredecessorCount(n);
+          var mm = graph.GetSCCRepresentativePredecessorCount(m);
+          var nn = graph.GetSCCRepresentativePredecessorCount(n);
           if (mm < nn) {
             return 1;
           } else if (mm > nn) {
             return -1;
           }
-          mm = module.CallGraph.GetSCCSize(m);
-          nn = module.CallGraph.GetSCCSize(n);
+          mm = graph.GetSCCSize(m);
+          nn = graph.GetSCCSize(n);
           if (mm < nn) {
             return 1;
           } else if (mm > nn) {
@@ -256,13 +255,48 @@ NoGhost - disable printing of functions, ghost methods, and proof
         });
         foreach (var callable in SCCs) {
           Indent(indent);
-          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(callable));
-          var r = module.CallGraph.GetSCC(callable);
+          wr.WriteLine(" * SCC at height {0}:", graph.GetSCCRepresentativePredecessorCount(callable));
+          var r = graph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
             var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
             wr.WriteLine($" *   {m.NameRelativeToModule}{maybeByMethod}");
           }
+        }
+      }
+
+      void PrintDot(Graph<ICallable> graph) {
+        var heights = new Dictionary<int, IEnumerable<string>>();
+        Indent(indent);
+        wr.WriteLine($"digraph {module.Name} {{");
+        foreach (var v in graph.GetVertices()) {
+          var height = graph.GetSCCRepresentativePredecessorCount(v.N);
+          var name = v.N.NameRelativeToModule;
+          heights[height] = (heights.TryGetValue(height, out var vs) ? vs : new List<string>()).Append(name);
+          if (v.N.EnclosingModule != module) {
+            Indent(indent + 2);
+            wr.WriteLine($"\"{name}\" [style=dashed];");
+          }
+          foreach (var s in v.Successors) {
+            Indent(indent + 2);
+            wr.WriteLine($"\"{name}\" -> \"{s.N.NameRelativeToModule}\";");
+          }
+        }
+        foreach (var (_, vs) in heights) {
+          Indent(indent + 2);
+          wr.WriteLine($"{{ rank = same; {Util.Comma("; ", vs, (v => $"\"{v}\""))}; }}");
+        }
+        Indent(indent);
+        wr.WriteLine("}");
+      }
+
+      if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
+        // print call graph
+        Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
+        if (options.PrintDotCallGraph) {
+          PrintDot(module.CallGraph);
+        } else {
+          PrintGraph(module.CallGraph);
         }
         Indent(indent); wr.WriteLine(" */");
       }
@@ -391,7 +425,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (d is ModuleDecl md) {
           wr.WriteLine();
           Indent(indent);
-          if (d is LiteralModuleDecl modDecl) {
+          void PrintModuleRelations(OrderedModuleDecl decl) {
+            if (decl.Above.Count > 0) {
+              wr.Write($" above {decl.Above.Select(qid => qid.Decl.Name).Comma()}");
+            }
+            if (decl.Below.Count > 0) {
+              wr.Write($" below {decl.Below.Select(qid => qid.Decl.Name).Comma()}");
+            }
+          }
+          if (md is LiteralModuleDecl modDecl) {
             if (printMode == PrintModes.Serialization && !modDecl.ModuleDef.ShouldCompile(compilation)) {
               // This mode is used to losslessly serialize the source program by the C# and Library backends.
               // Backends don't compile any code for modules not marked for compilation,
@@ -404,7 +446,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
               scope = modDecl.Signature.VisibilityScope;
             }
             PrintModuleDefinition(compilation, modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
-          } else if (d is AliasModuleDecl) {
+          } else if (md is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
             wr.Write("import");
@@ -421,8 +463,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Exports.Count > 1) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
+            PrintModuleRelations(dd);
             wr.WriteLine();
-          } else if (d is AbstractModuleDecl) {
+          } else if (md is AbstractModuleDecl) {
             var dd = (AbstractModuleDecl)d;
 
             wr.Write("import");
@@ -434,9 +477,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
+            PrintModuleRelations(dd);
             wr.WriteLine();
 
-          } else if (d is ModuleExportDecl) {
+          } else if (md is ModuleExportDecl) {
             ModuleExportDecl e = (ModuleExportDecl)d;
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
@@ -942,6 +986,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       PrintFrameSpecLine("reads", f.Reads, ind);
       PrintSpec("ensures", f.Ens, ind);
       PrintDecreasesSpec(f.Decreases, ind);
+      PrintCallsSpec(f.Calls, ind);
       wr.WriteLine();
       if (f.Body != null && !printSignatureOnly) {
         Indent(indent);
@@ -1001,6 +1046,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (method.IsGhost && !method.IsLemmaLike) {
         k = "ghost " + k;
       }
+      if (method.IsAlien) { k = "alien " + k; }
       string nm = method is Constructor && !((Constructor)method).HasName ? "" : method.Name;
       PrintClassMethodHelper(k, method.Attributes, nm, method.TypeArgs);
       if (method.SignatureIsOmitted) {
@@ -1036,6 +1082,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
       PrintSpec("ensures", method.Ens, ind);
       PrintDecreasesSpec(method.Decreases, ind);
+      PrintCallsSpec(method.Calls, ind);
       wr.WriteLine();
 
       if (method.Body != null && !printSignatureOnly) {
@@ -1119,6 +1166,25 @@ NoGhost - disable printing of functions, ghost methods, and proof
         wr.Write(" ");
         PrintExpressionList(decs.Expressions, true);
       }
+    }
+
+    internal void PrintCallsSpec(List<Call> calls, int indent) {
+      void PrintCalls(bool recursive) {
+        var names = calls.FindAll(tp => tp.Recursive == recursive).ConvertAll(tp => tp.QualifiedName);
+        if (names.Count == 0) {
+          return;
+        }
+
+        wr.WriteLine();
+        Indent(indent);
+        wr.Write("calls ");
+        PrintExpressionList(names, false);
+        if(recursive) { wr.Write(" recursively"); }
+      }
+
+      if (printMode == PrintModes.NoGhost) { return; }
+      PrintCalls(false);
+      PrintCalls(true);
     }
 
     internal void PrintFrameSpecLine(string kind, Specification<FrameExpression> ee, int indent) {

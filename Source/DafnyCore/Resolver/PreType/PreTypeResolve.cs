@@ -1299,6 +1299,8 @@ namespace Microsoft.Dafny {
         // any type is fine
       }
 
+      ResolveCalls(f);
+
       Constraints.SolveAllTypeConstraints($"specification of {f.WhatKind} '{f.Name}'");
 
       if (f.ByMethodBody != null) {
@@ -1376,6 +1378,8 @@ namespace Microsoft.Dafny {
           // any type is fine
         }
 
+        ResolveCalls(m);
+
         if (m is Constructor) {
           scope.PopMarker();
           // start the scope again, but this time allowing instance
@@ -1438,6 +1442,24 @@ namespace Microsoft.Dafny {
       }
       finally {
         currentMethod = null;
+      }
+    }
+
+    private void ResolveCalls(MethodOrFunction callable)
+    {
+      foreach (Call c in callable.Calls) {
+        switch (c.QualifiedName)
+        {
+          case NameSegment ns:
+            ResolveNameSegment(ns, true, new List<ActualBinding>(), new ResolutionContext(callable, false), true);
+            break;
+          case ExprDotName edn:
+            ResolveDotSuffix(edn, true, new List<ActualBinding>(), new ResolutionContext(callable, false), true);
+            break;
+        }
+
+        // TODO: Make more robust
+        c.Target = (MethodOrFunction) ((MemberSelectExpr) c.QualifiedName.Resolved).Member;
       }
     }
 

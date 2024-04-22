@@ -88,10 +88,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   [FilledInDuringResolution]
   public readonly Graph<ICallable> CallGraph = new();
 
-  // This field is only populated if `defaultFunctionOpacity` is set to something other than transparent
-  [FilledInDuringResolution]
-  public readonly Graph<ICallable> InterModuleCallGraph = new();
-
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
 

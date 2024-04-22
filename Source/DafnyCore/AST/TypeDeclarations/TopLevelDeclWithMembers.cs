@@ -223,6 +223,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               cloner.CloneSpecFrameExpr(extremePredicate.Reads),
               extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
               new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.tok, k.Name) }, null),
+              extremePredicate.Calls.ConvertAll(cloner.CloneCall),
               cloner.CloneExpr(extremePredicate.Body),
               SystemModuleManager.AxiomAttribute(),
               extremePredicate);
@@ -245,10 +246,11 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
               ? new List<AttributedExpression>()
               : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
             extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.RangeToken, extraName, extremeLemma.HasStaticKeyword,
-              extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
+              extremeLemma.IsAlien, extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
               req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
               cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
               new Specification<Expression>(decr, null),
+              extremeLemma.Calls.ConvertAll(cloner.CloneCall),
               null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
               SystemModuleManager.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
             extraMember = extremeLemma.PrefixLemma;

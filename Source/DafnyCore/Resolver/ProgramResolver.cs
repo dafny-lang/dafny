@@ -296,6 +296,15 @@ public class ProgramResolver {
   private void ProcessDependencies(ModuleDecl moduleDecl, ModuleBindings bindings,
     IDictionary<ModuleDecl, Action<ModuleDecl>> declarationPointers) {
     dependencies.AddVertex(moduleDecl);
+    if (moduleDecl is OrderedModuleDecl ordered) {
+      foreach (var other in ordered.Below.Concat(ordered.Above)) {
+        if (!bindings.ResolveQualifiedModuleIdRootImport(ordered, other, out var root)) {
+          Reporter.Error(MessageSource.Resolver, other.Tok, ModuleNotFoundErrorMessage(0, other.Path));
+        } else {
+          other.Root = root;
+        }
+      }
+    }
     if (moduleDecl is LiteralModuleDecl literalDecl) {
       ProcessDependenciesDefinition(literalDecl, bindings, declarationPointers);
     } else if (moduleDecl is AliasModuleDecl aliasDecl) {

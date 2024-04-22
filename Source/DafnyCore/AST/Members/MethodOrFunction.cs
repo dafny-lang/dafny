@@ -1,30 +1,36 @@
 using System.Collections.Generic;
+using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class MethodOrFunction : MemberDecl {
-  public readonly List<TypeParameter> TypeArgs;
+public abstract class MethodOrFunction : MemberDecl, ICallable {
   public readonly List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
+  public readonly List<Call> Calls;
 
-  protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
+  protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isGhost,
     Attributes attributes, bool isRefining, List<TypeParameter> typeArgs,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
-    Specification<Expression> decreases)
+    Specification<Expression> decreases,
+    List<Call> calls)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, isRefining) {
     TypeArgs = typeArgs;
     Req = req;
-    Decreases = decreases;
     Ens = ens;
+    Decreases = decreases;
+    Calls = calls;
+    IsAlien = isAlien;
   }
 
   protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
-    this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
-    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
-    this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+    Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
+    Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
+    Decreases = cloner.CloneSpecExpr(original.Decreases);
+    Calls = original.Calls.ConvertAll(call => new Call(cloner, call));
+    IsAlien = original.IsAlien;
   }
 
   protected abstract bool Bodyless { get; }
@@ -32,6 +38,7 @@ public abstract class MethodOrFunction : MemberDecl {
 
   public bool IsVirtual => EnclosingClass is TraitDecl && !IsStatic;
   public bool IsAbstract => EnclosingClass.EnclosingModuleDefinition.ModuleKind != ModuleKindEnum.Concrete;
+  public bool IsAlien { get; }
 
   public virtual void Resolve(ModuleResolver resolver) {
     ResolveMethodOrFunction(resolver);
@@ -50,4 +57,36 @@ public abstract class MethodOrFunction : MemberDecl {
 
   protected MethodOrFunction(RangeToken tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
   }
+
+  public abstract ModuleDefinition EnclosingModule { get; }
+  public List<TypeParameter> TypeArgs { set; get; }
+  public abstract List<Formal> Ins { get; }
+  public abstract bool MustReverify { get; }
+  public abstract bool AllowsNontermination { get; }
+  public abstract SymbolKind Kind { get; }
+  public abstract string GetDescription(DafnyOptions options);
+  public abstract string Designator { get; }
+  public abstract string NameRelativeToModule { get; }
+  public Specification<Expression> Decreases { get; }
+  public abstract bool InferredDecreases { get; set; }
+  public abstract bool AllowsAllocation { get; }
+}
+
+public class Call : TokenNode {
+  public Expression QualifiedName;
+  [FilledInDuringResolution] public MethodOrFunction Target;
+  public bool Recursive;
+
+  public Call(Expression name, bool recursive) {
+    QualifiedName = name;
+    Recursive = recursive;
+  }
+
+  public Call(Cloner cloner, Call original) {
+    QualifiedName = cloner.CloneExpr(original.QualifiedName);
+    Recursive = original.Recursive;
+  }
+
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
+  public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
 }

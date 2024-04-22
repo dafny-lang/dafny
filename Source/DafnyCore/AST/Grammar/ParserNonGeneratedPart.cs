@@ -610,6 +610,8 @@ public partial class Parser {
     public IToken ReplaceableToken;
     public bool IsAbstract;
     public IToken AbstractToken;
+    public bool IsAlien;
+    public IToken AlienToken;
     public bool IsGhost;
     public IToken GhostToken;
     public bool IsStatic;
@@ -657,13 +659,14 @@ public partial class Parser {
   enum AllowedDeclModifiers {
     None = 0,
     Abstract = 1,
-    Ghost = 2,
+    Alien = 2,
+    Ghost = 4,
 
     // Means ghost not allowed because already implicitly ghost.
-    AlreadyGhost = 4,
-    Static = 8,
-    Opaque = 16,
-    Replaceable = 32
+    AlreadyGhost = 8,
+    Static = 16,
+    Opaque = 32,
+    Replaceable = 64
   };
 
   bool CheckAttribute(Errors errors, IToken attr, RangeToken range) {
@@ -732,6 +735,10 @@ public partial class Parser {
     declCaption = (declCaption.StartsWith("i") || declCaption.StartsWith("o") ? "an " : "a ") + declCaption;
     if (dmod.IsAbstract && ((allowed & AllowedDeclModifiers.Abstract) == 0)) {
       SemErr(ErrorId.p_abstract_not_allowed, dmod.AbstractToken, $"{declCaption} cannot be declared 'abstract'");
+      dmod.IsAbstract = false;
+    }
+    if (dmod.IsAlien && ((allowed & AllowedDeclModifiers.Alien) == 0)) {
+      SemErr(ErrorId.p_alien_not_allowed, dmod.AlienToken, $"{declCaption} cannot be declared 'alien'");
       dmod.IsAbstract = false;
     }
     if (dmod.IsReplaceable && ((allowed & AllowedDeclModifiers.Replaceable) == 0)) {

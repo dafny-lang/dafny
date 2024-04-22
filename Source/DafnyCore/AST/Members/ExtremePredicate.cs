@@ -19,12 +19,12 @@ public abstract class ExtremePredicate : Function {
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
   public override IEnumerable<INode> PreResolveChildren => base.Children;
 
-  public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  public ExtremePredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, true, isOpaque, typeArgs, formals, result, Type.Bool,
-      req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, null, null, attributes, signatureEllipsis) {
+    : base(rangeToken, name, hasStaticKeyword, isAlien, true, isOpaque, typeArgs, formals, result, Type.Bool,
+      req, reads, ens, new Specification<Expression>(new List<Expression>(), null), new List<Call>(), body, null, null, attributes, signatureEllipsis) {
     TypeOfK = typeOfK;
   }
 
@@ -52,22 +52,22 @@ public abstract class ExtremePredicate : Function {
 
 public class GreatestPredicate : ExtremePredicate {
   public override string WhatKind => "greatest predicate";
-  public GreatestPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  public GreatestPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, formals, result,
+    : base(rangeToken, name, hasStaticKeyword, isAlien, isOpaque, typeOfK, typeArgs, formals, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
   }
 }
 
 public class LeastPredicate : ExtremePredicate {
   public override string WhatKind => "least predicate";
-  public LeastPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  public LeastPredicate(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isAlien, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> formals, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IToken signatureEllipsis)
-    : base(rangeToken, name, hasStaticKeyword, isOpaque, typeOfK, typeArgs, formals, result,
+    : base(rangeToken, name, hasStaticKeyword, isAlien, isOpaque, typeOfK, typeArgs, formals, result,
       req, reads, ens, body, attributes, signatureEllipsis) {
   }
 }

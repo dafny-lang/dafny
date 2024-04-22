@@ -55,12 +55,10 @@ public class AutoRevealFunctionDependencies : IRewriter {
   /// </summary>
   private class GraphTraversalVertex {
     public readonly Graph<ICallable>.Vertex Vertex;
-    public readonly bool Local;
     public readonly int Depth;
 
-    public GraphTraversalVertex(Graph<ICallable>.Vertex vertex, bool local, int depth) {
+    public GraphTraversalVertex(Graph<ICallable>.Vertex vertex, int depth) {
       Vertex = vertex;
-      Local = local;
       Depth = depth;
     }
 
@@ -138,7 +136,6 @@ public class AutoRevealFunctionDependencies : IRewriter {
 
   public IEnumerable<FunctionWithDepth> GetEnumerator(ICallable m, TopLevelDecl currentClass, IEnumerable<Expression> subexpressions, ModuleDefinition rootModule = null) {
     var origVertex = currentClass.EnclosingModuleDefinition.CallGraph.FindVertex(m);
-    var interModuleVertex = currentClass.EnclosingModuleDefinition.InterModuleCallGraph.FindVertex(m);
 
     if (origVertex is null) {
       yield break;
@@ -153,7 +150,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     // Here this function may be called with a callable that is in a different module than the original one.
 
     foreach (var callable in origVertex.Successors) {
-      queue.Enqueue(new GraphTraversalVertex(callable, true, 1));
+      queue.Enqueue(new GraphTraversalVertex(callable, 1));
     }
 
     var typeList = ExprListToTypeList(subexpressions.ToList()).ToList();
@@ -172,7 +169,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
               var newVertex = func.EnclosingClass.EnclosingModuleDefinition.CallGraph.FindVertex(func);
 
               if (newVertex is not null) {
-                queue.Enqueue(new GraphTraversalVertex(newVertex, false, 1));
+                queue.Enqueue(new GraphTraversalVertex(newVertex, 1));
               }
             }
           }
@@ -180,52 +177,22 @@ public class AutoRevealFunctionDependencies : IRewriter {
       }
     });
 
-    if (interModuleVertex is not null) {
-      foreach (var callable in interModuleVertex.Successors) {
-
-        if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)callable.N)) {
-
-          queue.Enqueue(new GraphTraversalVertex(callable, false, 1));
-        }
-      }
-    }
-
     while (queue.Any()) {
       var vertex = queue.Dequeue();
       if (!visited.Contains(vertex)) {
         visited.Add(vertex);
 
         Graph<ICallable>.Vertex graphVertex;
-        Graph<ICallable>.Vertex interModuleGraphVertex;
 
-        if (vertex.Local) {
-          graphVertex = vertex.Vertex;
-
-        } else {
-          graphVertex = vertex.Vertex.N.EnclosingModule.CallGraph.FindVertex(vertex.Vertex.N);
-
-          if (graphVertex is null) {
-            continue;
-          }
-        }
-
-        interModuleGraphVertex = graphVertex.N.EnclosingModule.InterModuleCallGraph.FindVertex(graphVertex.N);
+        graphVertex = vertex.Vertex;
 
         foreach (var vertex0 in graphVertex.Successors) {
           if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
             var newGraphTraversalVertex =
-              new GraphTraversalVertex(vertex0, true, 1 + vertex.Depth);
+              new GraphTraversalVertex(vertex0, 1 + vertex.Depth);
 
             if (!visited.Contains(newGraphTraversalVertex)) {
               queue.Enqueue(newGraphTraversalVertex);
-            }
-          }
-        }
-
-        if (interModuleGraphVertex is not null) {
-          foreach (var vertex0 in interModuleGraphVertex.Successors) {
-            if (IsRevealable(defaultRootModule.AccessibleMembers, (Declaration)vertex0.N)) {
-              queue.Enqueue(new GraphTraversalVertex(vertex0, false, 1 + vertex.Depth));
             }
           }
         }

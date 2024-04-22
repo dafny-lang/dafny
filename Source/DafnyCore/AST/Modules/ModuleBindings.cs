@@ -67,13 +67,13 @@ public class ModuleBindings {
   /// The latter is so that if one writes 'import A`E  import F = A`F' the second A does not
   /// resolve to the alias produced by the first import
   /// </summary>
-  public bool ResolveQualifiedModuleIdRootImport(AliasModuleDecl context, ModuleQualifiedId qid,
+  public bool ResolveQualifiedModuleIdRootImport(OrderedModuleDecl context, ModuleQualifiedId qid,
     out ModuleDecl result) {
     Contract.Assert(qid != null);
     IToken root = qid.Path[0].StartToken;
     result = null;
     bool res = TryLookupFilter(root.val, out result,
-      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && context.Exports.Count == 0) || m is LiteralModuleDecl));
+      m => context != m && ((context.EnclosingModuleDefinition == m.EnclosingModuleDefinition && (context is not AliasModuleDecl alias || alias.Exports.Count == 0)) || m is LiteralModuleDecl));
     return res;
   }
 

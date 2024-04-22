@@ -216,6 +216,10 @@ namespace Microsoft.Dafny {
       });
     }
 
+    public virtual Call CloneCall(Call call) {
+      return new Call(this, call);
+    }
+
     public virtual Type CloneType(Type t) {
       if (t == null) {
         return null;
@@ -522,6 +526,7 @@ namespace Microsoft.Dafny {
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = CloneSpecFrameExpr(f.Reads);
       var decreases = CloneSpecExpr(f.Decreases);
+      var calls = f.Calls.ConvertAll(CloneCall);
       var ens = f.Ens.ConvertAll(CloneAttributedExpr);
       Expression body = CloneExpr(f.Body);
       BlockStmt byMethodBody = CloneBlockStmt(f.ByMethodBody);
@@ -533,31 +538,31 @@ namespace Microsoft.Dafny {
       var newNameNode = new Name(Range(f.NameNode.RangeToken), newName);
 
       if (f is Predicate) {
-        return new Predicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsGhost, f.IsOpaque, tps, formals,
+        return new Predicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsGhost, f.IsOpaque, tps, formals,
           result,
-          req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited,
+          req, reads, ens, decreases, calls, body, Predicate.BodyOriginKind.OriginalOrInherited,
           f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       } else if (f is LeastPredicate) {
-        return new LeastPredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsOpaque,
+        return new LeastPredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsOpaque,
           ((LeastPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is GreatestPredicate greatestPredicate) {
-        return new GreatestPredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsOpaque,
+        return new GreatestPredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsOpaque,
           ((GreatestPredicate)f).TypeOfK, tps, formals, result,
           req, reads, ens, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStatePredicate) {
-        return new TwoStatePredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsOpaque, tps, formals,
+        return new TwoStatePredicate(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsOpaque, tps, formals,
           result,
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, calls, body, CloneAttributes(f.Attributes), null);
       } else if (f is TwoStateFunction) {
-        return new TwoStateFunction(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsOpaque, tps, formals,
+        return new TwoStateFunction(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsOpaque, tps, formals,
           result, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, CloneAttributes(f.Attributes), null);
+          req, reads, ens, decreases, calls, body, CloneAttributes(f.Attributes), null);
       } else {
-        return new Function(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsGhost, f.IsOpaque, tps, formals,
+        return new Function(Range(f.RangeToken), newNameNode, f.HasStaticKeyword, f.IsAlien, f.IsGhost, f.IsOpaque, tps, formals,
           result, CloneType(f.ResultType),
-          req, reads, ens, decreases, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
+          req, reads, ens, decreases, calls, body, f.ByMethodTok == null ? null : Tok(f.ByMethodTok), byMethodBody,
           CloneAttributes(f.Attributes), null);
       }
     }

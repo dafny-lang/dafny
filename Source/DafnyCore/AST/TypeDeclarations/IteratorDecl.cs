@@ -431,16 +431,17 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
     // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
     // iterator type) does.
     // --- here comes the constructor
-    var init = new Constructor(rangeToken, new Name(NameNode.RangeToken, "_ctor"), false,
+    var init = new Constructor(rangeToken, new Name(NameNode.RangeToken, "_ctor"), false, false,
       new List<TypeParameter>(), Ins,
       new List<AttributedExpression>(),
       new Specification<FrameExpression>(),
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
+      new List<Call>(),
       null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes predicate Valid()
-    var valid = new Predicate(rangeToken, new Name(NameNode.RangeToken, "Valid"), false, true, false,
+    var valid = new Predicate(rangeToken, new Name(NameNode.RangeToken, "Valid"), false, false, true, false,
       new List<TypeParameter>(),
       new List<Formal>(),
       null,
@@ -448,9 +449,10 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new Specification<FrameExpression>(),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
+      new List<Call>(),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.RangeToken, "MoveNext"), false, false,
+    var moveNext = new Method(rangeToken, new Name(NameNode.RangeToken, "MoveNext"), false, false, false,
       new List<TypeParameter>(),
       new List<Formal>(), new List<Formal>() { new Formal(tok, "more", Type.Bool, false, false, null) },
       new List<AttributedExpression>(),
@@ -458,6 +460,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       new Specification<FrameExpression>(new List<FrameExpression>(), null),
       new List<AttributedExpression>(),
       new Specification<Expression>(new List<Expression>(), null),
+      new List<Call>(),
       null, SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
     // add these implicit members to the class
     init.EnclosingClass = this;
