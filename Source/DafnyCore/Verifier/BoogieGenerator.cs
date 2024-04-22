@@ -3177,7 +3177,7 @@ namespace Microsoft.Dafny {
       while (true) {
         type = type.NormalizeExpand();
         if (type is TypeProxy) {
-          Contract.Assume(false);  // we assume that all proxies should have been dealt with in the resolver
+          Contract.Assume(false);  // we assume that all proxies have been dealt with in the resolver
         }
         var d = type.AsNewtype;
         if (d == null) {
