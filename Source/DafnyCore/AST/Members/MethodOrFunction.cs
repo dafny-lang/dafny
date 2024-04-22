@@ -56,7 +56,7 @@ public abstract class MethodOrFunction : MemberDecl {
     var isImported = (Bodyless || !ProgramResolver.ShouldCompile(this)) && this.IsExtern(resolver.Options);
     if (!resolver.Options.Get(AllowExternalContracts) && HasPostcondition && isImported && !HasAxiomAttribute) {
       resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
-        $"When a {WhatKind} is imported, meaning it has no body and an {{:extern}} annotation, " +
+        $"when a {WhatKind} is imported, meaning it has no body and an {{:extern}} annotation, " +
         $"Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). " +
         $"To silence this warning, please add an {{:axiom}} attribute or use the option '--allow-external-contracts'.");
     }
@@ -64,7 +64,7 @@ public abstract class MethodOrFunction : MemberDecl {
     var isExported = !Bodyless && ProgramResolver.ShouldCompile(this) && this.IsExtern(resolver.Options);
     if (!resolver.Options.Get(AllowExternalContracts) && HasPrecondition && !HasAxiomAttribute && isExported) {
       resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, Tok,
-        $"When a {WhatKind} is exported, meaning it has a body and an {{:extern}} annotation, " +
+        $"when a {WhatKind} is exported, meaning it has a body and an {{:extern}} annotation, " +
         $"Dafny can not guarantee that it is called with arguments that satisfy its preconditions (its requires clauses and inputs that are subset types). " +
         $"To silence this warning, please add an {{:axiom}} attribute or use the option '--allow-external-contracts'");
     }
