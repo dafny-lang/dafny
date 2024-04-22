@@ -588,8 +588,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
     
-    DafnyOptions.RegisterLegacyUi(TranslationRecords, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
-
     DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
       options.ShowProofObligationExpressions = value;
     });
