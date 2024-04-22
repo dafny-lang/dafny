@@ -152,7 +152,9 @@ public class DafnyFile {
   }
 
   public delegate Task<int> Executor(TextWriter outputWriter, TextWriter errorWriter, string[] arguments);
-  public static Executor Execute { get; set; }
+
+  public static Executor Execute { get; set; } = (outputWriter, errorWriter, arguments) => 
+    throw new Exception("DafnyCore not used together with DafnyDriver");
 
   private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
@@ -161,40 +163,25 @@ public class DafnyFile {
     bool asLibrary,
     string extension, string canonicalPath, string baseName) {
     if (!asLibrary) {
-      reporter.Error(MessageSource.Project, "", origin, "Using a Dafny project file as a source file is not yet supported");
-    } else {
-      var outputWriter = new StringWriter();
-      var errorWriter = new StringWriter();
-      var exitCode = await Execute(outputWriter, errorWriter, new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
-      if (exitCode == 0) {
-        var regex = new Regex($"Wrote Dafny library to (.*)\n");
-        var path = regex.Match(outputWriter.ToString());
-        Uri dooUri = new Uri(path.Groups[1].Value);
-        return await HandleDooFile(options, fileSystem, reporter, dooUri, origin, true, extension, canonicalPath, baseName);
-      } else {
-        throw new Exception("not yet implemented");
-      }
-    }
-    var project = await DafnyProject.Open(fileSystem, options, uri);
-    var roots = project.GetRootSourceUris(fileSystem).ToList();
-
-    if (project.TryGetValue(CommonOptionBag.Libraries, out var projectLibraries)) {
-      var castProjectLibraries = (IList<FileInfo>)projectLibraries;
-      foreach (var projectLibrary in castProjectLibraries) {
-        roots.Add(new Uri(projectLibrary.FullName));
-      }
-    }
-
-    var libraryOptions = DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, origin, project.Options);
-    if (libraryOptions == null) {
+      reporter.Error(MessageSource.Project, origin, "Using a Dafny project file as a source file is not supported.");
       return null;
     }
 
-    var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
-    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin, libraryOptions) {
-      IsPrecompiled = false,
-      IsPreverified = false,
-    };
+    var outputWriter = new StringWriter();
+    var errorWriter = new StringWriter();
+    var exitCode = await Execute(outputWriter, errorWriter, new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
+    if (exitCode != 0) {
+      var output = outputWriter + errorWriter.ToString();
+      reporter.Error(MessageSource.Project, origin,
+        $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
+      return null;
+    }
+
+    var regex = new Regex($"Wrote Dafny library to (.*)\n");
+    var path = regex.Match(outputWriter.ToString());
+    var dooUri = new Uri(path.Groups[1].Value);
+    return await HandleDooFile(options, fileSystem, reporter, dooUri, origin, true, extension, canonicalPath,
+      baseName);
   }
 
   private static async Task<DafnyFile?> HandleDooFile(DafnyOptions options,
