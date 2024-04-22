@@ -28,8 +28,33 @@ using Microsoft.Dafny.Triggers;
 using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
+using System.Configuration;
 
 namespace Microsoft.Dafny {
+  // Replaces instances of `old(...)` with `old@ITERATOR(...)`
+  // Then, we initialize $Heap_at_iter ourselves
+  class OldestSubstituter : Substituter {
+    private readonly Label oihLabel;
+    public OldestSubstituter(Label oihLabel, Expression recvRep, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+      : base(recvRep, substMap, typeMap) {
+      this.oihLabel = oihLabel;
+    }
+
+    //new public static readonly OldestSubstituter EMPTY = new(null, new(), new());
+
+    public override Expression Substitute(Expression expr) {
+      if (expr is OldExpr oe) {
+        // @rustan: is this the right way to clone an OldExpr?
+        return new OldExpr(oe.Tok, Substitute(oe.E), null) {
+          Type = oe.Type,
+          AtLabel = oihLabel,
+          Useless = oe.Useless
+        };
+      }
+      return base.Substitute(expr);
+    }
+  }
+
   public partial class BoogieGenerator {
     void AddIteratorSpecAndBody(IteratorDecl iter) {
       Contract.Requires(iter != null);
@@ -39,25 +64,30 @@ namespace Microsoft.Dafny {
       this.fuelContext = FuelSetting.NewFuelContext(iter);
       isAllocContext = new IsAllocContext(options, false);
 
+      // declare the oldest iterator heap
+      Label oihLbl = new Label(iter.tok, iter.Name);
+      GlobalVariable oldestIterHeap = new(iter.tok, new TypedIdent(iter.tok, "$Heap_at_" + oihLbl.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
+      sink.AddTopLevelDeclaration(oldestIterHeap);
+
       // wellformedness check for method specification
-      Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
+      Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness, oihLbl);
       sink.AddTopLevelDeclaration(proc);
       if (InVerificationScope(iter)) {
         AddIteratorWellformednessCheck(iter, proc);
       }
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
-        proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
+        proc = AddIteratorProc(iter, MethodTranslationKind.Implementation, oihLbl);
         sink.AddTopLevelDeclaration(proc);
         // ...and its implementation
-        AddIteratorImpl(iter, proc);
+        AddIteratorImpl(iter, proc, oihLbl);
       }
       this.fuelContext = oldFuelContext;
       isAllocContext = null;
     }
 
 
-    Bpl.Procedure AddIteratorProc(IteratorDecl iter, MethodTranslationKind kind) {
+    Bpl.Procedure AddIteratorProc(IteratorDecl iter, MethodTranslationKind kind, Label oihLabel) {
       Contract.Requires(iter != null);
       Contract.Requires(kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation);
       Contract.Requires(predef != null);
@@ -106,8 +136,10 @@ namespace Microsoft.Dafny {
           }
         }
         comment = "user-defined postconditions";
+        OldestSubstituter os = new(oihLabel, null, new(), new());
         foreach (var p in iter.Ensures) {
-          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+          // En passant, substitutes old(...) with old@oihLabel(...) in each user-defined postcondition
+          foreach (var s in TrSplitExprForMethodSpec(os.Substitute(p.E), etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
@@ -116,6 +148,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        // TODO substitute old($Heap) for oldHeapPost
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
@@ -203,8 +236,10 @@ namespace Microsoft.Dafny {
       var oldIterHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType));
       localVariables.Add(oldIterHeap);
       builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
+
       // simulate a modifies this, this._modifies, this._new;
       var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
+
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
@@ -262,7 +297,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc) {
+    void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc, Label oihLabel) {
       Contract.Requires(iter != null);
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && predef != null);
@@ -313,7 +348,10 @@ namespace Microsoft.Dafny {
         HeapSucc(oih, etran.HeapExpr));
       localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
-      // do an initial YieldHavoc
+      // Assigned the oldest heap to olditerheap
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, "$Heap_at_" + oihLabel.AssignUniqueId(CurrentIdGenerator), predef.HeapType), etran.HeapExpr));
+
+      // do an initial YieldHavoc (TODO for siva: this is where the initial assgn to OldIterHeap happens, Heap_at_ might need it too)
       YieldHavoc(iter.tok, iter, builder, etran);
 
       // translate the body of the iterator
@@ -361,6 +399,7 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
+      //iteratorFrame.Add(new FrameExpression(iter.tok, new IdentifierExpr(), null));
       // Note we explicitly do NOT use iter.Reads, because reads clauses on iterators
       // mean something different from reads clauses on functions or methods:
       // the memory locations that are not havoced by a yield statement.
