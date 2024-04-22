@@ -3796,9 +3796,7 @@ namespace Microsoft.Dafny.Compilers {
           return w;
         }
       } else if (from.AsNewtype is { } fromNewtypeDecl) {
-        var subst = TypeParameter.SubstitutionMap(fromNewtypeDecl.TypeArgs, from.TypeArgs);
-        from = fromNewtypeDecl.BaseType.Subst(subst);
-        return EmitCoercionIfNecessary(from, to, tok, wr, toOrig);
+        return EmitCoercionIfNecessary(fromNewtypeDecl.ConcreteBaseType(from.TypeArgs), to, tok, wr, toOrig);
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.
