@@ -1,12 +1,12 @@
 TestAuditor.dfy(24,25): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 TestAuditor.dfy(38,2): Warning: assume statement has no {:axiom} annotation
-TestAuditor.dfy(45,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
-TestAuditor.dfy(50,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, may not have preconditions or take subset types as inputs.
+TestAuditor.dfy(45,17): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types).  To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
+TestAuditor.dfy(50,17): Warning: A method that is exported, meaning it has a body and an {:extern} annotation, Dafny can not guarantee that it is called with arguments that satisfy its preconditions (its requires clauses and inputs that are subset types). To silence this warning, please add an {{:axiom}} attribute or use the option '--allow-external-contracts'
 TestAuditor.dfy(72,19): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 TestAuditor.dfy(136,2): Warning: assume statement has no {:axiom} annotation
 TestAuditor.dfy(150,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(154,7): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
-TestAuditor.dfy(160,26): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, may not have post-conditions or have subset types as outputs.
+TestAuditor.dfy(160,26): Warning: A method that is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types).  To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
 TestAuditor.dfy(164,28): Warning: Function implemented externally. Read the documentation on --allow-external-function for more information about why this warning exists
 TestAuditor.dfy(95,4): Warning: note, this forall statement has no body
 TestAuditor.dfy(102,4): Warning: note, this loop has no body (loop frame: i)
