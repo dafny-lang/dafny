@@ -29,32 +29,9 @@ using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 using System.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
-  // Replaces instances of `old(...)` with `old@ITERATOR(...)`
-  // Then, we initialize $Heap_at_iter ourselves
-  class OldestSubstituter : Substituter {
-    private readonly Label oihLabel;
-    public OldestSubstituter(Label oihLabel, Expression recvRep, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
-      : base(recvRep, substMap, typeMap) {
-      this.oihLabel = oihLabel;
-    }
-
-    //new public static readonly OldestSubstituter EMPTY = new(null, new(), new());
-
-    public override Expression Substitute(Expression expr) {
-      if (expr is OldExpr oe) {
-        // @rustan: is this the right way to clone an OldExpr?
-        return new OldExpr(oe.Tok, Substitute(oe.E), null) {
-          Type = oe.Type,
-          AtLabel = oihLabel,
-          Useless = oe.Useless
-        };
-      }
-      return base.Substitute(expr);
-    }
-  }
-
   public partial class BoogieGenerator {
     void AddIteratorSpecAndBody(IteratorDecl iter) {
       Contract.Requires(iter != null);
@@ -65,29 +42,28 @@ namespace Microsoft.Dafny {
       isAllocContext = new IsAllocContext(options, false);
 
       // declare the oldest iterator heap
-      Label oihLbl = new Label(iter.tok, iter.Name);
-      GlobalVariable oldestIterHeap = new(iter.tok, new TypedIdent(iter.tok, "$Heap_at_" + oihLbl.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
+      Constant oldestIterHeap = new(iter.tok, new TypedIdent(iter.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator), predef.HeapType), unique: false);
       sink.AddTopLevelDeclaration(oldestIterHeap);
 
       // wellformedness check for method specification
-      Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness, oihLbl);
+      Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
       if (InVerificationScope(iter)) {
         AddIteratorWellformednessCheck(iter, proc);
       }
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
-        proc = AddIteratorProc(iter, MethodTranslationKind.Implementation, oihLbl);
+        proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
         sink.AddTopLevelDeclaration(proc);
         // ...and its implementation
-        AddIteratorImpl(iter, proc, oihLbl);
+        AddIteratorImpl(iter, proc);
       }
       this.fuelContext = oldFuelContext;
       isAllocContext = null;
     }
 
 
-    Bpl.Procedure AddIteratorProc(IteratorDecl iter, MethodTranslationKind kind, Label oihLabel) {
+    Bpl.Procedure AddIteratorProc(IteratorDecl iter, MethodTranslationKind kind) {
       Contract.Requires(iter != null);
       Contract.Requires(kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation);
       Contract.Requires(predef != null);
@@ -112,6 +88,9 @@ namespace Microsoft.Dafny {
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
         req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null, null));
+
+        // free requires $Heap_at_[this] == $Heap
+        req.Add(Requires(iter.tok, true, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator)), etran.HeapExpr), null, null, null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
@@ -136,10 +115,8 @@ namespace Microsoft.Dafny {
           }
         }
         comment = "user-defined postconditions";
-        OldestSubstituter os = new(oihLabel, null, new(), new());
         foreach (var p in iter.Ensures) {
-          // En passant, substitutes old(...) with old@oihLabel(...) in each user-defined postcondition
-          foreach (var s in TrSplitExprForMethodSpec(os.Substitute(p.E), etran, kind)) {
+          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
@@ -297,7 +274,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc, Label oihLabel) {
+    void AddIteratorImpl(IteratorDecl iter, Bpl.Procedure proc) {
       Contract.Requires(iter != null);
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && predef != null);
@@ -348,10 +325,7 @@ namespace Microsoft.Dafny {
         HeapSucc(oih, etran.HeapExpr));
       localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
-      // Assigned the oldest heap to olditerheap
-      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, "$Heap_at_" + oihLabel.AssignUniqueId(CurrentIdGenerator), predef.HeapType), etran.HeapExpr));
-
-      // do an initial YieldHavoc (TODO for siva: this is where the initial assgn to OldIterHeap happens, Heap_at_ might need it too)
+      // do an initial YieldHavoc
       YieldHavoc(iter.tok, iter, builder, etran);
 
       // translate the body of the iterator

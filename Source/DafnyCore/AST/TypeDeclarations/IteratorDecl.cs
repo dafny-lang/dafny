@@ -1,7 +1,28 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
+
+class OldestSubstituter : Substituter {
+  private readonly Label AtLabel;
+  public OldestSubstituter(Label AtLabel)
+    : base(null, new(), new()) {
+    this.AtLabel = AtLabel;
+  }
+
+  public override Expression Substitute(Expression expr) {
+    if (expr is OldExpr oe) {
+      // @rustan: is this the right way to clone an OldExpr?
+      return new OldExpr(oe.Tok, Substitute(oe.E), "this") {
+        Type = oe.Type,
+        AtLabel = AtLabel,
+        Useless = oe.Useless
+      };
+    }
+    return base.Substitute(expr);
+  }
+}
 
 public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   public override string WhatKind { get { return "iterator"; } }
@@ -26,6 +47,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   [FilledInDuringResolution] public Constructor Member_Init;  // created during registration phase of resolution;
   [FilledInDuringResolution] public Predicate Member_Valid;  // created during registration phase of resolution;
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
+  [FilledInDuringResolution] public SpecialField Member_Begun; // created during registration phase of resolution;
+  public readonly Label FirstHeap;
   public readonly LocalVariable YieldCountVariable;
 
   public IteratorDecl(RangeToken rangeToken, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
@@ -56,7 +79,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
     Modifies = mod;
     Decreases = decreases;
     Requires = requires;
-    Ensures = ensures;
+
+    // Replaces instances of `old(...)` with `old@this(...)`
+    FirstHeap = new Label(Tok, "this");
+    OldestSubstituter oe = new(FirstHeap);
+    Ensures = ensures.ConvertAll(e => new AttributedExpression(oe.Substitute(e.E), oe.SubstAttributes(e.Attributes)));
+
     YieldRequires = yieldRequires;
     YieldEnsures = yieldEnsures;
     Body = body;
@@ -221,6 +249,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
         new ExprDotName(tok, new ThisExpr(tok), DecreasesFields[i].Name, null),
         new OldExpr(tok, p))));
     }
+    // ensures !begun
+    ens.Add(new AttributedExpression(new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, new ExprDotName(tok, new ThisExpr(tok), "_begun", null))));
 
     // ---------- here comes predicate Valid() ----------
     var reads = Member_Valid.Reads;
@@ -281,6 +311,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
         e.E)
       ));
     }
+    // ensures begun
+    ens.Add(new AttributedExpression(new ExprDotName(tok, new ThisExpr(tok), "_begun", null)));
     // decreases this._decreases0, this._decreases1, ...;
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
@@ -404,7 +436,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       false, resolver.SystemModuleManager.ObjectSetType(), null);
     Member_New = new SpecialField(RangeToken, "_new", SpecialField.ID.New, null, true, true, true,
       resolver.SystemModuleManager.ObjectSetType(), null);
-    foreach (var field in new List<Field>() { Member_Reads, Member_Modifies, Member_New }) {
+    Member_Begun = new SpecialField(RangeToken, "_begun", SpecialField.ID.UseIdParam, "_begun", true, true, false, Type.Bool, null);
+    foreach (var field in new List<Field>() { Member_Reads, Member_Modifies, Member_New, Member_Begun }) {
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
       members.Add(field.Name, field);
