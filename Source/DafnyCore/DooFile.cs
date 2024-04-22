@@ -141,9 +141,7 @@ public class DooFile {
       return null;
     }
 
-    var secondOptions = Manifest.Options;
-
-    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, secondOptions);
+    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
   }
 
 
@@ -153,10 +151,16 @@ public class DooFile {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
-    foreach (var option in relevantOptions) {
+    foreach (var (option, check) in OptionChecks) {
+      // It's important to only look at the options the current command uses,
+      // because other options won't be initialized to the correct default value.
+      // See CommandRegistry.Create().
+      if (!relevantOptions.Contains(option)) {
+        continue;
+      }
       var localValue = options.Get(option);
 
-      object libraryValue = null;
+      object libraryValue;
       if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
         if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
@@ -167,11 +171,8 @@ public class DooFile {
         libraryValue = option.Parse("").GetValueForOption(option);
       }
 
-      var check = OptionChecks.GetValueOrDefault(option);
-      if (check != null) {
-        success = success && check(reporter, origin, option, localValue,
-          options.GetPrintPath(libraryFile), libraryValue);
-      }
+      result.Options.OptionArguments[option] = libraryValue;
+      success = success && check(reporter, origin, option, localValue, options.GetPrintPath(libraryFile), libraryValue);
     }
 
     if (!success) {
