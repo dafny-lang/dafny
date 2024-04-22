@@ -14,6 +14,7 @@ using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
+using VCGeneration;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
@@ -147,8 +148,6 @@ public class Compilation : IDisposable {
         $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
       if (file != null) {
         result.Add(file);
-      } else {
-        return result;
       }
     }
     if (Options.UseStdin) {
@@ -224,7 +223,7 @@ public class Compilation : IDisposable {
       transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
       transformedProgram.HasParseErrors = HasErrors;
 
-      var cloner = new Cloner(true, false);
+      var cloner = new Cloner(true);
       programAfterParsing = new Program(cloner, transformedProgram);
 
       updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
@@ -520,6 +519,9 @@ public class Compilation : IDisposable {
     foreach (var counterExample in result.CounterExamples) //.OrderBy(d => d.GetLocation()))
     {
       var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+      if (options.ShowProofObligationExpressions) {
+        AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
+      }
       var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
       errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
@@ -531,6 +533,40 @@ public class Compilation : IDisposable {
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
       timeLimit, result.CounterExamples);
+  }
+
+  private static void AddAssertedExprToCounterExampleErrorInfo(
+      DafnyOptions options, Counterexample counterExample, ErrorInformation errorInformation) {
+    Boogie.ProofObligationDescription? boogieProofObligationDesc = null;
+    switch (errorInformation.Kind) {
+      case ErrorKind.Assertion:
+        boogieProofObligationDesc = ((AssertCounterexample)counterExample).FailingAssert.Description;
+        break;
+      case ErrorKind.Precondition:
+        boogieProofObligationDesc = ((CallCounterexample)counterExample).FailingCall.Description;
+        break;
+      case ErrorKind.Postcondition:
+        boogieProofObligationDesc = ((ReturnCounterexample)counterExample).FailingReturn.Description;
+        break;
+      case ErrorKind.InvariantEntry:
+      case ErrorKind.InvariantMaintainance:
+        AssertCmd failingAssert = ((AssertCounterexample)counterExample).FailingAssert;
+        if (failingAssert is LoopInitAssertCmd loopInitAssertCmd) {
+          boogieProofObligationDesc = loopInitAssertCmd.originalAssert.Description;
+        } else if (failingAssert is LoopInvMaintainedAssertCmd maintainedAssertCmd) {
+          boogieProofObligationDesc = maintainedAssertCmd.originalAssert.Description;
+        }
+        break;
+      default:
+        throw new ArgumentOutOfRangeException($"Unexpected ErrorKind: {errorInformation.Kind}");
+    }
+
+    if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
+      var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
+      if (expr != null) {
+        errorInformation.AddAuxInfo(errorInformation.Tok, expr.ToString(), ErrorReporterExtensions.AssertedExprCategory);
+      }
+    }
   }
 
   public static VcOutcome GetOutcome(SolverOutcome outcome) {
