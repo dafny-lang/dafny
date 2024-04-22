@@ -30,6 +30,8 @@ public static class DafnyNewCli {
   }
 
   static DafnyNewCli() {
+    DafnyFile.Execute = (outputWriter, errorWriter, arguments) =>
+      Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter), arguments);
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
     AddCommand(BuildCommand.Create());
@@ -196,28 +198,27 @@ public static class DafnyNewCli {
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
-    var filePathForErrors = dafnyOptions.GetPrintPath(singleFile.FullName);
     var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
     if (isProjectFile) {
-      return await ProcessProjectFile(dafnyOptions, singleFile, filePathForErrors);
+      return await ProcessProjectFile(dafnyOptions, new Uri(singleFile.FullName));
     }
 
     dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     return true;
   }
 
-  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors) {
+  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, Uri file) {
     if (dafnyOptions.DafnyProject != null) {
       var first = dafnyOptions.GetPrintPath(dafnyOptions.DafnyProject.Uri.LocalPath);
-      await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {dafnyOptions.GetPrintPath(file.LocalPath)} were specified");
       return false;
     }
 
-    if (!File.Exists(singleFile.FullName)) {
-      await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
+    if (!File.Exists(file.LocalPath)) {
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file);
     if (projectFile == null) {
       return false;
     }

@@ -128,16 +128,13 @@ namespace Microsoft.Dafny {
           : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         try {
           var consoleErrorReporter = new ConsoleErrorReporter(options);
-          var df = await DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
+          var df = await DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options,
+            new Uri(Path.GetFullPath(file)), Token.Cli, options.LibraryFiles.Contains(file));
           if (df == null) {
             if (consoleErrorReporter.FailCompilation) {
               return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
             }
           } else {
-            if (options.LibraryFiles.Contains(file)) {
-              df.IsPreverified = true;
-              df.IsPrecompiled = true;
-            }
             if (!filesSeen.Add(df.CanonicalPath)) {
               continue; // silently ignore duplicate
             }
@@ -206,14 +203,14 @@ namespace Microsoft.Dafny {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
-          var targetSpecificFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli);
+          var targetSpecificFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli, true);
           if (targetSpecificFile != null) {
             dafnyFiles.Add(targetSpecificFile);
           }
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        var targetAgnosticFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli);
+        var targetAgnosticFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, true);
         if (targetAgnosticFile != null) {
           dafnyFiles.Add(targetAgnosticFile);
         }

@@ -131,13 +131,13 @@ public class DooFile {
   public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+        $"cannot load {options.GetPrintPath(filePath)}: .doo files cannot be used with the legacy CLI");
       return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+        $"cannot load {options.GetPrintPath(filePath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return null;
     }
 

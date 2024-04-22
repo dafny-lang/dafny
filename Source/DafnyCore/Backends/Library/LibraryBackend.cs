@@ -36,24 +36,6 @@ public class LibraryBackend : ExecutableBackend {
   // Necessary since Compiler is null
   public override string ModuleSeparator => ".";
 
-  /// <summary>
-  /// Serializing the state of the Program passed to this backend,
-  /// after resolution, can be problematic.
-  /// If nothing else, very early on in the resolution process
-  /// we create explicit module definitions for implicit ones appearing
-  /// in qualified names such as `module A.B.C { ... }`,
-  /// and this means that multiple .doo files would then not be able to
-  /// share these prefixes without hitting duplicate name errors.
-  ///
-  /// Instead we serialize the state of the program immediately after parsing.
-  /// See also ProgramParser.ParseFiles().
-  /// 
-  /// This could be captured somewhere else, such as on the Program itself,
-  /// if having this state here hampers reuse in the future,
-  /// especially parallel processing.
-  /// </summary>
-  internal Program ProgramAfterParsing { get; set; }
-
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return null;
   }
@@ -79,7 +61,7 @@ public class LibraryBackend : ExecutableBackend {
       Reporter.Error(MessageSource.Compiler, assumption.tok, message, message);
     }
 
-    var dooFile = new DooFile(ProgramAfterParsing);
+    var dooFile = new DooFile(dafnyProgram.AfterParsingClone);
     dooFile.Write(output);
   }
 
@@ -91,7 +73,7 @@ public class LibraryBackend : ExecutableBackend {
     return Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, DooFile.Extension));
   }
 
-  public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText, string callToMain,
     string targetFilename,
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
@@ -101,8 +83,11 @@ public class LibraryBackend : ExecutableBackend {
 
     File.Delete(dooPath);
     ZipFile.CreateFromDirectory(targetDirectory, dooPath);
+    if (Options.Verbose) {
+      await outputWriter.WriteLineAsync($"Wrote Dafny library to {dooPath}");
+    }
 
-    return Task.FromResult((true, (object)null));
+    return (true, null);
   }
 
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,

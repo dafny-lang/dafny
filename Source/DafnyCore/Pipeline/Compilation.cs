@@ -143,7 +143,7 @@ public class Compilation : IDisposable {
 
     foreach (var uri in Options.CliRootSourceUris) {
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
-      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli,
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli, false,
         $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
       if (file != null) {
         result.Add(file);
@@ -173,16 +173,8 @@ public class Compilation : IDisposable {
 
     var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryFiles) {
-      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken);
+      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken, true);
       if (file != null) {
-        if (file.Extension == DafnyFile.DafnyFileExtension) {
-          errorReporter.Warning(MessageSource.Project, "", Project.StartingToken,
-            $"The file '{Options.GetPrintPath(library)}' was passed to --library. " +
-            $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
-            $"Use a .doo file to enable Dafny to check that compatible options were used");
-        }
-        file.IsPreverified = true;
-        file.IsPrecompiled = true;
         result.Add(file);
       }
     }

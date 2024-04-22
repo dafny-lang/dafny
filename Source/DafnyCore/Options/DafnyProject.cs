@@ -305,4 +305,5 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public override int GetHashCode() {
     return HashCode.Combine(Uri, Includes, Excludes, Options);
   }
+
 }

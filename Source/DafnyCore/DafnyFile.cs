@@ -2,13 +2,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 
 namespace Microsoft.Dafny;
 
@@ -18,8 +21,8 @@ public class DafnyFile {
   public string Extension { get; private set; }
   public string CanonicalPath { get; }
   public string BaseName { get; private set; }
-  public bool IsPreverified { get; set; }
-  public bool IsPrecompiled { get; set; }
+  public bool IsPreverified { get; private set; }
+  public bool IsPrecompiled { get; private set; }
   public DafnyOptions ParseOptions { get; private set; }
   public Func<TextReader> GetContent { get; set; }
   public Uri Uri { get; private set; }
@@ -34,11 +37,11 @@ public class DafnyFile {
   }
 
   public static async Task<DafnyFile?> CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
-    DafnyOptions options, Uri uri, IToken? origin, string? errorOnNotRecognized = null) {
+    DafnyOptions options, Uri uri, IToken? origin, bool asLibrary = false, string? errorOnNotRecognized = null) {
 
     var embeddedFile = ExternallyVisibleEmbeddedFiles.GetValueOrDefault(uri);
     if (embeddedFile != null) {
-      var result = await CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, errorOnNotRecognized);
+      var result = await CreateAndValidate(reporter, fileSystem, options, embeddedFile, origin, asLibrary, errorOnNotRecognized);
       if (result != null) {
         result.Uri = uri;
       }
@@ -69,26 +72,25 @@ public class DafnyFile {
       baseName = "";
     }
 
-    var filePathForErrors = options.GetPrintPath(filePath);
     if (uri.Scheme == "stdin") {
       return HandleStandardInput(options, uri, origin, extension);
     }
 
     if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
       return HandleDafnyFile(options, fileSystem, reporter,
-        uri, origin, extension, canonicalPath, baseName, filePathForErrors);
+        uri, origin, asLibrary, extension, canonicalPath, baseName, filePath);
     }
 
     if (extension == DooFile.Extension) {
       return await HandleDooFile(options, fileSystem,
-        reporter, uri, origin, filePathForErrors, filePath, extension, canonicalPath, baseName);
+        reporter, uri, origin, asLibrary, extension, canonicalPath, baseName);
     }
 
     if (extension == ".dll") {
       return HandleDll(options, uri, origin, filePath, extension, canonicalPath, baseName);
     }
     if (extension == DafnyProject.Extension) {
-      return await HandleDafnyProject(options, fileSystem, reporter, uri, origin, extension, canonicalPath, baseName);
+      return await HandleDafnyProject(options, fileSystem, reporter, uri, origin, asLibrary, extension, canonicalPath, baseName);
     }
     if (errorOnNotRecognized != null) {
       reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
@@ -98,7 +100,8 @@ public class DafnyFile {
 
   private static DafnyFile HandleDafnyFile(DafnyOptions options, IFileSystem fileSystem,
     ErrorReporter reporter,
-    Uri uri, IToken origin, string extension, string canonicalPath, string baseName, string filePathForErrors) {
+    Uri uri, IToken origin, bool asLibrary, string extension, string canonicalPath, string baseName,
+    string filePath) {
     if (!fileSystem.Exists(uri)) {
       if (0 < options.VerifySnapshots) {
         // For snapshots, we first create broken DafnyFile without content,
@@ -106,13 +109,20 @@ public class DafnyFile {
         return new DafnyFile(extension, canonicalPath, baseName, null!, uri, origin, null!);
       }
 
-      reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
+      reporter.Error(MessageSource.Project, origin, $"file {options.GetPrintPath(filePath)} not found");
       return null!;
     }
 
+    if (asLibrary) {
+      reporter.Warning(MessageSource.Project, "", origin,
+        $"The file '{options.GetPrintPath(filePath)}' was passed to --library. " +
+        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
+        $"Use a .doo file to enable Dafny to check that compatible options were used");
+    }
+
     return new DafnyFile(extension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin, options) {
-      IsPrecompiled = false,
-      IsPreverified = false,
+      IsPrecompiled = asLibrary,
+      IsPreverified = asLibrary,
     };
   }
 
@@ -141,11 +151,30 @@ public class DafnyFile {
     };
   }
 
+  public delegate Task<int> Executor(TextWriter outputWriter, TextWriter errorWriter, string[] arguments);
+  public static Executor Execute { get; set; }
+
   private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
     Uri uri,
     IToken origin,
+    bool asLibrary,
     string extension, string canonicalPath, string baseName) {
+    if (!asLibrary) {
+      reporter.Error(MessageSource.Project, "", origin, "Using a Dafny project file as a source file is not yet supported");
+    } else {
+      var outputWriter = new StringWriter();
+      var errorWriter = new StringWriter();
+      var exitCode = await Execute(outputWriter, errorWriter, new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
+      if (exitCode == 0) {
+        var regex = new Regex($"Wrote Dafny library to (.*)\n");
+        var path = regex.Match(outputWriter.ToString());
+        Uri dooUri = new Uri(path.Groups[1].Value);
+        return await HandleDooFile(options, fileSystem, reporter, dooUri, origin, true, extension, canonicalPath, baseName);
+      } else {
+        throw new Exception("not yet implemented");
+      }
+    }
     var project = await DafnyProject.Open(fileSystem, options, uri);
     var roots = project.GetRootSourceUris(fileSystem).ToList();
 
@@ -170,9 +199,10 @@ public class DafnyFile {
 
   private static async Task<DafnyFile?> HandleDooFile(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
-    Uri uri,
-    IToken origin, string filePathForErrors, string filePath, string extension, string canonicalPath, string baseName) {
+    Uri uri, IToken origin, bool asLibrary, string extension, string canonicalPath, string baseName) {
     DooFile dooFile;
+    var filePath = uri.LocalPath;
+
     if (uri.Scheme == "dllresource") {
       var assembly = Assembly.Load(uri.Host);
       // Skip the leading "/"
@@ -185,7 +215,7 @@ public class DafnyFile {
       dooFile = await DooFile.Read(stream);
     } else {
       if (!fileSystem.Exists(uri)) {
-        reporter.Error(MessageSource.Project, origin, $"file {filePathForErrors} not found");
+        reporter.Error(MessageSource.Project, origin, $"file {options.GetPrintPath(filePath)} not found");
         return null;
       }
 
@@ -200,7 +230,7 @@ public class DafnyFile {
       }
     }
 
-    var validDooOptions = dooFile.Validate(reporter, filePathForErrors, options, origin);
+    var validDooOptions = dooFile.Validate(reporter, filePath, options, origin);
     if (validDooOptions == null) {
       return null;
     }
@@ -213,7 +243,7 @@ public class DafnyFile {
     // and expose a Program instead of the program text.
     return new DafnyFile(extension, canonicalPath, baseName,
       () => new StringReader(dooFile.ProgramText), uri, origin, validDooOptions) {
-      IsPrecompiled = false,
+      IsPrecompiled = asLibrary,
       IsPreverified = true,
     };
   }
@@ -294,42 +324,4 @@ public class DafnyFile {
     return null;
   }
 
-  // Dummy implementation of ICustomAttributeTypeProvider, providing just enough
-  // functionality to successfully decode a DafnySourceAttribute value.
-  private class StringOnlyCustomAttributeTypeProvider : ICustomAttributeTypeProvider<System.Type> {
-    public System.Type GetPrimitiveType(PrimitiveTypeCode typeCode) {
-      if (typeCode == PrimitiveTypeCode.String) {
-        return typeof(string);
-      }
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetTypeFromDefinition(MetadataReader reader, TypeDefinitionHandle handle, byte rawTypeKind) {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetTypeFromReference(MetadataReader reader, TypeReferenceHandle handle, byte rawTypeKind) {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetSZArrayType(System.Type elementType) {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetSystemType() {
-      throw new NotImplementedException();
-    }
-
-    public System.Type GetTypeFromSerializedName(string name) {
-      throw new NotImplementedException();
-    }
-
-    public PrimitiveTypeCode GetUnderlyingEnumType(System.Type type) {
-      throw new NotImplementedException();
-    }
-
-    public bool IsSystemType(System.Type type) {
-      throw new NotImplementedException();
-    }
-  }
 }
