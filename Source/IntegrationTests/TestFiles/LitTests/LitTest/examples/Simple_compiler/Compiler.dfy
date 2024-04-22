@@ -1,5 +1,5 @@
 // RUN: cp %S/Simple.g4 %S/csharp/Simple.g4
-// RUN: %translate cs --include-runtime --output:%S/csharp/Compiler.cs "%s"
+// RUN: %translate cs --include-runtime --allow-warnings --output:%S/csharp/Compiler.cs "%s"
 // RUN: dotnet run --project %S/csharp/SimpleCompiler.csproj -- %S/example_input.calc > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -399,7 +399,7 @@ module {:extern "SimpleCompiler.CSharpUtils"} CSharpUtils {
     static function {:extern}
       StringAsDafnyString(s: String): string
     
-    static method {:extern}
+    static method {:axiom} {:extern}
       DafnyStringAsString(ds: string) returns (s: String)
   }
 

@@ -11,7 +11,7 @@ module {:extern "url", "url"} URL {
     var search: string
   }
   // Note that passing a Dafny string directly as a JS string only works in --unicode-char false mode
-  method {:extern "parse"} Parse(address: string, b: bool) returns (u: Url)
+  method {:axiom} {:extern "parse"} Parse(address: string, b: bool) returns (u: Url)
 }
 
 method Main() {

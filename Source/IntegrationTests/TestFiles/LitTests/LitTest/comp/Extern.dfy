@@ -48,7 +48,7 @@ module {:extern "Library"} Library {
   class {:extern "LibClass"} LibClass {
     static method {:extern} CallMeInt(x: int) returns (y: int, z: int)
     static method {:extern} CallMeNative(x: MyInt, b: bool) returns (y: MyInt)
-    static method {:extern "Library.OtherClass", "CallMe"} CallMeInAnotherClass() returns (w : object)
+    static method {:axiom} {:extern "Library.OtherClass", "CallMe"} CallMeInAnotherClass() returns (w : object)
   }
 
   class {:extern} AllDafny {
@@ -80,13 +80,13 @@ module {:extern "Library"} Library {
 
   class {:extern} SingletonOptimization {
     // The in-parameter and out-parameter of these methods are optimized to just an "MyInt"
-    static method {:extern} SingletonTuple(a: (ghost MyInt, MyInt)) returns (b: (MyInt, ghost MyInt, ghost MyInt))
+    static method {:axiom} {:extern} SingletonTuple(a: (ghost MyInt, MyInt)) returns (b: (MyInt, ghost MyInt, ghost MyInt))
       requires a.1 < 0x7fff_ffff
       ensures b.0 == a.1 + 1
-    static method {:extern} NoWrapper(a: ErasableWrapper) returns (b: ErasableWrapper)
+    static method {:axiom} {:extern} NoWrapper(a: ErasableWrapper) returns (b: ErasableWrapper)
       requires a.x < 0x7fff_ffff
       ensures b.x == a.x + 1
-    static method {:extern} GhostWrapper(a: Ghost<MyInt>) returns (b: Ghost<MyInt>)
+    static method {:axiom} {:extern} GhostWrapper(a: Ghost<MyInt>) returns (b: Ghost<MyInt>)
       requires a.Something? && a.x < 0x7fff_ffff
       ensures b.Something? && b.x == a.x + 1
   }
