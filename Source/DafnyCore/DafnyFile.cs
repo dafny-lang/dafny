@@ -152,7 +152,9 @@ public class DafnyFile {
   }
 
   public delegate Task<int> Executor(TextWriter outputWriter, TextWriter errorWriter, string[] arguments);
-  public static Executor Execute { get; set; }
+
+  public static Executor Execute { get; set; } = (outputWriter, errorWriter, arguments) =>
+    throw new Exception("Execute must be set by DafnyDriver");
 
   private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
