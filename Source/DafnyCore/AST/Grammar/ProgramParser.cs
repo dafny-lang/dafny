@@ -7,12 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
-using Microsoft.Dafny.Plugins;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Tomlyn;
 using static Microsoft.Dafny.ParseErrors;
 
 namespace Microsoft.Dafny;
