@@ -35,6 +35,7 @@ public partial class BoogieGenerator {
   void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                             Expression allowance,
                             Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
+                            Dictionary<IVariable, Expression> directSubstMap,
                             Dictionary<TypeParameter, Type> typeMap,
                             ExpressionTranslator etranCurrent, bool oldCaller, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
     Contract.Requires(tok != null);
@@ -69,6 +70,7 @@ public partial class BoogieGenerator {
     }
     for (int i = 0; i < N; i++) {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
+      Expression e0direct = Substitute(calleeDecreases[i], receiverReplacement, directSubstMap, typeMap);
       Expression e1 = contextDecreases[i];
       if (oldCaller) {
         e1 = new OldExpr(e1.tok, e1) {
@@ -80,7 +82,7 @@ public partial class BoogieGenerator {
         break;
       }
       oldExpressions.Add(e1);
-      newExpressions.Add(e0);
+      newExpressions.Add(e0direct);
       toks.Add(new NestedToken(tok, e1.tok));
       types0.Add(e0.Type.NormalizeExpand());
       types1.Add(e1.Type.NormalizeExpand());

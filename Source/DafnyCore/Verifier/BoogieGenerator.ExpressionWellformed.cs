@@ -651,6 +651,7 @@ namespace Microsoft.Dafny {
               }
               // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
               Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+              Dictionary<IVariable, Expression> directSubstMap = new Dictionary<IVariable, Expression>();
               for (int i = 0; i < e.Function.Formals.Count; i++) {
                 Formal p = e.Function.Formals[i];
                 // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
@@ -664,6 +665,7 @@ namespace Microsoft.Dafny {
                 locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
+                directSubstMap.Add(p, ee);
                 CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, builder);
                 Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
@@ -820,7 +822,7 @@ namespace Microsoft.Dafny {
                     if (e.CoCallHint != null) {
                       hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
                     }
-                    CheckCallTermination(callExpr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
+                    CheckCallTermination(callExpr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, directSubstMap, e.GetTypeArgumentSubstitutions(),
                       etran, false, builder, codeContext.InferredDecreases, hint);
                   }
                 }

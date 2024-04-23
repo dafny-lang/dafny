@@ -1500,9 +1500,8 @@ namespace Microsoft.Dafny {
               oldExprs.Add(TrExpr(oldExpr));
               toks.Add(new NestedToken(decreasesToExpr.tok, oldExpr.tok));
             }
-            BoogieStmtListBuilder builder = null;
-            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, builder,
-              "TODO", false, false);
+            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, null,
+              null, false, false);
             return decreasesExpr;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression

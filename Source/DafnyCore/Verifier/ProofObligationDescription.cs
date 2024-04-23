@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -26,6 +27,10 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   }
 
   public virtual bool ProvedOutsideUserCode => false;
+
+  public virtual string GetExtraExplanation() {
+    return null;
+  }
 }
 
 //// Arithmetic and logical operators, conversions
@@ -793,6 +798,23 @@ public class Terminates : ProofObligationDescription {
       expr = Expression.CreateOr(allowance, expr);
     }
     return expr;
+  }
+
+  public override string GetExtraExplanation() {
+    var builder = new StringBuilder();
+    if (prevGhostLocals is not null) {
+      builder.Append("\n  with the label `LoopEntry` applied to the loop");
+      if (prevGhostLocals.Count > 0) {
+        builder.Append("\n  and with the following declarations at the beginning of the loop body:");
+        foreach (var decl in prevGhostLocals) {
+          builder.Append($"\n    {decl}");
+        }
+      }
+
+      return builder.ToString();
+    }
+
+    return null;
   }
 
   public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
