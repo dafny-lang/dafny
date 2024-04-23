@@ -599,11 +599,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { RelaxDefiniteAssignment, OptionCompatibility.CheckOptionLibraryImpliesLocal },
         { ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary },
         { AllowAxioms, OptionCompatibility.CheckOptionLibraryImpliesLocal },
-        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
+        { AllowWarnings, (reporter, origin, prefix, option, localValue, libraryValue) => {
             if (OptionCompatibility.OptionValuesImplied(libraryValue, localValue)) {
               return true;
             }
-            string message = OptionCompatibility.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            string message = OptionCompatibility.LocalImpliesLibraryMessage(prefix, option, localValue, libraryValue);
             reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
             return false;
           }
