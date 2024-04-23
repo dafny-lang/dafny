@@ -26,10 +26,7 @@ public class TranslationRecord {
     OptionsByModule = new();
     
     foreach (var module in program.RawModules()) {
-      // TODO: Don't include the default module,
-      // which is the only one that can cross compilation units
-      
-      if (!module.ShouldCompile(program.Compilation)) {
+      if (module is DefaultModuleDefinition || !module.ShouldCompile(program.Compilation)) {
         continue;
       }
       
