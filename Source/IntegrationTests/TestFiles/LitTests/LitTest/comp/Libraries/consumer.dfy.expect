@@ -1,2 +1,4 @@
+CLI: Warning: The file 'directLibrary.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
+CLI: Warning: The file 'secondLibrary.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
 
 Dafny program verifier finished with 0 verified, 0 errors
