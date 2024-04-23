@@ -3,11 +3,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
 
@@ -27,12 +25,21 @@ public class DafnyFile {
   public IToken? Origin { get; }
 
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
-  
+
 
   public static Uri ExposeInternalUri(string externalName, Uri internalUri) {
     var externalUri = new Uri("dafny:" + externalName);
     ExternallyVisibleEmbeddedFiles[externalUri] = internalUri;
     return externalUri;
+  }
+
+  public delegate Task<DafnyFile> HandleExtension(DafnyOptions options, IFileSystem
+    fileSystem, ErrorReporter reporter, Uri uri, IToken origin, bool asLibrary);
+
+  private static readonly Dictionary<string, HandleExtension> extensionHandlers = new();
+
+  public static void RegisterExtensionHandler(string extension, HandleExtension handler) {
+    extensionHandlers[extension] = handler;
   }
 
   public static async Task<DafnyFile?> CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
@@ -61,7 +68,7 @@ public class DafnyFile {
       // supported in .Net APIs, because it is very difficult in general
       // So we will just use the absolute path, lowercased for all file systems.
       // cf. IncludeComparer.CompareTo
-      canonicalPath = Canonicalize(filePath).LocalPath;
+      canonicalPath = Canonicalize(uri.LocalPath).LocalPath;
     } else if (uri.Scheme == "dllresource") {
       extension = Path.GetExtension(uri.LocalPath).ToLower();
       baseName = uri.LocalPath;
@@ -82,14 +89,16 @@ public class DafnyFile {
 
     if (extension == DooFile.Extension) {
       return await HandleDooFile(options, fileSystem,
-        reporter, uri, origin, asLibrary, canonicalPath, baseName);
+        reporter, uri, origin, asLibrary);
     }
 
     if (extension == ".dll") {
       return HandleDll(options, uri, origin, filePath, extension, canonicalPath, baseName);
     }
-    if (extension == DafnyProject.Extension) {
-      return await HandleDafnyProject(options, fileSystem, reporter, uri, origin, asLibrary,canonicalPath, baseName);
+
+    var handler = extensionHandlers.GetValueOrDefault(extension);
+    if (handler != null) {
+      return await handler(options, fileSystem, reporter, uri, origin, asLibrary);
     }
     if (errorOnNotRecognized != null) {
       reporter.Error(MessageSource.Project, Token.Cli, errorOnNotRecognized);
@@ -152,40 +161,9 @@ public class DafnyFile {
 
   public delegate Task<int> Executor(TextWriter outputWriter, TextWriter errorWriter, string[] arguments);
 
-  public static Executor Execute { get; set; } = (outputWriter, errorWriter, arguments) => 
-    throw new Exception("DafnyCore not used together with DafnyDriver");
-
-  private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
+  public static async Task<DafnyFile?> HandleDooFile(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
-    Uri uri,
-    IToken origin,
-    bool asLibrary,
-    string canonicalPath, string baseName) {
-    if (!asLibrary) {
-      reporter.Error(MessageSource.Project, origin, "Using a Dafny project file as a source file is not supported.");
-      return null;
-    }
-
-    var outputWriter = new StringWriter();
-    var errorWriter = new StringWriter();
-    var exitCode = await Execute(outputWriter, errorWriter, new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
-    if (exitCode != 0) {
-      var output = outputWriter + errorWriter.ToString();
-      reporter.Error(MessageSource.Project, origin,
-        $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
-      return null;
-    }
-
-    var regex = new Regex($"Wrote Dafny library to (.*)\n");
-    var path = regex.Match(outputWriter.ToString());
-    var dooUri = new Uri(path.Groups[1].Value);
-    return await HandleDooFile(options, fileSystem, reporter, dooUri, origin, true, canonicalPath,
-      baseName);
-  }
-
-  private static async Task<DafnyFile?> HandleDooFile(DafnyOptions options,
-    IFileSystem fileSystem, ErrorReporter reporter,
-    Uri uri, IToken origin, bool asLibrary, string canonicalPath, string baseName) {
+    Uri uri, IToken origin, bool asLibrary) {
     DooFile dooFile;
     var filePath = uri.LocalPath;
 
@@ -227,7 +205,7 @@ public class DafnyFile {
     // more efficiently inside a .doo file, at which point
     // the DooFile class should encapsulate the serialization logic better
     // and expose a Program instead of the program text.
-    return new DafnyFile(DooFile.Extension, canonicalPath, baseName,
+    return new DafnyFile(DooFile.Extension, Canonicalize(uri.LocalPath).LocalPath, Path.GetFileName(uri.LocalPath),
       () => new StringReader(dooFile.ProgramText), uri, origin, validDooOptions) {
       IsPrecompiled = asLibrary,
       IsPreverified = true,
