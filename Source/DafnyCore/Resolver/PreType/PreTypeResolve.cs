@@ -298,13 +298,19 @@ namespace Microsoft.Dafny {
           break;
         }
         visited.Add(newtypeDecl);
-        var parent = newtypeDecl.BasePreType.Normalize() as DPreType;
-        if (parent == null) {
+        if (newtypeDecl.BasePreType.Normalize() is not DPreType parent) {
           // The parent type of this newtype apparently hasn't been inferred yet, so stop traversal here
           break;
         }
         var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
-        preType = (DPreType)parent.Substitute(subst);
+        if (parent.Substitute(subst) is not DPreType parentWithSubstitutions) {
+          // The head type of result of the substitution into the parent is not yet inferred. This must have been because
+          // the parent is a type parameter of the newtype and the actual type argument hasn't been inferred yet. So, we
+          // stop here and return the type-parameter parent.
+          Contract.Assert(parent.Decl is TypeParameter);
+          break;
+        }
+        preType = parentWithSubstitutions;
       }
       return preType;
     }

@@ -451,6 +451,40 @@ module Bitvectors {
     se3 := set x | x in dd;
   }
 }
+
+module TypeParametersForNewtype {
+  newtype Wrapper<G> = g: G | true witness *
+  method CallMe<U>(u: Wrapper<U>) returns (v: Wrapper<U>)
+
+  method Test(x: bool) returns (y: Wrapper<bool>) {
+    var b: Wrapper<bool>;
+    b := x as Wrapper<bool>;
+    y := CallMe(b);
+  }
+}
+
+module TypeParametersForSubsetType {
+  type Wrapper<G> = g: G | true witness *
+  method CallMe<U>(u: Wrapper<U>) returns (v: Wrapper<U>)
+
+  method Test(x: bool) returns (y: Wrapper<bool>) {
+    var b: Wrapper<bool>;
+    b := x as Wrapper<bool>;
+    y := CallMe(b);
+  }
+}
+
+module TypeParametersForTypeSynonym {
+  type Wrapper<G> = G
+  method CallMe<U>(u: Wrapper<U>) returns (v: Wrapper<U>)
+
+  method Test(x: bool) returns (y: Wrapper<bool>) {
+    var b: Wrapper<bool>;
+    b := x as Wrapper<bool>;
+    y := CallMe(b);
+  }
+}
+
 /*
 module RealConversions {
   method TestRealIsInt0(r: real)

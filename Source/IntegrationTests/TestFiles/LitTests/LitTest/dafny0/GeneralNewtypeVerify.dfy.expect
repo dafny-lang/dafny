@@ -37,4 +37,4 @@ GeneralNewtypeVerify.dfy(364,11): Error: rotate amount must not exceed the width
 GeneralNewtypeVerify.dfy(367,27): Error: result of operation might violate subset type constraint for 'nat'
 GeneralNewtypeVerify.dfy(371,35): Error: result of operation might violate newtype constraint for 'BV'
 
-Dafny program verifier finished with 27 verified, 38 errors
+Dafny program verifier finished with 30 verified, 38 errors

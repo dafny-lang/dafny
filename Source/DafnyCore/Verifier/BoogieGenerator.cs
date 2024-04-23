@@ -3166,6 +3166,21 @@ namespace Microsoft.Dafny {
       return new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null, tr, BplImp(ante, consequent));
     }
     // ----- Type ---------------------------------------------------------------------------------
+
+    static Type NormalizeToVerificationTypeRepresentation(Type type) {
+      while (true) {
+        type = type.NormalizeExpand();
+        if (type is TypeProxy) {
+          Contract.Assume(false);  // we assume that all proxies have been dealt with in the resolver
+        }
+        if (type.AsNewtype is not { } newtypeDecl) {
+          break;
+        }
+        type = newtypeDecl.RhsWithArgument(type.TypeArgs);  // the Boogie type to be used for the newtype is the same as for the base type
+      }
+      return type;
+    }
+
     // Translates a type into the representation Boogie type,
     // c.f. TypeToTy which translates a type to its Boogie expression
     // to be used in $Is and $IsAlloc.
@@ -3174,18 +3189,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-      while (true) {
-        type = type.NormalizeExpand();
-        if (type is TypeProxy) {
-          Contract.Assume(false);  // we assume that all proxies have been dealt with in the resolver
-        }
-        var d = type.AsNewtype;
-        if (d == null) {
-          break;
-        } else {
-          type = d.BaseType;  // the Boogie type to be used for the newtype is the same as for the base type
-        }
-      }
+      type = NormalizeToVerificationTypeRepresentation(type);
 
       if (type is BoolType) {
         return Bpl.Type.Bool;
@@ -3341,7 +3345,7 @@ namespace Microsoft.Dafny {
 
     public static bool ModeledAsBoxType(Type t) {
       Contract.Requires(t != null);
-      t = t.NormalizeExpand();
+      t = NormalizeToVerificationTypeRepresentation(t);
       if (t is TypeProxy) {
         // unresolved proxy
         return false;
