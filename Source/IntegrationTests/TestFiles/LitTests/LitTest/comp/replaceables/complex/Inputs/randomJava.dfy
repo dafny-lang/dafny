@@ -21,16 +21,16 @@ module Interop {
   
   const int32MaxValue := 2147483647
   
-  function {:extern} IntToInt32(value: int): Option<Integer>
+  function {:axiom} {:extern} IntToInt32(value: int): Option<Integer>
     ensures var r := IntToInt32(value); 
       if value <= int32MaxValue 
         then r.Some? && r.Extract().value == value
         else r.None?
     
-  function {:extern} Int32ToInt(value: Integer): int
+  function {:axiom} {:extern} Int32ToInt(value: Integer): int
     ensures Int32ToInt(value) == value.value
   
-  function {:extern} IntegerMaxValue(): Integer
+  function {:axiom} {:extern} IntegerMaxValue(): Integer
     ensures IntegerMaxValue().value == int32MaxValue
 }
   
@@ -52,7 +52,7 @@ module {:extern "java.util"} JavaRest {
   class {:extern "Random" } JavaRandom {
     constructor {:extern} () { }
     
-    method {:extern "nextInt"} Next(bound: Integer) returns (r: Integer)
+    method {:axiom} {:extern "nextInt"} Next(bound: Integer) returns (r: Integer)
       ensures 0 <= r.value && r.value < bound.value
   }
 }

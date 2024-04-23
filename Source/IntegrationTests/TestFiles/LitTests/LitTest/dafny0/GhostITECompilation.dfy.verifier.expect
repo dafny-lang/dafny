@@ -1,0 +1,1 @@
+GhostITECompilation.dfy(52,25): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
