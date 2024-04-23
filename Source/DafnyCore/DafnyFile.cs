@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -11,7 +10,6 @@ using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 
 namespace Microsoft.Dafny;
 
