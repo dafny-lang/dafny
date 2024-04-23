@@ -51,7 +51,7 @@ public class TranslationRecord {
     return Toml.ToModel<TranslationRecord>(reader.ReadToEnd(), null, new TomlModelOptions());
   }
   
-  public void Write(ConcreteSyntaxTree writer) {
+  public void Write(TextWriter writer) {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
   }
   

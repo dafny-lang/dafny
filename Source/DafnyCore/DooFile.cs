@@ -175,25 +175,6 @@ public class DooFile {
     return result;
   }
 
-  private static object GetOptionValue(DafnyOptions options, Option option) {
-    // This is annoyingly necessary because only DafnyOptions.Get<T>(Option<T> option)
-    // handles falling back to the configured default option value,
-    // whereas the non-generic DafnyOptions.Get(Option option) doesn't.
-    // TODO: Move somewhere more generic if this is useful in other cases?
-    var optionType = option.ValueType;
-    if (optionType == typeof(bool)) {
-      return options.Get((Option<bool>)option);
-    }
-    if (optionType == typeof(string)) {
-      return options.Get((Option<string>)option);
-    }
-    if (optionType == typeof(IEnumerable<string>)) {
-      return options.Get((Option<IEnumerable<string>>)option);
-    }
-
-    throw new ArgumentException();
-  }
-
   public void Write(ConcreteSyntaxTree wr) {
     var manifestWr = wr.NewFile(ManifestFileEntry);
     using var manifestWriter = new StringWriter();
