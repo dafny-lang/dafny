@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
 
       if (options.SpillTargetCode > 0) {
         var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
-        var dtrFilePath = options.Get(IExecutableBackend.TranslationRecordOutput)?.Name 
+        var dtrFilePath = options.Get(IExecutableBackend.TranslationRecordOutput)?.FullName 
                           ?? Path.Combine(targetPaths.Directory, $"{baseName}.dtr");
         await using TextWriter writer = new StreamWriter(new FileStream(dtrFilePath, FileMode.Create));
         translationRecord.Write(writer);

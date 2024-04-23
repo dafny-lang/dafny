@@ -140,13 +140,15 @@ public class TranslationRecord {
 
   public static void ReadValidateAndMerge(Program dafnyProgram, string filePath, IToken origin) {
     var pathForErrors = dafnyProgram.Options.GetPrintPath(filePath);
-    using TextReader reader = new StreamReader(filePath);
     try {
+      using TextReader reader = new StreamReader(filePath);
       var record = Read(reader);
       if (record.Validate(dafnyProgram, pathForErrors, origin)) {
         dafnyProgram.Compilation.AlreadyTranslatedRecord.Merge(dafnyProgram.Reporter, record, pathForErrors, origin);
       }
-    } catch (TomlException e) {
+    } catch (FileNotFoundException) {
+      dafnyProgram.Reporter.Error(MessageSource.Project, origin, $"file {pathForErrors} not found");
+    } catch (TomlException) {
       dafnyProgram.Reporter.Error(MessageSource.Project, origin, $"malformed dtr file {pathForErrors}");
     }
   }
