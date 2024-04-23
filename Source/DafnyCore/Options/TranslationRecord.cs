@@ -7,7 +7,7 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 using Tomlyn;
 
-namespace DafnyCore.Options; 
+namespace DafnyCore.Options;
 
 public class TranslationRecord {
 
@@ -15,8 +15,8 @@ public class TranslationRecord {
   public string FileFormatVersion { get; set; }
 
   public string DafnyVersion { get; set; }
-  
-  public Dictionary<string, Dictionary<string, object>> OptionsByModule { get; set;  }
+
+  public Dictionary<string, Dictionary<string, object>> OptionsByModule { get; set; }
 
 
   public TranslationRecord(Program program) {
@@ -24,15 +24,15 @@ public class TranslationRecord {
     DafnyVersion = program.Options.VersionNumber;
 
     OptionsByModule = new();
-    
+
     foreach (var module in program.RawModules()) {
       if (module is DefaultModuleDefinition || !module.ShouldCompile(program.Compilation)) {
         continue;
       }
-      
+
       Dictionary<string, object> recordedOptions = new();
       OptionsByModule[module.FullDafnyName] = recordedOptions;
-      
+
       foreach (var (option, _) in OptionChecks) {
         var optionValue = program.Options.Get((dynamic)option);
         recordedOptions.Add(option.Name, optionValue);
@@ -47,19 +47,19 @@ public class TranslationRecord {
       OptionsByModule = new()
     };
   }
-  
+
   public TranslationRecord() {
     // Only for TOML deserialization!
   }
-  
+
   private static TranslationRecord Read(TextReader reader) {
     return Toml.ToModel<TranslationRecord>(reader.ReadToEnd(), null, new TomlModelOptions());
   }
-  
+
   public void Write(TextWriter writer) {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
   }
-  
+
   private bool Validate(Program dafnyProgram, string filePath, IToken origin) {
     var messagePrefix = $"cannot load {filePath}";
     if (!dafnyProgram.Options.UsingNewCli) {
@@ -81,7 +81,7 @@ public class TranslationRecord {
           $"{messagePrefix}: it contains translation metadata for the module {module.FullDafnyName}, which is in scope for translation in the current program");
       }
     }
-    
+
     var success = true;
     // Yo dawg, we heard you liked options so we put Options in your Options... :)
     var relevantOptions = dafnyProgram.Options.Options.OptionArguments.Keys.ToHashSet();
@@ -134,7 +134,7 @@ public class TranslationRecord {
       }
       return;
     }
-    
+
     OptionsByModule = OptionsByModule.Union(other.OptionsByModule).ToDictionary(p => p.Key, p => p.Value);
   }
 
@@ -152,9 +152,9 @@ public class TranslationRecord {
       dafnyProgram.Reporter.Error(MessageSource.Project, origin, $"malformed dtr file {pathForErrors}");
     }
   }
-  
+
   private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
-  
+
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
     foreach (var (option, check) in checks) {
       OptionChecks.Add(option, check);

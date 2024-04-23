@@ -191,16 +191,16 @@ public abstract class IExecutableBackend {
   public static readonly Option<string> OuterModule =
     new("--outer-module", "Nest all code in this module. Can be used to customize generated code. Use dots as separators (foo.baz.zoo) for deeper nesting. The first specified module will be the outermost one.");
 
-  public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record", 
+  public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record",
     @"
 A translation record file for previously translated Dafny code. Can be specified multiple times.".TrimStart()) {
   };
-  
-  public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output", 
+
+  public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output",
     @"
 Where to output the translation record file. Defaults to the output directory.".TrimStart()) {
   };
-  
+
   static IExecutableBackend() {
     DooFile.RegisterNoChecksNeeded(
       OuterModule,

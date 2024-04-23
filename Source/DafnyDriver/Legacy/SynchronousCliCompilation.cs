@@ -635,7 +635,7 @@ namespace Microsoft.Dafny {
       foreach (var rewriter in rewriters) {
         rewriter.PostVerification(dafnyProgram);
       }
-      
+
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 
@@ -658,7 +658,7 @@ namespace Microsoft.Dafny {
       // Capture the translation record for THIS translation before compiling,
       // in case the compilation process mutates the program.
       var translationRecord = new TranslationRecord(dafnyProgram);
-      
+
       // Now that an internal compiler is instantiated, apply any plugin instrumentation.
       foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
         options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
@@ -680,9 +680,9 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
-        
+
         await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, output));
-        
+
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
 
       if (options.SpillTargetCode > 0) {
         var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
-        var dtrFilePath = options.Get(IExecutableBackend.TranslationRecordOutput)?.FullName 
+        var dtrFilePath = options.Get(IExecutableBackend.TranslationRecordOutput)?.FullName
                           ?? Path.Combine(targetPaths.Directory, $"{baseName}.dtr");
         await using TextWriter writer = new StreamWriter(new FileStream(dtrFilePath, FileMode.Create));
         translationRecord.Write(writer);

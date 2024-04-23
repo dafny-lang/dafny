@@ -62,7 +62,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         }
       }
     }
-    
+
     // Apply the local --output-module option if there is one
     var outerModuleName = Options.Get(OuterModule);
     if (outerModuleName != null) {
@@ -70,7 +70,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
       dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
       dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
     }
-    
+
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
@@ -78,7 +78,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   private ModuleDefinition CreateModule(string moduleName) {
     var outerModules = moduleName.Split(".");
-    
+
     ModuleDefinition module = null;
     foreach (var outerModule in outerModules) {
       var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
@@ -90,7 +90,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
     return module;
   }
-  
+
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
     base.OnPreCompile(reporter, otherFileNames);
     codeGenerator = CreateCodeGenerator();

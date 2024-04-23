@@ -4,7 +4,7 @@ using System.CommandLine;
 using Microsoft.Dafny;
 using System.Linq;
 
-namespace DafnyCore.Options; 
+namespace DafnyCore.Options;
 
 public class OptionCompatibility {
   public delegate bool OptionCheck(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue);
@@ -19,7 +19,7 @@ public class OptionCompatibility {
       $"but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
-  
+
   private static string OptionValueToString(Option option, object value) {
     if (option.ValueType == typeof(IEnumerable<string>)) {
       var values = (IEnumerable<string>)value;
@@ -31,7 +31,7 @@ public class OptionCompatibility {
     }
     return value.ToString();
   }
-  
+
   private static bool OptionValuesEqual(Option option, object first, object second) {
     if (first.Equals(second)) {
       return true;
@@ -43,7 +43,7 @@ public class OptionCompatibility {
 
     return false;
   }
-  
+
   public static bool OptionValuesImplied(object first, object second) {
     try {
       return !(bool)first || (bool)second;
@@ -78,8 +78,8 @@ public class OptionCompatibility {
   public static string LocalImpliesLibraryMessage(string prefix, Option option, object localValue, object libraryValue) {
     return $"{prefix}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
   }
-  
-    
+
+
   // Placeholder no-op check, used for options that need to be recorded but don't require any compatibility check.
   public static bool NoOpOptionCheck(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue) {
     return true;
