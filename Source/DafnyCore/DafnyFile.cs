@@ -27,6 +27,7 @@ public class DafnyFile {
   public IToken? Origin { get; }
 
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
+  
 
   public static Uri ExposeInternalUri(string externalName, Uri internalUri) {
     var externalUri = new Uri("dafny:" + externalName);
@@ -71,7 +72,7 @@ public class DafnyFile {
     }
 
     if (uri.Scheme == "stdin") {
-      return HandleStandardInput(options, uri, origin, extension);
+      return HandleStandardInput(options, uri, origin);
     }
 
     if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
@@ -81,7 +82,7 @@ public class DafnyFile {
 
     if (extension == DooFile.Extension) {
       return await HandleDooFile(options, fileSystem,
-        reporter, uri, origin, asLibrary, extension, canonicalPath, baseName);
+        reporter, uri, origin, asLibrary, canonicalPath, baseName);
     }
 
     if (extension == ".dll") {
@@ -124,8 +125,8 @@ public class DafnyFile {
     };
   }
 
-  private static DafnyFile HandleStandardInput(DafnyOptions options, Uri uri, IToken origin, string extension) {
-    return new DafnyFile(extension, "<stdin>", "<stdin>", () => options.Input, uri, origin, options) {
+  private static DafnyFile HandleStandardInput(DafnyOptions options, Uri uri, IToken origin) {
+    return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>", () => options.Input, uri, origin, options) {
       IsPrecompiled = false,
       IsPreverified = false,
     };
@@ -159,7 +160,7 @@ public class DafnyFile {
     Uri uri,
     IToken origin,
     bool asLibrary,
-    string extension, string canonicalPath, string baseName) {
+    string canonicalPath, string baseName) {
     if (!asLibrary) {
       reporter.Error(MessageSource.Project, "", origin, "Using a Dafny project file as a source file is not yet supported");
     } else {
@@ -170,7 +171,7 @@ public class DafnyFile {
         var regex = new Regex($"Wrote Dafny library to (.*)\n");
         var path = regex.Match(outputWriter.ToString());
         Uri dooUri = new Uri(path.Groups[1].Value);
-        return await HandleDooFile(options, fileSystem, reporter, dooUri, origin, true, extension, canonicalPath, baseName);
+        return await HandleDooFile(options, fileSystem, reporter, dooUri, origin, true, canonicalPath, baseName);
       } else {
         throw new Exception("not yet implemented");
       }
@@ -191,7 +192,7 @@ public class DafnyFile {
     }
 
     var stubSource = string.Join("\n", roots.Select(root => $"include \"{root.LocalPath}\""));
-    return new DafnyFile(extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin, libraryOptions) {
+    return new DafnyFile(DafnyProject.Extension, canonicalPath, baseName, () => new StringReader(stubSource), uri, origin, libraryOptions) {
       IsPrecompiled = false,
       IsPreverified = false,
     };
@@ -199,7 +200,7 @@ public class DafnyFile {
 
   private static async Task<DafnyFile?> HandleDooFile(DafnyOptions options,
     IFileSystem fileSystem, ErrorReporter reporter,
-    Uri uri, IToken origin, bool asLibrary, string extension, string canonicalPath, string baseName) {
+    Uri uri, IToken origin, bool asLibrary, string canonicalPath, string baseName) {
     DooFile dooFile;
     var filePath = uri.LocalPath;
 
@@ -241,7 +242,7 @@ public class DafnyFile {
     // more efficiently inside a .doo file, at which point
     // the DooFile class should encapsulate the serialization logic better
     // and expose a Program instead of the program text.
-    return new DafnyFile(extension, canonicalPath, baseName,
+    return new DafnyFile(DooFile.Extension, canonicalPath, baseName,
       () => new StringReader(dooFile.ProgramText), uri, origin, validDooOptions) {
       IsPrecompiled = asLibrary,
       IsPreverified = true,
