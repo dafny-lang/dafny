@@ -636,10 +636,6 @@ namespace Microsoft.Dafny {
         rewriter.PostVerification(dafnyProgram);
       }
       
-      // Capture the translation record before compiling,
-      // in case the compilation process mutates the program.
-      var translationRecord = new TranslationRecord(dafnyProgram);
-
       Contract.Requires(dafnyProgram != null);
       Contract.Assert(dafnyProgramName != null);
 
@@ -651,6 +647,18 @@ namespace Microsoft.Dafny {
       var options = dafnyProgram.Options;
       options.Backend.OnPreCompile(dafnyProgram.Reporter, otherFileNames);
 
+      // Process --translation-record options, since translation may need that data to translate correctly.
+      dafnyProgram.Compilation.AlreadyTranslatedRecord = TranslationRecord.Empty(dafnyProgram);
+      var records = dafnyProgram.Options.Get(IExecutableBackend.TranslationRecords);
+      if (records != null) {
+        foreach (var path in records) {
+          TranslationRecord.ReadValidateAndMerge(dafnyProgram, path.FullName, Token.Cli);
+        }
+      }
+      // Capture the translation record for THIS translation before compiling,
+      // in case the compilation process mutates the program.
+      var translationRecord = new TranslationRecord(dafnyProgram);
+      
       // Now that an internal compiler is instantiated, apply any plugin instrumentation.
       foreach (var compilerInstrumenter in options.Plugins.SelectMany(p => p.GetCompilerInstrumenters(dafnyProgram.Reporter))) {
         options.Backend.InstrumentCompiler(compilerInstrumenter, dafnyProgram);
@@ -713,7 +721,7 @@ namespace Microsoft.Dafny {
 
       if (options.SpillTargetCode > 0) {
         var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
-        var dtrFilePath = options.Get(CommonOptionBag.TranslationRecordOutput)?.Name 
+        var dtrFilePath = options.Get(IExecutableBackend.TranslationRecordOutput)?.Name 
                           ?? Path.Combine(targetPaths.Directory, $"{baseName}.dtr");
         await using TextWriter writer = new StreamWriter(new FileStream(dtrFilePath, FileMode.Create));
         translationRecord.Write(writer);

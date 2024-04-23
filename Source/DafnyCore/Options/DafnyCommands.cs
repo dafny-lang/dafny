@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
@@ -60,7 +61,7 @@ public static class DafnyCommands {
     DeveloperOptionBag.Bootstrapping,
     CommonOptionBag.AddCompileSuffix,
     CommonOptionBag.SystemModule,
-    CommonOptionBag.TranslationRecords,
+    IExecutableBackend.TranslationRecords,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {

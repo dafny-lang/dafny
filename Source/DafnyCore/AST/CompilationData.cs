@@ -30,5 +30,5 @@ public class CompilationData {
   [FilledInDuringResolution]
   public ISet<Uri> UrisToCompile;
 
-  public TranslationRecord TranslationRecord { get; set; }
+  public TranslationRecord AlreadyTranslatedRecord { get; set; }
 }

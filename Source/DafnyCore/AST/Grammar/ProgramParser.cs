@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
+using Microsoft.Dafny.Plugins;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Tomlyn;
@@ -103,23 +104,6 @@ public class ProgramParser {
     }
 
     ShowWarningsForIncludeCycles(program);
-
-    compilation.TranslationRecord = new TranslationRecord();
-    var records = options.Get(CommonOptionBag.TranslationRecords);
-    if (records != null) {
-      foreach (var path in options.Get(CommonOptionBag.TranslationRecords)) {
-        using var reader = new StreamReader(path.FullName);
-        var pathForErrors = options.GetPrintPath(path.FullName);
-        try {
-          var libraryRecord = TranslationRecord.Read(reader);
-          if (libraryRecord.Validate(errorReporter, pathForErrors, options, Token.NoToken)) {
-            compilation.TranslationRecord.Merge(libraryRecord);
-          }
-        } catch (Exception e) when (e is TomlException) {
-          errorReporter.Error(MessageSource.Project, Token.NoToken, $"malformed dtr file {pathForErrors}");
-        }
-      }
-    }
 
     return program;
   }

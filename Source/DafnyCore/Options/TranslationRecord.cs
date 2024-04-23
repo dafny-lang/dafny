@@ -39,12 +39,20 @@ public class TranslationRecord {
       }
     }
   }
-  
-  public TranslationRecord() {
-    OptionsByModule = new();
+
+  public static TranslationRecord Empty(Program program) {
+    return new TranslationRecord() {
+      FileFormatVersion = CurrentFileFormatVersion,
+      DafnyVersion = program.Options.VersionNumber,
+      OptionsByModule = new()
+    };
   }
   
-  public static TranslationRecord Read(TextReader reader) {
+  public TranslationRecord() {
+    // Only for TOML deserialization!
+  }
+  
+  private static TranslationRecord Read(TextReader reader) {
     return Toml.ToModel<TranslationRecord>(reader.ReadToEnd(), null, new TomlModelOptions());
   }
   
@@ -52,22 +60,31 @@ public class TranslationRecord {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
   }
   
-  public bool Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+  private bool Validate(Program dafnyProgram, string filePath, IToken origin) {
     var messagePrefix = $"cannot load {filePath}";
-    if (!options.UsingNewCli) {
-      reporter.Error(MessageSource.Project, origin,
+    if (!dafnyProgram.Options.UsingNewCli) {
+      dafnyProgram.Reporter.Error(MessageSource.Project, origin,
         $"{messagePrefix}: .dtr files cannot be used with the legacy CLI");
       return false;
     }
 
-    if (options.VersionNumber != DafnyVersion) {
-      reporter.Error(MessageSource.Project, origin,
-        $"{messagePrefix}: it was built with Dafny {DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+    if (dafnyProgram.Options.VersionNumber != DafnyVersion) {
+      dafnyProgram.Reporter.Error(MessageSource.Project, origin,
+        $"{messagePrefix}: it was built with Dafny {DafnyVersion}, which cannot be used by Dafny {dafnyProgram.Options.VersionNumber}");
       return false;
     }
 
+    // Modules should be either previously compiled or to be compiled now, not both
+    foreach (var module in dafnyProgram.CompileModules) {
+      if (module.ShouldCompile(dafnyProgram.Compilation) && OptionsByModule.ContainsKey(module.FullDafnyName)) {
+        dafnyProgram.Reporter.Error(MessageSource.Project, origin,
+          $"{messagePrefix}: it contains translation metadata for the module {module.FullDafnyName}, which is in scope for translation in the current program");
+      }
+    }
+    
     var success = true;
-    var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
+    // Yo dawg, we heard you liked options so we put Options in your Options... :)
+    var relevantOptions = dafnyProgram.Options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
@@ -76,11 +93,11 @@ public class TranslationRecord {
         continue;
       }
 
-      var localValue = options.Get(option);
+      var localValue = dafnyProgram.Options.Get(option);
 
       foreach (var moduleName in OptionsByModule.Keys) {
-        var libraryValue = Get(reporter, moduleName, option);
-        success = success && check(reporter, origin, messagePrefix, option, localValue, libraryValue);
+        var libraryValue = Get(dafnyProgram.Reporter, moduleName, option);
+        success = success && check(dafnyProgram.Reporter, origin, messagePrefix, option, localValue, libraryValue);
       }
     }
 
@@ -100,12 +117,38 @@ public class TranslationRecord {
     return null;
   }
 
-  public void Merge(TranslationRecord other) {
-    // TODO: check versions
+  private void Merge(ErrorReporter reporter, TranslationRecord other, string filePath, IToken origin) {
+    // Assume both this and other have been Validate()-d already.
+
+    var duplicateModules = OptionsByModule
+      .Union(other.OptionsByModule)
+      .GroupBy(p => p.Key)
+      .Where(g => g.Count() > 1)
+      .Select(g => g.Key)
+      .ToList();
+    if (duplicateModules.Any()) {
+      var messagePrefix = $"cannot load {filePath}";
+      foreach (var duplicateModule in duplicateModules) {
+        reporter.Error(MessageSource.Project, origin,
+          $"{messagePrefix}: module {duplicateModule} already appears in another translation record");
+      }
+      return;
+    }
     
-    // TODO: This will error if any modules overlap, which is what we want,
-    // but we can do much better in terms of error messages.
     OptionsByModule = OptionsByModule.Union(other.OptionsByModule).ToDictionary(p => p.Key, p => p.Value);
+  }
+
+  public static void ReadValidateAndMerge(Program dafnyProgram, string filePath, IToken origin) {
+    var pathForErrors = dafnyProgram.Options.GetPrintPath(filePath);
+    using TextReader reader = new StreamReader(filePath);
+    try {
+      var record = Read(reader);
+      if (record.Validate(dafnyProgram, pathForErrors, origin)) {
+        dafnyProgram.Compilation.AlreadyTranslatedRecord.Merge(dafnyProgram.Reporter, record, pathForErrors, origin);
+      }
+    } catch (TomlException e) {
+      dafnyProgram.Reporter.Error(MessageSource.Project, origin, $"malformed dtr file {pathForErrors}");
+    }
   }
   
   private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();

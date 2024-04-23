@@ -360,16 +360,6 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
   
-  public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record", 
-    @"
-A translation record file for previously translated Dafny code. Can be specified multiple times.".TrimStart()) {
-  };
-  
-  public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output", 
-    @"
-Where to output the translation record file. Defaults to the output directory.".TrimStart()) {
-  };
-
   public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
     @"
 (Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
@@ -657,9 +647,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SystemModule,
       ExecutionCoverageReport,
       ExtractCounterexample,
-      ShowProofObligationExpressions,
-      TranslationRecordOutput,
-      TranslationRecords
+      ShowProofObligationExpressions
       );
   }
 

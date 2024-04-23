@@ -52,11 +52,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
   protected void ProcessOuterModules(Program dafnyProgram) {
     // Apply the --outer-module option from any translation records for libraries,
     // but only to top-level modules.
-    // TODO: Check the invariant that a module isn't in both a translation record
-    // and being compiled in this pipeline instance!
     foreach (var module in dafnyProgram.CompileModules) {
       if (module.EnclosingModule is DefaultModuleDefinition) {
-        string recordedOuterModuleName = (string)dafnyProgram.Compilation.TranslationRecord.Get(null, module.FullDafnyName, OuterModule);
+        string recordedOuterModuleName = (string)dafnyProgram.Compilation.AlreadyTranslatedRecord.Get(null, module.FullDafnyName, OuterModule);
         if (recordedOuterModuleName != null) {
           // TODO: Need to cache these so we don't create duplicate modules
           ModuleDefinition outerModule = CreateModule(recordedOuterModuleName);
