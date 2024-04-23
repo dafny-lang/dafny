@@ -33,13 +33,13 @@ public class DafnyFile {
     return externalUri;
   }
 
-  public delegate Task<DafnyFile> HandleExtension(DafnyOptions options, IFileSystem
+  public delegate Task<DafnyFile?> HandleExtension(DafnyOptions options, IFileSystem
     fileSystem, ErrorReporter reporter, Uri uri, IToken origin, bool asLibrary);
 
-  private static readonly Dictionary<string, HandleExtension> extensionHandlers = new();
+  private static readonly Dictionary<string, HandleExtension> ExtensionHandlers = new();
 
   public static void RegisterExtensionHandler(string extension, HandleExtension handler) {
-    extensionHandlers[extension] = handler;
+    ExtensionHandlers[extension] = handler;
   }
 
   public static async Task<DafnyFile?> CreateAndValidate(ErrorReporter reporter, IFileSystem fileSystem,
@@ -96,7 +96,7 @@ public class DafnyFile {
       return HandleDll(options, uri, origin, filePath, extension, canonicalPath, baseName);
     }
 
-    var handler = extensionHandlers.GetValueOrDefault(extension);
+    var handler = ExtensionHandlers.GetValueOrDefault(extension);
     if (handler != null) {
       return await handler(options, fileSystem, reporter, uri, origin, asLibrary);
     }

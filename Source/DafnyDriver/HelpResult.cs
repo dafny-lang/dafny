@@ -12,7 +12,7 @@ namespace Microsoft.Dafny;
 internal class HelpResult : IInvocationResult {
   public void Apply(InvocationContext context) {
     var output = context.Console.Out.CreateTextWriter();
-    var helpBuilder = ((HelpBuilder)context.BindingContext.GetService(typeof(HelpBuilder)))!;
+    var helpBuilder = (HelpBuilder)context.BindingContext.GetService(typeof(HelpBuilder))!;
     var helpContext = new HelpContext(helpBuilder,
       context.ParseResult.CommandResult.Command,
       output,
