@@ -184,6 +184,9 @@ public partial class Parser {
   bool IsExpliesOp() => IsExpliesOp(la);
   bool IsAndOp() => IsAndOp(la);
   bool IsOrOp() => IsOrOp(la);
+  bool IsComma() {
+    return la.val == ",";
+  }
   static bool IsEquivOp(IToken la) {
     return la.val == "<==>";
   }

@@ -1199,7 +1199,6 @@ namespace Microsoft.Dafny {
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else if (expr is DecreasesToExpr decreasesToExpr) {
-        wr.Write("decreasesto[");
         var comma = false;
         foreach (var oldExpr in decreasesToExpr.OldExpressions) {
           if (comma) {
@@ -1208,7 +1207,7 @@ namespace Microsoft.Dafny {
           PrintExpression(oldExpr, false);
           comma = true;
         }
-        wr.Write(" ; ");
+        wr.Write(" decreases to ");
         comma = false;
         foreach (var newExpr in decreasesToExpr.NewExpressions) {
           if (comma) {
@@ -1217,7 +1216,6 @@ namespace Microsoft.Dafny {
           PrintExpression(newExpr, false);
           comma = true;
         }
-        wr.Write("]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

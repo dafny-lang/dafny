@@ -2323,7 +2323,7 @@ UpdateStmt<out Statement/*!*/ s>
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
-      Expression<out exceptionExpr, false, false>
+      MaybeDecreasesToExpression<out exceptionExpr, false, false>
       { Attribute<ref attrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
@@ -2342,7 +2342,7 @@ UpdateStmt<out Statement/*!*/ s>
       ("expect"|"assert"|"assume")    (. var tok = t; .)
       { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
-   Expression<out exceptionExpr, false, false>
+   MaybeDecreasesToExpression<out exceptionExpr, false, false>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
@@ -2488,7 +2488,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
          ("expect"|"assert"|"assume")  (. var tok = t; .)
          { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
-      Expression<out exceptionExpr, false, false>
+      MaybeDecreasesToExpression<out exceptionExpr, false, false>
       { Attribute<ref attrs> }       (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
@@ -2919,7 +2919,7 @@ AssertStmt<out Statement/*!*/ s>
   ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
-    Expression<out e, false, true>
+    MaybeDecreasesToExpression<out e, false, true>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
@@ -3207,6 +3207,43 @@ Forall = "forall".
 Exists = "exists".
 QSep = "::".
 
+Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
+=
+  NotDecreasesToExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
+  .
+
+MaybeDecreasesToExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
+= (. List<Expression> oldExprs = new();
+     List<Expression> newExprs = new();
+     Expression tmp = null;
+     IToken x = null;
+  .)
+  Expression<out tmp, allowLemma, allowLambda, allowBitwiseOps>   (. oldExprs.Add(tmp); .)
+  { IF(IsComma())
+    ","
+    NotDecreasesToExpression<out tmp, false, false>                             (. oldExprs.Add(tmp); .)
+  }
+  [ "decreases"                                                                 (. x = t; .)
+    "to"
+    NotDecreasesToExpression<out tmp, allowLemma, allowLambda, allowBitwiseOps> (. newExprs.Add(tmp); .)
+    { IF(IsComma())
+      ","
+      NotDecreasesToExpression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
+    }
+  ]
+  (.
+      if(oldExprs.Count() == 1 && newExprs.Count() == 0) {
+        e = tmp;
+      } else if (oldExprs.Count() > 0 && newExprs.Count() > 0){
+        e = new DecreasesToExpr(x, oldExprs, newExprs);
+      } else {
+        /* TODO: create ErrorId, and improve the error message */
+        SemErr(ErrorId.none, t, "a `decreases to` expression must have at least one expression on each side");
+        e = null;
+      }
+  .)
+  .
+
 /* The "allowLemma" argument says whether or not the expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
  * "allowLemma" should be passed in as "false" whenever the expression to
@@ -3224,7 +3261,7 @@ QSep = "::".
  * at the top level of this expression. It is passed in as "false" only inside
  * cardinality brackets, that is, "|expr|".
  */
-Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
+NotDecreasesToExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken semiToken; .)
   [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Calls with side-effects such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
@@ -3601,7 +3638,6 @@ PrimaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allo
     { IF(IsSuffix()) Suffix<ref e> }
   | SeqDisplayExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
-  | DecreasesToExpr<out e>
   | ConstAtomExpression<out e>
     { IF(IsSuffix()) Suffix<ref e> }
   )
@@ -3847,30 +3883,6 @@ SeqDisplayExpr<out Expression e>
     [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
                                              .)
     "]"
-  )
-  (.  e.RangeToken = new RangeToken(x, t); .)
-  .
-
-/*------------------------------------------------------------------------*/
-DecreasesToExpr<out Expression e>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     IToken x = null;
-     e = dummyExpr;
-  .)
-  (
-    "decreasesto"                          (. x = t; .)
-    "["                                      (. List<Expression> oldExprs = new List<Expression/*!*/>();
-                                                x = t;
-
-                                             .)
-    [ Expressions<oldExprs> ]
-    ";"                                      (. List<Expression> newExprs = new List<Expression/*!*/>();
-                                                x = t;
-
-                                             .)
-    [ Expressions<newExprs> ]
-    "]"                                      (. e = new DecreasesToExpr(x, oldExprs, newExprs);
-                                             .)
   )
   (.  e.RangeToken = new RangeToken(x, t); .)
   .
