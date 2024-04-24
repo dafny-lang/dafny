@@ -1142,7 +1142,7 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      bool isString = arg.Type.NormalizeToAncestorType().IsStringType;
+      bool isString = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType;
       bool isStringLiteral = arg is StringLiteralExpr;
       bool isGeneric = arg.Type.NormalizeToAncestorType().AsSeqType is { Arg.IsTypeParameter: true };
       var wStmts = wr.Fork();

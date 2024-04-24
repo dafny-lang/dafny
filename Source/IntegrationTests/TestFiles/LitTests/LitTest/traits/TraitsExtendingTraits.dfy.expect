@@ -1,12 +1,16 @@
 TraitsExtendingTraits.dfy(23,8): Error: trait definitions contain a cycle: A -> B -> A
 TraitsExtendingTraits.dfy(26,8): Error: trait definitions contain a cycle: SelfLoop -> SelfLoop
 TraitsExtendingTraits.dfy(28,8): Error: trait definitions contain a cycle: K -> M -> L -> K
-TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'karljohan' from both traits 'A' and 'D'
-TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'svamp' from both traits 'C' and 'D'
-TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'data' from both traits 'A' and 'B'
-TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'fluga' from both traits 'C' and 'B'
-TraitsExtendingTraits.dfy(59,8): Error: class 'J' inherits a member named 'sopp' from both traits 'Y' and 'B'
-TraitsExtendingTraits.dfy(64,8): Error: class 'K' inherits a member named 'sopp' from both traits 'B' and 'Y'
-TraitsExtendingTraits.dfy(66,8): Error: class 'L' inherits a member named 'sopp' from both traits 'Y' and 'B'
-TraitsExtendingTraits.dfy(95,8): Error: class 'TwoOverrides' inherits a member named 'M' from both traits 'Left2' and 'Right2'
-11 resolution/type errors detected in TraitsExtendingTraits.dfy
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'data' from both trait 'A' and trait 'B'
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'fluga' from both trait 'C' and trait 'B'
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'karljohan' from both trait 'A' and trait 'D'
+TraitsExtendingTraits.dfy(56,8): Error: trait 'X' inherits a member named 'svamp' from both trait 'C' and trait 'D'
+TraitsExtendingTraits.dfy(59,8): Error: class 'J' inherits a member named 'sopp' from both trait 'Y' and trait 'B'
+TraitsExtendingTraits.dfy(64,8): Error: class 'K' inherits a member named 'sopp' from both trait 'B' and trait 'Y'
+TraitsExtendingTraits.dfy(66,8): Error: class 'L' inherits a member named 'sopp' from both trait 'Y' and trait 'B'
+TraitsExtendingTraits.dfy(69,8): Error: class 'Diamond' does not implement trait function 'Elva.balalaika'
+TraitsExtendingTraits.dfy(69,8): Error: class 'Diamond' does not implement trait function 'Tolv.banjo'
+TraitsExtendingTraits.dfy(69,8): Error: class 'Diamond' does not implement trait function 'Tio.munspel'
+TraitsExtendingTraits.dfy(95,8): Error: class 'TwoOverrides' inherits a member named 'M' from both trait 'Left2' and trait 'Right2'
+TraitsExtendingTraits.dfy(127,8): Error: trait 'D' inherits a member named 'G' from both trait 'C' and trait 'HasG'
+15 resolution/type errors detected in TraitsExtendingTraits.dfy

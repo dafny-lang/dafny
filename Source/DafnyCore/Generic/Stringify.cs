@@ -25,7 +25,7 @@ public static class StringifyUtil {
     return overrides.Add(type, (value, writer) => writer.Write(value.ToString()));
   }
 
-  public static void Stringify(this object root, TextWriter writer, bool showNullChildren = false,
+  public static void Stringify(this object? root, TextWriter writer, bool showNullChildren = false,
     ImmutableDictionary<System.Type, Action<object, TextWriter>>? overrides = null) {
 
     overrides ??= ImmutableDictionary<System.Type, Action<object, TextWriter>>.Empty;
@@ -115,7 +115,7 @@ public static class StringifyUtil {
     writer.Flush();
   }
 
-  public static string Stringify(this object root, bool showNullChildren = false) {
+  public static string Stringify(this object? root, bool showNullChildren = false) {
     var stringWriter = new StringWriter();
     Stringify(root, stringWriter, showNullChildren);
     return stringWriter.ToString();

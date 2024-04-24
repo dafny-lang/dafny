@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
@@ -16,8 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
   /// <typeparam name="TNotification">The type of the notifications sent by the language server.</typeparam>
   public class TestNotificationReceiver<TNotification> {
 
-    private SemaphoreSlim availableNotifications = new(0);
-    private readonly ConcurrentQueue<TNotification> notifications = new();
+    private readonly AsyncQueue<TNotification> notifications = new();
     private readonly List<TNotification> notificationHistory = new();
     private readonly ILogger logger;
 
@@ -26,14 +25,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     }
 
     public void NotificationReceived(TNotification request) {
-      logger.LogTrace($"Received {request.Stringify()}");
       Assert.NotNull(request);
-      notifications.Enqueue(request);
-      notificationHistory.Add(request);
-      availableNotifications.Release();
+      logger.LogTrace($"Received {request.Stringify()}");
+
+      lock (this) {
+        notificationHistory.Add(request);
+        notifications.Enqueue(request);
+      }
     }
 
-    public bool HasPendingNotifications => !notifications.IsEmpty;
+    public bool HasPendingNotifications => notifications.Size != 0;
 
     public IReadOnlyList<TNotification> History => notificationHistory;
 
@@ -41,31 +42,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       notificationHistory.Clear();
     }
 
-    public TNotification GetLast(Func<TNotification, bool> predicate) {
-      var result = History.LastOrDefault(predicate);
-      ClearQueue();
-      return result;
+    public TNotification? GetLatestAndClearQueue(Func<TNotification, bool> predicate) {
+      lock (this) {
+        while (notifications.Size > 0) {
+          _ = notifications.Dequeue(CancellationToken.None);
+        }
+
+        return History.LastOrDefault(predicate);
+      }
     }
 
-    public void ClearQueue() {
-      notifications.Clear();
-      availableNotifications = new(0);
-    }
-
-    public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
+    public Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       var start = DateTime.Now;
       try {
-        await availableNotifications.WaitAsync(cancellationToken);
+        return notifications.Dequeue(cancellationToken);
       } catch (OperationCanceledException) {
         var last = History.Any() ? History[^1].Stringify() : "none";
         logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds for new notification.\n" +
                               $"Last received notification was {last}");
         throw;
       }
-      if (notifications.TryDequeue(out var notification)) {
-        return notification;
-      }
-      throw new InvalidOperationException("got a signal for a received notification but it was not present in the queue");
     }
   }
 }

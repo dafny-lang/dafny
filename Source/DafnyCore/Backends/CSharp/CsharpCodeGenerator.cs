@@ -1725,7 +1725,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
-            var arguments = Util.Comma(udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}");
+            var arguments = Util.Comma(udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)} {idGenerator.FreshId("x")}");
             return $"(({arguments}) => {rangeDefaultValue})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
@@ -1993,8 +1993,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
-      var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      var suffix = arg.Type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
+      var type = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type);
+      var typeArgs = type.AsArrowType == null ? "" : $"<{TypeName(type, wr, null, null)}>";
+      var suffix = type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 

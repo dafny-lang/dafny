@@ -12,7 +12,7 @@ public class IdPattern : ExtendedPattern, IHasUsages {
   public bool HasParenthesis { get; }
   public String Id;
   public PreType PreType;
-  public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
+  public Type Type; // This is the syntactic type, ExtendedPatterns disappear during resolution.
   public IVariable BoundVar { get; set; }
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
@@ -108,8 +108,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         };
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, Type);
-        boundVar.IsGhost = isGhost;
+        var boundVar = new BoundVar(Tok, Id, Type) {
+          IsGhost = isGhost
+        };
         BoundVar = boundVar;
       }
 

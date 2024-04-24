@@ -19,8 +19,8 @@
 
 // Error cases: mismatched options
 
-// RUN: %baredafny build %args -t:lib --unicode-char:true %S/Inputs/wrappers.dfy
-// RUN: ! %baredafny build %args -t:lib --unicode-char:false %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
+// RUN: %baredafny build %args -t:lib --unicode-char true %S/Inputs/wrappers.dfy
+// RUN: ! %baredafny build %args -t:lib --allow-deprecation --unicode-char false %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t
 
 // RUN: %baredafny build %args -t:lib --boogie /vcsLoad:2 %S/Inputs/wrappers.dfy
 // RUN: ! %baredafny build %args -t:lib %S/Inputs/seq.dfy --library %S/Inputs/wrappers.doo >> %t

@@ -66,12 +66,12 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
-      if (!firstPass.IsOk(code, uri)) {
+      if (!(await firstPass.IsOk(code, uri))) {
         SetNonZeroExitCode = true;
         yield break;
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
-      var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      var program = await Utils.Parse(new BatchErrorReporter(options), code, false, uri);
       if (report != null) {
         report.RegisterFiles(program); // do this here prior to modifying the program
       }
@@ -219,12 +219,12 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
-      if (!firstPass.IsOk(code, uri)) {
+      if (!(await firstPass.IsOk(code, uri))) {
         SetNonZeroExitCode = true;
         yield break;
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
-      var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      var program = await Utils.Parse(new BatchErrorReporter(options), code, false, uri);
       var rawName = Regex.Replace(uri?.AbsolutePath ?? "", "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {

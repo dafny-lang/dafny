@@ -173,7 +173,7 @@ namespace Microsoft.Dafny {
               // Note:  First off, (*) is used only when ORDINAL is involved. Moreover, if there's an error among the first checked
               // conditions, it seems confusing to get yet another error message.  Therefore, we add a middle disjunct to (*), namely
               // the conjunction of all the previous RHSs.
-              var kAsORD = !e.E0.Type.IsBigOrdinalType && !TernaryExpr.PrefixEqUsesNat ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
+              var kAsORD = !e.E0.Type.IsBigOrdinalType ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
               var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
               Bpl.Expr kHasSuccessor, kMinusOne;
               if (e.E0.Type.IsBigOrdinalType) {
@@ -182,9 +182,7 @@ namespace Microsoft.Dafny {
               } else {
                 kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
                 kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
-                if (!TernaryExpr.PrefixEqUsesNat) {
-                  kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
-                }
+                kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
               }
               // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
               var etran2 = etran.LayerOffset(1);

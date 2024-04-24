@@ -921,7 +921,7 @@ namespace Microsoft.Dafny {
 
       // check lo <= hi
       if (lo != null && hi != null) {
-        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid()));
+        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid(lo, hi)));
       }
       // check forall x :: lo <= x <= hi ==> Is(x, typ)
       {
@@ -939,7 +939,20 @@ namespace Microsoft.Dafny {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc)));
+          List<Expression> dafnyRangeBounds = new();
+          if (lo != null) {
+            dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex));
+          }
+          if (hi != null) {
+            dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi));
+          }
+
+          Expression dafnyRange = dafnyRangeBounds.Count == 1
+            ? dafnyRangeBounds[0]
+            : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
+          var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
+            dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
+          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc, dafnyAssertion)));
         }
       }
 
@@ -1100,7 +1113,7 @@ namespace Microsoft.Dafny {
         foreach (var ens in s.Ens) {
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition()));
+              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition(ens.E)));
             }
           }
         }
@@ -1549,15 +1562,23 @@ namespace Microsoft.Dafny {
           var toks = new List<IToken>();
           var types = new List<Type>();
           var decrs = new List<Expr>();
+          var oldDecreases = new List<Expression>();
+          var prevGhostLocals = new List<VarDeclStmt>();
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
             types.Add(e.Type.NormalizeExpand());
+            // Note: the label "LoopEntry" doesn't exist in the program, and is
+            // useful only for explanatory purposes.
+            var (vars, olde) = TranslateToLoopEntry(s.Mod, e, "LoopEntry");
+            oldDecreases.Add(olde);
+            prevGhostLocals.AddRange(vars);
             decrs.Add(etran.TrExpr(e));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases, true)));
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new
+              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, oldDecreases, theDecreases)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1582,6 +1603,34 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
+    }
+
+    // Return the version of e that holds at the beginnging of the loop,
+    // Along with the local variable assignments that need to happen at
+    // the beginning of the loop for it to be valid.
+    private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(Specification<FrameExpression> mod, Expression e, string loopLabel) {
+      var prevGhostLocals = new List<VarDeclStmt>();
+      Expression olde = new OldExpr(e.tok, e, "LoopEntry") {
+        Type = e.Type
+      };
+
+      if (mod is null || mod.Expressions is null) {
+        return (prevGhostLocals, olde);
+      }
+
+      foreach (var x in mod.Expressions) {
+        if (x.E is IdentifierExpr { Var: LocalVariable v }) {
+          var prevName = $"prev_{v.Name}";
+          var prevVar = new LocalVariable(RangeToken.NoToken, prevName, v.Type, true);
+          var declStmt = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, x.E);
+          prevGhostLocals.Add(declStmt);
+          var prevExpr = new IdentifierExpr(x.E.tok, prevVar);
+          olde = Substitute(olde, v, prevExpr);
+        }
+      }
+
+      return (prevGhostLocals, olde);
+
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
@@ -1875,7 +1924,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked");
+            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1883,7 +1932,7 @@ namespace Microsoft.Dafny {
           Expression ee = Args[i];
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked");
+            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked", ee);
             builder.Add(Assert(ee.tok, wh, desc));
           }
         }
@@ -1891,7 +1940,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state");
+            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1903,10 +1952,12 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " at index " + i;
-              var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
-                "in the two-state lemma's previous state" +
-                PODesc.IsAllocated.HelperFormal(formal)
-                );
+              var desc = new PODesc.IsAllocated(
+                $"argument{pIdx} for parameter '{formal.Name}'",
+                "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+                ee,
+                atLabel
+              );
               builder.Add(Assert(ee.tok, wh, desc));
             }
           }
@@ -1936,7 +1987,7 @@ namespace Microsoft.Dafny {
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;
-          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, true, builder, codeContext.InferredDecreases, null);
         }
       }
 
@@ -2612,7 +2663,7 @@ namespace Microsoft.Dafny {
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
             var desc = new PODesc.NonNegative(tRhs.ArrayDimensions.Count == 1
-              ? "array size" : $"array size (dimension {i})");
+              ? "array size" : $"array size (dimension {i})", dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc));
             i++;
           }
@@ -2620,7 +2671,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
           } else if (tRhs.InitDisplay != null) {
             var dim = tRhs.ArrayDimensions[0];
-            var desc = new PODesc.ArrayInitSizeValid(tRhs.InitDisplay.Count);
+            var desc = new PODesc.ArrayInitSizeValid(tRhs, dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc));
             foreach (var v in tRhs.InitDisplay) {
               CheckWellformed(v, new WFOptions(), locals, builder, etran);
@@ -2635,7 +2686,7 @@ namespace Microsoft.Dafny {
             foreach (Expression dim in tRhs.ArrayDimensions) {
               zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
             }
-            var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString());
+            var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
             builder.Add(Assert(tRhs.Tok, zeroSize, desc));
           }
         }
