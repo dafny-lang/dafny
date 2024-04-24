@@ -264,13 +264,12 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var e = (BinaryExpr)expr;
         e.ResolvedOp = ModuleResolver.ResolveOp(e.Op, e.E0.Type, e.E1.Type);
         // Check for useless comparisons with "null"
-        Expression other = null; // if "null" if one of the operands, then "other" is the other
+        Expression other = null;  // if "null" if one of the operands, then "other" is the other
         if (e.E0 is LiteralExpr && ((LiteralExpr)e.E0).Value == null) {
           other = e.E1;
         } else if (e.E1 is LiteralExpr && ((LiteralExpr)e.E1).Value == null) {
           other = e.E0;
         }
-
         if (other != null) {
           bool sense = true;
           switch (e.ResolvedOp) {
@@ -292,7 +291,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
                       name = $"field '{field.Name}'";
                     }
                   }
-
                   if (name != null) {
                     // The following relies on that a NonNullTypeDecl has a .Rhs that is a
                     // UserDefinedType denoting the possibly null type declaration and that
@@ -306,12 +304,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
 
                     hint = $" (to make it possible for {name} to have the value 'null', declare its type to be '{ty}')";
                   }
-
                   var b = sense ? "false" : "true";
                   resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_test, e.tok,
                     $"the type of the other operand is a non-null type, so this comparison with 'null' will always return '{b}'{hint}");
                 }
-
                 break;
               }
             case BinaryExpr.ResolvedOpcode.NotInSet:
@@ -330,7 +326,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
                   resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_null_inclusion_test, e.tok,
                     $"the type of the other operand is a {what} of non-null elements, so the {non}inclusion test of 'null' will always return '{b}'");
                 }
-
                 break;
               }
             case BinaryExpr.ResolvedOpcode.NotInMap:
@@ -342,7 +337,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
                   resolver.ReportWarning(ResolutionErrors.ErrorId.r_trivial_map_null_inclusion_test, e.tok,
                     $"the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '{b}'");
                 }
-
                 break;
               }
             default:
@@ -352,8 +346,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
         Expression resolved = null;
-        if (e.E is LiteralExpr lit) {
-          // note, not e.E.Resolved, since we don't want to do this for double negations
+        if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
           // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
           // just a literal expression with a negative value
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -366,28 +359,20 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             resolved = new LiteralExpr(e.tok, -n);
           }
         }
-
         if (resolved == null) {
           // Treat all other expressions "-e" as "0 - e"
           Expression zero;
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
           } else {
-            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) ||
-                            e.E.Type.NormalizeToAncestorType().IsBitVectorType);
+            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
             zero = new LiteralExpr(e.tok, 0);
           }
-
           zero.Type = expr.Type;
           resolved = new BinaryExpr(e.tok, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
         }
-
         resolved.Type = expr.Type;
         e.ResolvedExpression = resolved;
-        /*
-      } else if (expr is DecreasesToExpr decreasesToExpr) {
-        decreasesToExpr.Type = Type.Bool;
-        */
       }
     }
 
