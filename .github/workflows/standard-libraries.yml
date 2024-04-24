@@ -17,7 +17,7 @@ jobs:
   build:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
-    runs-on: ubuntu-20.04
+    runs-on: macos-13
 
     steps:
       - name: Checkout Dafny
@@ -41,7 +41,7 @@ jobs:
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
-        run: make z3-ubuntu
+        run: make z3-mac
       - run: npm install bignumber.js
       - name: Test DafnyStandardLibraries
         run: make -C Source/DafnyStandardLibraries all
