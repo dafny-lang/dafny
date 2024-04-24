@@ -271,7 +271,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintTopLevelDecls(CompilationData compilation, IEnumerable<TopLevelDecl> decls, int indent, IEnumerable<IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls != null);
       int i = 0;
-      foreach (TopLevelDecl d in decls) {
+      foreach (TopLevelDecl d in decls.OrderBy(tld => tld.FullDafnyName)) {
         Contract.Assert(d != null);
         if (PrintModeSkipGeneral(d.tok, fileBeingPrinted)) { continue; }
         if (d is AbstractTypeDecl) {
