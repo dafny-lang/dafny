@@ -2084,8 +2084,8 @@ namespace Microsoft.Dafny {
           // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
           var baseType = newtypeDecl.BaseType.NormalizeExpand();
           baseTypeArguments = baseType.TypeArgs;
-          if (baseType is UserDefinedType udtBaseType) {
-            baseTypeDecl = (TopLevelDeclWithMembers)udtBaseType.ResolvedClass;
+          if (baseType is UserDefinedType { ResolvedClass: TopLevelDeclWithMembers topLevelDeclWithMembers }) {
+            baseTypeDecl = topLevelDeclWithMembers;
           } else if (Options.Get(CommonOptionBag.GeneralNewtypes) || baseType.IsIntegerType || baseType.IsRealType) {
             baseTypeDecl = GetSystemValuetypeDecl(baseType);
           }
