@@ -37,7 +37,7 @@ jobs:
       - name: Set up goimports
         env:
           GO111MODULE: on
-        run: go get golang.org/x/tools/cmd/goimports@release-branch.go1.16
+        run: go get golang.org/x/tools/cmd/goimports@release-branch.go1.15
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
