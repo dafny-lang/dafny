@@ -545,7 +545,7 @@ namespace Microsoft.Dafny {
               FunctionCallExpr e = (FunctionCallExpr)typeSpecializedBody;
               for (int i = 0; i < e.Args.Count; i++) {
                 Expression ee = e.Args[i];
-                Type t = e.Function.Formals[i].Type;
+                Type t = e.Function.Ins[i].Type;
                 Expr tr_ee = etran.TrExpr(ee);
                 Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
                 if (wh != null) {
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
       }
       return
         !triggersCollector.IsTriggerKiller(fexp.Receiver) &&
-        Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+        Enumerable.Zip(f.Ins, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
 
@@ -613,9 +613,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(fexp != null);
       Contract.Requires(f != null);
       var substMap = new Dictionary<IVariable, Expression>();
-      Contract.Assert(fexp.Args.Count == f.Formals.Count);
-      for (int i = 0; i < f.Formals.Count; i++) {
-        Formal p = f.Formals[i];
+      Contract.Assert(fexp.Args.Count == f.Ins.Count);
+      for (int i = 0; i < f.Ins.Count; i++) {
+        Formal p = f.Ins[i];
         var formalType = p.Type.Subst(fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
         arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);

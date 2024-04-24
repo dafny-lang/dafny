@@ -112,7 +112,7 @@ namespace DafnyTestGeneration {
           Utils.UseFullName(arg.Type)).ToList(); ;
       }
       if (functions.ContainsKey(callable)) {
-        return functions[callable].Formals.Select(arg =>
+        return functions[callable].Ins.Select(arg =>
           Utils.UseFullName(arg.Type)).ToList(); ;
       }
 
@@ -197,8 +197,8 @@ namespace DafnyTestGeneration {
           .Where(e => e != null);
       }
       if (functions.ContainsKey(callableName)) {
-        for (int i = 0; i < functions[callableName].Formals.Count; i++) {
-          subst[functions[callableName].Formals[i]] = ins[i];
+        for (int i = 0; i < functions[callableName].Ins.Count; i++) {
+          subst[functions[callableName].Ins[i]] = ins[i];
         }
 
         if (functions[callableName].Result != null) {
@@ -227,8 +227,8 @@ namespace DafnyTestGeneration {
           .Where(e => e != null);
       }
       if (functions.ContainsKey(callableName)) {
-        for (int i = 0; i < functions[callableName].Formals.Count; i++) {
-          subst[functions[callableName].Formals[i]] = ins[i];
+        for (int i = 0; i < functions[callableName].Ins.Count; i++) {
+          subst[functions[callableName].Ins[i]] = ins[i];
         }
         return functions[callableName].Req.Select(e =>
             new ClonerWithSubstitution(this, subst, receiver).CloneValidOrNull(e.E))
