@@ -41,7 +41,7 @@ jobs:
       - name: Build Dafny
         run: dotnet build Source/Dafny.sln
       - name: Get Z3
-        run: make z3-mac
+        run: make z3-ubuntu
       - run: npm install bignumber.js
       - name: Test DafnyStandardLibraries
         run: make -C Source/DafnyStandardLibraries all
