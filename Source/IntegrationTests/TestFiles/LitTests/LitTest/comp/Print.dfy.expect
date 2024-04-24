@@ -3,40 +3,40 @@ Dafny program verifier finished with 2 verified, 0 errors
 
 Dafny program verifier did not attempt verification
 Strings in collections:
-  [abc, def]
-  [[abc, def]]
-  {def, abc}
-  [abc, def]
-  []
-  []
-  [aaaaa]
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[['a', 'b', 'c'], ['d', 'e', 'f']]]
+  {['d', 'e', 'f'], ['a', 'b', 'c']}
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[]]
+  [[]]
+  [['a', 'a', 'a', 'a', 'a']]
 
 Dafny program verifier did not attempt verification
 Strings in collections:
-  [abc, def]
-  [[abc, def]]
-  {abc, def}
-  [abc, def]
-  []
-  []
-  [aaaaa]
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[['a', 'b', 'c'], ['d', 'e', 'f']]]
+  {['a', 'b', 'c'], ['d', 'e', 'f']}
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[]]
+  [[]]
+  [['a', 'a', 'a', 'a', 'a']]
 
 Dafny program verifier did not attempt verification
 Strings in collections:
-  [abc, def]
-  [[abc, def]]
-  {abc, def}
-  [abc, def]
-  []
-  []
-  [aaaaa]
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[['a', 'b', 'c'], ['d', 'e', 'f']]]
+  {['a', 'b', 'c'], ['d', 'e', 'f']}
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[]]
+  [[]]
+  [['a', 'a', 'a', 'a', 'a']]
 
 Dafny program verifier did not attempt verification
 Strings in collections:
-  [abc, def]
-  [[abc, def]]
-  {abc, def}
-  [abc, def]
-  []
-  []
-  [aaaaa]
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[['a', 'b', 'c'], ['d', 'e', 'f']]]
+  {['a', 'b', 'c'], ['d', 'e', 'f']}
+  [['a', 'b', 'c'], ['d', 'e', 'f']]
+  [[]]
+  [[]]
+  [['a', 'a', 'a', 'a', 'a']]

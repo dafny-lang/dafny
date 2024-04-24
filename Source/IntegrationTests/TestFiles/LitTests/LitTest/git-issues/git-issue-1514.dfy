@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --standard-libraries --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --allow-axioms --standard-libraries --relax-definite-assignment
 
 import opened Std.Wrappers
 

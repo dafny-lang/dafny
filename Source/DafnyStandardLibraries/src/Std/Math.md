@@ -1,4 +1,4 @@
-## The `Math` module
+# The `Math` module
 
 The `Math` module defines integer-related math functions (e.g. Min, Max, Abs).
 

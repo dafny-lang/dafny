@@ -1,10 +1,10 @@
 // NONUNIFORM: Program expected to fail in backend-specific ways
 // RUN: %verify "%s" > "%t"
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cs "%s" > "%t".abyss
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:java "%s" > "%t".abyss
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" > "%t".abyss
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:go "%s" > "%t".abyss
-// RUN: %exits-with 3 %dafny /noVerify /compile:4 /compileTarget:cpp "%s" > "%t".abyss
+// RUN: %exits-with 3 %run --no-verify --target cs "%s" > "%t".abyss
+// RUN: %exits-with 3 %run --no-verify --target java "%s" > "%t".abyss
+// RUN: %run --no-verify --target js "%s" > "%t".abyss
+// RUN: %exits-with 3 %run --no-verify --target go "%s" > "%t".abyss
+// RUN: %exits-with 3 %run --no-verify --target cpp "%s" > "%t".abyss
 // RUN: %diff "%s.expect" "%t"
 
 // Without providing extern code for the :extern C, Dafny will output

@@ -162,9 +162,6 @@ TAIL_CALL_START:
 		}
 	}
 }
-func (_static *CompanionStruct_Default___) MIN__SIZE__T__LIMIT() Int {
-	return IntOfInt64(128)
-}
 func (_static *CompanionStruct_Default___) SIZE__T__LIMIT() Int {
 	return IntOfInt64(2147483648)
 }
@@ -557,6 +554,11 @@ func (_this type_Size__t_) Default() interface{} {
 func (_this type_Size__t_) String() string {
 	return "dafny.Size__t"
 }
+func (_this *CompanionStruct_Size__t_) Is_(__source uint32) bool {
+	var _27_x Int = IntOfUint32(__source)
+	_ = _27_x
+	return ((_27_x).Sign() != -1) && ((_27_x).Cmp(Companion_Default___.SIZE__T__LIMIT()) < 0)
+}
 
 // Definition of trait NativeArray
 type NativeArray interface {
@@ -782,13 +784,13 @@ var _ TraitOffspring = &Vector{}
 
 func (_this *Vector) Ctor__(length uint32) {
 	{
-		var _27_storage NativeArray
-		_ = _27_storage
+		var _28_storage NativeArray
+		_ = _28_storage
 		var _out22 NativeArray
 		_ = _out22
 		_out22 = Companion_NativeArray_.Make(length)
-		_27_storage = _out22
-		(_this).Storage = _27_storage
+		_28_storage = _out22
+		(_this).Storage = _28_storage
 		(_this).Size = uint32(0)
 	}
 }
@@ -823,26 +825,26 @@ func (_this *Vector) EnsureCapacity(newMinCapacity uint32) {
 		if ((_this.Storage).Length()) >= (newMinCapacity) {
 			return
 		}
-		var _28_newCapacity uint32
-		_ = _28_newCapacity
-		_28_newCapacity = newMinCapacity
+		var _29_newCapacity uint32
+		_ = _29_newCapacity
+		_29_newCapacity = newMinCapacity
 		if ((_this.Storage).Length()) <= ((Companion_Default___.SIZE__T__MAX()) / (Companion_Default___.TWO__SIZE())) {
-			_28_newCapacity = (_this).Max(_28_newCapacity, ((_this.Storage).Length())*(Companion_Default___.TWO__SIZE()))
+			_29_newCapacity = (_this).Max(_29_newCapacity, ((_this.Storage).Length())*(Companion_Default___.TWO__SIZE()))
 		}
-		var _29_newStorage NativeArray
-		_ = _29_newStorage
+		var _30_newStorage NativeArray
+		_ = _30_newStorage
 		var _out23 NativeArray
 		_ = _out23
-		_out23 = Companion_NativeArray_.Make(_28_newCapacity)
-		_29_newStorage = _out23
-		var _30_values ImmutableArray
-		_ = _30_values
+		_out23 = Companion_NativeArray_.Make(_29_newCapacity)
+		_30_newStorage = _out23
+		var _31_values ImmutableArray
+		_ = _31_values
 		var _out24 ImmutableArray
 		_ = _out24
 		_out24 = (_this.Storage).Freeze(_this.Size)
-		_30_values = _out24
-		(_29_newStorage).UpdateSubarray(uint32(0), _30_values)
-		(_this).Storage = _29_newStorage
+		_31_values = _out24
+		(_30_newStorage).UpdateSubarray(uint32(0), _31_values)
+		(_this).Storage = _30_newStorage
 	}
 }
 func (_this *Vector) RemoveLast() interface{} {
@@ -856,10 +858,10 @@ func (_this *Vector) RemoveLast() interface{} {
 }
 func (_this *Vector) Append(other ImmutableArray) {
 	{
-		var _31_newSize uint32
-		_ = _31_newSize
-		_31_newSize = (_this.Size) + ((other).Length())
-		(_this).EnsureCapacity(_31_newSize)
+		var _32_newSize uint32
+		_ = _32_newSize
+		_32_newSize = (_this.Size) + ((other).Length())
+		(_this).EnsureCapacity(_32_newSize)
 		(_this.Storage).UpdateSubarray(_this.Size, other)
 		(_this).Size = (_this.Size) + ((other).Length())
 	}
@@ -941,11 +943,14 @@ func (_this *ArraySequence) ParentTraits_() []*TraitID {
 var _ Sequence = &ArraySequence{}
 var _ TraitOffspring = &ArraySequence{}
 
-func (_this *ArraySequence) SetString() Sequence {
+func (_this *ArraySequence) Drop(lo uint32) Sequence {
 	var _out26 Sequence
 	_ = _out26
-	_out26 = Companion_Sequence_.SetString(_this)
+	_out26 = Companion_Sequence_.Drop(_this, lo)
 	return _out26
+}
+func (_this *ArraySequence) Elements() Sequence {
+	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ArraySequence) IsString() bool {
 	return _this._isString
@@ -959,26 +964,23 @@ func (_this *ArraySequence) Select(index uint32) interface{} {
 	_out27 = Companion_Sequence_.Select(_this, index)
 	return _out27
 }
-func (_this *ArraySequence) Drop(lo uint32) Sequence {
+func (_this *ArraySequence) SetString() Sequence {
 	var _out28 Sequence
 	_ = _out28
-	_out28 = Companion_Sequence_.Drop(_this, lo)
+	_out28 = Companion_Sequence_.SetString(_this)
 	return _out28
 }
-func (_this *ArraySequence) Take(hi uint32) Sequence {
+func (_this *ArraySequence) Subsequence(lo uint32, hi uint32) Sequence {
 	var _out29 Sequence
 	_ = _out29
-	_out29 = Companion_Sequence_.Take(_this, hi)
+	_out29 = Companion_Sequence_.Subsequence(_this, lo, hi)
 	return _out29
 }
-func (_this *ArraySequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *ArraySequence) Take(hi uint32) Sequence {
 	var _out30 Sequence
 	_ = _out30
-	_out30 = Companion_Sequence_.Subsequence(_this, lo, hi)
+	_out30 = Companion_Sequence_.Take(_this, hi)
 	return _out30
-}
-func (_this *ArraySequence) Elements() Sequence {
-	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ArraySequence) Ctor__(value ImmutableArray, isString bool) {
 	{
@@ -1053,11 +1055,14 @@ func (_this *ConcatSequence) ParentTraits_() []*TraitID {
 var _ Sequence = &ConcatSequence{}
 var _ TraitOffspring = &ConcatSequence{}
 
-func (_this *ConcatSequence) SetString() Sequence {
+func (_this *ConcatSequence) Drop(lo uint32) Sequence {
 	var _out31 Sequence
 	_ = _out31
-	_out31 = Companion_Sequence_.SetString(_this)
+	_out31 = Companion_Sequence_.Drop(_this, lo)
 	return _out31
+}
+func (_this *ConcatSequence) Elements() Sequence {
+	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ConcatSequence) IsString() bool {
 	return _this._isString
@@ -1071,26 +1076,23 @@ func (_this *ConcatSequence) Select(index uint32) interface{} {
 	_out32 = Companion_Sequence_.Select(_this, index)
 	return _out32
 }
-func (_this *ConcatSequence) Drop(lo uint32) Sequence {
+func (_this *ConcatSequence) SetString() Sequence {
 	var _out33 Sequence
 	_ = _out33
-	_out33 = Companion_Sequence_.Drop(_this, lo)
+	_out33 = Companion_Sequence_.SetString(_this)
 	return _out33
 }
-func (_this *ConcatSequence) Take(hi uint32) Sequence {
+func (_this *ConcatSequence) Subsequence(lo uint32, hi uint32) Sequence {
 	var _out34 Sequence
 	_ = _out34
-	_out34 = Companion_Sequence_.Take(_this, hi)
+	_out34 = Companion_Sequence_.Subsequence(_this, lo, hi)
 	return _out34
 }
-func (_this *ConcatSequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *ConcatSequence) Take(hi uint32) Sequence {
 	var _out35 Sequence
 	_ = _out35
-	_out35 = Companion_Sequence_.Subsequence(_this, lo, hi)
+	_out35 = Companion_Sequence_.Take(_this, hi)
 	return _out35
-}
-func (_this *ConcatSequence) Elements() Sequence {
-	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ConcatSequence) Ctor__(left Sequence, right Sequence) {
 	{
@@ -1109,22 +1111,22 @@ func (_this *ConcatSequence) ToArray() ImmutableArray {
 	{
 		var ret ImmutableArray = (ImmutableArray)(nil)
 		_ = ret
-		var _32_builder *Vector
-		_ = _32_builder
+		var _33_builder *Vector
+		_ = _33_builder
 		var _nw5 *Vector = New_Vector_()
 		_ = _nw5
 		_nw5.Ctor__((_this).Length())
-		_32_builder = _nw5
-		var _33_stack *Vector
-		_ = _33_stack
+		_33_builder = _nw5
+		var _34_stack *Vector
+		_ = _34_stack
 		var _nw6 *Vector = New_Vector_()
 		_ = _nw6
 		_nw6.Ctor__(Companion_Default___.TEN__SIZE())
-		_33_stack = _nw6
-		Companion_Default___.AppendOptimized(_32_builder, _this, _33_stack)
+		_34_stack = _nw6
+		Companion_Default___.AppendOptimized(_33_builder, _this, _34_stack)
 		var _out36 ImmutableArray
 		_ = _out36
-		_out36 = (_32_builder).Freeze()
+		_out36 = (_33_builder).Freeze()
 		ret = _out36
 		return ret
 	}
@@ -1190,11 +1192,14 @@ func (_this *LazySequence) ParentTraits_() []*TraitID {
 var _ Sequence = &LazySequence{}
 var _ TraitOffspring = &LazySequence{}
 
-func (_this *LazySequence) SetString() Sequence {
+func (_this *LazySequence) Drop(lo uint32) Sequence {
 	var _out37 Sequence
 	_ = _out37
-	_out37 = Companion_Sequence_.SetString(_this)
+	_out37 = Companion_Sequence_.Drop(_this, lo)
 	return _out37
+}
+func (_this *LazySequence) Elements() Sequence {
+	return Companion_Sequence_.Elements(_this)
 }
 func (_this *LazySequence) IsString() bool {
 	return _this._isString
@@ -1208,36 +1213,33 @@ func (_this *LazySequence) Select(index uint32) interface{} {
 	_out38 = Companion_Sequence_.Select(_this, index)
 	return _out38
 }
-func (_this *LazySequence) Drop(lo uint32) Sequence {
+func (_this *LazySequence) SetString() Sequence {
 	var _out39 Sequence
 	_ = _out39
-	_out39 = Companion_Sequence_.Drop(_this, lo)
+	_out39 = Companion_Sequence_.SetString(_this)
 	return _out39
 }
-func (_this *LazySequence) Take(hi uint32) Sequence {
+func (_this *LazySequence) Subsequence(lo uint32, hi uint32) Sequence {
 	var _out40 Sequence
 	_ = _out40
-	_out40 = Companion_Sequence_.Take(_this, hi)
+	_out40 = Companion_Sequence_.Subsequence(_this, lo, hi)
 	return _out40
 }
-func (_this *LazySequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *LazySequence) Take(hi uint32) Sequence {
 	var _out41 Sequence
 	_ = _out41
-	_out41 = Companion_Sequence_.Subsequence(_this, lo, hi)
+	_out41 = Companion_Sequence_.Take(_this, hi)
 	return _out41
-}
-func (_this *LazySequence) Elements() Sequence {
-	return Companion_Sequence_.Elements(_this)
 }
 func (_this *LazySequence) Ctor__(wrapped Sequence) {
 	{
-		var _34_box AtomicBox
-		_ = _34_box
+		var _35_box AtomicBox
+		_ = _35_box
 		var _out42 AtomicBox
 		_ = _out42
 		_out42 = Companion_AtomicBox_.Make(wrapped)
-		_34_box = _out42
-		(_this)._box = _34_box
+		_35_box = _out42
+		(_this)._box = _35_box
 		(_this)._length = (wrapped).Cardinality()
 		(_this)._isString = wrapped.IsString()
 	}
@@ -1251,23 +1253,23 @@ func (_this *LazySequence) ToArray() ImmutableArray {
 	{
 		var ret ImmutableArray = (ImmutableArray)(nil)
 		_ = ret
-		var _35_expr Sequence
-		_ = _35_expr
+		var _36_expr Sequence
+		_ = _36_expr
 		var _out43 interface{}
 		_ = _out43
 		_out43 = ((_this).Box()).Get()
-		_35_expr = Companion_Sequence_.CastTo_(_out43)
+		_36_expr = Companion_Sequence_.CastTo_(_out43)
 		var _out44 ImmutableArray
 		_ = _out44
-		_out44 = (_35_expr).ToArray()
+		_out44 = (_36_expr).ToArray()
 		ret = _out44
-		var _36_arraySeq *ArraySequence
-		_ = _36_arraySeq
+		var _37_arraySeq *ArraySequence
+		_ = _37_arraySeq
 		var _nw7 *ArraySequence = New_ArraySequence_()
 		_ = _nw7
 		_nw7.Ctor__(ret, false)
-		_36_arraySeq = _nw7
-		((_this).Box()).Put(_36_arraySeq)
+		_37_arraySeq = _nw7
+		((_this).Box()).Put(_37_arraySeq)
 		return ret
 	}
 }

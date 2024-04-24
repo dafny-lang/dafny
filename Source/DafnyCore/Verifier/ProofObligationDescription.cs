@@ -1,6 +1,9 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Linq.Expressions;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -47,29 +50,52 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class ShiftLowerBound : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "shift amount is always non-negative";
+public abstract class ShiftOrRotateBound : ProofObligationDescription {
+  protected readonly string shiftOrRotate;
+  protected readonly Expression amount;
 
-  public override string FailureDescription =>
-    "shift amount must be non-negative";
-
-  public override string ShortDescription => "shift lower bound";
+  public ShiftOrRotateBound(bool shift, Expression amount) {
+    shiftOrRotate = shift ? "shift" : "rotate";
+    this.amount = amount;
+  }
 }
 
-public class ShiftUpperBound : ProofObligationDescription {
+public class ShiftLowerBound : ShiftOrRotateBound {
   public override string SuccessDescription =>
-    $"shift amount is always within the width of the result ({width})";
+    $"{shiftOrRotate} amount is always non-negative";
 
   public override string FailureDescription =>
-    $"shift amount must not exceed the width of the result ({width})";
+    $"{shiftOrRotate} amount must be non-negative";
 
-  public override string ShortDescription => "shift upper bound";
+  public override string ShortDescription => $"{shiftOrRotate} lower bound";
+
+  public ShiftLowerBound(bool shift, Expression amount)
+    : base(shift, amount) {
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(amount.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(amount.tok, 0), amount);
+  }
+}
+
+public class ShiftUpperBound : ShiftOrRotateBound {
+  public override string SuccessDescription =>
+    $"{shiftOrRotate} amount is always within the width of the result ({width})";
+
+  public override string FailureDescription =>
+    $"{shiftOrRotate} amount must not exceed the width of the result ({width})";
+
+  public override string ShortDescription => $"{shiftOrRotate} upper bound";
 
   private readonly int width;
 
-  public ShiftUpperBound(int width) {
+  public ShiftUpperBound(int width, bool shift, Expression amount)
+    : base(shift, amount) {
     this.width = width;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(amount.tok, BinaryExpr.Opcode.Le, amount, Expression.CreateIntLiteral(amount.tok, width));
   }
 }
 
@@ -83,9 +109,15 @@ public class ConversionIsNatural : ProofObligationDescription {
   public override string ShortDescription => "converted value is natural";
 
   private readonly string prefix;
+  private readonly Expression value;
 
-  public ConversionIsNatural(string prefix) {
+  public ConversionIsNatural(string prefix, Expression value) {
     this.prefix = prefix;
+    this.value = value;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new TypeTestExpr(value.tok, value, Type.Nat());
   }
 }
 
@@ -101,11 +133,17 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
   private readonly string prefix;
   private readonly string kind;
   private readonly string name;
+  private readonly Expression constraint;
 
-  public ConversionSatisfiesConstraints(string prefix, string kind, string name) {
+  public ConversionSatisfiesConstraints(string prefix, string kind, string name, Expression constraint) {
     this.prefix = prefix;
     this.kind = kind;
     this.name = name;
+    this.constraint = constraint;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return constraint;
   }
 }
 
@@ -117,6 +155,16 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
     "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger";
 
   public override string ShortDescription => "ordinal subtraction is natural";
+
+  private readonly Expression rhs;
+
+  public OrdinalSubtractionIsNatural(Expression rhs) {
+    this.rhs = rhs;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ExprDotName(rhs.tok, rhs, "IsNat", null);
+  }
 }
 
 public class OrdinalSubtractionUnderflow : ProofObligationDescription {
@@ -127,6 +175,23 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
     "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)";
 
   public override string ShortDescription => "ordinal subtraction underflow";
+
+  private readonly Expression lhs;
+  private readonly Expression rhs;
+
+  public OrdinalSubtractionUnderflow(Expression lhs, Expression rhs) {
+    this.lhs = lhs;
+    this.rhs = rhs;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(
+      rhs.tok,
+      BinaryExpr.Opcode.Le,
+      new ExprDotName(rhs.tok, rhs, "Offset", null),
+      new ExprDotName(lhs.tok, lhs, "Offset", null)
+    );
+  }
 }
 
 public class CharOverflow : ProofObligationDescription {
@@ -137,6 +202,24 @@ public class CharOverflow : ProofObligationDescription {
     "char addition might overflow";
 
   public override string ShortDescription => "char overflow";
+
+  private readonly Expression e0;
+  private readonly Expression e1;
+
+  public CharOverflow(Expression e0, Expression e1) {
+    this.e0 = e0;
+    this.e1 = e1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var sum = new BinaryExpr(
+      e0.tok,
+      BinaryExpr.Opcode.Add,
+      new ConversionExpr(e0.tok, e0, Type.Int),
+      new ConversionExpr(e1.tok, e1, Type.Int)
+    );
+    return Utils.MakeCharBoundsCheck(options, sum);
+  }
 }
 
 public class CharUnderflow : ProofObligationDescription {
@@ -147,6 +230,24 @@ public class CharUnderflow : ProofObligationDescription {
     "char subtraction might underflow";
 
   public override string ShortDescription => "char underflow";
+
+  private readonly Expression e0;
+  private readonly Expression e1;
+
+  public CharUnderflow(Expression e0, Expression e1) {
+    this.e0 = e0;
+    this.e1 = e1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var diff = new BinaryExpr(
+      e0.tok,
+      BinaryExpr.Opcode.Sub,
+      new ConversionExpr(e0.tok, e0, Type.Int),
+      new ConversionExpr(e1.tok, e1, Type.Int)
+    );
+    return Utils.MakeCharBoundsCheck(options, diff);
+  }
 }
 
 public class ConversionFit : ProofObligationDescription {
@@ -161,11 +262,17 @@ public class ConversionFit : ProofObligationDescription {
   private readonly string prefix;
   private readonly string what;
   private readonly Type toType;
+  private readonly Expression boundsCheck;
 
-  public ConversionFit(string what, Type toType, string prefix = "") {
+  public ConversionFit(string what, Type toType, Expression boundsCheck, string prefix = "") {
     this.prefix = prefix;
     this.what = what;
+    this.boundsCheck = boundsCheck;
     this.toType = toType;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return boundsCheck;
   }
 }
 
@@ -179,9 +286,20 @@ public class NonNegative : ProofObligationDescription {
   public override string ShortDescription => "non-negative";
 
   private readonly string what;
+  private readonly Expression expr;
 
-  public NonNegative(string what) {
+  public NonNegative(string what, Expression expr) {
     this.what = what;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.Le,
+      Expression.CreateIntLiteral(expr.tok, 0),
+      expr
+    );
   }
 }
 
@@ -197,11 +315,22 @@ public class ConversionPositive : ProofObligationDescription {
   private readonly string prefix;
   private readonly string what;
   private readonly Type toType;
+  private readonly Expression expr;
 
-  public ConversionPositive(string what, Type toType, string prefix = "") {
+  public ConversionPositive(string what, Type toType, Expression expr, string prefix = "") {
     this.prefix = prefix;
     this.what = what;
     this.toType = toType;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.Le,
+      Expression.CreateIntLiteral(expr.tok, 0),
+      expr
+    );
   }
 }
 
@@ -215,9 +344,20 @@ public class IsInteger : ProofObligationDescription {
   public override string ShortDescription => "is integer";
 
   private readonly string prefix;
+  private readonly Expression expr;
 
-  public IsInteger(string prefix = "") {
+  public IsInteger(Expression expr, string prefix = "") {
+    this.expr = expr;
     this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.Eq,
+      expr,
+      new ConversionExpr(expr.tok, new ExprDotName(expr.tok, expr, "Floor", null), Type.Real)
+    );
   }
 }
 
@@ -232,13 +372,19 @@ public class NonNull : ProofObligationDescription {
 
   public override string ShortDescription => $"{what} non-null";
   private readonly string what;
+  private readonly Expression expr;
   private bool plural;
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
 
-  public NonNull(string what, bool plural = false) {
+  public NonNull(string what, Expression expr, bool plural = false) {
     this.what = what;
+    this.expr = expr;
     this.plural = plural;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(expr.tok, BinaryExpr.Opcode.Neq, expr, new LiteralExpr(expr.tok));
   }
 }
 
@@ -247,21 +393,34 @@ public class IsAllocated : ProofObligationDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might not be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
   private readonly string what;
   [CanBeNull] private readonly string when;
+  private readonly Expression expr;
+  [CanBeNull] private readonly Label atLabel;
   private bool plural;
   private string WhenSuffix => when is null ? "" : $" {when}";
   private string PluralSuccess => plural ? "each " : "";
   private string PluralFailure => plural ? "some " : "";
 
-  public IsAllocated(string what, string when, bool plural = false) {
+  public static string HelperFormal(Formal formal) {
+    return $" -- if you add 'new' before the parameter declaration, like 'new {formal.Name}: {formal.Type.ToString()}',"
+           + " arguments can refer to expressions possibly unallocated in the previous state";
+  }
+
+  public IsAllocated(string what, string when, Expression expr, [CanBeNull] Label atLabel = null, bool plural = false) {
     this.what = what;
     this.when = when;
+    this.expr = expr;
+    this.atLabel = atLabel;
     this.plural = plural;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new OldExpr(expr.tok, new UnaryOpExpr(expr.tok, UnaryOpExpr.Opcode.Allocated, expr), atLabel?.Name);
   }
 }
 
@@ -455,6 +614,16 @@ public class ForallPostcondition : ProofObligationDescription {
     "possible violation of postcondition of forall statement";
 
   public override string ShortDescription => "forall ensures";
+
+  private readonly Expression expr;
+
+  public ForallPostcondition(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class YieldEnsures : ProofObligationDescription {
@@ -508,25 +677,81 @@ public class TraitDecreases : ProofObligationDescription {
   }
 }
 
-public class FrameSubset : ProofObligationDescription {
+public class ReadFrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
-    isWrite
-      ? $"{whatKind} is allowed by context's modifies clause"
-      : $"sufficient reads clause to {whatKind}";
+    $"sufficient reads clause to {whatKind}";
 
   public override string FailureDescription =>
-    isWrite
-      ? $"{whatKind} might violate context's modifies clause"
-      : $"insufficient reads clause to {whatKind}";
+    $"insufficient reads clause to {whatKind}" + ExtendedFailureHint();
 
-  public override string ShortDescription => "frame subset";
+  public string ExtendedFailureHint() {
+    if (readExpression is null) {
+      return "";
+    }
+    if (scope is { Designator: var designator }) {
+      var lambdaScope = scope as LambdaExpr;
+      var extraHint = "";
+      var obj = "object";
+      if (readExpression is MemberSelectExpr e) {
+        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, e.Obj, new PrintFlags(UseOriginalDafnyNames: true));
+      } else if (readExpression is SeqSelectExpr s) {
+        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, s.Seq, new PrintFlags(UseOriginalDafnyNames: true));
+      } else if (readExpression is MultiSelectExpr m) {
+        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
+          new PrintFlags(UseOriginalDafnyNames: true));
+      }
+
+      if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
+      } else {
+        if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
+          extraHint = $" or 'reads {obj}`{field}'";
+        }
+        var hint = $"adding 'reads {obj}'{extraHint} in the enclosing {designator} specification for resolution";
+        if (lambdaScope != null && lambdaScope.Reads.Expressions.Count == 0) {
+          hint = $"extracting {readExpression} to a local variable before the lambda expression, or {hint}";
+        }
+
+        return $"; Consider {hint}";
+      }
+    }
+
+    string whyNotWhat = "Memory locations";
+
+    if (whatKind == "read field") {
+      whyNotWhat = "Mutable fields";
+    } else if (whatKind is "read array element" or "read the indicated range of array elements") {
+      whyNotWhat = "Array elements";
+    }
+    return $"; {whyNotWhat} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls";
+
+  }
+
+  public override string ShortDescription => "read frame subset";
 
   private readonly string whatKind;
-  private readonly bool isWrite;
+  private readonly Expression readExpression;
+  [CanBeNull] private readonly IFrameScope scope;
 
-  public FrameSubset(string whatKind, bool isWrite) {
+  public ReadFrameSubset(string whatKind, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
     this.whatKind = whatKind;
-    this.isWrite = isWrite;
+    this.readExpression = readExpression;
+    this.scope = scope;
+  }
+}
+
+public class ModifyFrameSubset : ProofObligationDescription {
+  public override string SuccessDescription =>
+      $"{whatKind} is allowed by context's modifies clause";
+
+  public override string FailureDescription =>
+      $"{whatKind} might violate context's modifies clause";
+
+  public override string ShortDescription => "modify frame subset";
+
+  private readonly string whatKind;
+
+  public ModifyFrameSubset(string whatKind) {
+    this.whatKind = whatKind;
   }
 }
 
@@ -553,13 +778,21 @@ public class Terminates : ProofObligationDescription {
   public override string ShortDescription => "termination";
 
   private readonly bool inferredDescreases;
-  private readonly bool isLoop;
+  private bool isLoop => prevGhostLocals is not null;
   private readonly string hint;
   private string FormDescription => isLoop ? "expression" : "clause";
 
-  public Terminates(bool inferredDescreases, bool isLoop, string hint = null) {
+  private readonly Expression allowance;
+  private readonly List<Expression> oldExpressions;
+  private readonly List<Expression> newExpressions;
+  private readonly List<VarDeclStmt> prevGhostLocals;
+
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
     this.inferredDescreases = inferredDescreases;
-    this.isLoop = isLoop;
+    this.prevGhostLocals = prevGhostLocals;
+    this.allowance = allowance;
+    this.oldExpressions = oldExpressions;
+    this.newExpressions = newExpressions;
     this.hint = hint;
   }
 }
@@ -799,9 +1032,15 @@ public class WitnessCheck : ProofObligationDescription {
   private readonly string hintMsg =
     "; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type";
   private readonly string witnessString;
+  [CanBeNull] private readonly Expression witnessExpr;
 
-  public WitnessCheck(string witnessString) {
+  public WitnessCheck(string witnessString, Expression witnessExpr = null) {
     this.witnessString = witnessString;
+    this.witnessExpr = witnessExpr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return witnessExpr ?? base.GetAssertedExpr(options);
   }
 }
 
@@ -823,6 +1062,18 @@ public class ForRangeBoundsValid : ProofObligationDescription {
     "lower bound must not exceed upper bound";
 
   public override string ShortDescription => "for range bounds";
+
+  private readonly Expression lo;
+  private readonly Expression hi;
+
+  public ForRangeBoundsValid(Expression lo, Expression hi) {
+    this.lo = lo;
+    this.hi = hi;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(lo.tok, BinaryExpr.Opcode.Le, lo, hi);
+  }
 }
 
 public class ForRangeAssignable : ProofObligationDescription {
@@ -835,9 +1086,15 @@ public class ForRangeAssignable : ProofObligationDescription {
   public override string ShortDescription => "for range assignable";
 
   private readonly ProofObligationDescription desc;
+  private readonly Expression expr;
 
-  public ForRangeAssignable(ProofObligationDescription desc) {
+  public ForRangeAssignable(ProofObligationDescription desc, Expression expr) {
     this.desc = desc;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -1040,10 +1297,18 @@ public class ArrayInitSizeValid : ProofObligationDescription {
 
   public override string ShortDescription => "array initializer size";
 
-  private readonly int size;
+  private readonly TypeRhs rhs;
+  private readonly Expression dim;
+  private int size => rhs.InitDisplay.Count;
 
-  public ArrayInitSizeValid(int size) {
-    this.size = size;
+  public ArrayInitSizeValid(TypeRhs rhs, Expression dim) {
+    this.rhs = rhs;
+    this.dim = dim;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var initDisplaySize = new UnaryOpExpr(rhs.tok, UnaryOpExpr.Opcode.Cardinality, new SeqDisplayExpr(rhs.tok, rhs.InitDisplay));
+    return new BinaryExpr(dim.tok, BinaryExpr.Opcode.Eq, dim, initDisplaySize);
   }
 }
 
@@ -1057,9 +1322,25 @@ public class ArrayInitEmpty : ProofObligationDescription {
   public override string ShortDescription => "array initializer empty";
 
   private readonly string typeDesc;
+  private readonly ImmutableList<Expression> dims;
 
-  public ArrayInitEmpty(string typeDesc) {
+  public ArrayInitEmpty(string typeDesc, List<Expression> dims) {
     this.typeDesc = typeDesc;
+    this.dims = dims.ToImmutableList();
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    Expression zero = Expression.CreateIntLiteral(dims[0].tok, 0);
+    Expression zeroSize = new BinaryExpr(dims[0].tok, BinaryExpr.Opcode.Eq, dims[0], zero);
+    foreach (Expression dim in dims.Skip(1)) {
+      zeroSize = new BinaryExpr(
+        dim.tok,
+        BinaryExpr.Opcode.Or,
+        zeroSize,
+        new BinaryExpr(dim.tok, BinaryExpr.Opcode.Eq, dim, zero)
+      );
+    }
+    return zeroSize;
   }
 }
 
@@ -1168,5 +1449,40 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
     : base(errorMessage, successMessage) {
     this.DefaultSuccessDescription = comment;
     this.DefaultFailureDescription = comment;
+  }
+}
+
+internal class Utils {
+  public static Expression MakeCharBoundsCheck(DafnyOptions options, Expression expr) {
+    return options.Get(CommonOptionBag.UnicodeCharacters)
+      ? MakeCharBoundsCheckUnicode(expr)
+      : MakeCharBoundsCheckNonUnicode(expr);
+  }
+
+  public static Expression MakeCharBoundsCheckNonUnicode(Expression expr) {
+    return new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.And,
+      new BinaryExpr(
+        expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), expr),
+      new BinaryExpr(
+        expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x1_0000))
+    );
+  }
+
+  public static Expression MakeCharBoundsCheckUnicode(Expression expr) {
+    Expression lowRange = new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.And,
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0), expr),
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0xD800))
+    );
+    Expression highRange = new BinaryExpr(
+      expr.tok,
+      BinaryExpr.Opcode.And,
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Le, Expression.CreateIntLiteral(Token.NoToken, 0xE000), expr),
+      new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x11_0000))
+    );
+    return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
   }
 }

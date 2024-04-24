@@ -54,7 +54,7 @@ module Std.Unicode.Utf8EncodingScheme {
     * Deserializing a byte sequence and then serializing the result, yields the original byte sequence.
     */
   lemma
-    {:resource_limit 3000000}
+    {:resource_limit "30e6"}
   LemmaDeserializeSerialize(b: seq<byte>)
     ensures Serialize(Deserialize(b)) == b
   {

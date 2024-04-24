@@ -41,6 +41,15 @@ public class ExportSignature : TokenNode, IHasUsages {
     OwnedTokensCache = new List<IToken>() { Tok };
   }
 
+  public ExportSignature(Cloner cloner, ExportSignature original) {
+    tok = cloner.Tok(original.Tok);
+    Id = original.Id;
+    Opaque = original.Opaque;
+    ClassId = original.ClassId;
+    ClassIdTok = cloner.Tok(original.ClassIdTok);
+    OwnedTokensCache = new List<IToken>() { Tok };
+  }
+
   public override string ToString() {
     if (ClassId != null) {
       return ClassId + "." + Id;

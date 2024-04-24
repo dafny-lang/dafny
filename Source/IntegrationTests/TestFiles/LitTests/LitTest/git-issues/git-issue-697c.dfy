@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %exits-with 2 %run "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function ghostPredicate(x: int): bool {
@@ -15,10 +15,13 @@ function doubleEvenCell(c: EvenCell): int
 
 method Main() {
   var x: set<Cell> := { Cell(1), Cell(2), Cell(3), Cell(4) };
-  var y := set c: EvenCell | c in x;
-  var z: map<EvenCell, nat> := map c: EvenCell | c in x :: c.x;
-  var b := forall c :: c in y ==> doubleEvenCell(c) > 0;
-  assert b;
-  print b;
-}
 
+  var y: set<EvenCell>;
+  var z: map<EvenCell, nat>;
+  y := set c: EvenCell | c in x; // error: type test for EvenCell is ghost
+  z := map c: EvenCell | c in x :: c.x; // error: type test for EvenCell is ghost
+
+  var b: bool;
+  b := forall c: EvenCell :: c in y ==> doubleEvenCell(c) > 0;
+  b := forall c: EvenCell :: c in x ==> doubleEvenCell(c) > 0; // error: type test for EvenCell is ghost
+}

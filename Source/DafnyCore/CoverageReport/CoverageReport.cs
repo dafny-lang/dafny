@@ -3,21 +3,21 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Threading;
 
 namespace Microsoft.Dafny;
 
 public class CoverageReport {
 
-  private static int nextUniqueId = 0;
-
   private readonly Dictionary<Uri, List<CoverageSpan>> labelsByFile;
   private readonly Dictionary<Uri, HashSet<ModuleDefinition>> modulesByFile;
   public readonly string Name; // the name to assign to this coverage report
   public readonly string Units; // the units of coverage (plural). This will be written in the coverage report table.
-  private readonly string suffix; // user-provided suffix to add to filenames that are part of this report
-  private readonly int uniqueId = Interlocked.Increment(ref nextUniqueId);
-  public string UniqueSuffix => suffix + (uniqueId == 1 ? "" : ("_" + uniqueId));
+
+  public string Suffix { get; }
+
+  public string ActualPath { get; private set; }
+
+  public string ActualIndexPath { get; private set; }
 
   /// <summary>
   /// Generate a new empty coverage report for a given program.
@@ -29,7 +29,7 @@ public class CoverageReport {
   public CoverageReport(string name, string units, string suffix, Program program) {
     Name = name;
     Units = units;
-    this.suffix = suffix;
+    this.Suffix = suffix;
     labelsByFile = new();
     modulesByFile = new();
     if (program != null) {

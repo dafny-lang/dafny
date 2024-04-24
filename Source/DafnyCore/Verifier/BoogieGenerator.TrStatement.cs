@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
         // assume $IsGoodHeap($Heap);
         builder.Add(AssumeGoodHeap(s.Tok, etran));
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-        var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType));
+        var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType), iter);
         foreach (var p in iter.YieldEnsures) {
           var ss = TrSplitExpr(p.E, yeEtran, true, out var splitHappened);
           foreach (var split in ss) {
@@ -337,7 +337,7 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.FrameSubset("modify statement", true), null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.ModifyFrameSubset("modify statement"), null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
@@ -353,7 +353,7 @@ namespace Microsoft.Dafny {
           // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
           builder.Add(TrAssumeCmd(s.Tok, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
           // assume nothing outside the frame was changed
-          var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap);
+          var etranPreLoop = new ExpressionTranslator(this, predef, preModifyHeap, this.currentDeclaration is IFrameScope fs ? fs : null);
           var updatedFrameEtran = etran.WithModifiesFrame(modifyFrameName);
           builder.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran, updatedFrameEtran.ModifiesFrame(s.Tok))));
         } else {
@@ -921,7 +921,7 @@ namespace Microsoft.Dafny {
 
       // check lo <= hi
       if (lo != null && hi != null) {
-        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid()));
+        builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid(lo, hi)));
       }
       // check forall x :: lo <= x <= hi ==> Is(x, typ)
       {
@@ -939,7 +939,20 @@ namespace Microsoft.Dafny {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
           builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc)));
+          List<Expression> dafnyRangeBounds = new();
+          if (lo != null) {
+            dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, lo, dIndex));
+          }
+          if (hi != null) {
+            dafnyRangeBounds.Add(new BinaryExpr(stmt.tok, BinaryExpr.Opcode.Le, dIndex, hi));
+          }
+
+          Expression dafnyRange = dafnyRangeBounds.Count == 1
+            ? dafnyRangeBounds[0]
+            : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
+          var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
+            dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
+          builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc, dafnyAssertion)));
         }
       }
 
@@ -1071,7 +1084,7 @@ namespace Microsoft.Dafny {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
         // here (rather than a TrBoundVariables).  However, there is currently no way to apply
         // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
-        List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+        List<bool> freeOfAlloc = BoundedPool.HasBounds(s.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
         var bVars = new List<Variable>();
         var typeAntecedent = etran.TrBoundVariables(s.BoundVars, bVars, true, freeOfAlloc);
@@ -1100,7 +1113,7 @@ namespace Microsoft.Dafny {
         foreach (var ens in s.Ens) {
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {
-              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition()));
+              definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition(ens.E)));
             }
           }
         }
@@ -1189,13 +1202,13 @@ namespace Microsoft.Dafny {
       //     havoc $Heap;
       //     assume $HeapSucc(oldHeap, $Heap);
       //     (a)
-      //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //       assume (forall o: ref, F: Field ::
       //         { $Heap[o,F] }
       //         $Heap[o,F] = oldHeap[o,F] ||
       //         (exists x,y :: Range(x,y) && o == E(x,y) && F = f));
       //       assume (forall x,y ::  Range ==> $Heap[ E[$Heap:=oldHeap], F] == G[$Heap:=oldHeap]); (**)
       //     (b)
-      //       assume (forall<alpha> o: ref, F: Field alpha ::
+      //       assume (forall o: ref, F: Field ::
       //         { $Heap[o,F] }
       //         $Heap[o,F] = oldHeap[o,F] ||
       //         (exists x,y :: Range(x,y) && o == A(x,y) && F = Index(I0,I1,...)));
@@ -1271,8 +1284,8 @@ namespace Microsoft.Dafny {
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
         definedness.Add(Assert(s0.Tok,
-          Bpl.Expr.Or(
-            Bpl.Expr.Or(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
+          BplOr(
+            BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
           new PODesc.ForallLHSUnique()));
       }
@@ -1282,25 +1295,24 @@ namespace Microsoft.Dafny {
       // Now for the translation of the update itself
 
       Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Tok, locals);
-      var prevEtran = new ExpressionTranslator(this, predef, prevHeap);
+      var prevEtran = new ExpressionTranslator(this, predef, prevHeap, etran.scope);
       updater.Add(Bpl.Cmd.SimpleAssign(s.Tok, prevHeap, etran.HeapExpr));
       updater.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
       updater.Add(TrAssumeCmd(s.Tok, HeapSucc(prevHeap, etran.HeapExpr)));
 
       // Here comes:
-      //   assume (forall<alpha> o: ref, f: Field alpha ::
+      //   assume (forall o: ref, f: Field ::
       //     { $Heap[o,f] }
       //     $Heap[o,f] = oldHeap[o,f] ||
       //     (exists x,y :: Range(x,y)[$Heap:=oldHeap] &&
       //                    o == Object(x,y)[$Heap:=oldHeap] && f == Field(x,y)[$Heap:=oldHeap]));
-      Bpl.TypeVariable alpha = new Bpl.TypeVariable(s.Tok, "alpha");
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(s.Tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok, alpha)));
+      Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$f", predef.FieldName(s.Tok)));
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
-      Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f, alpha);
-      Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f, alpha);
-      List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+      Bpl.Expr heapOF = ReadHeap(s.Tok, etran.HeapExpr, o, f);
+      Bpl.Expr oldHeapOF = ReadHeap(s.Tok, prevHeap, o, f);
+      List<bool> freeOfAlloc = BoundedPool.HasBounds(s.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       List<Variable> xBvars = new List<Variable>();
       var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
       xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
@@ -1309,9 +1321,9 @@ namespace Microsoft.Dafny {
       xBody = BplAnd(xBody, Bpl.Expr.Eq(f, xField));
       //TRIG (exists k#2: int :: (k#2 == LitInt(0 - 3) || k#2 == LitInt(4)) && $o == read($prevHeap, this, _module.MyClass.arr) && $f == MultiIndexField(IndexField(i#0), j#0))
       Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Tok, xBvars, xBody);  // LL_TRIGGER
-      Bpl.Expr body = Bpl.Expr.Or(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
+      Bpl.Expr body = BplOr(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
       var tr = new Trigger(s.Tok, true, new List<Expr>() { heapOF });
-      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, body);
+      Bpl.Expr qq = new Bpl.ForallExpr(s.Tok, new List<TypeVariable> { }, new List<Variable> { oVar, fVar }, null, tr, body);
       updater.Add(TrAssumeCmd(s.Tok, qq));
 
       if (s.EffectiveEnsuresClauses != null) {
@@ -1337,7 +1349,7 @@ namespace Microsoft.Dafny {
     ///   G             is rhs
     /// If lhsAsTrigger is true, then use the LHS of the equality above as the trigger; otherwise, don't specify any trigger.
     /// </summary>
-    private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
+    private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
       Contract.Requires(bounds != null);
@@ -1347,7 +1359,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(prevEtran != null);
 
-      List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+      List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
       var xBvars = new List<Variable>();
       Bpl.Expr xAnte = etran.TrBoundVariables(boundVars, xBvars, false, freeOfAlloc);
       xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
@@ -1355,9 +1367,7 @@ namespace Microsoft.Dafny {
       GetObjFieldDetails(lhs, prevEtran, out var obj, out var field);
       var xHeapOF = ReadHeap(tok, etran.HeapExpr, obj, field);
 
-      Type lhsType = lhs is MemberSelectExpr ? ((MemberSelectExpr)lhs).Type : null;
-
-      g = CondApplyBox(rhs.tok, g, rhs.Type, lhsType);
+      g = BoxIfNotNormallyBoxed(rhs.tok, g, rhs.Type);
 
       Bpl.Trigger tr = null;
       var argsEtran = etran.WithNoLits();
@@ -1374,7 +1384,7 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(tok, true, tt, tr);
         }
       }
-      return new Bpl.ForallExpr(tok, xBvars, tr, Bpl.Expr.Imp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
+      return new Bpl.ForallExpr(tok, xBvars, tr, BplImp(xAnte, Bpl.Expr.Eq(xHeapOF, g)));
     }
 
     void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
@@ -1392,7 +1402,7 @@ namespace Microsoft.Dafny {
       Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap$" + suffix, predef.HeapType));
       locals.Add(preLoopHeapVar);
       Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
-      ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap);
+      ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap, etran.scope);
       ExpressionTranslator updatedFrameEtran;
       string loopFrameName = "$Frame$" + suffix;
       if (s.Mod.Expressions != null) {
@@ -1403,7 +1413,7 @@ namespace Microsoft.Dafny {
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.FrameSubset("loop modifies clause", true), null);
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.ModifyFrameSubset("loop modifies clause"), null);
         DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
@@ -1440,10 +1450,10 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(loopInv.E, invDefinednessBuilder, locals, etran, false);
         invDefinednessBuilder.Add(TrAssumeCmdWithDependencies(etran, loopInv.E.tok, loopInv.E, "loop invariant"));
 
-        invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.CanCallAssumption(loopInv.E))));
+        invariants.Add(TrAssumeCmd(loopInv.E.tok, BplImp(w, etran.CanCallAssumption(loopInv.E))));
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
-          var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
+          var wInv = BplImp(w, etran.TrExpr(loopInv.E));
           invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
@@ -1494,7 +1504,7 @@ namespace Microsoft.Dafny {
 
       // include a free invariant that says that all definite-assignment trackers have only become more "true"
       foreach (var pair in daTrackersMonotonicity) {
-        Bpl.Expr monotonic = Bpl.Expr.Imp(pair.Item1, pair.Item2);
+        Bpl.Expr monotonic = BplImp(pair.Item1, pair.Item2);
         invariants.Add(TrAssumeCmd(s.Tok, monotonic));
       }
 
@@ -1513,7 +1523,7 @@ namespace Microsoft.Dafny {
       }
 
       var loopBodyBuilder = new BoogieStmtListBuilder(this, options);
-      loopBodyBuilder.AddCaptureState(s.Tok, true, "after some loop iterations");
+      loopBodyBuilder.AddCaptureState(s.Tok, true, CaptureStateExtensions.AfterLoopIterationsStateMarker);
 
       // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -1552,15 +1562,23 @@ namespace Microsoft.Dafny {
           var toks = new List<IToken>();
           var types = new List<Type>();
           var decrs = new List<Expr>();
+          var oldDecreases = new List<Expression>();
+          var prevGhostLocals = new List<VarDeclStmt>();
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
             types.Add(e.Type.NormalizeExpand());
+            // Note: the label "LoopEntry" doesn't exist in the program, and is
+            // useful only for explanatory purposes.
+            var (vars, olde) = TranslateToLoopEntry(s.Mod, e, "LoopEntry");
+            oldDecreases.Add(olde);
+            prevGhostLocals.AddRange(vars);
             decrs.Add(etran.TrExpr(e));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
             Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
-            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new PODesc.Terminates(s.InferredDecreases, true)));
+            loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new
+              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, oldDecreases, theDecreases)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1585,6 +1603,34 @@ namespace Microsoft.Dafny {
 
       Bpl.StmtList body = loopBodyBuilder.Collect(s.Tok);
       builder.Add(new Bpl.WhileCmd(s.Tok, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
+    }
+
+    // Return the version of e that holds at the beginnging of the loop,
+    // Along with the local variable assignments that need to happen at
+    // the beginning of the loop for it to be valid.
+    private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(Specification<FrameExpression> mod, Expression e, string loopLabel) {
+      var prevGhostLocals = new List<VarDeclStmt>();
+      Expression olde = new OldExpr(e.tok, e, "LoopEntry") {
+        Type = e.Type
+      };
+
+      if (mod is null || mod.Expressions is null) {
+        return (prevGhostLocals, olde);
+      }
+
+      foreach (var x in mod.Expressions) {
+        if (x.E is IdentifierExpr { Var: LocalVariable v }) {
+          var prevName = $"prev_{v.Name}";
+          var prevVar = new LocalVariable(RangeToken.NoToken, prevName, v.Type, true);
+          var declStmt = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, x.E);
+          prevGhostLocals.Add(declStmt);
+          var prevExpr = new IdentifierExpr(x.E.tok, prevVar);
+          olde = Substitute(olde, v, prevExpr);
+        }
+      }
+
+      return (prevGhostLocals, olde);
+
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
@@ -1878,7 +1924,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic && !(method is Constructor)) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked");
+            var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1886,7 +1932,7 @@ namespace Microsoft.Dafny {
           Expression ee = Args[i];
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked");
+            var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked", ee);
             builder.Add(Assert(ee.tok, wh, desc));
           }
         }
@@ -1894,7 +1940,7 @@ namespace Microsoft.Dafny {
         if (!method.IsStatic) {
           Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
-            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state");
+            var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
             builder.Add(Assert(receiver.tok, wh, desc));
           }
         }
@@ -1906,7 +1952,12 @@ namespace Microsoft.Dafny {
             Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
             if (wh != null) {
               var pIdx = Args.Count == 1 ? "" : " at index " + i;
-              var desc = new PODesc.IsAllocated($"parameter{pIdx} ('{formal.Name}')", "in the two-state lemma's previous state");
+              var desc = new PODesc.IsAllocated(
+                $"argument{pIdx} for parameter '{formal.Name}'",
+                "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+                ee,
+                atLabel
+              );
               builder.Add(Assert(ee.tok, wh, desc));
             }
           }
@@ -1918,14 +1969,14 @@ namespace Microsoft.Dafny {
       if (etran.readsFrame != null) {
         var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
-          receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.FrameSubset("call", false), null);
+          receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.ReadFrameSubset("call"), null);
       }
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,
       // but only if we're in a context that defines a modifies frame.
       if (codeContext is IMethodCodeContext) {
         var modifiesSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
-          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, new PODesc.FrameSubset("call", true), null);
+          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, new PODesc.ModifyFrameSubset("call"), null);
       }
 
       // Check termination
@@ -1936,7 +1987,7 @@ namespace Microsoft.Dafny {
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;
-          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, etran.Old, builder, codeContext.InferredDecreases, null);
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, true, builder, codeContext.InferredDecreases, null);
         }
       }
 
@@ -1999,7 +2050,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds,
+    void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
       Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
       BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
@@ -2040,7 +2091,7 @@ namespace Microsoft.Dafny {
           // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
           // here (rather than a TrBoundVariables).  However, there is currently no way to apply
           // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
-          List<bool> freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
           List<Variable> bvars = new List<Variable>();
           var ante = etran.TrBoundVariables(boundVars, bvars, true, freeOfAlloc);
           locals.AddRange(bvars);
@@ -2068,7 +2119,7 @@ namespace Microsoft.Dafny {
         var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("$initHeapForallStmt#"), predef.HeapType));
         locals.Add(initHeapVar);
         var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
-        var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr);
+        var initEtran = new ExpressionTranslator(this, predef, initHeap, etran.Old.HeapExpr, etran.scope);
         // initHeap := $Heap;
         exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
         var heapIdExpr = etran.HeapCastToIdentifierExpr;
@@ -2095,7 +2146,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr ante;
         var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
         Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-        var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
+        var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap, etran.scope);
         Bpl.Expr post = Bpl.Expr.True;
         Bpl.Trigger tr;
         if (forallExpressions != null) {
@@ -2130,10 +2181,10 @@ namespace Microsoft.Dafny {
           tr = antitriggerBoundVarTypes;
         }
 
-        // TRIG (forall $ih#s0#0: Seq Box :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
-        // TRIG (forall $ih#pat0#0: Seq Box, $ih#a0#0: Seq Box :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
+        // TRIG (forall $ih#s0#0: Seq :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))
+        // TRIG (forall $ih#pat0#0: Seq, $ih#a0#0: Seq :: $Is($ih#pat0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#pat0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && $Is($ih#a0#0, TSeq(_module._default.Same0$T)) && $IsAlloc($ih#a0#0, TSeq(_module._default.Same0$T), $initHeapForallStmt#0) && Seq#Length($ih#pat0#0) <= Seq#Length($ih#a0#0) && Seq#SameUntil($ih#pat0#0, $ih#a0#0, Seq#Length($ih#pat0#0)) && (Seq#Rank($ih#pat0#0) < Seq#Rank(pat#0) || (Seq#Rank($ih#pat0#0) == Seq#Rank(pat#0) && Seq#Rank($ih#a0#0) < Seq#Rank(a#0))) ==> _module.__default.IsRelaxedPrefixAux(_module._default.Same0$T, $LS($LZ), $Heap, $ih#pat0#0, $ih#a0#0, LitInt(1)))'
         // TRIG (forall $ih#m0#0: DatatypeType, $ih#n0#0: DatatypeType :: $Is($ih#m0#0, Tclass._module.Nat()) && $IsAlloc($ih#m0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && $Is($ih#n0#0, Tclass._module.Nat()) && $IsAlloc($ih#n0#0, Tclass._module.Nat(), $initHeapForallStmt#0) && Lit(true) && (DtRank($ih#m0#0) < DtRank(m#0) || (DtRank($ih#m0#0) == DtRank(m#0) && DtRank($ih#n0#0) < DtRank(n#0))) ==> _module.__default.mult($LS($LZ), $Heap, $ih#m0#0, _module.__default.plus($LS($LZ), $Heap, $ih#n0#0, $ih#n0#0)) == _module.__default.mult($LS($LZ), $Heap, _module.__default.plus($LS($LZ), $Heap, $ih#m0#0, $ih#m0#0), $ih#n0#0))
-        var qq = new Bpl.ForallExpr(tok, bvars, tr, Bpl.Expr.Imp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
+        var qq = new Bpl.ForallExpr(tok, bvars, tr, BplImp(ante, post));  // TODO: Add a SMART_TRIGGER here.  If we can't find one, abort the attempt to do induction automatically
         exporter.Add(TrAssumeCmd(tok, qq));
       }
     }
@@ -2148,7 +2199,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       // Add all newly allocated objects to the set this._new
-      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType(iter.tok, true, predef.BoxType)));
+      var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType));
       locals.Add(updatedSet);
       var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
       // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
@@ -2333,7 +2384,7 @@ namespace Microsoft.Dafny {
     void AssertDistinctness(Expression lhsa, Expression lhsb, Bpl.Expr rhsa, Bpl.Expr rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
       if (e != null) {
-        e = Bpl.Expr.Or(e, Bpl.Expr.Eq(rhsa, rhsb));
+        e = BplOr(e, Bpl.Expr.Eq(rhsa, rhsb));
         builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
           Printer.ExprToString(options, lhsb), false, true)));
       }
@@ -2464,7 +2515,7 @@ namespace Microsoft.Dafny {
           var idx = etran.TrExpr(sel.E0);
           idx = ConvertExpression(sel.E0.tok, idx, sel.E0.Type, Type.Int);
           var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, idx), rhsCanAffectPreviouslyKnownExpressions,
-            "$index" + i, predef.FieldName(tok, predef.BoxType), builder, locals);
+            "$index" + i, predef.FieldName(tok), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
@@ -2489,7 +2540,7 @@ namespace Microsoft.Dafny {
           var obj = SaveInTemp(etran.TrExpr(mse.Array), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
           var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.tok, mse.Indices), rhsCanAffectPreviouslyKnownExpressions,
-            "$index" + i, predef.FieldName(mse.tok, predef.BoxType), builder, locals);
+            "$index" + i, predef.FieldName(mse.tok), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), new PODesc.Modifiable("an array element")));
@@ -2612,7 +2663,7 @@ namespace Microsoft.Dafny {
           foreach (Expression dim in tRhs.ArrayDimensions) {
             CheckWellformed(dim, new WFOptions(), locals, builder, etran);
             var desc = new PODesc.NonNegative(tRhs.ArrayDimensions.Count == 1
-              ? "array size" : $"array size (dimension {i})");
+              ? "array size" : $"array size (dimension {i})", dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc));
             i++;
           }
@@ -2620,7 +2671,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
           } else if (tRhs.InitDisplay != null) {
             var dim = tRhs.ArrayDimensions[0];
-            var desc = new PODesc.ArrayInitSizeValid(tRhs.InitDisplay.Count);
+            var desc = new PODesc.ArrayInitSizeValid(tRhs, dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc));
             foreach (var v in tRhs.InitDisplay) {
               CheckWellformed(v, new WFOptions(), locals, builder, etran);
@@ -2635,7 +2686,7 @@ namespace Microsoft.Dafny {
             foreach (Expression dim in tRhs.ArrayDimensions) {
               zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
             }
-            var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString());
+            var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
             builder.Add(Assert(tRhs.Tok, zeroSize, desc));
           }
         }
@@ -2661,7 +2712,7 @@ namespace Microsoft.Dafny {
                 CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
                 // assume nw[ii] == EE_ii;
                 var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
-                builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxIfBoxed(ai, tRhs.EType), EE_ii)));
+                builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), EE_ii)));
                 ii++;
               }
             }
@@ -2669,11 +2720,11 @@ namespace Microsoft.Dafny {
           Bpl.Cmd heapAllocationRecorder = null;
           if (codeContext is IteratorDecl) {
             var iter = (IteratorDecl)codeContext;
-            // $Heap[this, _new] := Set#UnionOne<BoxType>($Heap[this, _new], $Box($nw));
+            // $Heap[this, _new] := Set#UnionOne($Heap[this, _new], $Box($nw));
             var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
             var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-            var thisDotNew = ReadHeap(tok, etran.HeapExpr, th, nwField);
-            var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, FunctionCall(tok, BuiltinFunction.Box, null, nw));
+            var thisDotNew = ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, th, nwField), predef.SetType);
+            var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, ApplyBox(tok, nw));
             var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
             heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
           }
@@ -2721,7 +2772,7 @@ namespace Microsoft.Dafny {
         var nwNotNull = Bpl.Expr.Neq(nw, predef.Null);
         // drop the $Is conjunct if the type is "object", because "new object" allocates an object of an arbitrary type
         var rightType = type.IsObjectQ ? Bpl.Expr.True : MkIs(nw, type);
-        builder.Add(TrAssumeCmd(tok, Bpl.Expr.And(nwNotNull, rightType)));
+        builder.Add(TrAssumeCmd(tok, BplAnd(nwNotNull, rightType)));
       }
       // assume !$Heap[$nw, alloc];
       var notAlloc = Bpl.Expr.Not(etran.IsAlloced(tok, nw));

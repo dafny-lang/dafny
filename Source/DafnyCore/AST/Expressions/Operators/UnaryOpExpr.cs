@@ -32,7 +32,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     if (_ResolvedOp == ResolvedOpcode.YetUndetermined) {
       Contract.Assert(Type != null);
       Contract.Assert(Type is not TypeProxy);
-      _ResolvedOp = (Op, E.Type.NormalizeExpand()) switch {
+      _ResolvedOp = (Op, E.Type.NormalizeToAncestorType()) switch {
         (Opcode.Not, BoolType _) => ResolvedOpcode.BoolNot,
         (Opcode.Not, BitvectorType _) => ResolvedOpcode.BVNot,
         (Opcode.Cardinality, SeqType _) => ResolvedOpcode.SeqLength,

@@ -1,13 +1,13 @@
-// RUN: %exits-with 3 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 3 %build %s > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {
 
-    ghost predicate P()
+    ghost predicate P() ensures false
 
     class C
     {
-        static method{:axiom} M()
+        static ghost method {:axiom} M()
             ensures P()
     }
 }

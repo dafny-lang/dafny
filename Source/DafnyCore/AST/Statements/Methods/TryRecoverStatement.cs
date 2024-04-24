@@ -23,8 +23,8 @@ public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
   }
 
   public TryRecoverStatement(Cloner cloner, TryRecoverStatement original) : base(cloner, original) {
-    TryBody = cloner.CloneStmt(original.TryBody);
-    RecoverBody = cloner.CloneStmt(original.RecoverBody);
+    TryBody = cloner.CloneStmt(original.TryBody, false);
+    RecoverBody = cloner.CloneStmt(original.RecoverBody, false);
     HaltMessageVar = cloner.CloneIVariable(original.HaltMessageVar, false);
   }
 

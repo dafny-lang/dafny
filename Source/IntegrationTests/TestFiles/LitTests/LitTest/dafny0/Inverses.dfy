@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --warn-deprecation false "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This identity function is used to so that if the occurrence of i below

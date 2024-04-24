@@ -108,14 +108,18 @@ function HasResolutionError(): int {
   true
 }".TrimStart();
 
-      var document = await CreateOpenAndWaitForResolve(source);
-      var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var resolutionDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(MessageSource.Resolver.ToString(), resolutionDiagnostics[0].Source);
-      ApplyChange(ref document, new Range(3, 0, 3, 0), "// comment to trigger update\n");
+      ApplyChange(ref documentItem, new Range(2, 1, 2, 1), "\n// comment to trigger update\n");
       await AssertNoDiagnosticsAreComing(CancellationToken);
-      ApplyChange(ref document, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
-      var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-      Assert.Equal(MessageSource.Parser.ToString(), parseDiagnostics[0].Source);
+      ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
+      var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
+      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
+      ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
+      var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Single(parseDiagnostics2);
+      Assert.Equal(MessageSource.Resolver.ToString(), parseDiagnostics2[0].Source);
     }
 
     [Fact]
@@ -130,7 +134,7 @@ function HasResolutionError(): int {
     [Fact]
     public async Task NoFlickeringWhenMixingCorrectAndErrorBatches() {
       var source = @"
-method {:vcs_split_on_every_assert} Foo(x: int) {
+method {:isolate_assertions} Foo(x: int) {
   if (x == 0) {
     assert true;
   } else if (x == 1) {
@@ -154,7 +158,7 @@ method {:vcs_split_on_every_assert} Foo(x: int) {
     [Fact]
     public async Task IncrementalBatchDiagnostics() {
       var source = @"
-method {:vcs_split_on_every_assert} Foo(x: int) {
+method {:isolate_assertions} Foo(x: int) {
   if (x == 0) {
     assert false;
   } else {
@@ -228,7 +232,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
-      var diagnostics1 = diagnosticsReceiver.GetLast(documentItem);
+      var diagnostics1 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
       var diagnostics2 = await GetNextDiagnostics(documentItem);
@@ -240,7 +244,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Running, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Error, await PopNextStatus());
-      var diagnostics3 = diagnosticsReceiver.GetLast(documentItem);
+      var diagnostics3 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(6, diagnostics3.Length);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -261,7 +265,7 @@ predicate P(i: int) {
   i <= 0
 }
 
-function Call(i: int): int
+function {:axiom} Call(i: int): int
   requires P(i)
 
 method Test(i: int) returns (j: int)
@@ -277,7 +281,7 @@ method Test(i: int) returns (j: int)
       var relatedInformation =
         diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Null(relatedInformation[0].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[0].Message);
     }
 
     [Fact]
@@ -847,7 +851,7 @@ class Test {
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Null(relatedInformation[1].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
       Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -1118,7 +1122,7 @@ method test() {
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
       var status = await WaitForStatus(new Range(0, 7, 0, 11), PublishedVerificationStatus.Error);
-      var firstVerificationDiagnostics = diagnosticsReceiver.GetLast(documentItem);
+      var firstVerificationDiagnostics = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Single(firstVerificationDiagnostics);
 
       // Second verification diagnostics get cancelled.

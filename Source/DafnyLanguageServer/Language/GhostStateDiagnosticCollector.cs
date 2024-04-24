@@ -42,7 +42,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty;
       }
 
-      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.HasErrors) {
+      if (signatureAndCompletionTable.CompilationUnit.Program.Reporter.FailCompilation) {
         return ImmutableDictionary<Uri, IReadOnlyList<Range>>.Empty; // TODO improve?
       }
       try {

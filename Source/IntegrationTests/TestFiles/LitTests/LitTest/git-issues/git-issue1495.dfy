@@ -1,4 +1,4 @@
-// RUN: %verify "%s" --standard-libraries:true  > "%t"
+// RUN: %verify "%s" --standard-libraries:true --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 import opened Std.Wrappers

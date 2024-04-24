@@ -46,10 +46,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 6.0.x
-    - name: Install dependencies
-      run: |
-        dotnet restore ${{env.solutionPath}}
-        dotnet tool install dotnet-coverage
     - name: Load Z3
       shell: pwsh
       run: |
@@ -68,14 +64,18 @@ jobs:
       run: make exe
     - name: Run DafnyCore Tests
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyCore.Test/coverlet.runsettings Source/DafnyCore.Test
+    # Retry LSP tests 3 times because there are some spurious errors
+    #  Note that, for some mysterious reason, --collect doesn't work with the DafnyLanguageServer.Test package
     - name: Run DafnyLanguageServer Tests
-      run: |
-        ## Run twice to catch unstable code (Issue #2673)
-        dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyLanguageServer.Test/coverlet.runsettings Source/DafnyLanguageServer.Test
-        ## On the second run, collect test coverage data
-        ##  Note that, for some mysterious reason, --collect doesn't work with the DafnyLanguageServer.Test package
-        dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
-
+      uses: nick-fields/retry@v3
+      with:
+        timeout_minutes: 45
+        max_attempts: 3
+        command: |
+          cd dafny
+          dotnet restore ${{env.solutionPath}}
+          dotnet tool install dotnet-coverage
+          dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyDriver.Test/coverlet.runsettings Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests

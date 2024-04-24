@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost function Foo<T>(m: map<int, T>): seq<T>

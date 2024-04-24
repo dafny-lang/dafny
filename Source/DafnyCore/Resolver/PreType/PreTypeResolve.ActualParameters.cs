@@ -139,16 +139,14 @@ namespace Microsoft.Dafny {
           substMap.Add(formal, n);
         } else {
           // parameter has no value
-          if (onlyPositionalArguments) {
-            // a simple error message has already been reported
-            Contract.Assert(simpleErrorReported);
-          } else {
+          if (!simpleErrorReported) {
             var formalDescription = whatKind + (context is Method ? " in-parameter" : " parameter");
             var nameWithIndex = formal.HasName && formal is not ImplicitFormal ? "'" + formal.Name + "'" : "";
             if (formals.Count > 1 || nameWithIndex == "") {
               nameWithIndex += nameWithIndex == "" ? "" : " ";
               nameWithIndex += $"at index {formalIndex}";
             }
+
             var message = $"{formalDescription} {nameWithIndex} requires an argument of type {formal.Type}";
             ReportError(callTok, message);
           }

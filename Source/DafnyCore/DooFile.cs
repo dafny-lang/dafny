@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
@@ -39,7 +40,8 @@ public class DooFile {
       DafnyVersion = options.VersionNumber;
 
       SolverIdentifier = options.SolverIdentifier;
-      SolverVersion = options.SolverVersion.ToString();
+      // options.SolverVersion may be null (if --no-verify is used for example)
+      SolverVersion = options.SolverVersion?.ToString();
 
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
@@ -53,7 +55,7 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()));
+      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
     }
   }
 
@@ -68,24 +70,25 @@ public class DooFile {
   // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
-  public static DooFile Read(string path) {
+  public static Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     return Read(archive);
   }
 
-  public static DooFile Read(Stream stream) {
+  public static Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
     return Read(archive);
   }
 
-  private static DooFile Read(ZipArchive archive) {
+  private static async Task<DooFile> Read(ZipArchive archive) {
     var result = new DooFile();
 
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
-    using (var manifestStream = manifestEntry.Open()) {
+
+    await using (var manifestStream = manifestEntry.Open()) {
       result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
@@ -93,16 +96,19 @@ public class DooFile {
     if (programTextEntry == null) {
       throw new ArgumentException(".doo file missing program text entry");
     }
-    using (var programTextStream = programTextEntry.Open()) {
+
+    await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = reader.ReadToEnd();
+      result.ProgramText = await reader.ReadToEndAsync();
     }
 
     return result;
   }
 
   public DooFile(Program dafnyProgram) {
-    var tw = new StringWriter();
+    var tw = new StringWriter {
+      NewLine = "\n"
+    };
     var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
@@ -190,7 +196,7 @@ public class DooFile {
     var manifestWr = wr.NewFile(ManifestFileEntry);
     using var manifestWriter = new StringWriter();
     Manifest.Write(manifestWriter);
-    manifestWr.Write(manifestWriter.ToString());
+    manifestWr.Write(manifestWriter.ToString().Replace("\r\n", "\n"));
 
     var programTextWr = wr.NewFile(ProgramFileEntry);
     programTextWr.Write(ProgramText);
@@ -230,7 +236,9 @@ public class DooFile {
       return true;
     }
 
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin,
+      $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, " +
+      $"but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 
@@ -238,7 +246,7 @@ public class DooFile {
   /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
   /// Generally the right check for options that weaken guarantees.
   public static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(option, libraryValue, localValue)) {
+    if (OptionValuesImplied(libraryValue, localValue)) {
       return true;
     }
 
@@ -250,11 +258,15 @@ public class DooFile {
   /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
   /// Generally the right check for options that strengthen guarantees.
   public static bool CheckOptionLocalImpliesLibrary(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(option, localValue, libraryValue)) {
+    if (OptionValuesImplied(localValue, libraryValue)) {
       return true;
     }
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Error(MessageSource.Project, origin, LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue));
     return false;
+  }
+
+  public static string LocalImpliesLibraryMessage(Option option, object localValue, string libraryFile, object libraryValue) {
+    return $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
   }
 
   private static bool OptionValuesEqual(Option option, object first, object second) {
@@ -269,10 +281,12 @@ public class DooFile {
     return false;
   }
 
-  private static bool OptionValuesImplied(Option option, object first, object second) {
-    var lhs = (bool)first;
-    var rhs = (bool)second;
-    return !lhs || rhs;
+  public static bool OptionValuesImplied(object first, object second) {
+    try {
+      return !(bool)first || (bool)second;
+    } catch (NullReferenceException) {
+      throw new Exception("Comparing options of Doo files created by different Dafny versions");
+    }
   }
 
   private static string OptionValueToString(Option option, object value) {
@@ -281,6 +295,9 @@ public class DooFile {
       return $"[{string.Join(',', values)}]";
     }
 
+    if (value == null) {
+      return "a version of Dafny that does not have this option";
+    }
     return value.ToString();
   }
 

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
 
 
 // A couple of examples from Grigore Rosu and Dorel Lucanu, "Circular coinduction: A proof theoretical

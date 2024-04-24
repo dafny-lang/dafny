@@ -202,7 +202,7 @@ namespace Microsoft.Dafny {
         // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
         Bpl.IdentifierExpr canCallFuncID =
           new Bpl.IdentifierExpr(method.tok, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        var etran = new ExpressionTranslator(this, predef, method.tok);
+        var etran = new ExpressionTranslator(this, predef, method.tok, method);
         List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
         var formals = MkTyParamBinders(GetTypeParams(method), out var tyargs);
         if (method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {

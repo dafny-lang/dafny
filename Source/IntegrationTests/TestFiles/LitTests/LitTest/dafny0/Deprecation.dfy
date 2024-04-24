@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --allow-warnings --relax-definite-assignment
 
 // This file contains tests for messags about various deprecated features.
 // As those features go away completely, so can the corresponding tests.

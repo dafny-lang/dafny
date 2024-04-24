@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" --relax-definite-assignment > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype int32 = int
@@ -88,7 +88,7 @@ module PredicateTests {
   }
 
   method N() {
-    var y: char8;
+    var y: char8 := *;
     if * {
       y := y / 2;
       y := y + 1;

@@ -8,6 +8,7 @@ using System.IO;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Xunit;
+using Token = Microsoft.Dafny.Token;
 
 namespace DafnyTestGeneration.Test {
 

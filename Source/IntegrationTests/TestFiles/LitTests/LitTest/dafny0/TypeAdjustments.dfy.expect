@@ -1,3 +1,5 @@
+TypeAdjustments.dfy(588,14): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
+TypeAdjustments.dfy(616,14): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 TypeAdjustments.dfy(23,13): Error: assertion might not hold
 TypeAdjustments.dfy(25,17): Error: assertion might not hold
 TypeAdjustments.dfy(27,13): Error: assertion might not hold

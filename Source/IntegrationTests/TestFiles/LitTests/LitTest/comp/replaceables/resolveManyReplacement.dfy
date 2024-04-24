@@ -1,4 +1,4 @@
-// RUN: ! %resolve %s > %t
+// RUN: ! %resolve --allow-axioms %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 // Currently this creates a resolution error.

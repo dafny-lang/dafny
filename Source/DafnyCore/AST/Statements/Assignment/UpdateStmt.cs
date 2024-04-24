@@ -43,7 +43,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
     if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
@@ -90,7 +90,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     base.Resolve(resolver, resolutionContext);
 
     IToken firstEffectfulRhs = null;
-    ModuleResolver.MethodCallInformation methodCallInfo = null;
+    MethodCallInformation methodCallInfo = null;
     ResolvedStatements = new();
     foreach (var rhs in Rhss) {
       bool isEffectful;
@@ -123,10 +123,10 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     if (firstEffectfulRhs == null) {
       if (Lhss.Count == 0) {
         Contract.Assert(Rhss.Count == 1);  // guaranteed by the parser
-        resolver.reporter.Error(MessageSource.Resolver, this, "expected method call, found expression");
+        resolver.Reporter.Error(MessageSource.Resolver, this, "expected method call, found expression");
       } else if (Lhss.Count != Rhss.Count) {
-        resolver.reporter.Error(MessageSource.Resolver, this, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
-      } else if (resolver.reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
+        resolver.Reporter.Error(MessageSource.Resolver, this, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
+      } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
         for (int i = 0; i < Lhss.Count; i++) {
           var a = new AssignStmt(RangeToken, Lhss[i].Resolved, Rhss[i]);
@@ -136,19 +136,19 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
 
     } else if (CanMutateKnownState) {
       if (1 < Rhss.Count) {
-        resolver.reporter.Error(MessageSource.Resolver, firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
+        resolver.Reporter.Error(MessageSource.Resolver, firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
       } else { // it might be ok, if it is a TypeRhs
         Contract.Assert(Rhss.Count == 1);
         if (methodCallInfo != null) {
-          resolver.reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "cannot have method call in return statement.");
+          resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "cannot have method call in return statement.");
         } else {
           // we have a TypeRhs
           Contract.Assert(Rhss[0] is TypeRhs);
           var tr = (TypeRhs)Rhss[0];
           Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
           if (tr.CanAffectPreviouslyKnownExpressions) {
-            resolver.reporter.Error(MessageSource.Resolver, tr.Tok, "can only have initialization methods which modify at most 'this'.");
-          } else if (resolver.reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
+            resolver.Reporter.Error(MessageSource.Resolver, tr.Tok, "can only have initialization methods which modify at most 'this'.");
+          } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
             var a = new AssignStmt(RangeToken, Lhss[0].Resolved, tr);
             ResolvedStatements.Add(a);
           }
@@ -158,17 +158,17 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     } else {
       // if there was an effectful RHS, that must be the only RHS
       if (Rhss.Count != 1) {
-        resolver.reporter.Error(MessageSource.Resolver, firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+        resolver.Reporter.Error(MessageSource.Resolver, firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
       } else if (methodCallInfo == null) {
         // must be a single TypeRhs
         if (Lhss.Count != 1) {
           Contract.Assert(2 <= Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-          resolver.reporter.Error(MessageSource.Resolver, Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
-        } else if (resolver.reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
+          resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
+        } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
           var a = new AssignStmt(RangeToken, Lhss[0].Resolved, Rhss[0]);
           ResolvedStatements.Add(a);
         }
-      } else if (resolver.reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
+      } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // a call statement
         var resolvedLhss = new List<Expression>();
         foreach (var ll in Lhss) {

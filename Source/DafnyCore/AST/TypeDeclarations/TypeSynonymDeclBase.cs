@@ -125,4 +125,5 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
   public abstract SymbolKind Kind { get; }
   public abstract string GetDescription(DafnyOptions options);
+  public string Designator => WhatKind;
 }

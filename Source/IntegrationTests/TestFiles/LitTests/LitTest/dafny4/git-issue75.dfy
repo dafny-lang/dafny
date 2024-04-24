@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %verify "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type t = i:int | 0 <= i < 10

@@ -316,5 +316,7 @@ module {:options "-functionSyntax:4"} Parsers {
 /// }
 /// ```
 
-// RUN: %exits-with 4 %dafny -compile:4 "%s" --args "((()))" "((()))no" "((())" > "%t"
+// NONUNIFORM: testDafnyForEachCompiler does not support program argument
+// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %run --no-verify "%s" "((()))" "((()))no" "((())" >> "%t"
 // RUN: %diff "%s.expect" "%t"

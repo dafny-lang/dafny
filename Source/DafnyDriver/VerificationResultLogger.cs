@@ -1,3 +1,4 @@
+#nullable enable
 //-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
@@ -8,6 +9,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.VisualStudio.TestPlatform.Extensions.TrxLogger;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
@@ -15,6 +18,14 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 
 namespace Microsoft.Dafny {
+  public record VerificationScope(string Name, Boogie.IToken Token);
+
+  public record VerificationScopeResult(VerificationScope Scope, IReadOnlyList<VerificationTaskResult> Results);
+
+  interface IVerificationResultFormatLogger {
+    void LogScopeResults(VerificationScopeResult result);
+    Task Flush();
+  }
 
   /// <summary>
   /// Utility to translate verification results into logs in several formats:
@@ -22,40 +33,27 @@ namespace Microsoft.Dafny {
   ///  * CSV files, which are easier to parse and summarize. 
   ///  * human-readable text output.
   /// </summary>
-  public static class VerificationResultLogger {
+  public class VerificationResultLogger {
+    private readonly DafnyOptions options;
 
     public static TestProperty ResourceCountProperty = TestProperty.Register("TestResult.ResourceCount", "TestResult.ResourceCount", typeof(int), typeof(TestResult));
+    public static TestProperty RandomSeedProperty = TestProperty.Register("TestResult.RandomSeed", "TestResult.RandomSeed", typeof(int), typeof(TestResult));
 
-    public static void RaiseTestLoggerEvents(DafnyOptions options, ProofDependencyManager depManager) {
-      var loggerConfigs = options.VerificationLoggerConfigs;
-      // Provide just enough configuration for the loggers to work
-      var parameters = new Dictionary<string, string> {
-        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
-      };
+    private readonly IList<IVerificationResultFormatLogger> formatLoggers = new List<IVerificationResultFormatLogger>();
+    private readonly LocalTestLoggerEvents events;
 
-      var events = new LocalTestLoggerEvents();
-      var verificationResults = (options.Printer as DafnyConsolePrinter).VerificationResults.ToList();
+    public VerificationResultLogger(DafnyOptions options, ProofDependencyManager depManager) {
+      this.options = options;
+      var loggerConfigs = options.Get(CommonOptionBag.VerificationLogFormat);
+
+      events = new LocalTestLoggerEvents();
+      events.EnableEvents();
       foreach (var loggerConfig in loggerConfigs) {
-        string loggerName;
-        int semiColonIndex = loggerConfig.IndexOf(";");
-        if (semiColonIndex >= 0) {
-          loggerName = loggerConfig[..semiColonIndex];
-          var parametersList = loggerConfig[(semiColonIndex + 1)..];
-          foreach (string s in parametersList.Split(",")) {
-            var equalsIndex = s.IndexOf("=");
-            if (equalsIndex >= 0) {
-              parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
-            } else {
-              throw new ArgumentException($"unknown parameter to `/verificationLogger:csv`: {s}");
-            }
-          }
-        } else {
-          loggerName = loggerConfig;
-        }
+        ParseParametersAndLoggerName(loggerConfig, out var parameters, out var loggerName);
 
         if (loggerName == "trx") {
           var logger = new TrxLogger();
-          logger.Initialize(events, parameters);
+          logger.Initialize(events, parameters!);
         } else if (loggerName == "csv") {
           var csvLogger = new CSVTestLogger(options.OutputWriter);
           csvLogger.Initialize(events, parameters);
@@ -64,60 +62,96 @@ namespace Microsoft.Dafny {
           // it uses information that's tricky to encode in a TestResult.
           var jsonLogger = new JsonVerificationLogger(depManager, options.OutputWriter);
           jsonLogger.Initialize(parameters);
-          jsonLogger.LogResults(verificationResults);
+          formatLoggers.Add(jsonLogger);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new TextVerificationLogger(depManager, options.OutputWriter);
           textLogger.Initialize(parameters);
-          textLogger.LogResults(verificationResults);
+          formatLoggers.Add(textLogger);
         } else {
           throw new ArgumentException($"unsupported verification logger config: {loggerConfig}");
         }
       }
-      events.EnableEvents();
+    }
 
-      // Sort failures to the top, and then slower procedures first.
-      // Loggers may not maintain this ordering unfortunately.
-      var results = VerificationToTestResults(verificationResults.Select(e => (e.Implementation, e.Result.VCResults)))
-        .OrderBy(r => r.Outcome == TestOutcome.Passed)
-        .ThenByDescending(r => r.Duration);
-      foreach (var result in results) {
-        events.RaiseTestResult(new TestResultEventArgs(result));
+    public static void ParseParametersAndLoggerName(string loggerConfig, out Dictionary<string, string> parameters, out string loggerName) {
+      // Provide just enough configuration for the loggers to work
+      parameters = new Dictionary<string, string> {
+        ["TestRunDirectory"] = Constants.DefaultResultsDirectory
+      };
+
+      int semiColonIndex = loggerConfig.IndexOf(";", StringComparison.Ordinal);
+      if (semiColonIndex >= 0) {
+        loggerName = loggerConfig[..semiColonIndex];
+        var parametersList = loggerConfig[(semiColonIndex + 1)..];
+        foreach (string s in parametersList.Split(",")) {
+          var equalsIndex = s.IndexOf("=", StringComparison.Ordinal);
+          if (equalsIndex >= 0) {
+            parameters.Add(s[..equalsIndex], s[(equalsIndex + 1)..]);
+          } else {
+            throw new ArgumentException($"unknown parameter to `/verificationLogger:csv`: {s}");
+          }
+        }
+      } else {
+        loggerName = loggerConfig;
       }
+    }
 
+    public void Report(CanVerifyResult canVerifyResult) {
+      var scopeResults =
+        canVerifyResult.Results
+          .GroupBy(v => new VerificationScope(v.Task.ScopeId, v.Task.ScopeToken))
+          .Select(g => new VerificationScopeResult(g.Key, g.ToList())).ToList();
+      foreach (var scopeResult in scopeResults) {
+        foreach (var formatLogger in formatLoggers) {
+          formatLogger.LogScopeResults(scopeResult);
+        }
+        foreach (var result in VerificationToTestResults(scopeResult)) {
+          events.RaiseTestResult(new TestResultEventArgs(result));
+        }
+      }
+    }
+
+    public async Task Finish() {
       events.RaiseTestRunComplete(new TestRunCompleteEventArgs(
         new TestRunStatistics(),
         false, false, null, null, new TimeSpan()
       ));
+      foreach (var formatLogger in formatLoggers) {
+        await formatLogger.Flush();
+      }
     }
 
-    private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<DafnyConsolePrinter.VCResultLogEntry>)> verificationResults) {
+    public static IEnumerable<TestResult> VerificationToTestResults(VerificationScopeResult result) {
       var testResults = new List<TestResult>();
 
-      foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
-        foreach (var vcResult in vcResults.OrderBy(r => r.VCNum)) {
-          var name = vcResults.Count() > 1
-            ? verbName + $" (assertion batch {vcResult.VCNum})"
-            : verbName;
-          var testCase = new TestCase {
-            FullyQualifiedName = name,
-            ExecutorUri = new Uri("executor://dafnyverifier/v1"),
-            Source = ((IToken)currentFile).Uri.LocalPath
-          };
-          var testResult = new TestResult(testCase) {
-            StartTime = vcResult.StartTime,
-            Duration = vcResult.RunTime
-          };
-          testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
-          if (vcResult.Outcome == SolverOutcome.Valid) {
-            testResult.Outcome = TestOutcome.Passed;
-          } else {
-            testResult.Outcome = TestOutcome.Failed;
-            testResult.ErrorMessage = vcResult.Outcome.ToString();
-          }
-          testResults.Add(testResult);
+      var verificationScope = result.Scope;
+      foreach (var (task, vcResult) in result.Results.OrderBy(r => r.Result.VcNum).
+                 Select(r => r)) {
+        var name = (result.Results.Count > 1
+          ? verificationScope.Name + $" (assertion batch {vcResult.VcNum})"
+          : verificationScope.Name);
+        var testCase = new TestCase {
+          FullyQualifiedName = name,
+          ExecutorUri = new Uri("executor://dafnyverifier/v1"),
+          Source = ((IToken)verificationScope.Token).Uri.LocalPath
+        };
+        var testResult = new TestResult(testCase) {
+          StartTime = vcResult.StartTime,
+          Duration = vcResult.RunTime
+        };
+        testResult.SetPropertyValue(ResourceCountProperty, vcResult.ResourceCount);
+        if (task != null && task.Split.RandomSeed != 0) {
+          testResult.SetPropertyValue(RandomSeedProperty, task.Split.RandomSeed);
         }
+        if (vcResult.Outcome == SolverOutcome.Valid) {
+          testResult.Outcome = TestOutcome.Passed;
+        } else {
+          testResult.Outcome = TestOutcome.Failed;
+          testResult.ErrorMessage = vcResult.Outcome.ToString();
+        }
+        testResults.Add(testResult);
       }
 
       return testResults;

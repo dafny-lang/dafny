@@ -1085,9 +1085,10 @@ same name.
 
 #### 5.5.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
-of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
-integer-based numerics `lo` and `hi` satisfying
-`0 <= lo <= hi <= |s|`, sequences support the following operations:
+of type `T`, integer-based numeric index `i` satisfying `0 <= i < |s|`, and
+integer-based numeric bounds `lo` and `hi` satisfying
+`0 <= lo <= hi <= |s|`, noting that bounds can equal the length of the sequence,
+sequences support the following operations:
 
  expression         | precedence | result type | description
  -------------------|:---:|:---:|----------------------------------------
@@ -1131,7 +1132,7 @@ colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
-<!-- %check-verify -->
+<!-- %check-verify %options --allow-axioms -->
 ```dafny
 method m(s: seq<int>) {
   var t := [3.14, 2.7, 1.41, 1985.44, 100.0, 37.2][1:0:3];
@@ -1775,7 +1776,7 @@ type BaseType
 predicate RHS(x: BaseType)
 type MySubset = x: BaseType | RHS(x) ghost witness MySubsetWitness()
 
-function MySubsetWitness(): BaseType
+function {:axiom} MySubsetWitness(): BaseType
   ensures RHS(MySubsetWitness())
 ```
 Here the type is given a ghost witness: the result of the expression
@@ -1859,7 +1860,7 @@ the newtype operations are defined only if the result satisfies the
 predicate `Q`, and likewise for the literals of the
 newtype.
 
-For example, suppose `lo` and `hi` are integer-based numerics that
+For example, suppose `lo` and `hi` are integer-based numeric bounds that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
 <!-- %no-check -->
 ```dafny
@@ -2408,8 +2409,9 @@ an error message is generated.
 
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
-`array<T>`, integer-based numerics `lo` and `hi` satisfying
-`0 <= lo <= hi <= a.Length`, the following operations each yields a
+`array<T>`, integer-based numeric bounds `lo` and `hi` satisfying
+`0 <= lo <= hi <= a.Length`, noting that bounds can equal the array's length,
+the following operations each yields a
 `seq<T>`:
 
  expression          | description

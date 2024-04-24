@@ -93,6 +93,7 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '1.16'
+        cache: false
     - name: Set up goimports
       env:
         GO111MODULE: on

@@ -212,7 +212,7 @@ method FlyRobotArmy(bots:seq<Bot>)
   }
 }
 
-method FlyRobotArmy_Recursively(bots:seq<Bot>)
+method {:resource_limit "100e6"} FlyRobotArmy_Recursively(bots:seq<Bot>)
   requires ValidArmy(bots)
   modifies ArmyRepr(bots)
   ensures ValidArmy(bots)

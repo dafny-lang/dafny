@@ -48,3 +48,8 @@ func (_this type_Nat_) Default() interface{} {
 func (_this type_Nat_) String() string {
 	return "_System.Nat"
 }
+func (_this *CompanionStruct_Nat_) Is_(__source _dafny.Int) bool {
+	var _0_x _dafny.Int = (__source)
+	_ = _0_x
+	return (_0_x).Sign() != -1
+}

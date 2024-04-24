@@ -81,7 +81,7 @@ module {:disableNonlinearArithmetic} Std.Strings {
     /**
     Convert a String that represents a natural number, back into that number.
      */
-    function {:vcs_split_on_every_assert} ToNat(str: String) : (n: nat)
+    function {:isolate_assertions} ToNat(str: String) : (n: nat)
       requires forall c <- str :: IsDigitChar(c)
     {
       if str == [] then 0

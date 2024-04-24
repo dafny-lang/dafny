@@ -7,7 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Method : MemberDecl, TypeParameter.ParentType,
+public class Method : MethodOrFunction, TypeParameter.ParentType,
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
@@ -20,14 +20,10 @@ public class Method : MemberDecl, TypeParameter.ParentType,
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
-  public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
-  public readonly List<AttributedExpression> Req;
   public readonly Specification<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
   [FilledInDuringResolution] public Function FunctionFromWhichThisIsByMethodDecl;
@@ -113,17 +109,13 @@ public class Method : MemberDecl, TypeParameter.ParentType,
   }
 
   public Method(Cloner cloner, Method original) : base(cloner, original) {
-    this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
     if (original.Outs != null) {
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
 
-    this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
-    this.Decreases = cloner.CloneSpecExpr(original.Decreases);
-    this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
     this.Body = cloner.CloneMethodBody(original);
     this.SignatureEllipsis = original.SignatureEllipsis;
     this.IsByMethod = original.IsByMethod;
@@ -140,7 +132,8 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
-    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
+      typeArgs, req, ens, decreases) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -151,14 +144,10 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
-    this.TypeArgs = typeArgs;
     this.Ins = ins;
     this.Outs = outs;
     this.Reads = reads;
-    this.Req = req;
     this.Mod = mod;
-    this.Ens = ens;
-    this.Decreases = decreases;
     Body = body;
     this.SignatureEllipsis = signatureEllipsis;
     this.IsByMethod = isByMethod;
@@ -203,7 +192,7 @@ public class Method : MemberDecl, TypeParameter.ParentType,
 
   public override string GetCompileName(DafnyOptions options) {
     var nm = base.GetCompileName(options);
-    if (nm == Dafny.Compilers.SinglePassCompiler.DefaultNameMain && IsStatic && !IsEntryPoint) {
+    if (nm == Dafny.Compilers.SinglePassCodeGenerator.DefaultNameMain && IsStatic && !IsEntryPoint) {
       // for a static method that is named "Main" but is not a legal "Main" method,
       // change its name.
       nm = EnclosingClass.Name + "_" + nm;
@@ -252,13 +241,18 @@ public class Method : MemberDecl, TypeParameter.ParentType,
     return true;
   }
 
+  protected override bool Bodyless => Body == null;
+  protected override string TypeName => "method";
+
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(ModuleResolver resolver) {
+  public override void Resolve(ModuleResolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    base.Resolve(resolver);
 
     try {
       resolver.currentMethod = this;
@@ -478,4 +472,5 @@ public class Method : MemberDecl, TypeParameter.ParentType,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
+  public string Designator => WhatKind;
 }

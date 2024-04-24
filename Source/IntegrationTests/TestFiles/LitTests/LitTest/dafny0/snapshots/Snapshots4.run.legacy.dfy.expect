@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 Processing command (at Snapshots4.v0.dfy(9,14)) assert {:id "id0"} LitInt(0) == LitInt(0);
   >>> DoNothingToAssert
 

@@ -36,7 +36,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     Cases = original.Cases.ConvertAll(cloner.CloneNestedMatchCaseStmt);
     UsesOptionalBraces = original.UsesOptionalBraces;
     if (cloner.CloneResolvedFields) {
-      Flattened = cloner.CloneStmt(original.Flattened);
+      Flattened = cloner.CloneStmt(original.Flattened, false);
     }
   }
 
@@ -78,22 +78,22 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
   /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
   /// 3 - resolving the generated (sub)statement.
   /// </summary>
-  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
+  public void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveExpression(Source, resolutionContext);
 
     if (Source.Type is TypeProxy) {
       resolver.PartiallySolveTypeConstraints(true);
 
       if (Source.Type is TypeProxy) {
-        resolver.reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
+        resolver.Reporter.Error(MessageSource.Resolver, Tok, "Could not resolve the type of the source of the match statement. Please provide additional typing annotations.");
         return;
       }
     }
 
-    var errorCount = resolver.reporter.Count(ErrorLevel.Error);
+    var errorCount = resolver.Reporter.Count(ErrorLevel.Error);
     var sourceType = resolver.PartiallyResolveTypeForMemberSelection(Source.tok, Source.Type).NormalizeExpand();
     this.CheckLinearNestedMatchStmt(sourceType, resolutionContext, resolver);
-    if (resolver.reporter.Count(ErrorLevel.Error) != errorCount) {
+    if (resolver.Reporter.Count(ErrorLevel.Error) != errorCount) {
       return;
     }
 
@@ -105,9 +105,9 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
 
     foreach (var _case in Cases) {
-      resolver.scope.PushMarker();
+      resolver.Scope.PushMarker();
       _case.Resolve(resolver, resolutionContext, subst, sourceType);
-      resolver.scope.PopMarker();
+      resolver.Scope.PopMarker();
     }
   }
 

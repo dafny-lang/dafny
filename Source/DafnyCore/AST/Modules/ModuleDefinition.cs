@@ -24,14 +24,6 @@ public enum ImplementationKind {
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
-
-  /// <summary>
-  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
-  /// and use it to set this field. 
-  /// </summary>
-  [FilledInDuringResolution]
-  public ModuleDefinition Replacement { get; set; }
-
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code

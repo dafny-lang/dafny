@@ -180,13 +180,7 @@ public static class ErrorRegistry {
 
 #nullable enable
   public static string? GetDetail(string? errorId) {
-    if (errorId == null) {
-      return null;
-    }
-    if (errorDetailMap.TryGetValue(errorId, out var result)) {
-      return result;
-    }
-    return null;
+    return errorId == null ? null : errorDetailMap.GetValueOrDefault(errorId);
   }
 #nullable disable
 }

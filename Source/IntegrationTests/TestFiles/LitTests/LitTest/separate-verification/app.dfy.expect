@@ -8,6 +8,9 @@ Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier finished with 2 verified, 0 errors
 
+Dafny program verifier did not attempt verification
+
 Dafny program verifier finished with 2 verified, 0 errors
 CLI: Error: cannot load wrappers.doo: --unicode-char is set locally to False, but the library was built with True
 CLI: Error: cannot load wrappers.doo: --boogie is set locally to [], but the library was built with [/vcsLoad:2]
+CLI: Error: cannot load wrappers.doo: --no-verify is set locally to False, but the library was built with True

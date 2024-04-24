@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
@@ -46,7 +47,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           Type.ResetScopes();
           var translatorFlags = new BoogieGenerator.TranslatorFlags(errorReporter.Options) {
             InsertChecksums = 0 < engine.Options.VerifySnapshots,
-            ReportRanges = program.Options.Get(DafnyConsolePrinter.ShowSnippets)
+            ReportRanges = program.Options.Get(Snippets.ShowSnippets)
           };
           var translator = new BoogieGenerator(errorReporter, resolution.ResolvedProgram.ProofDependencyManager, translatorFlags);
           return translator.DoTranslation(resolution.ResolvedProgram, moduleDefinition);

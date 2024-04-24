@@ -19,7 +19,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
 
   public VarDeclStmt(Cloner cloner, VarDeclStmt original) : base(cloner, original) {
     Locals = original.Locals.Select(l => cloner.CloneLocalVariable(l, false)).ToList();
-    Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update);
+    Update = (ConcreteUpdateStatement)cloner.CloneStmt(original.Update, false);
   }
 
   public VarDeclStmt(RangeToken rangeToken, List<LocalVariable> locals, ConcreteUpdateStatement update)

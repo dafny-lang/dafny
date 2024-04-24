@@ -74,7 +74,7 @@ lemma BetaReductionInside(n': nat, g: (int,int) -> int)
   ensures Sum(n', x => g(x,n') + Sum(n', y => g(x,y)))
        == Sum(n', x => (w => g(w,n'))(x) + (w => Sum(n', y => g(w,y)))(x))
 {
-  forall i | 0 <= i < n'
+  forall i {:trigger} | 0 <= i < n'
   {
     calc {
       (x => g(x,n') + Sum(n', y => g(x,y)))(i);
@@ -103,7 +103,7 @@ lemma L(n: nat, n': nat, g: (int, int) -> int)
     { assert (y => g(n',y))(n') == g(n',n'); }
     g(n',n') + Sum(n', y => g(n',y)) + Sum(n', x => Sum(n, y => g(x,y)));
     {
-      forall i | 0 <= i < n' {
+      forall i {:trigger} | 0 <= i < n' {
         calc {
           (x => Sum(n, y => g(x,y)))(i);
           { PrettyBasicBetaReduction(n, g, i); }

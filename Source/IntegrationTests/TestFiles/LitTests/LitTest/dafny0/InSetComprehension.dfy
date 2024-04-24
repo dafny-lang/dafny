@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma Tests<T>(t: T, uu: seq<T>) returns (z: bool)

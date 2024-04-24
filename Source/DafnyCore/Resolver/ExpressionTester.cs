@@ -7,7 +7,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 namespace Microsoft.Dafny;
 
 public class ExpressionTester {
-  private DafnyOptions options;
+  private readonly DafnyOptions options;
   private bool ReportErrors => reporter != null;
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
@@ -26,25 +26,35 @@ public class ExpressionTester {
     this.options = options;
   }
 
-  // Static call to CheckIsCompilable
+  /// <summary>
+  /// Determines whether or not "expr" is compilable, and returns the answer.
+  /// If "resolver" is non-null and "expr" is not compilable, then an error is reported.
+  /// Also, updates various bookkeeping information (see instance method CheckIsCompilable for more details).
+  /// </summary>
   public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] ModuleResolver resolver, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public static bool CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
+  /// <summary>
+  /// Checks that "expr" is compilable and report an error if it is not.
+  /// Also, updates various bookkeeping information (see instance method CheckIsCompilable for more details).
+  /// </summary>
+  public static void CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+    new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
   }
 
-  public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
   }
 
   /// <summary>
-  /// Checks that "expr" is compilable and reports an error if it is not.
+  /// Determines and returns whether or not "expr" is compilable.
+  /// If it is not, it calls ReportError. (Note, whether or not ReportError reports an error depends on if "reporter" is non-null.)
+  ///
   /// Also, updates bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
   /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
   /// must determine the value uniquely.
@@ -219,23 +229,21 @@ public class ExpressionTester {
     } else if (expr is LetExpr letExpr) {
       if (letExpr.Exact) {
         Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
-        var i = 0;
-        foreach (var ee in letExpr.RHSs) {
+        for (var i = 0; i < letExpr.RHSs.Count; i++) {
+          var rhs = letExpr.RHSs[i];
           var lhs = letExpr.LHSs[i];
           // Make LHS vars ghost if the RHS is a ghost
-          if (UsesSpecFeatures(ee)) {
+          if (UsesSpecFeatures(rhs)) {
             foreach (var bv in lhs.Vars) {
               if (!bv.IsGhost) {
                 bv.MakeGhost();
-                isCompilable = false;
               }
             }
           }
 
           if (!lhs.Vars.All(bv => bv.IsGhost)) {
-            isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
+            isCompilable = CheckIsCompilable(rhs, codeContext) && isCompilable;
           }
-          i++;
         }
         isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
       } else {
@@ -247,13 +255,19 @@ public class ExpressionTester {
         isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
 
         // fill in bounds for this to-be-compiled let-such-that expression
-        Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
+        Contract.Assert(letExpr.RHSs.Count == 1); // if we got this far, the resolver will have checked this condition successfully
         var constraint = letExpr.RHSs[0];
         if (resolver != null) {
           letExpr.Constraint_Bounds = ModuleResolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
         }
       }
       return isCompilable;
+
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      foreach (var kase in nestedMatchExpr.Cases) {
+        MakeGhostAsNeeded(kase.Pat, false);
+      }
+
     } else if (expr is LambdaExpr lambdaExpr) {
       return CheckIsCompilable(lambdaExpr.Body, codeContext);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
@@ -350,47 +364,89 @@ public class ExpressionTester {
   }
 
   public static bool IsTypeTestCompilable(TypeTestExpr tte) {
-    Contract.Requires(tte != null);
-    var fromType = tte.E.Type;
-    if (fromType.IsSubtypeOf(tte.ToType, false, true)) {
-      // this is a no-op, so it can trivially be compiled
+    return IsTypeTestCompilable(tte.E.Type, tte.ToType);
+  }
+
+  /// <summary>
+  /// This method determines if it's possible, at run time, to test if something whose static type is "fromType"
+  /// is of type "toType". This information is need for "is" expressions and comprehension expressions. By the
+  /// time that this method is called, it has already been determined that the use is legal by the type system;
+  /// this method performs the additional check of compilability, which is needed in non-ghost contexts.
+  ///
+  /// What this method does falls into three parts:
+  ///
+  /// 0. If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
+  /// is when "toType" is a non-null type and the nullable version of "toType" is a supertype of "from"; then,
+  /// the run-time type tests consists simply of a non-null check.
+  ///
+  /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
+  ///
+  /// 1. If "toType" is a subset type or newtype that involves constraints, then those constraints have to be compilable.
+  /// (Actually, this could be improved in a future version of Dafny, because we're given that any constraints of
+  /// "fromType" already hold. Thus, we really just need to check that the constraints _between_ "fromType" and "toType"
+  /// are compilable.)
+  ///
+  /// 2. The third part is to check that "toType" is injective in its type parameters. That is, we want to check that the
+  /// type arguments of "toType" are uniquely determined from the type arguments of "fromType".
+  /// To illustrate the need for this injectivity check, suppose the "is"-operation is testing whether or not the given expression
+  /// of type A<X> has type B<Y>, where X and Y are some type expressions. If the type parameterization Y is uniquely determined
+  /// from X, then all we need to check at run time is whether or not the A thing is a B thing. (This happens to be supported in all
+  /// our target languages, even those target languages that do not themselves have full support for type parameters.)
+  /// On the other hand, if there are several ways to parameterize B to make it be comparable to A<X> (say, B<Y> and B<Z>), then
+  /// a type test like this would at run time recover some information about the type arguments. This goes against the principle of
+  /// "parametric polymorphism", which in essence says that once types are passed in as type parameters, there's no way at run time
+  /// to figure out what they are.
+  /// Now, even if you think that insisting on parametric polymorphism is taking the high road to language design and that parametric
+  /// polymorphism has no tangible benefits, the injectivity rule still makes sense for Dafny. This is because type parameters in the
+  /// Dafny target code are more coarse-grained than the Dafny type parameters. For example, we don't distinguish "int" and "nat" in
+  /// the target code. In fact, some of our target languages either don't support type parameters at all (like in Go) or don't give us
+  /// a way to check them at run time (like in Java). So, even without the lofty goal of parametric polymorphism, we'd be out of luck
+  /// trying to distinguish B<Y> from B<Z> at run time.
+  /// </summary>
+  public static bool IsTypeTestCompilable(Type fromType, Type toType) {
+    // part 0
+    if (fromType.IsSubtypeOf(toType, false, true)) {
+      // this requires no run-time work or a simple null comparison, so it can trivially be compiled
       return true;
     }
 
-    // TODO: It would be nice to allow some subset types in test tests in compiled code. But for now, such cases
-    // are allowed only in ghost contexts.
-    var udtTo = (UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints();
-    if (udtTo.ResolvedClass is SubsetTypeDecl and not NonNullTypeDecl) {
+    // part 1
+    if (toType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: RedirectingTypeDecl { ConstraintIsCompilable: false } }) {
+      // the constraint can't be evaluated at run time, so the type test cannot be compiled
       return false;
     }
 
-    // The operation can be performed at run time if the mapping of .ToType's type parameters are injective in fromType's type parameters.
-    // For illustration, suppose the "is"-operation is testing whether or not the given expression of type A<X> has type B<Y>, where
-    // X and Y are some type expressions. At run time, we can check if the expression has type B<...>, but we can't on all target platforms
-    // be certain about the "...". So, if both B<Y> and B<Y'> are possible subtypes of A<X>, we can't perform the type test at run time.
-    // In other words, we CAN perform the type test at run time if the type parameters of A uniquely determine the type parameters of B.
-    // Let T be a list of type parameters (in particular, we will use the formal TypeParameter's declared in type B). Then, represent
-    // B<T> in parent type A, and let's say the result is A<U> for some type expression U. If U contains all type parameters from T,
-    // then the mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique, which means we can check if an
-    // A<X> value is a B<Y> value by checking if the value is of type B<...>.
-    var B = ((UserDefinedType)tte.ToType.NormalizeExpandKeepConstraints()).ResolvedClass; // important to keep constraints here, so no type parameters are lost
-    var B_T = UserDefinedType.FromTopLevelDecl(tte.tok, B);
-    var tps = new HashSet<TypeParameter>(); // There are going to be the type parameters of fromType (that is, T in the discussion above)
-    if (fromType.TypeArgs.Count != 0) {
-      // we need this "if" statement, because if "fromType" is "object" or "object?", then it isn't a UserDefinedType
-      var A = (UserDefinedType)fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
-      var A_U = B_T.AsParentType(A.ResolvedClass);
+    // part 2
+    if (toType.NormalizeExpandKeepConstraints() is UserDefinedType udtTo) {
+      // check that "udtTo" is injective in its type parameters
+
+      // Suppose "fromType" is A<...> and that "udtTo" is B<...>. Let T be a list of type parameters (in particular, we will use the formal
+      // TypeParameter's declared in type B). To perform the injectivity check, we first represent B<T> in parent type A (typically by
+      // calling "AsParentType"). Let's say the result is A<U> for some type expression U. If U contains all type parameters from T, then the
+      // mapping from B<T> to A<U> is unique, which means the mapping from B<Y> to A<X> is unique.
+      var B = udtTo.ResolvedClass;
+      var B_T = UserDefinedType.FromTopLevelDecl(B.tok, B);
+
+      var A = fromType.NormalizeExpand(); // important to NOT keep constraints here, since they won't be evident at run time
+      Type A_U;
+      if (A is UserDefinedType udtA) {
+        A_U = B_T.AsParentType(udtA.ResolvedClass);
+      } else {
+        // Evidently, A is not a newtype, subset type, (co)datatype, abstract type, reference type, or trait type (except possibly "object?"). Hence:
+        Contract.Assert(A.NormalizeToAncestorType().Equals(A));
+        // We can therefore move B_T up to its parent A by normalizing, expanding, and trimming it all the way.
+        A_U = B_T.NormalizeToAncestorType();
+      }
+
       // the type test can be performed at run time if all the type parameters of "B_T" are free type parameters of "A_U".
+      var tps = new HashSet<TypeParameter>();
       A_U.AddFreeTypeParameters(tps);
-    }
-    foreach (var tp in B.TypeArgs) {
-      if (!tps.Contains(tp)) {
+      if (B.TypeArgs.Any(tp => !tps.Contains(tp))) {
         // type test cannot be performed at run time, so this is a ghost operation
-        // TODO: If "tp" is a type parameter for which there is a run-time type descriptor, then we would still be able to perform
-        // the type test at run time.
         return false;
       }
     }
+
     // type test can be performed at run time
     return true;
   }
@@ -608,6 +664,30 @@ public class ExpressionTester {
     }
     if (arg.Ctor != null) {
       MakeGhostAsNeeded(arg);
+    }
+  }
+
+  public static void MakeGhostAsNeeded(ExtendedPattern extendedPattern, bool inGhostContext) {
+    if (extendedPattern is DisjunctivePattern disjunctivePattern) {
+      foreach (var alternative in disjunctivePattern.Alternatives) {
+        MakeGhostAsNeeded(alternative, inGhostContext);
+      }
+    } else if (extendedPattern is LitPattern) {
+      // nothing to do
+    } else if (extendedPattern is IdPattern idPattern) {
+      if (idPattern.BoundVar != null) {
+        if (inGhostContext && !idPattern.BoundVar.IsGhost) {
+          idPattern.BoundVar.MakeGhost();
+        }
+      } else if (idPattern.Ctor != null) {
+        var argumentCount = idPattern.Ctor.Formals.Count;
+        Contract.Assert(argumentCount == (idPattern.Arguments?.Count ?? 0));
+        for (var i = 0; i < argumentCount; i++) {
+          MakeGhostAsNeeded(idPattern.Arguments[i], inGhostContext || idPattern.Ctor.Formals[i].IsGhost);
+        }
+      }
+    } else {
+      Contract.Assert(false); // unexpected ExtendedPattern
     }
   }
 

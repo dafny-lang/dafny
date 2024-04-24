@@ -14,7 +14,7 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
   import Utf8EncodingForm
   import Utf16EncodingForm
 
-  lemma {:vcs_split_on_every_assert} CharIsUnicodeScalarValue(c: char)
+  lemma {:isolate_assertions} CharIsUnicodeScalarValue(c: char)
     ensures
       && var asBits := c as bv24;
       && asBits <= 0x10_FFFF

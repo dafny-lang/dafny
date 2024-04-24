@@ -55,11 +55,11 @@ public class FunctionCallToMethodCallRewriter : Cloner {
     }
   }
 
-  public override Statement CloneStmt(Statement stmt) {
+  public override Statement CloneStmt(Statement stmt, bool isReference) {
     if (stmt == null || stmt is not UpdateStmt updateStmt) {
-      return base.CloneStmt(stmt);
+      return base.CloneStmt(stmt, isReference);
     }
-    var clonedUpdate = (UpdateStmt)base.CloneStmt(updateStmt);
+    var clonedUpdate = (UpdateStmt)base.CloneStmt(updateStmt, isReference);
     var newResolvedStmts = new List<Statement>();
     foreach (var resolvedStmt in clonedUpdate.ResolvedStatements) {
       if (!resolvedStmt.IsGhost &&

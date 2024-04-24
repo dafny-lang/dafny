@@ -1,2 +1,3 @@
 git-issue90.dfy(4,6): Error: type for constant 'x' is 'MyInt', but its initialization value type is 'int'
-1 resolution/type errors detected in git-issue90.dfy
+git-issue90.dfy(5,18): Error: type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got MyInt)
+2 resolution/type errors detected in git-issue90.dfy

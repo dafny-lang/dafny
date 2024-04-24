@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolve {
+public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
@@ -23,14 +23,14 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;  // null for a ghost statement
+  [FilledInDuringResolution] public List<BoundedPool> Bounds;  // null for a ghost statement
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
   [FilledInDuringResolution] public List<IVariable> MissingBounds;  // remains "null" if bounds can be found
   // invariant Bounds == null || MissingBounds == null;
-  public class WiggleWaggleBound : ComprehensionExpr.BoundedPool {
+  public class WiggleWaggleBound : BoundedPool {
     public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
     public override int Preference() => 1;
-    public override ComprehensionExpr.BoundedPool Clone(Cloner cloner) {
+    public override BoundedPool Clone(Cloner cloner) {
       return this;
     }
   }
@@ -73,13 +73,17 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     }
   }
 
-  public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
-    base.Resolve(resolver, resolutionContext);
+    base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
+      if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !AssumeToken.IsExplicitAxiom()) {
+        resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, AssumeToken.Token, "assume keyword in assign-such-that statement has no {:axiom} annotation");
+      }
+
       resolver.ResolveAttributes(AssumeToken, resolutionContext);
     }
 
@@ -88,19 +92,17 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
       if (lhs.Resolved != null) {
         resolver.CheckIsLvalue(lhs.Resolved, resolutionContext);
       } else {
-        Contract.Assert(resolver.reporter.ErrorCount > 0);
+        Contract.Assert(resolver.Reporter.HasErrors);
       }
       if (lhs.Resolved is IdentifierExpr ide) {
-        if (lhsSimpleVariables.Contains(ide.Var)) {
+        if (!lhsSimpleVariables.Add(ide.Var)) {
           // syntactically forbid duplicate simple-variables on the LHS
-          resolver.reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
-        } else {
-          lhsSimpleVariables.Add(ide.Var);
+          resolver.Reporter.Error(MessageSource.Resolver, lhs, $"variable '{ide.Var.Name}' occurs more than once as left-hand side of :|");
         }
       }
       // to ease in the verification of the existence check, only allow local variables as LHSs
       if (AssumeToken == null && !(lhs.Resolved is IdentifierExpr)) {
-        resolver.reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
+        resolver.Reporter.Error(MessageSource.Resolver, lhs, "an assign-such-that statement (without an 'assume' clause) currently only supports local-variable LHSs");
       }
     }
 

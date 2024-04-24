@@ -45,7 +45,7 @@ class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
-    var code = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var (code, dafnyFiles, _) = await SynchronousCliCompilation.GetDafnyFiles(options);
     if (code != 0) {
       return code;
     }
@@ -59,9 +59,10 @@ class DafnyDoc {
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = ExitValue.SUCCESS;
-    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath =>
-      FormatCommand.GetFilesForFolder(options, folderPath))).ToList();
-    await Console.Out.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    var folderFiles = (await Task.WhenAll(dafnyFolders.Select(folderPath =>
+      FormatCommand.GetFilesForFolder(options, folderPath)))).SelectMany(x => x);
+    dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
+    await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -70,16 +71,16 @@ class DafnyDoc {
     string err = null;
     Program dafnyProgram = null;
     try {
-      err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out dafnyProgram);
+      (dafnyProgram, err) = await DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options);
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        await Console.Out.WriteLineAsync(e.ToString()).ConfigureAwait(false);
+        await options.OutputWriter.WriteLineAsync(e.ToString()).ConfigureAwait(false);
       }
     }
     if (err != null) {
       exitValue = ExitValue.DAFNY_ERROR;
-      await Console.Out.WriteLineAsync(err);
+      await options.OutputWriter.WriteLineAsync(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
@@ -92,7 +93,7 @@ class DafnyDoc {
       try {
         await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        await Console.Out.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
+        await options.OutputWriter.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
         return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
@@ -805,7 +806,7 @@ class DafnyDoc {
   }
 
   public static bool IsGeneratedName(string name) {
-    return (name.Length > 1 && name[0] == '_') || name.StartsWith("reveal_");
+    return (name.Length > 1 && name[0] == '_') || name.StartsWith(RevealStmt.RevealLemmaPrefix);
   }
 
   public string IndentedHtml(string docstring, bool nothingIfNull = false) {
@@ -1039,7 +1040,7 @@ class DafnyDoc {
 
   public void AnnounceFile(string filename) {
     if (Options.Verbose) {
-      Console.WriteLine("Writing " + filename);
+      Options.OutputWriter.WriteLine("Writing " + filename);
     }
   }
 

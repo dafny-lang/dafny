@@ -1,0 +1,18 @@
+method.dfy(6,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(6,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(7,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(7,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(16,2): Warning: note, this loop has no body
+
+Dafny program verifier finished with 1 verified, 0 errors
+method.dfy(6,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(6,40): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(7,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(7,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+method.dfy(16,2): Warning: note, this loop has no body
+
+Dafny program verifier finished with 1 verified, 0 errors
+method.dfy(6,7): Error: Method _module._default.Compiled has no body so it cannot be compiled
+method.dfy(8,16): Error: Method _module._default.Axiom has no body so it cannot be compiled
+method.dfy(16,2): Error: a loop without a body cannot be compiled
+Translation was aborted because errors were found

@@ -1,3 +1,6 @@
+TestAuditor.dfy(24,25): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
+TestAuditor.dfy(38,2): Warning: assume statement has no {:axiom} annotation
+TestAuditor.dfy(136,2): Warning: assume statement has no {:axiom} annotation
 TestAuditor.dfy(150,9): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
 TestAuditor.dfy(154,7): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
 TestAuditor.dfy(95,4): Warning: note, this forall statement has no body

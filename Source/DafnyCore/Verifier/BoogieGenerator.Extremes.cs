@@ -53,7 +53,7 @@ public partial class BoogieGenerator {
     Contract.Requires(predef != null);
     var co = pp.ExtremePred;
     var tok = pp.tok;
-    var etran = new ExpressionTranslator(this, predef, tok);
+    var etran = new ExpressionTranslator(this, predef, tok, pp);
 
     var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
 
@@ -102,10 +102,10 @@ public partial class BoogieGenerator {
       prefixArgsLimitedM.Add(bvThisIdExpr);
       // add well-typedness conjunct to antecedent
       Type thisType = ModuleResolver.GetReceiverType(tok, pp);
-      Bpl.Expr wh = Bpl.Expr.And(
+      Bpl.Expr wh = BplAnd(
         ReceiverNotNull(bvThisIdExpr),
         GetWhereClause(tok, bvThisIdExpr, thisType, etran, NOALLOC));
-      ante = Bpl.Expr.And(ante, wh);
+      ante = BplAnd(ante, wh);
     }
 
     Bpl.Expr kWhere = null, kId = null, mId = null;
@@ -143,7 +143,7 @@ public partial class BoogieGenerator {
         bvs.Add(bv);
         if (wh != null) {
           // add well-typedness conjunct to antecedent
-          ante = Bpl.Expr.And(ante, wh);
+          ante = BplAnd(ante, wh);
         }
       }
     }
@@ -166,12 +166,12 @@ public partial class BoogieGenerator {
         kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
     tr = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h);
     var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, allS),
       "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
     // forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
     allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, qqqK), coAppl));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, allS),
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, allS),
       "2nd prefix predicate axiom"));
 
     // forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
@@ -188,7 +188,7 @@ public partial class BoogieGenerator {
 
     var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, pp.ReadsHeap ? null : h);
     var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, trueAtZero),
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, trueAtZero),
       "3rd prefix predicate axiom"));
 
 #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT
@@ -211,7 +211,7 @@ public partial class BoogieGenerator {
 
       var trigger2 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, prefixPred_M });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger2, BplImp(smaller, direction));
-      AddRootAxiom(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, monotonicity),
+      AddRootAxiom(new Bpl.Axiom(tok, BplImp(activation, monotonicity),
         "prefix predicate monotonicity axiom"));
 #endif
     // A more targeted monotonicity axiom used to increase the power of automation for proving the limit case for
@@ -237,7 +237,7 @@ public partial class BoogieGenerator {
 
       var trigger3 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, kLessLimit, mLessLimit });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger3, BplImp(kLessM, direction));
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, Bpl.Expr.Imp(activation, monotonicity),
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, BplImp(activation, monotonicity),
         "targeted prefix predicate monotonicity axiom"));
     }
   }
@@ -307,7 +307,7 @@ public partial class BoogieGenerator {
         var smaller = Expression.CreateLess(kprime, k);
         limitCalls = new ForallExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
-          Bounds = new List<ComprehensionExpr.BoundedPool>() { new ComprehensionExpr.AllocFreeBoundedPool(kprimeVar.Type) }
+          Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
       } else {
         // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
@@ -320,7 +320,7 @@ public partial class BoogieGenerator {
         };
         limitCalls = new ExistsExpr(pp.tok, pp.RangeToken, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
-          Bounds = new List<ComprehensionExpr.BoundedPool>() { new ComprehensionExpr.AllocFreeBoundedPool(kprimeVar.Type) }
+          Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
         };
       }
       var a = Expression.CreateImplies(kIsPositive, body);

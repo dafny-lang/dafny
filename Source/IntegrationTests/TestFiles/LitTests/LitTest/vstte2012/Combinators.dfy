@@ -1,4 +1,4 @@
-// RUN: %verify --relax-definite-assignment --warn-deprecation false "%s" > "%t"
+// RUN: %verify --relax-definite-assignment --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Problem 2 concerns an interpreter for the language of S and K combinators.

@@ -1,7 +1,4 @@
-git-issue-697c.dfy(18,15): Error: EvenCell is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in set comprehension.
-git-issue-697c.dfy(9,26): Related location: The constraint is not compilable because a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-git-issue-697c.dfy(19,35): Error: EvenCell is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in map comprehension.
-git-issue-697c.dfy(9,26): Related location: The constraint is not compilable because a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
-git-issue-697c.dfy(20,18): Error: EvenCell is a subset type and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in forall expression.
-git-issue-697c.dfy(9,26): Related location: The constraint is not compilable because a call to a ghost function is allowed only in specification contexts (consider declaring the function without the 'ghost' keyword)
+git-issue-697c.dfy(21,7): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+git-issue-697c.dfy(22,7): Error: map comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+git-issue-697c.dfy(26,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 3 resolution/type errors detected in git-issue-697c.dfy

@@ -106,7 +106,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
 
   private List<Statement> ProcessStmt(Statement statement) {
     newStmtStack.Add(new List<Statement>());
-    var newStatement = CloneStmt(statement);
+    var newStatement = CloneStmt(statement, false);
     var result = new List<Statement> { newStatement };
     if (newStmtStack.Last().Count == 0) {
       newStmtStack.RemoveAt(newStmtStack.Count - 1);
@@ -117,7 +117,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     return result;
   }
 
-  public override Statement CloneStmt(Statement statement) {
+  public override Statement CloneStmt(Statement statement, bool isReference) {
     if (statement == null) {
       return null;
     }
@@ -145,7 +145,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
       case PredicateStmt or ForallStmt or RevealStmt: // always ghost?
         return statement;
       default:
-        return base.CloneStmt(statement);
+        return base.CloneStmt(statement, isReference);
     }
   }
 

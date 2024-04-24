@@ -233,7 +233,7 @@ implementation.
 
 The options relevant to this command are
 - those relevant to the command-line itself
-   - `--warn-as-errors` --- turn all warnings into errors, which alters [dafny's exit code](#sec-exit-codes)
+   - `--allow-warnings` --- return a success [exit code](#sec-exit-codes), even when there are warnings 
 
 - those that affect dafny` as a whole, such as
    - `--cores` --- set the number of cores dafny should use
@@ -280,12 +280,12 @@ Various options control the verification process, in addition to all those descr
    - `--relax-definite-assignment`
    - `--track-print-effects`
    - `--disable-nonlinear-arithmetic`
+   - `--filter-symbol`
 
 - Control of the proof engine
    - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
-   - `--boogie-filter`
    - `--solver-path`
 
 
@@ -356,8 +356,7 @@ the `--input` option on the command-line.
 is an argument to the program being run (and not to dafny itself).
 - If the `--` option is used, then anything after that option is a command-line argument to the program being run.
 
-If more complex build configurations are required, then use `dafny build` and then execute the compiled program, as two separate steps. 
-`dafny run` is primarily intended as a convenient way to run relatively simple Dafny programs.
+During development, users must use `dafny run --allow-warnings` if they want to run their Dafny code when it contains warnings.
 
 Here are some examples:
   - `dafny run A.dfy` -- builds and runs the Main program in `A.dfy` with no command-line arguments
@@ -369,6 +368,9 @@ then runs it with the four command-line arguments `1 2 3 B.dfy`
 then runs it with the three command-line arguments `1 2 3`
   - `dafny run A.dfy 1 2 -- 3 -quiet` -- builds the Main program in `A.dfy` and then runs it with the four command-line arguments `1 2 3 -quiet`
 
+Each time `dafny run` is invoked, the input Dafny program is compiled before it is executed.
+If a Dafny program should be run more than once, it can be faster to use `dafny build`,
+which enables compiling a Dafny program once and then running it multiple times.
 
 **Note:** `dafny run` will typically produce the same results as the executables produced by `dafny build`.  The only expected differences are these:
 - performance --- `dafny run` may not optimize as much as `dafny build`
@@ -1011,6 +1013,13 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br><br><br><br><br>&nbsp;&nbsp;`  var x := m_mod(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  modify this, i; // Temporarily`<br>&nbsp;&nbsp;`  var x: T;     // Temporarily`<br>&nbsp;&nbsp;`  assume B(k, x);`<br>&nbsp;&nbsp;`//  var x := m_mod(k);`<br>&nbsp;&nbsp;`  assert P(x);`
   <br>`modify x, y;`<br>`assert P(x, y, z);` | `assert x != z && y != z;`<br>`modify x, y;`<br>`assert P(x, y, z);`
 
+#### 13.7.1.4. Counterexamples {#sec-counterexamples}
+
+When verification fails, we can rerun Dafny with `--extract-counterexample` flag to get a counterexample that can potentially explain the proof failure.
+Note that Danfy cannot guarantee that the counterexample it reports provably violates the assertion it was generated for (see [^smt-encoding])
+The counterexample takes the form of assumptions that can be inserted into the code to describe the potential conditions under which the given assertion is violated. 
+This output should be inspected manually and treated as a hint.
+
 ### 13.7.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
 
 In this section, we describe techniques to apply in the case when verification is slower than expected, does not terminate, or times out.
@@ -1402,7 +1411,7 @@ We can also classify the assertions extracted by Dafny in a few categories:
 
 * Every value whose type is assigned to a [subset type](#sec-subset-types) yields an _assertion_ that it satisfies the subset type constraint.
 * Every non-empty [subset type](#sec-subset-types) yields an _assertion_ that its witness satisfies the constraint.
-* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`.
+* Every [Assign-such-that operator](#sec-update-and-call-statement) `x :| P(x)` yields an _assertion_ that `exists x :: P(x)`. In case `x :| P(x); Body(x)` appears in an expression and `x` is non-ghost, it also yields `forall x, y | P(x) && P(y) :: Body(x) == Body(y)`.
 * Every recursive function yields an _assertion_ that [it terminates](#sec-loop-termination).
 * Every [match expression](#sec-match-expression) or [alternative if statement](#sec-if-statement) yields an _assertion_ that all cases are covered.
 * Every call to a function or method with a [`requires`](#sec-requires-clause) clause yields _one assertion per requires clause_[^precision-requires-clause]
@@ -1432,7 +1441,7 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 * If the verifier says it is correct,[^smt-encoding] it means that all the assertions hold.
 * If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
   In order to retrieve additional failing assertions, `dafny` will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
-* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, `dafny` may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes `dafny` to make one batch for each assertion.
+* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, `dafny` may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:isolate_assertions}` attribute](#sec-isolate_assertions), which causes `dafny` to make one batch for each assertion.
 
 [^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. `dafny` reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what `dafny` knows.
 
@@ -1448,7 +1457,7 @@ Here is how you can control how `dafny` partitions assertions into batches.
 
 * [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
 * [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
-* [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) on a function or a method generates one assertion batch per assertion
+* [`{:isolate_assertions}`](#sec-isolate_assertions) on a function or a method generates one assertion batch per assertion
 
 We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
 The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
@@ -1528,7 +1537,7 @@ and `dafny generate-tests --verification-coverage-report`,
 indicating which parts of the program were used, not used, or partly
 used in the verification of the entire program.
 
-### 13.7.6. Debugging brittle verification
+### 13.7.6. Debugging brittle verification {#sec-brittle-verification}
 
 When evolving a Dafny codebase, it can sometimes occur that a proof
 obligation succeeds at first only for the prover to time out or report a
@@ -2314,6 +2323,12 @@ and what information it produces about the verification process.
 
 * `--isolate-assertions` - verify assertions individually
 
+* `--extract-counterexample` - if verification fails, report a potential
+  counterexample as a set of assumptions that can be inserted into the code.
+  Note that Danfy cannot guarantee that the counterexample
+  it reports provably violates the assertion or that the assumptions are not
+  mutually inconsistent (see [^smt-encoding]), so this output should be inspected manually and treated as a hint.
+
 Controlling the proof engine:
 
 * `--cores:<n>` - sets the number or percent of the available cores to be used for verification
@@ -2466,13 +2481,6 @@ Legacy options:
 
   * `1` (default) - in the body of prefix lemmas, rewrite any use of a
     focal predicate `P` to `P#[_k-1]`.
-
-* `-extractCounterexample` - control generation of counterexamples. If
-  verification fails, report a detailed counterexample for the first
-  failing assertion. Requires specifying the `-mv` option, to specify
-  where to write the counterexample, as well as the
-  `-proverOpt:O:model_compress=false` and
-  `-proverOpt:O:model.completion=true` options.
 
 ### 13.9.8. Controlling compilation {#sec-controlling-compilation}
 
@@ -2641,8 +2649,6 @@ terminology.
 
 * `--solver-plugin` - specifies a plugin to use as the SMT solver, instead of an external pdafny translaterocess
 
-* `--boogie-filter` - restricts the set of verification tasks (for debugging) 
-
 * `--boogie` - arguments to send to boogie
 
 Legacy options:
@@ -2679,7 +2685,7 @@ Legacy options:
 
 * `-vcsSplitOnEveryAssert` - prove each (explicit or implicit) assertion
   in each procedure separately. See also the attribute
-  [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) for
+  [`{:isolate_assertions}`](#sec-isolate_assertions) for
   restricting this option on specific procedures. By default, Boogie
   attempts to prove that every assertion in a given procedure holds all
   at once, in a single query to an SMT solver. This usually performs

@@ -15,4 +15,7 @@ class nat:
     @staticmethod
     def default():
         return int(0)
+    def _Is(source__):
+        d_0_x_: int = source__
+        return (0) <= (d_0_x_)
 

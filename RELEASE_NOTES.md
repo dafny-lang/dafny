@@ -2,6 +2,117 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.5.0
+
+## New features
+
+- Add the option `--include-test-runner` to `dafny translate`, to enable getting the same result as `dafny test` when doing manual compilation. (https://github.com/dafny-lang/dafny/pull/3818)
+
+- - Fix: verification in the IDE no longer fails for iterators
+  - Fix: the IDE now provides feedback when verification fails to run, for example due to a bad solver path
+  - Fix: let the IDE correctly use the solver-path option when it's specified in a project file
+  - Feat: improve the order of verification diagnostics emitted by the Dafny CLI, so that they now always follow the line order of the program.
+  (https://github.com/dafny-lang/dafny/pull/4798)
+
+- - Add an option `--filter-position` to the `dafny verify` command. The option filters what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number. For example, `dafny verify dfyconfig.toml --filter-position=source1.dfy:5` will only verify things that range over line 5 in the file `source1.dfy`. In combination with ``--isolate-assertions`, individual assertions can be verified by filtering on the line that contains them. When processing a single file, the filename can be skipped, for example: `dafny verify MyFile.dfy --filter-position=:23`
+  - Add an option `--filter-symbol` to the `dafny verify` command, that only verifies symbols whose fully qualified name contains the given argument. For example, `dafny verify dfyconfig.toml --filter-symbol=MyModule` will verify everything inside `MyModule`.
+  - The option `--boogie-filter` has been removed in favor of --filter-symbol
+  (https://github.com/dafny-lang/dafny/pull/4816)
+
+- Add a `json` format to those supported by `--log-format` and `/verificationLogger`, for producing thorough, machine readable logs of verification results. (https://github.com/dafny-lang/dafny/pull/4951)
+
+- - Flip the behavior of `--warn-deprecation` and change the name to `--allow-deprecation`, so the default is now false, which is standard for boolean options.
+  - When using `--allow-deprecation`, deprecated code is shown using tooltips in the IDE, and on the CLI when using `--show-tooltips`.
+  - Replace the option `--warn-as-error` with the option `--allow-warnings`. The new option, when false, the default value, causes Dafny to stop generating executable output and return a failure exit code, when warnings occur in the program. Contrary to the previous `--warn-as-error` option, warnings are always reported as warnings.
+    - During development, users must use `dafny run --allow-warnings` if they want to run their Dafny code when it contains warnings.
+    - If users have builds that were passing with warnings, they have to add `--allow-warnings` to allow them to still pass. 
+    - If users upgrade to a new Dafny version, and are not using `--allow-warnings`, and do not want to migrate off of deprecated features, they will have to use `--allow-deprecation`.
+  - When using the legacy CLI, the option /warningsAsErrors now has the behavior of --allow-warnings=false
+  - A doo file that was created using `--allow-warnings` causes a warning if used by a consumer that does not use it.
+  (https://github.com/dafny-lang/dafny/pull/4971)
+
+- The new `{:contradiction}` attribute can be placed on an `assert` statement to indicate that it forms part of an intentional proof by contradiction and therefore shouldn't be warned about when `--warn-contradictory-assumptions` is turned on. (https://github.com/dafny-lang/dafny/pull/5001)
+
+- Function and method parameters and return types, and datatype constructor arguments, can now have attributes. By default, there are no attributes that Dafny recognizes in these positions, but custom back-ends can use this feature to get extra information from the source files. (https://github.com/dafny-lang/dafny/pull/5032)
+
+- Under the CLI option `--general-newtypes`, the base type of a `newtype` declaration can now be (`int` or `real`, as before, or) `bool`, `char`, or a bitvector type.
+
+  `as` and `is` expressions now support more types than before. In addition, run-time type tests are supported for `is` expressions, provided type parameters are injective (as was already required) and provided the constraints of any subset type or newtype is compilable. Note, although both `as` and `is` allow many more useful cases than before, using `--general-newtypes` will also forbid some unusual cases that were previously allowed. Any such case that is now forbidden can still be done by doing the `as`/`is` via `int`.
+  (https://github.com/dafny-lang/dafny/pull/5061)
+
+- Allow newtype declarations to be based on set/iset/multiset/seq. (https://github.com/dafny-lang/dafny/pull/5133)
+
+## Bug fixes
+
+- Fixed crash caused by cycle in type declaration (https://github.com/dafny-lang/dafny/pull/4471)
+
+- Fix resolution of unary minus in new resolver (https://github.com/dafny-lang/dafny/pull/4737)
+
+- The command line and the language server now use the same counterexample-related Z3 options. (https://github.com/dafny-lang/dafny/pull/4792)
+
+- Dafny no longer crashes when required parameters occur after optional ones. (https://github.com/dafny-lang/dafny/pull/4809)
+
+- Use defensive coding to prevent a crash in the IDE that could occur in the context of code actions. (https://github.com/dafny-lang/dafny/pull/4818)
+
+- Fix null-pointer problem in new resolver (https://github.com/dafny-lang/dafny/pull/4875)
+
+- Fixed a crash that could occur when a case body of a match that was inside a loop, had a continue or break statement. (https://github.com/dafny-lang/dafny/pull/4894)
+
+- Compile run-time constraint checks for newtypes in comprehensions (https://github.com/dafny-lang/dafny/pull/4919)
+
+- Fix null dereference in constant-folding invalid string-indexing expressions (https://github.com/dafny-lang/dafny/pull/4921)
+
+- Check for correct usage of type characteristics in specifications and other places where they were missing.
+
+  This fix will cause build breaks for programs with missing type characteristics (like `(!new)` and `(0)`). Any such error message is accompanied with a hint about what type characterics need to be added where.
+  (https://github.com/dafny-lang/dafny/pull/4928)
+
+- Initialize additional fields in the AST (https://github.com/dafny-lang/dafny/pull/4930)
+
+- Fix crash when a function/method with a specification is overridden in an abstract type. (https://github.com/dafny-lang/dafny/pull/4954)
+
+- Fix crash for lookup of non-existing member in new resolver (https://github.com/dafny-lang/dafny/pull/4955)
+
+- Fix: check that subset-type variable's type is determined (resolver refresh).
+  Fix crash in verifier when there was a previous error in determining subset-type/newtype base type.
+  Fix crash in verifier when a subset type has no explicit `witness` clause and has a non-reference trait as its base type.
+  (https://github.com/dafny-lang/dafny/pull/4956)
+
+- The `{:rlimit N}` attribute, which multiplied `N` by 1000 before sending it to Z3, is deprecated in favor of the `{:resource_limit N}` attribute, which can accept string arguments with exponential notation for brevity.  The `--resource-limit` and `/rlimit` flags also now omit the multiplication, and the former allows exponential notation. (https://github.com/dafny-lang/dafny/pull/4975)
+
+- Allow a datatype to depend on traits without being told "datatype has no instances" (https://github.com/dafny-lang/dafny/pull/4997)
+
+- Don't consider `:= *` to be a definite assignment for non-ghost variables of a `(00)` type (https://github.com/dafny-lang/dafny/pull/5024)
+
+- Detect the same ghost usage in initializing assignments as in other expressions. The effect of this fix is to allow more iset/imap comprehensions to be compiled.
+
+  Also, report errors if the LHS of `:=` in compiled `map`/`imap` comprehensions contains ghosts.
+  (https://github.com/dafny-lang/dafny/pull/5041)
+
+- Escape names of nested modules in C# and Java (https://github.com/dafny-lang/dafny/pull/5049)
+
+- A parent trait that is a reference type can now be named via `import opened`.
+
+  Implicit conversions between a datatype and its parent traits no longer crashes the verifier.
+
+  (Dis)equality expressions of a (co)datatype and its parent traits no longer crashes the verifier.
+  (https://github.com/dafny-lang/dafny/pull/5058)
+
+- Fixed support for newtypes as sequence comprehension lengths in Java (https://github.com/dafny-lang/dafny/pull/5065)
+
+- Don't emit an error message for a `function-by-method` with unused type parameters. (https://github.com/dafny-lang/dafny/pull/5068)
+
+- The syntax of a predicate definition must always include parentheses. (https://github.com/dafny-lang/dafny/pull/5069)
+
+- Termination override check for certain non-reference trait implementations (https://github.com/dafny-lang/dafny/pull/5087)
+
+- Malformed Python code for some functions involving lambdas (https://github.com/dafny-lang/dafny/pull/5093)
+
+- Let verifier understand opaque function overrides, supporting both when the overridden function is opaque and non-opaque. Revealing such a function for one overriding type has the effect of revealing it for all overriding types.
+
+  Also, forbid the case where a function is opaque in a parent trait and the function override is not opaque. (Previously, this had caused a crash.)
+  (https://github.com/dafny-lang/dafny/pull/5111)
+
 # 4.4.0
 
 ## New features

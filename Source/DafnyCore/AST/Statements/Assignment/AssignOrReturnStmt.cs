@@ -45,7 +45,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     KeywordToken = cloner.AttributedTok(original.KeywordToken);
 
     if (cloner.CloneResolvedFields) {
-      ResolvedStatements = original.ResolvedStatements.Select(cloner.CloneStmt).ToList();
+      ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
@@ -112,7 +112,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   /// </summary>
   public override void Resolve(ModuleResolver resolver, ResolutionContext resolutionContext) {
     base.Resolve(resolver, resolutionContext);
-    // TODO Do I have any responsibilities regarding the use of resolutionContext? Is it mutable?
+
+    ResolveKeywordToken(resolver, resolutionContext);
 
     // We need to figure out whether we are using a status type that has Extract or not,
     // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
@@ -132,7 +133,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         if (call.Outs.Count != 0) {
           firstType = call.Outs[0].Type.Subst(typeMap);
         } else {
-          resolver.reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
+          resolver.Reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value, but the method returns nothing.", call.Name);
         }
       } else {
         // We're looking at a call to a function. Treat it like any other expression.
@@ -145,46 +146,46 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
 
     var method = (Method)resolutionContext.CodeContext;
     if (method.Outs.Count == 0 && KeywordToken == null) {
-      resolver.reporter.Error(MessageSource.Resolver, Tok, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
+      resolver.Reporter.Error(MessageSource.Resolver, Tok, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
       return;
     }
     if (firstType != null) {
       firstType = resolver.PartiallyResolveTypeForMemberSelection(Rhs.tok, firstType);
       if (firstType.AsTopLevelTypeWithMembers != null) {
         if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "member IsFailure does not exist in {0}, in :- statement", firstType);
           return;
         }
         expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
         if (expectExtract && call == null && Lhss.Count != 1 + Rhss.Count) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "number of lhs ({0}) must match number of rhs ({1}) for a rhs type ({2}) with member Extract",
             Lhss.Count, 1 + Rhss.Count, firstType);
           return;
         } else if (expectExtract && call != null && Lhss.Count != call.Outs.Count) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) with member Extract",
             Lhss.Count, call.Outs.Count, firstType);
           return;
 
         } else if (!expectExtract && call == null && Lhss.Count != Rhss.Count) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "number of lhs ({0}) must be one less than number of rhs ({1}) for a rhs type ({2}) without member Extract", Lhss.Count, 1 + Rhss.Count, firstType);
           return;
 
         } else if (!expectExtract && call != null && Lhss.Count != call.Outs.Count - 1) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) without member Extract", Lhss.Count, call.Outs.Count - 1, firstType);
           return;
         }
       } else {
-        resolver.reporter.Error(MessageSource.Resolver, Tok,
+        resolver.Reporter.Error(MessageSource.Resolver, Tok,
           $"The type of the first expression to the right of ':-' could not be determined to be a failure type (got '{firstType}')");
         return;
       }
     } else {
-      resolver.reporter.Error(MessageSource.Resolver, Tok,
+      resolver.Reporter.Error(MessageSource.Resolver, Tok,
         "Internal Error: Unknown failure type in :- statement");
       return;
     }
@@ -192,7 +193,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     Expression lhsExtract = null;
     if (expectExtract) {
       if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
-        resolver.reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value", caller.Name);
+        resolver.Reporter.Error(MessageSource.Resolver, Rhs.tok, "Expected {0} to have a Success/Failure output value", caller.Name);
         return;
       }
 
@@ -205,7 +206,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         lhsExtract = new ExprDotName(lexr.tok, id, lexr.MemberName, lex == null ? null : lex.OptTypeArguments);
       } else if (lhsResolved is SeqSelectExpr lseq) {
         if (!lseq.SelectOne || lseq.E0 == null) {
-          resolver.reporter.Error(MessageSource.Resolver, Tok,
+          resolver.Reporter.Error(MessageSource.Resolver, Tok,
             "Element ranges not allowed as l-values");
           return;
         }
@@ -228,13 +229,25 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         // LHS failed to resolve. Abort trying to resolve assign or return stmt
         return;
       } else {
-        throw new InvalidOperationException("Internal error: unexpected option in AssignOrReturnStmt.Resolve");
+        throw new InvalidOperationException("Internal error: unexpected option in ResolveAssignOrReturnStmt");
       }
     }
 
     DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
     ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
-    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken != null);
+    resolver.EnsureSupportsErrorHandling(Tok, firstType, expectExtract, KeywordToken?.Token.val);
+  }
+
+  public void ResolveKeywordToken(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+    if (KeywordToken == null) {
+      return;
+    }
+
+    if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && KeywordToken.Token.val == "assume" && !KeywordToken.IsExplicitAxiom()) {
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.none, KeywordToken.Token, "assume keyword in update-with-failure statement has no {:axiom} annotation");
+    }
+
+    resolver.ResolveAttributes(KeywordToken, resolutionContext);
   }
 
   /// <summary>
@@ -279,17 +292,18 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var notFailureExpr = new UnaryOpExpr(Tok, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
+      var token = KeywordToken.Token;
+      var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Tok, temp, "IsFailure"));
       Statement ss = null;
-      if (KeywordToken.Token.val == "expect") {
+      if (token.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new RangeToken(Tok, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
-      } else if (KeywordToken.Token.val == "assume") {
-        ss = new AssumeStmt(new RangeToken(Tok, EndToken), notFailureExpr, KeywordToken.Attrs);
-      } else if (KeywordToken.Token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(Tok, EndToken), notFailureExpr, null, null, KeywordToken.Attrs);
+        ss = new ExpectStmt(new RangeToken(token, EndToken), notFailureExpr, new IdentifierExpr(Tok, temp), KeywordToken.Attrs);
+      } else if (token.val == "assume") {
+        ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+      } else if (token.val == "assert") {
+        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, null, KeywordToken.Attrs);
       } else {
-        Contract.Assert(false, $"Invalid token in :- statement: {KeywordToken.Token.val}");
+        Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
       }
       ResolvedStatements.Add(ss);
     } else {

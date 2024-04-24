@@ -1,5 +1,5 @@
 // UNSUPPORTED: windows
-// RUN: %exits-with 4 %verify --manual-triggers "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-axioms --manual-triggers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 class C {
   var data: int

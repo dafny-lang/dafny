@@ -24,6 +24,7 @@ method Foo() returns (s: Option<int>) {
 
     var projectSource = @"
 [options]
+warn-deprecation = true
 standard-libraries = true";
 
     var withoutStandardLibraries = CreateAndOpenTestDocument(source);

@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
+public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope {
   public override string WhatKind => Reads.Expressions.Count != 0 ? "lambda" : Range != null ? "partial lambda" : "total lambda";
 
   public Expression Body => Term;
@@ -84,4 +84,6 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr> {
 
     return true;
   }
+
+  public string Designator => "lambda";
 }

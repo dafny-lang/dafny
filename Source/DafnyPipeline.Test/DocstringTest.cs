@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration;
-using Bpl = Microsoft.Boogie;
-using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
@@ -38,8 +37,8 @@ namespace DafnyPipeline.Test {
     private Newlines currentNewlines;
 
     [Fact]
-    void DocstringWorksForPredicates() {
-      DocstringWorksFor(@"
+    async Task DocstringWorksForPredicates() {
+      await DocstringWorksFor(@"
 predicate p1()
   // Always true. Every time.
   ensures p1() == true
@@ -60,8 +59,8 @@ predicate p3(): (y: bool)
       });
     }
     [Fact]
-    public void DocstringWorksForFunctions() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForFunctions() {
+      await DocstringWorksFor(@"
 function Test1(i: int): int
   // Test1 computes an int
   // It takes an int and adds 1 to it
@@ -128,8 +127,8 @@ function Test11(i: int): int
     }
 
     [Fact]
-    public void DocstringWorksForPredicate() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForPredicate() {
+      await DocstringWorksFor(@"
 class X {
   static predicate Test1(i: int)
     // Test1 checks if an int
@@ -148,8 +147,8 @@ class X {
     }
 
     [Fact]
-    public void DocstringWorksForMethodsAndLemmas() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForMethodsAndLemmas() {
+      await DocstringWorksFor(@"
 /** ComputeThing prints something to the screen */
 method ComputeThing(i: int) returns (j: int)
 { print i; }
@@ -177,8 +176,8 @@ method ComputeThing4(i: int)
       });
     }
     [Fact]
-    public void DocstringWorksForConst() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForConst() {
+      await DocstringWorksFor(@"
 class X {
   const x2 := 29
   // The biggest prime number less than 30
@@ -197,8 +196,8 @@ class X {
     }
 
     [Fact]
-    public void DocstringWorksForSubsetType() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForSubsetType() {
+      await DocstringWorksFor(@"
 type Odd = x: int | x % 2 == 1 witness 1
 // Type of numbers that are not divisible by 2 
 
@@ -261,8 +260,8 @@ type AbstractType2
     }
 
     [Fact]
-    public void DocstringWorksForDatatypes() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForDatatypes() {
+      await DocstringWorksFor(@"
 // Unrelated comment
 datatype State =
   // A typical log message from a process monitoring
@@ -294,8 +293,8 @@ datatype State2 =
 
 
     [Fact]
-    public void DocstringWorksForClassAndTraits() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForClassAndTraits() {
+      await DocstringWorksFor(@"
 trait X
 // A typical base class
 {}
@@ -328,8 +327,8 @@ class A2 extends T
 
 
     [Fact]
-    public void DocstringWorksForExport() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForExport() {
+      await DocstringWorksFor(@"
 module Test {
   /** You only get the signatures of f and g */
   export hidden provides f
@@ -360,8 +359,8 @@ module Test {
     }
 
     [Fact]
-    public void DocstringWorksForModules() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForModules() {
+      await DocstringWorksFor(@"
 // Unattached comment
 module A
   // A is the most interesting module
@@ -384,8 +383,8 @@ abstract module C
     }
 
     [Fact]
-    public void DocstringWorksForIterators() {
-      DocstringWorksFor(@"
+    public async Task DocstringWorksForIterators() {
+      await DocstringWorksFor(@"
 /** Iter is interesting */
 iterator Iter(x: int) yields (y: int)
   requires A: 0 <= x
@@ -421,13 +420,13 @@ iterator Iter2(x: int) yields (y: int)
       }
     }
 
-    protected void DocstringWorksFor(string source, string nodeTokenValue, string? expectedDocstring) {
-      DocstringWorksFor(source, new List<(string nodeTokenValue, string? expectedDocstring)>() {
+    protected Task DocstringWorksFor(string source, string nodeTokenValue, string? expectedDocstring) {
+      return DocstringWorksFor(source, new List<(string nodeTokenValue, string? expectedDocstring)>() {
         (nodeTokenValue, expectedDocstring)
       });
     }
 
-    protected void DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
+    protected async Task DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
       var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(output));
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
@@ -437,8 +436,8 @@ iterator Iter2(x: int) yields (y: int)
         var programString = AdjustNewlines(source);
 
         var reporter = new BatchErrorReporter(options);
-        var dafnyProgram = Utils.Parse(reporter, programString, false);
-        if (reporter.ErrorCount > 0) {
+        var dafnyProgram = await Utils.Parse(reporter, programString, false);
+        if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
           Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
         }

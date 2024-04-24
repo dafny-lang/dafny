@@ -38,4 +38,17 @@ namespace Microsoft.Dafny {
       this.errorFormatStringProducer = errorFormatStringProducer;
     }
   }
+
+  public abstract class OptionalErrorPreTypeConstraint : PreTypeConstraint {
+    public readonly bool ReportErrors;
+    public OptionalErrorPreTypeConstraint(IToken tok, string errorFormatString, PreTypeConstraint baseError, bool reportErrors)
+      : base(tok, errorFormatString, baseError) {
+      ReportErrors = reportErrors;
+    }
+
+    public OptionalErrorPreTypeConstraint(IToken tok, Func<string> errorFormatStringProducer, bool reportErrors)
+      : base(tok, errorFormatStringProducer) {
+      ReportErrors = reportErrors;
+    }
+  }
 }

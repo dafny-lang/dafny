@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --warn-deprecation:false
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation
 
 
 // ----- Stream

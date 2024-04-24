@@ -50,4 +50,6 @@ static class TestCommand {
     });
     return result;
   }
+
+  public static void EnsureStaticConstructorHasRun() { }
 }

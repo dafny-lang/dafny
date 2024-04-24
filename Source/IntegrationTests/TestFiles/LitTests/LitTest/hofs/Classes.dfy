@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
@@ -11,7 +11,7 @@ class C {
 
 method K() {
   var f := C.Static;
-  var o : object?;
+  var o : object? := *;
   assert o !in f.reads();
   assert f.requires();
   assert f();

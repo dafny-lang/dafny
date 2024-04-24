@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate p(i: int)

@@ -17,6 +17,11 @@ public class Program : TokenNode {
 
   public bool HasParseErrors { get; set; }
   public readonly string FullName;
+  /// <summary>
+  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
+  /// and use it to set this field. 
+  /// </summary>
+  public Dictionary<ModuleDefinition, ModuleDefinition> Replacements = new();
 
   // Resolution essentially flattens the module hierarchy, for
   // purposes of translation and compilation.

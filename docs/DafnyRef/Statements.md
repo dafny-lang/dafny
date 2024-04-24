@@ -1527,15 +1527,16 @@ variable `i` becomes smaller each loop iteration, and is bounded below by
 zero. When `i` becomes 0, the lower bound of the well-founded order, control
 flow exits the loop.
 
-This is fine, except the loop is backwards from most loops, which
+This is fine, except the loop is backwards compared to most loops, which
 tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
 <!-- %check-verify -->
 ```dafny
-method m(m: nat, n: int) {
-  assume m <= n;
+method m(m: nat, n: int) 
+  requires m <= n 
+{
   var i := m;
   while i < n
     invariant 0 <= i <= n
@@ -1879,14 +1880,10 @@ the program required the proposition. By using the `assume` statement
 the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
-An `assume` statement cannot be compiled. In fact, the compiler
-will complain if it finds an `assume` anywhere.
-
-Using an `{:axiom}` attribute makes the claim that the assume statement is
-OK because it is known outside the Dafny program to be true.
-The verifier will not complain about it, but it is the user's 
-responsibility to be absolutely sure that the proposition is
-indeed true.
+To help the user not forget about that last step, a warning is emitted for any assume statement.
+Adding the `{:axiom}` attribute to the assume will suppress the warning,
+indicating the user takes responsibility for being absolutely sure 
+that the proposition is indeed true.
 
 Using `...` as the argument of the statement is deprecated.
 

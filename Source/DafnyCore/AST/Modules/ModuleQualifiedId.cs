@@ -28,7 +28,9 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
-    Root = original.Root;
+    if (cloner.CloneResolvedFields) {
+      Root = original.Root;
+    }
   }
 
   public string RootName() {
@@ -98,6 +100,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
     if (Root == null) {
       return null;
     }
+
     var decl = Root;
     for (int k = 1; k < Path.Count; k++) {
       ModuleSignature p;

@@ -1,3 +1,2 @@
-git-issue-401a.dfy(5,7): Error: Cannot find specified prover: Output/binz/z3
-
-Dafny program verifier finished with 0 verified, 0 errors, 1 solver exceptions
+CLI: Error: Z3 not found at Output/binz/z3. Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-4.12.1` or `bin/z3-4.12.1.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.
+1 resolution/type errors detected in git-issue-401a.dfy

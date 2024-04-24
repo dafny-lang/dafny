@@ -1,0 +1,7 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+
+Verifying foo (correctness) ...
+  [1 proof obligation]  error
+git-issue59.legacy.dfy(7,17): Error: value does not satisfy the subset constraints of 'byte'
+
+Dafny program verifier finished with 0 verified, 1 error

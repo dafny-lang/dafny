@@ -1,16 +1,17 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Linq;
+using DafnyCore;
 using VCGeneration;
 
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, bool useRange = true) {
-    var usingSnippets = reporter.Options.Get(DafnyConsolePrinter.ShowSnippets);
+  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
+    var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
-      if (auxiliaryInformation.Category == RelatedMessageCategory) {
+      if (auxiliaryInformation.Category == RelatedMessageCategory || auxiliaryInformation.Category == AssertedExprCategory) {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg, usingSnippets));
@@ -22,6 +23,10 @@ public static class ErrorReporterExtensions {
           reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
         }
       }
+    }
+
+    if (counterexampleModel != null) {
+      error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
 
     if (error.Tok is NestedToken { Inner: var innerToken, Message: var msg }) {
@@ -41,6 +46,7 @@ public static class ErrorReporterExtensions {
   private const string RelatedLocationCategory = "Related location";
   public const string RelatedLocationMessage = RelatedLocationCategory;
   private const string RelatedMessageCategory = "Related message";
+  public const string AssertedExprCategory = "Asserted expression";
   public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null).FailureDescription;
   private static string FormatRelated(string related) {
     return $"Could not prove: {related}";
@@ -57,6 +63,8 @@ public static class ErrorReporterExtensions {
         message = FormatRelated(rangeToken.PrintOriginal());
       }
     }
+
+    message ??= "this proposition could not be proved";
 
     yield return new DafnyRelatedInformation(token, message);
     if (inner != null) {

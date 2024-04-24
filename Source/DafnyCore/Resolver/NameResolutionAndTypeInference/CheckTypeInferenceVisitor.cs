@@ -29,14 +29,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok,
-            $"{newtypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
+            $"base type of {newtypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
-          $"{subsetTypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
+          $"base type of {subsetTypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
@@ -189,7 +189,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           ? e.Function.EnclosingClass.TypeArgs[i]
           : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
         if (!IsDetermined(p.Normalize())) {
-          var hint = e.Name.StartsWith("reveal_")
+          var hint = e.Name.StartsWith(RevealStmt.RevealLemmaPrefix)
             ? ". If you are making an opaque function, make sure that the function can be called."
             : "";
           resolver.ReportError(ResolutionErrors.ErrorId.r_function_type_parameter_undetermined, e.tok,
@@ -216,30 +216,42 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
     } else if (expr is ConversionExpr) {
       var e = (ConversionExpr)expr;
-      if (e.ToType.IsRefType) {
-        var fromType = e.E.Type;
-        Contract.Assert(resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType);
-        if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
-          // looks good
-        } else {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_cast, e.tok,
-            "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed",
-            e.ToType, fromType);
+      CheckTypeIsDetermined(e.tok, e.ToType, "as-expression");
+
+      // In the resolver refresh, the restrictions on "as" are checked as a post-inference confirmation. But in the
+      // legacy resolver, the restrictions on "as" are checked here.
+      if (!resolver.Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        if (e.ToType.IsRefType) {
+          var fromType = e.E.Type;
+          Contract.Assert(resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType);
+          if (fromType.IsSubtypeOf(e.ToType, false, true) || e.ToType.IsSubtypeOf(fromType, false, true)) {
+            // looks good
+          } else {
+            resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_cast, e.tok,
+              "a type cast to a reference type ({0}) must be from a compatible type (got {1}); this cast could never succeed",
+              e.ToType, fromType);
+          }
         }
       }
     } else if (expr is TypeTestExpr) {
       var e = (TypeTestExpr)expr;
-      var fromType = e.E.Type;
-      if (fromType.IsSubtypeOf(e.ToType, false, true)) {
-        // This test is allowed and it always returns true
-      } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
-        resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_test, e.tok,
-          "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
-      } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
-        // it's fine
-      } else if (!e.ToType.IsRefType) {
-        resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.tok,
-          "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
+      CheckTypeIsDetermined(e.tok, e.ToType, "is-expression");
+
+      // In the resolver refresh, the restrictions on "is" are checked as a post-inference confirmation. But in the
+      // legacy resolver, the restrictions on "is" are checked here.
+      if (!resolver.Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        var fromType = e.E.Type;
+        if (fromType.IsSubtypeOf(e.ToType, false, true)) {
+          // This test is allowed and it always returns true
+        } else if (!e.ToType.IsSubtypeOf(fromType, false, true)) {
+          resolver.ReportError(ResolutionErrors.ErrorId.r_never_succeeding_type_test, e.tok,
+            "a type test to '{0}' must be from a compatible type (got '{1}')", e.ToType, fromType);
+        } else if (resolver.Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy && (fromType.IsTraitType || fromType.Equals(e.ToType))) {
+          // it's fine
+        } else if (!e.ToType.IsRefType && !e.ToType.IsTraitType) {
+          resolver.ReportError(ResolutionErrors.ErrorId.r_unsupported_type_test, e.tok,
+            "a non-trivial type test is allowed only for reference types (tried to test if '{1}' is a '{0}')", e.ToType, fromType);
+        }
       }
     } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
       if (expr is UnaryOpExpr uop) {
@@ -353,7 +365,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
           } else {
-            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.IsBitVectorType);
+            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
             zero = new LiteralExpr(e.tok, 0);
           }
           zero.Type = expr.Type;

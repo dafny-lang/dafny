@@ -17,6 +17,7 @@ public static class BuildCommand {
                Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
+
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
       options.Compile = true;
       options.RunAfterCompile = false;

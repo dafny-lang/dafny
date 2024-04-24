@@ -147,7 +147,7 @@ jobs:
 
     - name: Create GitHub release (release)
       if: ${{ !inputs.prerelease }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}
@@ -162,7 +162,7 @@ jobs:
     # This step is separate from the release one because the refman is omitted
     - name: Create GitHub release (prerelease)
       if: ${{ inputs.prerelease }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}

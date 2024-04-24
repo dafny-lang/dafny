@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --allow-warnings --relax-definite-assignment
 
 newtype NT = x | 0 <= x < 100
 newtype UT = NT
@@ -40,6 +40,8 @@ method Main()
   print x0, " ", x1, " ", x2, " ", x3, " ", x4, " ", x5, "\n";
 
   EnumerateOverInfiniteCollections();
+  Casts();
+  MakeSureBoundsAreDiscoveredWithoutFirstSimplifyingTheExpression();
 }
 
 predicate P(x: int)
@@ -102,4 +104,20 @@ method EnumerateOverInfiniteCollections() {
   // Once, the compilation of the following was rejected, because an imap was not considered enumerable. But it is.
   var z :| z in w && LessThanFour(z); // an imap is enumerable, so it's compilable
   print z, "\n"; // 3
+}
+
+method Casts() {
+  // casts around just the variable is fine
+  print forall x :: -12 <= x && (x as int - 2) as int < 0 ==> LessThanFour(x), " "; // true
+  print forall x :: 12 <= x && (x as int - 20) as int < 0 ==> LessThanFour(x), "\n"; // false
+  // casts among subset types are also fine
+  print forall x: int :: 12 <= x && (x as int - 2) as nat < 24 ==> LessThanFour(x), " "; // false
+  print forall x: nat :: 12 <= x && (x as int - 20) as int < 0 ==> LessThanFour(x), "\n"; // false
+  // not a cast, but involving arithmetic expressions
+  print forall x: int :: -100 <= x - 3 < -11 ==> LessThanFour(x as int), "\n"; // true
+}
+
+method MakeSureBoundsAreDiscoveredWithoutFirstSimplifyingTheExpression() {
+  var b := forall n': NT :: true;
+  print b, "\n"; // true
 }

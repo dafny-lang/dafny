@@ -14,7 +14,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
   public List<Expression> EffectiveEnsuresClauses;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
 
-  [FilledInDuringResolution] public List<ComprehensionExpr.BoundedPool> Bounds;
+  [FilledInDuringResolution] public List<BoundedPool> Bounds;
   // invariant: if successfully resolved, Bounds.Count == BoundVars.Count;
 
   /// <summary>
@@ -53,7 +53,7 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     BoundVars = original.BoundVars.ConvertAll(bv => cloner.CloneBoundVar(bv, false));
     Range = cloner.CloneExpr(original.Range);
     Ens = original.Ens.Select(cloner.CloneAttributedExpr).ToList();
-    Body = cloner.CloneStmt(original.Body);
+    Body = cloner.CloneStmt(original.Body, false);
     Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
@@ -143,8 +143,8 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
 
   public List<BoundVar> UncompilableBoundVars() {
     Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
-    var v = ComprehensionExpr.BoundedPool.PoolVirtues.Finite | ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable;
-    return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
+    var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
+    return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

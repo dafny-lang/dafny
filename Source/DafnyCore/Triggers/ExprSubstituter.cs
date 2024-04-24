@@ -46,10 +46,10 @@ namespace Microsoft.Dafny {
 
         var newBoundVars = new List<BoundVar>(e.BoundVars);
         if (newBounds == null) {
-          newBounds = new List<ComprehensionExpr.BoundedPool>();
+          newBounds = new List<BoundedPool>();
         } else if (newBounds == e.Bounds) {
           // create a new list with the same elements, since the .Add operations below would otherwise add elements to the original e.Bounds
-          newBounds = new List<ComprehensionExpr.BoundedPool>(newBounds);
+          newBounds = new List<BoundedPool>(newBounds);
         }
 
         // conjoin all the new equalities to the range of the quantifier
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
           var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
           newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange);
           newBoundVars.Add((BoundVar)entry.Item2.Var);
-          newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
+          newBounds.Add(new ExactBoundedPool(entry.Item1));
         }
 
         QuantifierExpr newExpr;

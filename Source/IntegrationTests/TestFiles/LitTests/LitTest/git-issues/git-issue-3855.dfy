@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify --show-snippets:false --warn-deprecation:false --use-basename-for-filename "%s" > "%t"
+// RUN: %exits-with 4 %baredafny verify --show-snippets:false --allow-axioms --allow-deprecation --use-basename-for-filename "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Nearly verbatim copy of the text case given in the issue
 //SIMULADA 
@@ -637,7 +637,7 @@ function partitionOfJustHeapRegions(os : set<Object>) : (partition : map<Region,
 }
 
 
-method {:resource_limit 30000000} {:vcs_split_on_every_assert} fNullify(o : Object, f : string)
+method {:resource_limit 30000000} {:isolate_assertions} fNullify(o : Object, f : string)
     requires o  in objects
     requires f  in o.fieldModes
     requires f  in o.fields

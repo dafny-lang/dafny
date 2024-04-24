@@ -65,7 +65,7 @@ datatype TestDatatype = TestConstructor
 
 trait TestTrait {}
 
-predicate TestPredicate { false }", "test-workspace-symbols.dfy", false);
+predicate TestPredicate() { false }", "test-workspace-symbols.dfy", false);
 
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 

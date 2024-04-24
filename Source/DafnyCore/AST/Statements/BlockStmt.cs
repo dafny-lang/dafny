@@ -12,7 +12,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
   }
 
   protected BlockStmt(Cloner cloner, BlockStmt original) : base(cloner, original) {
-    Body = original.Body.Select(cloner.CloneStmt).ToList();
+    Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
   public BlockStmt(RangeToken rangeToken, [Captured] List<Statement> body)

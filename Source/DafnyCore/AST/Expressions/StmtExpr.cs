@@ -19,7 +19,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
 
   public StmtExpr(Cloner cloner, StmtExpr original) : base(cloner, original) {
     E = cloner.CloneExpr(original.E);
-    S = cloner.CloneStmt(original.S);
+    S = cloner.CloneStmt(original.S, false);
   }
 
   public override IEnumerable<INode> Children => new Node[] { S, E };

@@ -17,10 +17,10 @@ namespace Microsoft.Dafny;
 ///    - the pre-type inferred earlier
 ///    - any user-supplied type
 /// For most AST nodes, this will not consider subset types; instead, subset types are considered later during
-/// the type adjustment phase.
+/// the type refinement phase.
 ///
 /// Of the types filled in here, two special TypeProxy's are used.
-///    - AdjustableType
+///    - TypeRefinementWrapper
 ///    - BottomTypePlaceholder
 /// </summary>
 class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
@@ -82,9 +82,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     base.VisitField(field);
   }
 
-  private static void VisitVariableList(IEnumerable<IVariable> variables, bool allowFutureAdjustments) {
+  private static void VisitVariableList(IEnumerable<IVariable> variables, bool allowFutureRefinements) {
     foreach (var v in variables) {
-      PreType2TypeUtil.Combine(v.Type, v.PreType, allowFutureAdjustments);
+      PreType2TypeUtil.Combine(v.Type, v.PreType, allowFutureRefinements);
     }
   }
 
@@ -131,7 +131,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
           var formal = datatypeDecl.TypeArgs[i];
           var actualPreType = datatypeValue.InferredPreTypeArgs[i];
-          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2AdjustableType(actualPreType, formal.Variance));
+          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType, formal.Variance));
         }
       }
     } else if (expr is ConversionExpr conversionExpr) {
@@ -150,12 +150,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     //     always int, regardless of any subset type of the operands.
     //   - The expression gets set to a fixed subset type. For example, multiset selection returns a nat.
     //   - The expression type is fused directly with the type of some subexpression. This means that any
-    //     later adjustments of the type of the subexpression is immediately reflected in the type of the expression,
+    //     later refinements of the type of the subexpression is immediately reflected in the type of the expression,
     //     without needing to set up any "flow". For example, the type of a ConcreteSyntaxExpression is fused
     //     with the type of its .ResolvedExpression.
-    //   - The expression type gets set to an adjustable version of expr.PreType, specifically
+    //   - The expression type gets set to a refinement-wrapper version of expr.PreType, specifically
     //     _bottom<expr.PreType> (that is, expr.PreType as a type with the strongest possible constraint).
-    //     For example, IdentifierExpr, which gets an adjustable type (into which the type from the identifier's
+    //     For example, IdentifierExpr, which gets a refinement-wrapper type (into which the type from the identifier's
     //     declaration will later flow).
 
     // Case: fuse the type
@@ -174,7 +174,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
 
     // Case: fixed pre-type type
-    if (expr is LiteralExpr or ThisExpr or UnaryExpr or BinaryExpr or NegationExpression) {
+    if (expr is LiteralExpr or ThisExpr or UnaryExpr or BinaryExpr or NegationExpression or DisplayExpression or MapDisplayExpr) {
       // Note, for the LiteralExpr "null", we expect to get a possibly-null type, whereas for a reference-type ThisExpr, we expect
       // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
       // field that gives the non-null type.
@@ -182,8 +182,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       return;
     }
 
-    // Case: adjustable pre-type type
-    expr.UnnormalizedType = PreType2TypeUtil.PreType2AdjustableType(expr.PreType, TypeParameter.TPVariance.Co);
+    // Case: refinement-wrapper pre-type type
+    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType, TypeParameter.TPVariance.Co);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
@@ -240,7 +240,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         if (tRhs.InitCall != null) {
           // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
           // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
-          // won't be visited again during type adjustment, we set it here once and for all.
+          // won't be visited again during type refinement, we set it here once and for all.
           tRhs.InitCall.MethodSelect.Obj.UnnormalizedType = rhsType;
         }
       }

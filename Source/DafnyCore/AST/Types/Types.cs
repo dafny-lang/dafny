@@ -153,6 +153,21 @@ public abstract class Type : TokenNode {
   }
 
   /// <summary>
+  /// Call NormalizeExpand() repeatedly, also on the base type of newtype's.
+  /// </summary>
+  public Type NormalizeToAncestorType() {
+    Type result = this;
+    while (true) {
+      result = result.NormalizeExpand();
+      if (result.AsNewtype is { } newtypeDecl) {
+        result = newtypeDecl.ConcreteBaseType(result.TypeArgs);
+      } else {
+        return result;
+      }
+    }
+  }
+
+  /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
   /// not follow subset types.
   ///
@@ -309,7 +324,7 @@ public abstract class Type : TokenNode {
 
   public bool IsNumericBased() {
     var t = NormalizeExpand();
-    return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
+    return t.IsIntegerType || t.IsRealType || t.AsNewtype?.BaseType.IsNumericBased() == true;
   }
   public enum NumericPersuasion { Int, Real }
   [System.Diagnostics.Contracts.Pure]
@@ -608,7 +623,7 @@ public abstract class Type : TokenNode {
 
     var udt = (UserDefinedType)NormalizeExpand();
     if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
-      udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      udt = (UserDefinedType)isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
     }
     TopLevelDeclWithMembers cl;
     if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -624,11 +639,8 @@ public abstract class Type : TokenNode {
     var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
     return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
   }
-  public bool IsTraitType {
-    get {
-      return AsTraitType != null;
-    }
-  }
+
+  public bool IsTraitType => AsTraitType != null;
   public TraitDecl/*?*/ AsTraitType {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
@@ -855,45 +867,6 @@ public abstract class Type : TokenNode {
         return false;
       }
       return true;
-    }
-  }
-
-  /// <summary>
-  /// Returns "true" if:  Given a value of type "this", can we determine at run time if the
-  /// value is a member of type "target"?
-  /// </summary>
-  public bool IsTestableToBe(Type target) {
-    Contract.Requires(target != null);
-
-    // First up, we know how to check for null, so let's expand "target" and "source"
-    // past any type synonyms and also past any (built-in) non-null constraint.
-    var source = this.NormalizeExpandKeepConstraints();
-    if (source is UserDefinedType && ((UserDefinedType)source).ResolvedClass is NonNullTypeDecl) {
-      source = source.NormalizeExpand(); // also lop off non-null constraint
-    }
-    target = target.NormalizeExpandKeepConstraints();
-    if (target is UserDefinedType && ((UserDefinedType)target).ResolvedClass is NonNullTypeDecl) {
-      target = target.NormalizeExpand(); // also lop off non-null constraint
-    }
-
-    if (source.IsSubtypeOf(target, false, true)) {
-      // Every value of "source" (except possibly "null") is also a member of type "target",
-      // so no run-time test is needed (except possibly a null check).
-      return true;
-#if SOON  // include in a coming PR that sorts this one in the compilers
-      } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
-        // The type of the bound variable has a constraint. Such a constraint is a ghost expression, so it cannot
-        // (in general) by checked at run time. (A possible enhancement here would be to look at the type constraint
-        // to if it is compilable after all.)
-        var constraints = target.GetTypeConstraints();
-        return false;
-#endif
-    } else if (target.TypeArgs.Count == 0) {
-      // No type parameters. So, we just need to check the run-time class/interface type.
-      return true;
-    } else {
-      // We give up.
-      return false;
     }
   }
 
@@ -1892,9 +1865,11 @@ public class BitvectorType : BasicType {
     }
   }
 
+  public string Name => "bv" + Width;
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    return "bv" + Width;
+    return Name;
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
@@ -2023,7 +1998,7 @@ public abstract class CollectionType : NonProxyType {
   /// For a given "source", denoting an expression of this CollectionType, return the BoundedPool corresponding
   /// to an expression "x in source".
   /// </summary>
-  public abstract ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source);
+  public abstract CollectionBoundedPool GetBoundedPool(Expression source);
 }
 
 public class SetType : CollectionType {
@@ -2064,8 +2039,8 @@ public class SetType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSet;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.SetBoundedPool(source, Arg, Arg, Finite);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new SetBoundedPool(source, Arg, Arg, Finite);
   }
 }
 
@@ -2098,8 +2073,8 @@ public class MultiSetType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMultiSet;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.MultiSetBoundedPool(source, Arg, Arg);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new MultiSetBoundedPool(source, Arg, Arg);
   }
 }
 
@@ -2132,8 +2107,8 @@ public class SeqType : CollectionType {
   }
 
   public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSeq;
-  public override ComprehensionExpr.CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new ComprehensionExpr.SeqBoundedPool(source, Arg, Arg);
+  public override CollectionBoundedPool GetBoundedPool(Expression source) {
+    return new SeqBoundedPool(source, Arg, Arg);
   }
 }
 

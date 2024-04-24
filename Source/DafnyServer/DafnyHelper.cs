@@ -9,10 +9,9 @@ using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using DafnyServer;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -37,20 +36,20 @@ namespace Microsoft.Dafny {
       this.source = source;
     }
 
-    public bool Verify() {
+    public async Task<bool> Verify() {
       ServerUtils.ApplyArgs(args, options);
-      return Parse() && Resolve() && Translate() && Boogie();
+      return await Parse() && Resolve() && Translate() && Boogie();
     }
 
-    private bool Parse() {
+    private async Task<bool> Parse() {
       var uri = new Uri("transcript:///" + fname);
       reporter = new ConsoleErrorReporter(options);
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-      var file = DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
-      var program = new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
+      var file = await DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+      var program = await new ProgramParser().ParseFiles(fname, file == null ? Array.Empty<DafnyFile>() : new[] { file },
         reporter, CancellationToken.None);
 
-      var success = reporter.ErrorCount == 0;
+      var success = !reporter.HasErrors;
       if (success) {
         dafnyProgram = program;
       }
@@ -98,32 +97,32 @@ namespace Microsoft.Dafny {
       return isVerified;
     }
 
-    public void Symbols() {
+    public async Task Symbols() {
       ServerUtils.ApplyArgs(args, options);
-      if (Parse() && Resolve()) {
+      if (await Parse() && Resolve()) {
         var symbolTable = new SuperLegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
-        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+        await options.OutputWriter.WriteLineAsync("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
-        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
+        await options.OutputWriter.WriteLineAsync("SYMBOLS_START [] SYMBOLS_END");
       }
     }
 
-    public void CounterExample() {
+    public async Task CounterExample() {
       var listArgs = args.ToList();
       listArgs.Add("/mv:" + counterExampleProvider.ModelBvd);
       ServerUtils.ApplyArgs(listArgs.ToArray(), options);
       try {
-        if (Parse() && Resolve() && Translate()) {
+        if (await Parse() && Resolve() && Translate()) {
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
             var model = counterExampleProvider.LoadCounterModel(options);
-            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
+            await options.OutputWriter.WriteLineAsync("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
       } catch (Exception e) {
-        Console.WriteLine("Error collection models: " + e.Message);
+        await options.OutputWriter.WriteLineAsync("Error collection models: " + e.Message);
       }
     }
 
@@ -133,17 +132,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void DotGraph() {
+    public async Task DotGraph() {
       ServerUtils.ApplyArgs(args, options);
 
-      if (Parse() && Resolve() && Translate()) {
+      if (await Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {
           BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
 
           foreach (var impl in boogieProgram.Item2.Implementations) {
-            using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {
-              sw.Write(boogieProgram.Item2.ProcessLoops(engine.Options, impl).ToDot());
-            }
+            await using var sw = new StreamWriter(fname + impl.Name + ".dot");
+            await sw.WriteAsync(boogieProgram.Item2.ProcessLoops(engine.Options, impl).ToDot());
           }
         }
       }

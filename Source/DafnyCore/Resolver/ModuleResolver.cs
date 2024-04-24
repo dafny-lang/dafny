@@ -22,13 +22,17 @@ namespace Microsoft.Dafny {
     Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> ClassMembers
     );
 
+  public interface ICanResolveNewAndOld {
+    void GenResolve(INewOrOldResolver resolver, ResolutionContext context);
+  }
+
   interface ICanResolve {
     void Resolve(ModuleResolver resolver, ResolutionContext context);
   }
 
   public enum FrameExpressionUse { Reads, Modifies, Unchanged }
 
-  public partial class ModuleResolver {
+  public partial class ModuleResolver : INewOrOldResolver {
     public ProgramResolver ProgramResolver { get; }
     public DafnyOptions Options { get; }
     public readonly SystemModuleManager SystemModuleManager;
@@ -37,6 +41,8 @@ namespace Microsoft.Dafny {
     public ModuleSignature moduleInfo = null;
 
     public ErrorReporter Reporter => reporter;
+    public Scope<IVariable> Scope => scope;
+
     public List<TypeConstraint.ErrorMsg> TypeConstraintErrorsToBeReported { get; } = new();
 
     private bool RevealedInScope(Declaration d) {
@@ -87,7 +93,7 @@ namespace Microsoft.Dafny {
 
       allTypeParameters = new Scope<TypeParameter>(Options);
       scope = new Scope<IVariable>(Options);
-      enclosingStatementLabels = new Scope<Statement>(Options);
+      EnclosingStatementLabels = new Scope<Statement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
 
       SystemModuleManager = programResolver.SystemModuleManager;
@@ -931,7 +937,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, ModuleSignature sig, List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
+    public void ResolveTopLevelDecls_Signatures(ModuleDefinition def, ModuleSignature sig, List<TopLevelDecl> declarations,
+      Graph<IndDatatypeDecl> datatypeDependencies, Graph<CoDatatypeDecl> codatatypeDependencies) {
       Contract.Requires(declarations != null);
       Contract.Requires(datatypeDependencies != null);
       Contract.Requires(codatatypeDependencies != null);
@@ -1015,22 +1022,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-        // Register the trait members in the classes that inherit them
-        foreach (TopLevelDecl d in declarations) {
-          if (d is TopLevelDeclWithMembers cl) {
-            RegisterInheritedMembers(cl);
-          }
-        }
-      }
-      if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
-        // Now that all traits have been resolved, let classes inherit the trait members
-        foreach (var d in declarations) {
-          if (d is TopLevelDeclWithMembers cl) {
-            InheritedTraitMembers(cl);
-          }
-        }
-      }
 
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
@@ -1088,12 +1079,14 @@ namespace Microsoft.Dafny {
         }
 
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var typeAdjustor = new TypeAdjustorVisitor(moduleDescription, SystemModuleManager);
+          var typeAdjustor = new TypeRefinementVisitor(moduleDescription, SystemModuleManager);
           typeAdjustor.VisitDeclarations(declarations);
           typeAdjustor.Solve(reporter, Options.Get(CommonOptionBag.NewTypeInferenceDebug));
         }
 
       } else {
+        InheritMembers(declarations);
+
         // Resolve all names and infer types. These two are done together, because name resolution depends on having type information
         // and type inference depends on having resolved names.
         // The task is first performed for (the constraints of) newtype declarations, (the constraints of) subset type declarations, and
@@ -1162,43 +1155,33 @@ namespace Microsoft.Dafny {
         CallGraphBuilder.Build(declarations, reporter);
       }
 
+      // The call graph hasn't been completely constructed, because it's missing the edges having to do with
+      // extreme predicates/lemmas. However, figuring out whether or not constraints are compilable depends on
+      // there being no cycles in the call graph. Therefore, we do an initial check for cycles at this time.
+      var cycleErrorHasBeenReported = new HashSet<ICallable>();
+      foreach (var decl in declarations) {
+        if (decl is RedirectingTypeDecl dd) {
+          CheckForCyclesAmongRedirectingTypes(dd, cycleErrorHasBeenReported);
+        }
+      }
+
       // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (TopLevelDecl d in declarations) {
-          void CheckIfCompilable(RedirectingTypeDecl declWithConstraint) {
-            var constraintIsCompilable = true;
-
-            // Check base type
-            var baseType = (declWithConstraint.Var?.Type ?? ((NewtypeDecl)declWithConstraint).BaseType).NormalizeExpandKeepConstraints();
-            if (baseType.AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var baseDecl) {
-              CheckIfCompilable(baseDecl);
-              constraintIsCompilable &= baseDecl.ConstraintIsCompilable;
-            }
-
-            // Check the type's constraint
-            if (declWithConstraint.Constraint != null) {
-              constraintIsCompilable &= ExpressionTester.CheckIsCompilable(Options, null, declWithConstraint.Constraint,
-                new CodeContextWrapper(declWithConstraint, true));
-            }
-
-            declWithConstraint.ConstraintIsCompilable = constraintIsCompilable;
-          }
-
           if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
             if (iter.Body != null) {
-              ComputeGhostInterest(iter.Body, false, null, iter);
               CheckExpression(iter.Body, this, iter);
             }
 
           } else if (d is SubsetTypeDecl subsetTypeDecl) {
             Contract.Assert(subsetTypeDecl.Constraint != null);
             CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-            CheckIfCompilable(subsetTypeDecl);
 
             if (subsetTypeDecl.Witness != null) {
-              CheckExpression(subsetTypeDecl.Witness, this, new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+              CheckExpression(subsetTypeDecl.Witness, this,
+                new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
               if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
                 var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
                 ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
@@ -1210,7 +1193,6 @@ namespace Microsoft.Dafny {
               Contract.Assert(newtypeDecl.Constraint != null);
               CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
             }
-            CheckIfCompilable(newtypeDecl);
 
             if (newtypeDecl.Witness != null) {
               CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
@@ -1220,7 +1202,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            FigureOutNativeType(newtypeDecl);
+            new NativeTypeAnalysis(reporter).FigureOutNativeType(newtypeDecl, Options);
 
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
@@ -1244,7 +1226,16 @@ namespace Microsoft.Dafny {
               CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
             }
           }
+        }
 
+        AnalyzeTypeConstraints.AssignConstraintIsCompilable(declarations, Options);
+
+        // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
+        // visit iterator bodies and members (which will make calls to CheckIsCompilable).
+        foreach (TopLevelDecl d in declarations) {
+          if (d is IteratorDecl { Body: { } iterBody } iter) {
+            ComputeGhostInterest(iter.Body, false, null, iter);
+          }
           if (d is TopLevelDeclWithMembers cl) {
             ResolveClassMembers_Pass1(cl);
           }
@@ -1380,7 +1371,6 @@ namespace Microsoft.Dafny {
         // check that greatest lemmas are not recursive with non-greatest-lemma methods.
         // Also, check that the constraints of newtypes/subset-types do not depend on the type itself.
         // And check that const initializers are not cyclic.
-        var cycleErrorHasBeenReported = new HashSet<ICallable>();
         foreach (var d in declarations) {
           if (d is TopLevelDeclWithMembers { Members: var members }) {
             foreach (var member in members) {
@@ -1423,16 +1413,7 @@ namespace Microsoft.Dafny {
           }
 
           if (d is RedirectingTypeDecl dd) {
-            if (d.EnclosingModuleDefinition.CallGraph.GetSCCSize(dd) != 1) {
-              var r = d.EnclosingModuleDefinition.CallGraph.GetSCCRepresentative(dd);
-              if (cycleErrorHasBeenReported.Contains(r)) {
-                // An error has already been reported for this cycle, so don't report another.
-                // Note, the representative, "r", may itself not be a const.
-              } else if (dd is NewtypeDecl || dd is SubsetTypeDecl) {
-                ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
-                cycleErrorHasBeenReported.Add(r);
-              }
-            }
+            CheckForCyclesAmongRedirectingTypes(dd, cycleErrorHasBeenReported);
           }
         }
       }
@@ -1580,6 +1561,20 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Verifies that, in all compiled places, subset types in comprehensions have a compilable constraint
         new SubsetConstraintGhostChecker(this.Reporter).Traverse(declarations);
+      }
+    }
+
+    private void CheckForCyclesAmongRedirectingTypes(RedirectingTypeDecl dd, HashSet<ICallable> cycleErrorHasBeenReported) {
+      var enclosingModule = dd.EnclosingModule;
+      if (enclosingModule.CallGraph.GetSCCSize(dd) != 1) {
+        var r = enclosingModule.CallGraph.GetSCCRepresentative(dd);
+        if (cycleErrorHasBeenReported.Contains(r)) {
+          // An error has already been reported for this cycle, so don't report another.
+          // Note, the representative, "r", may itself not be a const.
+        } else if (dd is NewtypeDecl or SubsetTypeDecl) {
+          ReportCallGraphCycleError(dd, $"recursive constraint dependency involving a {dd.WhatKind}");
+          cycleErrorHasBeenReported.Add(r);
+        }
       }
     }
 
@@ -1805,7 +1800,7 @@ namespace Microsoft.Dafny {
               } else {
                 // m should not be null, unless an error has been reported
                 // (e.g. function-by-method and method with the same name) 
-                Contract.Assert(reporter.ErrorCount > 0);
+                Contract.Assert(reporter.HasErrors);
               }
             }
 
@@ -1864,156 +1859,6 @@ namespace Microsoft.Dafny {
       var start = cycle[0];
       var cy = Util.Comma(" -> ", cycle, toString);
       reporter.Error(MessageSource.Resolver, toTok(start), $"{msg}: {cy} -> {toString(start)}");
-    }
-
-    private void FigureOutNativeType(NewtypeDecl dd) {
-      Contract.Requires(dd != null);
-
-      // Look at the :nativeType attribute, if any
-      bool mustUseNativeType;
-      List<NativeType> nativeTypeChoices = null;  // null means "no preference"
-      var args = Attributes.FindExpressions(dd.Attributes, "nativeType");
-      if (args != null && !dd.BaseType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        reporter.Error(MessageSource.Resolver, dd, ":nativeType can only be used on integral types");
-        return;
-      } else if (args == null) {
-        // There was no :nativeType attribute
-        mustUseNativeType = false;
-      } else if (args.Count == 0) {
-        mustUseNativeType = true;
-      } else {
-        var arg0Lit = args[0] as LiteralExpr;
-        if (arg0Lit != null && arg0Lit.Value is bool) {
-          if (!(bool)arg0Lit.Value) {
-            // {:nativeType false} says "don't use native type", so our work here is done
-            return;
-          }
-          mustUseNativeType = true;
-        } else {
-          mustUseNativeType = true;
-          nativeTypeChoices = new List<NativeType>();
-          foreach (var arg in args) {
-            if (arg is LiteralExpr lit && lit.Value is string s) {
-              // Get the NativeType for "s"
-              foreach (var nativeT in NativeTypes) {
-                if (nativeT.Name == s) {
-                  nativeTypeChoices.Add(nativeT);
-                  goto FoundNativeType;
-                }
-              }
-              reporter.Error(MessageSource.Resolver, dd, ":nativeType '{0}' not known", s);
-              return;
-            FoundNativeType:;
-            } else {
-              reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
-              return;
-            }
-          }
-        }
-      }
-
-      // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
-      // in the case .Var is null, these can be computed from the .BaseType recursively.
-      var ddVar = dd.Var;
-      var ddConstraint = dd.Constraint;
-      for (var ddWhereConstraintsAre = dd; ddVar == null;) {
-        ddWhereConstraintsAre = ddWhereConstraintsAre.BaseType.AsNewtype;
-        if (ddWhereConstraintsAre == null) {
-          break;
-        }
-        ddVar = ddWhereConstraintsAre.Var;
-        ddConstraint = ddWhereConstraintsAre.Constraint;
-      }
-      List<ComprehensionExpr.BoundedPool> bounds;
-      bool constraintConsistsSolelyOfRangeConstraints;
-      if (ddVar == null) {
-        // There are no bounds at all
-        bounds = new List<ComprehensionExpr.BoundedPool>();
-        constraintConsistsSolelyOfRangeConstraints = true;
-      } else {
-        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint, out constraintConsistsSolelyOfRangeConstraints);
-      }
-
-      // Find which among the allowable native types can hold "dd". Give an
-      // error for any user-specified native type that's not big enough.
-      var bigEnoughNativeTypes = new List<NativeType>();
-      BigInteger? lowBound = null;
-      BigInteger? highBound = null;
-      foreach (var bound in bounds) {
-        void UpdateBounds(BigInteger? lo, BigInteger? hi) {
-          if (lo != null && (lowBound == null || lowBound < lo)) {
-            lowBound = lo; // we found a more restrictive lower bound
-          }
-          if (hi != null && (highBound == null || hi < highBound)) {
-            highBound = hi; // we found a more restrictive lower bound
-          }
-        }
-
-        if (bound is ComprehensionExpr.IntBoundedPool range) {
-          if (range.LowerBound != null && ConstantFolder.TryFoldInteger(range.LowerBound) is not null and var lo) {
-            UpdateBounds(lo, null);
-          }
-          if (range.UpperBound != null && ConstantFolder.TryFoldInteger(range.UpperBound) is not null and var hi) {
-            UpdateBounds(null, hi);
-          }
-        } else if (bound is ComprehensionExpr.ExactBoundedPool exact && ConstantFolder.TryFoldInteger(exact.E) is not null and var value) {
-          UpdateBounds(value, value + 1);
-        }
-      }
-
-      var emptyRange = lowBound != null && highBound != null && highBound <= lowBound;
-      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
-        bool lowerOk = emptyRange || (lowBound != null && nativeT.LowerBound <= lowBound);
-        bool upperOk = emptyRange || (highBound != null && nativeT.UpperBound >= highBound);
-        if (lowerOk && upperOk) {
-          bigEnoughNativeTypes.Add(nativeT);
-        } else if (nativeTypeChoices != null) {
-          reporter.Error(MessageSource.Resolver, dd,
-            "Dafny's heuristics failed to confirm '{0}' to be a compatible native type.  " +
-            "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'",
-            nativeT.Name);
-          return;
-        }
-      }
-
-      // Finally, of the big-enough native types, pick the first one that is
-      // supported by the selected target compiler.
-      foreach (var nativeT in bigEnoughNativeTypes) {
-        if (Options.Backend.SupportedNativeTypes.Contains(nativeT.Name)) {
-          dd.NativeType = nativeT;
-          if (constraintConsistsSolelyOfRangeConstraints) {
-            dd.NativeTypeRangeImpliesAllConstraints = true;
-          }
-          if (constraintConsistsSolelyOfRangeConstraints && nativeT.Sel != NativeType.Selection.Number &&
-              lowBound == nativeT.LowerBound && highBound == nativeT.UpperBound) {
-            dd.TargetTypeCoversAllBitPatterns = true;
-          }
-          break;
-        }
-      }
-      if (dd.NativeType != null) {
-        // Give an info message saying which type was selected--unless the user requested
-        // one particular native type, in which case that must have been the one picked.
-        if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
-          Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
-          if (dd.TargetTypeCoversAllBitPatterns) {
-            reporter.Info(MessageSource.Resolver, dd.tok,
-              $"newtype {dd.Name} is target-complete for {{:nativeType \"{dd.NativeType.Name}\"}}");
-          }
-        } else {
-          var detectedRange = emptyRange ? "empty" : $"{lowBound} .. {highBound}";
-          var targetComplete = dd.TargetTypeCoversAllBitPatterns ? "target-complete " : "";
-          reporter.Info(MessageSource.Resolver, dd.tok,
-            $"newtype {dd.Name} resolves as {{:nativeType \"{dd.NativeType.Name}\"}} (detected range: {detectedRange})");
-        }
-      } else if (nativeTypeChoices != null) {
-        reporter.Error(MessageSource.Resolver, dd,
-          "None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.");
-      } else if (mustUseNativeType) {
-        reporter.Error(MessageSource.Resolver, dd,
-          "Dafny's heuristics cannot find a compatible native type.  " +
-          "Hint: try writing a newtype constraint of the form 'i: int | lowerBound <= i < upperBound && (...any additional constraints...)'");
-      }
     }
 
     /// <summary>
@@ -2204,19 +2049,55 @@ namespace Microsoft.Dafny {
       currentClass = null;
     }
 
+    void InheritMembers(List<TopLevelDecl> declarations) {
+      // Register the trait members in the classes that inherit them
+      foreach (var topLevelDeclWithMembers in declarations.OfType<TopLevelDeclWithMembers>()) {
+        RegisterInheritedMembers(topLevelDeclWithMembers);
+      }
+    }
+
     /// <summary>
     /// This method idempotently fills in .InheritanceInformation, .ParentFormalTypeParametersToActuals, and the
     /// name->MemberDecl table for "cl" and the transitive parent traits of "cl". It also checks that every (transitive)
     /// parent trait is instantiated with the same type parameters
     /// The method assumes that all types along .ParentTraits have been successfully resolved and .ParentTraitHeads been filled in.
+    ///
+    /// The "basePreType" parameter is used only with the new resolver. It can be passed in a "null" to indicate that "cl" does not
+    /// have a base type or that the given/inferred base type was not legal.
     /// </summary>
-    void RegisterInheritedMembers(TopLevelDeclWithMembers cl) {
+    public void RegisterInheritedMembers(TopLevelDeclWithMembers cl, [CanBeNull] DPreType basePreType = null) {
       Contract.Requires(cl != null);
 
       if (cl.ParentTypeInformation != null) {
         return;
       }
       cl.ParentTypeInformation = new TopLevelDeclWithMembers.InheritanceInformationClass();
+
+      // populate .ParentFormalTypeParametersToActuals with the type arguments given to the base type (this applies only to newtype's)
+      TopLevelDeclWithMembers baseTypeDecl = null;
+      List<Type> baseTypeArguments = null;
+      if (cl is NewtypeDecl newtypeDecl) {
+        if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+          baseTypeDecl = basePreType?.Decl as TopLevelDeclWithMembers;
+          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false, TypeParameter.TPVariance.Co));
+        } else {
+          // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
+          var baseType = newtypeDecl.BaseType.NormalizeExpand();
+          baseTypeArguments = baseType.TypeArgs;
+          if (baseType is UserDefinedType udtBaseType) {
+            baseTypeDecl = (TopLevelDeclWithMembers)udtBaseType.ResolvedClass;
+          } else if (Options.Get(CommonOptionBag.GeneralNewtypes) || baseType.IsIntegerType || baseType.IsRealType) {
+            baseTypeDecl = GetSystemValuetypeDecl(baseType);
+          }
+        }
+        if (baseTypeDecl != null) {
+          Contract.Assert(baseTypeArguments.Count == baseTypeDecl.TypeArgs.Count);
+          for (var i = 0; i < baseTypeArguments.Count; i++) {
+            cl.ParentFormalTypeParametersToActuals.Add(baseTypeDecl.TypeArgs[i], baseTypeArguments[i]);
+          }
+          RegisterInheritedMembers(baseTypeDecl);
+        }
+      }
 
       // populate .ParentTypeInformation and .ParentFormalTypeParametersToActuals for the immediate parent traits
       foreach (var tt in cl.ParentTraits) {
@@ -2225,7 +2106,7 @@ namespace Microsoft.Dafny {
         cl.ParentTypeInformation.Record(trait, udt);
         Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
         for (var i = 0; i < trait.TypeArgs.Count; i++) {
-          // there may be duplciate parent traits, which haven't been checked for yet, so add mapping only for the first occurrence of each type parameter
+          // there may be duplicate parent traits, which haven't been checked for yet, so add mapping only for the first occurrence of each type parameter
           if (!cl.ParentFormalTypeParametersToActuals.ContainsKey(trait.TypeArgs[i])) {
             cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
           }
@@ -2263,28 +2144,12 @@ namespace Microsoft.Dafny {
       // Update the name->MemberDecl table for the class. Report an error if the same name refers to more than one member,
       // except when such duplication is purely that one member, say X, is inherited and the other is an override of X.
       var inheritedMembers = new Dictionary<string, MemberDecl>();
+      var membersWithErrors = new List<string>();
+      if (baseTypeDecl != null) {
+        AddToInheritedMembers(cl, baseTypeDecl, inheritedMembers, membersWithErrors);
+      }
       foreach (var trait in cl.ParentTraitHeads) {
-        foreach (var traitMember in GetClassMembers(trait)!.Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
-          if (!inheritedMembers.TryGetValue(traitMember.Name, out var prevMember)) {
-            // record "traitMember" as an inherited member
-            inheritedMembers.Add(traitMember.Name, traitMember);
-          } else if (traitMember == prevMember) {
-            // same member, inherited two different ways
-          } else if (traitMember.Overrides(prevMember)) {
-            // we're inheriting "prevMember" and "traitMember" from different parent traits, where "traitMember" is an override of "prevMember"
-            Contract.Assert(traitMember.EnclosingClass != cl && prevMember.EnclosingClass != cl && traitMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
-            // re-map "traitMember.Name" to point to the overriding member
-            inheritedMembers[traitMember.Name] = traitMember;
-          } else if (prevMember.Overrides(traitMember)) {
-            // we're inheriting "prevMember" and "traitMember" from different parent traits, where "prevMember" is an override of "traitMember"
-            Contract.Assert(traitMember.EnclosingClass != cl && prevMember.EnclosingClass != cl && traitMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
-            // keep the mapping to "prevMember"
-          } else {
-            // "prevMember" and "traitMember" refer to different members (with the same name)
-            reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' inherits a member named '{2}' from both traits '{3}' and '{4}'",
-              cl.WhatKind, cl.Name, traitMember.Name, prevMember.EnclosingClass.Name, traitMember.EnclosingClass.Name);
-          }
-        }
+        AddToInheritedMembers(cl, trait, inheritedMembers, membersWithErrors);
       }
       // Incorporate the inherited members into the name->MemberDecl mapping of "cl"
       var members = GetClassMembers(cl);
@@ -2299,6 +2164,84 @@ namespace Microsoft.Dafny {
           clMember.OverriddenMember = traitMember;
         }
       }
+      ProcessInheritedTraitMembers(cl, membersWithErrors);
+    }
+
+    private void AddToInheritedMembers(TopLevelDeclWithMembers cl, TopLevelDeclWithMembers baseOrParentTypeDecl,
+      Dictionary<string, MemberDecl> inheritedMembers, List<string> membersWithErrors) {
+      var members = GetClassMembers(baseOrParentTypeDecl)!;
+      var sortedKeys = members.Keys.ToList();
+      sortedKeys.Sort();
+      foreach (var inheritedMemberName in sortedKeys) {
+        var inheritedMember = members[inheritedMemberName];
+        if (!inheritedMembers.TryGetValue(inheritedMember.Name, out var prevMember)) {
+          // all good; record "inheritedMember" as an inherited member
+          inheritedMembers.Add(inheritedMember.Name, inheritedMember);
+        } else if (inheritedMember == prevMember) {
+          // same member, inherited two different ways
+        } else if (inheritedMember.Overrides(prevMember)) {
+          // we're inheriting "prevMember" and "traitMember" from different parent traits, where "inheritedMember" is an override of "prevMember"
+          Contract.Assert(inheritedMember.EnclosingClass != cl && prevMember.EnclosingClass != cl &&
+                          inheritedMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
+          // re-map "traitMember.Name" to point to the overriding member
+          inheritedMembers[inheritedMember.Name] = inheritedMember;
+        } else if (prevMember.Overrides(inheritedMember)) {
+          // we're inheriting "prevMember" and "inheritedMember" from different parent traits, where "prevMember" is an override of "inheritedMember"
+          Contract.Assert(inheritedMember.EnclosingClass != cl && prevMember.EnclosingClass != cl &&
+                          inheritedMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
+          // keep the mapping to "prevMember"
+        } else {
+          // "prevMember" and "inheritedMember" refer to different members (with the same name)
+          membersWithErrors.Add(inheritedMember.Name);
+          reporter.Error(MessageSource.Resolver, cl.tok,
+            $"{cl.WhatKindAndName} inherits a member named '{inheritedMember.Name}' from both " +
+            $"{prevMember.EnclosingClass.WhatKindAndName} and {inheritedMember.EnclosingClass.WhatKindAndName}");
+        }
+      }
+    }
+
+    [CanBeNull]
+    ValuetypeDecl GetSystemValuetypeDecl(Type type) {
+      foreach (var systemTopLevelDecl in ProgramResolver.SystemModuleManager.SystemModule.SourceDecls.OfType<ValuetypeDecl>()) {
+        if (systemTopLevelDecl.IsThisType(type)) {
+          return systemTopLevelDecl;
+        }
+      }
+
+      if (type.AsBitVectorType is { } bitvectorType) {
+        // The declaration for this built-in bitvector type has not yet been added to SourceDecls. We create it here and add it.
+        return AddBitvectorTypeDecl(bitvectorType.Name, bitvectorType.Width);
+      }
+
+      return null; // not present
+    }
+
+    public ValuetypeDecl AddBitvectorTypeDecl(string name, int width) {
+      var bvDecl = new ValuetypeDecl(name, ProgramResolver.SystemModuleManager.SystemModule,
+        t => t.AsBitVectorType is { Width: var w } && w == width,
+        typeArgs => new BitvectorType(Options, width));
+      AddRotateMember(bvDecl, "RotateLeft", width);
+      AddRotateMember(bvDecl, "RotateRight", width);
+      ProgramResolver.SystemModuleManager.SystemModule.SourceDecls.Add(bvDecl);
+      var memberDictionary = bvDecl.Members.ToDictionary(member => member.Name, member => member);
+      ProgramResolver.AddSystemClass(bvDecl, memberDictionary);
+      return bvDecl;
+    }
+
+    private void AddRotateMember(ValuetypeDecl bitvectorTypeDecl, string name, int width) {
+      var argumentType = ProgramResolver.SystemModuleManager.Nat();
+      var formals = new List<Formal> {
+        new Formal(Token.NoToken, "w", argumentType, true, false, null)
+      };
+      var resultType = new BitvectorType(Options, width);
+      var rotateMember = new SpecialFunction(RangeToken.NoToken, name, ProgramResolver.SystemModuleManager.SystemModule, false, false,
+        new List<TypeParameter>(), formals, resultType,
+        new List<AttributedExpression>(), new Specification<FrameExpression>(), new List<AttributedExpression>(),
+        new Specification<Expression>(new List<Expression>(), null), null, null, null) {
+        EnclosingClass = bitvectorTypeDecl
+      };
+      rotateMember.AddVisibilityScope(ProgramResolver.SystemModuleManager.SystemModule.VisibilityScope, false);
+      bitvectorTypeDecl.Members.Add(rotateMember);
     }
 
     /// <summary>
@@ -2372,16 +2315,19 @@ namespace Microsoft.Dafny {
     /// This method checks the rules for inherited and overridden members. It also populates .InheritedMembers with the
     /// non-static members that are inherited from parent traits.
     /// </summary>
-    void InheritedTraitMembers(TopLevelDeclWithMembers cl) {
+    void ProcessInheritedTraitMembers(TopLevelDeclWithMembers cl, List<string> suppressNoImplErrorsForTheseMembers) {
       Contract.Requires(cl != null);
       Contract.Requires(cl.ParentTypeInformation != null);
 
       foreach (var member in GetClassMembers(cl).Values) {
-        if (member is PrefixPredicate || member is PrefixLemma) {
+        if (member is PrefixPredicate or PrefixLemma) {
           // these are handled with the corresponding extreme predicate/lemma
           continue;
         }
         if (member.EnclosingClass != cl) {
+          if (member.EnclosingClass is not TraitDecl) {
+            continue;
+          }
           // The member is the one inherited from a trait (and the class does not itself define a member with this name).  This
           // is fine for fields and for functions and methods with bodies. However, if "cl" is not itself a trait, then for a body-less function
           // or method, "cl" is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
@@ -2399,7 +2345,7 @@ namespace Microsoft.Dafny {
               // TODO: When `:extern` is separated from `:compile false`, this should become `:compile false`.
             } else if (member is Lemma && Attributes.Contains(member.Attributes, "opaque_reveal")) {
               // reveal lemmas do not need to be reimplemented
-            } else {
+            } else if (!suppressNoImplErrorsForTheseMembers.Contains(member.Name)) {
               reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
             }
           }
@@ -2412,18 +2358,23 @@ namespace Microsoft.Dafny {
 
         var traitMember = member.OverriddenMember;
         var trait = traitMember.EnclosingClass;
-        if (traitMember.IsStatic) {
-          reporter.Error(MessageSource.Resolver, member.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
-            traitMember.WhatKind, traitMember.Name, trait.Name);
+        if (trait is not TraitDecl) {
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"{traitMember.WhatKindAndName} is inherited from {trait.WhatKindAndName} and is not allowed to be re-declared in {cl.WhatKindAndName}");
+        } else if (traitMember.IsStatic) {
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"static {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member.IsStatic) {
-          reporter.Error(MessageSource.Resolver, member.tok, "static member '{0}' overrides non-static member in trait '{1}'", member.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"static member '{member.Name}' overrides non-static member in trait '{trait.Name}'");
         } else if (traitMember is Field) {
           // The class is not allowed to do anything with the field other than silently inherit it.
-          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
-          reporter.Error(MessageSource.Resolver, member.tok, "fully defined {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
-            traitMember.WhatKind, traitMember.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member is Method != traitMember is Method ||
                    member is Lemma != traitMember is Lemma ||
                    member is TwoStateLemma != traitMember is TwoStateLemma ||
@@ -2433,10 +2384,14 @@ namespace Microsoft.Dafny {
                    member is TwoStateFunction != traitMember is TwoStateFunction ||
                    member is LeastPredicate != traitMember is LeastPredicate ||
                    member is GreatestPredicate != traitMember is GreatestPredicate) {
-          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, member.WhatKind);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"{traitMember.WhatKindAndName} in '{trait.Name}' can only be overridden by a {traitMember.WhatKind} (got {member.WhatKind})");
         } else if (member.IsGhost != traitMember.IsGhost) {
-          reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'",
-            traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' has different ghost/compiled status than in trait '{trait.Name}'");
+        } else if (!member.IsOpaque && traitMember.IsOpaque) {
+          reporter.Error(MessageSource.Resolver, member.tok,
+            $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' must be 'opaque' since the member is 'opaque' in trait '{trait.Name}'");
         } else {
           // Copy trait member's extern attribute onto class member if class does not provide one
           if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(traitMember.Attributes, "extern")) {
@@ -2454,7 +2409,8 @@ namespace Microsoft.Dafny {
             var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
             var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
             if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
-              reporter.Error(MessageSource.Resolver, classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
+              reporter.Error(MessageSource.Resolver, classMethod.tok,
+                $"not allowed to override a terminating method with a possibly non-terminating method ('{classMethod.Name}')");
             }
 
           } else if (traitMember is Function) {
@@ -2586,9 +2542,7 @@ namespace Microsoft.Dafny {
       type = type.NormalizeExpandKeepConstraints(); // cut through type proxies, type synonyms, but being mindful of what's in scope
       if (type is UserDefinedType { ResolvedClass: var cl } udt) {
         Contract.Assert(cl != null);
-        if (ArrowType.IsTotalArrowTypeName(cl.Name)) {
-          return AreThereAnyObviousSignsOfEmptiness(udt.TypeArgs.Last(), beingVisited);
-        } else if (cl is SubsetTypeDecl subsetTypeDecl) {
+        if (cl is SubsetTypeDecl subsetTypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
         } else if (cl is NewtypeDecl newtypeDecl) {
           return AreThereAnyObviousSignsOfEmptiness(newtypeDecl.RhsWithArgument(udt.TypeArgs), beingVisited);
@@ -3093,7 +3047,7 @@ namespace Microsoft.Dafny {
       return id;
     }
 
-    public void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, bool hasKeywordToken) {
+    public void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract, [CanBeNull] string keyword) {
       // The "method not found" errors which will be generated here were already reported while
       // resolving the statement, so we don't want them to reappear and redirect them into a sink.
       var origReporter = reporter;
@@ -3103,23 +3057,22 @@ namespace Microsoft.Dafny {
       var propagateFailure = ResolveMember(tok, tp, "PropagateFailure", out _);
       var extract = ResolveMember(tok, tp, "Extract", out _);
 
-      if (hasKeywordToken) {
+      if (keyword != null) {
         if (isFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
+          var requiredMembers = expectExtract
+            ? "functions 'IsFailure()' and 'Extract()'"
+            : "function 'IsFailure()', but not 'Extract()'";
           origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', with a keyword token must have function{1}", tp,
-            expectExtract
-              ? "s 'IsFailure()' and 'Extract()'"
-              : " 'IsFailure()', but not 'Extract()'");
+            $"The right-hand side of ':- {keyword}', which is of type '{tp}', with a keyword token must have {requiredMembers}");
         }
       } else {
         if (isFailure == null || propagateFailure == null || (extract != null) != expectExtract) {
           // more details regarding which methods are missing have already been reported by regular resolution
-          origReporter.Error(MessageSource.Resolver, tok,
-            "The right-hand side of ':-', which is of type '{0}', must have function{1}", tp,
-            expectExtract
-              ? "s 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
-              : "s 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'");
+          var requiredMembers = expectExtract
+            ? "functions 'IsFailure()', 'PropagateFailure()', and 'Extract()'"
+            : "functions 'IsFailure()' and 'PropagateFailure()', but not 'Extract()'";
+          origReporter.Error(MessageSource.Resolver, tok, $"The right-hand side of ':-', which is of type '{tp}', must have {requiredMembers}");
         }
       }
 
@@ -3139,7 +3092,7 @@ namespace Microsoft.Dafny {
       }
 
       CheckIsFunction(isFailure, false);
-      if (!hasKeywordToken) {
+      if (keyword == null) {
         CheckIsFunction(propagateFailure, true);
       }
       if (expectExtract) {
@@ -3289,7 +3242,7 @@ namespace Microsoft.Dafny {
       ResolveExpression(expr.ResolvedExpression, resolutionContext);
       expr.Type = expr.ResolvedExpression.Type;
       bool expectExtract = (expr.Lhs != null);
-      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, false);
+      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract, null);
     }
 
     public static Type SelectAppropriateArrowTypeForFunction(Function function, Dictionary<TypeParameter, Type> subst, SystemModuleManager systemModuleManager) {
@@ -3511,34 +3464,40 @@ namespace Microsoft.Dafny {
       return GetSignatureExt(sig);
     }
 
-    public static Expression GetImpliedTypeConstraint(IVariable bv, Type ty) {
-      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), ty);
+    public static Expression GetImpliedTypeConstraint(IVariable bv, Type type) {
+      return GetImpliedTypeConstraint(Expression.CreateIdentExpr(bv), type);
     }
 
-    public static Expression GetImpliedTypeConstraint(Expression e, Type ty) {
+    /// <summary>
+    /// Collects the constraints of all subset types and newtypes in "type" and applies these to "e".
+    /// For example, given
+    ///     type Even = x: int | x % 2 == 0
+    ///     newtype Div6 = y: Even | y % 3 == 0
+    /// GetImpliedTypeConstraint(e, Div6) returns
+    ///     true && ((e as Even) % 2 == 0) && e % 3 == 0
+    /// </summary>
+    public static Expression GetImpliedTypeConstraint(Expression e, Type type) {
       Contract.Requires(e != null);
-      Contract.Requires(ty != null);
-      ty = ty.NormalizeExpandKeepConstraints();
-      var udt = ty as UserDefinedType;
-      if (udt != null) {
-        if (udt.ResolvedClass is NewtypeDecl) {
-          var dd = (NewtypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(e, dd.BaseType);
-          if (dd.Var != null) {
-            Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-            substMap.Add(dd.Var, e);
-            Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-            c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
+      Contract.Requires(type != null);
+      type = type.NormalizeExpandKeepConstraints();
+      if (type is UserDefinedType udt) {
+        Expression CombineConstraints(Type baseType, BoundVar boundVar, Expression constraint) {
+          var c = GetImpliedTypeConstraint(e, baseType);
+          if (boundVar != null) {
+            var ee = new ConversionExpr(e.tok, e, boundVar.Type) { Type = boundVar.Type };
+            var substMap = new Dictionary<IVariable, Expression> { { boundVar, ee } };
+            var typeMap = TypeParameter.SubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
+            var substituter = new Substituter(null, substMap, typeMap);
+            c = Expression.CreateAnd(c, substituter.Substitute(constraint));
           }
           return c;
-        } else if (udt.ResolvedClass is SubsetTypeDecl) {
-          var dd = (SubsetTypeDecl)udt.ResolvedClass;
-          var c = GetImpliedTypeConstraint(e, dd.RhsWithArgument(udt.TypeArgs));
-          Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-          substMap.Add(dd.Var, e);
-          Substituter sub = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-          c = Expression.CreateAnd(c, sub.Substitute(dd.Constraint));
-          return c;
+        }
+
+        if (udt.ResolvedClass is NewtypeDecl newtypeDecl) {
+          return CombineConstraints(newtypeDecl.BaseType, newtypeDecl.Var, newtypeDecl.Constraint);
+        }
+        if (udt.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
+          return CombineConstraints(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), subsetTypeDecl.Var, subsetTypeDecl.Constraint);
         }
       }
       return Expression.CreateBoolLiteral(e.tok, true);
@@ -3669,8 +3628,8 @@ namespace Microsoft.Dafny {
     public static BinaryExpr.ResolvedOpcode ResolveOp(BinaryExpr.Opcode op, Type leftOperandType, Type operandType) {
       Contract.Requires(leftOperandType != null);
       Contract.Requires(operandType != null);
-      leftOperandType = leftOperandType.NormalizeExpand();
-      operandType = operandType.NormalizeExpand();
+      leftOperandType = leftOperandType.NormalizeToAncestorType();
+      operandType = operandType.NormalizeToAncestorType();
       switch (op) {
         case BinaryExpr.Opcode.Iff: return BinaryExpr.ResolvedOpcode.Iff;
         case BinaryExpr.Opcode.Imp: return BinaryExpr.ResolvedOpcode.Imp;

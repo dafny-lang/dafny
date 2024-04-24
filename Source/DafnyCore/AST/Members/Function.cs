@@ -9,7 +9,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring,
+public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, ICanFormat, IHasDocstring,
   ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
@@ -94,17 +94,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       TailStatus.NotTailRecursive; // NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
 
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
-  public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
+  public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly List<TypeParameter> TypeArgs;
   public readonly List<Formal> Formals;
   public readonly Formal Result;
   public PreType ResultPreType;
   public readonly Type ResultType;
-  public readonly List<AttributedExpression> Req;
   public readonly Specification<FrameExpression> Reads;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
   public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
   public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
@@ -226,7 +222,7 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IToken/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IToken/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null) {
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, req, ens, decreases) {
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
@@ -239,14 +235,10 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
     Contract.Requires(decreases != null);
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
-    this.TypeArgs = typeArgs;
     this.Formals = formals;
     this.Result = result;
     this.ResultType = result != null ? result.Type : resultType;
-    this.Req = req;
     this.Reads = reads;
-    this.Ens = ens;
-    this.Decreases = decreases;
     this.Body = body;
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
@@ -259,23 +251,23 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
         if (args.Count == 1) {
           LiteralExpr literal = args[0] as LiteralExpr;
           if (literal != null && literal.Value is BigInteger) {
-            this.IsFueled = true;
+            IsFueled = true;
           }
         } else if (args.Count == 2) {
           LiteralExpr literalLow = args[0] as LiteralExpr;
           LiteralExpr literalHigh = args[1] as LiteralExpr;
 
           if (literalLow != null && literalLow.Value is BigInteger && literalHigh != null && literalHigh.Value is BigInteger) {
-            this.IsFueled = true;
+            IsFueled = true;
           }
         }
       }
     }
   }
 
-  bool ICodeContext.IsGhost { get { return this.IsGhost; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return this.Formals; } }
+  bool ICodeContext.IsGhost { get { return IsGhost; } }
+  List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
+  List<Formal> ICodeContext.Ins { get { return Formals; } }
   string ICallable.NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {
@@ -285,13 +277,13 @@ public class Function : MemberDecl, TypeParameter.ParentType, ICallable, ICanFor
       }
     }
   }
-  Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
+  Specification<Expression> ICallable.Decreases { get { return Decreases; } }
   bool _inferredDecr;
   bool ICallable.InferredDecreases {
     set { _inferredDecr = value; }
     get { return _inferredDecr; }
   }
-  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
+  ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingClass.EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
 
   [Pure]
@@ -369,13 +361,18 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return true;
   }
 
+  protected override bool Bodyless => Body == null;
+  protected override string TypeName => "function";
+
   /// <summary>
   /// Assumes type parameters have already been pushed
   /// </summary>
-  public void Resolve(ModuleResolver resolver) {
+  public override void Resolve(ModuleResolver resolver) {
     Contract.Requires(this != null);
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
+
+    base.Resolve(resolver);
 
     // make note of the warnShadowing attribute
     bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
@@ -465,7 +462,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         // method should have been filled in by now,
         // unless there was a function by method and a method of the same name
         // but then this error must have been reported.
-        Contract.Assert(resolver.Reporter.ErrorCount > 0);
+        Contract.Assert(resolver.Reporter.HasErrors);
       }
     }
 
@@ -567,4 +564,5 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
+  public string Designator => WhatKind;
 }

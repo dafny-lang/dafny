@@ -20,6 +20,8 @@ TypeConstraints.dfy(450,8): Error: type array<nat> is not assignable to LHS (of 
 TypeConstraints.dfy(452,8): Error: type array<int> is not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 TypeConstraints.dfy(455,8): Error: RHS (of type array<int>) not assignable to LHS (of type array<nat>) (nonvariance for type parameter expects nat = int)
 TypeConstraints.dfy(457,8): Error: RHS (of type array<nat>) not assignable to LHS (of type array<int>) (nonvariance for type parameter expects int = nat)
+TypeConstraints.dfy(542,9): Error: type test for type 'Cell<?>' must be from an expression assignable to it (got 'object')
+TypeConstraints.dfy(559,11): Error: type cast to reference type 'Cell<?>' must be from an expression assignable to it (got 'object')
 // TypeConstraints.dfy
 
 /*
@@ -47,7 +49,7 @@ module _System {
   */
 
   class {:compile false} array<arg> {
-    var Length: int  // immutable
+    const Length: int
   }
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
@@ -89,17 +91,19 @@ module _System {
 
   type bool { }
 
+  type char { }
+
   type int { }
 
   type real {
-    var Floor: int  // immutable
+    const Floor: int
   }
 
   type ORDINAL {
-    var IsLimit: bool  // immutable
-    var IsSucc: bool  // immutable
-    var Offset: int  // immutable
-    var IsNat: bool  // immutable
+    const IsLimit: bool
+    const IsSucc: bool
+    const Offset: int
+    const IsNat: bool
   }
 
   type _bv {
@@ -108,16 +112,24 @@ module _System {
     function RotateRight(w: nat): selftype
   }
 
+  type set<+T> { }
+
+  type iset<*T> { }
+
+  type seq<+T> { }
+
+  type multiset<+T> { }
+
   type map<+T, +U> {
-    var Keys: set<T>  // immutable
-    var Values: set<U>  // immutable
-    var Items: set<(T, U)>  // immutable
+    const Keys: set<T>
+    const Values: set<U>
+    const Items: set<(T, U)>
   }
 
   type imap<*T, +U> {
-    var Keys: iset<T>  // immutable
-    var Values: iset<U>  // immutable
-    var Items: iset<(T, U)>  // immutable
+    const Keys: iset<T>
+    const Values: iset<U>
+    const Items: iset<(T, U)>
   }
 
   datatype /*_tuple#0*/ () = _#Make0
@@ -198,6 +210,8 @@ module Tests {
 
 module HereAreErrors {
   /* CALL GRAPH for module HereAreErrors:
+   * SCC at height 0:
+   *   MyInt
    */
   method Error0() returns (x: int, z: bool)
   {
@@ -274,6 +288,8 @@ module PlusTests {
 
 module PlusTests' {
   /* CALL GRAPH for module PlusTests':
+   * SCC at height 0:
+   *   MyInt
    */
   method Plus1()
   {
@@ -317,6 +333,10 @@ module PlusTests' {
 
 module MorePlusTests {
   /* CALL GRAPH for module MorePlusTests:
+   * SCC at height 0:
+   *   C
+   * SCC at height 0:
+   *   MyInt
    */
   method Plusses(b: bool, i: int, j: MyInt, r: real)
   {
@@ -349,6 +369,14 @@ module MorePlusTests {
 
 module References {
   /* CALL GRAPH for module References:
+   * SCC at height 0:
+   *   C
+   * SCC at height 0:
+   *   K
+   * SCC at height 0:
+   *   M
+   * SCC at height 0:
+   *   R
    */
   method M0() returns (c: C, r: R)
   {
@@ -929,4 +957,60 @@ module SameSCC {
 
   codatatype G6 = G6(array<G0>)
 }
-22 resolution/type errors detected in TypeConstraints.dfy
+
+module UnderspecifiedTypeConversions0 {
+  /* CALL GRAPH for module UnderspecifiedTypeConversions0:
+   * SCC at height 0:
+   *   Cell
+   * SCC at height 0:
+   *   UCell
+   */
+  method M(c: Cell<int>)
+  {
+    if c is UCell<int, ?> {
+      print "yes";
+    }
+  }
+
+  method N(c: object)
+  {
+    if c is Cell<?> {
+      print "yes";
+    }
+  }
+
+  class Cell<X> { }
+  /*-- non-null type
+  type {:axiom} Cell(==)<X> = c: Cell?<X> | c != null /*special witness*/
+  */
+
+  type UCell<U, V> = Cell<U>
+}
+
+module UnderspecifiedTypeConversions1 {
+  /* CALL GRAPH for module UnderspecifiedTypeConversions1:
+   * SCC at height 0:
+   *   Cell
+   * SCC at height 0:
+   *   UCell
+   */
+  method M(c: Cell<int>)
+  {
+    var d: Cell<int>;
+    d := c as UCell<int, ?>;
+  }
+
+  method N(c: object)
+  {
+    var d: object;
+    d := c as Cell<?>;
+  }
+
+  class Cell<X> { }
+  /*-- non-null type
+  type {:axiom} Cell(==)<X> = c: Cell?<X> | c != null /*special witness*/
+  */
+
+  type UCell<U, V> = Cell<U>
+}
+24 resolution/type errors detected in TypeConstraints.dfy

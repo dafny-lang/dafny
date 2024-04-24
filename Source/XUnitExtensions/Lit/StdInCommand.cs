@@ -1,5 +1,6 @@
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit;
@@ -13,7 +14,7 @@ public class StdInCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(TextReader inputReader,
+  public Task<int> Execute(TextReader inputReader,
     TextWriter outputWriter, TextWriter errorWriter) {
     inputReader = new StringReader(stdin);
     return operand.Execute(inputReader, outputWriter, errorWriter);

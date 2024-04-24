@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This program models the ownership of a Rust-like MutexGuard using lifetimes to reason about allocation.
@@ -846,7 +846,7 @@ class MutexGuardU32 extends OwnedObject {
 
   ghost predicate volatileOwns() { false }
   ghost function objectUserFields(): set<Object> reads this {
-    { mutex, data }
+    { mutex as Object, data as Object }
   }
 
   twostate predicate unchangedNonvolatileUserFields() reads this {
@@ -886,7 +886,7 @@ class MutexGuardU32 extends OwnedObject {
   }
 
   // MutexGuardU32
-  constructor {:vcs_split_on_every_assert} (ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
+  constructor {:isolate_assertions} (ghost universe: Universe, ghost running: Thread, ghost scope: Lifetime, mutex: Mutex, ghost mutexScope: Lifetime)
     requires universe.globalInv() && { running, scope, mutex, mutexScope } <= universe.content
     requires scope.owner == running && mutexScope.owner == running && scope != mutexScope
     requires universe.outlives(mutex.lifetime, mutexScope) && universe.outlives(mutexScope, scope) && scope.unused()

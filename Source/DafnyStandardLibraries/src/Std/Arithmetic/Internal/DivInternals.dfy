@@ -108,7 +108,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
     (-n <= z < 0 && (x - y) / n == x / n - y / n - 1)
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxPlus(n: int)
+  lemma {:isolate_assertions} LemmaDivAutoAuxPlus(n: int)
     requires n > 0 && ModAuto(n)
     ensures DivAutoPlus(n)
   {
@@ -137,7 +137,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} LemmaDivAutoAuxMinusHelper(n: int)
+  lemma {:isolate_assertions} LemmaDivAutoAuxMinusHelper(n: int)
     requires n > 0 && ModAuto(n)
     ensures forall i, j ::
               && (j >= 0 && DivMinus(n, i, j) ==> DivMinus(n, i, j + n))
