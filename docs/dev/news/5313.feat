@@ -1,0 +1,1 @@
+- Warn when passing something other than a doo file to `--library`

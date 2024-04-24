@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 // ------------------- infer array types for Indexable and MultiIndexable XConstraints ----------
 // ------------------- using weaker subtyping constraints                              ----------
@@ -15,7 +15,8 @@ module AdvancedIndexableInference {
       var xx := c[25].x;
     } else if * {
       var c := d;
-      var xx := c[25..50][10].x;
+      var xx := c[25..50][10].x; // Unfortunately, this gives an error with the new resolver, because it doesn't see to get the element type of c[25..50]
+                                // The best way to improve this is to make name lookups be GuardedConstraints in the resolver, so this may change in the future.
     } else if * {
       var c := e;
       var xx := c[25].x;
@@ -25,7 +26,6 @@ module AdvancedIndexableInference {
     }
   }
 }
-
 // --------------------------
 
 module TypeConversions {
@@ -35,10 +35,10 @@ module TypeConversions {
   method M() returns (x: int, n: nat, o: object, j: J, c: C) {
     n := x as nat;  // yes, this is allowed now
     o := j;
-    j := o;  // OK for type resolution, but must be proved
+    j := o;  // OK for type resolution, but must be proved (new resolver: error, because it requires an explicit cast here)
     j := o as J;  // yes, this is allowed now
     j := c;
-    c := j;  // OK for type resolution, but must be proved
+    c := j;  // OK for type resolution, but must be proved (new resolver: error, because it requires an explicit cast here)
     c := j as C;  // yes, this is allowed now
     var oo := o as realint;  // error: there's no such type as "realint" (this once used to crash Dafny)
   }

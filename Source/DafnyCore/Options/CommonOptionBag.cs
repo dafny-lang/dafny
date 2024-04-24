@@ -184,7 +184,7 @@ go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
-cpp - Compile to C++.
+cpp - (experimental) Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
@@ -195,6 +195,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
@@ -356,6 +357,12 @@ Not compatible with the --unicode-char:false option.
   public static readonly Option<bool> ExtractCounterexample = new("--extract-counterexample", () => false,
     @"
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
+  };
+
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
   };
 
   static CommonOptionBag() {
@@ -570,6 +577,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
 
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
@@ -634,7 +645,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       AddCompileSuffix,
       SystemModule,
       ExecutionCoverageReport,
-      ExtractCounterexample
+      ExtractCounterexample,
+      ShowProofObligationExpressions
       );
   }
 

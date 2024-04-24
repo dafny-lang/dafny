@@ -943,11 +943,14 @@ func (_this *ArraySequence) ParentTraits_() []*TraitID {
 var _ Sequence = &ArraySequence{}
 var _ TraitOffspring = &ArraySequence{}
 
-func (_this *ArraySequence) SetString() Sequence {
+func (_this *ArraySequence) Drop(lo uint32) Sequence {
 	var _out26 Sequence
 	_ = _out26
-	_out26 = Companion_Sequence_.SetString(_this)
+	_out26 = Companion_Sequence_.Drop(_this, lo)
 	return _out26
+}
+func (_this *ArraySequence) Elements() Sequence {
+	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ArraySequence) IsString() bool {
 	return _this._isString
@@ -961,26 +964,23 @@ func (_this *ArraySequence) Select(index uint32) interface{} {
 	_out27 = Companion_Sequence_.Select(_this, index)
 	return _out27
 }
-func (_this *ArraySequence) Drop(lo uint32) Sequence {
+func (_this *ArraySequence) SetString() Sequence {
 	var _out28 Sequence
 	_ = _out28
-	_out28 = Companion_Sequence_.Drop(_this, lo)
+	_out28 = Companion_Sequence_.SetString(_this)
 	return _out28
 }
-func (_this *ArraySequence) Take(hi uint32) Sequence {
+func (_this *ArraySequence) Subsequence(lo uint32, hi uint32) Sequence {
 	var _out29 Sequence
 	_ = _out29
-	_out29 = Companion_Sequence_.Take(_this, hi)
+	_out29 = Companion_Sequence_.Subsequence(_this, lo, hi)
 	return _out29
 }
-func (_this *ArraySequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *ArraySequence) Take(hi uint32) Sequence {
 	var _out30 Sequence
 	_ = _out30
-	_out30 = Companion_Sequence_.Subsequence(_this, lo, hi)
+	_out30 = Companion_Sequence_.Take(_this, hi)
 	return _out30
-}
-func (_this *ArraySequence) Elements() Sequence {
-	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ArraySequence) Ctor__(value ImmutableArray, isString bool) {
 	{
@@ -1055,11 +1055,14 @@ func (_this *ConcatSequence) ParentTraits_() []*TraitID {
 var _ Sequence = &ConcatSequence{}
 var _ TraitOffspring = &ConcatSequence{}
 
-func (_this *ConcatSequence) SetString() Sequence {
+func (_this *ConcatSequence) Drop(lo uint32) Sequence {
 	var _out31 Sequence
 	_ = _out31
-	_out31 = Companion_Sequence_.SetString(_this)
+	_out31 = Companion_Sequence_.Drop(_this, lo)
 	return _out31
+}
+func (_this *ConcatSequence) Elements() Sequence {
+	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ConcatSequence) IsString() bool {
 	return _this._isString
@@ -1073,26 +1076,23 @@ func (_this *ConcatSequence) Select(index uint32) interface{} {
 	_out32 = Companion_Sequence_.Select(_this, index)
 	return _out32
 }
-func (_this *ConcatSequence) Drop(lo uint32) Sequence {
+func (_this *ConcatSequence) SetString() Sequence {
 	var _out33 Sequence
 	_ = _out33
-	_out33 = Companion_Sequence_.Drop(_this, lo)
+	_out33 = Companion_Sequence_.SetString(_this)
 	return _out33
 }
-func (_this *ConcatSequence) Take(hi uint32) Sequence {
+func (_this *ConcatSequence) Subsequence(lo uint32, hi uint32) Sequence {
 	var _out34 Sequence
 	_ = _out34
-	_out34 = Companion_Sequence_.Take(_this, hi)
+	_out34 = Companion_Sequence_.Subsequence(_this, lo, hi)
 	return _out34
 }
-func (_this *ConcatSequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *ConcatSequence) Take(hi uint32) Sequence {
 	var _out35 Sequence
 	_ = _out35
-	_out35 = Companion_Sequence_.Subsequence(_this, lo, hi)
+	_out35 = Companion_Sequence_.Take(_this, hi)
 	return _out35
-}
-func (_this *ConcatSequence) Elements() Sequence {
-	return Companion_Sequence_.Elements(_this)
 }
 func (_this *ConcatSequence) Ctor__(left Sequence, right Sequence) {
 	{
@@ -1192,11 +1192,14 @@ func (_this *LazySequence) ParentTraits_() []*TraitID {
 var _ Sequence = &LazySequence{}
 var _ TraitOffspring = &LazySequence{}
 
-func (_this *LazySequence) SetString() Sequence {
+func (_this *LazySequence) Drop(lo uint32) Sequence {
 	var _out37 Sequence
 	_ = _out37
-	_out37 = Companion_Sequence_.SetString(_this)
+	_out37 = Companion_Sequence_.Drop(_this, lo)
 	return _out37
+}
+func (_this *LazySequence) Elements() Sequence {
+	return Companion_Sequence_.Elements(_this)
 }
 func (_this *LazySequence) IsString() bool {
 	return _this._isString
@@ -1210,26 +1213,23 @@ func (_this *LazySequence) Select(index uint32) interface{} {
 	_out38 = Companion_Sequence_.Select(_this, index)
 	return _out38
 }
-func (_this *LazySequence) Drop(lo uint32) Sequence {
+func (_this *LazySequence) SetString() Sequence {
 	var _out39 Sequence
 	_ = _out39
-	_out39 = Companion_Sequence_.Drop(_this, lo)
+	_out39 = Companion_Sequence_.SetString(_this)
 	return _out39
 }
-func (_this *LazySequence) Take(hi uint32) Sequence {
+func (_this *LazySequence) Subsequence(lo uint32, hi uint32) Sequence {
 	var _out40 Sequence
 	_ = _out40
-	_out40 = Companion_Sequence_.Take(_this, hi)
+	_out40 = Companion_Sequence_.Subsequence(_this, lo, hi)
 	return _out40
 }
-func (_this *LazySequence) Subsequence(lo uint32, hi uint32) Sequence {
+func (_this *LazySequence) Take(hi uint32) Sequence {
 	var _out41 Sequence
 	_ = _out41
-	_out41 = Companion_Sequence_.Subsequence(_this, lo, hi)
+	_out41 = Companion_Sequence_.Take(_this, hi)
 	return _out41
-}
-func (_this *LazySequence) Elements() Sequence {
-	return Companion_Sequence_.Elements(_this)
 }
 func (_this *LazySequence) Ctor__(wrapped Sequence) {
 	{

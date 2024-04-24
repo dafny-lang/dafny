@@ -31,7 +31,7 @@ namespace Microsoft.Dafny {
     public async Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => parser.Parse(compilation, cancellationToken), cancellationToken
+        () => parser.Parse(compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
     }

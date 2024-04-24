@@ -10,12 +10,6 @@ ResolutionErrors3.dfy(58,8): Error: the type of this variable is underspecified
 ResolutionErrors3.dfy(59,8): Error: the type of this local variable is underspecified
 ResolutionErrors3.dfy(60,8): Error: the type of this variable is underspecified
 ResolutionErrors3.dfy(61,8): Error: the type of this local variable is underspecified
-ResolutionErrors3.dfy(66,26): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(66,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
-ResolutionErrors3.dfy(67,31): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(67,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
-ResolutionErrors3.dfy(68,30): Error: the type of this variable is underspecified
-ResolutionErrors3.dfy(68,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(75,8): Error: the type of this local variable is underspecified
 ResolutionErrors3.dfy(78,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors3.dfy(89,21): Error: Type or type parameter is not declared in this scope: X (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
@@ -84,4 +78,10 @@ ResolutionErrors3.dfy(532,23): Error: the type of the bound variable 'u' could n
 ResolutionErrors3.dfy(535,27): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors3.dfy(539,40): Error: the type of the bound variable 'u' could not be determined
 ResolutionErrors3.dfy(541,38): Error: the type of the bound variable 'u' could not be determined
+ResolutionErrors3.dfy(555,26): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(555,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(556,31): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(556,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
+ResolutionErrors3.dfy(567,30): Error: the type of this variable is underspecified
+ResolutionErrors3.dfy(567,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 86 resolution/type errors detected in ResolutionErrors3.dfy

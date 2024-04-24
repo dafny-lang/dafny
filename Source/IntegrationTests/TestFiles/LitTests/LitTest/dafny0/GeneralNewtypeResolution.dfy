@@ -642,3 +642,57 @@ module SubSequences {
     r := arr[..];
   }
 }
+
+module TLAStyleOperators {
+  newtype MyBool = bool
+
+  function A(): MyBool {
+    && true
+  }
+
+  function B(b: MyBool): MyBool {
+    && b
+  }
+
+  function C(b: bool): MyBool {
+    && b // error: got bool, expected MyBool
+  }
+
+  function D(x: int): MyBool {
+    && x // error: got int, expected MyBool
+  }
+
+  function E(): MyBool {
+    && true
+    && false
+  }
+
+  function F(b: bool): MyBool {
+    && true
+    && b // error: got bool, expected MyBool
+  }
+
+  predicate P(b: MyBool) {
+    b // error: got bool, expected MyBool
+  }
+
+  predicate Q(b: MyBool) {
+    && b // error: got bool, expected MyBool
+  }
+
+  predicate R(b: MyBool) {
+    && b && b // error: got bool, expected MyBool
+  }
+
+  predicate S(b: MyBool) {
+    && b as bool
+  }
+
+  predicate T(b: MyBool) {
+    && (b as bool) // same as in S
+  }
+
+  predicate U(b: MyBool) {
+    (&& b) as bool
+  }
+}

@@ -3040,7 +3040,7 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), resolutionContext, true), ll.Seq.Type, ll.Seq,
           "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         if (!ll.SelectOne) {
-          reporter.Error(MessageSource.Resolver, ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
+          reporter.Error(MessageSource.Resolver, ll, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
       } else if (lhs is MultiSelectExpr) {
         // nothing to check; this can only denote an array element

@@ -1250,7 +1250,7 @@ namespace Microsoft.Dafny {
           case TernaryExpr ternaryExpr: {
               var e = ternaryExpr;
               var e0 = TrExpr(e.E0);
-              if (!TernaryExpr.PrefixEqUsesNat && !e.E0.Type.IsBigOrdinalType) {
+              if (!e.E0.Type.IsBigOrdinalType) {
                 e0 = FunctionCall(e0.tok, "ORD#FromNat", predef.BigOrdinalType, e0);
               }
               var e1 = TrExpr(e.E1);

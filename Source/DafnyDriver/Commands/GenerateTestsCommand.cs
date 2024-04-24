@@ -73,7 +73,7 @@ Path - Generate tests targeting path-coverage.");
   }
 
   public static async Task<ExitValue> GenerateTests(DafnyOptions options) {
-    var exitValue = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var (exitValue, dafnyFiles, _) = await SynchronousCliCompilation.GetDafnyFiles(options);
     if (exitValue != ExitValue.SUCCESS) {
       return exitValue;
     }
@@ -100,7 +100,7 @@ Path - Generate tests targeting path-coverage.");
       }
     }
     if (options.TestGenOptions.CoverageReport != null) {
-      new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
+      await new CoverageReporter(options).SerializeCoverageReports(coverageReport, options.TestGenOptions.CoverageReport);
     }
     if (TestGenerator.SetNonZeroExitCode) {
       exitValue = ExitValue.DAFNY_ERROR;
