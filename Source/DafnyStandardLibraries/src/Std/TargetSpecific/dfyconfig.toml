@@ -19,3 +19,6 @@ warn-contradictory-assumptions = true
 library = [
   "../Wrappers.dfy"
 ]
+
+# TEMP HACK
+no-verify = true

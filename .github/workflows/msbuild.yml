@@ -38,23 +38,26 @@ jobs:
     - name: Check whitespace and style
       working-directory: dafny
       run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
-    - name: Get Boogie Version
-      run: |
-        sudo apt-get update
-        sudo apt-get install -qq libxml2-utils
-        echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
-    - name: Attempt custom Boogie patch
+    # - name: Get Boogie Version
+    #   run: |
+    #     sudo apt-get update
+    #     sudo apt-get install -qq libxml2-utils
+    #     echo "boogieVersion=`xmllint --xpath "//PackageReference[@Include='Boogie.ExecutionEngine']/@Version" dafny/Source/DafnyCore/DafnyCore.csproj | grep -Po 'Version="\K.*?(?=")'`" >> $GITHUB_ENV
+    # - name: Attempt custom Boogie patch
+    #   working-directory: dafny
+    #   run: git apply customBoogie.patch
+    # - name: Checkout Boogie
+    #   uses: actions/checkout@v4
+    #   with:
+    #     repository: boogie-org/boogie
+    #     path: dafny/boogie
+    #     ref: v${{ env.boogieVersion }}
+    - name: Get Z3
       working-directory: dafny
-      run: git apply customBoogie.patch
-    - name: Checkout Boogie
-      uses: actions/checkout@v4
-      with:
-        repository: boogie-org/boogie
-        path: dafny/boogie
-        ref: v${{ env.boogieVersion }}
+      run: make z3-ubuntu
     - name: Build Dafny with local Boogie
       working-directory: dafny
-      run: dotnet build Source/Dafny.sln
+      run: make exe
     - name: Create NuGet package (just to make sure it works)
       run: dotnet pack dafny/Source/Dafny.sln
     - name: Check uniformity of integration tests that exercise backends

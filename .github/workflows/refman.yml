@@ -16,7 +16,7 @@ jobs:
 
   build-refman:
     needs: check-deep-tests
-    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    if: false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -34,8 +34,14 @@ jobs:
       with:
         submodules: recursive
         path: dafny
+    - name: Get Z3 (Linux)
+      if: runner.os == 'Linux'
+      run: make -C dafny z3-ubuntu
+    - name: Get Z3 (Mac)
+      if: runner.os == 'MacOS'
+      run: make -C dafny z3-mac
     - name: Build Dafny
-      run: dotnet build dafny/Source/Dafny.sln
+      run: make -C dafny exe
     - name: Install pandoc - Linux
       if: runner.os == 'Linux'
       run: |

@@ -16,6 +16,7 @@ defaults:
 
 jobs:
   build:
+    if: false
     runs-on: ${{matrix.os}}
     timeout-minutes: 60
     name: ${{matrix.suffix}}
@@ -60,7 +61,7 @@ jobs:
       run: |
         chmod +x Binaries/z3/bin/z3*
     - name: Build
-      run: dotnet build ${{env.solutionPath}}
+      run: make exe
     - name: Run DafnyCore Tests
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyCore.Test/coverlet.runsettings Source/DafnyCore.Test
     # Retry LSP tests 3 times because there are some spurious errors

@@ -75,7 +75,7 @@ jobs:
        python-version: '3.11'
     - name: Build Dafny
       run: |
-        dotnet build dafny/Source/Dafny.sln
+        make exe
         rm dafny/Binaries/*.nupkg
     - name: Create release NuGet package (for uploading)
       if: ${{ !inputs.prerelease }}
@@ -138,7 +138,7 @@ jobs:
     # a platform-specific directory), we build Dafny once here.
     - name: Re-build Dafny
       if: ${{ !inputs.prerelease }}
-      run: dotnet build dafny/Source/Dafny.sln
+      run: make exe
     - name: Build reference manual
       if: ${{ !inputs.prerelease }}
       run: |

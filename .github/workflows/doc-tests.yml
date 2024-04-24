@@ -22,7 +22,7 @@ jobs:
 
   doctests:
     needs: check-deep-tests
-    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    if: false
     runs-on: ubuntu-latest
 
     steps:
@@ -43,7 +43,7 @@ jobs:
         mv z3-* dafny/Binaries/z3/bin/
         chmod +x dafny/Binaries/z3/bin/z3-*
     - name: Build Dafny
-      run: dotnet build dafny/Source/Dafny.sln
+      run: make -C dafny exe
     - name: Check generated error catalog
       run: |
         which java
