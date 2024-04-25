@@ -25,12 +25,12 @@ public abstract class ExecutableBackend : IExecutableBackend {
     CreateCodeGenerator()?.SupportsDatatypeWrapperErasure ?? base.SupportsDatatypeWrapperErasure;
 
   public override string ModuleSeparator => CodeGenerator.ModuleSeparator;
-  
+
   public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
     ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
-    
+
     CodeGenerator.Compile(dafnyProgram, output);
   }
 
@@ -43,7 +43,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         TranslationRecord.ReadValidateAndMerge(dafnyProgram, path.FullName, Token.Cli);
       }
     }
-    
+
     // Write out the translation record for THIS translation before compiling,
     // in case the compilation process mutates the program.
     var translationRecord = new TranslationRecord(dafnyProgram);
@@ -52,7 +52,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     var dtrWriter = output.NewFile(dtrFilePath);
     translationRecord.Write(dtrWriter);
   }
-  
+
   protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
     foreach (var compiledModule in dafnyProgram.Modules()) {
       if (compiledModule.Implements is { Kind: ImplementationKind.Replacement }) {

@@ -32,7 +32,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
     ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
-    
+
     ((DafnyCodeGenerator)codeGenerator).Start();
     codeGenerator.Compile(dafnyProgram, new ConcreteSyntaxTree());
     var dast = ((DafnyCodeGenerator)codeGenerator).Build();
