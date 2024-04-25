@@ -67,7 +67,7 @@ public class LibraryBackend : ExecutableBackend {
     throw new NotSupportedException();
   }
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
     if (!Options.UsingNewCli) {
       throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.LegacyCLI);
     }

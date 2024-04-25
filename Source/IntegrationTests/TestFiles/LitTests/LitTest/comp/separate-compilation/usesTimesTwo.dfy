@@ -5,16 +5,16 @@
 // RUN: %baredafny translate cs %args --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --outer-module TestProducer.DafnyInternal
 // RUN: dotnet build %S/Inputs/producer
 
-// RUN: %baredafny translate cs %args --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s --translation-record %S/Inputs/producer/timesTwo.dtr
+// RUN: %baredafny translate cs %args --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s --translation-record %S/Inputs/producer/timesTwo-cs.dtr
 
 // RUN: dotnet run --project %S/consumer > "%t"
 
 // Java
 
-// RUN: %baredafny translate java --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --outer-module testproducer.dafnyinternal --translation-record-output %S/Inputs/producer/timesTwo-java.dtr
+// RUN: %baredafny translate java --output=%S/Inputs/producer/timesTwo %S/Inputs/producer/timesTwo.dfy --outer-module testproducer.dafnyinternal --translation-record-output %S/timesTwo-customName.dtr
 // RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java %S/Inputs/producer/timesTwo-java/timesTwo.java %S/Inputs/producer/timesTwo-java/*/*.java
 
-// RUN: %baredafny translate java --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s --translation-record %S/Inputs/producer/timesTwo-java.dtr
+// RUN: %baredafny translate java --output=%S/consumer/usesTimesTwo --library=%S/Inputs/producer/timesTwo.dfy %s --translation-record %S/timesTwo-customName.dtr
 // RUN: javac -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java %S/consumer/usesTimesTwo-java/usesTimesTwo.java %S/consumer/usesTimesTwo-java/*/*.java
 
 // RUN: java -cp %binaryDir/DafnyRuntime.jar%{pathsep}%S/Inputs/producer/timesTwo-java%{pathsep}%S/consumer/usesTimesTwo-java usesTimesTwo >> "%t"

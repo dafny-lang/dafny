@@ -59,6 +59,12 @@ public class TranslationRecord {
   public void Write(TextWriter writer) {
     writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
   }
+  
+  public void Write(ConcreteSyntaxTree writer) {
+    using var textWriter = new StringWriter();
+    Write(textWriter);
+    writer.Write(textWriter.ToString());
+  }
 
   private bool Validate(Program dafnyProgram, string filePath, IToken origin) {
     var messagePrefix = $"cannot load {filePath}";

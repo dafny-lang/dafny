@@ -141,7 +141,7 @@ public abstract class IExecutableBackend {
   /// <param name="sourceDirectory">Name of the directory to delete.</param>
   public virtual void CleanSourceDirectory(string sourceDirectory) { }
 
-  public abstract void Compile(Program dafnyProgram, ConcreteSyntaxTree output);
+  public abstract void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output);
 
   /// <summary>
   /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
