@@ -204,7 +204,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       while (!string.IsNullOrEmpty(folder) && projectFile == null) {
         projectFile = await OpenProjectInFolder(folder);
 
-        if (projectFile != null && projectFile.Uri != sourceUri && projectFile.ContainsSourceFile(sourceUri) == false) {
+        if (projectFile != null && projectFile.Uri != sourceUri &&
+            !(projectFile.Errors.HasErrors || projectFile.ContainsSourceFile(sourceUri))) {
           projectFile = null;
         }
 
