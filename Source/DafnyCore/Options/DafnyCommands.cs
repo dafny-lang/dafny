@@ -25,7 +25,7 @@ public static class DafnyCommands {
     CommonOptionBag.FormatPrint,
   }.Concat(ParserOptions);
 
-  public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
@@ -53,7 +53,7 @@ public static class DafnyCommands {
     CommonOptionBag.ShowProofObligationExpressions
   }.ToList();
 
-  public static IReadOnlyList<Option> TranslationOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
