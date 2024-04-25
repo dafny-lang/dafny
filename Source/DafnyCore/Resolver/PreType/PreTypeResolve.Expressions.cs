@@ -1488,7 +1488,7 @@ namespace Microsoft.Dafny {
             if (!resolver.VisibleInScope(member)) {
               ReportError(expr.tok, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
-            if (!member.IsStatic) {
+            if (!member.IsStatic && !resolutionContext.InCallDecl) {
               ReportError(expr.tok, $"accessing member '{name}' requires an instance expression"); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }

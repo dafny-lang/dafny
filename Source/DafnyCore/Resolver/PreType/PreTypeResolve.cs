@@ -1431,16 +1431,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void ResolveCalls(MethodOrFunction callable)
-    {
+    private void ResolveCalls(MethodOrFunction callable) {
+      var context = new ResolutionContext(callable, false) { InCallDecl = true };
       foreach (Call c in callable.Calls) {
         switch (c.QualifiedName)
         {
           case NameSegment ns:
-            ResolveNameSegment(ns, true, new List<ActualBinding>(), new ResolutionContext(callable, false), true);
+            ResolveNameSegment(ns, true, new List<ActualBinding>(), context, true);
             break;
           case ExprDotName edn:
-            ResolveDotSuffix(edn, true, new List<ActualBinding>(), new ResolutionContext(callable, false), true);
+            ResolveDotSuffix(edn, true, new List<ActualBinding>(), context, true);
             break;
         }
 

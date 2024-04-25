@@ -1,7 +1,7 @@
 namespace Microsoft.Dafny;
 
 public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool InOld, bool InReveal,
-  bool InFunctionPostcondition, bool InFirstPhaseConstructor) {
+  bool InFunctionPostcondition, bool InFirstPhaseConstructor, bool InCallDecl) {
 
   // Invariants:
   // InOld implies !IsTwoState
@@ -10,7 +10,7 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
   public bool IsGhost => CodeContext.IsGhost;
 
   public ResolutionContext(ICodeContext codeContext, bool isTwoState)
-    : this(codeContext, isTwoState, false, false, false, false) {
+    : this(codeContext, isTwoState, false, false, false, false, false) {
   }
 
   /// <summary>
@@ -36,6 +36,6 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
     if (CodeContext.IsGhost == isGhost) {
       return this;
     }
-    return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
+    return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor, InCallDecl);
   }
 }
