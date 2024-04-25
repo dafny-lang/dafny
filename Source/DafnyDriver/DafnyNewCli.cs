@@ -221,9 +221,6 @@ public static class DafnyNewCli {
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
-    if (projectFile.Errors.HasErrors) {
-      return false;
-    }
     return true;
   }
 

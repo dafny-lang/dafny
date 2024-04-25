@@ -17,14 +17,6 @@ using Tomlyn.Model;
 
 namespace Microsoft.Dafny;
 
-class DafnyProjectFile {
-
-  public string? Base { get; set; }
-  public string[]? Includes { get; set; }
-  public string[]? Excludes { get; set; }
-  public Dictionary<string, object>? Options { get; set; }
-}
-
 public class DafnyProject : IEquatable<DafnyProject> {
   public const string Extension = ".toml";
   public const string FileName = "dfyconfig" + Extension;
@@ -77,14 +69,35 @@ public class DafnyProject : IEquatable<DafnyProject> {
       result = emptyProject;
       result.Errors.Error(MessageSource.Project, result.StartingToken, e.Message);
     } catch (TomlException tomlException) {
-      var regex = new Regex(
+      var propertyNotFoundRegex = new Regex(
         @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
-      var newMessage = regex.Replace(tomlException.Message,
-        match =>
-          $"({match.Groups[1].Value},{match.Groups[2].Value}): the property {match.Groups[3].Value} does not exist.");
-      result = emptyProject;
-      var path = dafnyOptions.GetPrintPath(uri.LocalPath);
-      result.Errors.Error(MessageSource.Project, result.StartingToken, $"The Dafny project file {path} contains the following errors: {newMessage}");
+      var propertyNotFoundMatch = propertyNotFoundRegex.Match(tomlException.Message);
+      if (propertyNotFoundMatch.Success) {
+        var line = int.Parse(propertyNotFoundMatch.Groups[1].Value);
+        var column = int.Parse(propertyNotFoundMatch.Groups[2].Value);
+        var property = propertyNotFoundMatch.Groups[3].Value;
+        result = emptyProject;
+        var token = new Token(line, column) {
+          Uri = uri
+        };
+        result.Errors.Error(MessageSource.Project, token,
+          $"Dafny project files do not have the property {property}");
+      } else {
+        var genericRegex = new Regex(@$"\((\d+),(\d+)\) : error : (.*)");
+        var genericMatch = genericRegex.Match(tomlException.Message);
+        if (genericMatch.Success) {
+          var line = int.Parse(genericMatch.Groups[1].Value);
+          var column = int.Parse(genericMatch.Groups[2].Value);
+          var message = genericMatch.Groups[3].Value;
+          result = emptyProject;
+          var token = new Token(line, column) {
+            Uri = uri
+          };
+          result.Errors.Error(MessageSource.Project, token, message);
+        } else {
+          throw new Exception("Could not parse Tomlyn error");
+        }
+      }
     }
 
     if (result.Base != null) {
@@ -337,4 +350,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public override int GetHashCode() {
     return HashCode.Combine(Uri, Includes, Excludes, Options);
   }
+}
+
+class DafnyProjectFile {
+  public string? Base { get; set; }
+  public string[]? Includes { get; set; }
+  public string[]? Excludes { get; set; }
+  public Dictionary<string, object>? Options { get; set; }
 }
