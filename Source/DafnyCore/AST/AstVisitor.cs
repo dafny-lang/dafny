@@ -136,12 +136,12 @@ namespace Microsoft.Dafny {
 
       VisitAttributes(function, function.EnclosingClass.EnclosingModuleDefinition);
 
-      foreach (var formal in function.Formals) {
+      foreach (var formal in function.Ins) {
         VisitUserProvidedType(formal.Type, context);
       }
       VisitUserProvidedType(function.ResultType, context);
 
-      VisitDefaultParameterValues(function.Formals, context);
+      VisitDefaultParameterValues(function.Ins, context);
 
       function.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 

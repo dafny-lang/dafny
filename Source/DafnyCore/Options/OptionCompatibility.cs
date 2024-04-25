@@ -48,7 +48,7 @@ public class OptionCompatibility {
     try {
       return !(bool)first || (bool)second;
     } catch (NullReferenceException) {
-      throw new Exception("Comparing options of Doo files created by different Dafny versions");
+      throw new Exception("Comparing options of Doo files created by different Dafny builds. You are probably using a locally built Dafny that has the same version as a different built.");
     }
   }
 
