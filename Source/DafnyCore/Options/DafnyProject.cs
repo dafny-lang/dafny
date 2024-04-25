@@ -50,7 +50,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     Options = options ?? new Dictionary<string, object>();
   }
 
-  public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri) {
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri, bool defaultIncludes = true) {
 
     var emptyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
       new Dictionary<string, object>());
@@ -61,10 +61,36 @@ public class DafnyProject : IEquatable<DafnyProject> {
       var text = await textReader.ReadToEndAsync();
       var model = Toml.ToModel<DafnyProjectFile>(text, null, new TomlModelOptions());
       var directory = Path.GetDirectoryName(uri.LocalPath)!;
+
       result = new DafnyProject(uri, model.Base == null ? null : new Uri(Path.GetFullPath(model.Base, directory!)),
         model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
         model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
         model.Options ?? new Dictionary<string, object>());
+
+      if (result.Base != null) {
+        var baseProject = await Open(fileSystem, dafnyOptions, result.Base, false);
+        baseProject.Errors.CopyDiagnostics(result.Errors);
+        foreach (var include in baseProject.Includes) {
+          if (!result.Excludes.Contains(include)) {
+            result.Includes.Add(include);
+          }
+        }
+
+        foreach (var include in baseProject.Excludes) {
+          if (!result.Includes.Contains(include)) {
+            result.Excludes.Add(include);
+          }
+        }
+
+        foreach (var option in baseProject.Options) {
+          if (!result.Options.ContainsKey(option.Key)) {
+            result.Options.Add(option.Key, option.Value);
+          }
+        }
+      }
+      if (defaultIncludes && model.Includes == null && !result.Includes.Any()) {
+        result.Includes.Add("**/*.dfy");
+      }
     } catch (IOException e) {
       result = emptyProject;
       result.Errors.Error(MessageSource.Project, result.StartingToken, e.Message);
@@ -97,32 +123,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
         } else {
           throw new Exception("Could not parse Tomlyn error");
         }
-      }
-    }
-
-    if (result.Base != null) {
-      var baseProject = await Open(fileSystem, dafnyOptions, result.Base);
-      baseProject.Errors.CopyDiagnostics(result.Errors);
-      foreach (var include in baseProject.Includes) {
-        if (!result.Excludes.Contains(include)) {
-          result.Includes.Add(include);
-        }
-      }
-
-      foreach (var include in baseProject.Excludes) {
-        if (!result.Includes.Contains(include)) {
-          result.Excludes.Add(include);
-        }
-      }
-
-      foreach (var option in baseProject.Options) {
-        if (!result.Options.ContainsKey(option.Key)) {
-          result.Options.Add(option.Key, option.Value);
-        }
-      }
-    } else {
-      if (!result.Includes.Any()) {
-        result.Includes.Add("**/*.dfy");
       }
     }
 

@@ -1,1 +1,2 @@
+// RUN: echo ""
 complete garbage
