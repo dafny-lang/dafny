@@ -1,22 +1,29 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Parsing;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore.Options;
-using JetBrains.Annotations;
 using Microsoft.Extensions.FileSystemGlobbing;
+using Newtonsoft.Json;
 using Tomlyn;
 using Tomlyn.Model;
 
 namespace Microsoft.Dafny;
+
+class DafnyProjectFile {
+
+  public string? Base { get; set; }
+  public string[]? Includes { get; set; }
+  public string[]? Excludes { get; set; }
+  public Dictionary<string, object>? Options { get; set; }
+}
 
 public class DafnyProject : IEquatable<DafnyProject> {
   public const string Extension = ".toml";
@@ -24,14 +31,16 @@ public class DafnyProject : IEquatable<DafnyProject> {
 
   public string ProjectName => Uri.ToString();
 
-  [IgnoreDataMember]
   public BatchErrorReporter Errors { get; init; } = new(DafnyOptions.Default);
 
-  [IgnoreDataMember]
   public Uri Uri { get; set; }
-  public string[] Includes { get; set; }
-  public string[] Excludes { get; set; }
-  public Dictionary<string, object> Options { get; set; }
+
+  public Uri? Base { get; set; }
+
+  public ISet<string> Includes { get; }
+  public ISet<string> Excludes { get; }
+  public IDictionary<string, object> Options { get; }
+
   public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
   public bool ImplicitFromCli;
 
@@ -41,22 +50,29 @@ public class DafnyProject : IEquatable<DafnyProject> {
     col = 1
   };
 
-  public DafnyProject() {
+  public DafnyProject(Uri uri, Uri? @base, ISet<string> includes, ISet<string>? excludes = null, IDictionary<string, object>? options = null) {
+    Uri = uri;
+    Base = @base;
+    Includes = includes;
+    Excludes = excludes ?? new HashSet<string>();
+    Options = options ?? new Dictionary<string, object>();
   }
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri) {
 
-    var emptyProject = new DafnyProject {
-      Uri = uri
-    };
+    var emptyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
+      new Dictionary<string, object>());
 
     DafnyProject result;
     try {
       using var textReader = fileSystem.ReadFile(uri);
       var text = await textReader.ReadToEndAsync();
-      var model = Toml.ToModel<DafnyProject>(text, null, new TomlModelOptions());
-      model.Uri = uri;
-      result = model;
+      var model = Toml.ToModel<DafnyProjectFile>(text, null, new TomlModelOptions());
+      var directory = Path.GetDirectoryName(uri.LocalPath)!;
+      result = new DafnyProject(uri, model.Base == null ? null : new Uri(Path.GetFullPath(model.Base, directory!)),
+        model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
+        model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
+        model.Options ?? new Dictionary<string, object>());
     } catch (IOException e) {
       result = emptyProject;
       result.Errors.Error(MessageSource.Project, result.StartingToken, e.Message);
@@ -71,8 +87,34 @@ public class DafnyProject : IEquatable<DafnyProject> {
       result.Errors.Error(MessageSource.Project, result.StartingToken, $"The Dafny project file {path} contains the following errors: {newMessage}");
     }
 
+    if (result.Base != null) {
+      var baseProject = await Open(fileSystem, dafnyOptions, result.Base);
+      baseProject.Errors.CopyDiagnostics(result.Errors);
+      foreach (var include in baseProject.Includes) {
+        if (!result.Excludes.Contains(include)) {
+          result.Includes.Add(include);
+        }
+      }
+
+      foreach (var include in baseProject.Excludes) {
+        if (!result.Includes.Contains(include)) {
+          result.Excludes.Add(include);
+        }
+      }
+
+      foreach (var option in baseProject.Options) {
+        if (!result.Options.ContainsKey(option.Key)) {
+          result.Options.Add(option.Key, option.Value);
+        }
+      }
+    } else {
+      if (!result.Includes.Any()) {
+        result.Includes.Add("**/*.dfy");
+      }
+    }
+
     if (Path.GetFileName(uri.LocalPath) != FileName) {
-      result.Errors.Warning(MessageSource.Project, (string)null, result.StartingToken, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
+      result.Errors.Warning(MessageSource.Project, "", result.StartingToken, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
 
     return result;
@@ -99,8 +141,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     var projectRoot = Path.GetDirectoryName(Uri.LocalPath)!;
     var diskRoot = Path.GetPathRoot(Uri.LocalPath)!;
 
-    var includes = Includes ?? new[] { "**/*.dfy" };
-    var excludes = Excludes ?? Array.Empty<string>();
+    var includes = Includes;
+    var excludes = Excludes;
     var fullPaths = includes.Concat(excludes).Select(p => Path.GetFullPath(p, projectRoot)).ToList();
     commonRoot = GetCommonParentDirectory(fullPaths) ?? diskRoot;
     var matcher = new Matcher();
@@ -115,11 +157,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return matcher;
   }
 
-  string GetCommonParentDirectory(IReadOnlyList<string> strings) {
+  string? GetCommonParentDirectory(IReadOnlyList<string> strings) {
     if (!strings.Any()) {
       return null;
     }
-    var commonPrefix = strings.FirstOrDefault() ?? "";
+    string commonPrefix = strings.FirstOrDefault() ?? "";
 
     foreach (var newString in strings) {
       var potentialMatchLength = Math.Min(newString.Length, commonPrefix.Length);
@@ -137,16 +179,13 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
 
     if (!Path.EndsInDirectorySeparator(commonPrefix)) {
-      commonPrefix = Path.GetDirectoryName(commonPrefix);
+      commonPrefix = Path.GetDirectoryName(commonPrefix)!;
     }
 
     return commonPrefix;
   }
 
   public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
-    if (Options == null) {
-      return;
-    }
 
     var possibleNames = possibleOptions.Select(o => o.Name).ToHashSet();
     foreach (var optionThatDoesNotExist in Options.Where(option => !possibleNames.Contains(option.Key))) {
@@ -155,12 +194,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  public bool TryGetValue(Option option, out object value) {
-    if (Options == null) {
-      value = null;
-      return false;
-    }
-
+  public bool TryGetValue(Option option, out object? value) {
     if (!Options.TryGetValue(option.Name, out var tomlValue)) {
       value = null;
       return false;
@@ -179,22 +213,21 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return true;
   }
 
-  [ItemCanBeNull]
   IEnumerable<string> PrintTomlOptionToCliValue(object value, Option valueType) {
-    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath);
+    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath)!;
 
     if (value is TomlArray array) {
       List<string> elements;
       if (valueType.ValueType.IsAssignableTo(typeof(IEnumerable<FileInfo>))) {
         elements = array.Select(element => {
           if (element is string elementString) {
-            return Path.GetFullPath(elementString, projectDirectory!);
+            return Path.GetFullPath(elementString, projectDirectory);
           }
 
-          return element.ToString();
+          return element + "";
         }).ToList();
       } else {
-        elements = array.Select(o => o.ToString()).ToList();
+        elements = array.Select(o => o + "").ToList();
       }
 
       return elements.SelectMany(e => new[] { valueType.Aliases.First(), e });
@@ -204,10 +237,10 @@ public class DafnyProject : IEquatable<DafnyProject> {
       value = Path.GetFullPath(stringValue, projectDirectory);
     }
 
-    return new[] { valueType.Aliases.First(), value.ToString() };
+    return new[] { valueType.Aliases.First(), value + "" };
   }
 
-  public bool Equals(DafnyProject other) {
+  public bool Equals(DafnyProject? other) {
     if (ReferenceEquals(null, other)) {
       return false;
     }
@@ -216,18 +249,19 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return true;
     }
 
-    var orderedOptions = Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
-    var otherOrderedOptions = other.Options?.OrderBy(kv => kv.Key) ?? Enumerable.Empty<KeyValuePair<string, object>>();
+    var orderedOptions = Options.OrderBy(kv => kv.Key);
+    var otherOrderedOptions = other.Options.OrderBy(kv => kv.Key);
 
     return Equals(Uri, other.Uri) &&
-           NullableSetEqual(Includes?.ToHashSet(), other.Includes) &&
-           NullableSetEqual(Excludes?.ToHashSet(), other.Excludes) &&
+           NullableSetEqual(Includes, other.Includes) &&
+           NullableSetEqual(Excludes, other.Excludes) &&
            orderedOptions.SequenceEqual(otherOrderedOptions, new LambdaEqualityComparer<KeyValuePair<string, object>>(
              (kv1, kv2) => kv1.Key == kv2.Key && GenericEquals(kv1.Value, kv2.Value),
              kv => kv.GetHashCode()));
   }
 
-  public static bool GenericEquals(object first, object second) {
+  [SuppressMessage("ReSharper", "NotDisposedResource")]
+  public static bool GenericEquals(object? first, object? second) {
     if (first == null && second == null) {
       return true;
     }
@@ -260,7 +294,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return first.Equals(second);
   }
 
-  private static bool NullableSetEqual(ISet<string> first, IReadOnlyCollection<string> second) {
+  private static bool NullableSetEqual(ISet<string>? first, ICollection<string>? second) {
     if (first == null && second == null) {
       return true;
     }
@@ -271,21 +305,19 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return first.Count == second.Count && second.All(first.Contains);
   }
 
-  private static bool NullableSequenceEqual(IEnumerable<string> first, IEnumerable<string> second) {
-    return first?.SequenceEqual(second) ?? (second == null);
+  public DafnyProject(DafnyProject original) {
+    Uri = original.Uri;
+    Includes = original.Includes.ToHashSet();
+    Excludes = original.Excludes.ToHashSet();
+    Options = original.Options.ToDictionary(kv => kv.Key, kv => kv.Value);
+    Errors = original.Errors;
   }
 
   public DafnyProject Clone() {
-    return new DafnyProject() {
-      Uri = Uri,
-      Includes = Includes?.ToArray(),
-      Excludes = Excludes?.ToArray(),
-      Options = Options?.ToDictionary(kv => kv.Key, kv => kv.Value),
-      Errors = Errors
-    };
+    return new DafnyProject(this);
   }
 
-  public override bool Equals(object obj) {
+  public override bool Equals(object? obj) {
     if (ReferenceEquals(null, obj)) {
       return false;
     }
@@ -301,6 +333,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return Equals((DafnyProject)obj);
   }
 
+  [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
   public override int GetHashCode() {
     return HashCode.Combine(Uri, Includes, Excludes, Options);
   }

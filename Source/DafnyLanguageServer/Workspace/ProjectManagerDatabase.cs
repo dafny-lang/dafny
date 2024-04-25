@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -188,10 +189,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
-      var implicitProject = new DafnyProject {
-        Includes = new[] { uri.LocalPath },
-        Uri = uri
-      };
+      var implicitProject = new DafnyProject(
+        uri, null,
+        new[] { uri.LocalPath }.ToHashSet(),
+        new HashSet<string>(),
+        new Dictionary<string, object>());
       return implicitProject;
     }
 
@@ -231,7 +233,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult<DafnyProject?>(null);
       }
 
-      return DafnyProject.Open(fileSystem, serverOptions, configFileUri);
+      return DafnyProject.Open(fileSystem, serverOptions, configFileUri)!;
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;
