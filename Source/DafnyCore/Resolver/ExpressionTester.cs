@@ -353,7 +353,7 @@ public class ExpressionTester {
 
     } else if (expr is DecreasesToExpr _) {
       // TODO: create ErrorId
-      ReportError(ErrorId.none, expr, "decreasesto expressions are allowed only in specification and ghost contexts");
+      ReportError(ErrorId.none, expr, "a `decreasesto` expression is allowed only in specification and ghost contexts");
       return false;
 
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
