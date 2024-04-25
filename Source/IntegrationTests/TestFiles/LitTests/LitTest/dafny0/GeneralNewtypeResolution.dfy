@@ -696,3 +696,120 @@ module TLAStyleOperators {
     (&& b) as bool
   }
 }
+
+module TypeParametersForNewtypes {
+  newtype Wrapper<G> = g: G | true witness *  // (error under /generalNewtypes:0)
+
+  method Test0() {
+    var wb: Wrapper;
+    wb := true; // error: cannot assign bool to a Wrapper
+  }
+
+  method Test1(b: bool) {
+    var wb: Wrapper;
+    wb := b; // error: cannot assign bool to a Wrapper
+  }
+
+  method Test2(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b; // error: cannot assign bool to a Wrapper<bool>
+  }
+
+  method Test3(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper; // error: not enough is known about the target type to determine if this is legal
+  }
+
+  method Test4(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper;
+  }
+
+  method Test5(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper<bool>;
+  }
+
+  method Test6(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper<bool>;
+  }
+}
+
+module TypeParametersForSubsetTypes {
+  type Wrapper<G> = g: G | true witness *
+
+  method Test0() {
+    var wb: Wrapper;
+    wb := true;
+  }
+
+  method Test1(b: bool) {
+    var wb: Wrapper;
+    wb := b;
+  }
+
+  method Test2(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b;
+  }
+
+  method Test3(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper; // error: not enough is known about the target type to determine if this is legal
+  }
+
+  method Test4(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper;
+  }
+
+  method Test5(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper<bool>;
+  }
+
+  method Test6(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper<bool>;
+  }
+}
+
+module TypeParametersForTypeSynonyms {
+  type Wrapper<G> = G
+
+  method Test0() {
+    var wb: Wrapper;
+    wb := true;
+  }
+
+  method Test1(b: bool) {
+    var wb: Wrapper;
+    wb := b;
+  }
+
+  method Test2(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b;
+  }
+
+  method Test3(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper; // error: not enough is known about the target type to determine if this is legal
+  }
+
+  method Test4(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper;
+  }
+
+  method Test5(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper<bool>;
+  }
+
+  method Test6(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper<bool>;
+  }
+}

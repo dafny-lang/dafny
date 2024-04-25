@@ -11,6 +11,7 @@ method Main() {
   SubsetTypeIsTests.Test();
   NewtypeIsTests.Test();
   NewBehaviors.Test();
+  TypeParameters.Test();
 }
 
 module Numerics {
@@ -578,5 +579,34 @@ module NewBehaviors {
     var w1: MyBool := x is Word;
 
     print mIs, " ", mAs, " ", w0, " ", w1, "\n"; // true false true false
+  }
+}
+
+module TypeParameters {
+  newtype Wrapper<G> = g: G | true witness *
+  newtype int32 = x: int | -0x8000_0000 <= x < 0x8000_0000
+
+  method Test() {
+    var b: Wrapper<bool>;
+    b := true ==> false;
+    var i: Wrapper<Wrapper<int>>;
+    i := Wrap3(25) as Wrapper<Wrapper<int>>;
+    var j: Wrapper<Wrapper<Wrapper<int32>>>;
+    j := Wrap3(30);
+    print b, " ", i, " ", j, "\n"; // false 25 30
+
+    print Unwrap3(j) < 2, " "; // false
+    print Unwrap3(j) < 32, " | "; // true |
+    var w: int32 := 299;
+    b := Unwrap3(j) < w;
+    print b, "\n"; // true
+  }
+
+  function Wrap3(x: int32): Wrapper<Wrapper<Wrapper<int32>>> {
+    x as Wrapper<int32> as Wrapper<Wrapper<int32>> as Wrapper<Wrapper<Wrapper<int32>>>
+  }
+
+  function Unwrap3(x: Wrapper<Wrapper<Wrapper<int32>>>): int32 {
+    x as Wrapper<Wrapper<int32>> as Wrapper<int32> as int32
   }
 }
