@@ -380,6 +380,8 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
 
+    public bool ShowProofObligationExpressions = false;
+
     public bool AuditProgram = false;
 
     public static string DefaultZ3Version = "4.12.1";
@@ -798,6 +800,10 @@ namespace Microsoft.Dafny {
         case "extractCounterexample":
           ExtractCounterexample = true;
           EnhancedErrorMessages = 1;
+          return true;
+
+        case "showProofObligationExpressions":
+          ShowProofObligationExpressions = true;
           return true;
 
         case "testContracts":

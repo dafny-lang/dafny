@@ -173,7 +173,7 @@ namespace Microsoft.Dafny {
               // Note:  First off, (*) is used only when ORDINAL is involved. Moreover, if there's an error among the first checked
               // conditions, it seems confusing to get yet another error message.  Therefore, we add a middle disjunct to (*), namely
               // the conjunction of all the previous RHSs.
-              var kAsORD = !e.E0.Type.IsBigOrdinalType && !TernaryExpr.PrefixEqUsesNat ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
+              var kAsORD = !e.E0.Type.IsBigOrdinalType ? FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, k) : k;
               var prefixEqK = CoEqualCall(codecl, e1type.TypeArgs, e2type.TypeArgs, kAsORD, etran.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), A, B); // FunctionCall(expr.tok, CoPrefixName(codecl, 1), Bpl.Type.Bool, k, A, B);
               Bpl.Expr kHasSuccessor, kMinusOne;
               if (e.E0.Type.IsBigOrdinalType) {
@@ -182,9 +182,7 @@ namespace Microsoft.Dafny {
               } else {
                 kHasSuccessor = Bpl.Expr.Lt(Bpl.Expr.Literal(0), k);
                 kMinusOne = Bpl.Expr.Sub(k, Bpl.Expr.Literal(1));
-                if (!TernaryExpr.PrefixEqUsesNat) {
-                  kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
-                }
+                kMinusOne = FunctionCall(k.tok, "ORD#FromNat", Bpl.Type.Int, kMinusOne);
               }
               // for the inlining of the definition of prefix equality, translate the two main equality operands arguments with a higher offset (to obtain #2 functions)
               var etran2 = etran.LayerOffset(1);
@@ -547,7 +545,7 @@ namespace Microsoft.Dafny {
               FunctionCallExpr e = (FunctionCallExpr)typeSpecializedBody;
               for (int i = 0; i < e.Args.Count; i++) {
                 Expression ee = e.Args[i];
-                Type t = e.Function.Formals[i].Type;
+                Type t = e.Function.Ins[i].Type;
                 Expr tr_ee = etran.TrExpr(ee);
                 Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
                 if (wh != null) {
@@ -582,7 +580,7 @@ namespace Microsoft.Dafny {
       }
       return
         !triggersCollector.IsTriggerKiller(fexp.Receiver) &&
-        Enumerable.Zip(f.Formals, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
+        Enumerable.Zip(f.Ins, fexp.Args).All(formal_concrete => CanSafelySubstitute(visitor.TriggerVariables, formal_concrete.Item1, formal_concrete.Item2));
     }
 
 
@@ -615,9 +613,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(fexp != null);
       Contract.Requires(f != null);
       var substMap = new Dictionary<IVariable, Expression>();
-      Contract.Assert(fexp.Args.Count == f.Formals.Count);
-      for (int i = 0; i < f.Formals.Count; i++) {
-        Formal p = f.Formals[i];
+      Contract.Assert(fexp.Args.Count == f.Ins.Count);
+      for (int i = 0; i < f.Ins.Count; i++) {
+        Formal p = f.Ins[i];
         var formalType = p.Type.Subst(fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
         arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);

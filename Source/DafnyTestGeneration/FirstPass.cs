@@ -221,7 +221,7 @@ public class FirstPass {
           }
         }
       } else if (declaration is Function function) {
-        foreach (var formal in function.Formals) {
+        foreach (var formal in function.Ins) {
           if (!TypeIsSupported(formal.Type, function.Name)) {
             result = false; // No short-circuiting here to emit all possible errors/warnings
           }

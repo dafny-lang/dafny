@@ -804,7 +804,7 @@ namespace Microsoft.Dafny {
       }
 
       void ComputePreTypeFunction(Function function) {
-        function.Formals.ForEach(ComputePreTypeFormal);
+        function.Ins.ForEach(ComputePreTypeFormal);
         if (function.Result != null) {
           ComputePreTypeFormal(function.Result);
         } else if (function.ByMethodDecl != null) {
@@ -1008,6 +1008,7 @@ namespace Microsoft.Dafny {
       } else {
         if (initialResolutionPass == dd.Var.Type is TypeProxy) {
           scope.PushMarker();
+          scope.AllowInstance = false;
           ScopePushExpectSuccess(dd.Var, dd.WhatKind + " variable", false);
           ResolveExpression(dd.Constraint, new ResolutionContext(new CodeContextWrapper(dd, true), false));
           ConstrainTypeExprBool(dd.Constraint, dd.WhatKind + " constraint must be of type bool (instead got {0})");
@@ -1020,7 +1021,10 @@ namespace Microsoft.Dafny {
 
       if (!initialResolutionPass && dd.Witness != null) {
         var codeContext = new CodeContextWrapper(dd, dd.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+        scope.PushMarker();
+        scope.AllowInstance = false;
         ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
+        scope.PopMarker();
         AddSubtypeConstraint(dd.Var.PreType, dd.Witness.PreType, dd.Witness.tok, "witness expression must have type '{0}' (got '{1}')");
         Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' witness");
       }
@@ -1033,7 +1037,12 @@ namespace Microsoft.Dafny {
     void ResolveConstRHS(ConstantField cfield, bool initialResolutionPass) {
       if (cfield.Rhs != null && initialResolutionPass == cfield.Type is TypeProxy) {
         var opts = new ResolutionContext(cfield, false);
+        scope.PushMarker();
+        if (cfield.IsStatic) {
+          scope.AllowInstance = false;
+        }
         ResolveExpression(cfield.Rhs, opts);
+        scope.PopMarker();
         AddSubtypeConstraint(cfield.PreType, cfield.Rhs.PreType, cfield.Tok, "RHS (of type {1}) not assignable to LHS (of type {0})");
         Constraints.SolveAllTypeConstraints($"{cfield.WhatKind} '{cfield.Name}' constraint");
       }
@@ -1086,7 +1095,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentClass != null);
 
       if (member is ConstantField cfield) {
+        scope.PushMarker();
+        if (cfield.IsStatic) {
+          scope.AllowInstance = false;
+        }
         ResolveAttributes(member, new ResolutionContext(new NoContext(currentClass.EnclosingModuleDefinition), false), true);
+        scope.PopMarker();
         ResolveConstRHS(cfield, false);
 
       } else if (member is Field) {
@@ -1233,7 +1247,7 @@ namespace Microsoft.Dafny {
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
 
-      f.ResolveMethodOrFunction(this);
+      f.ResolveNewOrOldPart(this);
 
       // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
@@ -1248,10 +1262,10 @@ namespace Microsoft.Dafny {
         scope.AllowInstance = false;
       }
 
-      foreach (Formal p in f.Formals) {
+      foreach (Formal p in f.Ins) {
         ScopePushAndReport(p, "parameter", false);
       }
-      ResolveParameterDefaultValues(f.Formals, f);
+      ResolveParameterDefaultValues(f.Ins, f);
 
       foreach (var req in f.Req) {
         ResolveAttributes(req, new ResolutionContext(f, f is TwoStateFunction), false);
@@ -1317,7 +1331,7 @@ namespace Microsoft.Dafny {
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
 
-      m.ResolveMethodOrFunction(this);
+      m.ResolveNewOrOldPart(this);
 
       try {
         currentMethod = m;

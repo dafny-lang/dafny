@@ -141,19 +141,11 @@ public class XConstraint {
         break;
       case "IntOrORDINAL":
         if (!(t is TypeProxy)) {
-          if (TernaryExpr.PrefixEqUsesNat) {
-            satisfied = t.IsNumericBased(Type.NumericPersuasion.Int);
-          } else {
-            satisfied = t.IsNumericBased(Type.NumericPersuasion.Int) || t.IsBigOrdinalType;
-          }
+          satisfied = t.IsNumericBased(Type.NumericPersuasion.Int) || t.IsBigOrdinalType;
         } else if (fullstrength) {
           var proxy = (TypeProxy)t;
-          if (TernaryExpr.PrefixEqUsesNat) {
-            resolver.AssignProxyAndHandleItsConstraints(proxy, Type.Int);
-          } else {
-            // let's choose ORDINAL over int
-            resolver.AssignProxyAndHandleItsConstraints(proxy, Type.BigOrdinal);
-          }
+          // let's choose ORDINAL over int
+          resolver.AssignProxyAndHandleItsConstraints(proxy, Type.BigOrdinal);
           convertedIntoOtherTypeConstraints = true;
           satisfied = true;
         } else {

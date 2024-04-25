@@ -4,9 +4,9 @@ module {:extern "Modx"} Mod1
 {
   class {:extern "classx"} Class1
   {
-    static ghost function {:extern "Fun1x"} Fun1() : int
+    static ghost function {:axiom} {:extern "Fun1x"} Fun1() : int
       ensures Fun1() > 0
-    static method {:extern "Method1x"} Method1() returns (x: int)
+    static method {:axiom} {:extern "Method1x"} Method1() returns (x: int)
       ensures x > 0
     static ghost function Fun2() : int
       ensures Fun2() > 0

@@ -270,7 +270,7 @@ using integration with the target language environment.
 Currently, the only way to satisfy this requirement is to ensure that the specification
 of the function or method includes the equivalent of `reads {}` and `modifies {}`.
 This ensures that the code does not read or write any shared mutable state,
-although it is free to write and write newly allocated objects.
+although it is free to read and write newly allocated objects.
 
 ### 11.2.7. `{:extern <name>}` {#sec-extern-method}
 See [`{:extern <name>}`](#sec-extern).

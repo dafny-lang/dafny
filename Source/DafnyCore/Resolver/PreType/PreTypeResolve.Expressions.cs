@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
     }
 
     private void SetupCollectionProducingExpr(string typeName, string exprKind, Expression expr, PreType elementPreType, PreType valuePreType = null) {
-      expr.PreType = CreatePreTypeProxy($"{exprKind}");
+      expr.PreType = CreatePreTypeProxy(exprKind);
 
       var arguments = valuePreType == null ? new List<PreType>() { elementPreType } : new List<PreType>() { elementPreType, valuePreType };
       var defaultType = new DPreType(BuiltInTypeDecl(typeName), arguments);
@@ -1071,9 +1071,9 @@ namespace Microsoft.Dafny {
           }
         }
         if (members == null) {
-          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKindAndName}");
         } else if (!members.TryGetValue(nameToBeRevealed, out var member)) {
-          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+          ReportError(tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKindAndName}");
         } else if (member is not (ConstantField or Function)) {
           Contract.Assert(!member.IsOpaque);
           ReportError(tok,
@@ -1082,12 +1082,12 @@ namespace Microsoft.Dafny {
           ReportError(tok, $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it is not opaque");
         } else if (member is Function { Body: null }) {
           ReportError(tok,
-            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKindAndName}");
         } else {
           ReportError(tok, $"cannot reveal '{nameToBeRevealed}'");
         }
       } else {
-        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        ReportError(tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKindAndName}");
       }
     }
 
@@ -1582,7 +1582,7 @@ namespace Microsoft.Dafny {
           subst.Add(function.TypeArgs[i], ta);
         }
         subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
-        var inParamTypes = function.Formals.ConvertAll(f => f.PreType.Substitute(subst));
+        var inParamTypes = function.Ins.ConvertAll(f => f.PreType.Substitute(subst));
         var resultType = Type2PreType(function.ResultType).Substitute(subst);
         rr.PreType = BuiltInArrowType(inParamTypes, resultType);
       } else {
@@ -1667,11 +1667,11 @@ namespace Microsoft.Dafny {
             var typeMap = mse.PreTypeArgumentSubstitutionsAtMemberDeclaration();
             var preTypeMap = BuildPreTypeArgumentSubstitute(
                 typeMap.Keys.ToDictionary(tp => tp, tp => typeMap[tp]));
-            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, resolutionContext, preTypeMap, callee.IsStatic ? null : mse.Obj);
+            ResolveActualParameters(rr.Bindings, callee.Ins, e.tok, callee, resolutionContext, preTypeMap, callee.IsStatic ? null : mse.Obj);
             rr.PreType = Type2PreType(callee.ResultType).Substitute(preTypeMap);
             if (errorCount == ErrorCount) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
-              Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
+              Contract.Assert(callee.Ins.Count == rr.Args.Count);  // this should have been checked already
             }
             // further bookkeeping
             if (callee is ExtremePredicate) {

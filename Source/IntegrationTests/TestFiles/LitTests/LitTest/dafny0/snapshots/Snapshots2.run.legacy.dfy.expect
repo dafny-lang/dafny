@@ -1,10 +1,10 @@
 Processing command (at Snapshots2.v0.dfy(4,10)) assert {:id "id1"} Lit(false);
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v0.dfy(11,11)) assert {:id "id5"} true;
+Processing command (at Snapshots2.v0.dfy(11,11)) assert {:id "id5"} Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(11,15)) assert {:id "id4"} _module.__default.P() <==> _module.__default.Q();
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v0.dfy(14,11)) assert {:id "id8"} true;
+Processing command (at Snapshots2.v0.dfy(14,11)) assert {:id "id8"} Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v0.dfy(14,15)) assert {:id "id7"} _module.__default.Q() <==> Lit(_module.__default.R());
   >>> DoNothingToAssert
@@ -19,11 +19,11 @@ Processing implementation Q (well-formedness) (at Snapshots2.v1.dfy(13,11)):
 Processing command (at Snapshots2.v1.dfy(4,10)) assert {:id "id12"} Lit(false);
   >>> DoNothingToAssert
 Snapshots2.v1.dfy(4,9): Error: assertion might not hold
-Processing command (at Snapshots2.v1.dfy(11,11)) assert {:id "id16"} true;
+Processing command (at Snapshots2.v1.dfy(11,11)) assert {:id "id16"} Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(11,15)) assert {:id "id15"} _module.__default.P() <==> _module.__default.Q();
   >>> DoNothingToAssert
-Processing command (at Snapshots2.v1.dfy(14,11)) assert {:id "id19"} true;
+Processing command (at Snapshots2.v1.dfy(14,11)) assert {:id "id19"} Lit(true);
   >>> DoNothingToAssert
 Processing command (at Snapshots2.v1.dfy(14,15)) assert {:id "id18"} _module.__default.Q() <==> Lit(_module.__default.R());
   >>> DoNothingToAssert

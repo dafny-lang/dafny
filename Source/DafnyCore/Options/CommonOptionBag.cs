@@ -364,6 +364,12 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
 
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
+  };
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
       if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
@@ -576,6 +582,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
 
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
@@ -641,7 +651,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       AddCompileSuffix,
       SystemModule,
       ExecutionCoverageReport,
-      ExtractCounterexample
+      ExtractCounterexample,
+      ShowProofObligationExpressions
       );
   }
 
