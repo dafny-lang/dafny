@@ -587,7 +587,7 @@ namespace Microsoft.Dafny {
         var absoluteFilename = Path.IsPathRooted(filename) ? filename : Path.Join(paths.SourceDirectory, filename);
         WriteFile(absoluteFilename, value);
         if (options.Verbose) {
-          outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
+          outputWriter.WriteLine("Additional output written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
     }
