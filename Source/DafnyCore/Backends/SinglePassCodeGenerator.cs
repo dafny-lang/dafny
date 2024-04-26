@@ -971,9 +971,12 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tp != null);
       return IdProtect(tp.GetCompileName(Options));
     }
+    protected virtual string GetCompileNameNotProtected(IVariable v) {
+      return v.CompileName;
+    }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
-      return IdProtect(v.CompileName);
+      return IdProtect(GetCompileNameNotProtected(v));
     }
     protected virtual string IdMemberName(MemberSelectExpr mse) {
       Contract.Requires(mse != null);
@@ -1443,7 +1446,8 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// The "ct" type is either a SetType or a MapType.
     /// </summary>
-    protected abstract string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr);
+    protected abstract void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt);
 
     /// <summary>
     /// Returns a pair (ty, f) where
@@ -2807,7 +2811,7 @@ namespace Microsoft.Dafny.Compilers {
         var bv = pat.Var;
         if (!bv.IsGhost) {
           var wStmts = wr.Fork();
-          var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
+          var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
@@ -3663,7 +3667,7 @@ namespace Microsoft.Dafny.Compilers {
           Error(ErrorId.c_bodyless_modify_statement_forbidden, s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
         }
       } else if (stmt is TryRecoverStatement h) {
-        EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
+        EmitHaltRecoveryStmt(h.TryBody, IdName(h.HaltMessageVar), h.RecoverBody, wr);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -5587,8 +5591,8 @@ namespace Microsoft.Dafny.Compilers {
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
         EmitSetBuilder_Add(setType, collectionName, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(setType, e.tok, collectionName, wr);
-        EmitReturnExpr(s, bwr);
+        var returned = EmitReturnExpr(bwr);
+        GetCollectionBuilder_Build(setType, e.tok, collectionName, returned, wStmts);
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -5641,8 +5645,8 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(e.TermLeft, inLetExprBody, termLeftWriter, wStmts);
         }
 
-        var s = GetCollectionBuilder_Build(mapType, e.tok, collection_name, wr);
-        EmitReturnExpr(s, bwr);
+        var returned = EmitReturnExpr(bwr);
+        GetCollectionBuilder_Build(mapType, e.tok, collection_name, returned, wStmts);
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
@@ -6096,7 +6100,7 @@ namespace Microsoft.Dafny.Compilers {
       if (pat.Var != null) {
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
+          CreateIIFE(IdName(bv), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
           wrRhs = EmitDowncastIfNecessary(rhsType, bv.Type, bv.tok, wrRhs);
           rhs(wrRhs);
           return wrBody;
