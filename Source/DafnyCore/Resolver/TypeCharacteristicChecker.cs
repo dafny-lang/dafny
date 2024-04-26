@@ -111,7 +111,7 @@ namespace Microsoft.Dafny {
                   if (InferRequiredEqualitySupport(tp, function.ResultType)) {
                     tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                   } else {
-                    foreach (var p in function.Formals) {
+                    foreach (var p in function.Ins) {
                       if (InferRequiredEqualitySupport(tp, p.Type)) {
                         tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                         break;
@@ -254,7 +254,7 @@ namespace Microsoft.Dafny {
                 visitor.Visit(cf.Rhs, cf.IsGhost);
               }
             } else if (member is Function function) {
-              CheckFormals(function.Formals, function.IsGhost, visitor);
+              CheckFormals(function.Ins, function.IsGhost, visitor);
               visitor.VisitType(function.Result?.tok ?? function.tok, function.ResultType, function.IsGhost);
               CheckSpecification(function.Req, function.Reads, function.Ens, function.Decreases, visitor);
               if (function.Body != null) {

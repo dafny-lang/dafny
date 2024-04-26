@@ -1303,7 +1303,7 @@ namespace Microsoft.Dafny.Compilers {
               return SuffixLvalue(obj, $".{IdName(fn)}");
             }
             return SimpleLvalue(w => {
-              var args = fn.Formals
+              var args = fn.Ins
                 .Where(f => !f.IsGhost)
                 .Select(_ => ProtectedFreshId("_eta"))
                 .Comma();

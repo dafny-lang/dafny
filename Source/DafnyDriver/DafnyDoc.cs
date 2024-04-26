@@ -756,7 +756,7 @@ class DafnyDoc {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
       var allowNew = m is TwoStateFunction;
-      var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
+      var formals = String.Join(", ", f.Ins.Select(ff => FormalAsString(ff, allowNew)));
       return (Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";

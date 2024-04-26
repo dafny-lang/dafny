@@ -1443,7 +1443,7 @@ namespace Microsoft.Dafny.Compilers {
         var needsEtaConversion = typeArgs.Any()
                || additionalCustomParameter != null
                || (UnicodeCharEnabled &&
-                  (fn.ResultType.IsCharType || fn.Formals.Any(f => f.Type.IsCharType)));
+                  (fn.ResultType.IsCharType || fn.Ins.Any(f => f.Type.IsCharType)));
         if (!needsEtaConversion) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
@@ -1460,7 +1460,7 @@ namespace Microsoft.Dafny.Compilers {
           var prefixWr = new ConcreteSyntaxTree();
           var prefixSep = "";
           prefixWr.Write("(");
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);

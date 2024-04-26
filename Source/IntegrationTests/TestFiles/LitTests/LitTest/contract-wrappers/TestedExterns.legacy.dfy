@@ -7,5 +7,5 @@
 // CHECK: .*Bar____dafny__checked\(new BigInteger\(3\)\).*
 include "Inputs/CheckExtern.dfy"
 
-method {:extern} NotCalled(x: int) returns (y: int)
+method {:axiom} {:extern} NotCalled(x: int) returns (y: int)
   ensures y != x
