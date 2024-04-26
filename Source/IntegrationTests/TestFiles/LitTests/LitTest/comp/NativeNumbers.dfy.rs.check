@@ -1,1 +1,1 @@
-// CHECK: .*<i>Char literal without unicode char enabled</i>.*
+// CHECK-L: error: missing angle brackets in associated item path
