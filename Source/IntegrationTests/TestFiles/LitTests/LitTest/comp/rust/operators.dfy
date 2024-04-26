@@ -18,7 +18,7 @@ newtype int32 = x: int  | -0x8000_0000 <= x < 0x8000_0000
 newtype int64 = x: int  | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
 newtype int128 = x: int  | -0x8000_0000_0000_0000_0000_0000_0000_0000 <= x < 0x8000_0000_0000_0000_0000_0000_0000_0000
 
-method {:verify false} TestU8() {
+method TestU8() {
   var o8: uint8 := 1 as uint8;
   var s8: uint8 := 2 as uint8;
   var w8: uint8 := 5 as uint8;
@@ -51,7 +51,7 @@ method TestI8() {
   expect x8 * 3 == m8;
   print "operators(i8) ";
 }
-method {:verify false} TestU16() {
+method TestU16() {
   var o16: uint16 := 1 as uint16;
   var s16: uint16 := 2 as uint16;
   var w16: uint16 := 5 as uint16;
@@ -85,7 +85,7 @@ method TestI16() {
   expect x16 * 3 == m16;
   print "operators(i16) ";
 }
-method {:verify false} TestU32() {
+method TestU32() {
   var o32: uint32 := 1 as uint32;
   var s32: uint32 := 2 as uint32;
   var w32: uint32 := 5 as uint32;
@@ -119,7 +119,7 @@ method TestI32() {
   expect x32 * 3 == m32;
   print "operators(i32) ";
 }
-method {:verify false} TestU64() {
+method TestU64() {
   var o64: uint64 := 1 as uint64;
   var s64: uint64 := 2 as uint64;
   var w64: uint64 := 5 as uint64;
@@ -152,7 +152,7 @@ method TestI64() {
   expect x64 * 3 == m64;
   print "operators(i64) ";
 }
-method {:verify false} TestU128() {
+method TestU128() {
   var o128: uint128 := 1 as uint128;
   var s128: uint128 := 2 as uint128;
   var w128: uint128 := 5 as uint128;
