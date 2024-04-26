@@ -1,0 +1,1 @@
+// CHECK-L: error[E0614]: type `DafnyInt` cannot be dereferenced

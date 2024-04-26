@@ -2570,9 +2570,10 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       // collections are built in place
-      return collName;
+      wr.Write(collName);
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
