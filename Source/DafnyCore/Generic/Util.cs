@@ -902,7 +902,7 @@ namespace Microsoft.Dafny {
           return true;
         }
       } else if (memberDeclaration is Function f) {
-        if (f.Formals.Any(Traverse)) {
+        if (f.Ins.Any(Traverse)) {
           return true;
         }
         if (f.Result != null && f.Result.DefaultValue != null && Traverse(f.Result.DefaultValue, "Result.DefaultValue", f)) {

@@ -196,9 +196,7 @@ public class ProgramResolver {
     // Check that none of the modules have the same CompileName.
     Dictionary<string, ModuleDefinition> compileNameMap = new Dictionary<string, ModuleDefinition>();
     foreach (ModuleDefinition m in program.CompileModules) {
-      var compileIt = true;
-      Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
-      if (!m.CanCompile() || !compileIt) {
+      if (!m.CanCompile() || !ShouldCompile(m)) {
         // the purpose of an abstract module is to skip compilation
         continue;
       }
@@ -212,6 +210,12 @@ public class ProgramResolver {
         compileNameMap.Add(compileName, m);
       }
     }
+  }
+
+  public static bool ShouldCompile(IAttributeBearingDeclaration m) {
+    var compileIt = true;
+    Attributes.ContainsBool(m.Attributes, "compile", ref compileIt);
+    return compileIt;
   }
 
   protected void InstantiateReplaceableModules(Program dafnyProgram) {

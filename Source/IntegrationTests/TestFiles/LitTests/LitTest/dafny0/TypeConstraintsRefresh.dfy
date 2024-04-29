@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 "%s" > "%t"
+// RUN: %exits-with 2 %build --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 module Tests {
 class CC {

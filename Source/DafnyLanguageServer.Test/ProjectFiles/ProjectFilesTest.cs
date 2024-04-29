@@ -41,7 +41,8 @@ library = [""{producerPath}""]".TrimStart();
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var diagnostics = await GetLastDiagnostics(projectFile);
+    Assert.Single(diagnostics);
   }
 
   /// <summary>

@@ -31,7 +31,6 @@ public record IdeCanVerifyState(VerificationPreparationState PreparationProgress
 /// to provide the IDE with as much information as possible.
 /// </summary>
 public record IdeState(
-  int Version,
   ISet<Uri> OwnedUris,
   CompilationInput Input,
   CompilationStatus Status,
@@ -47,6 +46,7 @@ public record IdeState(
   ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
   public Uri Uri => Input.Uri.ToUri();
+  public int Version => Input.Version;
 
   public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
     return diagnostics.Select(diagnostic => diagnostic with {
@@ -59,7 +59,7 @@ public record IdeState(
 
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
-    return new IdeState(input.Version, ImmutableHashSet<Uri>.Empty,
+    return new IdeState(ImmutableHashSet<Uri>.Empty,
       input,
       CompilationStatus.Parsing,
       program,
@@ -96,7 +96,9 @@ public record IdeState(
       oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
     }
     return this with {
-      Version = newVersion,
+      Input = Input with {
+        Version = newVersion
+      },
       OldDiagnostics = oldDiagnostics,
       NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
       Status = CompilationStatus.Parsing,

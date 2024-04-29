@@ -1,4 +1,4 @@
-// RUN: %verify --manual-triggers "%s" > "%t"
+// RUN: %verify --manual-triggers --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This module proves the correctness of the algorithms.  It leaves a number of things undefined.
@@ -959,7 +959,7 @@ abstract module M0 {
     ensures p.fst == pC.fst
     ensures StateCorrespondence(p.snd, pC.snd)
   {
-    assume |args| == Arity(primExec) ==>
+    assume {:axiom} |args| == Arity(primExec) ==>
       ValidArgs(primExec, args, stCombined) == ValidArgs(primExec, args, stCombinedC);  // TODO:  This will require some work!
 
     if |args| == Arity(primExec) && ValidArgs(primExec, args, stCombined) {

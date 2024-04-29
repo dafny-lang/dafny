@@ -188,10 +188,10 @@ namespace Microsoft.Dafny {
 
       try {
         if (i >= arguments.Length) {
-          return BaseParse(arguments);
+          return BaseParse(arguments, true);
         }
         MainArgs = arguments.Skip(i + 1).ToList();
-        return BaseParse(arguments.Take(i).ToArray());
+        return BaseParse(arguments.Take(i).ToArray(), true);
       } catch (Exception e) {
         ErrorWriter.WriteLine("Invalid filename: " + e.Message);
         return false;
@@ -222,7 +222,7 @@ namespace Microsoft.Dafny {
     /// Customized version of Microsoft.Boogie.CommandLineOptions.Parse
     /// Needed because the Boogie version writes to Console.Error
     /// </summary>
-    private bool BaseParse(string[] args) {
+    public bool BaseParse(string[] args, bool allowFile) {
       Environment = Environment + "Command Line Options: " + string.Join(" ", args);
       args = cce.NonNull<string[]>((string[])args.Clone());
       Bpl.CommandLineParseState state;
@@ -249,8 +249,10 @@ namespace Microsoft.Dafny {
               UnknownSwitch(state);
             }
           }
-        } else {
+        } else if (allowFile) {
           AddFile(file, state);
+        } else {
+          state.Error($"Boogie option '{state.s}' must start with - or /");
         }
       }
       if (state.EncounteredErrors) {
@@ -378,6 +380,8 @@ namespace Microsoft.Dafny {
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
 
+    public bool ShowProofObligationExpressions = false;
+
     public bool AuditProgram = false;
 
     public static string DefaultZ3Version = "4.12.1";
@@ -480,7 +484,7 @@ namespace Microsoft.Dafny {
       return base.ParseOption(name, ps);
     }
 
-    public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
+    public override string Help => "Use 'dafny --help' to see help for the new Dafny CLI format.\n" +
       LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
@@ -792,6 +796,10 @@ namespace Microsoft.Dafny {
         case "extractCounterexample":
           ExtractCounterexample = true;
           EnhancedErrorMessages = 1;
+          return true;
+
+        case "showProofObligationExpressions":
+          ShowProofObligationExpressions = true;
           return true;
 
         case "testContracts":

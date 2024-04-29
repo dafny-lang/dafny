@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %exits-with 2 %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Once upon a time, several of these would crash the resolver after it had reported

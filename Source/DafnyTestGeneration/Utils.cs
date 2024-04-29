@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -26,7 +27,7 @@ namespace DafnyTestGeneration {
     /// </summary>
     public static List<Microsoft.Boogie.Program> Translate(Program program) {
       var ret = new List<Microsoft.Boogie.Program> { };
-      var thread = new System.Threading.Thread(
+      var thread = new Thread(
         () => {
           var oldPrintInstrumented = program.Reporter.Options.PrintInstrumented;
           program.Reporter.Options.PrintInstrumented = true;
@@ -83,12 +84,13 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static Program/*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
+    public static async Task<Program> /*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-      var program = new ProgramParser().ParseFiles(uri.LocalPath,
-        new[] { DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken) }, reporter, CancellationToken.None);
+      var dafnyFile = await DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+      var program = await new ProgramParser().ParseFiles(uri.LocalPath,
+        new[] { dafnyFile }, reporter, CancellationToken.None);
 
       if (!resolve) {
         return program;

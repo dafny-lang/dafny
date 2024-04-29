@@ -250,13 +250,14 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       CheckTypeInstantiation(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction, inGhostContext);
       // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
       Visit(e.Receiver, inGhostContext);
-      Contract.Assert(e.Args.Count == e.Function.Formals.Count);
+      Contract.Assert(e.Args.Count == e.Function.Ins.Count);
       for (var i = 0; i < e.Args.Count; i++) {
-        Visit(e.Args[i], inGhostContext || e.Function.Formals[i].IsGhost);
+        Visit(e.Args[i], inGhostContext || e.Function.Ins[i].IsGhost);
       }
       return false;  // we've done what there is to be done
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
+      VisitType(expr.tok, expr.Type, inGhostContext);
       // recursively visit all subexpressions (all actual parameters), noting which ones correspond to ghost formal parameters
       Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
       for (var i = 0; i < e.Arguments.Count; i++) {

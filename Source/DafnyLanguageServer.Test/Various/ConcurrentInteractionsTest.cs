@@ -104,7 +104,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
       // Save and wait for the final result
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationTokenWithHighTimeout);
 
-      var diagnostics = await GetLastDiagnosticsParams(documentItem, CancellationToken);
+      var diagnostics = await GetLatestDiagnosticsParams(documentItem, CancellationToken);
       Assert.Equal(documentItem.Version, diagnostics.Version);
       Assert.Single(diagnostics.Diagnostics);
       Assert.Equal("assertion might not hold", diagnostics.Diagnostics.First().Message);

@@ -1,6 +1,5 @@
 // NONUNIFORM: Javascript-specific extern test
-// RUN: %dafny /compile:3 /unicodeChar:0 "%s" /compileTarget:js > "%t"
-// note: putting /compileTarget:js after "%s" overrides user-provided option
+// RUN: %run --unicode-char false --target js "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // "url" is a built-in package in node, so it should be accessible to the
@@ -11,7 +10,8 @@ module {:extern "url", "url"} URL {
     var pathname: string
     var search: string
   }
-  method {:extern "parse"} Parse(address: string, b: bool) returns (u: Url)
+  // Note that passing a Dafny string directly as a JS string only works in --unicode-char false mode
+  method {:axiom} {:extern "parse"} Parse(address: string, b: bool) returns (u: Url)
 }
 
 method Main() {

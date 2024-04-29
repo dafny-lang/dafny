@@ -47,7 +47,9 @@ public class Snippets {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
-        var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken);
+#pragma warning disable VSTHRD002
+        var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken).Result;
+#pragma warning restore VSTHRD002
         using var reader = file.GetContent();
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {

@@ -1,4 +1,4 @@
-// RUN: %dafny /compileVerbose:1 /compile:1 "%s" > "%t"
+// RUN: %build --verbose "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module A {

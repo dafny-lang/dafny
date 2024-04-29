@@ -1,8 +1,0 @@
-Verified 0/2 symbols. Waiting for Foo to verify.
-Verified part 1/3 of Foo, on line 5 (redacted, resource count: 8.7E+002)
-Verified part 2/3 of Foo, on line 6 (redacted, resource count: 3.1E+003)
-Verified part 3/3 of Foo, on line 7 (redacted, resource count: 2.8E+003)
-Verified 1/2 symbols. Waiting for Bar to verify.
-Verified part 1/1 of Bar, on line 10 (redacted, resource count: 3.1E+003)
-
-Dafny program verifier finished with 4 verified, 0 errors

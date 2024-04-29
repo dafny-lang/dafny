@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
@@ -54,7 +55,7 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()));
+      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
     }
   }
 
@@ -69,24 +70,25 @@ public class DooFile {
   // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
-  public static DooFile Read(string path) {
+  public static Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     return Read(archive);
   }
 
-  public static DooFile Read(Stream stream) {
+  public static Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
     return Read(archive);
   }
 
-  private static DooFile Read(ZipArchive archive) {
+  private static async Task<DooFile> Read(ZipArchive archive) {
     var result = new DooFile();
 
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
-    using (var manifestStream = manifestEntry.Open()) {
+
+    await using (var manifestStream = manifestEntry.Open()) {
       result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
@@ -94,16 +96,19 @@ public class DooFile {
     if (programTextEntry == null) {
       throw new ArgumentException(".doo file missing program text entry");
     }
-    using (var programTextStream = programTextEntry.Open()) {
+
+    await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = reader.ReadToEnd();
+      result.ProgramText = await reader.ReadToEndAsync();
     }
 
     return result;
   }
 
   public DooFile(Program dafnyProgram) {
-    var tw = new StringWriter();
+    var tw = new StringWriter {
+      NewLine = "\n"
+    };
     var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
@@ -191,7 +196,7 @@ public class DooFile {
     var manifestWr = wr.NewFile(ManifestFileEntry);
     using var manifestWriter = new StringWriter();
     Manifest.Write(manifestWriter);
-    manifestWr.Write(manifestWriter.ToString());
+    manifestWr.Write(manifestWriter.ToString().Replace("\r\n", "\n"));
 
     var programTextWr = wr.NewFile(ProgramFileEntry);
     programTextWr.Write(ProgramText);
@@ -280,7 +285,7 @@ public class DooFile {
     try {
       return !(bool)first || (bool)second;
     } catch (NullReferenceException) {
-      throw new Exception("Comparing options of Doo files created by different Dafny versions");
+      throw new Exception("Comparing options of Doo files created by different Dafny builds. You are probably using a locally built Dafny that has the same version as a different built.");
     }
   }
 
@@ -296,12 +301,16 @@ public class DooFile {
     return value.ToString();
   }
 
+  public static void RegisterLibraryCheck(Option option, OptionCheck check) {
+    if (NoChecksNeeded.Contains(option)) {
+      throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
+    }
+    OptionChecks.Add(option, check);
+  }
+
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
     foreach (var (option, check) in checks) {
-      if (NoChecksNeeded.Contains(option)) {
-        throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-      }
-      OptionChecks.Add(option, check);
+      RegisterLibraryCheck(option, check);
     }
   }
 

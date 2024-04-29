@@ -1,3 +1,4 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 Processing command (at Snapshots8.v0.dfy(2,37)) assert {:id "id0"} x#0 < 20 || LitInt(10) <= x#0;
   >>> DoNothingToAssert
 Processing command (at Snapshots8.v0.dfy(3,12)) assert {:id "id1"} x#0 < 10;

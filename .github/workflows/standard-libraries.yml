@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ master, main-* ]
+  merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,7 +17,7 @@ jobs:
   build:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
-    runs-on: macos-latest
+    runs-on: macos-11
 
     steps:
       - name: Checkout Dafny
@@ -31,7 +32,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.15'
+          go-version: '1.16'
           cache: false
       - name: Set up goimports
         env:

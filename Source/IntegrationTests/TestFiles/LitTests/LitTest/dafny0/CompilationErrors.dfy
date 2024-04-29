@@ -1,8 +1,8 @@
-// RUN: %exits-with 3 %dafny /allowAxioms:0 "%s" > "%t"
+// RUN: %exits-with 3 %build "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-type MyType  // compile error: abstract type
-iterator Iter()  // compile error: body-less iterator
+type MyType
+iterator Iter() 
 ghost method M() ensures false  // compile error: body-less ghost method
 method P() ensures false  // compile error: body-less method
 class TestClass {

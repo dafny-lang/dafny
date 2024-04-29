@@ -110,8 +110,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static string TransformToClassName(string baseName) =>
-      Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_");
+    public string TransformToClassName(string baseName) =>
+      IdProtect(Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_"));
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
@@ -167,11 +167,11 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
+      ModuleName = PublicModuleIdProtect(moduleName);
+      var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
 
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
-      ModuleName = moduleName;
       EmitModuleHeader(w);
 
       AddImport(import);
@@ -1230,7 +1230,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
       return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
-        fnOverridden?.Formals, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
+        fnOverridden?.Ins, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
@@ -1903,7 +1903,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      var isString = arg.Type.IsStringType;
+      var isString = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType;
       var wStmts = wr.Fork();
       if (isString && UnicodeCharEnabled) {
         wr.Write("_dafny.Print(");
@@ -2519,6 +2519,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public string PublicModuleIdProtect(string name) {
+      if (name == "C") {
+        return "_C";
+      } else {
+        return name;
+      }
+    }
+
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       return UserDefinedTypeName(udt, full: true, member: member);
     }
@@ -2541,28 +2549,30 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
+      var enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+        return enclosingModuleDefinitionId;
       } else {
         if (cl.IsExtern(Options, out var qual, out _)) {
           // No need to take into account the second argument to extern, since
           // it'll already be cl.CompileName
           if (qual == null) {
-            if (this.ModuleName == cl.EnclosingModuleDefinition.GetCompileName(Options)) {
+            if (this.ModuleName == enclosingModuleDefinitionId) {
               qual = "";
             } else {
-              qual = cl.EnclosingModuleDefinition.GetCompileName(Options);
+              qual = enclosingModuleDefinitionId;
             }
           }
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.GetCompileName(Options);
-        } else if (!full || cl.EnclosingModuleDefinition.TryToAvoidName || this.ModuleName == cl.EnclosingModuleDefinition.GetCompileName(Options)) {
+
+        } else if (!full || cl.EnclosingModuleDefinition.TryToAvoidName || this.ModuleName == enclosingModuleDefinitionId) {
           return IdName(cl);
         } else {
-          return cl.EnclosingModuleDefinition.GetCompileName(Options) + "." + IdName(cl);
+          return enclosingModuleDefinitionId + "." + IdName(cl);
         }
       }
     }
@@ -2740,7 +2750,7 @@ namespace Microsoft.Dafny.Compilers {
           var prefixWr = new ConcreteSyntaxTree();
           var prefixSep = "";
           prefixWr.Write("func (");
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);
@@ -3785,6 +3795,10 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(".({0})", TypeName(to, wr, tok));
           return w;
         }
+      } else if (from.AsNewtype is { } fromNewtypeDecl) {
+        var subst = TypeParameter.SubstitutionMap(fromNewtypeDecl.TypeArgs, from.TypeArgs);
+        from = fromNewtypeDecl.BaseType.Subst(subst);
+        return EmitCoercionIfNecessary(from, to, tok, wr, toOrig);
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.

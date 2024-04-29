@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference --allow-axioms "%s" > "%t"
+// RUN: %verify --show-hints --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This test shows that the loop detection engine makes compromises when looking

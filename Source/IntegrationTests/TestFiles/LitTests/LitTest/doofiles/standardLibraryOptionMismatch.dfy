@@ -1,4 +1,4 @@
-// RUN: %translate cs %s --standard-libraries --unicode-char=false > "%t"
+// RUN: %translate cs --allow-deprecation --unicode-char false --standard-libraries true %s &> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() {

@@ -224,11 +224,7 @@ public static class DafnyNewCli {
 
     foreach (var diagnostic in projectFile.Errors.AllMessages) {
       var message = $"{diagnostic.Level}: {diagnostic.Message}";
-      if (diagnostic.Level == ErrorLevel.Error) {
-        await dafnyOptions.ErrorWriter.WriteLineAsync(message);
-      } else {
-        await dafnyOptions.OutputWriter.WriteLineAsync(message);
-      }
+      await dafnyOptions.OutputWriter.WriteLineAsync(message);
     }
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
