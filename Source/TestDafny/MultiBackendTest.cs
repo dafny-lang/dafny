@@ -346,6 +346,7 @@ public class MultiBackendTest {
     // to ensure that all artifacts are put in a dedicated directory,
     // which just "<user temp directory>/<random name>" would not.
     var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    // Attempts at making this path longer will likely crash javac on Windows with issues like "path too long"
     var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
     Directory.CreateDirectory(tempOutputDirectory);
 
