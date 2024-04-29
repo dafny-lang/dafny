@@ -427,7 +427,7 @@ iterator Iter2(x: int) yields (y: int)
     }
 
     protected async Task DocstringWorksFor(string source, List<(string nodeTokenValue, string? expectedDocstring)> tests) {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(output));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(output));
       var newlineTypes = Enum.GetValues(typeof(Newlines));
       foreach (Newlines newLinesType in newlineTypes) {
         currentNewlines = newLinesType;

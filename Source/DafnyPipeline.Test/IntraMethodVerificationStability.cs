@@ -151,7 +151,7 @@ module SomeModule {
 
     [Fact]
     public async Task NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       Regex idAttributeRegex = new Regex("{:id \".*\"}");
 
       var regularBoogie = await GetBoogie(options, originalProgram);
@@ -168,7 +168,7 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
 
       var reorderedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, reorderedProgram));
@@ -178,7 +178,7 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod*");
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, renamedProgram));
@@ -189,7 +189,7 @@ module SomeModule {
     [Fact]
     public async Task EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.Create((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod *");
 
       var renamedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, renamedProgram + originalProgram));
