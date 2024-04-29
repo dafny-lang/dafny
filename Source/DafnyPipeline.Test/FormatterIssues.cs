@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
@@ -9,8 +10,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForTopLevelDeclarations")]
 public class FormatterIssues : FormatterBaseTest {
   [Fact]
-  public void GitIssue4269FormatLemmaIde() {
-    FormatterWorksFor(@"
+  public async Task GitIssue4269FormatLemmaIde() {
+    await FormatterWorksFor(@"
 module Foo {
   lemma Bar(t: string)
   {
@@ -21,8 +22,8 @@ module Foo {
   }
 
   [Fact]
-  public void GitIssue4269BFormatMapIde() {
-    FormatterWorksFor(@"
+  public async Task GitIssue4269BFormatMapIde() {
+    await FormatterWorksFor(@"
 module Foo {
   method Bar(
     a: map<string, string>,
@@ -34,8 +35,8 @@ module Foo {
   }
 
   [Fact]
-  public void GitIssue3912FormatterCollectionArrow() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3912FormatterCollectionArrow() {
+    await FormatterWorksFor(@"
 const i :=
   a in
     B + // Previously it was not indented
@@ -48,8 +49,8 @@ const i :=
   }
 
   [Fact]
-  public void GitIssue3912FormatterCollectionArrowA() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3912FormatterCollectionArrowA() {
+    await FormatterWorksFor(@"
 const newline :=
   set
     i <-
@@ -75,8 +76,8 @@ const sameline :=
   }
 
   [Fact]
-  public void GitIssue3912FormatterCollectionArrowB() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3912FormatterCollectionArrowB() {
+    await FormatterWorksFor(@"
 const newlineOp :=
   set
     i
@@ -94,8 +95,8 @@ const newlineOp :=
   }
 
   [Fact]
-  public void GitIssue3912FormatterCollectionArrowC() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3912FormatterCollectionArrowC() {
+    await FormatterWorksFor(@"
 const sameLineOp :=
   set i
     <-
@@ -111,8 +112,8 @@ const sameLineOp :=
   }
 
   [Fact]
-  public void GitIssue3960FormattingIssueForallStatements() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3960FormattingIssueForallStatements() {
+    await FormatterWorksFor(@"
 lemma Lemma()
 {
   forall pd0: int
@@ -126,8 +127,8 @@ lemma Lemma()
   }
 
   [Fact]
-  public void GitIssue3944FormatterArgumentsDefaultValue() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3944FormatterArgumentsDefaultValue() {
+    await FormatterWorksFor(@"
 function Example(
   newNames : map<string, string> := map[],
   a: int
@@ -139,8 +140,8 @@ function Example(
   }
 
   [Fact]
-  public void GitIssue3790DafnyFormatterProducesIncorrectIndentation() {
-    FormatterWorksFor(@"
+  public async Task GitIssue3790DafnyFormatterProducesIncorrectIndentation() {
+    await FormatterWorksFor(@"
 lemma Try(i: int)
 {
   match i {
@@ -152,8 +153,8 @@ lemma Try(i: int)
   }
 
   [Fact]
-  public void FormatterWorksForEmptyDocument() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForEmptyDocument() {
+    await FormatterWorksFor(@"
 ", null, true);
   }
 

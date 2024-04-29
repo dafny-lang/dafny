@@ -1,5 +1,5 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/2582
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --unicode-char:false
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation --allow-deprecation --unicode-char false
 
 method pr<T>(s: seq<T>) {
   print s, "\n";

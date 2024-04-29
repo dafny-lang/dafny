@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForComments")]
 public class FormatterForComments : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForCommentsHoldingTogether() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCommentsHoldingTogether() {
+    await FormatterWorksFor(@"
    const x := 2;     /* start of comment
   These words aligned:  start */
 
@@ -18,7 +19,7 @@ These words aligned:  start */
 
 const y := 3;");
 
-    FormatterWorksFor(@"
+    await FormatterWorksFor(@"
 const x := 4;
     /* start of comment
   end of comment
@@ -30,7 +31,7 @@ const x := 4;
 should stay aligned*/
 const y := 5;");
 
-    FormatterWorksFor(@"
+    await FormatterWorksFor(@"
 const x := 6;
 
     /* start of comment
@@ -47,8 +48,8 @@ const y := 7;");
 
 
   [Fact]
-  public void FormatterWorksForMultilineCommentsStartingWithRowOfStars() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForMultilineCommentsStartingWithRowOfStars() {
+    await FormatterWorksFor(@"
 /***********
  * These are test cases for monotonicity of the the _k parameter.  However, monotonicity
  * does not appear to be useful in the test suite, and it is possible that the axioms
@@ -60,7 +61,7 @@ function test(): int
   }
 
   [Fact]
-  public void FormatterWorksForConsecutiveComments() {
+  public async Task FormatterWorksForConsecutiveComments() {
     var testCase = @"
 abstract module M0 {
   /******* State *******/
@@ -90,12 +91,12 @@ abstract module M0 {
   }
 }
 ";
-    FormatterWorksFor(testCase, testCase);
+    await FormatterWorksFor(testCase, testCase);
   }
 
   [Fact]
-  public void FormatterWorksForCommentsOfCases() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCommentsOfCases() {
+    await FormatterWorksFor(@"
 datatype Dt =
   | Int(int)
   // | ISet(iset<Dt>) //  This definition is not allowed because Dt appears in a non-strict/lax position
@@ -113,8 +114,8 @@ method M4() {
 }");
   }
   [Fact]
-  public void FormatterWorksForAdvancedClosures() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForAdvancedClosures() {
+    await FormatterWorksFor(@"
 method LRead() {
   var o : object?;
   var f : Ref<() ~> bool>;
@@ -169,8 +170,8 @@ function TreeMapZ<A,B>(t0: Tree<A>, f: A ~> B): Tree<B>
   }
 
   [Fact]
-  public void FormatterWorksForCommentAfterSubsetType() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForCommentAfterSubsetType() {
+    await FormatterWorksFor(@"
 module R1 refines Q {
   type G = real  // specify G
   // now, it is known how to initialize
@@ -178,7 +179,7 @@ module R1 refines Q {
   }
 
   [Fact]
-  public void FormatterWorksForLongCommentsDocument() {
+  public async Task FormatterWorksForLongCommentsDocument() {
     var testCase = @"
 module R {
   /* Simple comment
@@ -205,11 +206,11 @@ module V {
   function g(): int { 4 }
 }
 ";
-    FormatterWorksFor(testCase, testCase);
+    await FormatterWorksFor(testCase, testCase);
   }
   [Fact]
-  public void FormatterWorksForTutorialStyle() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForTutorialStyle() {
+    await FormatterWorksFor(@"
 /// Tutorial style
 
 abstract module C {
@@ -225,7 +226,7 @@ abstract module C {
 ");
   }
   [Fact]
-  public void FormatterWorksForAlignedSingleLineTrailingComments() {
+  public async Task FormatterWorksForAlignedSingleLineTrailingComments() {
     var before = @"
 module RefinedF refines BaseF {
   function f(): bool { false } // OK. Local f preferred over imported f
@@ -260,12 +261,12 @@ module RefinedF refines BaseF {
     // This comment should be on its own line
   }
 }";
-    FormatterWorksFor(before, after);
+    await FormatterWorksFor(before, after);
   }
 
   [Fact]
-  public void FormatterWorksForUtf8InComment() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForUtf8InComment() {
+    await FormatterWorksFor(@"
 //  x ∈ a[..3] Dafny won’t prove, Wüstholz would, Mikaël doesn’t voilà Great job 
 const x: int
 ");

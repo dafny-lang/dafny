@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using DafnyCore;
 using Microsoft.Dafny.Auditor;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -9,6 +11,18 @@ namespace Microsoft.Dafny;
 
 public class Method : MethodOrFunction, TypeParameter.ParentType,
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
+
+  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
+    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
+  );
+
+  static Method() {
+    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
+0 (default) - Reads clauses on methods are forbidden.
+1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
+    DooFile.RegisterLibraryCheck(ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary);
+  }
+
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
@@ -20,7 +34,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
-  public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
   public readonly Specification<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
@@ -32,11 +45,10 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
 
-  public bool HasPostcondition =>
-    Ens.Count > 0 || Outs.Any(f => f.Type.AsSubsetType is not null);
-
-  public bool HasPrecondition =>
-    Req.Count > 0 || Ins.Any(f => f.Type.AsSubsetType is not null);
+  public override bool HasPostcondition =>
+    Ens.Count > 0
+    // This check is incomplete, which is a bug
+    || Outs.Any(f => f.Type.AsSubsetType is not null);
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var a in base.Assumptions(this)) {
@@ -109,7 +121,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public Method(Cloner cloner, Method original) : base(cloner, original) {
-    this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
     if (original.Outs != null) {
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
@@ -133,7 +144,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
-      typeArgs, req, ens, decreases) {
+      typeArgs, ins, req, ens, decreases) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -144,7 +155,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
-    this.Ins = ins;
     this.Outs = outs;
     this.Reads = reads;
     this.Mod = mod;
@@ -252,7 +262,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Contract.Requires(resolver.AllTypeConstraints.Count == 0);
     Contract.Ensures(resolver.AllTypeConstraints.Count == 0);
 
-    base.Resolve(resolver);
+    ResolveMethodOrFunction(resolver);
 
     try {
       resolver.currentMethod = this;
@@ -473,4 +483,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
   }
   public string Designator => WhatKind;
+
+  public void ResolveNewOrOldPart(INewOrOldResolver resolver) {
+    ResolveMethodOrFunction(resolver);
+  }
 }

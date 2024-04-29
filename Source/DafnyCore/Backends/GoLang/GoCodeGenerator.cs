@@ -1280,7 +1280,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
       return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
-        fnOverridden?.Formals, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
+        fnOverridden?.Ins, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
@@ -1953,7 +1953,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      var isString = arg.Type.IsStringType;
+      var isString = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType;
       var wStmts = wr.Fork();
       if (isString && UnicodeCharEnabled) {
         wr.Write("_dafny.Print(");
@@ -2800,7 +2800,7 @@ namespace Microsoft.Dafny.Compilers {
           var prefixWr = new ConcreteSyntaxTree();
           var prefixSep = "";
           prefixWr.Write("func (");
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);
@@ -3845,6 +3845,10 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(".({0})", TypeName(to, wr, tok));
           return w;
         }
+      } else if (from.AsNewtype is { } fromNewtypeDecl) {
+        var subst = TypeParameter.SubstitutionMap(fromNewtypeDecl.TypeArgs, from.TypeArgs);
+        from = fromNewtypeDecl.BaseType.Subst(subst);
+        return EmitCoercionIfNecessary(from, to, tok, wr, toOrig);
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.

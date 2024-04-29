@@ -48,7 +48,8 @@ public static class DafnyCommands {
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
-    CommonOptionBag.ManualTriggerOption
+    CommonOptionBag.ManualTriggerOption,
+    CommonOptionBag.ShowProofObligationExpressions
   }.ToList();
 
   public static IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -95,7 +96,7 @@ public static class DafnyCommands {
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
-    CommonOptionBag.ReadsClausesOnMethods,
+    Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation
@@ -107,5 +108,6 @@ public static class DafnyCommands {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
     CommonOptionBag.AllowAxioms,
+    MethodOrFunction.AllowExternalContracts
   }).Concat(ParserOptions).ToList();
 }

@@ -1,14 +1,17 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
 
 namespace DafnyCore;
@@ -16,6 +19,7 @@ namespace DafnyCore;
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.
 public class DooFile {
+  public const string Extension = ".doo";
 
   private const string ProgramFileEntry = "program";
 
@@ -82,24 +86,25 @@ public class DooFile {
   // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
-  public static DooFile Read(string path) {
+  public static Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
     return Read(archive);
   }
 
-  public static DooFile Read(Stream stream) {
+  public static Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
     return Read(archive);
   }
 
-  private static DooFile Read(ZipArchive archive) {
+  private static async Task<DooFile> Read(ZipArchive archive) {
     var result = new DooFile();
 
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
-    using (var manifestStream = manifestEntry.Open()) {
+
+    await using (var manifestStream = manifestEntry.Open()) {
       result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
@@ -107,9 +112,10 @@ public class DooFile {
     if (programTextEntry == null) {
       throw new ArgumentException(".doo file missing program text entry");
     }
-    using (var programTextStream = programTextEntry.Open()) {
+
+    await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = reader.ReadToEnd();
+      result.ProgramText = await reader.ReadToEndAsync();
     }
 
     return result;
@@ -138,16 +144,23 @@ public class DooFile {
   public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+        $"cannot load {options.GetPrintPath(filePath)}: .doo files cannot be used with the legacy CLI");
       return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+        $"cannot load {options.GetPrintPath(filePath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return null;
     }
 
+    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
+  }
+
+
+  public static DafnyOptions CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
+    DafnyOptions options, IToken origin,
+    Dictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
@@ -158,22 +171,22 @@ public class DooFile {
       if (!relevantOptions.Contains(option)) {
         continue;
       }
-
       var localValue = options.Get(option);
 
-      object libraryValue = null;
-      if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
+      object libraryValue;
+      if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
         if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return null;
         }
-      } else if (option.ValueType == typeof(IEnumerable<string>)) {
-        // This can happen because Tomlyn will drop aggregate properties with no values.
-        libraryValue = Array.Empty<string>();
+      } else {
+        // This else can occur because Tomlyn will drop aggregate properties with no values.
+        // When this happens, use the default value
+        libraryValue = option.Parse("").GetValueForOption(option);
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      success = success && check(reporter, origin, option, localValue, filePath, libraryValue);
+      success = success && check(reporter, origin, option, localValue, options.GetPrintPath(libraryFile), libraryValue);
     }
 
     if (!success) {
@@ -295,7 +308,7 @@ public class DooFile {
     try {
       return !(bool)first || (bool)second;
     } catch (NullReferenceException) {
-      throw new Exception("Comparing options of Doo files created by different Dafny versions");
+      throw new Exception("Comparing options of Doo files created by different Dafny builds. You are probably using a locally built Dafny that has the same version as a different built.");
     }
   }
 
@@ -311,12 +324,16 @@ public class DooFile {
     return value.ToString();
   }
 
+  public static void RegisterLibraryCheck(Option option, OptionCheck check) {
+    if (NoChecksNeeded.Contains(option)) {
+      throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
+    }
+    OptionChecks.Add(option, check);
+  }
+
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
     foreach (var (option, check) in checks) {
-      if (NoChecksNeeded.Contains(option)) {
-        throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-      }
-      OptionChecks.Add(option, check);
+      RegisterLibraryCheck(option, check);
     }
   }
 

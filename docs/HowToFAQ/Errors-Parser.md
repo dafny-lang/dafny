@@ -1265,7 +1265,7 @@ are grouped. The example `5 | 6 & 7` should be written as either `(5 | 6) & 7` o
 
 ## **Error: too many characters in character literal** {#p_invalid_char_literal}
 
-<!-- %check-resolve --unicode-char:false -->
+<!-- %check-resolve %options --allow-deprecation --unicode-char:false -->
 ```dafny
 const c := '🚀'
 ```

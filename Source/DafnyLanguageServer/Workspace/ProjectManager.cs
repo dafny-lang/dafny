@@ -46,6 +46,11 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ArgumentHelpName = "event"
   };
 
+  public static readonly Option<bool> ReuseSolvers = new("--reuse-solvers",
+    @"(experimental) Reuse solver for different verification of different document versions. Reduces verification latency but may reduce reliability of verification.".TrimStart()) {
+    ArgumentHelpName = "event"
+  };
+
   private readonly CreateMigrator createMigrator;
   public DafnyProject Project { get; }
 
@@ -54,6 +59,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private IDisposable observerSubscription;
   private readonly EventLoopScheduler ideStateUpdateScheduler = new();
   private readonly ILogger<ProjectManager> logger;
+
+  private readonly VerificationResultCache cache;
+  private readonly CustomStackSizePoolTaskScheduler scheduler;
 
   /// <summary>
   /// The version of this project.
@@ -73,7 +81,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
   private readonly CreateCompilation createCompilation;
-  private readonly ExecutionEngine boogieEngine;
+  private ExecutionEngine? boogieEngine;
   private readonly IFileSystem fileSystem;
   private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly IProjectDatabase projectDatabase;
@@ -104,13 +112,14 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
-    boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    this.cache = cache;
+    this.scheduler = scheduler;
     var compilationInput = new CompilationInput(options, version, Project);
     var initialIdeState = IdeState.InitialIdeState(compilationInput);
     latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
-    Compilation = createCompilation(boogieEngine, compilationInput);
+    Compilation = this.createCompilation(GetBoogie(), compilationInput);
 
     observerSubscription = Disposable.Empty;
   }
@@ -135,7 +144,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     Compilation.Dispose();
     var input = new CompilationInput(options, version, Project);
-    Compilation = createCompilation(boogieEngine, input);
+    Compilation = createCompilation(GetBoogie(), input);
     var migratedUpdates = GetStates(Compilation);
     states = new ReplaySubject<IdeState>(1);
     var statesSubscription = observerSubscription =
@@ -153,6 +162,16 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       UpdateRecentChanges(changes, migrator);
     }
     TriggerVerificationForFile(triggeringFile);
+  }
+
+  private ExecutionEngine GetBoogie() {
+    if (options.Get(ReuseSolvers)) {
+      boogieEngine ??= new ExecutionEngine(options, cache, scheduler);
+    } else {
+      boogieEngine?.Dispose();
+      boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    }
+    return boogieEngine;
   }
 
   private void UpdateRecentChanges(DidChangeTextDocumentParams changes, Migrator? migrator) {
@@ -354,7 +373,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   }
 
   public void Dispose() {
-    boogieEngine.Dispose();
+    boogieEngine?.Dispose();
     Compilation.Dispose();
     observerSubscription.Dispose();
     // Dispose the update scheduler after the observer subscription, to prevent accessing a disposed object.

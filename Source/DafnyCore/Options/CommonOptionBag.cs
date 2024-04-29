@@ -187,7 +187,7 @@ go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
-cpp - Compile to C++.
+cpp - (experimental) Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
@@ -198,6 +198,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
@@ -321,10 +322,6 @@ May produce spurious warnings.") {
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
   );
 
-  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
-    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
-  );
-
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -368,6 +365,12 @@ If verification fails, report a detailed counterexample for the first failing as
   public static readonly Option<bool> GenerateDoo = new("--generate-doo", () => false,
     @"This Option is used to generate a doo library during translation".TrimStart()) {
   };
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
+  };
+
   static CommonOptionBag() {
     DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
       if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
@@ -482,10 +485,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
 
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
@@ -580,12 +579,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
 
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
+
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, DooFile.OptionCheck>() {
         { UnicodeCharacters, DooFile.CheckOptionMatches },
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
-        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
         { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
@@ -647,6 +649,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ExtractCounterexample,
       BackendModuleName,
       GenerateDoo
+      ShowProofObligationExpressions
       );
   }
 
