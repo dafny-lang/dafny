@@ -315,7 +315,6 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
-
     DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
   }
 

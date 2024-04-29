@@ -17,7 +17,7 @@ dfyprod: dfyprodformat dfyprodinit
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 dfydevinit:
-	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify --no-format)
+	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)
 
 dfydev: dfydevinit
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
@@ -73,7 +73,7 @@ z3-ubuntu:
 	chmod +x ${DIR}/Binaries/z3/bin/z3-*
 
 format:
-	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny.cs --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
 
 clean:
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)

@@ -250,6 +250,11 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
   };
+  public static readonly Option<bool> EmitUncompilableCode = new("--emit-uncompilable-code",
+    "Rather than throwing an exception, allow compilers to emit uncompilable information including what is " +
+    "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
+    "compiler feature is missing") {
+  };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
@@ -318,10 +323,6 @@ May produce spurious warnings.") {
 
   public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
-  );
-
-  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
-    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
   );
 
   public enum TestAssumptionsMode {
@@ -480,10 +481,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
 
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
@@ -587,7 +584,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
         { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, OptionCompatibility.CheckOptionLibraryImpliesLocal },
-        { ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary },
         { AllowAxioms, OptionCompatibility.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, prefix, option, localValue, libraryValue) => {
             if (OptionCompatibility.OptionValuesImplied(libraryValue, localValue)) {
@@ -632,6 +628,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,
+      EmitUncompilableCode,
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
       IncludeRuntimeOption,
