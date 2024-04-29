@@ -1,8 +1,8 @@
-ForLoops.dfy(333,2): Warning: note, this loop has no body (loop frame: i, j)
-ForLoops.dfy(342,2): Warning: note, this loop has no body (loop frame: i, j)
-ForLoops.dfy(351,2): Warning: note, this loop has no body (loop frame: i, j)
-ForLoops.dfy(360,2): Warning: note, this loop has no body (loop frame: i, j)
-ForLoops.dfy(369,2): Warning: note, this loop has no body (loop frame: i, x)
+ForLoops.dfy(333,2): Warning: this loop has no body (loop frame: i, j)
+ForLoops.dfy(342,2): Warning: this loop has no body (loop frame: i, j)
+ForLoops.dfy(351,2): Warning: this loop has no body (loop frame: i, j)
+ForLoops.dfy(360,2): Warning: this loop has no body (loop frame: i, j)
+ForLoops.dfy(369,2): Warning: this loop has no body (loop frame: i, x)
 ForLoops.dfy(19,13): Error: assertion might not hold
 ForLoops.dfy(24,11): Error: lower bound must not exceed upper bound
 ForLoops.dfy(116,11): Error: assertion might not hold

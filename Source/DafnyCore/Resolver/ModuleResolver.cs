@@ -264,7 +264,7 @@ namespace Microsoft.Dafny {
           // then an error will already have been produced ("duplicate name of top-level declaration").
           if (GetClassMembers((DefaultClassDecl)defaultClass)?.TryGetValue(exportDecl.Name, out var member) == true) {
             reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, exportDecl.tok,
-              "note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
+              "this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)");
           }
         }
 
