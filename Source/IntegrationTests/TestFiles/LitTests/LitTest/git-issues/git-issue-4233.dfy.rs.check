@@ -1,0 +1,1 @@
+// CHECK-L: error[E0369]: cannot divide `Rc<num_rational::Ratio<BigInt>>` by `Rc<num_rational::Ratio<BigInt>>`

@@ -3524,15 +3524,16 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (ct is SetType) {
         var typeName = BoxedTypeName(ct.Arg, wr, tok);
-        return $"new {DafnySetClass}<{typeName}>({collName})";
+        wr.Write($"new {DafnySetClass}<{typeName}>({collName})");
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = BoxedTypeName(mt.Domain, wr, tok);
         var rantypeName = BoxedTypeName(mt.Range, wr, tok);
-        return $"new {DafnyMapClass}<{domtypeName},{rantypeName}>({collName})";
+        wr.Write($"new {DafnyMapClass}<{domtypeName},{rantypeName}>({collName})");
       } else {
         Contract.Assume(false);  // unexpected collection type
         throw new cce.UnreachableException();  // please compiler
