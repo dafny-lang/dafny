@@ -15,12 +15,12 @@ namespace Microsoft.Dafny {
     private readonly TextReader input;
     private readonly TextWriter outputWriter;
 
-    public static void Main(string[] args) {
-      _ = MainWithWriters(Console.Out, Console.Error, Console.In, args);
+    public static Task<int> Main(string[] args) {
+      return MainWithWriters(Console.Out, Console.Error, Console.In, args);
     }
 
     public static async Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
-      var options = DafnyOptions.Create(outputWriter);
+      var options = DafnyOptions.CreateUsingOldParser(outputWriter);
       options.Printer = new DafnyConsolePrinter(options);
       options.Set(CommonOptionBag.AllowAxioms, true);
       Console.SetError(outputWriter);
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny {
       }
 
       if (selftest) {
-        VerificationTask.SelfTest(options, engine);
+        await VerificationTask.SelfTest(options, engine);
         return 0;
       }
 
@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
       } else if (encode) {
         server.Encode();
       } else {
-        server.Loop(options, plaintext);
+        await server.Loop(options, plaintext);
       }
       return 0;
     }
@@ -95,8 +95,7 @@ namespace Microsoft.Dafny {
 
     string ReadPayload(bool inputIsPlaintext) {
       StringBuilder buffer = new StringBuilder();
-      string line = null;
-      while (!EndOfPayload(out line)) {
+      while (!EndOfPayload(out var line)) {
         buffer.Append(line);
         if (inputIsPlaintext) {
           buffer.Append("\n");
@@ -166,17 +165,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void Loop(DafnyOptions options, bool inputIsPlaintext) {
+    async Task Loop(DafnyOptions options, bool inputIsPlaintext) {
       for (int cycle = 0; running; cycle++) {
-        var line = input.ReadLine() ?? "quit";
+        var line = await input.ReadLineAsync() ?? "quit";
         if (line != String.Empty && !line.StartsWith("#")) {
           var command = line.Split();
-          Respond(options, command, inputIsPlaintext);
+          await Respond(options, command, inputIsPlaintext);
         }
       }
     }
 
-    void Respond(DafnyOptions options, string[] command, bool inputIsPlaintext) {
+    async Task Respond(DafnyOptions options, string[] command, bool inputIsPlaintext) {
       try {
         if (command.Length == 0) {
           throw new ServerException("Empty command");
@@ -187,19 +186,19 @@ namespace Microsoft.Dafny {
         if (verb == "verify") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Run(options, engine);
+          await vt.Run(options, engine);
         } else if (verb == "counterexample") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.CounterExample(options, engine);
+          await vt.CounterExample(options, engine);
         } else if (verb == "dotgraph") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.DotGraph(options, engine);
+          await vt.DotGraph(options, engine);
         } else if (verb == "symbols") {
           ServerUtils.checkArgs(command, 0);
           var vt = ReadVerificationTask(inputIsPlaintext);
-          vt.Symbols(options, engine);
+          await vt.Symbols(options, engine);
         } else if (verb == "version") {
           ServerUtils.checkArgs(command, 0);
           var _ = ReadVerificationTask(inputIsPlaintext);

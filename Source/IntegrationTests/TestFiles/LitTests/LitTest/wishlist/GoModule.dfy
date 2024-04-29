@@ -1,5 +1,5 @@
 // NONUNIFORM: Go-specific extern test
-// RUN: %exits-with 3 %run --unicode-char false --target go "%s" &> "%t"
+// RUN: %exits-with 3 %run --allow-external-contracts --target go "%s" &> "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: undefined: GoModuleConversions.ParseURL
 

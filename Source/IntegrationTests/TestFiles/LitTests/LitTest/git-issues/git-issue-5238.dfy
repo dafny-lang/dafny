@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachCompiler "%s"
-// RUN: %testDafnyForEachCompiler "%s" -- --unicode-char=false
+// RUN: %testDafnyForEachCompiler "%s" -- --allow-deprecation --unicode-char=false
 
 method Main() {
   var s: seq<char>;

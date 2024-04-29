@@ -1,0 +1,42 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {def, abc}
+  [abc, def]
+  []
+  []
+  [aaaaa]
+
+Dafny program verifier did not attempt verification
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]
+
+Dafny program verifier did not attempt verification
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]
+
+Dafny program verifier did not attempt verification
+Strings in collections:
+  [abc, def]
+  [[abc, def]]
+  {abc, def}
+  [abc, def]
+  []
+  []
+  [aaaaa]

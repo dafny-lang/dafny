@@ -82,7 +82,7 @@ module m1
     method Customizable(w: int) returns (p: int)
       modifies this
     {
-       w:=w+1;
+      p := w + 1;
     }
 
     var c1: I0Child

@@ -448,6 +448,10 @@ class GhostInterestVisitor {
         .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
       nestedMatchStmt.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(nestedMatchStmt.Source) || hasGhostPattern;
 
+      foreach (var kase in nestedMatchStmt.Cases) {
+        ExpressionTester.MakeGhostAsNeeded(kase.Pat, nestedMatchStmt.IsGhost);
+      }
+
       if (!mustBeErasable && nestedMatchStmt.IsGhost) {
         reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
       }

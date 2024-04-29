@@ -23,6 +23,7 @@ public class ServerCommand {
       LanguageServer.VerifySnapshots,
       DafnyLangSymbolResolver.UseCaching,
       ProjectManager.UpdateThrottling,
+      ProjectManager.ReuseSolvers,
       LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
     );
   }

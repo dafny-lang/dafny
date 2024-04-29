@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,8 +8,8 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForComprehensions")]
 public class FormatterForComprehensions : FormatterBaseTest {
   [Fact]
-  public void FormatWorksForMatchExpression() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForMatchExpression() {
+    await FormatterWorksFor(@"
 predicate bad(e:Maybe)
 {
   forall i :: 0 <= i < 1 ==>
@@ -27,8 +28,8 @@ predicate bad2(e:Maybe)
   }
 
   [Fact]
-  public void FormatWorksForComprehensions() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForComprehensions() {
+    await FormatterWorksFor(@"
 method comprehensions() {
   c := imap i: int |
     i % 9 == 0
@@ -71,7 +72,7 @@ method comprehensions() {
     :=  17;
 }
 ");
-    FormatterWorksFor(@"
+    await FormatterWorksFor(@"
 method comprehensions() {
   var a := imap
              t: int ::  t % 3
@@ -107,8 +108,8 @@ method comprehensions() {
   }
 
   [Fact]
-  public void FormatterWorksForVarsAndGhostVarsAndUnchanged() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForVarsAndGhostVarsAndUnchanged() {
+    await FormatterWorksFor(@"
 twostate predicate BadVariations(c: Twostate, d: Twostate, e: Twostate, f: Twostate)
 {
   && unchanged(
@@ -145,8 +146,8 @@ function Fu(): int
   }
 
   [Fact]
-  public void FormatterWorksForLinearFunctionBody() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForLinearFunctionBody() {
+    await FormatterWorksFor(@"
 function test(): int {
   :- Need(u);
   :- Need(u);
@@ -158,8 +159,8 @@ function test(): int {
   }
 
   [Fact]
-  public void FormatterWorksForComparisons() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForComparisons() {
+    await FormatterWorksFor(@"
 function f(x: int): (y: int)
   ensures x
        == y
@@ -179,8 +180,8 @@ function f(x: int): (y: int)
 ");
   }
   [Fact]
-  public void FormatterWorksForForallExpressions() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForForallExpressions() {
+    await FormatterWorksFor(@"
 predicate GoodIdentifier(s: string) {
   && s != []
   && (|| 'a' <= s[0] <= 'z'
@@ -199,8 +200,8 @@ predicate BadIdentifier(s: string) {
   }
 
   [Fact]
-  public void FormatterWorksForSetComprehension() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForSetComprehension() {
+    await FormatterWorksFor(@"
 function test(): int {
   | set i: nat
     | i < 10

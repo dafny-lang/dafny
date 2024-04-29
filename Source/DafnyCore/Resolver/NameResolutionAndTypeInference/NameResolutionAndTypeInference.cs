@@ -376,7 +376,7 @@ namespace Microsoft.Dafny {
       rr.TypeApplication_AtEnclosingClass = typeApplication;
       rr.TypeApplication_JustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();
-      for (int i = 0; i < f.Formals.Count; i++) {
+      for (int i = 0; i < f.Ins.Count; i++) {
         args.Add(new IntType());
       }
       rr.Type = new ArrowType(f.tok, args, new IntType());
@@ -3040,7 +3040,7 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), resolutionContext, true), ll.Seq.Type, ll.Seq,
           "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         if (!ll.SelectOne) {
-          reporter.Error(MessageSource.Resolver, ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
+          reporter.Error(MessageSource.Resolver, ll, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
       } else if (lhs is MultiSelectExpr) {
         // nothing to check; this can only denote an array element
@@ -5988,17 +5988,17 @@ namespace Microsoft.Dafny {
               TypeApplication_JustFunction = mse.TypeApplication_JustMember
             };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
-            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
+            ResolveActualParameters(rr.Bindings, callee.Ins, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
             rr.Type = callee.ResultType.Subst(typeMap);
             if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
-              Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
+              Contract.Assert(callee.Ins.Count == rr.Args.Count);  // this should have been checked already
             }
             r = rr;
           } else {
             List<Formal> formals;
             if (callee != null) {
-              formals = callee.Formals;
+              formals = callee.Ins;
             } else {
               formals = new List<Formal>();
               for (var i = 0; i < fnType.Args.Count; i++) {
@@ -6127,7 +6127,7 @@ namespace Microsoft.Dafny {
         Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
 
         // type check the arguments
-        ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
+        ResolveActualParameters(e.Bindings, function.Ins, e.tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
 
         e.Type = function.ResultType.Subst(subst).NormalizeExpand();
       }

@@ -889,7 +889,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (field.IsGhost) {
         wr.Write("ghost ");
       }
-      if (field is ConstantField) {
+      if (!field.IsMutable) {
         wr.Write("const");
       } else {
         wr.Write("var");
@@ -906,12 +906,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write(" := ");
           PrintExpression(c.Rhs, true);
         }
-      } else if (field.IsUserMutable) {
-        // nothing more to say
-      } else if (field.IsMutable) {
+      } else if (!field.IsUserMutable && field.IsMutable) {
         wr.Write("  // non-assignable");
-      } else {
-        wr.Write("  // immutable");
       }
       wr.WriteLine();
     }
@@ -928,7 +924,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (f is ExtremePredicate) {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
-        PrintFormals(f.Formals, f, f.Name);
+        PrintFormals(f.Ins, f, f.Name);
         if (f.Result != null || (f is not Predicate && f is not ExtremePredicate && f is not TwoStatePredicate && f is not PrefixPredicate)) {
           wr.Write(": ");
           if (f.Result != null) {

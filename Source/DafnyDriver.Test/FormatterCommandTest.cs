@@ -51,7 +51,7 @@ public class FormatterCommandTest {
 
     await File.WriteAllTextAsync(file, source);
     StringWriter strWriter = new StringWriter();
-    var options = DafnyOptions.Create(strWriter, null,
+    var options = DafnyOptions.CreateUsingOldParser(strWriter, null,
       file
       );
 

@@ -742,7 +742,7 @@ namespace Microsoft.Dafny.Compilers {
                     var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
                       constructTypeParameterDefaultsFromTypeDescriptors);
                     // The final TypeArg contains the result type
-                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => $"x{i}");
+                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => idGenerator.FreshId("x"));
                     return $"(lambda {arguments}: {rangeDefaultValue})";
                   default:
                     return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue,
@@ -862,7 +862,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      if (UnicodeCharEnabled && arg.Type.IsStringType) {
+      if (UnicodeCharEnabled && DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType) {
         TrParenExpr(arg, wr, false, wStmts);
         wr.Write(".VerbatimString(False)");
       } else {
@@ -1303,7 +1303,7 @@ namespace Microsoft.Dafny.Compilers {
               return SuffixLvalue(obj, $".{IdName(fn)}");
             }
             return SimpleLvalue(w => {
-              var args = fn.Formals
+              var args = fn.Ins
                 .Where(f => !f.IsGhost)
                 .Select(_ => ProtectedFreshId("_eta"))
                 .Comma();

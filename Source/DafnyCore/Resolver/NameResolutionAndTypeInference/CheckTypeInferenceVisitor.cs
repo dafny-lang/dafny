@@ -29,14 +29,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (newtypeDecl.Var != null) {
         if (!IsDetermined(newtypeDecl.BaseType.NormalizeExpand())) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_newtype_base_undetermined, newtypeDecl.tok,
-            $"{newtypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
+            $"base type of {newtypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{newtypeDecl.Var.Name}'");
         }
       }
 
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       if (!IsDetermined(subsetTypeDecl.Rhs.NormalizeExpand())) {
         resolver.ReportError(ResolutionErrors.ErrorId.r_subset_type_base_undetermined, subsetTypeDecl.tok,
-          $"{subsetTypeDecl.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
+          $"base type of {subsetTypeDecl.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{subsetTypeDecl.Var.Name}'");
       }
 
     } else if (decl is DatatypeDecl datatypeDecl) {
