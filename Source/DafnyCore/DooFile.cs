@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
 
 namespace DafnyCore;
@@ -15,6 +17,7 @@ namespace DafnyCore;
 // Model class for the .doo file format for Dafny libraries.
 // Contains the validation logic for safely consuming libraries as well.
 public class DooFile {
+  public const string Extension = ".doo";
 
   private const string ProgramFileEntry = "program";
 
@@ -128,16 +131,23 @@ public class DooFile {
   public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {filePath}: .doo files cannot be used with the legacy CLI");
+        $"cannot load {options.GetPrintPath(filePath)}: .doo files cannot be used with the legacy CLI");
       return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {filePath}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+        $"cannot load {options.GetPrintPath(filePath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return null;
     }
 
+    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
+  }
+
+
+  public static DafnyOptions CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
+    DafnyOptions options, IToken origin,
+    Dictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
@@ -148,22 +158,22 @@ public class DooFile {
       if (!relevantOptions.Contains(option)) {
         continue;
       }
-
       var localValue = options.Get(option);
 
-      object libraryValue = null;
-      if (Manifest.Options.TryGetValue(option.Name, out var manifestValue)) {
+      object libraryValue;
+      if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
         if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
               option.Name, option.ValueType, manifestValue, out libraryValue)) {
           return null;
         }
-      } else if (option.ValueType == typeof(IEnumerable<string>)) {
-        // This can happen because Tomlyn will drop aggregate properties with no values.
-        libraryValue = Array.Empty<string>();
+      } else {
+        // This else can occur because Tomlyn will drop aggregate properties with no values.
+        // When this happens, use the default value
+        libraryValue = option.Parse("").GetValueForOption(option);
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      success = success && check(reporter, origin, option, localValue, filePath, libraryValue);
+      success = success && check(reporter, origin, option, localValue, options.GetPrintPath(libraryFile), libraryValue);
     }
 
     if (!success) {

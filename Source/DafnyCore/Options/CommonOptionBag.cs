@@ -324,10 +324,6 @@ May produce spurious warnings.") {
     "Rewrite docstrings using a simple Javadoc-to-markdown converter"
   );
 
-  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
-    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
-  );
-
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -484,10 +480,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
 
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
@@ -591,7 +583,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
         { UnicodeCharacters, DooFile.CheckOptionMatches },
         { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
         { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
-        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
         { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
             if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
