@@ -38,14 +38,7 @@ namespace XUnitExtensions.Lit {
 
       process.StartInfo.EnvironmentVariables.Clear();
       foreach (var passthrough in passthroughEnvironmentVariables) {
-        if (passthrough.Contains('=')) {
-          var parts = passthrough.Split('=');
-          var name = parts[0];
-          var value = parts[1];
-          process.StartInfo.EnvironmentVariables.Add(name, value);
-        } else {
-          process.StartInfo.EnvironmentVariables.Add(passthrough, Environment.GetEnvironmentVariable(passthrough));
-        }
+        process.StartInfo.EnvironmentVariables.Add(passthrough, Environment.GetEnvironmentVariable(passthrough));
       }
 
       // Getting console encodings right is tricky on Windows.

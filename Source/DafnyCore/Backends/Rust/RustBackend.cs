@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
-  protected override bool PreventShadowing => false;
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
@@ -20,9 +19,6 @@ public class RustBackend : DafnyExecutableBackend {
   public override int TargetIndentSize => 4;
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
-
-  public override IReadOnlySet<string> SupportedNativeTypes =>
-    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
 
   public override string TargetBasename(string dafnyProgramName) =>
     Regex.Replace(base.TargetBasename(dafnyProgramName), "[^_A-Za-z0-9]", "_");
