@@ -1,3 +1,22 @@
+module {:extern "DAST.Format"} DAST.Format
+  /* Cues about how to format different AST elements if necessary,
+     e.g. to generate idiomatic code when needed. */
+{
+  // Dafny AST compilation tenets:
+  // - The Compiled Dafny AST should be minimal
+  // - The generated code should look idiomatic and close to the original Dafny file if possible
+  // Since the two might conflict, the second one is taken care of by adding formatting information
+
+  datatype UnaryOpFormat =
+    | NoFormat
+    | CombineFormat
+  datatype BinaryOpFormat =
+    | NoFormat
+    | ImpliesFormat
+    | EquivalenceFormat
+    | ReverseFormat
+}
+
 module {:extern "DAST"} DAST {
   import opened Std.Wrappers
 
@@ -19,13 +38,22 @@ module {:extern "DAST"} DAST {
     Set(element: Type) |
     Multiset(element: Type) |
     Map(key: Type, value: Type) |
+    SetBuilder(element: Type) |
+    MapBuilder(key: Type, value: Type) |
     Arrow(args: seq<Type>, result: Type) |
     Primitive(Primitive) | Passthrough(string) |
     TypeArg(Ident)
 
   datatype Primitive = Int | Real | String | Bool | Char
 
-  datatype ResolvedType = Datatype(path: seq<Ident>) | Trait(path: seq<Ident>) | Newtype(Type)
+  datatype NewtypeRange =
+    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | BigInt
+    | NoRange
+
+  datatype ResolvedType =
+    | Datatype(path: seq<Ident>)
+    | Trait(path: seq<Ident>)
+    | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 
   datatype Ident = Ident(id: string)
 
@@ -37,7 +65,7 @@ module {:extern "DAST"} DAST {
 
   datatype DatatypeCtor = DatatypeCtor(name: string, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 
-  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>)
+  datatype Newtype = Newtype(name: string, typeParams: seq<Type>, base: Type, range: NewtypeRange, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>)
 
   datatype ClassItem = Method(Method)
 
@@ -47,6 +75,10 @@ module {:extern "DAST"} DAST {
 
   datatype Method = Method(isStatic: bool, hasBody: bool, overridingPath: Option<seq<Ident>>, name: string, typeParams: seq<Type>, params: seq<Formal>, body: seq<Statement>, outTypes: seq<Type>, outVars: Option<seq<Ident>>)
 
+  datatype CallName =
+    Name(name: string) |
+    MapBuilderAdd | MapBuilderBuild | SetBuilderAdd | SetBuilderBuild
+
   datatype Statement =
     DeclareVar(name: string, typ: Type, maybeValue: Option<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
@@ -54,7 +86,7 @@ module {:extern "DAST"} DAST {
     Labeled(lbl: string, body: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
     Foreach(boundName: string, boundType: Type, over: Expression, body: seq<Statement>) |
-    Call(on: Expression, name: string, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
+    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
     Return(expr: Expression) |
     EarlyReturn() |
     Break(toLabel: Option<string>) |
@@ -72,13 +104,21 @@ module {:extern "DAST"} DAST {
 
   datatype BinOp =
     Eq(referential: bool, nullable: bool) |
-    Neq(referential: bool, nullable: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
-    Implies() | // TODO: REplace by Not Or
+    Lt() | // a <= b is !(b < a)
+    LtChar() |
+    Plus() | Minus() | Times() |
+    BitwiseAnd() | BitwiseOr() | BitwiseXor() |
+    BitwiseShiftRight() | BitwiseShiftLeft() |
+    And() | Or() |
     In() |
-    NotIn() | // TODO: Replace by Not In
-    SetDifference() |
+    SeqProperPrefix() | SeqPrefix() |
+    SetMerge() | SetSubtraction() | SetIntersection() |
+    Subset() | ProperSubset() | SetDisjoint() |
+    MapMerge() | MapSubtraction() |
+    MultisetMerge() | MultisetSubtraction() | MultisetIntersection() |
+    Submultiset() | ProperSubmultiset() | MultisetDisjoint() |
     Concat() |
     Passthrough(string)
 
@@ -94,18 +134,26 @@ module {:extern "DAST"} DAST {
     SeqConstruct(length: Expression, elem: Expression) |
     SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
+    MultisetValue(elements: seq<Expression>) |
     MapValue(mapElems: seq<(Expression, Expression)>) |
+    MapBuilder(keyType: Type, valueType: Type) |
+    SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
+    MapUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
+    SetBuilder(elemType: Type) |
+    ToMultiset(Expression) |
     This() |
     Ite(cond: Expression, thn: Expression, els: Expression) |
-    UnOp(unOp: UnaryOp, expr: Expression) |
-    BinOp(op: BinOp, left: Expression, right: Expression) |
+    UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnaryOpFormat) |
+    BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
     ArrayLen(expr: Expression, dim: nat) |
+    MapKeys(expr: Expression) |
+    MapValues(expr: Expression) |
     Select(expr: Expression, field: string, isConstant: bool, onDatatype: bool) |
     SelectFn(expr: Expression, field: string, onDatatype: bool, isStatic: bool, arity: nat) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
     TupleSelect(expr: Expression, index: nat) |
-    Call(on: Expression, name: Ident, typeArgs: seq<Type>, args: seq<Expression>) |
+    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
     BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
     IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
