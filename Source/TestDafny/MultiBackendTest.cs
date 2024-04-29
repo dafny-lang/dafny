@@ -346,8 +346,7 @@ public class MultiBackendTest {
     // to ensure that all artifacts are put in a dedicated directory,
     // which just "<user temp directory>/<random name>" would not.
     var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
-    var baseRandomDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
-    var tempOutputDirectory = Path.Combine(baseRandomDirectory, Path.GetFileName(options.TestFile!));
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
     Directory.CreateDirectory(tempOutputDirectory);
 
     IEnumerable<string> dafnyArgs = new List<string> {
