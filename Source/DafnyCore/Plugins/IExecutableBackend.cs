@@ -193,12 +193,12 @@ public abstract class IExecutableBackend {
 
   public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record",
     @"
-A translation record file for previously translated Dafny code. Can be specified multiple times.".TrimStart()) {
+A translation record file for previously translated Dafny code. Can be specified multiple times. See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files for details.".TrimStart()) {
   };
 
   public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output",
     @"
-Where to output the translation record file. Defaults to the output directory.".TrimStart()) {
+Where to output the translation record file. Defaults to the output directory. See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files for details.".TrimStart()) {
   };
 
   static IExecutableBackend() {

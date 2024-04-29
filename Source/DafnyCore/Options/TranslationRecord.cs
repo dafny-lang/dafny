@@ -52,6 +52,21 @@ public class TranslationRecord {
     // Only for TOML deserialization!
   }
 
+  public static void ReadValidateAndMerge(Program program, string filePath, IToken origin) {
+    var pathForErrors = program.Options.GetPrintPath(filePath);
+    try {
+      using TextReader reader = new StreamReader(filePath);
+      var record = Read(reader);
+      if (record.Validate(program, pathForErrors, origin)) {
+        program.Compilation.AlreadyTranslatedRecord.Merge(program.Reporter, record, pathForErrors, origin);
+      }
+    } catch (FileNotFoundException) {
+      program.Reporter.Error(MessageSource.Project, origin, $"file {pathForErrors} not found");
+    } catch (TomlException) {
+      program.Reporter.Error(MessageSource.Project, origin, $"malformed dtr file {pathForErrors}");
+    }
+  }
+
   private static TranslationRecord Read(TextReader reader) {
     return Toml.ToModel<TranslationRecord>(reader.ReadToEnd(), null, new TomlModelOptions());
   }
@@ -65,7 +80,7 @@ public class TranslationRecord {
     Write(textWriter);
     writer.Write(textWriter.ToString());
   }
-
+  
   private bool Validate(Program dafnyProgram, string filePath, IToken origin) {
     var messagePrefix = $"cannot load {filePath}";
     if (!dafnyProgram.Options.UsingNewCli) {
@@ -142,21 +157,6 @@ public class TranslationRecord {
     }
 
     OptionsByModule = OptionsByModule.Union(other.OptionsByModule).ToDictionary(p => p.Key, p => p.Value);
-  }
-
-  public static void ReadValidateAndMerge(Program dafnyProgram, string filePath, IToken origin) {
-    var pathForErrors = dafnyProgram.Options.GetPrintPath(filePath);
-    try {
-      using TextReader reader = new StreamReader(filePath);
-      var record = Read(reader);
-      if (record.Validate(dafnyProgram, pathForErrors, origin)) {
-        dafnyProgram.Compilation.AlreadyTranslatedRecord.Merge(dafnyProgram.Reporter, record, pathForErrors, origin);
-      }
-    } catch (FileNotFoundException) {
-      dafnyProgram.Reporter.Error(MessageSource.Project, origin, $"file {pathForErrors} not found");
-    } catch (TomlException) {
-      dafnyProgram.Reporter.Error(MessageSource.Project, origin, $"malformed dtr file {pathForErrors}");
-    }
   }
 
   private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
