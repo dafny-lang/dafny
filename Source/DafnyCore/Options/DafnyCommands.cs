@@ -93,6 +93,7 @@ public static class DafnyCommands {
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
+    CommonOptionBag.EmitUncompilableCode,
     CommonOptionBag.GeneralTraits,
     CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
