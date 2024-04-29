@@ -1,52 +1,53 @@
+
+
+
+
+
 include "../Dafny/AST.dfy"
 
-/*This module does not contain any compiled code because it
-  only proves properties about DCOMP. In a sense, it's a test file. */
-module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs {
-  import opened DafnyToRustCompiler
-
-  ghost predicate IsDafnyId(s: string) {
-    && |s| > 0 && s[0] in "aqkhd" &&
-       IsDafnyIdTail(s[1..])
-  }
+module {:extern "DCOMPProofs"} {:compile false} DCOMPProofs refines DCOMP {
 
   ghost predicate IsDafnyIdTail(s: string) {
     |s| == 0 ||
     (s[0] in "aqkhd_?'#." && IsDafnyIdTail(s[1..]))
   }
 
+  ghost predicate IsDafnyId(s: string) {
+    && |s| > 0 && s[0] in "aqkhd" &&
+       IsDafnyIdTail(s[1..])
+  }
   lemma IsDafnyIdImpliesDafnyIdTail(s: string)
     requires IsDafnyId(s)
     ensures IsDafnyIdTail(s)
   {}
 
-  function DafnyEscape(s: string): string {
+  function dafnyEscape(s: string): string {
     if |s| == 0 then "" else
-    if s[0] == '_' then "__" + DafnyEscape(s[1..]) else
-    if s[0] == '?' then "_q" + DafnyEscape(s[1..]) else
-    if s[0] == '\'' then "_k" + DafnyEscape(s[1..]) else
-    if s[0] == '#' then "_h" + DafnyEscape(s[1..]) else
-    [s[0]] + DafnyEscape(s[1..])
+    if s[0] == '_' then "__" + dafnyEscape(s[1..]) else
+    if s[0] == '?' then "_q" + dafnyEscape(s[1..]) else
+    if s[0] == '\'' then "_k" + dafnyEscape(s[1..]) else
+    if s[0] == '#' then "_h" + dafnyEscape(s[1..]) else
+    [s[0]] + dafnyEscape(s[1..])
   }
 
-  function DafnyUnescape(s: string): string {
+  function dafnyEscapeReverse(s: string): string {
     if |s| <= 1 then s else
     if s[0] == '_' then
-      if s[1] == '_' then "_" + DafnyUnescape(s[2..]) else
-      if s[1] == 'q' then "?" + DafnyUnescape(s[2..]) else
-      if s[1] == 'k' then "'" + DafnyUnescape(s[2..]) else
-      if s[1] == 'h' then "#" + DafnyUnescape(s[2..]) else
-      s[..1] + DafnyUnescape(s[1..])
+      if s[1] == '_' then "_" + dafnyEscapeReverse(s[2..]) else
+      if s[1] == 'q' then "?" + dafnyEscapeReverse(s[2..]) else
+      if s[1] == 'k' then "'" + dafnyEscapeReverse(s[2..]) else
+      if s[1] == 'h' then "#" + dafnyEscapeReverse(s[2..]) else
+      s[..1] + dafnyEscapeReverse(s[1..])
     else
-      s[..1] + DafnyUnescape(s[1..])
+      s[..1] + dafnyEscapeReverse(s[1..])
   }
 
-  lemma DafnyEscapeBijective(s: string)
-    ensures DafnyUnescape(DafnyEscape(s)) == s
+  lemma dafnyEscapeBijective(s: string)
+    ensures dafnyEscapeReverse(dafnyEscape(s)) == s
   {
     if |s| == 0 {
     } else {
-      DafnyEscapeBijective(s[1..]);
+      dafnyEscapeBijective(s[1..]);
       if s[0] == '_' {
       } else if s[0] == '?' {
       } else if s[0] == '\'' {
@@ -56,13 +57,13 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
     }
   }
 
-  lemma DafnyEscapeCharacteristic(s: string)
+  lemma dafnyEscapeCharacteristic(s: string)
     requires IsDafnyIdTail(s)
-    ensures IsDafnyEncodedIdTail(DafnyEscape(s))
+    ensures isDafnyEncodedIdTail(dafnyEscape(s))
   {
     if |s| == 0 {
     } else {
-      DafnyEscapeCharacteristic(s[1..]);
+      dafnyEscapeCharacteristic(s[1..]);
       if s[0] == '_' {
       } else if s[0] == '?' {
       } else if s[0] == '\'' {
@@ -72,79 +73,79 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
     }
   }
 
-  function ReverseReplaceDots(i: string): string {
+  function reverseReplaceDots(i: string): string {
     if |i| <= 1 then i
     else if i[0] == '_' then
-      if i[1] == 'd' then "." + ReverseReplaceDots(i[2..])
-      else [i[0]] + [i[1]] + ReverseReplaceDots(i[2..])
+      if i[1] == 'd' then "." + reverseReplaceDots(i[2..])
+      else [i[0]] + [i[1]] + reverseReplaceDots(i[2..])
     else
-      [i[0]] + ReverseReplaceDots(i[1..])
+      [i[0]] + reverseReplaceDots(i[1..])
   }
 
-  predicate IsDafnyEncodedIdTail(i: string) {
+  predicate isDafnyEncodedIdTail(i: string) {
     if |i| == 0 then true
     else
     if i[0] == '_' then
       |i| >= 2 &&
-      i[1] in "_qkh" && IsDafnyEncodedIdTail(i[2..])
+      i[1] in "_qkh" && isDafnyEncodedIdTail(i[2..])
     else
       i[0] in "aqkhd." &&
-      IsDafnyEncodedIdTail(i[1..])
+      isDafnyEncodedIdTail(i[1..])
   }
 
-  predicate IsDafnyEncodedId(i: string) {
+  predicate isDafnyEncodedId(i: string) {
     if |i| == 0 then true
-    else i[0] in "aqkhd" && IsDafnyEncodedIdTail(i[1..])
+    else i[0] in "aqkhd" && isDafnyEncodedIdTail(i[1..])
   }
 
-  lemma DafnyEscapeCorrect(s: string)
+  lemma dafnyEscapeCorrect(s: string)
     requires IsDafnyIdTail(s)
-    ensures IsDafnyEncodedIdTail(DafnyEscape(s))
-            && (IsDafnyId(s) && |s| > 0 ==> DafnyEscape(s)[0] in "aqkhd")
+    ensures isDafnyEncodedIdTail(dafnyEscape(s))
+            && (IsDafnyId(s) && |s| > 0 ==> dafnyEscape(s)[0] in "aqkhd")
   {
     if |s| == 0 {
     } else {
-      if s[0] == '_' { // "__" + DafnyEscape(s[1..])
-      } else if s[0] == '?' { // "_q" + DafnyEscape(s[1..]) else
-      } else if s[0] == '\'' { // "_k" + DafnyEscape(s[1..]) else
-      } else if s[0] == '#' { // "_h" + DafnyEscape(s[1..]) else=
-      } else { // [s[0]] + DafnyEscape(s[1..])=
-        DafnyEscapeCorrect(s[1..]);
+      if s[0] == '_' { // "__" + dafnyEscape(s[1..])
+      } else if s[0] == '?' { // "_q" + dafnyEscape(s[1..]) else
+      } else if s[0] == '\'' { // "_k" + dafnyEscape(s[1..]) else
+      } else if s[0] == '#' { // "_h" + dafnyEscape(s[1..]) else=
+      } else { // [s[0]] + dafnyEscape(s[1..])=
+        dafnyEscapeCorrect(s[1..]);
       }
     }
   }
-  // replaceDots is not invertible generally speaking.
+  // replaceDots is not reversible generally speaking.
   // Indeed, both _d and . get translated to _d.
-  lemma ReplaceDotsNotInvertible()
+  lemma replaceDotsNotReversible()
     ensures replaceDots("_d") == replaceDots(".")
-    ensures !IsDafnyEncodedIdTail("_d")
+    ensures !isDafnyEncodedIdTail("_d")
   {}
 
-  // However, if we restrict ourself to a Dafny encoding, it's invertible
-  lemma {:rlimit 2500} {:vcs_split_on_every_assert} // {:resource_limit 500e3}
-  ReplaceDotsInvertible(i: string)
-    requires IsDafnyEncodedIdTail(i)
-    ensures ReverseReplaceDots(replaceDots(i)) == i
+  // However, if we restrict ourself to a Dafny encoding, it's reversible
+  lemma {:rlimit 500}
+  replaceDotsReversible(i: string)
+    requires isDafnyEncodedIdTail(i)
+    ensures reverseReplaceDots(replaceDots(i)) == i
   {
     if |i| == 0 {
     } else if i[0] == '.' { //"_d" + replaceDots(i[1..])
-      ReplaceDotsInvertible(i[1..]);
-      assert ReverseReplaceDots(replaceDots(i)) == i;
+      replaceDotsReversible(i[1..]);
+      assert reverseReplaceDots(replaceDots(i)) == i;
     } else { // [i[0]] + replaceDots(i[1..])
       assert replaceDots(i) == [i[0]] + replaceDots(i[1..]);
       if i[0] == '_' {
         assert |i| >= 2 &&
-               i[1] in "_qkh" && IsDafnyEncodedIdTail(i[2..]);
-        ReplaceDotsInvertible(i[2..]);
-        assert ReverseReplaceDots(replaceDots(i)) == i;
+               i[1] in "_qkh" && isDafnyEncodedIdTail(i[2..]);
+        replaceDotsReversible(i[2..]);
+        assert reverseReplaceDots(replaceDots(i)) == i;
       } else {
-        ReplaceDotsInvertible(i[1..]);
-        assert ReverseReplaceDots(replaceDots(i)) == i;
+        replaceDotsReversible(i[1..]);
+        assert reverseReplaceDots(replaceDots(i)) == i;
       }
     }
   }
 
-  // The reason why escapeIdent is correct is that
+  // The reason why escapeIndent is correct is that
   // - It receives either
   //     - a Dafny-encoded Id that has no special character (only letters + "__" which came from "_")
   //       and is not a reserved Rust keyword
@@ -161,13 +162,13 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
   //   - If the input is a Dafny-encoded Id or a tuple numeric,
   //     it can find the original identifier based in the output
 
-  lemma BetterTupleBuilderNameNotRsharp(i: string)
+  lemma better_tuple_builder_name_not_rsharp(i: string)
     ensures is_tuple_builder(i) ==>
               var s := better_tuple_builder_name(i);
               s[0..2] != "r#"
   {}
 
-  lemma IdiomaticRustNotRsharp(i: string)
+  lemma idiomatic_rust_not_rsharp(i: string)
     ensures
       !has_special(i)
       ==>
@@ -186,7 +187,7 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
     }
   }
 
-  lemma {:fuel has_special, 2, 3} EscapeIdentExamples()
+  lemma {:fuel has_special, 2, 3} escapeIndentExamples()
     ensures escapeIdent("i") == "i"   // Loop variable
     ensures escapeIdent("_1") == "_1" // tuple deconstructor
     ensures escapeIdent("_m") == "_m" // any hidden variable
@@ -199,33 +200,33 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
   }
 
   // Just convert all underscores to double underscores
-  function ReverseIdiomaticRust(s: string): string {
+  function reverse_idiomatic_rust(s: string): string {
     if |s| == 0 then ""
     else if s[0] == '_' then
-      "__" + ReverseIdiomaticRust(s[1..])
+      "__" + reverse_idiomatic_rust(s[1..])
     else
-      [s[0]] + ReverseIdiomaticRust(s[1..])
+      [s[0]] + reverse_idiomatic_rust(s[1..])
   }
 
-  lemma {:rlimit 200} IdiomaticRustInvertible(i: string)
+  lemma {:rlimit 200} idiomatic_rust_reversible(i: string)
     requires !has_special(i)
-    ensures ReverseIdiomaticRust(idiomatic_rust(i)) == i
+    ensures reverse_idiomatic_rust(idiomatic_rust(i)) == i
   {
     if |i| == 0 {
     } else if i[0] == '_' {
-      IdiomaticRustInvertible(i[2..]);
+      idiomatic_rust_reversible(i[2..]);
       assert 2 <= |i| && i[1] == '_';
       var ss := ['_'] + idiomatic_rust(i[2..]);
       assert ss[0] == '_' && |ss| != 0;
     } else {
-      IdiomaticRustInvertible(i[1..]);
+      idiomatic_rust_reversible(i[1..]);
     }
   }
 
-  function UnescapeIdent(s: string): string {
+  function reverseEscapeIdent(s: string): string {
     if |s| >= 2 && s[0..2] == "r#" then
       if |s| >= 3 && s[2] == '_' then
-        ReverseReplaceDots(s[3..]) // General escape
+        reverseReplaceDots(s[3..]) // General escape
       else
         s[2..] // Keyword
     else if |s| >= 1 && s[0] == '_' then
@@ -236,88 +237,88 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
       else
         s
     else // Idiomatic rust
-      ReverseIdiomaticRust(s)
+      reverse_idiomatic_rust(s)
   }
 
-  lemma TupleIdentInvertible(s: string)
+  lemma tupleIdentReversible(s: string)
     requires is_tuple_numeric(s)
-    ensures UnescapeIdent(escapeIdent(s)) == s
+    ensures reverseEscapeIdent(escapeIdent(s)) == s
   {}
 
-  lemma {:rlimit 500} TupleBuilderInvertible(i: string)
+  lemma {:rlimit 500} tupleBuilderReversible(i: string)
     requires !is_tuple_numeric(i)
     requires is_tuple_builder(i)
-    ensures UnescapeIdent(escapeIdent(i)) == i
+    ensures reverseEscapeIdent(escapeIdent(i)) == i
   {
     var s := "_T" + i[8..];
     calc {
-      UnescapeIdent(escapeIdent(i));
-      UnescapeIdent(s);
+      reverseEscapeIdent(escapeIdent(i));
+      reverseEscapeIdent(s);
       i[0..8] + s[2..];
       i;
     }
   }
 
-  lemma {:rlimit 800} ReservedRustInvertible(i: string)
+  lemma {:rlimit 800} reservedRustReversible(i: string)
     requires !is_tuple_numeric(i)
     requires !is_tuple_builder(i)
     requires i in reserved_rust
-    ensures UnescapeIdent(escapeIdent(i)) == i
+    ensures reverseEscapeIdent(escapeIdent(i)) == i
   {
     assert i[0] != '_';
     var s := "r#" + i;
     calc {
-      UnescapeIdent(escapeIdent(i));
-      UnescapeIdent(s);
+      reverseEscapeIdent(escapeIdent(i));
+      reverseEscapeIdent(s);
       s[2..];
       i;
     }
   }
 
-  lemma {:rlimit 800} EscapeIdentInvertibleForIdiomaticRust(i: string)
-    requires IsDafnyEncodedId(i) // Needed to ensure i does not start with '_'
+  lemma {:rlimit 800} idiomaticRustReversible(i: string)
+    requires isDafnyEncodedId(i) // Needed to ensure i does not start with '_'
     requires !is_tuple_numeric(i)
     requires !is_tuple_builder(i)
     requires i !in reserved_rust
-    requires is_idiomatic_rust_id(i)
-    ensures UnescapeIdent(escapeIdent(i)) == i
+    requires is_idiomatic_rust(i)
+    ensures reverseEscapeIdent(escapeIdent(i)) == i
   {
     var s := idiomatic_rust(i);
-    IdiomaticRustNotRsharp(i);
+    idiomatic_rust_not_rsharp(i);
     assert |s| < 2 || s[0..2] != "r#" by {
       if |s| >= 2 && s[0..2] == "r#" {
         assert s[1] == '#';
-        IdiomaticRustNotRsharp(i[1..]);
+        idiomatic_rust_not_rsharp(i[1..]);
       }
     }
     assert s[0] != '_';
     calc {
-      UnescapeIdent(escapeIdent(i));
-      UnescapeIdent(idiomatic_rust(i));
-      ReverseIdiomaticRust(idiomatic_rust(i));
-      { IdiomaticRustInvertible(i); }
+      reverseEscapeIdent(escapeIdent(i));
+      reverseEscapeIdent(idiomatic_rust(i));
+      reverse_idiomatic_rust(idiomatic_rust(i));
+      { idiomatic_rust_reversible(i); }
       i;
     }
   }
 
-  lemma {:rlimit 800} EscapeIdentInvertibleForDafnyGeneratedId(s: string)
+  lemma {:rlimit 800} dafnyGeneratedIdReversible(s: string)
     requires !is_tuple_numeric(s)
     requires !is_tuple_builder(s)
     requires s !in reserved_rust
-    requires !is_idiomatic_rust_id(s)
+    requires !is_idiomatic_rust(s)
     requires is_dafny_generated_id(s)
-    ensures UnescapeIdent(escapeIdent(s)) == s
+    ensures reverseEscapeIdent(escapeIdent(s)) == s
   {
   }
 
-  lemma {:rlimit 800} EverythingElseInvertible(i: string)
-    requires IsDafnyEncodedId(i) // Needed to ensure i does not start with '_'
+  lemma {:rlimit 800} everythingElseReversible(i: string)
+    requires isDafnyEncodedId(i) // Needed to ensure i does not start with '_'
     requires !is_tuple_numeric(i)
     requires !is_tuple_builder(i)
     requires i !in reserved_rust
-    requires !is_idiomatic_rust_id(i)
+    requires !is_idiomatic_rust(i)
     requires !is_dafny_generated_id(i)
-    ensures UnescapeIdent(escapeIdent(i)) == i
+    ensures reverseEscapeIdent(escapeIdent(i)) == i
   {
     var r := replaceDots(i);
     var s := "r#_" + r;
@@ -325,36 +326,36 @@ module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompile
     assert |s| >= 3 && s[2] == '_';
     assert s[3..] == r;
     calc {
-      UnescapeIdent(escapeIdent(i));
-      UnescapeIdent(s);
-      ReverseReplaceDots(replaceDots(i));
-      { ReplaceDotsInvertible(i); }
+      reverseEscapeIdent(escapeIdent(i));
+      reverseEscapeIdent(s);
+      reverseReplaceDots(replaceDots(i));
+      { replaceDotsReversible(i); }
       i;
     }
   }
 
   // That's the lemma that shows
-  lemma EscapeIdentInvertible(i: string)
+  lemma escapeIdentReversible(i: string)
     requires is_tuple_numeric(i) // _0 _1 ...                 => _0, _1 ...
              || is_tuple_builder(i) // ___hMake0, ____hMake1 ... => _T0, _T1 ...
              || i in reserved_rust  // fn, impl, mod ...         => r#fn, r#impl, r#mod...
-             || IsDafnyEncodedId(i) // i                         => i
+             || isDafnyEncodedId(i) // i                         => i
                                     // create_struct             => create_struct
     //  c#ons.tant?'              => r#_c_hons_dtant_q_k
-    ensures UnescapeIdent(escapeIdent(i)) == i
+    ensures reverseEscapeIdent(escapeIdent(i)) == i
   {
     if is_tuple_numeric(i) {
-      TupleIdentInvertible(i);
+      tupleIdentReversible(i);
     } else if is_tuple_builder(i) {
-      TupleBuilderInvertible(i);
+      tupleBuilderReversible(i);
     } else if i in reserved_rust {
-      assert UnescapeIdent(escapeIdent(i)) == i;
-    } else if is_idiomatic_rust_id(i) {
-      EscapeIdentInvertibleForIdiomaticRust(i);
+      assert reverseEscapeIdent(escapeIdent(i)) == i;
+    } else if is_idiomatic_rust(i) {
+      idiomaticRustReversible(i);
     } else if is_dafny_generated_id(i) { // TODO: Mov up so that we can put it in specifications
-      EscapeIdentInvertibleForDafnyGeneratedId(i);
+      dafnyGeneratedIdReversible(i);
     } else {
-      EverythingElseInvertible(i);
+      everythingElseReversible(i);
     }
   }
 
