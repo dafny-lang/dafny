@@ -97,7 +97,7 @@ public static class DafnyCommands {
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
-    CommonOptionBag.ReadsClausesOnMethods,
+    Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation

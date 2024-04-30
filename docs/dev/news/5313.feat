@@ -1,1 +1,1 @@
-- Warn when passing something other than a doo file to `--library`
+- Warn when passing a Dafny source file to `--library`

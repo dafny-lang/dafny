@@ -788,7 +788,7 @@ namespace Microsoft.Dafny {
         tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       Specification<FrameExpression> reads;
-      if (Options.Get(CommonOptionBag.ReadsClausesOnMethods)) {
+      if (Options.Get(Method.ReadsClausesOnMethods)) {
         // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
         // with the default `reads *` for methods later.
         // Alternatively, we could have a flag similar to InferredDecreases to distinguish between
@@ -1140,7 +1140,7 @@ namespace Microsoft.Dafny {
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount && Options.Get(CommonOptionBag.ReadsClausesOnMethods)) {
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount && Options.Get(Method.ReadsClausesOnMethods)) {
         // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
         // Note that `reads *` is the right default for backwards-compatibility,
         // but we may want to infer a sensible default like decreases clauses instead in the future.
@@ -1760,7 +1760,7 @@ namespace Microsoft.Dafny {
             }
 
             // check that any reads clause is used correctly
-            var readsClausesOnMethodsEnabled = Options.Get(CommonOptionBag.ReadsClausesOnMethods);
+            var readsClausesOnMethodsEnabled = Options.Get(Method.ReadsClausesOnMethods);
             foreach (FrameExpression fe in method.Reads.Expressions) {
               if (method.IsLemmaLike) {
                 reporter.Error(MessageSource.Resolver, fe.tok,
