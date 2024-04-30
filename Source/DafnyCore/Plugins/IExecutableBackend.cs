@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny.Plugins;
@@ -140,7 +141,7 @@ public abstract class IExecutableBackend {
   /// <param name="sourceDirectory">Name of the directory to delete.</param>
   public virtual void CleanSourceDirectory(string sourceDirectory) { }
 
-  public abstract void Compile(Program dafnyProgram, ConcreteSyntaxTree output);
+  public abstract void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output);
 
   /// <summary>
   /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
@@ -190,12 +191,27 @@ public abstract class IExecutableBackend {
   public static readonly Option<string> OuterModule =
     new("--outer-module", "Nest all code in this module. Can be used to customize generated code. Use dots as separators (foo.baz.zoo) for deeper nesting. The first specified module will be the outermost one.");
 
-  public virtual IEnumerable<string> GetOuterModules() {
-    return Options.Get(OuterModule)?.Split(".") ?? Enumerable.Empty<string>();
-  }
+  public static readonly Option<IList<FileInfo>> TranslationRecords = new("--translation-record",
+    @"
+A translation record file for previously translated Dafny code. Can be specified multiple times. See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files for details.".TrimStart()) {
+  };
+
+  public static readonly Option<FileInfo> TranslationRecordOutput = new("--translation-record-output",
+    @"
+Where to output the translation record file. Defaults to the output directory. See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files for details.".TrimStart()) {
+  };
 
   static IExecutableBackend() {
-    DooFile.RegisterNoChecksNeeded(OuterModule);
+    DooFile.RegisterNoChecksNeeded(
+      OuterModule,
+      TranslationRecords,
+      TranslationRecordOutput
+      );
+    TranslationRecord.RegisterLibraryChecks(
+      new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { OuterModule, OptionCompatibility.NoOpOptionCheck },
+      }
+    );
   }
 
   public virtual Command GetCommand() {

@@ -96,7 +96,7 @@ These commands are described in [Section 13.6.1](#sec-dafny-commands).
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
-### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+### 13.3.1. Dafny Verification Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
 As of Dafny 4.1, `dafny` now supports outputting a single file containing
 a fully-verified program along with metadata about how it was verified.
@@ -130,6 +130,33 @@ A `.doo` file is a compressed archive of multiple files, similar to the `.jar` f
 The exact file format is internal and may evolve over time to support additional features.
 
 Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
+
+### 13.3.2. Dafny Translation Artifacts: .dtr Files {#sec-dtr-files}
+
+Some options, such as `--outer-module` or `--optimize-erasable-datatype-wrapper`,
+affect what target language code the same Dafny code is translated to.
+In order to translate Dafny libaries separately from their consuming codebases,
+the translation process for consuming code needs to be aware
+of what options were used when translating the library.
+
+For example, if a library defines a `Foo()` function in an `A` module,
+but `--outer-module org.coolstuff.foolibrary.dafnyinternal` is specified when translating the library to Java,
+then a reference to `A.Foo()` in a consuming Dafny project
+needs to be translated to `org.coolstuff.foolibrary.dafnyinternal.A.Foo()`,
+independently of what value of `--outer-module` is used for the consuming project.
+
+To meet this need,
+`dafny translate` also outputs a `<program-name>-<target id>.dtr` Dafny Translation Record file.
+Like `.doo` files, `.dtr` files record all the relevant options that were used,
+in this case relevant to translation rather than verification.
+These files can be provided to future calls to `dafny translate` using the `--translation-record` option,
+in order to provide the details of how various libraries provided with the `--library` flag were translated.
+
+Currently `--outer-module` is the only option recorded in `.dtr` files,
+but more relevant options will be added in the future.
+A later version of Dafny will also require `.dtr` files that cover all modules
+that are defined in `--library` options,
+to support checking that all relevant options are compatible.
 
 ## 13.4. Dafny Standard Libraries
 
