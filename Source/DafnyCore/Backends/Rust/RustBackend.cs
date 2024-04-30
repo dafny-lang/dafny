@@ -11,6 +11,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
   protected override bool PreventShadowing => false;
+  protected override string InternalFieldPrefix => "_i_";
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";

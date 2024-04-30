@@ -18,6 +18,8 @@ namespace Microsoft.Dafny.Compilers {
     ProgramBuilder items;
     public object currentBuilder;
     public bool emitUncompilableCode;
+    protected override string InternalFieldPrefix => internalFieldPrefix;
+    public string internalFieldPrefix;
     public bool preventShadowing;
 
     public void Start() {
@@ -36,12 +38,13 @@ namespace Microsoft.Dafny.Compilers {
       return res;
     }
 
-    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, bool preventShadowing, bool canEmitUncompilableCode) : base(options, reporter) {
+    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, string internalFieldPrefix, bool preventShadowing, bool canEmitUncompilableCode) : base(options, reporter) {
       options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
 
+      this.internalFieldPrefix = internalFieldPrefix;
       emitUncompilableCode = options.Get(CommonOptionBag.EmitUncompilableCode) && canEmitUncompilableCode;
       this.preventShadowing = preventShadowing;
     }

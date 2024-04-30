@@ -869,7 +869,7 @@ namespace Microsoft.Dafny.Compilers {
           if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
-              var DtorM = arg.HasName ? "_" + arg.CompileName : FieldName(arg, index);
+              var DtorM = arg.HasName ? InternalFieldPrefix + arg.CompileName : FieldName(arg, index);
               //   TN dtor_QDtorM { get; }
               interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
