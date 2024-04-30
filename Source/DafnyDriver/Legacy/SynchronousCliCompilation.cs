@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using VC;
@@ -335,6 +336,7 @@ namespace Microsoft.Dafny {
       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(options);
       }
+
       return exitValue;
     }
 
@@ -582,11 +584,11 @@ namespace Microsoft.Dafny {
         outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
       }
 
-      foreach (var entry in otherFiles) {
-        var filename = entry.Key;
-        WriteFile(Path.Join(paths.SourceDirectory, filename), entry.Value);
+      foreach (var (filename, value) in otherFiles) {
+        var absoluteFilename = Path.IsPathRooted(filename) ? filename : Path.Join(paths.SourceDirectory, filename);
+        WriteFile(absoluteFilename, value);
         if (options.Verbose) {
-          outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
+          outputWriter.WriteLine("Additional output written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
     }
@@ -667,7 +669,9 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
-        await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, output));
+
+        await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, dafnyProgramName, output));
+
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();

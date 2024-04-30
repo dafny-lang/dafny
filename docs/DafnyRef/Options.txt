@@ -180,6 +180,11 @@ Usage: dafny [ option ... ] [ filename ... ]
   /verifyAllModules
       Verify modules that come from an include directive.
   
+  /emitUncompilableCode
+      Allow compilers to emit uncompilable code that usually contain useful
+      information about what feature is missing, rather than
+      stopping on the first problem
+  
   /separateModuleOutput
       Output verification results for each module separately, rather than
       aggregating them after they are all finished.
