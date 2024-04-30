@@ -788,7 +788,7 @@ namespace Microsoft.Dafny {
         tok);
       var post = new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq, r, fn));
       Specification<FrameExpression> reads;
-      if (Options.Get(CommonOptionBag.ReadsClausesOnMethods)) {
+      if (Options.Get(Method.ReadsClausesOnMethods)) {
         // If f.Reads is empty, replace it with an explicit `reads {}` so that we don't replace that
         // with the default `reads *` for methods later.
         // Alternatively, we could have a flag similar to InferredDecreases to distinguish between
@@ -1039,6 +1039,8 @@ namespace Microsoft.Dafny {
       new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number),  // JavaScript integers
       new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong),
       new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long),
+      new NativeType("udoublelong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 128, NativeType.Selection.UDoubleLong),
+      new NativeType("doublelong", new BigInteger(-0x8000_0000_0000_0000)* new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), new BigInteger(0x8000_0000_0000_0000)* new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 0, NativeType.Selection.DoubleLong),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl> declarations,
@@ -1138,7 +1140,7 @@ namespace Microsoft.Dafny {
         boundsDiscoveryVisitor.VisitDeclarations(declarations);
       }
 
-      if (reporter.Count(ErrorLevel.Error) == prevErrorCount && Options.Get(CommonOptionBag.ReadsClausesOnMethods)) {
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount && Options.Get(Method.ReadsClausesOnMethods)) {
         // Set the default of `reads *` if reads clauses on methods is enabled and this isn't a lemma.
         // Note that `reads *` is the right default for backwards-compatibility,
         // but we may want to infer a sensible default like decreases clauses instead in the future.
@@ -1758,7 +1760,7 @@ namespace Microsoft.Dafny {
             }
 
             // check that any reads clause is used correctly
-            var readsClausesOnMethodsEnabled = Options.Get(CommonOptionBag.ReadsClausesOnMethods);
+            var readsClausesOnMethodsEnabled = Options.Get(Method.ReadsClausesOnMethods);
             foreach (FrameExpression fe in method.Reads.Expressions) {
               if (method.IsLemmaLike) {
                 reporter.Error(MessageSource.Resolver, fe.tok,

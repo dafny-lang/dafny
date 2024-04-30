@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,7 +63,7 @@ public class ProgramParser {
       }
 
       var parseResult = ParseFileWithErrorHandling(
-        dafnyFile.ParseOptions,
+        dafnyFile.FileOptions,
         dafnyFile.GetContent,
         dafnyFile.Origin,
         dafnyFile.Uri,
@@ -96,7 +97,7 @@ public class ProgramParser {
       // if we're building a .doo file.
       // See comment on LibraryBackend.DooFile.
       if (program.Options.Backend is LibraryBackend libBackend) {
-        libBackend.ProgramAfterParsing = new Program(new Cloner(true), program);
+        program.AfterParsingClone = new Program(new Cloner(true), program);
       }
     }
 
@@ -220,7 +221,7 @@ public class ProgramParser {
     }
 
     foreach (var root in roots) {
-      var dafnyFile = await IncludeToDafnyFile(systemModuleManager, errorReporter, root);
+      var dafnyFile = await IncludeToDafnyFile(errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);
       }
@@ -234,7 +235,7 @@ public class ProgramParser {
 
       cancellationToken.ThrowIfCancellationRequested();
       var parseIncludeResult = ParseFileWithErrorHandling(
-        errorReporter.Options,
+        top.FileOptions,
         top.GetContent,
         top.Origin,
         top.Uri,
@@ -242,7 +243,7 @@ public class ProgramParser {
       result.Add(parseIncludeResult);
 
       foreach (var include in parseIncludeResult.Module.Includes) {
-        var dafnyFile = await IncludeToDafnyFile(systemModuleManager, errorReporter, include);
+        var dafnyFile = await IncludeToDafnyFile(errorReporter, include);
         if (dafnyFile != null) {
           stack.Push(dafnyFile);
         }
@@ -252,8 +253,8 @@ public class ProgramParser {
     return result;
   }
 
-  private Task<DafnyFile> IncludeToDafnyFile(SystemModuleManager systemModuleManager, ErrorReporter errorReporter, Include include) {
-    return DafnyFile.CreateAndValidate(errorReporter, fileSystem, systemModuleManager.Options, include.IncludedFilename, include.tok);
+  private async Task<DafnyFile> IncludeToDafnyFile(ErrorReporter errorReporter, Include include) {
+    return await DafnyFile.CreateAndValidate(errorReporter, fileSystem, include.ParseOptions, include.IncludedFilename, include.tok);
   }
 
   ///<summary>
