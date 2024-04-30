@@ -1,53 +1,52 @@
 #!/usr/bin/env node
 
 const help = `
- * 'fix' makes it possible to fix an error in Dafny in no time.
+ * 'fix' makes it possible to fix a Dafny bug reported in GitHub in no time.
  * Add the following alias in your bash profile:
  * 
  *     alias fix='node scripts/fix-dafny-issue.js'
  * 
- * First usage
+ * The first time you use this command, look up for an issue number of GitHub you want to solve, and enter:
  * 
- *     > fix [<issueNumber> [<issueKeyword>]]
+ *     > fix <issueNumber>
  * 
- * This script will automate for you and ask questions as appropriate.
- * - It asks you for the issue number and issue keyword if not provided
- * - It fetches the reproducing code of the issue
- * - It adds the test to the codebase
- *   - If it's a CI test, it creates \`Test/git-issues/git-issue-<issueNumber>.dfy\`
- *     and \`Test/git-issues/git-issue-<issueNumber>.dfy.expect\`
- *     ensuring it contains a header that LIT can parse, considering the possibility that it needs to be run
- *     Then, it opens these two files in their default editor.
- *   - If it's a language server tests, it adds the code as a first test to
- *     \`DafnyLanguageServer.Text/Diagnostics/DiagnosticsTest.cs\` and 
- *     creates commented placeholders for the interaction and expected results.
- * - It creates a branch named \`fix-<issueNumber>-<issueKeyword>\`, and commits the files there immediately
- * - It provides you with information to debug the issue in Rider, in CLI dotnet, or just run Dafny.
+ * This script automates the administrative process of fixing the issue. It will
+ * - Ask you for the issue number, and an issue keyword (optionally accepts issue keyword as second argument)
+ * - Fetch the faulty code of the issue if it is in a dafny code block
+ * - Depending on the label, confirm and add the test to either integration tests,
+ *   language server tests, formatting tests or LSP icons tests,
+ * - Create a branch named 'fix-<issueNumber>-<issueKeyword>', and commits the tests there immediately
+ * - Provide you with information to debug the issue in Rider, in CLI dotnet, or just run Dafny.
  * 
- * For an issue that already exists, then you enter the command \`fix\` alone (with possible a --message argument)
- * - It compiles and runs the tests (CI or Language Server, or both)
- * - If all the tests pass, it asks you if you want to commit the changes.
+ * Now you're all set and you can go ahead and fix the issue. When you've made progress,
+ * enter the command
+ * 
+ *     > fix
+ * 
+ * and press ENTER (with an optional --message "<commit message>" argument). The script will
+ * - Compile Dafny and run the tests associated to the issue you are fixing
+ * - If all the tests pass, ask you if you want to commit and push the changes.
  *   If you accept:
- * - It creates the \`doc/dev/news/<issueNumber>.fix\` file for you the first time, asking you about its content
- * - It adds all new and modified files
+ * - Create the \`doc/dev/news/<issueNumber>.fix\` file for you the first time, asking you about its content
+ * - Add all new and modified files
  *   (including other \`git-issue-<issueNumber><suffix>.dfy\` files)
- * - It pushes the changes
- * - If the first time it's pushed, it opens your browser with a page
+ * - Commit and pushes the changes
+ * - Open your browser If the first time it's pushed) with a page
  *   to create the PR with the title and description already populated.
  * 
- * If you want to switch to another issue that you already initiated,
+ * If you want to switch to another issue that uses the same branch format as this script does,
  * ensure the working directory is clean, and run
  * 
- *     > fix <existing issue number | pr number | keyword>
+ *     > fix <existing issue number | PR number | keyword>
  * 
- * That will make the script to work:
- * - It finds and checks out the branch matching the issue number, the PR number, or a keyword
- * - It opens the test files in their respective editors (for CI tests only)
- * - It rebuilds the solution
- * - It provides you with information on how to test the issue.
+ * The script will:
+ * - Find and checks out the branch matching the issue number, the PR number, or a keyword
+ * - Open the test files in their respective editors (for CI tests only)
+ * - Ask if it can rebuilds the solution and do accordingly
+ * - Provide you with information on how to test the issue.
  * 
  * If you are already in the issue branch and you want to re-open
- * the test files (because you closed them...), just write 
+ * the test files (because you closed them...), enter
  * 
  *     > fix open
  * 
@@ -65,12 +64,14 @@ const help = `
  * - Providing an existing integration test name pattern will ensure that all these
  *   selected tests are run when you run \`fix\` without arguments.
  *   If more than one test is found, you'll be prompted to confirm your choices.
+ * 
+ * If you want to run an integration test, enter
+ * 
+ *     > fix run <any integration test keyword>
 `;
+ToRootFolder();
 
-if(process.cwd().endsWith("scripts")) {
-  process.chdir("..");
-}
-
+// To add a new test type, start by adding one field here, and follow the fields.
 const TEST_TYPE = {
   SKIP_TEST_CREATION: 0,
   INTEGRATION: 1,
@@ -82,38 +83,111 @@ const TEST_TYPE = {
 const TEST_FOLDER = "Source/IntegrationTests/TestFiles/LitTests/LitTest/";
 
 const ABORTED = "ABORTED";
+const FINISHED = "FINISHED";
 const ACCEPT_HINT = "(ENTER or y for yes, n for no, CTRL+C to abort)\n> ";
 const { exit } = require('process');
 const readline = require('readline');
 const root = require('child_process').execSync('npm root -g').toString().trim();
 const fs = require('fs');
-let fetch = null;
-try {
-  fetch = require(root + '/cross-fetch');
-} catch(e) {
-  console.log("cross-fetch must be installed globally. Run `npm install -g cross-fetch`");
-  exit(1);
-}
-let open = null;
-try {
-  open = require(root + '/open')
-} catch(e) {
-  console.log("open must be installed globally. Run `npm install -g open`");
-  exit(1);
-}
+let fetch = loadGlobalModule('cross-fetch');
+let open = loadGlobalModule('open');
 const { promisify } = require('util');
 const exec = require('child_process').exec;
 const execAsync = promisify(exec);
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+let cache = {};
+let questionCache = {}; // Used for tests only.
+// Ask the given question and returns the answer of the user
+const question = function(input) {
+  if(Object.keys(questionCache).length > 0) {
+    if(input in questionCache) {
+      return new Promise((resolve, reject) => {
+        resolve(questionCache[input]);
+      });
+    } else {
+      return new Promise((resolve, reject) => {
+        reject("Could not find question " + input + " in the test");
+      });
+    }
+  }
+  return new Promise((resolve, reject) => {
+    rl.question(input, resolve);
+  });
+}
+let logTest = null;
+let log = function() {
+  if(logTest !== null) {
+    for(var i = 0; i < arguments.length; i++) {
+      if(i > 0) {
+        logTest += " ";
+      }
+      logTest += arguments[i];
+    }
+  } else {
+    console.log(...arguments);
+  }
+}
+
+Main();
+//////// Testing tools
+
+function assertEqual(got, expected, reportLevel = 1) {
+  if(got != expected) {
+    let trace = (new Error()).stack;
+    let r = require("path").basename(__filename) + ":(\\d+):(\\d+)";
+    let regex = new RegExp(r, "g");
+    let lines = [];
+    let m;
+    while(m = regex.exec(trace)) {
+      lines.push(m[1]);
+    }
+    // The first one is in this function so we remove it
+    lines.shift();
+    console.log("Line " + lines[0] + ", expected " + expected + " but got " + got);
+    lines.shift();
+    while(lines.length > 0) {
+      console.log("See line " + lines[0]);
+      lines.shift();
+    }
+    throw ABORTED;
+  }
+}
+
+//////// Folder tools
+
+// Returns the loaded module that should be installed globally.
+function loadGlobalModule(nameAfterRoot) {
+  try {
+    return require(root + '/' + nameAfterRoot);
+  } catch(e) {
+    log("Module " + nameAfterRoot + " must be installed globally. Run `npm install -g " + nameAfterRoot + "`");
+    exit(1);
+  }
+}
+
+// Ensures that the script is executed in the root of the dafny repository
+function ToRootFolder() {
+  if(process.cwd().endsWith("scripts")) {
+    process.chdir("..");
+  }
+}
+
+// Displays the hint and execute the command.
+// If an exception occurs, logs it and return ABORTED if returnAbortedIfFailure, otherwise returns the exception
+// Returns the output of the command
 async function execLog(cmd, hint, returnAbortedIfFailure=true) {
   if(hint) {
-    console.log(hint);
+    log(hint);
   }
   var output = "";
   try {
     output = await execAsync(cmd);
   } catch(e) {
     if(returnAbortedIfFailure) {
-      console.log(e);
+      log(e);
       return ABORTED;
     } else {
       return e;
@@ -122,48 +196,26 @@ async function execLog(cmd, hint, returnAbortedIfFailure=true) {
   return output;
 }
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-function close() {
-  rl.close();
-  return false;
-}
-// Ask the given question and returns the answer of the user
-const question = function(input) {
-  return new Promise((resolve, reject) => {
-    rl.question(input, resolve);
-  });
-}
-
 // Returns true iff there is no pending changes on the current branch
 async function ensureWorkingDirectoryClean() {
   var unstagedChanges = (await execAsync("git diff")).stdout.trim() + (await execAsync("git diff --cached")).stdout.trim();
   if(unstagedChanges != "") {
-    return false;//console.log("Please commit your changes before launching this script.");
+    return false;//log("Please commit your changes before launching this script.");
   }
   return true;
 }
 
 
-// Returns true if the answer can be interpreted as a "yes"
+// Returns true if the answer can be interpreted as a "yes", with an empty string defaulting to yes.
 function ok(answer) {
-  return answer.toLowerCase() == "y" || answer == "";
+  return answer.toLowerCase().substring(0, 1) == "y" || answer == "";
 }
-// Same as question(), but only accepts the answers in the array acceptableAnswers
-async function filterQuestion(prompt, acceptableAnswers) {
-  var answer = await question(prompt);
-  if(acceptableAnswers.indexOf(answer) == -1) {
-    console.log("Invalid answer. Please try again.");
-    return filter(prompt, acceptableAnswers);
-  }
-  return answer;
-}
+
 // Returns the name of the current branch
 async function getCurrentBranch() {
   return (await execAsync("git branch --show-current")).stdout.trim();
 }
+
 // If we are on "master", ensures the working directory is clean and pull the latest master
 // If we are on a branch,
 // - If it's a fix branch, returns the parsed issue number and keyword
@@ -176,12 +228,12 @@ async function ensureMasterOrFollowupFix(providedIssueNumber, addOneTestCase) {
     var match = currentBranch.match(/^fix-(\d+)-(.+)$/);
     var currentBranchMatchesProvidedIssueNumber = addOneTestCase || (match && (providedIssueNumber == null || currentBranch.match(new RegExp(`^fix-.*${providedIssueNumber}.*\$`))));
     if(currentBranchMatchesProvidedIssueNumber) {
-      console.log("You are currently on branch " + currentBranch + " which is a fix branch for issue " + match[1] + " and keyword " + match[2]);
+      log("You are currently on branch " + currentBranch + " which is a fix branch for issue " + match[1] + " and keyword " + match[2]);
       return {issueNumber: match[1], issueKeyword: match[2], cleanDirectory, neededToSwitchToExistingBranch: false};
     }
   }
   if(!cleanDirectory) {
-    console.log("Please commit your changes before launching this script.");
+    log("Please commit your changes before launching this script.");
     throw ABORTED;
   }
   if(providedIssueNumber != null) {
@@ -189,7 +241,7 @@ async function ensureMasterOrFollowupFix(providedIssueNumber, addOneTestCase) {
     var branches = (await execAsync("git branch")).stdout.trim().split("\n").map(b => b.trim());
     var existingFixBranches = branches.filter(b => b.match(new RegExp(`^fix-.*${providedIssueNumber}.*\$`)));
     if(existingFixBranch != null && existingFixBranch.length > 1) {
-      console.log("There are multiple fix branches for issue '" + providedIssueNumber + "', please be more specific:\n" + existingFixBranches.join("\n"));
+      log("There are multiple fix branches for issue '" + providedIssueNumber + "', please be more specific:\n" + existingFixBranches.join("\n"));
       throw ABORTED;
     }
     if(existingFixBranches != null && existingFixBranches.length == 1) {
@@ -205,44 +257,47 @@ async function ensureMasterOrFollowupFix(providedIssueNumber, addOneTestCase) {
     // Maybe we gave a PR number. We can retrieve the PR and the issue number.
     var js = await getOriginalDafnyIssue(providedIssueNumber);
     if("body" in js && (match = /This PR fixes #(\d+)/.exec(js.body))) {
-      console.log("The PR "+providedIssueNumber+" is fixing issue " +match[1] + ". Redirecting...");
+      log("The PR "+providedIssueNumber+" is fixing issue " +match[1] + ". Redirecting...");
       return ensureMasterOrFollowupFix(match[1]);
     }
   }
   if(currentBranch != "master") {
-    console.log(`You need to be on the 'master' branch to create ${providedIssueNumber ? "a fix for #" + providedIssueNumber: "a fix."}`);
+    log(`You need to be on the 'master' branch to create ${providedIssueNumber ? "a fix for #" + providedIssueNumber: "a fix."}`);
     if(!ok(await question(`Switch from '${currentBranch}' to 'master'? ${ACCEPT_HINT}`))) {
-      console.log("Fixing script aborted.");
+      log("Fixing script aborted.");
       throw ABORTED;
     }
-    console.log("switched to master branch");
-    console.log((await execAsync("git checkout master")).stdout);
+    log("switched to master branch");
+    log((await execAsync("git checkout master")).stdout);
     currentBranch = await getCurrentBranch();
     if(currentBranch != "master") {
-      console.log("Failed to checkout master");
+      log("Failed to checkout master");
       throw ABORTED;
     }
   }
   await execAsync("git pull");
-  console.log("Latest master checked out and pulled from origin.")
+  log("Latest master checked out and pulled from origin.")
 }
 
-let cache = {};
 // Pull the JSON of the given issue number
 async function getOriginalDafnyIssue(issueNumber) {
   if(!issueNumber.match(/^\d+$/)) {
-    console.log(`Not an issue number: ${issueNumber}`);
+    log(`Not an issue number: ${issueNumber}`);
     return {};
   }
   if(issueNumber in cache) {
     return cache[issueNumber];
   }
-  console.log("Fetching original dafny issue #" + issueNumber);
+  log("Fetching original dafny issue #" + issueNumber);
   var js = await (await fetch("https://api.github.com/repos/dafny-lang/dafny/issues/" + issueNumber)).json();
   cache[issueNumber] = js;
   return js;
 }
-
+async function runUnitTests() {
+  testHasLabel();
+  testExtractProgram();
+  await testInteractivelyCreateTestFileContent();
+}
 // Skips the words "open", "force" and "more" from the arguments,
 // sets the flags appropriatedly and returns the remaining of the arguments.
 function processArgs() {
@@ -251,39 +306,45 @@ function processArgs() {
   var skipVerification = false;
   var addOneTestCase = false;
   var run = false;
+  var unitTests = false;
   var defaultMessage = null;
-  while(args[2] in {"open": 0, "force": 0, "more": 0, "add": 0, "run": 0}) {
+  while(args[2] in {"open": 0, "force": 0, "more": 0, "add": 0, "run": 0, "unit-tests": 0}) {
     if(args[2] == "open" || args[2] == "add") {
       args.splice(2, 1);
       openFiles = true;
-    } else if(args[2] == "force") {
+    }
+    if(args[2] == "unit-tests") {
+      args.splice(2, 1);
+      unitTests = true;
+    }
+    if(args[2] == "force") {
       args.splice(2, 1);
       skipVerification = true;
     } else if(args[2] == "run") {
       args.splice(2, 1);
       run = true;
-    } else {
+    } else if(args[2] == "add" || args[2] == "more") { // "more"
       args.splice(2, 1);
       addOneTestCase = true;
     }
   }
   if(args[2] == "--help") {
-    console.log(help);
+    log(help);
     process.exit(0);
   }
   if(args[2] == "--message") {
     if(args.length < 4) {
-      console.log("Missing message");
+      log("Missing message");
       process.exit(1);
     }
     defaultMessage = args[3];
     args.splice(2, 2);
   }
   if(args[2] != null && args[2].startsWith('--')) {
-    console.log("This script does not take options except --help and --message. Did you mean `fix "+args[2].substring(2)+"`?");
+    log("This script does not take options except --help and --message. Did you mean `fix "+args[2].substring(2)+"`?");
     process.exit(0);
   }
-  return {args, openFiles, skipVerification, addOneTestCase, defaultMessage, run};
+  return {args, openFiles, skipVerification, addOneTestCase, defaultMessage, run, unitTests};
 }
 
 // Given the arguments, returns the issue number and the issue keyword.
@@ -298,11 +359,11 @@ async function getIssueNumberAndKeyword(existingBranch, providedIssueNumber, pro
     var issueNumber = providedIssueNumber ?? await question("What is the git issue number? ");
     var issueKeyword = providedKeywordNumber;
     if(issueKeyword == null || issueKeyword == "") {
-      console.log("Getting issue keyword...");
+      log("Getting issue keyword...");
       issueKeyword = await getIssueKeyword(issueNumber);
     }
     if(issueKeyword != null && issueKeyword != "") {
-      console.log("The suggested issue keyword is the following:\n"+issueKeyword);
+      log("The suggested issue keyword is the following:\n"+issueKeyword);
     }
     var answer = " ";
     while(!answer.match(/^[-a-zA-Z0-9_]*$/)) {
@@ -316,7 +377,7 @@ async function getIssueNumberAndKeyword(existingBranch, providedIssueNumber, pro
       issueKeyword = answer;
     }
     if(issueKeyword == null || issueKeyword == "" || !issueKeyword.match(/^[-a-zA-Z0-9_]*$/)) {
-      console.log("Did not obtain a suitable issue keyword");
+      log("Did not obtain a suitable issue keyword");
       throw ABORTED;
     }
     neededToSwitchToExistingBranch = false;
@@ -341,10 +402,19 @@ async function getIssueKeyword(issueNumber) {
   return issueKeyword;
 }
 
-
+// Returns true if the given json structure has the expected label.
+// Useful to classify an issue and provide a good default choice
 function hasLabel(js, labelName) {
-  return "labels" in js && js.labels.find(label => 
-    label.name.indexOf(labelName) >= 0);
+  return ("labels" in js && js.labels.find(label => 
+    label.name.indexOf(labelName) >= 0)) ? true : false;
+}
+function testHasLabel() {
+  assertEqual(hasLabel({labels: [{name: "language-server"}]}, "language-server"), true);
+  assertEqual(hasLabel({labels: [{name: "language-server"}]}, "formatter"), false);
+  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "formatter"), true);
+  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "language-server"), true);
+  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "language-server-icons"), false);
+  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "language-server-icons"), false);
 }
 
 function extractProgram(js) {
@@ -354,6 +424,14 @@ function extractProgram(js) {
   var match = issueContent.match(/```(?:.*dafny)?\r?\n([\s\S]+?)\r?\n```/);
   var programReproducingError = match != null ? match[1] : "";
   return programReproducingError;
+}
+function testExtractProgram() {
+  assertEqual(extractProgram({}), ""),
+  assertEqual(extractProgram({body: "I have an issue and Dafny does not compile. What should I do?"}), "");
+  assertEqual(extractProgram({body: "Here is the program causing me pain:\n```dafny\nclass C {\n  static int f() {\n    return 1;\n  }\n}\n```\n Can you please help?"}),
+    "class C {\n  static int f() {\n    return 1;\n  }\n}");
+  assertEqual(extractProgram({body: "Here is the program causing me pain:\n```  dafny\nclass C {\n  static int f() {\n    return 1;\n  }\n}\n```\n Can you please help?"}),
+    "class C {\n  static int f() {\n    return 1;\n  }\n}");
 }
 
 // Create the tests fore the given issue number
@@ -383,7 +461,7 @@ async function interactivelyCreateTestFileContent(issueNumber = null, commandLin
   var shouldCompile = test_type == TEST_TYPE.INTEGRATION && ok(await question("Will the test need to be compiled? "+ACCEPT_HINT));
   var shouldRun = shouldCompile && (hasMain || ok(await question("Will the test need to be run (i.e. will have a Main() method)? "+ACCEPT_HINT)));
   if(shouldCompile) {
-    console.log("All backends are going to be tested. If you want to modify the output of a particular backend or ignore one, please check "+TEST_FOLDER+"README.md.");
+    log("All backends are going to be tested. If you want to modify the output of a particular backend or ignore one, please check "+TEST_FOLDER+"README.md.");
   }
 
   programReproducingError = programReproducingError == "" ?
@@ -415,6 +493,45 @@ async function interactivelyCreateTestFileContent(issueNumber = null, commandLin
   }
   programReproducingError = header + programReproducingError;
   return {programReproducingError, test_type};
+}
+
+async function RunQuestions(issue_number, command_line_content, github_cache, questions, expected_test_type, expected_program, expected_log) {
+  var savedQuestionCache = questionCache;
+  var savedCache = null;
+  var savedLogger = logTest;
+  logTest = "";
+  if(github_cache != null) {
+    savedCache = cache;
+    cache = {"42": github_cache};
+  }
+  questionCache = questions;
+  var {programReproducingError, test_type} = await interactivelyCreateTestFileContent(issue_number, command_line_content);
+  assertEqual(test_type, expected_test_type, 2); 
+  assertEqual(programReproducingError, expected_program, 2);
+  assertEqual(logTest, expected_log ?? "", 2);
+  if(savedCache != null) {
+    cache = savedCache;
+  }
+  questionCache = savedQuestionCache;
+  logTest = savedLogger;
+}
+
+async function testInteractivelyCreateTestFileContent() {
+  await RunQuestions(null, null, null, {"TEST_MODE": true,
+["Do you want to reproduce this problem\n"+
+ "- On the command line (ENTER or 1)\n"+
+ "- A diagnostic test on the language server(2)\n"+
+ "- A formatter test (3)\n"+
+ "- A gutter icons test on the language server (4)\n"+
+"- Don't create test files(5)?\n"+
+ "> "]: "1",
+ ["Will the test need to be compiled? " + ACCEPT_HINT]: "y",
+ ["Will the test need to be run (i.e. will have a Main() method)? " + ACCEPT_HINT]: "Yep"},
+    TEST_TYPE.INTEGRATION,
+    `// RUN: %testDafnyForEachCompiler "%s"\n\nmethod Main() {\n  \n}`,
+  "All backends are going to be tested. If you want to modify the output "+
+  "of a particular backend or ignore one, please check "+
+  "Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md.");
 }
 
 // Reads an existing test and extract the last dafny command to run
@@ -453,12 +570,12 @@ async function helpIfDllLock(output) {
   
   for(let dll of ["DafnyCore.dll", "DafnyLanguageServer.dll"]) {
     if(output && output.match(new RegExp(`warning MSB3026: Could not copy.*${dll}' because it is being used by another process`))) {
-      console.log(`Looks like ${dll} is locked by another process. Let's find out which one.`);
+      log(`Looks like ${dll} is locked by another process. Let's find out which one.`);
       // If we are on Windows, it's a different command
       var command = notWindows ? `lsof -w -Fp Binaries/${dll}` : "tasklist.exe -m "+dll;
       // Run the command and report to the user what they need to do
       var processLocking = (await execLog(command, `Finding which process is locking "+dll+"`)).stdout;
-      console.log(processLocking);
+      log(processLocking);
       if((match = /\d{4}\d*/.exec(processLocking)) &&
          ok(await question(`Do you want to kill the process ${match[0]}? ${ACCEPT_HINT}`))) {
         if(notWindows) {
@@ -466,9 +583,9 @@ async function helpIfDllLock(output) {
         } else {
           await execLog(`taskkill /F /PID ${match[0]}`, `Killing process ${match[0]}`);	
         }
-        console.log(`You can start the script again. If this occurs again, you might want to close VSCode.`);
+        log(`You can start the script again. If this occurs again, you might want to close VSCode.`);
       } else {
-        console.log(`Please close the process that is locking ${dll} and then press restart the command.`);
+        log(`Please close the process that is locking ${dll} and then press restart the command.`);
       }
     }
   }
@@ -507,7 +624,7 @@ async function verifyFix(testManagers) {
     var testManager = testManagers[k];
     if(await testManager.exists()) {
       var testCmd = await testManager.xunitTestCmd();
-      console.log("\nRunning:"+testCmd);
+      log("\nRunning:"+testCmd);
       var testManagerResults = await execLog(testCmd, "\nCompiling and verifying the fix for "+testManager.type+"... (not terminating sometimes means bug or need to restart 'fix')", false);
       testManagerResults = testManagerResults.stdout + testManagerResults.stderr;
       testManagerVerified = testManagerResults.match(/Failed:\s*0\s*,\s*Passed:\s*(?!0)/);
@@ -529,13 +646,13 @@ async function originAlreadyExists(branchName) {
 
 // Asks for the release notes lines, while providing the current issue's title as input to the user.
 async function getReleaseNotesLine(issueNumber) {
-  console.log("Getting the previous issue title...");
+  log("Getting the previous issue title...");
   var js = await getOriginalDafnyIssue(issueNumber);
   var releaseNotesLine = js.title;
   if(releaseNotesLine === undefined) {
-    console.log(`Could not retrieve issue #${issueNumber}'s title but that's ok. Got this instead`, js);
+    log(`Could not retrieve issue #${issueNumber}'s title but that's ok. Got this instead`, js);
   } else {
-    console.log("This was the title of the issue: '" + releaseNotesLine + "'");
+    log("This was the title of the issue: '" + releaseNotesLine + "'");
   }
   var extension = "fix";
   releaseNotesLine = await question("What should we put in the release notes? Press ENTER if it is merely a feature\nFix: ");
@@ -647,20 +764,20 @@ function getIntegrationTestManager(issueNumber, issueKeyword, suffix = "") {
           indexSuffix++;
         }
         if(indexSuffix == suffix.length) {
-          console.log("You have too many test cases for this issue. Please merge some.");
+          log("You have too many test cases for this issue. Please merge some.");
           throw ABORTED;
         }
         suffix = suffix[indexSuffix];
         this.name = getIntegrationTestFileName(issueNumber, suffix);
         this.nameExpect = getIntegrationTestFileExpectName(issueNumber, suffix)
       }
-      console.log(`Going to create the test files ${this.name} and ${this.nameExpect}...`);
+      log(`Going to create the test files ${this.name} and ${this.nameExpect}...`);
       await createTestFilesAndExpect(this.name, this.nameExpect, content);
     },
     async openAndYield() {
       await this.recoverData();
       if(this.name != null && fs.existsSync(this.name)) {
-        console.log("yes")
+        log("yes")
         openAndYield(this.name);
         openAndYield(this.nameExpect);
       }
@@ -683,7 +800,7 @@ function getIntegrationTestManager(issueNumber, issueKeyword, suffix = "") {
 
     },
     async displayXunitTestCmd() {
-      console.log((await this.xunitTestCmd()).replace(/csproj --filter/g, "csproj \\\n--filter").replace(/\|/g, "|\\\n"));
+      log((await this.xunitTestCmd()).replace(/csproj --filter/g, "csproj \\\n--filter").replace(/\|/g, "|\\\n"));
     },
     async displayRunHelp() {
       var testFile = this.name;
@@ -694,25 +811,25 @@ function getIntegrationTestManager(issueNumber, issueKeyword, suffix = "") {
       var programArguments = await getTestArguments(testFile);
       var issueNumber = this.issueNumber;
       var issueKeyword = this.issueKeyword;
-      console.log("-------------------------------------------------------------");
-      console.log("| Ensure you put the path of the language server for VSCode:|");
-      console.log(`Dafny: Language Server Runtime Path:\n${process.cwd()}/Binaries/Dafny.exe`);
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test as part of the XUnit test:                   |");
+      log("-------------------------------------------------------------");
+      log("| Ensure you put the path of the language server for VSCode:|");
+      log(`Dafny: Language Server Runtime Path:\n${process.cwd()}/Binaries/Dafny.exe`);
+      log("-------------------------------------------------------------");
+      log("| Run the test as part of the XUnit test:                   |");
       this.displayXunitTestCmd();
-      console.log("-------------------------------------------------------------");
-      console.log("| Run dafny on the file directly:                           |");
-      console.log("dotnet build Source/DafnyDriver/DafnyDriver.csproj");
-      console.log(`./Binaries/Dafny ${programArguments} \"${testFile}\"`);
-      console.log("-------------------------------------------------------------");
-      console.log("| Create a test configuration in Rider:                     |");
-      console.log(`Name:  git-issue-${issueNumber}-${issueKeyword}`);
-      console.log("Project:   Dafny");
-      console.log("Framework: net6.0");
-      console.log(`Exe path:  ${process.cwd()}/Binaries/Dafny.exe`);
-      console.log(`Arguments: ${programArguments} "${testFile}"`);
-      console.log("Directory: "+process.cwd());
-      console.log("-------------------------------------------------------------");
+      log("-------------------------------------------------------------");
+      log("| Run dafny on the file directly:                           |");
+      log("dotnet build Source/DafnyDriver/DafnyDriver.csproj");
+      log(`./Binaries/Dafny ${programArguments} \"${testFile}\"`);
+      log("-------------------------------------------------------------");
+      log("| Create a test configuration in Rider:                     |");
+      log(`Name:  git-issue-${issueNumber}-${issueKeyword}`);
+      log("Project:   Dafny");
+      log("Framework: net6.0");
+      log(`Exe path:  ${process.cwd()}/Binaries/Dafny.exe`);
+      log(`Arguments: ${programArguments} "${testFile}"`);
+      log("Directory: "+process.cwd());
+      log("-------------------------------------------------------------");
     },
     patternsToAddToGit() {
       return [ getIntegrationTestFileName(issueNumber, "*"),
@@ -740,21 +857,21 @@ function getIntegrationTestManager(issueNumber, issueKeyword, suffix = "") {
       testFiles = testFiles.map(file => file.substring(TEST_FOLDER.length));
       var testFile = testFiles.filter(file => file.indexOf(testName) >= 0);
       if(testFile.length == 0) {
-        console.log("Could not find the test file for "+testName);
+        log("Could not find the test file for "+testName);
         while(testFile.length == 0 && testName.length > 0) {
           testName = testName.substring(0, testName.length - 1);
           testFile = testFiles.filter(file => file.indexOf(testName) >= 0);
           if(testFile.length > 0) {
-            console.log("A prefix of your entry matched some files: '"+testName+"':");
-            console.log(testFile);
-            console.log("Re-run to confirm if it's the right file.");
+            log("A prefix of your entry matched some files: '"+testName+"':");
+            log(testFile);
+            log("Re-run to confirm if it's the right file.");
           }
         }
         return false;
       }
-      console.log(`The following test file${testFile.length > 1 ? "s" : ""} will be added:`);
+      log(`The following test file${testFile.length > 1 ? "s" : ""} will be added:`);
       for(var file of testFile) {
-        console.log(file);
+        log(file);
       }
       if(!ok(await question(`Confirm? ${ACCEPT_HINT}`))) {
         return false;
@@ -822,7 +939,7 @@ function getLanguageServerManager(fileName, testTemplate, issueNumber, issueKeyw
         this.testFileContent = await fs.promises.readFile(this.testFile, "utf-8");
       }
       if(!this.testFileContent) {
-        console.log("Could not find " + this.testFile);
+        log("Could not find " + this.testFile);
       }
       if(this.existingTests == null) {
         this.existingTests = [];
@@ -847,7 +964,7 @@ function getLanguageServerManager(fileName, testTemplate, issueNumber, issueKeyw
       await this.recoverData();
       var firstTestMatch = /\[Fact\]/.exec(this.testFileContent);
       if(!firstTestMatch) {
-        console.log(`Could not find [Fact] in ${this.testFile}`);
+        log(`Could not find [Fact] in ${this.testFile}`);
         throw ABORTED;
       }
       var i = firstTestMatch.index;
@@ -857,28 +974,28 @@ function getLanguageServerManager(fileName, testTemplate, issueNumber, issueKeyw
       }
       var newTestFileContent = this.testFileContent.substring(0, i) + testTemplate(this.MethodName, content)+this.testFileContent.substring(i);
 
-      console.log(`Going to add test ${this.MethodName} in ${this.testFile}...`);
+      log(`Going to add test ${this.MethodName} in ${this.testFile}...`);
       await fs.promises.writeFile(this.testFile, newTestFileContent);
     },
     async openAndYield() {
       openAndYield(this.testFile);
-      console.log("Look for "+this.MethodName+"! It should be the first test.");
+      log("Look for "+this.MethodName+"! It should be the first test.");
     },
     async displayXunitTestCmd() {
-      console.log((await this.xunitTestCmd()).replace(/Test --filter/g, "Test \\\n--filter").replace(/\|/g, "|\\\n"));
+      log((await this.xunitTestCmd()).replace(/Test --filter/g, "Test \\\n--filter").replace(/\|/g, "|\\\n"));
     },
     async displayRunHelp() {
       await this.recoverData();
-      console.log("-------------------------------------------------------------");
-      console.log("| Ensure you put the path of the language server for VSCode:|");
-      console.log(`Dafny: Language Server Runtime Path:\n${process.cwd()}/Binaries/Dafny.exe`);
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test as part of the XUnit test:                   |");
+      log("-------------------------------------------------------------");
+      log("| Ensure you put the path of the language server for VSCode:|");
+      log(`Dafny: Language Server Runtime Path:\n${process.cwd()}/Binaries/Dafny.exe`);
+      log("-------------------------------------------------------------");
+      log("| Run the test as part of the XUnit test:                   |");
       this.displayXunitTestCmd()
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test in Rider:                                    |");
-      console.log(this.MethodName);
-      console.log("-------------------------------------------------------------");
+      log("-------------------------------------------------------------");
+      log("| Run the test in Rider:                                    |");
+      log(this.MethodName);
+      log("-------------------------------------------------------------");
     },
     patternsToAddToGit() {
       return [ this.testFile ];
@@ -890,7 +1007,7 @@ function getLanguageServerManager(fileName, testTemplate, issueNumber, issueKeyw
       return `dotnet test --nologo Source/DafnyLanguageServer.Test --filter ${this.rawMethodName()}`;
     },
     async addExisting(issueHint) {
-      console.log("TODO: Need ability to add existing language server tests");
+      log("TODO: Need ability to add existing language server tests");
       return false;
     }
   };
@@ -901,7 +1018,7 @@ async function recoverTests(testManager, issueNumber) {
     testManager.testFileContent = await fs.promises.readFile(testManager.testFile, "utf-8");
   }
   if(!testManager.testFileContent) {
-    //console.log("Could not find " + this.testFile);
+    //log("Could not find " + this.testFile);
     testManager.existingTests = [];
     return;
   }
@@ -954,7 +1071,7 @@ ${content.replace(/"/g,"\"\"")}");
       await this.recoverData();
       var firstTestMatch = /\[Fact\]/.exec(this.testFileContent);
       if(!firstTestMatch) {
-        console.log(`Could not find [Fact] in ${this.testFile}`);
+        log(`Could not find [Fact] in ${this.testFile}`);
         throw ABORTED;
       }
       var i = firstTestMatch.index;
@@ -965,28 +1082,28 @@ ${content.replace(/"/g,"\"\"")}");
       var newTestFileContent = this.testFileContent.substring(0, i) +
         testTemplate(this.MethodName, content)+this.testFileContent.substring(i);
 
-      console.log(`Going to add test ${this.MethodName} in ${this.testFile}...`);
+      log(`Going to add test ${this.MethodName} in ${this.testFile}...`);
       await fs.promises.writeFile(this.testFile, newTestFileContent);
     },
     async openAndYield() {
       openAndYield(this.testFile);
-      console.log("Look for "+this.MethodName+"! It should be the first test.");
+      log("Look for "+this.MethodName+"! It should be the first test.");
     },
     async displayXunitTestCmd() {
-      console.log((await this.xunitTestCmd()).replace(/Test --filter/g, "Test \\\n--filter").replace(/\|/g, "|\\\n"));
+      log((await this.xunitTestCmd()).replace(/Test --filter/g, "Test \\\n--filter").replace(/\|/g, "|\\\n"));
     },
     async displayRunHelp() {
       await this.recoverData();
-      console.log("-------------------------------------------------------------");
-      console.log("| Ensure you put the path of the language server for VSCode:|");
-      console.log(`Dafny: Language Server Runtime Path:\n${process.cwd()}/Binaries/Dafny.exe`);
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test as part of the XUnit test:                   |");
+      log("-------------------------------------------------------------");
+      log("| Ensure you put the path of the language server for VSCode:|");
+      log(`Dafny: Language Server Runtime Path:\n${process.cwd()}/Binaries/Dafny.exe`);
+      log("-------------------------------------------------------------");
+      log("| Run the test as part of the XUnit test:                   |");
       this.displayXunitTestCmd()
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test in Rider:                                    |");
-      console.log(this.MethodName);
-      console.log("-------------------------------------------------------------");
+      log("-------------------------------------------------------------");
+      log("| Run the test in Rider:                                    |");
+      log(this.MethodName);
+      log("-------------------------------------------------------------");
     },
     patternsToAddToGit() {
       return [ this.testFile ];
@@ -998,7 +1115,7 @@ ${content.replace(/"/g,"\"\"")}");
       return `dotnet test --nologo Source/DafnyPipeline.Test --filter ${this.rawMethodName()}`;
     },
     async addExisting(issueHint) {
-      console.log("TODO: Need ability to add existing formatter tests");
+      log("TODO: Need ability to add existing formatter tests");
       return false;
     }
   };
@@ -1042,26 +1159,26 @@ ${content.replace(/"/g,"\"\"")}");
       return this.existingTests.length > 0 || this.addedTests && this.addedTests.length > 0;
     },
     async create(content) {
-      console.log("Cannot create test generation yet");
+      log("Cannot create test generation yet");
       throw ABORTED;
     },
     async openAndYield() {
       return false; // TODO
       //openAndYield(this.testFile);
-      //console.log("Look for "+this.MethodName+"! It should be the first test.");
+      //log("Look for "+this.MethodName+"! It should be the first test.");
     },
     async displayXunitTestCmd() {
-      console.log((await this.xunitTestCmd()).replace(/Test --filter/g, "Test \\\n--filter").replace(/\|/g, "|\\\n"));
+      log((await this.xunitTestCmd()).replace(/Test --filter/g, "Test \\\n--filter").replace(/\|/g, "|\\\n"));
     },
     async displayRunHelp() {
       await this.recoverData();
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test as part of the XUnit test:                   |");
+      log("-------------------------------------------------------------");
+      log("| Run the test as part of the XUnit test:                   |");
       this.displayXunitTestCmd()
-      console.log("-------------------------------------------------------------");
-      console.log("| Run the test in DafnyTestGeneration.Test in Rider:        |");
-      console.log(this.MethodName);
-      console.log("-------------------------------------------------------------");
+      log("-------------------------------------------------------------");
+      log("| Run the test in DafnyTestGeneration.Test in Rider:        |");
+      log(this.MethodName);
+      log("-------------------------------------------------------------");
     },
     patternsToAddToGit() {
       return [ this.testFile ];
@@ -1078,7 +1195,7 @@ ${content.replace(/"/g,"\"\"")}");
       // Display entire lines, NOT the file names
       var testFiles = await execLog("git ls-files Source/DafnyTestGeneration.Test/*.cs", "Searching for test files...");
       if(testFiles.stderr || !testFiles.stdout) {
-        console.log(testFiles.stderr);
+        log(testFiles.stderr);
         return false;
       }
       var csFiles = testFiles.stdout;
@@ -1097,9 +1214,9 @@ ${content.replace(/"/g,"\"\"")}");
         return false;
       }
 
-      console.log(`The following test generation test${fullMethodNames.length > 1 ? "s" : ""} will be added:`);
+      log(`The following test generation test${fullMethodNames.length > 1 ? "s" : ""} will be added:`);
       for(var [csFile, methodName] of fullMethodNames) {
-        console.log(`  ${methodName}()  (from ${csFile})`);
+        log(`  ${methodName}()  (from ${csFile})`);
       }
       if(!ok(await question(`Confirm? ${ACCEPT_HINT}`))) {
         return false;
@@ -1119,7 +1236,7 @@ function FindAppropriateSuffix(fileContent, baseName) {
     indexSuffix++;
   }
   if(indexSuffix >= suffix.length) {
-    console.log("Too many test files prefixed by "+baseName);
+    log("Too many test files prefixed by "+baseName);
     throw ABORTED;
   }
   return baseName + suffix[indexSuffix];
@@ -1158,21 +1275,27 @@ async function doAddExistingOrNewTest(testManagers, moreText) {
 
 // The main function
 async function Main() {
-  var {openFiles, skipVerification, addOneTestCase, args, defaultMessage, run} = processArgs();
+  var {openFiles, skipVerification, addOneTestCase, args, defaultMessage, run, unitTests} = processArgs();
   var fixBranchDidExist = false;
   var testFileContent = "";
   var providedIssueNumber = args[2];
   var providedKeywordNumber = args[3];
   var providedContent = args[4]; // Should deprecate. No one is ever going to add a test content as an argument of the command line.
+  var returnedException = null;
   try {
+    if(unitTests) {      
+      await runUnitTests();
+      rl.close();
+      throw FINISHED;
+    }
     if(run) {
       if(providedIssueNumber == null) {
-        console.log("Usage: fix run <integration test name>");
+        log("Usage: fix run <integration test name>");
         return;
       }
       var testCmd = `dotnet test -v:n Source/IntegrationTests/IntegrationTests.csproj\\\n`+
     ` --filter "DisplayName~${providedIssueNumber}"`;
-      console.log("You can run the following command:\n"+ testCmd);
+      log("You can run the following command:\n"+ testCmd);
       return;
     }
     var existingBranch = await ensureMasterOrFollowupFix(providedIssueNumber, addOneTestCase);
@@ -1202,7 +1325,7 @@ async function Main() {
     }
     if(!testFilesDidExist) {
       if(fixBranchDidExist) {
-        console.log("You still haven't set up any test for your branch.");
+        log("You still haven't set up any test for your branch.");
       }
       addOneTestCase = false; // This will be automatic
       var {programReproducingError: testFileContent, test_type} =
@@ -1249,10 +1372,10 @@ async function Main() {
         (!skipVerification || test_type != TEST_TYPE.SKIP_TEST_CREATION)) {
       var withoutOpen = open ? " (without 'open')" : "";
       if(fixBranchDidExist && !testFilesDidExist) {
-        console.log("You don't have any tests set. You can force push your changes using 'fix force'");
+        log("You don't have any tests set. You can force push your changes using 'fix force'");
       } else {
-        console.log(`All set! Now focus on making the tests to pass. You can add additional tests by typing 'fix more'`);
-        console.log(`When the tests succeed, re-run this script to verify the fix and create the PR.\nYou can run the same command-line${withoutOpen}.`);
+        log(`All set! Now focus on making the tests to pass. You can add additional tests by typing 'fix more'`);
+        log(`When the tests succeed, re-run this script to verify the fix and create the PR.\nYou can run the same command-line${withoutOpen}.`);
       }
     } else {
       var testResult = {};
@@ -1260,9 +1383,9 @@ async function Main() {
            testResult = await verifyFix(testManagers), testResult.ok))) {
         var wasPushed = await originAlreadyExists(branchName);
         if(skipVerification) {
-          console.log(`You indicated "force", so you assume that this commit solves the issue #${issueNumber}.`);
+          log(`You indicated "force", so you assume that this commit solves the issue #${issueNumber}.`);
         } else {
-          console.log(`\nCongratulations for ${wasPushed ? "ensuring this new commit still solves" : "solving"} issue #${issueNumber}!`);
+          log(`\nCongratulations for ${wasPushed ? "ensuring this new commit still solves" : "solving"} issue #${issueNumber}!`);
         }
 
         if(!wasPushed && defaultMessage == null && !ok(await question("Are you ready to create the PR? " + ACCEPT_HINT))) {
@@ -1276,7 +1399,7 @@ async function Main() {
             releaseNotesLine = releaseNotesLine.trim();
             extension = extension.toLowerCase();
             if(extension != "fix" && extension != "feat") {
-              console.log("The default message must start with 'Fix:' or 'Feat:'");
+              log("The default message must start with 'Fix:' or 'Feat:'");
               var {releaseNotesLine, extension} = await getReleaseNotesLine(issueNumber);
             }
           } else {
@@ -1291,18 +1414,18 @@ async function Main() {
         await commitAllAndPush(testInfo, commitMessage, branchName, testsNowExist);
         if(!wasPushed) {
           var url = `https://github.com/dafny-lang/dafny/compare/${branchName}?expand=1&title=`+encodeURIComponent(commitMessage)+"&body="+encodeURIComponent(prContent);
-          console.log("Opening the browser to create a PR at this URL...:\n"+url);
+          log("Opening the browser to create a PR at this URL...:\n"+url);
           await open(url);
-          console.log("Look at your browser, it should be opened.");
+          log("Look at your browser, it should be opened.");
         } else {
-          console.log("Updated the PR.");
+          log("Updated the PR.");
         }
       } else {
         if(neededToSwitchToExistingBranch && testResult.ok) {
-          console.log("The tests are passing as expected. Run 'fix' when you have something new to verify.\n");
+          log("The tests are passing as expected. Run 'fix' when you have something new to verify.\n");
         } else {
-          console.log(testResult.log);
-          console.log("The test did not pass. Please fix the issue and re-run this script after ensuring that the following command-line succeeds:\n");
+          log(testResult.log);
+          log("The test did not pass. Please fix the issue and re-run this script after ensuring that the following command-line succeeds:\n");
           // Print special characters to stdout so that it notifies the user (bell?)
           process.stdout.write("\x07");
           for(let k in testManagers) {
@@ -1316,12 +1439,17 @@ async function Main() {
       }
     }
   } catch(e) {
-    if(e != ABORTED) {
+    returnedException = e;
+    if(e !== FINISHED && e !== ABORTED) {
+      console.log(e);
       throw e;
     }
   } finally {
-    close();
+    rl.close();
+    if(returnedException != FINISHED && returnedException !== null) {
+      exit(1);
+    } else {
+      exit(0);
+    }
   }
 }
-
-Main();
