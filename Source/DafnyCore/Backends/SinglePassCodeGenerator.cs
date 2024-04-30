@@ -26,7 +26,11 @@ namespace Microsoft.Dafny.Compilers {
 
   public abstract class SinglePassCodeGenerator {
 
-    protected const string InternalFieldPrefix = "_i_";
+    // Dafny names cannot start with "_". Hence, if an internal Dafny name is problematic in the target language,
+    // we can prefix it with "_".
+    // However, for backends such as Rust which need special internal fields, we want to clearly
+    // disambiguate between compiler-generated names and user-defined names, hence this prefix.
+    protected virtual string InternalFieldPrefix => "_i_";
 
     public DafnyOptions Options { get; }
 
@@ -2055,18 +2059,17 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      if (member.EnclosingClass is TraitDecl) {
-        return false;
-      }
       // One of the limitations in many target language encodings are restrictions to instance members. If an
       // instance member can't be directly expressed in the target language, we make it a static member with an
       // additional first argument specifying the `this`, giving it a `CustomReceiver`.
+      // Such backends would typically override this method to return "true" in this case.
+      if (member.EnclosingClass is TraitDecl) {
+        return false;
+      }
       if (member.IsStatic) {
         return false;
       } else if (member.EnclosingClass is NewtypeDecl) {
         return true;
-      } else if (member.EnclosingClass is TraitDecl) {
-        return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
         // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.

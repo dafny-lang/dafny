@@ -1233,6 +1233,15 @@ namespace Microsoft.Dafny.Compilers {
         fnOverridden?.Ins, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
+    
+    public override bool NeedsCustomReceiver(MemberDecl member) {
+      Contract.Requires(member != null);
+      if (member.EnclosingClass is TraitDecl) {
+        return member is ConstantField {Rhs: { }} or Function {Body: { }} or Method {Body: { }};
+      }
+
+      return base.NeedsCustomReceiver(member);
+    }
 
     private ConcreteSyntaxTree CreateSubroutine(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType,
