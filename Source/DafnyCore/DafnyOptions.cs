@@ -169,9 +169,9 @@ namespace Microsoft.Dafny {
     }
 
     private static DafnyOptions defaultImmutableOptions;
-    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= Create(Console.Out, Console.In);
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= CreateUsingOldParser(Console.Out, Console.In);
 
-    public static DafnyOptions Create(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
+    public static DafnyOptions CreateUsingOldParser(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
       input ??= TextReader.Null;
       var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
@@ -652,6 +652,10 @@ namespace Microsoft.Dafny {
 
         case "verifyAllModules":
           VerifyAllModules = true;
+          return true;
+
+        case "emitUncompilableCode":
+          this.Set(CommonOptionBag.EmitUncompilableCode, true);
           return true;
 
         case "separateModuleOutput":
@@ -1368,6 +1372,11 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /verifyAllModules
     Verify modules that come from an include directive.
+
+/emitUncompilableCode
+    Allow compilers to emit uncompilable code that usually contain useful
+    information about what feature is missing, rather than
+    stopping on the first problem
 
 /separateModuleOutput
     Output verification results for each module separately, rather than

@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using VC;
@@ -128,16 +129,13 @@ namespace Microsoft.Dafny {
           : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
         try {
           var consoleErrorReporter = new ConsoleErrorReporter(options);
-          var df = await DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options, new Uri(Path.GetFullPath(file)), Token.Cli);
+          var df = await DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options,
+            new Uri(Path.GetFullPath(file)), Token.Cli, options.LibraryFiles.Contains(file));
           if (df == null) {
             if (consoleErrorReporter.FailCompilation) {
               return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
             }
           } else {
-            if (options.LibraryFiles.Contains(file)) {
-              df.IsPreverified = true;
-              df.IsPrecompiled = true;
-            }
             if (!filesSeen.Add(df.CanonicalPath)) {
               continue; // silently ignore duplicate
             }
@@ -201,19 +199,23 @@ namespace Microsoft.Dafny {
       // only because if they are added first, one might be used as the program name,
       // which is not handled well.
       if (options.Get(CommonOptionBag.UseStandardLibraries)) {
+        // For now the standard libraries are still translated from scratch.
+        // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
+        var asLibrary = false;
+
         var reporter = new ConsoleErrorReporter(options);
         if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
-          var targetSpecificFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli);
+          var targetSpecificFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli, asLibrary);
           if (targetSpecificFile != null) {
             dafnyFiles.Add(targetSpecificFile);
           }
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        var targetAgnosticFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli);
+        var targetAgnosticFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary);
         if (targetAgnosticFile != null) {
           dafnyFiles.Add(targetAgnosticFile);
         }
@@ -334,6 +336,7 @@ namespace Microsoft.Dafny {
       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(options);
       }
+
       return exitValue;
     }
 
@@ -581,11 +584,11 @@ namespace Microsoft.Dafny {
         outputWriter.WriteLine("Wrote textual form of target program to {0}", relativeTarget);
       }
 
-      foreach (var entry in otherFiles) {
-        var filename = entry.Key;
-        WriteFile(Path.Join(paths.SourceDirectory, filename), entry.Value);
+      foreach (var (filename, value) in otherFiles) {
+        var absoluteFilename = Path.IsPathRooted(filename) ? filename : Path.Join(paths.SourceDirectory, filename);
+        WriteFile(absoluteFilename, value);
         if (options.Verbose) {
-          outputWriter.WriteLine("Additional target code written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
+          outputWriter.WriteLine("Additional output written to {0}", NormalizeRelativeFilename(Path.Join(paths.RelativeDirectory, filename)));
         }
       }
     }
@@ -666,7 +669,9 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
-        await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, output));
+
+        await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, dafnyProgramName, output));
+
         var writerOptions = new WriterState();
         var targetProgramTextWriter = new StringWriter();
         var files = new Queue<FileSyntax>();
