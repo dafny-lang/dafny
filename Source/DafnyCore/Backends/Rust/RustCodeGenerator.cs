@@ -7,8 +7,6 @@ using DCOMP;
 namespace Microsoft.Dafny.Compilers {
 
   class RustCodeGenerator : DafnyWrittenCodeGenerator {
-    public override string InternalFieldPrefix => "_i_";
-
     public DafnyOptions Options { get; set; }
 
     public RustCodeGenerator(DafnyOptions options) {
