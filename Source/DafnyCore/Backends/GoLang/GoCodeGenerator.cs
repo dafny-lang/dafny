@@ -1236,7 +1236,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
-      if (member.EnclosingClass is TraitDecl) {
+      if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
         return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       }
 

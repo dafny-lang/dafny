@@ -277,7 +277,7 @@ func (_static *CompanionStruct_Sequence_) Elements(_this Sequence) Sequence {
 		return _this
 	}
 }
-func (_static *CompanionStruct_Sequence_) Create(_this Sequence, cardinality uint32, initFn func(uint32) interface{}) Sequence {
+func (_static *CompanionStruct_Sequence_) Create(cardinality uint32, initFn func(uint32) interface{}) Sequence {
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	var _12_a NativeArray
@@ -302,7 +302,7 @@ func (_static *CompanionStruct_Sequence_) Create(_this Sequence, cardinality uin
 	ret = _nw1
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) EqualUpTo(_this Sequence, left Sequence, right Sequence, index uint32) bool {
+func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequence, index uint32) bool {
 	var ret bool = false
 	_ = ret
 	var _hi0 uint32 = index
@@ -329,7 +329,7 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(_this Sequence, left Sequenc
 	return ret
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) Equal(_this Sequence, left Sequence, right Sequence) bool {
+func (_static *CompanionStruct_Sequence_) Equal(left Sequence, right Sequence) bool {
 	var ret bool = false
 	_ = ret
 	if ((left).Cardinality()) != ((right).Cardinality()) /* dircomp */ {
@@ -338,11 +338,11 @@ func (_static *CompanionStruct_Sequence_) Equal(_this Sequence, left Sequence, r
 	}
 	var _out13 bool
 	_ = _out13
-	_out13 = Companion_Sequence_.EqualUpTo(Companion_Sequence_, left, right, (left).Cardinality())
+	_out13 = Companion_Sequence_.EqualUpTo(left, right, (left).Cardinality())
 	ret = _out13
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) IsPrefixOf(_this Sequence, left Sequence, right Sequence) bool {
+func (_static *CompanionStruct_Sequence_) IsPrefixOf(left Sequence, right Sequence) bool {
 	var ret bool = false
 	_ = ret
 	if ((right).Cardinality()) < ((left).Cardinality()) {
@@ -351,11 +351,11 @@ func (_static *CompanionStruct_Sequence_) IsPrefixOf(_this Sequence, left Sequen
 	}
 	var _out14 bool
 	_ = _out14
-	_out14 = Companion_Sequence_.EqualUpTo(Companion_Sequence_, left, right, (left).Cardinality())
+	_out14 = Companion_Sequence_.EqualUpTo(left, right, (left).Cardinality())
 	ret = _out14
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) IsProperPrefixOf(_this Sequence, left Sequence, right Sequence) bool {
+func (_static *CompanionStruct_Sequence_) IsProperPrefixOf(left Sequence, right Sequence) bool {
 	var ret bool = false
 	_ = ret
 	if ((right).Cardinality()) <= ((left).Cardinality()) {
@@ -364,11 +364,11 @@ func (_static *CompanionStruct_Sequence_) IsProperPrefixOf(_this Sequence, left 
 	}
 	var _out15 bool
 	_ = _out15
-	_out15 = Companion_Sequence_.EqualUpTo(Companion_Sequence_, left, right, (left).Cardinality())
+	_out15 = Companion_Sequence_.EqualUpTo(left, right, (left).Cardinality())
 	ret = _out15
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) Contains(_this Sequence, s Sequence, t interface{}) bool {
+func (_static *CompanionStruct_Sequence_) Contains(s Sequence, t interface{}) bool {
 	var _hresult bool = false
 	_ = _hresult
 	var _hi1 uint32 = (s).Cardinality()
@@ -389,7 +389,7 @@ func (_static *CompanionStruct_Sequence_) Contains(_this Sequence, s Sequence, t
 	return _hresult
 	return _hresult
 }
-func (_static *CompanionStruct_Sequence_) Update(_this Sequence, s Sequence, i uint32, t interface{}) Sequence {
+func (_static *CompanionStruct_Sequence_) Update(s Sequence, i uint32, t interface{}) Sequence {
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	var _19_a ImmutableArray
@@ -417,7 +417,7 @@ func (_static *CompanionStruct_Sequence_) Update(_this Sequence, s Sequence, i u
 	ret = _nw2
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) Concatenate(_this Sequence, left Sequence, right Sequence) Sequence {
+func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Sequence) Sequence {
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	if !(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality())) {
