@@ -9,6 +9,9 @@ using Tomlyn;
 
 namespace DafnyCore.Options;
 
+// Model class for the .dtr file format for Dafny Translation Records.
+// Contains the validation logic for safely consuming pre-translated libraries as well.
+// See https://dafny.org/dafny/DafnyRef/DafnyRef#sec-dtr-files.
 public class TranslationRecord {
 
   public const string CurrentFileFormatVersion = "1.0";
@@ -80,7 +83,7 @@ public class TranslationRecord {
     Write(textWriter);
     writer.Write(textWriter.ToString());
   }
-  
+
   private bool Validate(Program dafnyProgram, string filePath, IToken origin) {
     var messagePrefix = $"cannot load {filePath}";
     if (!dafnyProgram.Options.UsingNewCli) {
