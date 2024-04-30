@@ -242,11 +242,11 @@ namespace DCOMP {
 
   public partial class COMP {
     public COMP() {
-      this._UnicodeChars = false;
+      this._i_UnicodeChars = false;
     }
     public void __ctor(bool UnicodeChars)
     {
-      (this)._UnicodeChars = UnicodeChars;
+      (this)._i_UnicodeChars = UnicodeChars;
     }
     public RAST._IMod GenModule(DAST._IModule mod, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> containingPath)
     {
@@ -11584,9 +11584,9 @@ namespace DCOMP {
       s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("();\n}"));
       return s;
     }
-    public bool _UnicodeChars {get; set;}
+    public bool _i_UnicodeChars {get; set;}
     public bool UnicodeChars { get {
-      return this._UnicodeChars;
+      return this._i_UnicodeChars;
     } }
     public Dafny.ISequence<Dafny.Rune> DafnyChar { get {
       if ((this).UnicodeChars) {

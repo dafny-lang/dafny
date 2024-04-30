@@ -2,19 +2,19 @@ DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
 
-all: exe refman
+all: format exe dfyprod refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
+
+# Run this command if you change *.dfy files in Source/DafnyCore or the C# code generator
+dfyprod: dfyprodformat dfyprodinit exe
 
 dfyprodformat:
 	(cd "${DIR}"/Source/DafnyCore ; ../../Binaries/Dafny.exe format .)
 
 dfyprodinit: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
-
-dfyprod: dfyprodformat dfyprodinit
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
 dfydevinit:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)
