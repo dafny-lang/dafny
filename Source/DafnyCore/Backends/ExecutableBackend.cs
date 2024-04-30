@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
@@ -25,10 +26,31 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   public override string ModuleSeparator => CodeGenerator.ModuleSeparator;
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
+
     CodeGenerator.Compile(dafnyProgram, output);
+  }
+
+  protected void ProcessTranslationRecords(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    // Process --translation-record options, since translation may need that data to translate correctly.
+    dafnyProgram.Compilation.AlreadyTranslatedRecord = TranslationRecord.Empty(dafnyProgram);
+    var records = dafnyProgram.Options.Get(TranslationRecords);
+    if (records != null) {
+      foreach (var path in records) {
+        TranslationRecord.ReadValidateAndMerge(dafnyProgram, path.FullName, Token.Cli);
+      }
+    }
+
+    // Write out the translation record for THIS translation before compiling,
+    // in case the compilation process mutates the program.
+    var translationRecord = new TranslationRecord(dafnyProgram);
+    var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+    var dtrFilePath = dafnyProgram.Options.Get(TranslationRecordOutput)?.FullName ?? $"{baseName}-{TargetId}.dtr";
+    var dtrWriter = output.NewFile(dtrFilePath);
+    translationRecord.Write(dtrWriter);
   }
 
   protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
@@ -50,17 +72,27 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   protected void ProcessOuterModules(Program dafnyProgram) {
-    var outerModules = GetOuterModules();
-    ModuleDefinition rootUserModule = null;
-    foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
-        ModuleKindEnum.Concrete, false,
-        null, null, null);
-      newRoot.EnclosingModule = rootUserModule;
-      rootUserModule = newRoot;
+    // Apply the --outer-module option from any translation records for libraries,
+    // but only to top-level modules.
+    var outerModules = new Dictionary<string, ModuleDefinition>();
+    foreach (var module in dafnyProgram.CompileModules) {
+      if (module.EnclosingModule is not DefaultModuleDefinition) {
+        continue;
+      }
+
+      var recordedOuterModuleName = (string)dafnyProgram.Compilation.AlreadyTranslatedRecord.Get(null, module.FullDafnyName, OuterModule);
+      if (recordedOuterModuleName == null) {
+        continue;
+      }
+
+      var outerModule = outerModules.GetOrCreate(recordedOuterModuleName, () => CreateOuterModule(recordedOuterModuleName));
+      module.EnclosingModule = outerModule;
     }
 
-    if (rootUserModule != null) {
+    // Apply the local --output-module option if there is one
+    var outerModuleName = Options.Get(OuterModule);
+    if (outerModuleName != null) {
+      var rootUserModule = outerModules.GetOrCreate(outerModuleName, () => CreateOuterModule(outerModuleName));
       dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
       dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
     }
@@ -68,6 +100,22 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
+  }
+
+  private static ModuleDefinition CreateOuterModule(string moduleName) {
+    var outerModules = moduleName.Split(".");
+
+    ModuleDefinition module = null;
+    foreach (var outerModule in outerModules) {
+      var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
+        null, null, null) {
+        EnclosingModule = module
+      };
+      module = thisModule;
+    }
+
+    return module;
   }
 
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DafnyCore.Generic;
+using DafnyCore.Options;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
@@ -48,7 +49,7 @@ public class DooFile {
 
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
-        var optionValue = GetOptionValue(options, option);
+        var optionValue = options.Get((dynamic)option);
         Options.Add(option.Name, optionValue);
       }
     }
@@ -173,7 +174,8 @@ public class DooFile {
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      success = success && check(reporter, origin, option, localValue, options.GetPrintPath(libraryFile), libraryValue);
+      var prefix = $"cannot load {options.GetPrintPath(libraryFile)}";
+      success = success && check(reporter, origin, prefix, option, localValue, libraryValue);
     }
 
     if (!success) {
@@ -181,25 +183,6 @@ public class DooFile {
     }
 
     return result;
-  }
-
-  private static object GetOptionValue(DafnyOptions options, Option option) {
-    // This is annoyingly necessary because only DafnyOptions.Get<T>(Option<T> option)
-    // handles falling back to the configured default option value,
-    // whereas the non-generic DafnyOptions.Get(Option option) doesn't.
-    // TODO: Move somewhere more generic if this is useful in other cases?
-    var optionType = option.ValueType;
-    if (optionType == typeof(bool)) {
-      return options.Get((Option<bool>)option);
-    }
-    if (optionType == typeof(string)) {
-      return options.Get((Option<string>)option);
-    }
-    if (optionType == typeof(IEnumerable<string>)) {
-      return options.Get((Option<IEnumerable<string>>)option);
-    }
-
-    throw new ArgumentException();
   }
 
   public void Write(ConcreteSyntaxTree wr) {
@@ -237,88 +220,17 @@ public class DooFile {
   // more difficult to completely categorize, which is the main reason the LibraryBackend
   // is restricted to only the new CLI.
 
-  public delegate bool OptionCheck(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue);
-  private static readonly Dictionary<Option, OptionCheck> OptionChecks = new();
+  private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
   private static readonly HashSet<Option> NoChecksNeeded = new();
 
-  public static bool CheckOptionMatches(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesEqual(option, localValue, libraryValue)) {
-      return true;
-    }
-
-    reporter.Error(MessageSource.Project, origin,
-      $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, " +
-      $"but the library was built with {OptionValueToString(option, libraryValue)}");
-    return false;
-  }
-
-  /// Checks that the library option ==> the local option.
-  /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
-  /// Generally the right check for options that weaken guarantees.
-  public static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(libraryValue, localValue)) {
-      return true;
-    }
-
-    reporter.Error(MessageSource.Project, origin, $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
-    return false;
-  }
-
-  /// Checks that the local option ==> the library option.
-  /// E.g. --track-print-effects: the only incompatibility is if it's on locally but not in the library.
-  /// Generally the right check for options that strengthen guarantees.
-  public static bool CheckOptionLocalImpliesLibrary(ErrorReporter reporter, IToken origin, Option option, object localValue, string libraryFile, object libraryValue) {
-    if (OptionValuesImplied(localValue, libraryValue)) {
-      return true;
-    }
-    reporter.Error(MessageSource.Project, origin, LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue));
-    return false;
-  }
-
-  public static string LocalImpliesLibraryMessage(Option option, object localValue, string libraryFile, object libraryValue) {
-    return $"cannot load {libraryFile}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}";
-  }
-
-  private static bool OptionValuesEqual(Option option, object first, object second) {
-    if (first.Equals(second)) {
-      return true;
-    }
-
-    if (option.ValueType == typeof(IEnumerable<string>)) {
-      return ((IEnumerable<string>)first).SequenceEqual((IEnumerable<string>)second);
-    }
-
-    return false;
-  }
-
-  public static bool OptionValuesImplied(object first, object second) {
-    try {
-      return !(bool)first || (bool)second;
-    } catch (NullReferenceException) {
-      throw new Exception("Comparing options of Doo files created by different Dafny builds. You are probably using a locally built Dafny that has the same version as a different built.");
-    }
-  }
-
-  private static string OptionValueToString(Option option, object value) {
-    if (option.ValueType == typeof(IEnumerable<string>)) {
-      var values = (IEnumerable<string>)value;
-      return $"[{string.Join(',', values)}]";
-    }
-
-    if (value == null) {
-      return "a version of Dafny that does not have this option";
-    }
-    return value.ToString();
-  }
-
-  public static void RegisterLibraryCheck(Option option, OptionCheck check) {
+  public static void RegisterLibraryCheck(Option option, OptionCompatibility.OptionCheck check) {
     if (NoChecksNeeded.Contains(option)) {
       throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
     }
     OptionChecks.Add(option, check);
   }
 
-  public static void RegisterLibraryChecks(IDictionary<Option, OptionCheck> checks) {
+  public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
     foreach (var (option, check) in checks) {
       RegisterLibraryCheck(option, check);
     }

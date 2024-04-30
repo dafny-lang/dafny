@@ -15,6 +15,8 @@ namespace Microsoft.Dafny;
 public static class VerifyCommand {
 
   static VerifyCommand() {
+    // Note these don't need checks because they are only "dafny verify" options;
+    // they can't be specified when building a doo file.
     DooFile.RegisterNoChecksNeeded(FilterSymbol);
     DooFile.RegisterNoChecksNeeded(FilterPosition);
   }
