@@ -1827,9 +1827,8 @@ namespace Microsoft.Dafny.Compilers {
         : $"{tmpVarName} is None or {typeTest}");
     }
 
-    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
-      wr.Write(TypeHelperName(ct) + $"({collName})");
+    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+      return TypeHelperName(ct) + $"({collName})";
     }
 
     protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {
