@@ -9,10 +9,10 @@ CompilationErrors.dfy(43,6): Warning: assume statement has no {:axiom} annotatio
 CompilationErrors.dfy(55,11): Warning: assume keyword in update-with-failure statement has no {:axiom} annotation
 CompilationErrors.dfy(60,16): Warning: assume keyword in assign-such-that statement has no {:axiom} annotation
 CompilationErrors.dfy(12,6): Warning: assume statement has no {:axiom} annotation
-CompilationErrors.dfy(71,2): Warning: note, this loop has no body (loop frame: x)
-CompilationErrors.dfy(73,2): Warning: note, this loop has no body (loop frame: i, x)
-CompilationErrors.dfy(83,4): Warning: note, this loop has no body (loop frame: x)
-CompilationErrors.dfy(85,4): Warning: note, this loop has no body (loop frame: i, x)
+CompilationErrors.dfy(71,2): Warning: this loop has no body (loop frame: x)
+CompilationErrors.dfy(73,2): Warning: this loop has no body (loop frame: i, x)
+CompilationErrors.dfy(83,4): Warning: this loop has no body (loop frame: x)
+CompilationErrors.dfy(85,4): Warning: this loop has no body (loop frame: i, x)
 
 Dafny program verifier finished with 7 verified, 0 errors
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body so it cannot be compiled

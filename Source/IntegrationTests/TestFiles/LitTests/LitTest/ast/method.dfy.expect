@@ -7,7 +7,7 @@ method.dfy(13,23): Warning: when a method is imported, meaning it has no body an
 method.dfy(21,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
 method.dfy(25,17): Warning: when a method is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
 method.dfy(26,17): Warning: when a method is exported, meaning it has a body and an {:extern} annotation, Dafny can not guarantee that it is called with arguments that satisfy its preconditions (its requires clauses and inputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'
-method.dfy(18,2): Warning: note, this loop has no body
+method.dfy(18,2): Warning: this loop has no body
 
 Dafny program verifier finished with 2 verified, 0 errors
 method.dfy(8,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
@@ -15,7 +15,7 @@ method.dfy(8,40): Warning: This ensures clause is part of a bodyless method. Add
 method.dfy(9,29): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 method.dfy(9,43): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 method.dfy(21,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
-method.dfy(18,2): Warning: note, this loop has no body
+method.dfy(18,2): Warning: this loop has no body
 
 Dafny program verifier finished with 2 verified, 0 errors
 method.dfy(8,26): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
@@ -27,7 +27,7 @@ method.dfy(13,23): Warning: when a method is imported, meaning it has no body an
 method.dfy(21,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
 method.dfy(25,17): Warning: when a method is imported, meaning it has no body and an {:extern} annotation, Dafny can not guarantee that its implementation satisfies its post-conditions (its ensures clauses and outputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'.
 method.dfy(26,17): Warning: when a method is exported, meaning it has a body and an {:extern} annotation, Dafny can not guarantee that it is called with arguments that satisfy its preconditions (its requires clauses and inputs that are subset types). To silence this warning, please add an {:axiom} attribute or use the option '--allow-external-contracts'
-method.dfy(18,2): Warning: note, this loop has no body
+method.dfy(18,2): Warning: this loop has no body
 
 Dafny program verifier finished with 2 verified, 0 errors
 method.dfy(8,7): Error: Method _module._default.Compiled has no body so it cannot be compiled
