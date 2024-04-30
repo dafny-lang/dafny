@@ -2128,12 +2128,12 @@ namespace Microsoft.Dafny.Compilers {
               sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
-              sw.Write("._{0}", f.GetCompileName(Options));
+              sw.Write(".{0}{1}", InternalFieldPrefix, f.GetCompileName(Options));
             }
             {
               // set { this._{0} = value; }
               EmitThis(wSet);
-              wSet.Write("._{0}", f.GetCompileName(Options));
+              wSet.Write(".{0}{1}", InternalFieldPrefix, f.GetCompileName(Options));
               var sw = EmitAssignmentRhs(wSet);
               sw = EmitCoercionIfNecessary(f.Type, fType, f.tok, sw);
               EmitSetterParameter(sw);

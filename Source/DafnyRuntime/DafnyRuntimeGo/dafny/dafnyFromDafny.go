@@ -202,7 +202,7 @@ type Sequence interface {
 	UniqueElements() Set
 }
 
-func (_static *CompanionStruct_Sequence_) SetString(_this Sequence) Sequence {
+func (_this *Sequence) SetString() Sequence {
 	{
 		var ret Sequence = (Sequence)(nil)
 		_ = ret
@@ -212,7 +212,7 @@ func (_static *CompanionStruct_Sequence_) SetString(_this Sequence) Sequence {
 		return ret
 	}
 }
-func (_static *CompanionStruct_Sequence_) Select(_this Sequence, index uint32) interface{} {
+func (_this *Sequence) Select(index uint32) interface{} {
 	{
 		var ret interface{} = (interface{})(nil)
 		_ = ret
@@ -227,7 +227,7 @@ func (_static *CompanionStruct_Sequence_) Select(_this Sequence, index uint32) i
 		return ret
 	}
 }
-func (_static *CompanionStruct_Sequence_) Drop(_this Sequence, lo uint32) Sequence {
+func (_this *Sequence) Drop(lo uint32) Sequence {
 	{
 		var ret Sequence = (Sequence)(nil)
 		_ = ret
@@ -238,7 +238,7 @@ func (_static *CompanionStruct_Sequence_) Drop(_this Sequence, lo uint32) Sequen
 		return ret
 	}
 }
-func (_static *CompanionStruct_Sequence_) Take(_this Sequence, hi uint32) Sequence {
+func (_this *Sequence) Take(hi uint32) Sequence {
 	{
 		var ret Sequence = (Sequence)(nil)
 		_ = ret
@@ -249,7 +249,7 @@ func (_static *CompanionStruct_Sequence_) Take(_this Sequence, hi uint32) Sequen
 		return ret
 	}
 }
-func (_static *CompanionStruct_Sequence_) Subsequence(_this Sequence, lo uint32, hi uint32) Sequence {
+func (_this *Sequence) Subsequence(lo uint32, hi uint32) Sequence {
 	{
 		var ret Sequence = (Sequence)(nil)
 		_ = ret
@@ -272,7 +272,7 @@ func (_static *CompanionStruct_Sequence_) Subsequence(_this Sequence, lo uint32,
 		return ret
 	}
 }
-func (_static *CompanionStruct_Sequence_) Elements(_this Sequence) Sequence {
+func (_this *Sequence) Elements() Sequence {
 	{
 		return _this
 	}
@@ -904,15 +904,15 @@ func (CompanionStruct_AtomicBox_) CastTo_(x interface{}) AtomicBox {
 
 // Definition of class ArraySequence
 type ArraySequence struct {
-	_isString bool
-	_values   ImmutableArray
+	_i_isString bool
+	_i_values   ImmutableArray
 }
 
 func New_ArraySequence_() *ArraySequence {
 	_this := ArraySequence{}
 
-	_this._isString = false
-	_this._values = (ImmutableArray)(nil)
+	_this._i_isString = false
+	_this._i_values = (ImmutableArray)(nil)
 	return &_this
 }
 
@@ -984,8 +984,8 @@ func (_this *ArraySequence) Take(hi uint32) Sequence {
 }
 func (_this *ArraySequence) Ctor__(value ImmutableArray, isString bool) {
 	{
-		(_this)._values = value
-		(_this)._isString = isString
+		(_this)._i_values = value
+		(_this)._i_isString = isString
 	}
 }
 func (_this *ArraySequence) Cardinality() uint32 {
@@ -1004,7 +1004,7 @@ func (_this *ArraySequence) ToArray() ImmutableArray {
 }
 func (_this *ArraySequence) Values() ImmutableArray {
 	{
-		return _this._values
+		return _this._i_values
 	}
 }
 
@@ -1012,19 +1012,19 @@ func (_this *ArraySequence) Values() ImmutableArray {
 
 // Definition of class ConcatSequence
 type ConcatSequence struct {
-	_isString bool
-	_left     Sequence
-	_right    Sequence
-	_length   uint32
+	_i_isString bool
+	_i_left     Sequence
+	_i_right    Sequence
+	_i_length   uint32
 }
 
 func New_ConcatSequence_() *ConcatSequence {
 	_this := ConcatSequence{}
 
-	_this._isString = false
-	_this._left = (Sequence)(nil)
-	_this._right = (Sequence)(nil)
-	_this._length = Companion_Size__t_.Witness()
+	_this._i_isString = false
+	_this._i_left = (Sequence)(nil)
+	_this._i_right = (Sequence)(nil)
+	_this._i_length = Companion_Size__t_.Witness()
 	return &_this
 }
 
@@ -1096,10 +1096,10 @@ func (_this *ConcatSequence) Take(hi uint32) Sequence {
 }
 func (_this *ConcatSequence) Ctor__(left Sequence, right Sequence) {
 	{
-		(_this)._left = left
-		(_this)._right = right
-		(_this)._length = ((left).Cardinality()) + ((right).Cardinality())
-		(_this)._isString = (left.IsString()) || (right.IsString())
+		(_this)._i_left = left
+		(_this)._i_right = right
+		(_this)._i_length = ((left).Cardinality()) + ((right).Cardinality())
+		(_this)._i_isString = (left.IsString()) || (right.IsString())
 	}
 }
 func (_this *ConcatSequence) Cardinality() uint32 {
@@ -1133,17 +1133,17 @@ func (_this *ConcatSequence) ToArray() ImmutableArray {
 }
 func (_this *ConcatSequence) Left() Sequence {
 	{
-		return _this._left
+		return _this._i_left
 	}
 }
 func (_this *ConcatSequence) Right() Sequence {
 	{
-		return _this._right
+		return _this._i_right
 	}
 }
 func (_this *ConcatSequence) Length() uint32 {
 	{
-		return _this._length
+		return _this._i_length
 	}
 }
 
@@ -1151,17 +1151,17 @@ func (_this *ConcatSequence) Length() uint32 {
 
 // Definition of class LazySequence
 type LazySequence struct {
-	_isString bool
-	_length   uint32
-	_box      AtomicBox
+	_i_isString bool
+	_i_length   uint32
+	_i_box      AtomicBox
 }
 
 func New_LazySequence_() *LazySequence {
 	_this := LazySequence{}
 
-	_this._isString = false
-	_this._length = Companion_Size__t_.Witness()
-	_this._box = (AtomicBox)(nil)
+	_this._i_isString = false
+	_this._i_length = Companion_Size__t_.Witness()
+	_this._i_box = (AtomicBox)(nil)
 	return &_this
 }
 
@@ -1239,9 +1239,9 @@ func (_this *LazySequence) Ctor__(wrapped Sequence) {
 		_ = _out42
 		_out42 = Companion_AtomicBox_.Make(wrapped)
 		_35_box = _out42
-		(_this)._box = _35_box
-		(_this)._length = (wrapped).Cardinality()
-		(_this)._isString = wrapped.IsString()
+		(_this)._i_box = _35_box
+		(_this)._i_length = (wrapped).Cardinality()
+		(_this)._i_isString = wrapped.IsString()
 	}
 }
 func (_this *LazySequence) Cardinality() uint32 {
@@ -1275,12 +1275,12 @@ func (_this *LazySequence) ToArray() ImmutableArray {
 }
 func (_this *LazySequence) Length() uint32 {
 	{
-		return _this._length
+		return _this._i_length
 	}
 }
 func (_this *LazySequence) Box() AtomicBox {
 	{
-		return _this._box
+		return _this._i_box
 	}
 }
 
