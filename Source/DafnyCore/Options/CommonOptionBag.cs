@@ -648,7 +648,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ExecutionCoverageReport,
       ExtractCounterexample,
       BackendModuleName,
-      GenerateDoo
+      GenerateDoo,
       ShowProofObligationExpressions
       );
   }

@@ -210,7 +210,7 @@ namespace Microsoft.Dafny.Compilers {
       string libraryName) {
       var goModuleName = "";
       if (GoModuleMode && program.Compilation.AlreadyCompiledRoots.Contains(module.Tok.Uri)) {
-        var dooManifest = DooFile.Read(module.Tok.Uri.AbsolutePath).Manifest;
+        var dooManifest = DooFile.Read(module.Tok.Uri.AbsolutePath).Result.Manifest;
         dooManifest.Options.TryGetValue(Options.Backend.TargetId, out var targetOptions);
         object moduleName = null;
         if (targetOptions is TomlTable tomlTable) {

@@ -54,7 +54,7 @@ public class LibraryBackend : ExecutableBackend {
       throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.LegacyCLI);
     }
 
-    var dooFile = new DooFile(dafnyProgram.AfterParsingClone);
+    var dooFile = new DooFile(ProgramAfterParsing);
     dooFile.Write(output);
   }
 
