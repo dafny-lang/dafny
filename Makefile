@@ -2,7 +2,7 @@ DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
 
-all: exe refman
+all: format exe dfyprod refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
@@ -13,7 +13,8 @@ format-dfy:
 dfy-to-cs: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
 
-dfy-to-cs-exe: dfy-to-cs exe
+dfy-to-cs-exe: dfy-to-cs
+	(cd ${DIR} ; dotnet build Source/Dafny.sln )
 
 dfy-to-cs-noverify:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)

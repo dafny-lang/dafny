@@ -1288,6 +1288,15 @@ namespace Microsoft.Dafny.Compilers {
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
+    public override bool NeedsCustomReceiver(MemberDecl member) {
+      Contract.Requires(member != null);
+      if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
+        return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
+      }
+
+      return base.NeedsCustomReceiver(member);
+    }
+
     private ConcreteSyntaxTree CreateSubroutine(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType,
       List<Formal>/*?*/ overriddenInParams, List<Formal>/*?*/ overriddenOutParams, Type/*?*/ overriddenResultType,
@@ -2847,7 +2856,7 @@ namespace Microsoft.Dafny.Compilers {
             w.Write(")");
           });
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
-          lvalue = SuffixLvalue(obj, $"._{member.GetCompileName(Options)}");
+          lvalue = SuffixLvalue(obj, $".{InternalFieldPrefix}{member.GetCompileName(Options)}");
         } else if (internalAccess) {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         } else if (member is ConstantField) {
@@ -2958,7 +2967,12 @@ namespace Microsoft.Dafny.Compilers {
       return (wArray, wRhs);
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) => $"{HelperModulePrefix}IntOf({arrayIndex})";
+    protected override void EmitArrayIndexToInt(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wIndex) {
+      wIndex = new ConcreteSyntaxTree();
+      wr.Write($"{HelperModulePrefix}IntOf(");
+      wr.Append(wIndex);
+      wr.Write(")");
+    }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr lit) {

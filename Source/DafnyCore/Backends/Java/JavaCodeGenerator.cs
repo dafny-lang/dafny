@@ -1439,7 +1439,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (member is Function fn) {
         var wr = new ConcreteSyntaxTree();
-        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
+        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)),
+          member.tok, null, false, wr);
         var needsEtaConversion = typeArgs.Any()
                || additionalCustomParameter != null
                || (UnicodeCharEnabled &&
@@ -1500,7 +1501,7 @@ namespace Microsoft.Dafny.Compilers {
             w.Write(")");
           });
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
-          lvalue = SuffixLvalue(obj, $"._{member.GetCompileName(Options)}");
+          lvalue = SuffixLvalue(obj, $".{InternalFieldPrefix}{member.GetCompileName(Options)}");
         } else if (internalAccess) {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         } else if (member is ConstantField) {
@@ -2269,7 +2270,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(formal != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return IdProtect("_" + (formal.HasName ? formal.CompileName : "a" + i));
+      return IdProtect(InternalFieldPrefix + (formal.HasName ? formal.CompileName : "a" + i));
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -2456,7 +2457,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok,
+      Expression customReceiver, bool receiverAsArgument, ConcreteSyntaxTree wr) {
       EmitActualTypeArgs(typeArgs, tok, wr);
       wr.Write(protectedName);
     }

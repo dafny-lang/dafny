@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Dafny;
 
 namespace Microsoft.Dafny.Compilers;
@@ -14,6 +15,8 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   protected virtual bool PreventShadowing => true;
   protected virtual bool CanEmitUncompilableCode => true;
 
+  protected virtual string InternalFieldPrefix => "_i_";
+
   protected DafnyWrittenCodeGenerator DafnyCodeGenerator;
 
   protected DafnyExecutableBackend(DafnyOptions options) : base(options) {
@@ -21,7 +24,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     // becomes this.compiler
-    return new DafnyCodeGenerator(Options, Reporter, PreventShadowing, CanEmitUncompilableCode);
+    return new DafnyCodeGenerator(Options, Reporter, InternalFieldPrefix, PreventShadowing, CanEmitUncompilableCode);
   }
 
   protected abstract DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler();
