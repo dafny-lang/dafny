@@ -45,7 +45,7 @@ jobs:
     needs: populate-matrix-dimensions
     runs-on: ${{matrix.os}}
     timeout-minutes: 60
-    name: ${{matrix.suffix}}
+    name: ${{matrix.suffix}} (${{matrix.iteration}})
     strategy:
       fail-fast: false
       matrix:
