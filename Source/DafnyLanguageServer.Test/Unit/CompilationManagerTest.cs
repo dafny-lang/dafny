@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
@@ -17,8 +18,8 @@ public class CompilationManagerTest {
       new Mock<IFileSystem>().Object,
       new Mock<ITextDocumentLoader>().Object,
       new Mock<IProgramVerifier>().Object,
-      null, new CompilationInput(dafnyOptions, 0,
-        new DafnyProject() { Uri = new Uri(Directory.GetCurrentDirectory()) }));
+      null!, new CompilationInput(dafnyOptions, 0,
+        new DafnyProject(new Uri(Directory.GetCurrentDirectory()), null, new HashSet<string>())));
     compilationManager.CancelPendingUpdates();
     await Assert.ThrowsAsync<TaskCanceledException>(() => compilationManager.ParsedProgram);
   }
