@@ -12,7 +12,7 @@ on:
     # Chosen to be hopefully outside of business hours for most contributors'
     # time zones, and not on the hour to avoid heavy scheduled-job times:
     # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
-    - cron: "30 20 * * *"
+    - cron: "30 3 * * *"
   workflow_dispatch:
 
 jobs:
