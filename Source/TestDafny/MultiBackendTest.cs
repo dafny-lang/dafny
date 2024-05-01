@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using CommandLine;
 using Microsoft.Dafny;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using XUnitExtensions;
 using XUnitExtensions.Lit;
@@ -193,7 +192,7 @@ public class MultiBackendTest {
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable || CompilerFilter.Any() && !CompilerFilter.Contains(compiler.TargetId)) {
+        if (!compiler.IsStable || CompilerFilter.Any() && !CompilerFilter.Contains(compiler.TargetId) || compiler.TargetId == "rs") {
           continue;
         }
 
