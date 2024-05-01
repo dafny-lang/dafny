@@ -35,9 +35,6 @@ namespace Microsoft.Dafny {
       var tw = filename == "-" ? program.Options.OutputWriter : new StreamWriter(filename);
       var pr = new Printer(tw, program.Options, program.Options.PrintMode);
       pr.PrintProgramLargeStack(program, afterResolver);
-      if (filename != "-") {
-        tw.Dispose();
-      }
     }
 
     /// <summary>

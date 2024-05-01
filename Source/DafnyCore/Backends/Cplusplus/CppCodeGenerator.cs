@@ -2455,10 +2455,9 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.MapComprehensions);
     }
 
-    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
+    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
       // collections are built in place
-      wr.Write(collName);
+      return collName;
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,

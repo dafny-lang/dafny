@@ -2,17 +2,11 @@ using System;
 using System.Collections.Generic;
 using Dafny;
 using DAST;
-using DAST.Format;
-using JetBrains.Annotations;
 using Microsoft.CodeAnalysis;
 using Microsoft.Dafny.Compilers;
 using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {
-
-  interface Container {
-    public void AddUnsupported(string why);
-  }
 
   class ProgramBuilder : ModuleContainer {
     readonly List<Module> items = new();
@@ -24,22 +18,13 @@ namespace Microsoft.Dafny.Compilers {
     public List<Module> Finish() {
       return items;
     }
-
-    public void AddUnsupported(string why) {
-      items.Add(ModuleContainer.UnsupportedToModule(why));
-    }
   }
 
-  interface ModuleContainer : Container {
+  interface ModuleContainer {
     void AddModule(Module item);
 
     public ModuleBuilder Module(string name, bool isExtern) {
       return new ModuleBuilder(this, name, isExtern);
-    }
-
-    static public Module UnsupportedToModule(string why) {
-      return new Module(Sequence<Rune>.UnicodeFromString(why), true,
-        Sequence<ModuleItem>.FromArray(new ModuleItem[] { }));
     }
   }
 
@@ -83,13 +68,9 @@ namespace Microsoft.Dafny.Compilers {
       ));
       return parent;
     }
-
-    public void AddUnsupported(string why) {
-      body.Add((ModuleItem)ModuleItem.create_Module(ModuleContainer.UnsupportedToModule(why)));
-    }
   }
 
-  interface ClassContainer : Container {
+  interface ClassContainer {
     void AddClass(Class item);
 
     public ClassBuilder Class(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.Type> superClasses) {
@@ -135,7 +116,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface TraitContainer : Container {
+  interface TraitContainer {
     void AddTrait(Trait item);
 
     public TraitBuilder Trait(string name, List<DAST.Type> typeParams) {
@@ -181,12 +162,11 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface NewtypeContainer : Container {
+  interface NewtypeContainer {
     void AddNewtype(Newtype item);
 
-    public NewtypeBuilder Newtype(string name, List<DAST.Type> typeParams,
-      DAST.Type baseType, DAST.NewtypeRange newtypeRange, List<DAST.Statement> witnessStmts, DAST.Expression witness) {
-      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, witnessStmts, witness);
+    public NewtypeBuilder Newtype(string name, List<DAST.Type> typeParams, DAST.Type baseType, List<DAST.Statement> witnessStmts, DAST.Expression witness) {
+      return new NewtypeBuilder(this, name, typeParams, baseType, witnessStmts, witness);
     }
   }
 
@@ -195,16 +175,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly List<DAST.Type> typeParams;
     readonly DAST.Type baseType;
-    private readonly DAST.NewtypeRange newtypeRange;
     readonly List<DAST.Statement> witnessStmts;
     readonly DAST.Expression witness;
 
-    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.Type> typeParams,
-      DAST.NewtypeRange newtypeRange, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness) {
+    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.Type> typeParams, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
-      this.newtypeRange = newtypeRange;
       this.baseType = baseType;
       this.witnessStmts = statements;
       this.witness = witness;
@@ -223,7 +200,6 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.Type>.FromArray(this.typeParams.ToArray()),
         this.baseType,
-        newtypeRange,
         Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
         this.witness == null ? Option<DAST._IExpression>.create_None() : Option<DAST._IExpression>.create_Some(this.witness)
       ));
@@ -231,7 +207,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  interface DatatypeContainer : Container {
+  interface DatatypeContainer {
     void AddDatatype(Datatype item);
 
     public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.Type> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo) {
@@ -359,20 +335,12 @@ namespace Microsoft.Dafny.Compilers {
         outVars != null ? Option<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outVars.ToArray())) : Option<ISequence<ISequence<Rune>>>.create_None()
       );
     }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
-    }
   }
 
-  interface StatementContainer : Container {
+  interface StatementContainer {
     void AddStatement(DAST.Statement item);
 
     void AddBuildable(BuildableStatement item);
-
-    public static DAST.Statement UnsupportedToStatement(string why) {
-      return (DAST.Statement)DAST.Statement.create_Print(ExprContainer.UnsupportedToExpr(why));
-    }
 
     List<object> ForkList();
 
@@ -477,10 +445,6 @@ namespace Microsoft.Dafny.Compilers {
       list.Add(ret);
       return ret;
     }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
-    }
   }
 
   class DeclareBuilder : ExprContainer, BuildableStatement {
@@ -517,10 +481,6 @@ namespace Microsoft.Dafny.Compilers {
         ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
         return (DAST.Statement)DAST.Statement.create_DeclareVar(Sequence<Rune>.UnicodeFromString(name), type, Option<DAST._IExpression>.create_Some(builtValue[0]));
       }
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(Compilers.ExprContainer.UnsupportedToExpr(why));
     }
   }
 
@@ -559,23 +519,18 @@ namespace Microsoft.Dafny.Compilers {
         this.value = value;
       }
     }
-    public void AddUnsupported(string why) {
-      AddExpr(Compilers.ExprContainer.UnsupportedToExpr(why));
-    }
 
     public DAST.Statement Build() {
-
-      var builtLhs = LhsContainer.Build(lhs);
-      DAST.Expression rhs;
       if (this.value == null) {
-        rhs = ExprContainer.UnsupportedToExpr("<i>Cannot assign null value to variable</i>: " + lhs);
+        throw new InvalidOperationException("Cannot assign null value to variable: " + lhs);
       } else {
         var builtValue = new List<DAST.Expression>();
         ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-        rhs = builtValue[0];
-      }
 
-      return (DAST.Statement)DAST.Statement.create_Assign(builtLhs, rhs);
+        var builtLhs = LhsContainer.Build(lhs);
+
+        return (DAST.Statement)DAST.Statement.create_Assign(builtLhs, builtValue[0]);
+      }
     }
   }
 
@@ -636,9 +591,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Statement Build() {
       List<DAST.Expression> builtCondition = new();
-      ExprContainer.RecursivelyBuild(new List<object> {
-        condition ?? ExprContainer.UnsupportedToExpr("<i>condition to if expression</i>")
-      }, builtCondition);
+      ExprContainer.RecursivelyBuild(new List<object> { condition }, builtCondition);
 
       List<DAST.Statement> builtIfStatements = new();
       StatementContainer.RecursivelyBuild(ifBody, builtIfStatements);
@@ -651,10 +604,6 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Statement>.FromArray(builtIfStatements.ToArray()),
         Sequence<DAST.Statement>.FromArray(builtElseStatements.ToArray())
       );
-    }
-
-    public void AddUnsupported(string why) {
-      condition = ExprContainer.UnsupportedToExpr(why);
     }
   }
 
@@ -675,10 +624,6 @@ namespace Microsoft.Dafny.Compilers {
 
     public void AddBuildable(BuildableStatement item) {
       parent.AddElseBuildable(item);
-    }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
     }
   }
 
@@ -728,10 +673,6 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
     }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
-    }
   }
 
   class ForeachBuilder : ExprContainer, StatementContainer, BuildableStatement {
@@ -777,9 +718,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Statement Build() {
       List<DAST.Expression> builtOver = new();
-      ExprContainer.RecursivelyBuild(new List<object> {
-        over ?? ExprContainer.UnsupportedToExpr("<i>Foreach over is null</i>")
-      }, builtOver);
+      ExprContainer.RecursivelyBuild(new List<object> { over }, builtOver);
 
       List<DAST.Statement> builtStatements = new();
       StatementContainer.RecursivelyBuild(body, builtStatements);
@@ -790,10 +729,6 @@ namespace Microsoft.Dafny.Compilers {
         builtOver[0],
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
     }
   }
 
@@ -824,22 +759,18 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
     }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
-    }
   }
 
   class CallStmtBuilder : ExprContainer, BuildableStatement {
     object on = null;
-    DAST.CallName name = null;
+    string name = null;
     List<DAST.Type> typeArgs = null;
     readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
     public CallStmtBuilder() { }
 
-    public void SetName(CallName name) {
+    public void SetName(string name) {
       if (this.name != null) {
         throw new InvalidOperationException();
       } else {
@@ -888,15 +819,11 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Statement)DAST.Statement.create_Call(
         builtOn[0],
-        name,
+        Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray(typeArgs.ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray()),
         outs == null ? Option<ISequence<ISequence<Rune>>>.create_None() : Option<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outs.ToArray()))
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
     }
   }
 
@@ -923,16 +850,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Statement Build() {
       var builtValue = new List<DAST.Expression>();
-      if (value == null) {
-        return (DAST.Statement)DAST.Statement.create_EarlyReturn();
-      }
       ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
 
       return (DAST.Statement)DAST.Statement.create_Return(builtValue[0]);
-    }
-
-    public void AddUnsupported(string why) {
-      value = ExprContainer.UnsupportedToExpr(why);
     }
   }
 
@@ -971,10 +891,6 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray())
       );
     }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
-    }
   }
 
   class StatementBuffer : StatementContainer {
@@ -1000,13 +916,9 @@ namespace Microsoft.Dafny.Compilers {
 
       return builtResult;
     }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
-    }
   }
 
-  class ExprBuffer : ExprContainer, BuildableExpr {
+  class ExprBuffer : ExprContainer {
     Stack<object> exprs = new();
     public readonly object parent;
 
@@ -1044,37 +956,21 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Finish() {
       if (exprs.Count != 1) {
-        return ExprContainer.UnsupportedToExpr("Expected exactly one expression in buffer, got " +
-                                               exprs.Comma(e => e.ToString()));
         throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests); // Warning: this is an invalid operation
         //throw new InvalidOperationException("Expected exactly one expression in buffer, got " + exprs.Comma(e => e.ToString()));
       } else {
         return PopN(1)[0];
       }
     }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
-    }
-
-    public DAST.Expression Build() {
-      return Finish();
-    }
   }
 
-  interface ExprContainer : Container {
+  interface ExprContainer {
     void AddExpr(DAST.Expression item);
 
     void AddBuildable(BuildableExpr item);
 
     BinOpBuilder BinOp(DAST.BinOp op) {
       var ret = new BinOpBuilder(op);
-      AddBuildable(ret);
-      return ret;
-    }
-
-    BinOpBuilder BinOp(string op, Func<DAST.Expression, DAST.Expression, DAST.Expression> callback) {
-      var ret = new BinOpBuilder(op, callback);
       AddBuildable(ret);
       return ret;
     }
@@ -1128,23 +1024,13 @@ namespace Microsoft.Dafny.Compilers {
         } else if (maybeBuilt is BuildableExpr buildable) {
           builtExprs.Add(buildable.Build());
         } else {
-          throw new InvalidOperationException(
-            "Unknown buildable type: " +
-            (maybeBuilt == null ? "NULL" :
-             maybeBuilt.GetType())
-            );
+          throw new InvalidOperationException("Unknown buildable type: " + maybeBuilt.GetType());
         }
       }
     }
-
-    static DAST.Expression UnsupportedToExpr(string why) {
-      return (DAST.Expression)DAST.Expression.create_Ident(
-        Sequence<ISequence<Rune>>.UnicodeFromString($"<b>Unsupported: {why}</b>")
-      );
-    }
   }
 
-  interface LhsContainer : Container {
+  interface LhsContainer {
     void AddLhs(DAST.AssignLhs lhs);
 
     void AddBuildable(BuildableLhs lhs);
@@ -1204,10 +1090,6 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.AssignLhs)DAST.AssignLhs.create_Index(builtArrayExpr[0], Sequence<DAST.Expression>.FromArray(indices.ToArray()));
     }
-
-    public void AddUnsupported(string why) {
-      arrayExpr = ExprContainer.UnsupportedToExpr(why);
-    }
   }
 
   interface BuildableExpr {
@@ -1215,19 +1097,11 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   class BinOpBuilder : ExprContainer, BuildableExpr {
-    private readonly Func<DAST.Expression, DAST.Expression, DAST.Expression> internalBuilder;
+    readonly DAST.BinOp op;
     readonly List<object> operands = new();
-    private readonly string op;
 
     public BinOpBuilder(DAST.BinOp op) {
-      this.internalBuilder = (DAST.Expression left, DAST.Expression right) =>
-        (DAST.Expression)DAST.Expression.create_BinOp(op, left, right, new BinaryOpFormat_NoFormat());
-      this.op = op.ToString();
-    }
-
-    public BinOpBuilder(string op, Func<DAST.Expression, DAST.Expression, DAST.Expression> callback) {
       this.op = op;
-      internalBuilder = callback;
     }
 
     public void AddExpr(DAST.Expression item) {
@@ -1239,33 +1113,26 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Expression Build() {
-      var builtOperands = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(operands, builtOperands);
-
       if (operands.Count != 2) {
-        builtOperands.Insert(0, ExprContainer.UnsupportedToExpr(op + " with not 2 elements"));
-        return (DAST.Expression)DAST.Expression.create_SetValue(
-          Sequence<DAST.Expression>.FromElements(builtOperands.ToArray()));
+        throw new InvalidOperationException("Expected exactly two operands, got " + operands.Comma(o => o.ToString()));
       }
 
-      return internalBuilder(builtOperands[0], builtOperands[1]);
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
+      var builtOperands = new List<DAST.Expression>();
+      ExprContainer.RecursivelyBuild(operands, builtOperands);
+      return (DAST.Expression)DAST.Expression.create_BinOp(op, builtOperands[0], builtOperands[1]);
     }
   }
 
   class CallExprBuilder : ExprContainer, BuildableExpr {
     object on = null;
-    DAST.CallName name = null;
+    string name = null;
     List<DAST.Type> typeArgs = null;
     readonly List<object> args = new();
     List<ISequence<Rune>> outs = null;
 
     public CallExprBuilder() { }
 
-    public void SetName(DAST.CallName name) {
+    public void SetName(string name) {
       if (this.name != null) {
         throw new InvalidOperationException();
       } else {
@@ -1314,14 +1181,10 @@ namespace Microsoft.Dafny.Compilers {
 
       return (DAST.Expression)DAST.Expression.create_Call(
         builtOn[0],
-        name,
+        Sequence<Rune>.UnicodeFromString(name),
         Sequence<DAST.Type>.FromArray((typeArgs ?? new()).ToArray()),
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
     }
   }
 
@@ -1359,10 +1222,6 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.Expression>.FromArray(builtArgs.ToArray())
       );
     }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
-    }
   }
 
   class LambdaExprBuilder : StatementContainer, BuildableExpr {
@@ -1398,10 +1257,6 @@ namespace Microsoft.Dafny.Compilers {
         retType,
         Sequence<DAST.Statement>.FromArray(builtBody.ToArray())
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddStatement(StatementContainer.UnsupportedToStatement(why));
     }
   }
 
@@ -1442,9 +1297,7 @@ namespace Microsoft.Dafny.Compilers {
       ExprContainer.RecursivelyBuild(new List<object> { body }, builtBody);
 
       var builtValue = new List<DAST.Expression>();
-      ExprContainer.RecursivelyBuild(new List<object> { value
-       ?? ExprContainer.UnsupportedToExpr("IIFEExprBuilder with empty value")
-       }, builtValue);
+      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
 
       return (DAST.Expression)DAST.Expression.create_IIFE(
         Sequence<Rune>.UnicodeFromString(name),
@@ -1452,10 +1305,6 @@ namespace Microsoft.Dafny.Compilers {
         builtValue[0],
         builtBody[0]
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
     }
   }
 
@@ -1480,10 +1329,6 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         parent.value = item;
       }
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
     }
   }
 
@@ -1515,10 +1360,6 @@ namespace Microsoft.Dafny.Compilers {
         builtBody[0]
       );
     }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
-    }
   }
 
   class ConvertBuilder : ExprContainer, BuildableExpr {
@@ -1549,23 +1390,13 @@ namespace Microsoft.Dafny.Compilers {
 
     public DAST.Expression Build() {
       var builtValue = new List<DAST.Expression>();
-      DAST.Expression v;
-      if (value == null) {
-        v = ExprContainer.UnsupportedToExpr($"Conversion from {fromType} to {toType} of something missing");
-      } else {
-        ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
-        v = builtValue[0];
-      }
+      ExprContainer.RecursivelyBuild(new List<object> { value }, builtValue);
 
       return (DAST.Expression)DAST.Expression.create_Convert(
-        v,
+        builtValue[0],
         fromType,
         toType
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
     }
   }
 
@@ -1604,10 +1435,6 @@ namespace Microsoft.Dafny.Compilers {
         collKind,
         Sequence<DAST.Expression>.FromArray(indices.ToArray())
       );
-    }
-
-    public void AddUnsupported(string why) {
-      AddExpr(ExprContainer.UnsupportedToExpr(why));
     }
   }
 
