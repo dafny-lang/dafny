@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -14,7 +15,7 @@ class OldestSubstituter : Substituter {
   public override Expression Substitute(Expression expr) {
     if (expr is OldExpr oe) {
       // @rustan: is this the right way to clone an OldExpr?
-      return new OldExpr(oe.Tok, Substitute(oe.E), "this") {
+      return new OldExpr(oe.Tok, Substitute(oe.E), "est") {
         Type = oe.Type,
         AtLabel = AtLabel,
         Useless = oe.Useless
@@ -32,7 +33,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   public readonly Specification<FrameExpression> Modifies;
   public readonly Specification<Expression> Decreases;
   public readonly List<AttributedExpression> Requires;
-  public readonly List<AttributedExpression> Ensures;
+  public List<AttributedExpression> Ensures;
   public readonly List<AttributedExpression> YieldRequires;
   public readonly List<AttributedExpression> YieldEnsures;
   public readonly BlockStmt Body;
@@ -48,6 +49,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   [FilledInDuringResolution] public Predicate Member_Valid;  // created during registration phase of resolution;
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
   [FilledInDuringResolution] public SpecialField Member_Begun; // created during registration phase of resolution;
+  public readonly Expression Member_Begun_Expr;
   public readonly Label FirstHeap;
   public readonly LocalVariable YieldCountVariable;
 
@@ -82,8 +84,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
 
     // Replaces instances of `old(...)` with `old@this(...)`
     FirstHeap = new Label(Tok, "this");
-    OldestSubstituter oe = new(FirstHeap);
-    Ensures = ensures.ConvertAll(e => new AttributedExpression(oe.Substitute(e.E), oe.SubstAttributes(e.Attributes)));
+    //OldestSubstituter oe = new(FirstHeap);
+    Ensures = ensures;//.ConvertAll(e => new AttributedExpression(oe.Substitute(e.E)));
 
     YieldRequires = yieldRequires;
     YieldEnsures = yieldEnsures;
@@ -93,6 +95,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
     OutsFields = new List<Field>();
     OutsHistoryFields = new List<Field>();
     DecreasesFields = new List<Field>();
+
+    Member_Begun_Expr = new ExprDotName(rangeToken, new ThisExpr(rangeToken), "_begun", null);
 
     YieldCountVariable = new LocalVariable(rangeToken, "_yieldCount", new EverIncreasingType(), true);
     YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
@@ -250,7 +254,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
         new OldExpr(tok, p))));
     }
     // ensures !begun
-    ens.Add(new AttributedExpression(new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, new ExprDotName(tok, new ThisExpr(tok), "_begun", null))));
+    ens.Add(new AttributedExpression(new UnaryOpExpr(tok,
+      UnaryOpExpr.Opcode.Not, new ExprDotName(tok, new ThisExpr(tok), "_begun", null))));
 
     // ---------- here comes predicate Valid() ----------
     var reads = Member_Valid.Reads;
@@ -305,6 +310,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       ));
     }
     // ensures !more ==> Ensures;
+    OldestSubstituter oe = new(FirstHeap);
+    Ensures = Ensures.ConvertAll(e => new AttributedExpression(oe.Substitute(e.E)));
     foreach (var e in Ensures) {
       ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Imp,
         new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(tok, "more")),

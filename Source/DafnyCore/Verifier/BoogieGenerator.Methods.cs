@@ -1683,10 +1683,9 @@ namespace Microsoft.Dafny {
       }
       mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
 
-      // for iterators: free ensures old(!this.begun) ==> $Heap_at_[this] == $Heap
+      // for iterators: MoveNext() free ensures old(!_begun) ==> $Heap_at_[this] == $Heap
       if (m.EnclosingClass is IteratorDecl iter && m == iter.Member_MoveNext) {
-        AddEnsures(ens, Ensures(m.tok, true, BplImp(
-          etran.TrExpr(new OldExpr(m.tok, new ExprDotName(m.tok, new ThisExpr(m.tok), "_begun", null))),
+        AddEnsures(ens, Ensures(m.tok, true, BplImp(etran.Old.TrExpr(iter.Member_Begun_Expr),
           Boogie.Expr.Eq(new Bpl.IdentifierExpr(m.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator)), etran.HeapExpr)), null, null, null));
       }
 

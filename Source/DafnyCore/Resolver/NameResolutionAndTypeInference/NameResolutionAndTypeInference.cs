@@ -2978,6 +2978,10 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
+
+      // BoogieGenerator.Iterators needs this._begun resolved for translation
+      ResolveExpression(iter.Member_Begun_Expr, ResolutionContext.FromCodeContext(iter));
+
       SolveAllTypeConstraints();
 
       var postSpecErrorCount = reporter.Count(ErrorLevel.Error);
