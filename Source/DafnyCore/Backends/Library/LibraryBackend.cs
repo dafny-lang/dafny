@@ -16,9 +16,6 @@ public class LibraryBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { };
 
   public override string TargetName => "Dafny Library (.doo)";
-
-  /// Some tests still fail when using the lib back-end, for example due to disallowed assumptions being present in the test,
-  /// such as empty constructors with ensures clauses, generated from iterators
   public override bool IsStable => false;
 
   public override string TargetExtension => "doo";
@@ -52,7 +49,7 @@ public class LibraryBackend : ExecutableBackend {
     throw new NotSupportedException();
   }
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
     if (!Options.UsingNewCli) {
       throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.LegacyCLI);
     }

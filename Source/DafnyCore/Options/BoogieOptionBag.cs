@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Transactions;
 using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -138,9 +139,9 @@ public static class BoogieOptionBag {
 
 
     DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, DooFile.OptionCheck> {
-        { BoogieArguments, DooFile.CheckOptionMatches },
-        { NoVerify, DooFile.CheckOptionLibraryImpliesLocal },
+      new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { BoogieArguments, OptionCompatibility.CheckOptionMatches },
+        { NoVerify, OptionCompatibility.CheckOptionLibraryImpliesLocal },
       }
     );
     DooFile.RegisterNoChecksNeeded(

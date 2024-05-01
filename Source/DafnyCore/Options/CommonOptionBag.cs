@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 using Serilog.Events;
 
 namespace Microsoft.Dafny;
@@ -248,11 +249,6 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Verify code in included files.");
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
-  };
-  public static readonly Option<bool> EmitUncompilableCode = new("--emit-uncompilable-code",
-    "Rather than throwing an exception, allow compilers to emit uncompilable information including what is " +
-    "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
-    "compiler feature is missing") {
   };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
@@ -579,16 +575,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
     });
 
     DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, DooFile.OptionCheck>() {
-        { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
-        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
-        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
-            if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
+      new Dictionary<Option, OptionCompatibility.OptionCheck>() {
+        { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
+        { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, OptionCompatibility.CheckOptionLibraryImpliesLocal },
+        { AllowAxioms, OptionCompatibility.CheckOptionLibraryImpliesLocal },
+        { AllowWarnings, (reporter, origin, prefix, option, localValue, libraryValue) => {
+            if (OptionCompatibility.OptionValuesImplied(libraryValue, localValue)) {
               return true;
             }
-            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
+            string message = OptionCompatibility.LocalImpliesLibraryMessage(prefix, option, localValue, libraryValue);
             reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
             return false;
           }
@@ -627,7 +623,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
       DisableNonLinearArithmetic,
       NewTypeInferenceDebug,
       UseBaseFileName,
-      EmitUncompilableCode,
       WarnMissingConstructorParenthesis,
       UseJavadocLikeDocstringRewriterOption,
       IncludeRuntimeOption,
