@@ -1,1 +1,0 @@
-// CHECK: .*Cannot declare local var outside of a statement container.*

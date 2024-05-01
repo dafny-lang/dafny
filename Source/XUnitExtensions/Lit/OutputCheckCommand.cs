@@ -236,8 +236,7 @@ namespace XUnitExtensions.Lit {
         } else {
           var enumerator = notCheckingEnumerator ?? lineEnumerator;
           if (!directive.FindMatch(enumerator)) {
-            errorWriter.WriteLine($"ERROR: Could not find any match for {directive}. The output is above.");
-            errorWriter.WriteLine();
+            errorWriter.WriteLine($"ERROR: Could not find a match for {directive}");
             return 1;
           }
 
