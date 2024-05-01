@@ -1,2 +1,0 @@
-fix: Disable the "erase datatype wrappers" optimization if the datatype implements any traits.
-feat: Allow the "erase datatype wrappers" optimization if the only fields in the datatype are ghost fields.
