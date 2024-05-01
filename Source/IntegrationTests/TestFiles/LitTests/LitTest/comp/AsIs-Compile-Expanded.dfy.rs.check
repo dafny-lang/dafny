@@ -1,1 +1,0 @@
-// CHECK-L: AsIs-Compile-Expanded.dfy(18,10): Error: Feature not supported for this compilation target: Type test expressions (`x is T`)

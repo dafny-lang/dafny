@@ -1,0 +1,7 @@
+base = "./nested/low.dfyconfig.toml"
+
+excludes = ["../included.dfy", "./nested/excluded.dfy"]
+
+[options]
+warn-shadowing = false
+allow-warnings=true

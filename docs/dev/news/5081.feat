@@ -1,3 +1,0 @@
-Experimental Dafny-to-Rust compiler development
-- Supports emitting code even if malformed with option `--emit-uncompilable-code`.
-- Supports for immutable collections and operators

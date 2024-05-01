@@ -852,6 +852,8 @@ Here's an example of a Dafny project file:
 includes = ["src/**/*.dfy"]
 excludes = ["**/ignore.dfy"]
 
+base = ["../commonOptions.dfyconfig.toml"]
+
 [options]
 enforce-determinism = true
 warn-shadowing = true
@@ -866,6 +868,8 @@ The `excludes` does not remove any files that are listed explicitly on the comma
 - When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied are ignored; options that are invalid for any dafny command trigger warnings.
 - Options specified on the command-line take precedence over any specified in the project file, no matter the order of items on the command-line.
 - When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file to the dfy being parsed that it can find. Options from the project file will override options passed to `dafny server`.
+
+- The field 'base' can be used to let one project file inherit options from another. If an option is specified in both, then the value specified in the inheriting project is used. Includes from the inheritor override excludes from the base.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 

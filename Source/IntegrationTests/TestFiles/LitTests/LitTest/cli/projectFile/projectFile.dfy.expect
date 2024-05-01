@@ -1,6 +1,5 @@
-Error: The Dafny project file invalidValue.toml contains the following errors: (3,14) : error : Unexpected token `NoIncludes` for a value
-
-Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+invalidValue.toml(3,13): Error: Unexpected token `NoIncludes` for a value
+invalidValue.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 input.dfy(6,8): Warning: Shadowed local-variable name: x
 Compilation failed because warnings were found and --allow-warnings is false
 Error: file web.toml not found
@@ -9,9 +8,7 @@ Dafny program verifier did not attempt verification
 input.dfy(10,0): Error: a function cannot be declared 'ghost' (it is 'ghost' by default when using --function-syntax:3)
 1 parse errors detected in dfyconfig.toml
 Only one project file can be used at a time. Both dfyconfig.toml and dfyconfig.toml were specified
-Error: The Dafny project file dfyconfig.toml contains the following errors: (1,1): the property includdddes does not exist.
-
-Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
+dfyconfig.toml(1,0): Error: Dafny project files do not have the property includdddes
 Warning: option 'does-not-exist' that was specified in the project file, is not a valid Dafny option.
 invalidOption.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 Compilation failed because warnings were found and --allow-warnings is false
