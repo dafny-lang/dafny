@@ -34,16 +34,14 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
         var difference = threadCountAfter - threadCountBefore;
         history.Add(difference);
         Assert.InRange(difference, -maxThreadCountIncrease, maxThreadCountIncrease);
-        break;
+        return;
       } catch (InRangeException e) {
         lastException = e;
       }
     }
 
-    if (lastException != null) {
-      logger.LogInformation("Difference history: " + string.Join(", ", history));
-      throw lastException;
-    }
+    logger.LogInformation("Difference history: " + string.Join(", ", history));
+    throw lastException!;
   }
 
   public ThreadUsageTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
