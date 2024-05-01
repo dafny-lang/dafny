@@ -192,7 +192,7 @@ public class MultiBackendTest {
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable || CompilerFilter.Any() && !CompilerFilter.Contains(compiler.TargetId) || compiler.TargetId == "rs") {
+        if (!compiler.IsStable || CompilerFilter.Any() && !CompilerFilter.Contains(compiler.TargetId)) {
           continue;
         }
 
