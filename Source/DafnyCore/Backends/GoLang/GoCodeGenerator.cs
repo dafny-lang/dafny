@@ -210,12 +210,11 @@ namespace Microsoft.Dafny.Compilers {
       string libraryName) {
       var goModuleName = "";
       if (GoModuleMode && program.Compilation.AlreadyCompiledRoots.Contains(module.Tok.Uri)) {
-        var dooManifest = DooFile.Read(module.Tok.Uri.AbsolutePath).Result.Manifest;
-        dooManifest.Options.TryGetValue(Options.Backend.TargetId, out var targetOptions);
+        var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+        translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
         object moduleName = null;
-        if (targetOptions is TomlTable tomlTable) {
-          tomlTable.TryGetValue(CommonOptionBag.BackendModuleName.Name, out moduleName);
-        }
+        moduleOptions?.TryGetValue(CommonOptionBag.BackendModuleName.Name, out moduleName);
+
         goModuleName = moduleName is string name ? moduleName + "/" : "";
         if (String.IsNullOrEmpty(goModuleName)) {
           Options.ErrorWriter.WriteLine($"Go Module Name not found for the module {module.GetCompileName(Options)}");
@@ -3926,12 +3925,13 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (ct is SetType) {
-        return collName + ".ToSet()";
+        wr.Write(collName + ".ToSet()");
       } else {
         Contract.Assert(ct is MapType);
-        return collName + ".ToMap()";
+        wr.Write(collName + ".ToMap()");
       }
     }
 

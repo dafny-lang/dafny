@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.CommandLine;
-using DafnyCore;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
@@ -17,7 +16,7 @@ static class TranslateCommand {
       IExecutableBackend.OuterModule,
       CommonOptionBag.IncludeRuntimeOption,
       RunAllTestsMainMethod.IncludeTestRunner,
-      CommonOptionBag.GenerateDoo
+      IExecutableBackend.TranslationRecordOutput
     }.Concat(DafnyCommands.TranslationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

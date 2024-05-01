@@ -68,9 +68,15 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
+  private string sanitizedNameShadowable;
+
+  public string SanitizedNameShadowable =>
+    sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
+
   private string sanitizedName;
+
   public string SanitizedName =>
-    sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{NonglobalVariable.SanitizeName(Name)}";
+    sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{SanitizedNameShadowable}";
 
   string compileName;
   public string CompileName =>

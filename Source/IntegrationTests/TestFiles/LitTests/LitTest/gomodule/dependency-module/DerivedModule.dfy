@@ -1,4 +1,4 @@
-// RUN: %baredafny translate go  --module-name=GoModule2 --library="%S/test.doo" --output "%S/test3" "%s"
+// RUN: %baredafny translate go  --module-name=GoModule2 --library="%S/test.doo" --translation-record "%S/test-go.dtr" --output "%S/test3" "%s"
 // RUN: cp -r "%S/go.*" "%S/test3-go/"
 // RUN: cp -r "%S/../module-libraries/DafnyRuntimeGo" "%S"
 // RUN: cp -r "%S/DafnyModule1" "%S/test3-go/"
