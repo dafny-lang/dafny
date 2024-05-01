@@ -9,9 +9,7 @@ namespace Microsoft.Dafny.Compilers {
   class RustCodeGenerator : DafnyWrittenCodeGenerator {
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
-      var c = new COMP();
-      c.__ctor(true);
-      return c.Compile(program);
+      return COMP.Compile(program);
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {
