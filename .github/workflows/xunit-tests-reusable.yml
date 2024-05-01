@@ -27,17 +27,19 @@ defaults:
 jobs:
   populate-matrix-dimensions:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.matrix.outputs.value }}
     steps:
       - name: Populate iterations (normal mode)
-        id: populate-os-list-all
+        id: populate-iterations-normal
         if: "!inputs.soak_test"
+        working-directory: .
         run: echo "iterations=[1]" >> $GITHUB_OUTPUT
       - name: Populate iterations (soak test mode)
-        id: populate-os-list-one
+        id: populate-iterations-soak
         if: inputs.soak_test
+        working-directory: .
         run: echo "iterations=[`seq -s , 1 5`]" >> $GITHUB_OUTPUT
+    outputs:
+      iterations: ${{ steps.populate-iterations-normal.outputs.iterations }} ${{ steps.populate-iterations-soak.outputs.iterations }}
   
   build:
     needs: populate-matrix-dimensions
