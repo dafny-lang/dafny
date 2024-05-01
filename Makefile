@@ -25,9 +25,9 @@ dfydev: dfydevinit
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
 tests-scripts:
-	node Scripts/fix-dafny-issue.js
+	(cd ${DIR}/Scripts/tests/; node fix-dafny-issue-tests.js)
 
-tests: tests-scripts
+tests:
 	(cd ${DIR}; dotnet test Source/IntegrationTests)
 
 tests-verbose:

@@ -70,6 +70,8 @@ const help = `
  *     > fix run <any integration test keyword>
 `;
 ToRootFolder();
+// Not sure why but constants are not accessible after an eval(), but functions are
+function constants() {};
 
 // To add a new test type, start by adding one field here, and follow the fields.
 const TEST_TYPE = {
@@ -79,12 +81,16 @@ const TEST_TYPE = {
   LANGUAGE_SERVER_ICONS: 3,
   FORMATTER: 4
 }
+constants.TEST_TYPE = TEST_TYPE;
 
 const TEST_FOLDER = "Source/IntegrationTests/TestFiles/LitTests/LitTest/";
 
 const ABORTED = "ABORTED";
 const FINISHED = "FINISHED";
 const ACCEPT_HINT = "(ENTER or y for yes, n for no, CTRL+C to abort)\n> ";
+constants.ABORTED = ABORTED;
+constants.FINISHED = FINISHED;
+constants.ACCEPT_HINT = ACCEPT_HINT;
 const { exit } = require('process');
 const readline = require('readline');
 const root = require('child_process').execSync('npm root -g').toString().trim();
@@ -99,17 +105,19 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 let cache = {};
+constants.cache = cache;
 let questionCache = {}; // Used for tests only.
+constants.questionCache = cache;
 // Ask the given question and returns the answer of the user
 const question = function(input) {
-  if(Object.keys(questionCache).length > 0) {
-    if(input in questionCache) {
+  if(Object.keys(constants.questionCache).length > 0) {
+    if(input in constants.questionCache) {
       return new Promise((resolve, reject) => {
-        resolve(questionCache[input]);
+        resolve(constants.questionCache[input]);
       });
     } else {
       return new Promise((resolve, reject) => {
-        reject("Could not find question " + input + " in the test");
+        reject("Could not find question\n" + JSON.stringify(input) + "\nin the test");
       });
     }
   }
@@ -117,14 +125,14 @@ const question = function(input) {
     rl.question(input, resolve);
   });
 }
-let logTest = null;
+constants.logTest = null;
 let log = function() {
-  if(logTest !== null) {
+  if(constants.logTest !== null) {
     for(var i = 0; i < arguments.length; i++) {
       if(i > 0) {
-        logTest += " ";
+        constants.logTest += " ";
       }
-      logTest += arguments[i];
+      constants.logTest += arguments[i];
     }
   } else {
     console.log(...arguments);
@@ -132,30 +140,6 @@ let log = function() {
 }
 
 Main();
-//////// Testing tools
-
-function assertEqual(got, expected, reportLevel = 1) {
-  if(got != expected) {
-    let trace = (new Error()).stack;
-    let r = require("path").basename(__filename) + ":(\\d+):(\\d+)";
-    let regex = new RegExp(r, "g");
-    let lines = [];
-    let m;
-    while(m = regex.exec(trace)) {
-      lines.push(m[1]);
-    }
-    // The first one is in this function so we remove it
-    lines.shift();
-    console.log("Line " + lines[0] + ", expected " + expected + " but got " + got);
-    lines.shift();
-    while(lines.length > 0) {
-      console.log("See line " + lines[0]);
-      lines.shift();
-    }
-    throw ABORTED;
-  }
-}
-
 //////// Folder tools
 
 // Returns the loaded module that should be installed globally.
@@ -285,18 +269,13 @@ async function getOriginalDafnyIssue(issueNumber) {
     log(`Not an issue number: ${issueNumber}`);
     return {};
   }
-  if(issueNumber in cache) {
-    return cache[issueNumber];
+  if(issueNumber in constants.cache) {
+    return constants.cache[issueNumber];
   }
   log("Fetching original dafny issue #" + issueNumber);
   var js = await (await fetch("https://api.github.com/repos/dafny-lang/dafny/issues/" + issueNumber)).json();
-  cache[issueNumber] = js;
+  constants.cache[issueNumber] = js;
   return js;
-}
-async function runUnitTests() {
-  testHasLabel();
-  testExtractProgram();
-  await testInteractivelyCreateTestFileContent();
 }
 // Skips the words "open", "force" and "more" from the arguments,
 // sets the flags appropriatedly and returns the remaining of the arguments.
@@ -408,14 +387,6 @@ function hasLabel(js, labelName) {
   return ("labels" in js && js.labels.find(label => 
     label.name.indexOf(labelName) >= 0)) ? true : false;
 }
-function testHasLabel() {
-  assertEqual(hasLabel({labels: [{name: "language-server"}]}, "language-server"), true);
-  assertEqual(hasLabel({labels: [{name: "language-server"}]}, "formatter"), false);
-  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "formatter"), true);
-  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "language-server"), true);
-  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "language-server-icons"), false);
-  assertEqual(hasLabel({labels: [{name: "language-server"}, {name: "formatter"}]}, "language-server-icons"), false);
-}
 
 function extractProgram(js) {
   // Get the body field of the first post
@@ -424,14 +395,6 @@ function extractProgram(js) {
   var match = issueContent.match(/```(?:.*dafny)?\r?\n([\s\S]+?)\r?\n```/);
   var programReproducingError = match != null ? match[1] : "";
   return programReproducingError;
-}
-function testExtractProgram() {
-  assertEqual(extractProgram({}), ""),
-  assertEqual(extractProgram({body: "I have an issue and Dafny does not compile. What should I do?"}), "");
-  assertEqual(extractProgram({body: "Here is the program causing me pain:\n```dafny\nclass C {\n  static int f() {\n    return 1;\n  }\n}\n```\n Can you please help?"}),
-    "class C {\n  static int f() {\n    return 1;\n  }\n}");
-  assertEqual(extractProgram({body: "Here is the program causing me pain:\n```  dafny\nclass C {\n  static int f() {\n    return 1;\n  }\n}\n```\n Can you please help?"}),
-    "class C {\n  static int f() {\n    return 1;\n  }\n}");
 }
 
 // Create the tests fore the given issue number
@@ -493,45 +456,6 @@ async function interactivelyCreateTestFileContent(issueNumber = null, commandLin
   }
   programReproducingError = header + programReproducingError;
   return {programReproducingError, test_type};
-}
-
-async function RunQuestions(issue_number, command_line_content, github_cache, questions, expected_test_type, expected_program, expected_log) {
-  var savedQuestionCache = questionCache;
-  var savedCache = null;
-  var savedLogger = logTest;
-  logTest = "";
-  if(github_cache != null) {
-    savedCache = cache;
-    cache = {"42": github_cache};
-  }
-  questionCache = questions;
-  var {programReproducingError, test_type} = await interactivelyCreateTestFileContent(issue_number, command_line_content);
-  assertEqual(test_type, expected_test_type, 2); 
-  assertEqual(programReproducingError, expected_program, 2);
-  assertEqual(logTest, expected_log ?? "", 2);
-  if(savedCache != null) {
-    cache = savedCache;
-  }
-  questionCache = savedQuestionCache;
-  logTest = savedLogger;
-}
-
-async function testInteractivelyCreateTestFileContent() {
-  await RunQuestions(null, null, null, {"TEST_MODE": true,
-["Do you want to reproduce this problem\n"+
- "- On the command line (ENTER or 1)\n"+
- "- A diagnostic test on the language server(2)\n"+
- "- A formatter test (3)\n"+
- "- A gutter icons test on the language server (4)\n"+
-"- Don't create test files(5)?\n"+
- "> "]: "1",
- ["Will the test need to be compiled? " + ACCEPT_HINT]: "y",
- ["Will the test need to be run (i.e. will have a Main() method)? " + ACCEPT_HINT]: "Yep"},
-    TEST_TYPE.INTEGRATION,
-    `// RUN: %testDafnyForEachCompiler "%s"\n\nmethod Main() {\n  \n}`,
-  "All backends are going to be tested. If you want to modify the output "+
-  "of a particular backend or ignore one, please check "+
-  "Source/IntegrationTests/TestFiles/LitTests/LitTest/README.md.");
 }
 
 // Reads an existing test and extract the last dafny command to run
@@ -1275,6 +1199,9 @@ async function doAddExistingOrNewTest(testManagers, moreText) {
 
 // The main function
 async function Main() {
+  if(typeof testing == "boolean" && testing) {
+    return;
+  }
   var {openFiles, skipVerification, addOneTestCase, args, defaultMessage, run, unitTests} = processArgs();
   var fixBranchDidExist = false;
   var testFileContent = "";
@@ -1283,10 +1210,14 @@ async function Main() {
   var providedContent = args[4]; // Should deprecate. No one is ever going to add a test content as an argument of the command line.
   var returnedException = null;
   try {
-    if(unitTests) {      
-      await runUnitTests();
-      rl.close();
-      throw FINISHED;
+    if(unitTests) {
+      if(typeof runUnitTests == "function") {
+        await runUnitTests();
+        rl.close();
+        throw FINISHED;
+      } else {
+        console.log("Please run test/fix-dafny-issue-tests.js")
+      }
     }
     if(run) {
       if(providedIssueNumber == null) {
