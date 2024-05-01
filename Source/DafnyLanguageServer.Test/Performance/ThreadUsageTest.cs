@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,7 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task NoExtraThreadAfterEachChange() {
     Exception lastException = null;
+    var history = new List<int>();
     for (var attempt = 0; attempt < 100; attempt++) {
       try {
         var source = "method Foo() { assert false; }";
@@ -29,7 +31,9 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
 
         var threadCountAfter = Process.GetCurrentProcess().Threads.Count;
         const int maxThreadCountIncrease = 5;
-        Assert.InRange(threadCountAfter - threadCountBefore, -maxThreadCountIncrease, maxThreadCountIncrease);
+        var difference = threadCountAfter - threadCountBefore;
+        history.Add(difference);
+        Assert.InRange(difference, -maxThreadCountIncrease, maxThreadCountIncrease);
         break;
       } catch (InRangeException e) {
         lastException = e;
@@ -37,6 +41,7 @@ public class ThreadUsageTest : ClientBasedLanguageServerTest {
     }
 
     if (lastException != null) {
+      logger.LogInformation("Difference history: " + string.Join(", ", history));
       throw lastException;
     }
   }
