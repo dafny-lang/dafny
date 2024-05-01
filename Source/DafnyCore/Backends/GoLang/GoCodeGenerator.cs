@@ -3925,13 +3925,12 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
-      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
+    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
       if (ct is SetType) {
-        wr.Write(collName + ".ToSet()");
+        return collName + ".ToSet()";
       } else {
         Contract.Assert(ct is MapType);
-        wr.Write(collName + ".ToMap()");
+        return collName + ".ToMap()";
       }
     }
 
