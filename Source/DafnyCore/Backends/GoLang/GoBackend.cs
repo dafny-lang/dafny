@@ -56,7 +56,7 @@ public class GoBackend : ExecutableBackend {
 
     var writer = new StringWriter();
 
-    var psi = PrepareProcessStartInfo("/Users/scchatur/workspace/bin/goimports", goArgs);
+    var psi = PrepareProcessStartInfo("goimports", goArgs);
 
     var result = await RunProcess(psi, writer, writer);
     if (result != 0) {
