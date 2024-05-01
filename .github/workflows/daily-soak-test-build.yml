@@ -17,7 +17,6 @@ on:
 
 jobs:
   daily-soak-build-for-master:
-    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/xunit-tests-reusable.yml
     with:
         soak_test: true
