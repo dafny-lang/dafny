@@ -52,10 +52,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
       }
     }
 
-    public Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
+    public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       var start = DateTime.Now;
       try {
-        return notifications.Dequeue(cancellationToken);
+        return await notifications.Dequeue(cancellationToken);
       } catch (OperationCanceledException) {
         var last = History.Any() ? History[^1].Stringify() : "none";
         logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds for new notification.\n" +
