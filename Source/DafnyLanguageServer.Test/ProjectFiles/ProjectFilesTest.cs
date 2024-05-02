@@ -194,14 +194,15 @@ method Foo() {
   var x := 3;
   if (true) {
     var x := 4;
+    var y: int := true; 
   }
 }
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem);
-    Assert.Single(diagnostics);
-    Assert.Contains("Shadowed", diagnostics[0].Message);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains(diagnostics, d => d.Message.Contains("Shadowed"));
   }
 
   [Fact]

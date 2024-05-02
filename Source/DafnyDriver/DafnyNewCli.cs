@@ -221,20 +221,9 @@ public static class DafnyNewCli {
       return false;
     }
     var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file);
-    if (projectFile == null) {
-      return false;
-    }
-
-    foreach (var diagnostic in projectFile.Errors.AllMessages) {
-      var message = $"{diagnostic.Level}: {diagnostic.Message}";
-      await dafnyOptions.OutputWriter.WriteLineAsync(message);
-    }
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions.Concat(DafnyProject.targetOptions));
     dafnyOptions.DafnyProject = projectFile;
-    if (projectFile.Errors.HasErrors) {
-      return false;
-    }
     return true;
   }
 
