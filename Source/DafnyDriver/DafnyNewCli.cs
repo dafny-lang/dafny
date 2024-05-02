@@ -216,7 +216,7 @@ public static class DafnyNewCli {
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file);
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file, Token.Cli);
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
@@ -270,7 +270,7 @@ public static class DafnyNewCli {
 
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();
-    var exitCode = await DafnyNewCli.Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
+    var exitCode = await Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
       new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
     if (exitCode != 0) {
       var output = outputWriter + errorWriter.ToString();

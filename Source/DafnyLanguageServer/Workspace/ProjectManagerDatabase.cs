@@ -184,7 +184,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyProject> GetProject(Uri uri) {
       return uri.LocalPath.EndsWith(DafnyProject.FileName)
-        ? await DafnyProject.Open(fileSystem, serverOptions, uri)
+        ? await DafnyProject.Open(fileSystem, serverOptions, uri, Token.Ide)
         : (await FindProjectFile(uri) ?? ImplicitProject(uri));
     }
 
@@ -234,7 +234,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult<DafnyProject?>(null);
       }
 
-      return DafnyProject.Open(fileSystem, serverOptions, configFileUri)!;
+      return DafnyProject.Open(fileSystem, serverOptions, configFileUri, Token.Ide)!;
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;

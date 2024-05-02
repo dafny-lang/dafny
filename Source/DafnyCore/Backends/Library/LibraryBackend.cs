@@ -75,7 +75,16 @@ public class LibraryBackend : ExecutableBackend {
     var dooPath = DooFilePath(dafnyProgramName);
 
     File.Delete(dooPath);
-    ZipFile.CreateFromDirectory(targetDirectory, dooPath);
+
+    try {
+      ZipFile.CreateFromDirectory(targetDirectory, dooPath);
+    } catch (IOException) {
+      if (File.Exists(dooPath)) {
+        await outputWriter.WriteLineAsync($"Failed to delete doo file at {dooPath}");
+      }
+
+      throw;
+    }
     if (Options.Verbose) {
       await outputWriter.WriteLineAsync($"Wrote Dafny library to {dooPath}");
     }
