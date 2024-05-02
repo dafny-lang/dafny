@@ -89,10 +89,15 @@ namespace Microsoft.Dafny.LanguageServer {
       var logLevel = options.Get(CommonOptionBag.LogLevelOption);
       var logLocation = options.Get(CommonOptionBag.LogLocation) ?? Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       Environment.SetEnvironmentVariable("DAFNYLS_APP_DIR", logLocation);
-      Log.Logger = new LoggerConfiguration()
+      LoggerConfiguration config = new LoggerConfiguration()
         .ReadFrom.Configuration(configuration)
-        .MinimumLevel.Override("Microsoft.Dafny", logLevel)
-        .CreateLogger();
+        .MinimumLevel.Override("Microsoft.Dafny", logLevel);
+      if (logLocation != null) {
+        var logFile = Path.Combine(logLocation,
+          "DafnyLanguageServerLog" + DateTime.Now.ToString().Replace("/", "_").Replace("\\", "_") + ".txt");
+        config = config.WriteTo.File(logFile);
+      }
+      Log.Logger = config.CreateLogger();
     }
 
     private static void LogException(Exception exception) {
