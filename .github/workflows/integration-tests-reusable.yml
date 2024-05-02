@@ -145,6 +145,9 @@ jobs:
         chmod +x dafny/Binaries/z3/bin/z3-4.12.1
         mkdir -p unzippedRelease/dafny/z3/bin
         ln dafny/Binaries/z3/bin/z3-4.12.1 unzippedRelease/dafny/z3/bin/z3-4.12.1
+    - name: Run script tests
+      run: |
+        make tests-scripts
     - name: Run integration tests (Windows)
       if: runner.os == 'Windows'
       env:

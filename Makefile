@@ -24,6 +24,9 @@ dfydev: dfydevinit
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
+tests-scripts:
+	(cd ${DIR}/Scripts/tests/; node fix-dafny-issue-tests.js)
+
 tests:
 	(cd ${DIR}; dotnet test Source/IntegrationTests)
 
@@ -84,3 +87,6 @@ clean:
 	make -C ${DIR}/docs/DafnyRef clean
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	echo Source/*/bin Source/*/obj
+
+fix:
+	./Scripts/fix-dafny-issue.js
