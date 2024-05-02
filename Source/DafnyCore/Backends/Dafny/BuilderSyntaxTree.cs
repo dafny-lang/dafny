@@ -28,5 +28,11 @@ namespace Microsoft.Dafny.Compilers {
       // TODO(shadaj): perhaps should check if we are an expr container
       return new BuilderSyntaxTree<T>(Builder, Compiler);
     }
+
+    public override ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
+      BlockStyle open = BlockStyle.SpaceBrace,
+      BlockStyle close = BlockStyle.NewlineBrace) {
+      return Fork();
+    }
   }
 }

@@ -12,50 +12,101 @@ using System.Collections;
 namespace DAST {
 
 
+  public interface _IName {
+    bool is_Name { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_dafny__name { get; }
+  }
+  public class Name : _IName {
+    public readonly Dafny.ISequence<Dafny.Rune> _i_dafny__name;
+    public Name(Dafny.ISequence<Dafny.Rune> dafny__name) {
+      this._i_dafny__name = dafny__name;
+    }
+    public static Dafny.ISequence<Dafny.Rune> DowncastClone(Dafny.ISequence<Dafny.Rune> _this) {
+      return _this;
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Name;
+      return oth != null && object.Equals(this._i_dafny__name, oth._i_dafny__name);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_dafny__name));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Name.Name";
+      s += "(";
+      s += this._i_dafny__name.ToVerbatimString(true);
+      s += ")";
+      return s;
+    }
+    private static readonly Dafny.ISequence<Dafny.Rune> theDefault = Dafny.Sequence<Dafny.Rune>.Empty;
+    public static Dafny.ISequence<Dafny.Rune> Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<Dafny.Rune>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<Dafny.Rune>>(Dafny.Sequence<Dafny.Rune>.Empty);
+    public static Dafny.TypeDescriptor<Dafny.ISequence<Dafny.Rune>> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IName create(Dafny.ISequence<Dafny.Rune> dafny__name) {
+      return new Name(dafny__name);
+    }
+    public static _IName create_Name(Dafny.ISequence<Dafny.Rune> dafny__name) {
+      return create(dafny__name);
+    }
+    public bool is_Name { get { return true; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_dafny__name {
+      get {
+        return this._i_dafny__name;
+      }
+    }
+  }
+
   public interface _IModule {
     bool is_Module { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    bool dtor_isExtern { get; }
-    Dafny.ISequence<DAST._IModuleItem> dtor_body { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
+    Std.Wrappers._IOption<Dafny.ISequence<DAST._IModuleItem>> dtor_body { get; }
     _IModule DowncastClone();
   }
   public class Module : _IModule {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
-    public readonly bool _i_isExtern;
-    public readonly Dafny.ISequence<DAST._IModuleItem> _i_body;
-    public Module(Dafny.ISequence<Dafny.Rune> name, bool isExtern, Dafny.ISequence<DAST._IModuleItem> body) {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<DAST._IModuleItem>> _i_body;
+    public Module(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IAttribute> attributes, Std.Wrappers._IOption<Dafny.ISequence<DAST._IModuleItem>> body) {
       this._i_name = name;
-      this._i_isExtern = isExtern;
+      this._i_attributes = attributes;
       this._i_body = body;
     }
     public _IModule DowncastClone() {
       if (this is _IModule dt) { return dt; }
-      return new Module(_i_name, _i_isExtern, _i_body);
+      return new Module(_i_name, _i_attributes, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Module;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && this._i_isExtern == oth._i_isExtern && object.Equals(this._i_body, oth._i_body);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_attributes, oth._i_attributes) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_isExtern));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Module.Module";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._i_isExtern);
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
-    private static readonly DAST._IModule theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, false, Dafny.Sequence<DAST._IModuleItem>.Empty);
+    private static readonly DAST._IModule theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IAttribute>.Empty, Std.Wrappers.Option<Dafny.ISequence<DAST._IModuleItem>>.Default());
     public static DAST._IModule Default() {
       return theDefault;
     }
@@ -63,11 +114,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IModule> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IModule create(Dafny.ISequence<Dafny.Rune> name, bool isExtern, Dafny.ISequence<DAST._IModuleItem> body) {
-      return new Module(name, isExtern, body);
+    public static _IModule create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IAttribute> attributes, Std.Wrappers._IOption<Dafny.ISequence<DAST._IModuleItem>> body) {
+      return new Module(name, attributes, body);
     }
-    public static _IModule create_Module(Dafny.ISequence<Dafny.Rune> name, bool isExtern, Dafny.ISequence<DAST._IModuleItem> body) {
-      return create(name, isExtern, body);
+    public static _IModule create_Module(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IAttribute> attributes, Std.Wrappers._IOption<Dafny.ISequence<DAST._IModuleItem>> body) {
+      return create(name, attributes, body);
     }
     public bool is_Module { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -75,12 +126,12 @@ namespace DAST {
         return this._i_name;
       }
     }
-    public bool dtor_isExtern {
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
       get {
-        return this._i_isExtern;
+        return this._i_attributes;
       }
     }
-    public Dafny.ISequence<DAST._IModuleItem> dtor_body {
+    public Std.Wrappers._IOption<Dafny.ISequence<DAST._IModuleItem>> dtor_body {
       get {
         return this._i_body;
       }
@@ -898,6 +949,145 @@ namespace DAST {
     }
   }
 
+  public interface _ITypeArgDecl {
+    bool is_TypeArgDecl { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<DAST._ITypeArgBound> dtor_bounds { get; }
+    _ITypeArgDecl DowncastClone();
+  }
+  public class TypeArgDecl : _ITypeArgDecl {
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<DAST._ITypeArgBound> _i_bounds;
+    public TypeArgDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds) {
+      this._i_name = name;
+      this._i_bounds = bounds;
+    }
+    public _ITypeArgDecl DowncastClone() {
+      if (this is _ITypeArgDecl dt) { return dt; }
+      return new TypeArgDecl(_i_name, _i_bounds);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TypeArgDecl;
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_bounds, oth._i_bounds);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_bounds));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TypeArgDecl.TypeArgDecl";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_name);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_bounds);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._ITypeArgDecl theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgBound>.Empty);
+    public static DAST._ITypeArgDecl Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._ITypeArgDecl> _TYPE = new Dafny.TypeDescriptor<DAST._ITypeArgDecl>(DAST.TypeArgDecl.Default());
+    public static Dafny.TypeDescriptor<DAST._ITypeArgDecl> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ITypeArgDecl create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds) {
+      return new TypeArgDecl(name, bounds);
+    }
+    public static _ITypeArgDecl create_TypeArgDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds) {
+      return create(name, bounds);
+    }
+    public bool is_TypeArgDecl { get { return true; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
+      get {
+        return this._i_name;
+      }
+    }
+    public Dafny.ISequence<DAST._ITypeArgBound> dtor_bounds {
+      get {
+        return this._i_bounds;
+      }
+    }
+  }
+
+  public interface _ITypeArgBound {
+    bool is_SupportsEquality { get; }
+    bool is_SupportsDefault { get; }
+    _ITypeArgBound DowncastClone();
+  }
+  public abstract class TypeArgBound : _ITypeArgBound {
+    public TypeArgBound() {
+    }
+    private static readonly DAST._ITypeArgBound theDefault = create_SupportsEquality();
+    public static DAST._ITypeArgBound Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._ITypeArgBound> _TYPE = new Dafny.TypeDescriptor<DAST._ITypeArgBound>(DAST.TypeArgBound.Default());
+    public static Dafny.TypeDescriptor<DAST._ITypeArgBound> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ITypeArgBound create_SupportsEquality() {
+      return new TypeArgBound_SupportsEquality();
+    }
+    public static _ITypeArgBound create_SupportsDefault() {
+      return new TypeArgBound_SupportsDefault();
+    }
+    public bool is_SupportsEquality { get { return this is TypeArgBound_SupportsEquality; } }
+    public bool is_SupportsDefault { get { return this is TypeArgBound_SupportsDefault; } }
+    public static System.Collections.Generic.IEnumerable<_ITypeArgBound> AllSingletonConstructors {
+      get {
+        yield return TypeArgBound.create_SupportsEquality();
+        yield return TypeArgBound.create_SupportsDefault();
+      }
+    }
+    public abstract _ITypeArgBound DowncastClone();
+  }
+  public class TypeArgBound_SupportsEquality : TypeArgBound {
+    public TypeArgBound_SupportsEquality() : base() {
+    }
+    public override _ITypeArgBound DowncastClone() {
+      if (this is _ITypeArgBound dt) { return dt; }
+      return new TypeArgBound_SupportsEquality();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TypeArgBound_SupportsEquality;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TypeArgBound.SupportsEquality";
+      return s;
+    }
+  }
+  public class TypeArgBound_SupportsDefault : TypeArgBound {
+    public TypeArgBound_SupportsDefault() : base() {
+    }
+    public override _ITypeArgBound DowncastClone() {
+      if (this is _ITypeArgBound dt) { return dt; }
+      return new TypeArgBound_SupportsDefault();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.TypeArgBound_SupportsDefault;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.TypeArgBound.SupportsDefault";
+      return s;
+    }
+  }
+
   public interface _IPrimitive {
     bool is_Int { get; }
     bool is_Real { get; }
@@ -1399,11 +1589,141 @@ namespace DAST {
     }
   }
 
+  public interface _IAttribute {
+    bool is_Attribute { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_args { get; }
+    _IAttribute DowncastClone();
+  }
+  public class Attribute : _IAttribute {
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_args;
+    public Attribute(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> args) {
+      this._i_name = name;
+      this._i_args = args;
+    }
+    public _IAttribute DowncastClone() {
+      if (this is _IAttribute dt) { return dt; }
+      return new Attribute(_i_name, _i_args);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Attribute;
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_args, oth._i_args);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_args));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Attribute.Attribute";
+      s += "(";
+      s += this._i_name.ToVerbatimString(true);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_args);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._IAttribute theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty);
+    public static DAST._IAttribute Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._IAttribute> _TYPE = new Dafny.TypeDescriptor<DAST._IAttribute>(DAST.Attribute.Default());
+    public static Dafny.TypeDescriptor<DAST._IAttribute> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IAttribute create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> args) {
+      return new Attribute(name, args);
+    }
+    public static _IAttribute create_Attribute(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> args) {
+      return create(name, args);
+    }
+    public bool is_Attribute { get { return true; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
+      get {
+        return this._i_name;
+      }
+    }
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_args {
+      get {
+        return this._i_args;
+      }
+    }
+  }
+
+  public interface _IDatatypeType {
+    bool is_DatatypeType { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_path { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
+    _IDatatypeType DowncastClone();
+  }
+  public class DatatypeType : _IDatatypeType {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_path;
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public DatatypeType(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IAttribute> attributes) {
+      this._i_path = path;
+      this._i_attributes = attributes;
+    }
+    public _IDatatypeType DowncastClone() {
+      if (this is _IDatatypeType dt) { return dt; }
+      return new DatatypeType(_i_path, _i_attributes);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.DatatypeType;
+      return oth != null && object.Equals(this._i_path, oth._i_path) && object.Equals(this._i_attributes, oth._i_attributes);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_path));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.DatatypeType.DatatypeType";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_path);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._IDatatypeType theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<DAST._IAttribute>.Empty);
+    public static DAST._IDatatypeType Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._IDatatypeType> _TYPE = new Dafny.TypeDescriptor<DAST._IDatatypeType>(DAST.DatatypeType.Default());
+    public static Dafny.TypeDescriptor<DAST._IDatatypeType> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IDatatypeType create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new DatatypeType(path, attributes);
+    }
+    public static _IDatatypeType create_DatatypeType(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(path, attributes);
+    }
+    public bool is_DatatypeType { get { return true; } }
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_path {
+      get {
+        return this._i_path;
+      }
+    }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
+  }
+
   public interface _IResolvedType {
     bool is_Datatype { get; }
     bool is_Trait { get; }
     bool is_Newtype { get; }
+    DAST._IDatatypeType dtor_datatypeType { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_path { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
     DAST._IType dtor_baseType { get; }
     DAST._INewtypeRange dtor_range { get; }
     bool dtor_erase { get; }
@@ -1412,7 +1732,7 @@ namespace DAST {
   public abstract class ResolvedType : _IResolvedType {
     public ResolvedType() {
     }
-    private static readonly DAST._IResolvedType theDefault = create_Datatype(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty);
+    private static readonly DAST._IResolvedType theDefault = create_Datatype(DAST.DatatypeType.Default());
     public static DAST._IResolvedType Default() {
       return theDefault;
     }
@@ -1420,23 +1740,35 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IResolvedType> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IResolvedType create_Datatype(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path) {
-      return new ResolvedType_Datatype(path);
+    public static _IResolvedType create_Datatype(DAST._IDatatypeType datatypeType) {
+      return new ResolvedType_Datatype(datatypeType);
     }
-    public static _IResolvedType create_Trait(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path) {
-      return new ResolvedType_Trait(path);
+    public static _IResolvedType create_Trait(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new ResolvedType_Trait(path, attributes);
     }
-    public static _IResolvedType create_Newtype(DAST._IType baseType, DAST._INewtypeRange range, bool erase) {
-      return new ResolvedType_Newtype(baseType, range, erase);
+    public static _IResolvedType create_Newtype(DAST._IType baseType, DAST._INewtypeRange range, bool erase, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new ResolvedType_Newtype(baseType, range, erase, attributes);
     }
     public bool is_Datatype { get { return this is ResolvedType_Datatype; } }
     public bool is_Trait { get { return this is ResolvedType_Trait; } }
     public bool is_Newtype { get { return this is ResolvedType_Newtype; } }
+    public DAST._IDatatypeType dtor_datatypeType {
+      get {
+        var d = this;
+        return ((ResolvedType_Datatype)d)._i_datatypeType;
+      }
+    }
     public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_path {
       get {
         var d = this;
-        if (d is ResolvedType_Datatype) { return ((ResolvedType_Datatype)d)._i_path; }
         return ((ResolvedType_Trait)d)._i_path;
+      }
+    }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        var d = this;
+        if (d is ResolvedType_Trait) { return ((ResolvedType_Trait)d)._i_attributes; }
+        return ((ResolvedType_Newtype)d)._i_attributes;
       }
     }
     public DAST._IType dtor_baseType {
@@ -1460,55 +1792,60 @@ namespace DAST {
     public abstract _IResolvedType DowncastClone();
   }
   public class ResolvedType_Datatype : ResolvedType {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_path;
-    public ResolvedType_Datatype(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path) : base() {
-      this._i_path = path;
+    public readonly DAST._IDatatypeType _i_datatypeType;
+    public ResolvedType_Datatype(DAST._IDatatypeType datatypeType) : base() {
+      this._i_datatypeType = datatypeType;
     }
     public override _IResolvedType DowncastClone() {
       if (this is _IResolvedType dt) { return dt; }
-      return new ResolvedType_Datatype(_i_path);
+      return new ResolvedType_Datatype(_i_datatypeType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.ResolvedType_Datatype;
-      return oth != null && object.Equals(this._i_path, oth._i_path);
+      return oth != null && object.Equals(this._i_datatypeType, oth._i_datatypeType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_path));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_datatypeType));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedType.Datatype";
       s += "(";
-      s += Dafny.Helpers.ToString(this._i_path);
+      s += Dafny.Helpers.ToString(this._i_datatypeType);
       s += ")";
       return s;
     }
   }
   public class ResolvedType_Trait : ResolvedType {
     public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_path;
-    public ResolvedType_Trait(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path) : base() {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public ResolvedType_Trait(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IAttribute> attributes) : base() {
       this._i_path = path;
+      this._i_attributes = attributes;
     }
     public override _IResolvedType DowncastClone() {
       if (this is _IResolvedType dt) { return dt; }
-      return new ResolvedType_Trait(_i_path);
+      return new ResolvedType_Trait(_i_path, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.ResolvedType_Trait;
-      return oth != null && object.Equals(this._i_path, oth._i_path);
+      return oth != null && object.Equals(this._i_path, oth._i_path) && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_path));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedType.Trait";
       s += "(";
       s += Dafny.Helpers.ToString(this._i_path);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
@@ -1517,18 +1854,20 @@ namespace DAST {
     public readonly DAST._IType _i_baseType;
     public readonly DAST._INewtypeRange _i_range;
     public readonly bool _i_erase;
-    public ResolvedType_Newtype(DAST._IType baseType, DAST._INewtypeRange range, bool erase) : base() {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public ResolvedType_Newtype(DAST._IType baseType, DAST._INewtypeRange range, bool erase, Dafny.ISequence<DAST._IAttribute> attributes) : base() {
       this._i_baseType = baseType;
       this._i_range = range;
       this._i_erase = erase;
+      this._i_attributes = attributes;
     }
     public override _IResolvedType DowncastClone() {
       if (this is _IResolvedType dt) { return dt; }
-      return new ResolvedType_Newtype(_i_baseType, _i_range, _i_erase);
+      return new ResolvedType_Newtype(_i_baseType, _i_range, _i_erase, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.ResolvedType_Newtype;
-      return oth != null && object.Equals(this._i_baseType, oth._i_baseType) && object.Equals(this._i_range, oth._i_range) && this._i_erase == oth._i_erase;
+      return oth != null && object.Equals(this._i_baseType, oth._i_baseType) && object.Equals(this._i_range, oth._i_range) && this._i_erase == oth._i_erase && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -1536,6 +1875,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_baseType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_range));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_erase));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
@@ -1546,6 +1886,8 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_range);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_erase);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
@@ -1576,7 +1918,7 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Ident.Ident";
       s += "(";
-      s += this._i_id.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_id);
       s += ")";
       return s;
     }
@@ -1606,34 +1948,37 @@ namespace DAST {
     bool is_Class { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Dafny.ISequence<Dafny.Rune> dtor_enclosingModule { get; }
-    Dafny.ISequence<DAST._IType> dtor_typeParams { get; }
+    Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     Dafny.ISequence<DAST._IType> dtor_superClasses { get; }
     Dafny.ISequence<DAST._IField> dtor_fields { get; }
     Dafny.ISequence<DAST._IMethod> dtor_body { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
     _IClass DowncastClone();
   }
   public class Class : _IClass {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public readonly Dafny.ISequence<Dafny.Rune> _i_enclosingModule;
-    public readonly Dafny.ISequence<DAST._IType> _i_typeParams;
+    public readonly Dafny.ISequence<DAST._ITypeArgDecl> _i_typeParams;
     public readonly Dafny.ISequence<DAST._IType> _i_superClasses;
     public readonly Dafny.ISequence<DAST._IField> _i_fields;
     public readonly Dafny.ISequence<DAST._IMethod> _i_body;
-    public Class(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IType> superClasses, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> body) {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public Class(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IType> superClasses, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> body, Dafny.ISequence<DAST._IAttribute> attributes) {
       this._i_name = name;
       this._i_enclosingModule = enclosingModule;
       this._i_typeParams = typeParams;
       this._i_superClasses = superClasses;
       this._i_fields = fields;
       this._i_body = body;
+      this._i_attributes = attributes;
     }
     public _IClass DowncastClone() {
       if (this is _IClass dt) { return dt; }
-      return new Class(_i_name, _i_enclosingModule, _i_typeParams, _i_superClasses, _i_fields, _i_body);
+      return new Class(_i_name, _i_enclosingModule, _i_typeParams, _i_superClasses, _i_fields, _i_body, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Class;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_enclosingModule, oth._i_enclosingModule) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_superClasses, oth._i_superClasses) && object.Equals(this._i_fields, oth._i_fields) && object.Equals(this._i_body, oth._i_body);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_enclosingModule, oth._i_enclosingModule) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_superClasses, oth._i_superClasses) && object.Equals(this._i_fields, oth._i_fields) && object.Equals(this._i_body, oth._i_body) && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -1644,12 +1989,13 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_superClasses));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fields));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Class.Class";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_enclosingModule);
       s += ", ";
@@ -1660,10 +2006,12 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_fields);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_body);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
-    private static readonly DAST._IClass theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IType>.Empty, Dafny.Sequence<DAST._IType>.Empty, Dafny.Sequence<DAST._IField>.Empty, Dafny.Sequence<DAST._IMethod>.Empty);
+    private static readonly DAST._IClass theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, Dafny.Sequence<DAST._IType>.Empty, Dafny.Sequence<DAST._IField>.Empty, Dafny.Sequence<DAST._IMethod>.Empty, Dafny.Sequence<DAST._IAttribute>.Empty);
     public static DAST._IClass Default() {
       return theDefault;
     }
@@ -1671,11 +2019,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IClass> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IClass create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IType> superClasses, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> body) {
-      return new Class(name, enclosingModule, typeParams, superClasses, fields, body);
+    public static _IClass create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IType> superClasses, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> body, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new Class(name, enclosingModule, typeParams, superClasses, fields, body, attributes);
     }
-    public static _IClass create_Class(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IType> superClasses, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> body) {
-      return create(name, enclosingModule, typeParams, superClasses, fields, body);
+    public static _IClass create_Class(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IType> superClasses, Dafny.ISequence<DAST._IField> fields, Dafny.ISequence<DAST._IMethod> body, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, enclosingModule, typeParams, superClasses, fields, body, attributes);
     }
     public bool is_Class { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -1688,7 +2036,7 @@ namespace DAST {
         return this._i_enclosingModule;
       }
     }
-    public Dafny.ISequence<DAST._IType> dtor_typeParams {
+    public Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams {
       get {
         return this._i_typeParams;
       }
@@ -1708,31 +2056,39 @@ namespace DAST {
         return this._i_body;
       }
     }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
   }
 
   public interface _ITrait {
     bool is_Trait { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<DAST._IType> dtor_typeParams { get; }
+    Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     Dafny.ISequence<DAST._IMethod> dtor_body { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
     _ITrait DowncastClone();
   }
   public class Trait : _ITrait {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
-    public readonly Dafny.ISequence<DAST._IType> _i_typeParams;
+    public readonly Dafny.ISequence<DAST._ITypeArgDecl> _i_typeParams;
     public readonly Dafny.ISequence<DAST._IMethod> _i_body;
-    public Trait(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IMethod> body) {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public Trait(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IMethod> body, Dafny.ISequence<DAST._IAttribute> attributes) {
       this._i_name = name;
       this._i_typeParams = typeParams;
       this._i_body = body;
+      this._i_attributes = attributes;
     }
     public _ITrait DowncastClone() {
       if (this is _ITrait dt) { return dt; }
-      return new Trait(_i_name, _i_typeParams, _i_body);
+      return new Trait(_i_name, _i_typeParams, _i_body, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Trait;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_body, oth._i_body);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_body, oth._i_body) && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -1740,20 +2096,23 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Trait.Trait";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_body);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
-    private static readonly DAST._ITrait theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IType>.Empty, Dafny.Sequence<DAST._IMethod>.Empty);
+    private static readonly DAST._ITrait theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, Dafny.Sequence<DAST._IMethod>.Empty, Dafny.Sequence<DAST._IAttribute>.Empty);
     public static DAST._ITrait Default() {
       return theDefault;
     }
@@ -1761,11 +2120,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._ITrait> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ITrait create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IMethod> body) {
-      return new Trait(name, typeParams, body);
+    public static _ITrait create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IMethod> body, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new Trait(name, typeParams, body, attributes);
     }
-    public static _ITrait create_Trait(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IMethod> body) {
-      return create(name, typeParams, body);
+    public static _ITrait create_Trait(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IMethod> body, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, typeParams, body, attributes);
     }
     public bool is_Trait { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -1773,7 +2132,7 @@ namespace DAST {
         return this._i_name;
       }
     }
-    public Dafny.ISequence<DAST._IType> dtor_typeParams {
+    public Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams {
       get {
         return this._i_typeParams;
       }
@@ -1783,40 +2142,48 @@ namespace DAST {
         return this._i_body;
       }
     }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
   }
 
   public interface _IDatatype {
     bool is_Datatype { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Dafny.ISequence<Dafny.Rune> dtor_enclosingModule { get; }
-    Dafny.ISequence<DAST._IType> dtor_typeParams { get; }
+    Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     Dafny.ISequence<DAST._IDatatypeCtor> dtor_ctors { get; }
     Dafny.ISequence<DAST._IMethod> dtor_body { get; }
     bool dtor_isCo { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
     _IDatatype DowncastClone();
   }
   public class Datatype : _IDatatype {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public readonly Dafny.ISequence<Dafny.Rune> _i_enclosingModule;
-    public readonly Dafny.ISequence<DAST._IType> _i_typeParams;
+    public readonly Dafny.ISequence<DAST._ITypeArgDecl> _i_typeParams;
     public readonly Dafny.ISequence<DAST._IDatatypeCtor> _i_ctors;
     public readonly Dafny.ISequence<DAST._IMethod> _i_body;
     public readonly bool _i_isCo;
-    public Datatype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IDatatypeCtor> ctors, Dafny.ISequence<DAST._IMethod> body, bool isCo) {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public Datatype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IDatatypeCtor> ctors, Dafny.ISequence<DAST._IMethod> body, bool isCo, Dafny.ISequence<DAST._IAttribute> attributes) {
       this._i_name = name;
       this._i_enclosingModule = enclosingModule;
       this._i_typeParams = typeParams;
       this._i_ctors = ctors;
       this._i_body = body;
       this._i_isCo = isCo;
+      this._i_attributes = attributes;
     }
     public _IDatatype DowncastClone() {
       if (this is _IDatatype dt) { return dt; }
-      return new Datatype(_i_name, _i_enclosingModule, _i_typeParams, _i_ctors, _i_body, _i_isCo);
+      return new Datatype(_i_name, _i_enclosingModule, _i_typeParams, _i_ctors, _i_body, _i_isCo, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Datatype;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_enclosingModule, oth._i_enclosingModule) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_ctors, oth._i_ctors) && object.Equals(this._i_body, oth._i_body) && this._i_isCo == oth._i_isCo;
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_enclosingModule, oth._i_enclosingModule) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_ctors, oth._i_ctors) && object.Equals(this._i_body, oth._i_body) && this._i_isCo == oth._i_isCo && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -1827,12 +2194,13 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_ctors));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_isCo));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Datatype.Datatype";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_enclosingModule);
       s += ", ";
@@ -1843,10 +2211,12 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_body);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_isCo);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
-    private static readonly DAST._IDatatype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IType>.Empty, Dafny.Sequence<DAST._IDatatypeCtor>.Empty, Dafny.Sequence<DAST._IMethod>.Empty, false);
+    private static readonly DAST._IDatatype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, Dafny.Sequence<DAST._IDatatypeCtor>.Empty, Dafny.Sequence<DAST._IMethod>.Empty, false, Dafny.Sequence<DAST._IAttribute>.Empty);
     public static DAST._IDatatype Default() {
       return theDefault;
     }
@@ -1854,11 +2224,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IDatatype> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IDatatype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IDatatypeCtor> ctors, Dafny.ISequence<DAST._IMethod> body, bool isCo) {
-      return new Datatype(name, enclosingModule, typeParams, ctors, body, isCo);
+    public static _IDatatype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IDatatypeCtor> ctors, Dafny.ISequence<DAST._IMethod> body, bool isCo, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new Datatype(name, enclosingModule, typeParams, ctors, body, isCo, attributes);
     }
-    public static _IDatatype create_Datatype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IDatatypeCtor> ctors, Dafny.ISequence<DAST._IMethod> body, bool isCo) {
-      return create(name, enclosingModule, typeParams, ctors, body, isCo);
+    public static _IDatatype create_Datatype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IDatatypeCtor> ctors, Dafny.ISequence<DAST._IMethod> body, bool isCo, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, enclosingModule, typeParams, ctors, body, isCo, attributes);
     }
     public bool is_Datatype { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -1871,7 +2241,7 @@ namespace DAST {
         return this._i_enclosingModule;
       }
     }
-    public Dafny.ISequence<DAST._IType> dtor_typeParams {
+    public Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams {
       get {
         return this._i_typeParams;
       }
@@ -1889,6 +2259,11 @@ namespace DAST {
     public bool dtor_isCo {
       get {
         return this._i_isCo;
+      }
+    }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
       }
     }
   }
@@ -1928,7 +2303,7 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.DatatypeCtor.DatatypeCtor";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_args);
       s += ", ";
@@ -1971,35 +2346,38 @@ namespace DAST {
   public interface _INewtype {
     bool is_Newtype { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<DAST._IType> dtor_typeParams { get; }
+    Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     DAST._IType dtor_base { get; }
     DAST._INewtypeRange dtor_range { get; }
     Dafny.ISequence<DAST._IStatement> dtor_witnessStmts { get; }
     Std.Wrappers._IOption<DAST._IExpression> dtor_witnessExpr { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
     _INewtype DowncastClone();
   }
   public class Newtype : _INewtype {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
-    public readonly Dafny.ISequence<DAST._IType> _i_typeParams;
+    public readonly Dafny.ISequence<DAST._ITypeArgDecl> _i_typeParams;
     public readonly DAST._IType _i_base;
     public readonly DAST._INewtypeRange _i_range;
     public readonly Dafny.ISequence<DAST._IStatement> _i_witnessStmts;
     public readonly Std.Wrappers._IOption<DAST._IExpression> _i_witnessExpr;
-    public Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr) {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
       this._i_name = name;
       this._i_typeParams = typeParams;
       this._i_base = @base;
       this._i_range = range;
       this._i_witnessStmts = witnessStmts;
       this._i_witnessExpr = witnessExpr;
+      this._i_attributes = attributes;
     }
     public _INewtype DowncastClone() {
       if (this is _INewtype dt) { return dt; }
-      return new Newtype(_i_name, _i_typeParams, _i_base, _i_range, _i_witnessStmts, _i_witnessExpr);
+      return new Newtype(_i_name, _i_typeParams, _i_base, _i_range, _i_witnessStmts, _i_witnessExpr, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Newtype;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_base, oth._i_base) && object.Equals(this._i_range, oth._i_range) && object.Equals(this._i_witnessStmts, oth._i_witnessStmts) && object.Equals(this._i_witnessExpr, oth._i_witnessExpr);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_base, oth._i_base) && object.Equals(this._i_range, oth._i_range) && object.Equals(this._i_witnessStmts, oth._i_witnessStmts) && object.Equals(this._i_witnessExpr, oth._i_witnessExpr) && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -2010,12 +2388,13 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_range));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_witnessStmts));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_witnessExpr));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Newtype.Newtype";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
@@ -2026,10 +2405,12 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_witnessStmts);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_witnessExpr);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
-    private static readonly DAST._INewtype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IType>.Empty, DAST.Type.Default(), DAST.NewtypeRange.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default());
+    private static readonly DAST._INewtype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, DAST.Type.Default(), DAST.NewtypeRange.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default(), Dafny.Sequence<DAST._IAttribute>.Empty);
     public static DAST._INewtype Default() {
       return theDefault;
     }
@@ -2037,11 +2418,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._INewtype> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _INewtype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr) {
-      return new Newtype(name, typeParams, @base, range, witnessStmts, witnessExpr);
+    public static _INewtype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new Newtype(name, typeParams, @base, range, witnessStmts, witnessExpr, attributes);
     }
-    public static _INewtype create_Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr) {
-      return create(name, typeParams, @base, range, witnessStmts, witnessExpr);
+    public static _INewtype create_Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, typeParams, @base, range, witnessStmts, witnessExpr, attributes);
     }
     public bool is_Newtype { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -2049,7 +2430,7 @@ namespace DAST {
         return this._i_name;
       }
     }
-    public Dafny.ISequence<DAST._IType> dtor_typeParams {
+    public Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams {
       get {
         return this._i_typeParams;
       }
@@ -2072,6 +2453,11 @@ namespace DAST {
     public Std.Wrappers._IOption<DAST._IExpression> dtor_witnessExpr {
       get {
         return this._i_witnessExpr;
+      }
+    }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
       }
     }
   }
@@ -2195,40 +2581,46 @@ namespace DAST {
     bool is_Formal { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     DAST._IType dtor_typ { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
     _IFormal DowncastClone();
   }
   public class Formal : _IFormal {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public readonly DAST._IType _i_typ;
-    public Formal(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ) {
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public Formal(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ, Dafny.ISequence<DAST._IAttribute> attributes) {
       this._i_name = name;
       this._i_typ = typ;
+      this._i_attributes = attributes;
     }
     public _IFormal DowncastClone() {
       if (this is _IFormal dt) { return dt; }
-      return new Formal(_i_name, _i_typ);
+      return new Formal(_i_name, _i_typ, _i_attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Formal;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typ, oth._i_typ);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typ, oth._i_typ) && object.Equals(this._i_attributes, oth._i_attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typ));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Formal.Formal";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_typ);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ")";
       return s;
     }
-    private static readonly DAST._IFormal theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, DAST.Type.Default());
+    private static readonly DAST._IFormal theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, DAST.Type.Default(), Dafny.Sequence<DAST._IAttribute>.Empty);
     public static DAST._IFormal Default() {
       return theDefault;
     }
@@ -2236,11 +2628,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IFormal> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IFormal create(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ) {
-      return new Formal(name, typ);
+    public static _IFormal create(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new Formal(name, typ, attributes);
     }
-    public static _IFormal create_Formal(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ) {
-      return create(name, typ);
+    public static _IFormal create_Formal(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, typ, attributes);
     }
     public bool is_Formal { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -2253,6 +2645,11 @@ namespace DAST {
         return this._i_typ;
       }
     }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
   }
 
   public interface _IMethod {
@@ -2261,7 +2658,7 @@ namespace DAST {
     bool dtor_hasBody { get; }
     Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> dtor_overridingPath { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<DAST._IType> dtor_typeParams { get; }
+    Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     Dafny.ISequence<DAST._IFormal> dtor_params { get; }
     Dafny.ISequence<DAST._IStatement> dtor_body { get; }
     Dafny.ISequence<DAST._IType> dtor_outTypes { get; }
@@ -2273,12 +2670,12 @@ namespace DAST {
     public readonly bool _i_hasBody;
     public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> _i_overridingPath;
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
-    public readonly Dafny.ISequence<DAST._IType> _i_typeParams;
+    public readonly Dafny.ISequence<DAST._ITypeArgDecl> _i_typeParams;
     public readonly Dafny.ISequence<DAST._IFormal> _i_params;
     public readonly Dafny.ISequence<DAST._IStatement> _i_body;
     public readonly Dafny.ISequence<DAST._IType> _i_outTypes;
     public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> _i_outVars;
-    public Method(bool isStatic, bool hasBody, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
+    public Method(bool isStatic, bool hasBody, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
       this._i_isStatic = isStatic;
       this._i_hasBody = hasBody;
       this._i_overridingPath = overridingPath;
@@ -2320,7 +2717,7 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_overridingPath);
       s += ", ";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
@@ -2334,7 +2731,7 @@ namespace DAST {
       s += ")";
       return s;
     }
-    private static readonly DAST._IMethod theDefault = create(false, false, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IType>.Empty, Dafny.Sequence<DAST._IFormal>.Empty, Dafny.Sequence<DAST._IStatement>.Empty, Dafny.Sequence<DAST._IType>.Empty, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default());
+    private static readonly DAST._IMethod theDefault = create(false, false, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, Dafny.Sequence<DAST._IFormal>.Empty, Dafny.Sequence<DAST._IStatement>.Empty, Dafny.Sequence<DAST._IType>.Empty, Std.Wrappers.Option<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>>.Default());
     public static DAST._IMethod Default() {
       return theDefault;
     }
@@ -2342,10 +2739,10 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IMethod> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IMethod create(bool isStatic, bool hasBody, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
+    public static _IMethod create(bool isStatic, bool hasBody, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
       return new Method(isStatic, hasBody, overridingPath, name, typeParams, @params, body, outTypes, outVars);
     }
-    public static _IMethod create_Method(bool isStatic, bool hasBody, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IType> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
+    public static _IMethod create_Method(bool isStatic, bool hasBody, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> overridingPath, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, Dafny.ISequence<DAST._IFormal> @params, Dafny.ISequence<DAST._IStatement> body, Dafny.ISequence<DAST._IType> outTypes, Std.Wrappers._IOption<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>> outVars) {
       return create(isStatic, hasBody, overridingPath, name, typeParams, @params, body, outTypes, outVars);
     }
     public bool is_Method { get { return true; } }
@@ -2369,7 +2766,7 @@ namespace DAST {
         return this._i_name;
       }
     }
-    public Dafny.ISequence<DAST._IType> dtor_typeParams {
+    public Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams {
       get {
         return this._i_typeParams;
       }
@@ -2396,19 +2793,72 @@ namespace DAST {
     }
   }
 
+  public interface _ICallSignature {
+    bool is_CallSignature { get; }
+    Dafny.ISequence<DAST._IFormal> dtor_parameters { get; }
+  }
+  public class CallSignature : _ICallSignature {
+    public readonly Dafny.ISequence<DAST._IFormal> _i_parameters;
+    public CallSignature(Dafny.ISequence<DAST._IFormal> parameters) {
+      this._i_parameters = parameters;
+    }
+    public static Dafny.ISequence<DAST._IFormal> DowncastClone(Dafny.ISequence<DAST._IFormal> _this) {
+      return _this;
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.CallSignature;
+      return oth != null && object.Equals(this._i_parameters, oth._i_parameters);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_parameters));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.CallSignature.CallSignature";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_parameters);
+      s += ")";
+      return s;
+    }
+    private static readonly Dafny.ISequence<DAST._IFormal> theDefault = Dafny.Sequence<DAST._IFormal>.Empty;
+    public static Dafny.ISequence<DAST._IFormal> Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<DAST._IFormal>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<DAST._IFormal>>(Dafny.Sequence<DAST._IFormal>.Empty);
+    public static Dafny.TypeDescriptor<Dafny.ISequence<DAST._IFormal>> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ICallSignature create(Dafny.ISequence<DAST._IFormal> parameters) {
+      return new CallSignature(parameters);
+    }
+    public static _ICallSignature create_CallSignature(Dafny.ISequence<DAST._IFormal> parameters) {
+      return create(parameters);
+    }
+    public bool is_CallSignature { get { return true; } }
+    public Dafny.ISequence<DAST._IFormal> dtor_parameters {
+      get {
+        return this._i_parameters;
+      }
+    }
+  }
+
   public interface _ICallName {
-    bool is_Name { get; }
+    bool is_CallName { get; }
     bool is_MapBuilderAdd { get; }
     bool is_MapBuilderBuild { get; }
     bool is_SetBuilderAdd { get; }
     bool is_SetBuilderBuild { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Std.Wrappers._IOption<DAST._IType> dtor_onType { get; }
+    Dafny.ISequence<DAST._IFormal> dtor_signature { get; }
     _ICallName DowncastClone();
   }
   public abstract class CallName : _ICallName {
     public CallName() {
     }
-    private static readonly DAST._ICallName theDefault = create_Name(Dafny.Sequence<Dafny.Rune>.Empty);
+    private static readonly DAST._ICallName theDefault = create_CallName(Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<DAST._IType>.Default(), Dafny.Sequence<DAST._IFormal>.Empty);
     public static DAST._ICallName Default() {
       return theDefault;
     }
@@ -2416,8 +2866,8 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._ICallName> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ICallName create_Name(Dafny.ISequence<Dafny.Rune> name) {
-      return new CallName_Name(name);
+    public static _ICallName create_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Dafny.ISequence<DAST._IFormal> signature) {
+      return new CallName_CallName(name, onType, signature);
     }
     public static _ICallName create_MapBuilderAdd() {
       return new CallName_MapBuilderAdd();
@@ -2431,7 +2881,7 @@ namespace DAST {
     public static _ICallName create_SetBuilderBuild() {
       return new CallName_SetBuilderBuild();
     }
-    public bool is_Name { get { return this is CallName_Name; } }
+    public bool is_CallName { get { return this is CallName_CallName; } }
     public bool is_MapBuilderAdd { get { return this is CallName_MapBuilderAdd; } }
     public bool is_MapBuilderBuild { get { return this is CallName_MapBuilderBuild; } }
     public bool is_SetBuilderAdd { get { return this is CallName_SetBuilderAdd; } }
@@ -2439,34 +2889,56 @@ namespace DAST {
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         var d = this;
-        return ((CallName_Name)d)._i_name;
+        return ((CallName_CallName)d)._i_name;
+      }
+    }
+    public Std.Wrappers._IOption<DAST._IType> dtor_onType {
+      get {
+        var d = this;
+        return ((CallName_CallName)d)._i_onType;
+      }
+    }
+    public Dafny.ISequence<DAST._IFormal> dtor_signature {
+      get {
+        var d = this;
+        return ((CallName_CallName)d)._i_signature;
       }
     }
     public abstract _ICallName DowncastClone();
   }
-  public class CallName_Name : CallName {
+  public class CallName_CallName : CallName {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
-    public CallName_Name(Dafny.ISequence<Dafny.Rune> name) : base() {
+    public readonly Std.Wrappers._IOption<DAST._IType> _i_onType;
+    public readonly Dafny.ISequence<DAST._IFormal> _i_signature;
+    public CallName_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Dafny.ISequence<DAST._IFormal> signature) : base() {
       this._i_name = name;
+      this._i_onType = onType;
+      this._i_signature = signature;
     }
     public override _ICallName DowncastClone() {
       if (this is _ICallName dt) { return dt; }
-      return new CallName_Name(_i_name);
+      return new CallName_CallName(_i_name, _i_onType, _i_signature);
     }
     public override bool Equals(object other) {
-      var oth = other as DAST.CallName_Name;
-      return oth != null && object.Equals(this._i_name, oth._i_name);
+      var oth = other as DAST.CallName_CallName;
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_onType, oth._i_onType) && object.Equals(this._i_signature, oth._i_signature);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_onType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_signature));
       return (int) hash;
     }
     public override string ToString() {
-      string s = "DAST.CallName.Name";
+      string s = "DAST.CallName.CallName";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_onType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_signature);
       s += ")";
       return s;
     }
@@ -2821,7 +3293,7 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Statement.DeclareVar";
       s += "(";
-      s += this._i_name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_typ);
       s += ", ";
@@ -2994,7 +3466,7 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Statement.Foreach";
       s += "(";
-      s += this._i_boundName.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_boundName);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_boundType);
       s += ", ";
@@ -3228,7 +3700,7 @@ namespace DAST {
     bool is_Ident { get; }
     bool is_Select { get; }
     bool is_Index { get; }
-    Dafny.ISequence<Dafny.Rune> dtor_Ident_i_a0 { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_ident { get; }
     DAST._IExpression dtor_expr { get; }
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
     Dafny.ISequence<DAST._IExpression> dtor_indices { get; }
@@ -3245,8 +3717,8 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IAssignLhs> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IAssignLhs create_Ident(Dafny.ISequence<Dafny.Rune> _a0) {
-      return new AssignLhs_Ident(_a0);
+    public static _IAssignLhs create_Ident(Dafny.ISequence<Dafny.Rune> ident) {
+      return new AssignLhs_Ident(ident);
     }
     public static _IAssignLhs create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field) {
       return new AssignLhs_Select(expr, field);
@@ -3257,10 +3729,10 @@ namespace DAST {
     public bool is_Ident { get { return this is AssignLhs_Ident; } }
     public bool is_Select { get { return this is AssignLhs_Select; } }
     public bool is_Index { get { return this is AssignLhs_Index; } }
-    public Dafny.ISequence<Dafny.Rune> dtor_Ident_i_a0 {
+    public Dafny.ISequence<Dafny.Rune> dtor_ident {
       get {
         var d = this;
-        return ((AssignLhs_Ident)d)._i_a0;
+        return ((AssignLhs_Ident)d)._i_ident;
       }
     }
     public DAST._IExpression dtor_expr {
@@ -3285,28 +3757,28 @@ namespace DAST {
     public abstract _IAssignLhs DowncastClone();
   }
   public class AssignLhs_Ident : AssignLhs {
-    public readonly Dafny.ISequence<Dafny.Rune> _i_a0;
-    public AssignLhs_Ident(Dafny.ISequence<Dafny.Rune> _a0) : base() {
-      this._i_a0 = _a0;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_ident;
+    public AssignLhs_Ident(Dafny.ISequence<Dafny.Rune> ident) : base() {
+      this._i_ident = ident;
     }
     public override _IAssignLhs DowncastClone() {
       if (this is _IAssignLhs dt) { return dt; }
-      return new AssignLhs_Ident(_i_a0);
+      return new AssignLhs_Ident(_i_ident);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.AssignLhs_Ident;
-      return oth != null && object.Equals(this._i_a0, oth._i_a0);
+      return oth != null && object.Equals(this._i_ident, oth._i_ident);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_a0));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_ident));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.AssignLhs.Ident";
       s += "(";
-      s += Dafny.Helpers.ToString(this._i_a0);
+      s += Dafny.Helpers.ToString(this._i_ident);
       s += ")";
       return s;
     }
@@ -3338,7 +3810,7 @@ namespace DAST {
       s += "(";
       s += Dafny.Helpers.ToString(this._i_expr);
       s += ", ";
-      s += this._i_field.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_field);
       s += ")";
       return s;
     }
@@ -4520,6 +4992,7 @@ namespace DAST {
     Dafny.ISequence<DAST._IExpression> dtor_args { get; }
     Dafny.ISequence<DAST._IExpression> dtor_dims { get; }
     DAST._IType dtor_typ { get; }
+    DAST._IDatatypeType dtor_datatypeType { get; }
     Dafny.ISequence<Dafny.Rune> dtor_variant { get; }
     bool dtor_isCo { get; }
     Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> dtor_contents { get; }
@@ -4548,6 +5021,7 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
     bool dtor_isConstant { get; }
     bool dtor_onDatatype { get; }
+    DAST._IType dtor_fieldType { get; }
     bool dtor_isStatic { get; }
     BigInteger dtor_arity { get; }
     DAST._ICollKind dtor_collKind { get; }
@@ -4600,8 +5074,8 @@ namespace DAST {
     public static _IExpression create_NewArray(Dafny.ISequence<DAST._IExpression> dims, DAST._IType typ) {
       return new Expression_NewArray(dims, typ);
     }
-    public static _IExpression create_DatatypeValue(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<Dafny.Rune> variant, bool isCo, Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> contents) {
-      return new Expression_DatatypeValue(path, typeArgs, variant, isCo, contents);
+    public static _IExpression create_DatatypeValue(DAST._IDatatypeType datatypeType, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<Dafny.Rune> variant, bool isCo, Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> contents) {
+      return new Expression_DatatypeValue(datatypeType, typeArgs, variant, isCo, contents);
     }
     public static _IExpression create_Convert(DAST._IExpression @value, DAST._IType @from, DAST._IType typ) {
       return new Expression_Convert(@value, @from, typ);
@@ -4657,8 +5131,8 @@ namespace DAST {
     public static _IExpression create_MapValues(DAST._IExpression expr) {
       return new Expression_MapValues(expr);
     }
-    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype) {
-      return new Expression_Select(expr, field, isConstant, onDatatype);
+    public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype, DAST._IType fieldType) {
+      return new Expression_Select(expr, field, isConstant, onDatatype, fieldType);
     }
     public static _IExpression create_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, BigInteger arity) {
       return new Expression_SelectFn(expr, field, onDatatype, isStatic, arity);
@@ -4669,8 +5143,8 @@ namespace DAST {
     public static _IExpression create_IndexRange(DAST._IExpression expr, bool isArray, Std.Wrappers._IOption<DAST._IExpression> low, Std.Wrappers._IOption<DAST._IExpression> high) {
       return new Expression_IndexRange(expr, isArray, low, high);
     }
-    public static _IExpression create_TupleSelect(DAST._IExpression expr, BigInteger index) {
-      return new Expression_TupleSelect(expr, index);
+    public static _IExpression create_TupleSelect(DAST._IExpression expr, BigInteger index, DAST._IType fieldType) {
+      return new Expression_TupleSelect(expr, index, fieldType);
     }
     public static _IExpression create_Call(DAST._IExpression @on, DAST._ICallName callName, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<DAST._IExpression> args) {
       return new Expression_Call(@on, callName, typeArgs, args);
@@ -4773,8 +5247,7 @@ namespace DAST {
     public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_path {
       get {
         var d = this;
-        if (d is Expression_New) { return ((Expression_New)d)._i_path; }
-        return ((Expression_DatatypeValue)d)._i_path;
+        return ((Expression_New)d)._i_path;
       }
     }
     public Dafny.ISequence<DAST._IType> dtor_typeArgs {
@@ -4807,6 +5280,12 @@ namespace DAST {
         if (d is Expression_SeqValue) { return ((Expression_SeqValue)d)._i_typ; }
         if (d is Expression_IIFE) { return ((Expression_IIFE)d)._i_typ; }
         return ((Expression_InitializationValue)d)._i_typ;
+      }
+    }
+    public DAST._IDatatypeType dtor_datatypeType {
+      get {
+        var d = this;
+        return ((Expression_DatatypeValue)d)._i_datatypeType;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_variant {
@@ -4998,6 +5477,13 @@ namespace DAST {
         return ((Expression_SelectFn)d)._i_onDatatype;
       }
     }
+    public DAST._IType dtor_fieldType {
+      get {
+        var d = this;
+        if (d is Expression_Select) { return ((Expression_Select)d)._i_fieldType; }
+        return ((Expression_TupleSelect)d)._i_fieldType;
+      }
+    }
     public bool dtor_isStatic {
       get {
         var d = this;
@@ -5178,7 +5664,7 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Expression.Ident";
       s += "(";
-      s += this._i_a0.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_a0);
       s += ")";
       return s;
     }
@@ -5307,13 +5793,13 @@ namespace DAST {
     }
   }
   public class Expression_DatatypeValue : Expression {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_path;
+    public readonly DAST._IDatatypeType _i_datatypeType;
     public readonly Dafny.ISequence<DAST._IType> _i_typeArgs;
     public readonly Dafny.ISequence<Dafny.Rune> _i_variant;
     public readonly bool _i_isCo;
     public readonly Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> _i_contents;
-    public Expression_DatatypeValue(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> path, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<Dafny.Rune> variant, bool isCo, Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> contents) : base() {
-      this._i_path = path;
+    public Expression_DatatypeValue(DAST._IDatatypeType datatypeType, Dafny.ISequence<DAST._IType> typeArgs, Dafny.ISequence<Dafny.Rune> variant, bool isCo, Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> contents) : base() {
+      this._i_datatypeType = datatypeType;
       this._i_typeArgs = typeArgs;
       this._i_variant = variant;
       this._i_isCo = isCo;
@@ -5321,16 +5807,16 @@ namespace DAST {
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_DatatypeValue(_i_path, _i_typeArgs, _i_variant, _i_isCo, _i_contents);
+      return new Expression_DatatypeValue(_i_datatypeType, _i_typeArgs, _i_variant, _i_isCo, _i_contents);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_DatatypeValue;
-      return oth != null && object.Equals(this._i_path, oth._i_path) && object.Equals(this._i_typeArgs, oth._i_typeArgs) && object.Equals(this._i_variant, oth._i_variant) && this._i_isCo == oth._i_isCo && object.Equals(this._i_contents, oth._i_contents);
+      return oth != null && object.Equals(this._i_datatypeType, oth._i_datatypeType) && object.Equals(this._i_typeArgs, oth._i_typeArgs) && object.Equals(this._i_variant, oth._i_variant) && this._i_isCo == oth._i_isCo && object.Equals(this._i_contents, oth._i_contents);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 6;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_path));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_datatypeType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeArgs));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_variant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_isCo));
@@ -5340,11 +5826,11 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Expression.DatatypeValue";
       s += "(";
-      s += Dafny.Helpers.ToString(this._i_path);
+      s += Dafny.Helpers.ToString(this._i_datatypeType);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_typeArgs);
       s += ", ";
-      s += this._i_variant.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_variant);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_isCo);
       s += ", ";
@@ -5923,19 +6409,21 @@ namespace DAST {
     public readonly Dafny.ISequence<Dafny.Rune> _i_field;
     public readonly bool _i_isConstant;
     public readonly bool _i_onDatatype;
-    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype) : base() {
+    public readonly DAST._IType _i_fieldType;
+    public Expression_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype, DAST._IType fieldType) : base() {
       this._i_expr = expr;
       this._i_field = field;
       this._i_isConstant = isConstant;
       this._i_onDatatype = onDatatype;
+      this._i_fieldType = fieldType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_Select(_i_expr, _i_field, _i_isConstant, _i_onDatatype);
+      return new Expression_Select(_i_expr, _i_field, _i_isConstant, _i_onDatatype, _i_fieldType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_Select;
-      return oth != null && object.Equals(this._i_expr, oth._i_expr) && object.Equals(this._i_field, oth._i_field) && this._i_isConstant == oth._i_isConstant && this._i_onDatatype == oth._i_onDatatype;
+      return oth != null && object.Equals(this._i_expr, oth._i_expr) && object.Equals(this._i_field, oth._i_field) && this._i_isConstant == oth._i_isConstant && this._i_onDatatype == oth._i_onDatatype && object.Equals(this._i_fieldType, oth._i_fieldType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -5944,6 +6432,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_field));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_isConstant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_onDatatype));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fieldType));
       return (int) hash;
     }
     public override string ToString() {
@@ -5951,11 +6440,13 @@ namespace DAST {
       s += "(";
       s += Dafny.Helpers.ToString(this._i_expr);
       s += ", ";
-      s += this._i_field.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_field);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_isConstant);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_onDatatype);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_fieldType);
       s += ")";
       return s;
     }
@@ -5996,7 +6487,7 @@ namespace DAST {
       s += "(";
       s += Dafny.Helpers.ToString(this._i_expr);
       s += ", ";
-      s += this._i_field.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_field);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_onDatatype);
       s += ", ";
@@ -6089,23 +6580,26 @@ namespace DAST {
   public class Expression_TupleSelect : Expression {
     public readonly DAST._IExpression _i_expr;
     public readonly BigInteger _i_index;
-    public Expression_TupleSelect(DAST._IExpression expr, BigInteger index) : base() {
+    public readonly DAST._IType _i_fieldType;
+    public Expression_TupleSelect(DAST._IExpression expr, BigInteger index, DAST._IType fieldType) : base() {
       this._i_expr = expr;
       this._i_index = index;
+      this._i_fieldType = fieldType;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_TupleSelect(_i_expr, _i_index);
+      return new Expression_TupleSelect(_i_expr, _i_index, _i_fieldType);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_TupleSelect;
-      return oth != null && object.Equals(this._i_expr, oth._i_expr) && this._i_index == oth._i_index;
+      return oth != null && object.Equals(this._i_expr, oth._i_expr) && this._i_index == oth._i_index && object.Equals(this._i_fieldType, oth._i_fieldType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 29;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_index));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fieldType));
       return (int) hash;
     }
     public override string ToString() {
@@ -6114,6 +6608,8 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_expr);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_index);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_fieldType);
       s += ")";
       return s;
     }
@@ -6340,7 +6836,7 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_dType);
       s += ", ";
-      s += this._i_variant.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._i_variant);
       s += ")";
       return s;
     }
