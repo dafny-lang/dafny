@@ -1684,9 +1684,27 @@ namespace Microsoft.Dafny {
       mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
 
       // for iterators: MoveNext() free ensures old(!_begun) ==> $Heap_at_[this] == $Heap
-      if (m.EnclosingClass is IteratorDecl iter && m == iter.Member_MoveNext) {
-        AddEnsures(ens, Ensures(m.tok, true, BplImp(etran.Old.TrExpr(iter.Member_Begun_Expr),
-          Boogie.Expr.Eq(new Bpl.IdentifierExpr(m.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator)), etran.HeapExpr)), null, null, null));
+      if (m.EnclosingClass is IteratorDecl iter /*&& kind != MethodTranslationKind.SpecWellformedness*/) {
+        AddEnsures(ens, Ensures(m.tok, true,
+          m == iter.Member_MoveNext ?
+            // MoveNext(): free ensures old(!begun) ==> $Heap_at_[this] == $Heap
+            BplAnd(
+              BplImp(
+                etran.Old.TrExpr(iter.Member_Begun_Expr)
+              , Boogie.Expr.Eq(
+                  new Bpl.IdentifierExpr(m.tok,
+                    "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator))
+                , etran.HeapExpr
+                )
+              )
+            // MoveNext(): free ensures begun
+            , etran.TrExpr(iter.Member_Begun_Expr)
+            )
+          // constructor: free ensures !begun
+          : etran.TrExpr(new UnaryOpExpr(m.tok, UnaryOpExpr.Opcode.Not, iter.Member_Begun_Expr) { Type = Type.Bool })
+          , null, null, null
+          )
+        );
       }
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
@@ -1753,6 +1771,20 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      /*if (m.EnclosingClass is IteratorDecl iter) {
+        if (m == iter.Member_MoveNext) {
+          switch (kind) {
+            case MethodTranslationKind.SpecWellformedness:
+              break;
+            case MethodTranslationKind.Implementation:
+              // The implementation of 
+              break;
+          }
+        } else {
+
+        }
+      }*/
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));

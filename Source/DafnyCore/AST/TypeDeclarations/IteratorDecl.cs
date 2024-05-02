@@ -254,8 +254,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
         new OldExpr(tok, p))));
     }
     // ensures !begun
-    ens.Add(new AttributedExpression(new UnaryOpExpr(tok,
-      UnaryOpExpr.Opcode.Not, new ExprDotName(tok, new ThisExpr(tok), "_begun", null))));
+    //ens.Add(new AttributedExpression(new UnaryOpExpr(tok,
+    //  UnaryOpExpr.Opcode.Not, new ExprDotName(tok, new ThisExpr(tok), "_begun", null))));
 
     // ---------- here comes predicate Valid() ----------
     var reads = Member_Valid.Reads;
@@ -319,7 +319,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       ));
     }
     // ensures begun
-    ens.Add(new AttributedExpression(new ExprDotName(tok, new ThisExpr(tok), "_begun", null)));
+    // ens.Add(new AttributedExpression(new ExprDotName(tok, new ThisExpr(tok), "_begun", null)));
     // decreases this._decreases0, this._decreases1, ...;
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {

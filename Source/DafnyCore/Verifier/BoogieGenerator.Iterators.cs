@@ -85,12 +85,14 @@ namespace Microsoft.Dafny {
       var mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
+      // if kind == Wf then this precond. lets it figure out allocatedness
+      // else kind == Impl, then it does impl checking
+      req.Add(Requires(iter.tok, true, Boogie.Expr.Eq(
+        new Bpl.IdentifierExpr(iter.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator)), etran.HeapExpr), null, null, null));
+
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
         req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null, null));
-
-        // free requires $Heap_at_[this] == $Heap
-        req.Add(Requires(iter.tok, true, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator)), etran.HeapExpr), null, null, null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
@@ -125,7 +127,6 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        // TODO substitute old($Heap) for oldHeapPost
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(iter.tok, iter.Modifies.Expressions, false, iter.AllowsAllocation, etran.Old, etran, etran.Old)) {
           ens.Add(Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
@@ -325,8 +326,8 @@ namespace Microsoft.Dafny {
         HeapSucc(oih, etran.HeapExpr));
       localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
-      // do an initial YieldHavoc
-      YieldHavoc(iter.tok, iter, builder, etran);
+      // do an initial YieldHavoc -- Siva is removing this b/c he doesn't know why it's here
+      // YieldHavoc(iter.tok, iter, builder, etran);
 
       // translate the body of the iterator
       var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran);
@@ -373,7 +374,6 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
-      //iteratorFrame.Add(new FrameExpression(iter.tok, new IdentifierExpr(), null));
       // Note we explicitly do NOT use iter.Reads, because reads clauses on iterators
       // mean something different from reads clauses on functions or methods:
       // the memory locations that are not havoced by a yield statement.
