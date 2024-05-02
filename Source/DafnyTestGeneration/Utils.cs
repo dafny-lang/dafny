@@ -88,7 +88,7 @@ namespace DafnyTestGeneration {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-      var dafnyFile = await DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
+      var dafnyFile = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
       var program = await new ProgramParser().ParseFiles(uri.LocalPath,
         new[] { dafnyFile }, reporter, CancellationToken.None);
 

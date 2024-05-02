@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
@@ -29,7 +30,7 @@ public static class DafnyNewCli {
   }
 
   static DafnyNewCli() {
-    DafnyFile.RegisterExtensionHandler(DafnyProject.Extension, HandleDafnyProject);
+    DafnyFile.RegisterExtensionHandler(DafnyProject.Extension, (options, fileSystem, reporter, uri, uriOrigin, asLibrary) => HandleDafnyProject(fileSystem, options, reporter, uri, uriOrigin, asLibrary));
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
     AddCommand(BuildCommand.Create());
@@ -258,30 +259,41 @@ public static class DafnyNewCli {
     return builder;
   }
 
-  private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
-    IFileSystem fileSystem, ErrorReporter reporter,
+  private static async IAsyncEnumerable<DafnyFile> HandleDafnyProject(IFileSystem fileSystem, DafnyOptions options,
+    ErrorReporter reporter,
     Uri uri,
-    IToken origin,
+    IToken uriOrigin,
     bool asLibrary) {
     if (!asLibrary) {
-      reporter.Error(MessageSource.Project, origin, "Using a Dafny project file as a source file is not supported.");
-      return null;
+      reporter.Error(MessageSource.Project, uriOrigin, "Using a Dafny project file as a source file is not supported.");
+      yield break;
     }
 
-    var outputWriter = new StringWriter();
-    var errorWriter = new StringWriter();
-    var exitCode = await Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
-      new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
-    if (exitCode != 0) {
-      var output = outputWriter + errorWriter.ToString();
-      reporter.Error(MessageSource.Project, origin,
-        $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
-      return null;
-    }
+    if (options.Get(DafnyFile.UnsafeDependencies)) {
+      var project = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
+      foreach (var libraryRootSetFile in project.GetRootSourceUris(fileSystem)) {
+        var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, options, libraryRootSetFile,
+          project.StartingToken, true);
+        yield return file;
+      }
+    } else {
+      var outputWriter = new StringWriter();
+      var errorWriter = new StringWriter();
+      var exitCode = await Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
+        new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
+      if (exitCode != 0) {
+        var output = outputWriter + errorWriter.ToString();
+        reporter.Error(MessageSource.Project, uriOrigin,
+          $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
+        yield break;
+      }
 
-    var regex = new Regex($"Wrote Dafny library to (.*)\n");
-    var path = regex.Match(outputWriter.ToString());
-    var dooUri = new Uri(path.Groups[1].Value);
-    return await DafnyFile.HandleDooFile(options, fileSystem, reporter, dooUri, origin, true);
+      var regex = new Regex($"Wrote Dafny library to (.*)\n");
+      var path = regex.Match(outputWriter.ToString());
+      var dooUri = new Uri(path.Groups[1].Value);
+      await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
+        yield return dooResult;
+      }
+    }
   }
 }

@@ -97,9 +97,9 @@ namespace Microsoft.Dafny {
       var outputWriter = options.OutputWriter;
 
       if (options.UseStdin) {
-        var uri = new Uri("stdin:///");
-        options.CliRootSourceUris.Add(uri);
-        dafnyFiles.Add(await DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.NoToken));
+        var dafnyFile = DafnyFile.HandleStandardInput(options, Token.NoToken);
+        dafnyFiles.Add(dafnyFile);
+        options.CliRootSourceUris.Add(dafnyFile.Uri);
       } else if (options.CliRootSourceUris.Count == 0) {
         await options.ErrorWriter.WriteLineAsync("*** Error: No input files were specified in command-line. " + options.Environment);
         return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
@@ -122,25 +122,37 @@ namespace Microsoft.Dafny {
         var extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
 
-        bool isDafnyFile = false;
         var relative = Path.GetFileName(file);
         bool useRelative = options.UseBaseNameForFileName || relative.StartsWith("-");
         var nameToShow = useRelative ? relative
           : Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
+        var supportedExtensions = options.Backend.SupportedExtensions;
+        string errorOnNotRecognized;
+        {
+          if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
+            errorOnNotRecognized =
+              $"*** Error: Command-line argument '{nameToShow}' is neither a recognized option nor a filename with a supported extension ({string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions))}).";
+          } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+            errorOnNotRecognized =
+              $"*** Error: Command-line argument '{nameToShow}' is neither a recognized option nor a filename with a supported extension ({string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions))}).";
+          } else {
+            errorOnNotRecognized =
+              $"*** Error: '{nameToShow}': Filename extension '{extension}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({string.Join(", ", supportedExtensions)})";
+          }
+        }
         try {
           var consoleErrorReporter = new ConsoleErrorReporter(options);
-          var df = await DafnyFile.CreateAndValidate(consoleErrorReporter, OnDiskFileSystem.Instance, options,
-            new Uri(Path.GetFullPath(file)), Token.Cli, options.LibraryFiles.Contains(file));
-          if (df == null) {
-            if (consoleErrorReporter.FailCompilation) {
-              return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
-            }
-          } else {
+          await foreach (var df in DafnyFile.CreateAndValidate(
+                           OnDiskFileSystem.Instance, consoleErrorReporter, options, new Uri(Path.GetFullPath(file)),
+                           Token.Cli, options.LibraryFiles.Contains(file),
+                           errorOnNotRecognized)) {
             if (!filesSeen.Add(df.CanonicalPath)) {
               continue; // silently ignore duplicate
             }
             dafnyFiles.Add(df);
-            isDafnyFile = true;
+          }
+          if (consoleErrorReporter.FailCompilation) {
+            return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
           }
         } catch (ArgumentException) {
           await options.ErrorWriter.WriteLineAsync($"*** Error: {nameToShow}: ");
@@ -150,7 +162,6 @@ namespace Microsoft.Dafny {
           return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
         }
 
-        var supportedExtensions = options.Backend.SupportedExtensions;
         if (supportedExtensions.Contains(extension)) {
           // .h files are not part of the build, they are just emitted as includes
           // TODO: This should be delegated to the backend instead (i.e. the CppCompilerBackend)
@@ -162,22 +173,6 @@ namespace Microsoft.Dafny {
           }
         } else if (options.AllowSourceFolders && Directory.Exists(file)) {
           options.SourceFolders.Add(file);
-        } else if (!isDafnyFile) {
-          if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
-            options.Printer.ErrorWriteLine(options.OutputWriter,
-              "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
-              nameToShow,
-              string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
-          } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
-            options.Printer.ErrorWriteLine(options.OutputWriter,
-              "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension ({1}).",
-              nameToShow, string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions)));
-          } else {
-            options.Printer.ErrorWriteLine(options.OutputWriter,
-              "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({2})",
-              nameToShow, extension, string.Join(", ", supportedExtensions));
-          }
-          return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
         }
       }
 
@@ -208,15 +203,13 @@ namespace Microsoft.Dafny {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
-          var targetSpecificFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, stdlibDooUri, Token.Cli, asLibrary);
-          if (targetSpecificFile != null) {
+          await foreach (var targetSpecificFile in DafnyFile.HandleDooFile(OnDiskFileSystem.Instance, reporter, options, stdlibDooUri, Token.Cli, asLibrary)) {
             dafnyFiles.Add(targetSpecificFile);
           }
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        var targetAgnosticFile = await DafnyFile.CreateAndValidate(reporter, OnDiskFileSystem.Instance, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary);
-        if (targetAgnosticFile != null) {
+        await foreach (var targetAgnosticFile in DafnyFile.HandleDooFile(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
           dafnyFiles.Add(targetAgnosticFile);
         }
       }
@@ -267,7 +260,7 @@ namespace Microsoft.Dafny {
           var snapshots = new List<DafnyFile>();
           foreach (var f in s) {
             var uri = new Uri(Path.GetFullPath(f));
-            snapshots.Add(await DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli));
+            snapshots.Add(DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ConsoleErrorReporter(options), options, uri, Token.Cli));
             options.CliRootSourceUris.Add(uri);
           }
           var ev = await ProcessFilesAsync(snapshots, new List<string>().AsReadOnly(), options, depManager, false, programId);
