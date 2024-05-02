@@ -55,7 +55,7 @@ public partial class BoogieGenerator {
       Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
       inParams.Add(thVar);
     }
-    foreach (Formal p in f.Formals) {
+    foreach (Formal p in f.Ins) {
       Bpl.Type varType = TrType(p.Type);
       Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type,
         p.IsOld ? etran.Old : etran, f is TwoStateFunction ? ISALLOC : NOALLOC);
@@ -131,7 +131,7 @@ public partial class BoogieGenerator {
 
     // Check well-formedness of any default-value expressions (before assuming preconditions).
     delayer.DoWithDelayedReadsChecks(true, wfo => {
-      foreach (var formal in f.Formals.Where(formal => formal.DefaultValue != null)) {
+      foreach (var formal in f.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformed(e, wfo, locals, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No frame scope for default values
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
@@ -211,7 +211,7 @@ public partial class BoogieGenerator {
       if (!f.IsStatic) {
         args.Add(new Bpl.IdentifierExpr(f.tok, etran.This));
       }
-      foreach (var p in f.Formals) {
+      foreach (var p in f.Ins) {
         args.Add(new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
       }
       Bpl.IdentifierExpr funcID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, TrType(f.ResultType));
@@ -269,7 +269,7 @@ public partial class BoogieGenerator {
       // Enforce 'older' conditions
       var (olderParameterCount, olderCondition) = OlderCondition(f, funcAppl, implInParams);
       if (olderParameterCount != 0) {
-        bodyCheckBuilder.Add(Assert(f.tok, olderCondition, new PODesc.IsOlderProofObligation(olderParameterCount, f.Formals.Count + (f.IsStatic ? 0 : 1))));
+        bodyCheckBuilder.Add(Assert(f.tok, olderCondition, new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))));
       }
     }
     // Combine the two, letting the postcondition be checked on after the "bodyCheckBuilder" branch
@@ -325,7 +325,7 @@ public partial class BoogieGenerator {
           decs.Add(surrogate);
         }
       }
-      foreach (var formal in f.Formals) {
+      foreach (var formal in f.Ins) {
         allFormals.Add(formal);
         if (FVs.Contains(formal)) {
           decs.Add(formal);
@@ -470,7 +470,7 @@ public partial class BoogieGenerator {
         anteIsAlloc = BplAnd(anteIsAlloc, wh);
       }
     }
-    foreach (Formal p in f.Formals) {
+    foreach (Formal p in f.Ins) {
       var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
       Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
       formals.Add(bv);
@@ -751,7 +751,7 @@ public partial class BoogieGenerator {
     var typeMap = new Dictionary<TypeParameter, Type>();
     var anteReqAxiom = ante; // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
     var substMap = new Dictionary<IVariable, Expression>();
-    foreach (Formal p in f.Formals) {
+    foreach (Formal p in f.Ins) {
       var pType = p.Type.Subst(typeMap);
       bv = new Bpl.BoundVariable(p.tok,
         new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
@@ -793,7 +793,7 @@ public partial class BoogieGenerator {
       // Checked preconditions that old parameters really existed in previous state
       var index = 0;
       Bpl.Expr preRA = Bpl.Expr.True;
-      foreach (var formal in f.Formals) {
+      foreach (var formal in f.Ins) {
         if (formal.IsOld) {
           var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
           preRA = BplAnd(preRA, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, etran.Old.HeapExpr));
@@ -899,7 +899,7 @@ public partial class BoogieGenerator {
     string comment;
     comment = "definition axiom for " + f.FullSanitizedName;
     if (lits != null) {
-      if (lits.Count == f.Formals.Count + (f.IsStatic ? 0 : 1)) {
+      if (lits.Count == f.Ins.Count + (f.IsStatic ? 0 : 1)) {
         comment += " for all literals";
       } else {
         comment += " for decreasing-related literals";
@@ -982,7 +982,7 @@ public partial class BoogieGenerator {
       var argsRequires = new List<Bpl.Expr>(args); // Requires don't have reveal parameters
       var formals = MkTyParamFormals(GetTypeParams(f), false, true);
       var tyargs = new List<Bpl.Expr>();
-      foreach (var fm in f.Formals) {
+      foreach (var fm in f.Ins) {
         tyargs.Add(TypeToTy(fm.Type));
       }
       tyargs.Add(TypeToTy(f.ResultType));
@@ -1032,7 +1032,7 @@ public partial class BoogieGenerator {
       var boxed_func_args = new List<Bpl.Expr>();
 
       var idGen = f.IdGenerator.NestedFreshIdGenerator("$fh$");
-      foreach (var fm in f.Formals) {
+      foreach (var fm in f.Ins) {
         string fm_name = idGen.FreshId("x#");
         // Box and its [Unbox]args
         var fe = BplBoundVar(fm_name, predef.BoxType, bvars);
@@ -1050,7 +1050,7 @@ public partial class BoogieGenerator {
 
       var h = BplBoundVar("$heap", predef.HeapType, vars);
 
-      int arity = f.Formals.Count;
+      int arity = f.Ins.Count;
 
       {
         // Apply(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
@@ -1246,7 +1246,7 @@ public partial class BoogieGenerator {
     // (formalsAreWellFormed[h0] || canCallF(h0,...)) && (formalsAreWellFormed[h1] || canCallF(h1,...))
     Bpl.Expr fwf0 = Bpl.Expr.True;
     Bpl.Expr fwf1 = Bpl.Expr.True;
-    foreach (Formal p in f.Formals) {
+    foreach (Formal p in f.Ins) {
       Bpl.BoundVariable bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
       bvars.Add(bv);
       Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);

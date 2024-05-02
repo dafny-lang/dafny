@@ -810,7 +810,7 @@ namespace Microsoft.Dafny {
       }
 
       void ComputePreTypeFunction(Function function) {
-        function.Formals.ForEach(ComputePreTypeFormal);
+        function.Ins.ForEach(ComputePreTypeFormal);
         if (function.Result != null) {
           ComputePreTypeFormal(function.Result);
         } else if (function.ByMethodDecl != null) {
@@ -1253,7 +1253,7 @@ namespace Microsoft.Dafny {
     void ResolveFunction(Function f) {
       Contract.Requires(f != null);
 
-      f.ResolveMethodOrFunction(this);
+      f.ResolveNewOrOldPart(this);
 
       // make note of the warnShadowing attribute
       bool warnShadowingOption = resolver.Options.WarnShadowing;  // save the original warnShadowing value
@@ -1268,10 +1268,10 @@ namespace Microsoft.Dafny {
         scope.AllowInstance = false;
       }
 
-      foreach (Formal p in f.Formals) {
+      foreach (Formal p in f.Ins) {
         ScopePushAndReport(p, "parameter", false);
       }
-      ResolveParameterDefaultValues(f.Formals, f);
+      ResolveParameterDefaultValues(f.Ins, f);
 
       foreach (var req in f.Req) {
         ResolveAttributes(req, new ResolutionContext(f, f is TwoStateFunction), false);
@@ -1337,7 +1337,7 @@ namespace Microsoft.Dafny {
     void ResolveMethod(Method m) {
       Contract.Requires(m != null);
 
-      m.ResolveMethodOrFunction(this);
+      m.ResolveNewOrOldPart(this);
 
       try {
         currentMethod = m;

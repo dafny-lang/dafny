@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -37,9 +36,8 @@ public class CliCompilation {
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
       var uri = firstFile ?? new Uri(Directory.GetCurrentDirectory());
-      options.DafnyProject = new DafnyProject {
-        Includes = Array.Empty<string>(),
-        Uri = uri,
+      options.DafnyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
+        new Dictionary<string, object>()) {
         ImplicitFromCli = true
       };
     }
@@ -189,12 +187,12 @@ public class CliCompilation {
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
           var runResult = completed.Result;
-          var resourcesUsed = runResult.ResourceCount.ToString("E1", CultureInfo.InvariantCulture);
+          var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
             $"Verification part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
             $", on line {token.line}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
-            $", taking {runResult.RunTime.Milliseconds}ms and consuming {resourcesUsed} resources");
+            $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
         if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();

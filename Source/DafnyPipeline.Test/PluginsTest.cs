@@ -59,7 +59,7 @@ public class PluginsTest {
   public async Task EnsurePluginIsExecuted() {
     var library = GetLibrary("rewriterPreventingVerificationWithArgument");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.CreateUsingOldParser(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "because whatever" }));
 
     var programString = "function test(): int { 1 }";
@@ -75,7 +75,7 @@ public class PluginsTest {
   public async Task EnsurePluginIsExecutedEvenWithoutConfiguration() {
     var library = GetLibrary("rewriterPreventingVerification");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.CreateUsingOldParser(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";
@@ -90,7 +90,7 @@ public class PluginsTest {
   public async Task EnsurePluginIsExecutedAndAllowsVerification() {
     var library = GetLibrary("rewriterAllowingVerification");
 
-    var options = DafnyOptions.Create(output);
+    var options = DafnyOptions.CreateUsingOldParser(output);
     options.Plugins.Add(AssemblyPlugin.Load(library, new string[] { "ignored arguments" }));
 
     var programString = "function test(): int { 1 }";

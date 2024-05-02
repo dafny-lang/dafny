@@ -1,22 +1,21 @@
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
-using System.CommandLine.Help;
 using System.CommandLine.Invocation;
-using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer;
-using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
@@ -30,6 +29,7 @@ public static class DafnyNewCli {
   }
 
   static DafnyNewCli() {
+    DafnyFile.RegisterExtensionHandler(DafnyProject.Extension, HandleDafnyProject);
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
     AddCommand(BuildCommand.Create());
@@ -123,20 +123,20 @@ public static class DafnyNewCli {
   private static bool ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
     var options = dafnyOptions.Options;
     var result = context.ParseResult.FindResultFor(option);
-    object projectFileValue = null;
+    object? projectFileValue = null;
     var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, out projectFileValue) ?? false;
     object value;
     if (option.Arity.MaximumNumberOfValues <= 1) {
       // If multiple values aren't allowed, CLI options take precedence over project file options
       value = (result == null || Equals(result.Token, null)) && hasProjectFileValue
-        ? projectFileValue
+        ? projectFileValue!
         : GetValueForOption(context.ParseResult, option);
     } else {
       // If multiple values ARE allowed, CLI options come after project file options
       var elementType = option.ValueType.GetGenericArguments()[0];
       var valueAsList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType))!;
       if (hasProjectFileValue) {
-        foreach (var element in (IEnumerable)projectFileValue) {
+        foreach (var element in (IEnumerable)projectFileValue!) {
           valueAsList.Add(element);
         }
       }
@@ -192,46 +192,34 @@ public static class DafnyNewCli {
   private static object GetValueForOption(ParseResult result, Option option) {
     // Use Reflection to invoke GetValueForOption<T> for the correct T
     var generic = GetValueForOptionMethod.MakeGenericMethod(option.ValueType);
-    return generic.Invoke(result, new object[] { option });
+    return generic.Invoke(result, new object[] { option })!;
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
-    var filePathForErrors = dafnyOptions.GetPrintPath(singleFile.FullName);
     var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
     if (isProjectFile) {
-      return await ProcessProjectFile(dafnyOptions, singleFile, filePathForErrors);
+      return await ProcessProjectFile(dafnyOptions, new Uri(singleFile.FullName));
     }
 
     dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     return true;
   }
 
-  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, FileInfo singleFile, string filePathForErrors) {
+  private static async Task<bool> ProcessProjectFile(DafnyOptions dafnyOptions, Uri file) {
     if (dafnyOptions.DafnyProject != null) {
       var first = dafnyOptions.GetPrintPath(dafnyOptions.DafnyProject.Uri.LocalPath);
-      await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {filePathForErrors} were specified");
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Only one project file can be used at a time. Both {first} and {dafnyOptions.GetPrintPath(file.LocalPath)} were specified");
       return false;
     }
 
-    if (!File.Exists(singleFile.FullName)) {
-      await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {filePathForErrors} not found");
+    if (!File.Exists(file.LocalPath)) {
+      await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, new Uri(singleFile.FullName));
-    if (projectFile == null) {
-      return false;
-    }
-
-    foreach (var diagnostic in projectFile.Errors.AllMessages) {
-      var message = $"{diagnostic.Level}: {diagnostic.Message}";
-      await dafnyOptions.OutputWriter.WriteLineAsync(message);
-    }
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file);
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
-    if (projectFile.Errors.HasErrors) {
-      return false;
-    }
     return true;
   }
 
@@ -269,40 +257,31 @@ public static class DafnyNewCli {
     }, MiddlewareOrder.Configuration - 101);
     return builder;
   }
-}
 
-class WritersConsole : IConsole {
-  public TextReader InputWriter { get; }
-  public TextWriter ErrWriter { get; }
-  public TextWriter OutWriter { get; }
+  private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
+    IFileSystem fileSystem, ErrorReporter reporter,
+    Uri uri,
+    IToken origin,
+    bool asLibrary) {
+    if (!asLibrary) {
+      reporter.Error(MessageSource.Project, origin, "Using a Dafny project file as a source file is not supported.");
+      return null;
+    }
 
-  public WritersConsole(TextReader inputWriter, TextWriter outWriter, TextWriter errWriter) {
-    InputWriter = inputWriter;
-    this.ErrWriter = errWriter;
-    this.OutWriter = outWriter;
-  }
+    var outputWriter = new StringWriter();
+    var errorWriter = new StringWriter();
+    var exitCode = await DafnyNewCli.Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
+      new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
+    if (exitCode != 0) {
+      var output = outputWriter + errorWriter.ToString();
+      reporter.Error(MessageSource.Project, origin,
+        $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
+      return null;
+    }
 
-  public IStandardStreamWriter Out => StandardStreamWriter.Create(OutWriter ?? TextWriter.Null);
-
-  public bool IsOutputRedirected => OutWriter != null;
-  public IStandardStreamWriter Error => StandardStreamWriter.Create(ErrWriter ?? TextWriter.Null);
-  public bool IsErrorRedirected => ErrWriter != null;
-  public bool IsInputRedirected => false;
-}
-
-/// <summary>
-/// The class HelpResult is internal to System.CommandLine so we have to include it as source.
-/// It seems System.CommandLine didn't consider having more than one help option as a use-case.
-/// </summary>
-internal class HelpResult : IInvocationResult {
-  public void Apply(InvocationContext context) {
-    var output = context.Console.Out.CreateTextWriter();
-    var helpBuilder = ((HelpBuilder)context.BindingContext.GetService(typeof(HelpBuilder)))!;
-    var helpContext = new HelpContext(helpBuilder,
-      context.ParseResult.CommandResult.Command,
-      output,
-      context.ParseResult);
-
-    helpBuilder.Write(helpContext);
+    var regex = new Regex($"Wrote Dafny library to (.*)\n");
+    var path = regex.Match(outputWriter.ToString());
+    var dooUri = new Uri(path.Groups[1].Value);
+    return await DafnyFile.HandleDooFile(options, fileSystem, reporter, dooUri, origin, true);
   }
 }

@@ -1230,7 +1230,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
       return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
-        fnOverridden?.Formals, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
+        fnOverridden?.Ins, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
@@ -2750,7 +2750,7 @@ namespace Microsoft.Dafny.Compilers {
           var prefixWr = new ConcreteSyntaxTree();
           var prefixSep = "";
           prefixWr.Write("func (");
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);

@@ -1498,7 +1498,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(funcAppl != null);
       Contract.Requires(inParams != null);
 
-      var olderParameterCount = f.Formals.Count(formal => formal.IsOlder);
+      var olderParameterCount = f.Ins.Count(formal => formal.IsOlder);
       if (olderParameterCount == 0) {
         // nothing to do
         return (olderParameterCount, Bpl.Expr.True);
@@ -1522,7 +1522,7 @@ namespace Microsoft.Dafny {
         var wh = GetWhereClause(f.tok, th, ModuleResolver.GetReceiverType(f.tok, f), etran, ISALLOC, true);
         newer = BplAnd(newer, wh);
       }
-      foreach (var formal in f.Formals) {
+      foreach (var formal in f.Ins) {
         var p = new Bpl.IdentifierExpr(f.tok, inParams[i]);
         i++;
         var wh = GetWhereClause(formal.tok, p, formal.Type, etran, ISALLOC, true);
@@ -1619,7 +1619,7 @@ namespace Microsoft.Dafny {
         args0.Add(s);
       }
       if (!forHandle) {
-        foreach (var p in f.Formals) {
+        foreach (var p in f.Ins) {
           bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
           formals.Add(bv);
           s = new Bpl.IdentifierExpr(f.tok, bv);
@@ -1693,7 +1693,7 @@ namespace Microsoft.Dafny {
         args1.Add(s);
         args0.Add(s);
       }
-      foreach (var p in f.Formals) {
+      foreach (var p in f.Ins) {
         bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
         formals.Add(bv);
         s = new Bpl.IdentifierExpr(f.tok, bv);
@@ -1969,7 +1969,7 @@ namespace Microsoft.Dafny {
         var printer = new Printer(writer, options);
         writer.Write(f.GetFunctionDeclarationKeywords(options));
         printer.PrintAttributes(f.Attributes);
-        printer.PrintFormals(f.Formals, f);
+        printer.PrintFormals(f.Ins, f);
         writer.Write(": ");
         printer.PrintType(f.ResultType);
         printer.PrintSpec("", f.Req, 0);
@@ -2788,7 +2788,7 @@ namespace Microsoft.Dafny {
         if (!f.IsStatic) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", TrReceiverType(f)), true));
         }
-        foreach (var p in f.Formals) {
+        foreach (var p in f.Ins) {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
@@ -2812,7 +2812,7 @@ namespace Microsoft.Dafny {
         if (!f.IsStatic) {
           formals.Add(new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", TrReceiverType(f)), true));
         }
-        foreach (var p in f.Formals) {
+        foreach (var p in f.Ins) {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);

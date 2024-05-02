@@ -15,6 +15,8 @@ namespace Microsoft.Dafny;
 public static class VerifyCommand {
 
   static VerifyCommand() {
+    // Note these don't need checks because they are only "dafny verify" options;
+    // they can't be specified when building a doo file.
     DooFile.RegisterNoChecksNeeded(FilterSymbol);
     DooFile.RegisterNoChecksNeeded(FilterPosition);
   }
@@ -161,7 +163,7 @@ public static class VerifyCommand {
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
         Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
-          (uint)completed.Result.RunTime.Seconds,
+          (uint)completed.Result.RunTime.TotalSeconds,
           completed.Result, batchReporter);
       }
 

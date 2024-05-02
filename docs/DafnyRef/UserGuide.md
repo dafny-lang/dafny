@@ -96,7 +96,7 @@ These commands are described in [Section 13.6.1](#sec-dafny-commands).
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
-### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+### 13.3.1. Dafny Verification Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
 As of Dafny 4.1, `dafny` now supports outputting a single file containing
 a fully-verified program along with metadata about how it was verified.
@@ -130,6 +130,33 @@ A `.doo` file is a compressed archive of multiple files, similar to the `.jar` f
 The exact file format is internal and may evolve over time to support additional features.
 
 Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
+
+### 13.3.2. Dafny Translation Artifacts: .dtr Files {#sec-dtr-files}
+
+Some options, such as `--outer-module` or `--optimize-erasable-datatype-wrapper`,
+affect what target language code the same Dafny code is translated to.
+In order to translate Dafny libaries separately from their consuming codebases,
+the translation process for consuming code needs to be aware
+of what options were used when translating the library.
+
+For example, if a library defines a `Foo()` function in an `A` module,
+but `--outer-module org.coolstuff.foolibrary.dafnyinternal` is specified when translating the library to Java,
+then a reference to `A.Foo()` in a consuming Dafny project
+needs to be translated to `org.coolstuff.foolibrary.dafnyinternal.A.Foo()`,
+independently of what value of `--outer-module` is used for the consuming project.
+
+To meet this need,
+`dafny translate` also outputs a `<program-name>-<target id>.dtr` Dafny Translation Record file.
+Like `.doo` files, `.dtr` files record all the relevant options that were used,
+in this case relevant to translation rather than verification.
+These files can be provided to future calls to `dafny translate` using the `--translation-record` option,
+in order to provide the details of how various libraries provided with the `--library` flag were translated.
+
+Currently `--outer-module` is the only option recorded in `.dtr` files,
+but more relevant options will be added in the future.
+A later version of Dafny will also require `.dtr` files that cover all modules
+that are defined in `--library` options,
+to support checking that all relevant options are compatible.
 
 ## 13.4. Dafny Standard Libraries
 
@@ -825,6 +852,8 @@ Here's an example of a Dafny project file:
 includes = ["src/**/*.dfy"]
 excludes = ["**/ignore.dfy"]
 
+base = ["../commonOptions.dfyconfig.toml"]
+
 [options]
 enforce-determinism = true
 warn-shadowing = true
@@ -839,6 +868,8 @@ The `excludes` does not remove any files that are listed explicitly on the comma
 - When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied are ignored; options that are invalid for any dafny command trigger warnings.
 - Options specified on the command-line take precedence over any specified in the project file, no matter the order of items on the command-line.
 - When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file to the dfy being parsed that it can find. Options from the project file will override options passed to `dafny server`.
+
+- The field 'base' can be used to let one project file inherit options from another. If an option is specified in both, then the value specified in the inheriting project is used. Includes from the inheritor override excludes from the base.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
