@@ -49,7 +49,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   }
 
   public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri, IToken uriOrigin,
-    bool defaultIncludes = true, bool nameCheck = true) {
+    bool defaultIncludes = true, bool serverNameCheck = true) {
 
     var emptyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
       new Dictionary<string, object>());
@@ -67,7 +67,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
         model.Options ?? new Dictionary<string, object>());
 
       if (result.Base != null) {
-        // TODO use origin that matches exactly where model.Base was defined, instead of just the start of this file.
         var baseProject = await Open(fileSystem, dafnyOptions, result.Base, new Token {
           Uri = uri,
           line = 1,
@@ -130,7 +129,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       }
     }
 
-    if (nameCheck && Path.GetFileName(uri.LocalPath) != FileName) {
+    if (serverNameCheck && Path.GetFileName(uri.LocalPath) != FileName) {
       result.Errors.Warning(MessageSource.Project, "", result.StartingToken, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
 

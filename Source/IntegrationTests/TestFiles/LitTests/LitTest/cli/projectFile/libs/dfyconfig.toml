@@ -4,3 +4,4 @@ includes = ["usesLibrary.dfy"]
 library = [
   "wrappersLib.dfy"
 ]
+allow-warnings=true
