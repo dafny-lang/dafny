@@ -830,15 +830,19 @@ namespace RAST {
     bool is_RawDecl { get; }
     bool is_ModDecl { get; }
     bool is_StructDecl { get; }
+    bool is_TypeDecl { get; }
     bool is_EnumDecl { get; }
     bool is_ImplDecl { get; }
     bool is_TraitDecl { get; }
+    bool is_TopFnDecl { get; }
     Dafny.ISequence<Dafny.Rune> dtor_body { get; }
     RAST._IMod dtor_mod { get; }
     RAST._IStruct dtor_struct { get; }
+    RAST._ITypeSynonym dtor_tpe { get; }
     RAST._IEnum dtor_enum { get; }
     RAST._IImpl dtor_impl { get; }
     RAST._ITrait dtor_tr { get; }
+    RAST._ITopFnDecl dtor_fn { get; }
     _IModDecl DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
@@ -862,6 +866,9 @@ namespace RAST {
     public static _IModDecl create_StructDecl(RAST._IStruct @struct) {
       return new ModDecl_StructDecl(@struct);
     }
+    public static _IModDecl create_TypeDecl(RAST._ITypeSynonym tpe) {
+      return new ModDecl_TypeDecl(tpe);
+    }
     public static _IModDecl create_EnumDecl(RAST._IEnum @enum) {
       return new ModDecl_EnumDecl(@enum);
     }
@@ -871,12 +878,17 @@ namespace RAST {
     public static _IModDecl create_TraitDecl(RAST._ITrait tr) {
       return new ModDecl_TraitDecl(tr);
     }
+    public static _IModDecl create_TopFnDecl(RAST._ITopFnDecl fn) {
+      return new ModDecl_TopFnDecl(fn);
+    }
     public bool is_RawDecl { get { return this is ModDecl_RawDecl; } }
     public bool is_ModDecl { get { return this is ModDecl_ModDecl; } }
     public bool is_StructDecl { get { return this is ModDecl_StructDecl; } }
+    public bool is_TypeDecl { get { return this is ModDecl_TypeDecl; } }
     public bool is_EnumDecl { get { return this is ModDecl_EnumDecl; } }
     public bool is_ImplDecl { get { return this is ModDecl_ImplDecl; } }
     public bool is_TraitDecl { get { return this is ModDecl_TraitDecl; } }
+    public bool is_TopFnDecl { get { return this is ModDecl_TopFnDecl; } }
     public Dafny.ISequence<Dafny.Rune> dtor_body {
       get {
         var d = this;
@@ -893,6 +905,12 @@ namespace RAST {
       get {
         var d = this;
         return ((ModDecl_StructDecl)d)._i_struct;
+      }
+    }
+    public RAST._ITypeSynonym dtor_tpe {
+      get {
+        var d = this;
+        return ((ModDecl_TypeDecl)d)._i_tpe;
       }
     }
     public RAST._IEnum dtor_enum {
@@ -913,6 +931,12 @@ namespace RAST {
         return ((ModDecl_TraitDecl)d)._i_tr;
       }
     }
+    public RAST._ITopFnDecl dtor_fn {
+      get {
+        var d = this;
+        return ((ModDecl_TopFnDecl)d)._i_fn;
+      }
+    }
     public abstract _IModDecl DowncastClone();
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
       if ((this).is_ModDecl) {
@@ -923,8 +947,12 @@ namespace RAST {
         return ((this).dtor_impl)._ToString(ind);
       } else if ((this).is_EnumDecl) {
         return ((this).dtor_enum)._ToString(ind);
+      } else if ((this).is_TypeDecl) {
+        return ((this).dtor_tpe)._ToString(ind);
       } else if ((this).is_TraitDecl) {
         return ((this).dtor_tr)._ToString(ind);
+      } else if ((this).is_TopFnDecl) {
+        return ((this).dtor_fn)._ToString(ind);
       } else {
         return (this).dtor_body;
       }
@@ -1011,6 +1039,33 @@ namespace RAST {
       return s;
     }
   }
+  public class ModDecl_TypeDecl : ModDecl {
+    public readonly RAST._ITypeSynonym _i_tpe;
+    public ModDecl_TypeDecl(RAST._ITypeSynonym tpe) : base() {
+      this._i_tpe = tpe;
+    }
+    public override _IModDecl DowncastClone() {
+      if (this is _IModDecl dt) { return dt; }
+      return new ModDecl_TypeDecl(_i_tpe);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.ModDecl_TypeDecl;
+      return oth != null && object.Equals(this._i_tpe, oth._i_tpe);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 3;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.ModDecl.TypeDecl";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_tpe);
+      s += ")";
+      return s;
+    }
+  }
   public class ModDecl_EnumDecl : ModDecl {
     public readonly RAST._IEnum _i_enum;
     public ModDecl_EnumDecl(RAST._IEnum @enum) : base() {
@@ -1026,7 +1081,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 3;
+      hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_enum));
       return (int) hash;
     }
@@ -1053,7 +1108,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 4;
+      hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_impl));
       return (int) hash;
     }
@@ -1080,7 +1135,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 5;
+      hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tr));
       return (int) hash;
     }
@@ -1090,6 +1145,112 @@ namespace RAST {
       s += Dafny.Helpers.ToString(this._i_tr);
       s += ")";
       return s;
+    }
+  }
+  public class ModDecl_TopFnDecl : ModDecl {
+    public readonly RAST._ITopFnDecl _i_fn;
+    public ModDecl_TopFnDecl(RAST._ITopFnDecl fn) : base() {
+      this._i_fn = fn;
+    }
+    public override _IModDecl DowncastClone() {
+      if (this is _IModDecl dt) { return dt; }
+      return new ModDecl_TopFnDecl(_i_fn);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.ModDecl_TopFnDecl;
+      return oth != null && object.Equals(this._i_fn, oth._i_fn);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 7;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fn));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.ModDecl.TopFnDecl";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_fn);
+      s += ")";
+      return s;
+    }
+  }
+
+  public interface _ITopFnDecl {
+    bool is_TopFn { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes { get; }
+    RAST._IVisibility dtor_visibility { get; }
+    RAST._IFn dtor_fn { get; }
+    _ITopFnDecl DowncastClone();
+    Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
+  }
+  public class TopFnDecl : _ITopFnDecl {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_attributes;
+    public readonly RAST._IVisibility _i_visibility;
+    public readonly RAST._IFn _i_fn;
+    public TopFnDecl(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, RAST._IVisibility visibility, RAST._IFn fn) {
+      this._i_attributes = attributes;
+      this._i_visibility = visibility;
+      this._i_fn = fn;
+    }
+    public _ITopFnDecl DowncastClone() {
+      if (this is _ITopFnDecl dt) { return dt; }
+      return new TopFnDecl(_i_attributes, _i_visibility, _i_fn);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.TopFnDecl;
+      return oth != null && object.Equals(this._i_attributes, oth._i_attributes) && object.Equals(this._i_visibility, oth._i_visibility) && object.Equals(this._i_fn, oth._i_fn);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_visibility));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fn));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.TopFnDecl.TopFn";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_attributes);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_visibility);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_fn);
+      s += ")";
+      return s;
+    }
+    private static readonly RAST._ITopFnDecl theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, RAST.Visibility.Default(), RAST.Fn.Default());
+    public static RAST._ITopFnDecl Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<RAST._ITopFnDecl> _TYPE = new Dafny.TypeDescriptor<RAST._ITopFnDecl>(RAST.TopFnDecl.Default());
+    public static Dafny.TypeDescriptor<RAST._ITopFnDecl> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ITopFnDecl create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, RAST._IVisibility visibility, RAST._IFn fn) {
+      return new TopFnDecl(attributes, visibility, fn);
+    }
+    public static _ITopFnDecl create_TopFn(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, RAST._IVisibility visibility, RAST._IFn fn) {
+      return create(attributes, visibility, fn);
+    }
+    public bool is_TopFn { get { return true; } }
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
+    public RAST._IVisibility dtor_visibility {
+      get {
+        return this._i_visibility;
+      }
+    }
+    public RAST._IFn dtor_fn {
+      get {
+        return this._i_fn;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), ((this).dtor_visibility)._ToString()), ((this).dtor_fn)._ToString(ind));
     }
   }
 
@@ -1237,6 +1398,96 @@ namespace RAST {
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
       return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub struct ")), (this).dtor_name), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), ((this).dtor_fields)._ToString(ind, ((this).dtor_fields).is_NamedFields)), ((((this).dtor_fields).is_NamelessFields) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
+    }
+  }
+
+  public interface _ITypeSynonym {
+    bool is_TypeSynonym { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams { get; }
+    RAST._IType dtor_tpe { get; }
+    _ITypeSynonym DowncastClone();
+    Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
+  }
+  public class TypeSynonym : _ITypeSynonym {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _i_typeParams;
+    public readonly RAST._IType _i_tpe;
+    public TypeSynonym(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe) {
+      this._i_attributes = attributes;
+      this._i_name = name;
+      this._i_typeParams = typeParams;
+      this._i_tpe = tpe;
+    }
+    public _ITypeSynonym DowncastClone() {
+      if (this is _ITypeSynonym dt) { return dt; }
+      return new TypeSynonym(_i_attributes, _i_name, _i_typeParams, _i_tpe);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.TypeSynonym;
+      return oth != null && object.Equals(this._i_attributes, oth._i_attributes) && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_tpe, oth._i_tpe);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.TypeSynonym.TypeSynonym";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_attributes);
+      s += ", ";
+      s += this._i_name.ToVerbatimString(true);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_typeParams);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_tpe);
+      s += ")";
+      return s;
+    }
+    private static readonly RAST._ITypeSynonym theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParamDecl>.Empty, RAST.Type.Default());
+    public static RAST._ITypeSynonym Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<RAST._ITypeSynonym> _TYPE = new Dafny.TypeDescriptor<RAST._ITypeSynonym>(RAST.TypeSynonym.Default());
+    public static Dafny.TypeDescriptor<RAST._ITypeSynonym> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ITypeSynonym create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe) {
+      return new TypeSynonym(attributes, name, typeParams, tpe);
+    }
+    public static _ITypeSynonym create_TypeSynonym(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe) {
+      return create(attributes, name, typeParams, tpe);
+    }
+    public bool is_TypeSynonym { get { return true; } }
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
+      get {
+        return this._i_name;
+      }
+    }
+    public Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams {
+      get {
+        return this._i_typeParams;
+      }
+    }
+    public RAST._IType dtor_tpe {
+      get {
+        return this._i_tpe;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub type ")), (this).dtor_name), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), ((this).dtor_tpe)._ToString(ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
     }
   }
 

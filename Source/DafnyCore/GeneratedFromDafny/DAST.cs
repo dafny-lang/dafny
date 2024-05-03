@@ -143,11 +143,13 @@ namespace DAST {
     bool is_Class { get; }
     bool is_Trait { get; }
     bool is_Newtype { get; }
+    bool is_SynonymType { get; }
     bool is_Datatype { get; }
     DAST._IModule dtor_Module_i_a0 { get; }
     DAST._IClass dtor_Class_i_a0 { get; }
     DAST._ITrait dtor_Trait_i_a0 { get; }
     DAST._INewtype dtor_Newtype_i_a0 { get; }
+    DAST._ISynonymType dtor_SynonymType_i_a0 { get; }
     DAST._IDatatype dtor_Datatype_i_a0 { get; }
     _IModuleItem DowncastClone();
   }
@@ -174,6 +176,9 @@ namespace DAST {
     public static _IModuleItem create_Newtype(DAST._INewtype _a0) {
       return new ModuleItem_Newtype(_a0);
     }
+    public static _IModuleItem create_SynonymType(DAST._ISynonymType _a0) {
+      return new ModuleItem_SynonymType(_a0);
+    }
     public static _IModuleItem create_Datatype(DAST._IDatatype _a0) {
       return new ModuleItem_Datatype(_a0);
     }
@@ -181,6 +186,7 @@ namespace DAST {
     public bool is_Class { get { return this is ModuleItem_Class; } }
     public bool is_Trait { get { return this is ModuleItem_Trait; } }
     public bool is_Newtype { get { return this is ModuleItem_Newtype; } }
+    public bool is_SynonymType { get { return this is ModuleItem_SynonymType; } }
     public bool is_Datatype { get { return this is ModuleItem_Datatype; } }
     public DAST._IModule dtor_Module_i_a0 {
       get {
@@ -204,6 +210,12 @@ namespace DAST {
       get {
         var d = this;
         return ((ModuleItem_Newtype)d)._i_a0;
+      }
+    }
+    public DAST._ISynonymType dtor_SynonymType_i_a0 {
+      get {
+        var d = this;
+        return ((ModuleItem_SynonymType)d)._i_a0;
       }
     }
     public DAST._IDatatype dtor_Datatype_i_a0 {
@@ -322,6 +334,33 @@ namespace DAST {
       return s;
     }
   }
+  public class ModuleItem_SynonymType : ModuleItem {
+    public readonly DAST._ISynonymType _i_a0;
+    public ModuleItem_SynonymType(DAST._ISynonymType _a0) : base() {
+      this._i_a0 = _a0;
+    }
+    public override _IModuleItem DowncastClone() {
+      if (this is _IModuleItem dt) { return dt; }
+      return new ModuleItem_SynonymType(_i_a0);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.ModuleItem_SynonymType;
+      return oth != null && object.Equals(this._i_a0, oth._i_a0);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 4;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_a0));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.ModuleItem.SynonymType";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_a0);
+      s += ")";
+      return s;
+    }
+  }
   public class ModuleItem_Datatype : ModuleItem {
     public readonly DAST._IDatatype _i_a0;
     public ModuleItem_Datatype(DAST._IDatatype _a0) : base() {
@@ -337,7 +376,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 4;
+      hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_a0));
       return (int) hash;
     }
@@ -2443,6 +2482,114 @@ namespace DAST {
     public DAST._INewtypeRange dtor_range {
       get {
         return this._i_range;
+      }
+    }
+    public Dafny.ISequence<DAST._IStatement> dtor_witnessStmts {
+      get {
+        return this._i_witnessStmts;
+      }
+    }
+    public Std.Wrappers._IOption<DAST._IExpression> dtor_witnessExpr {
+      get {
+        return this._i_witnessExpr;
+      }
+    }
+    public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
+      get {
+        return this._i_attributes;
+      }
+    }
+  }
+
+  public interface _ISynonymType {
+    bool is_SynonymType { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
+    DAST._IType dtor_base { get; }
+    Dafny.ISequence<DAST._IStatement> dtor_witnessStmts { get; }
+    Std.Wrappers._IOption<DAST._IExpression> dtor_witnessExpr { get; }
+    Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
+    _ISynonymType DowncastClone();
+  }
+  public class SynonymType : _ISynonymType {
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<DAST._ITypeArgDecl> _i_typeParams;
+    public readonly DAST._IType _i_base;
+    public readonly Dafny.ISequence<DAST._IStatement> _i_witnessStmts;
+    public readonly Std.Wrappers._IOption<DAST._IExpression> _i_witnessExpr;
+    public readonly Dafny.ISequence<DAST._IAttribute> _i_attributes;
+    public SynonymType(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      this._i_name = name;
+      this._i_typeParams = typeParams;
+      this._i_base = @base;
+      this._i_witnessStmts = witnessStmts;
+      this._i_witnessExpr = witnessExpr;
+      this._i_attributes = attributes;
+    }
+    public _ISynonymType DowncastClone() {
+      if (this is _ISynonymType dt) { return dt; }
+      return new SynonymType(_i_name, _i_typeParams, _i_base, _i_witnessStmts, _i_witnessExpr, _i_attributes);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.SynonymType;
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_base, oth._i_base) && object.Equals(this._i_witnessStmts, oth._i_witnessStmts) && object.Equals(this._i_witnessExpr, oth._i_witnessExpr) && object.Equals(this._i_attributes, oth._i_attributes);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_base));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_witnessStmts));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_witnessExpr));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.SynonymType.SynonymType";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_name);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_typeParams);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_base);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_witnessStmts);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_witnessExpr);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_attributes);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._ISynonymType theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, DAST.Type.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default(), Dafny.Sequence<DAST._IAttribute>.Empty);
+    public static DAST._ISynonymType Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._ISynonymType> _TYPE = new Dafny.TypeDescriptor<DAST._ISynonymType>(DAST.SynonymType.Default());
+    public static Dafny.TypeDescriptor<DAST._ISynonymType> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ISynonymType create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new SynonymType(name, typeParams, @base, witnessStmts, witnessExpr, attributes);
+    }
+    public static _ISynonymType create_SynonymType(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, typeParams, @base, witnessStmts, witnessExpr, attributes);
+    }
+    public bool is_SynonymType { get { return true; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
+      get {
+        return this._i_name;
+      }
+    }
+    public Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams {
+      get {
+        return this._i_typeParams;
+      }
+    }
+    public DAST._IType dtor_base {
+      get {
+        return this._i_base;
       }
     }
     public Dafny.ISequence<DAST._IStatement> dtor_witnessStmts {

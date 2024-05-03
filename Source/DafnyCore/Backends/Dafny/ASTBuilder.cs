@@ -46,7 +46,7 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  class ModuleBuilder : ClassContainer, TraitContainer, NewtypeContainer, DatatypeContainer {
+  class ModuleBuilder : ClassContainer, TraitContainer, NewtypeContainer, DatatypeContainer, SynonymTypeContainer {
     readonly ModuleContainer parent;
     readonly string name;
     readonly Sequence<Attribute> attributes;
@@ -86,6 +86,10 @@ namespace Microsoft.Dafny.Compilers {
       ));
 
       return parent;
+    }
+
+    public void AddSynonymType(SynonymType item) {
+      body.Add((ModuleItem)ModuleItem.create_SynonymType(item));
     }
 
     public void AddUnsupported(string why) {
@@ -240,6 +244,52 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(this.typeParams.ToArray()),
         this.baseType,
         newtypeRange,
+        Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
+        this.witness == null
+          ? Option<DAST._IExpression>.create_None()
+          : Option<DAST._IExpression>.create_Some(this.witness),
+        attributes
+      ));
+      return parent;
+    }
+  }
+
+  interface SynonymTypeContainer : Container {
+    void AddSynonymType(SynonymType item);
+
+    public SynonymTypeBuilder SynonymType(string name, List<DAST.TypeArgDecl> typeParams,
+      DAST.Type rhsType, List<DAST.Statement> witnessStmts, DAST.Expression witness,
+      ISequence<_IAttribute> attributes) {
+      return new SynonymTypeBuilder(this, name, typeParams, rhsType, witnessStmts, witness, attributes);
+    }
+  }
+
+  class SynonymTypeBuilder {
+    readonly SynonymTypeContainer parent;
+    readonly string name;
+    readonly List<DAST.TypeArgDecl> typeParams;
+    readonly DAST.Type rhsType;
+    readonly List<DAST.Statement> witnessStmts;
+    readonly DAST.Expression witness;
+    private ISequence<_IAttribute> attributes;
+
+    public SynonymTypeBuilder(SynonymTypeContainer parent, string name, List<DAST.TypeArgDecl> typeParams,
+      DAST.Type rhsType, List<DAST.Statement> statements, DAST.Expression witness,
+      ISequence<_IAttribute> attributes) {
+      this.parent = parent;
+      this.name = name;
+      this.typeParams = typeParams;
+      this.rhsType = rhsType;
+      this.witnessStmts = statements;
+      this.witness = witness;
+      this.attributes = attributes;
+    }
+
+    public object Finish() {
+      parent.AddSynonymType((SynonymType)SynonymType.create(
+        Sequence<Rune>.UnicodeFromString(this.name),
+        Sequence<DAST.TypeArgDecl>.FromArray(this.typeParams.ToArray()),
+        this.rhsType,
         Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
         this.witness == null
           ? Option<DAST._IExpression>.create_None()
