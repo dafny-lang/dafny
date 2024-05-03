@@ -386,45 +386,44 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
-      if (currentBuilder is NewtypeContainer builder) {
-        var erasedType = EraseNewtypeLayers(sst);
+      if (currentBuilder is not SynonymTypeContainer builder) {
+        throw new InvalidOperationException();
+      }
 
-        List<DAST.Statement> witnessStmts = new();
-        DAST.Expression witness = null;
-        var statementBuf = new StatementBuffer();
-        var buf = new ExprBuffer(null);
-        if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          EmitExpr(
-            sst.Witness, false,
-            EmitCoercionIfNecessary(sst.Witness.Type, erasedType, null, new BuilderSyntaxTree<ExprContainer>(buf, this)),
-            new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
-          );
-          witness = buf.Finish();
-          witnessStmts = statementBuf.PopAll();
-        }
-        string baseName = sst.Var.CompileName;
-        DAST.Expression baseConstraint = buf.Finish();
-        var baseConstraintStmts = statementBuf.PopAll(); // TODO: Integrate in AST.
+      var erasedType = EraseNewtypeLayers(sst);
 
-        List<DAST.TypeArgDecl> typeParams = new();
-        foreach (var tp in sst.TypeArgs) {
-          var compileName = tp.Name;
-          if (!isTpSupported(tp, out var why)) {
-            AddUnsupported(why);
+      List<DAST.Statement> witnessStmts = new();
+      DAST.Expression witness = null;
+      var statementBuf = new StatementBuffer();
+      var buf = new ExprBuffer(null);
+      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        EmitExpr(
+          sst.Witness, false,
+          EmitCoercionIfNecessary(sst.Witness.Type, erasedType, null,
+            new BuilderSyntaxTree<ExprContainer>(buf, this)),
+          new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
+        );
+        witness = buf.Finish();
+        witnessStmts = statementBuf.PopAll();
+      }
+
+      List<DAST.TypeArgDecl> typeParams = new();
+      foreach (var tp in sst.TypeArgs) {
+        var compileName = tp.Name;
+        if (!isTpSupported(tp, out var why)) {
+          AddUnsupported(why);
 
           }
 
-          var bounds = GenTypeBounds(tp);
+        var bounds = GenTypeBounds(tp);
 
-          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
-            Sequence<Rune>.UnicodeFromString(compileName), bounds));
-        }
-
-        builder.Newtype(sst.GetCompileName(Options), typeParams,
-          GenType(erasedType), (NewtypeRange)NewtypeRange.create_NoRange(), witnessStmts, witness, ParseAttributes(sst.Attributes)).Finish();
-      } else {
-        throw new InvalidOperationException();
+        typeParams.Add((DAST.TypeArgDecl) DAST.TypeArgDecl.create_TypeArgDecl(
+          Sequence<Rune>.UnicodeFromString(compileName), bounds));
       }
+
+      builder.SynonymType(sst.GetCompileName(Options), typeParams,
+        GenType(erasedType), witnessStmts, witness,
+        ParseAttributes(sst.Attributes)).Finish();
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
@@ -432,6 +431,7 @@ namespace Microsoft.Dafny.Compilers {
       literalSuffix = null;
       needsCastAfterArithmetic = false;
     }
+    
 
     private Sequence<DAST.Formal> GenFormals(List<Formal> formals) {
       List<DAST.Formal> paramsList = new();
@@ -1287,15 +1287,10 @@ namespace Microsoft.Dafny.Compilers {
 
         switch (e) {
           case CharLiteralExpr c:
-            if (UnicodeCharEnabled) {
-              var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
-              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
-                new Rune(codePoint)
-              ));
-            } else {
-              AddUnsupported("<i>Char literal without unicode char enabled</i>");
-              return;
-            }
+            var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
+            baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
+              new Rune(codePoint)
+            ));
             break;
           case StringLiteralExpr str:
             baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(

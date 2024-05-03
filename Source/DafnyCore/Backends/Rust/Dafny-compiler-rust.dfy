@@ -45,9 +45,11 @@ module RAST
     | RawDecl(body: string)
     | ModDecl(mod: Mod)
     | StructDecl(struct: Struct)
+    | TypeDecl(tpe: TypeSynonym)
     | EnumDecl(enum: Enum)
     | ImplDecl(impl: Impl)
     | TraitDecl(tr: Trait)
+    | TopFnDecl(fn: TopFnDecl)
   {
     function ToString(ind: string): string
       decreases this
@@ -56,8 +58,16 @@ module RAST
       else if StructDecl? then struct.ToString(ind)
       else if ImplDecl? then impl.ToString(ind)
       else if EnumDecl? then enum.ToString(ind)
+      else if TypeDecl? then tpe.ToString(ind)
       else if TraitDecl? then tr.ToString(ind)
+      else if TopFnDecl? then fn.ToString(ind)
       else assert RawDecl?; body
+    }
+  }
+  datatype TopFnDecl = TopFn(attributes: seq<Attribute>, visibility: Visibility, fn: Fn) {
+    function ToString(ind: string): string {
+      Attribute.ToStringMultiple(attributes, ind) +
+      visibility.ToString() + fn.ToString(ind)
     }
   }
   datatype Attribute = RawAttribute(content: string) {
@@ -81,6 +91,17 @@ module RAST
     }
   }
 
+  datatype TypeSynonym =
+    TypeSynonym(attributes: seq<Attribute>,
+                name: string, typeParams: seq<TypeParamDecl>, tpe: Type)
+  {
+    function ToString(ind: string): string {
+      Attribute.ToStringMultiple(attributes, ind) +
+      "pub type " + name +
+      TypeParamDecl.ToStringMultiple(typeParams, ind) + " = " +
+      tpe.ToString(ind) + ";"
+    }
+  }
   datatype NamelessField =
     NamelessField(visibility: Visibility, tpe: Type)
   {
@@ -1210,6 +1231,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             generated := [R.RawDecl(tt)];
           case Newtype(n) =>
             generated := GenNewtype(n);
+          case SynonymType(s) =>
+            generated := GenSynonymType(s);
           case Datatype(d) =>
             generated := GenDatatype(d);
         }
@@ -1528,6 +1551,42 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     Some(R.RawExpr("&self.0"))))]))];
     }
 
+    method GenSynonymType(c: SynonymType) returns (s: seq<R.ModDecl>)
+      modifies this
+    {
+      var typeParamsSet, rTypeParams, rTypeParamsDecls, whereConstraints := GenTypeParameters(c.typeParams);
+      var constrainedTypeParams := R.TypeParamDecl.ToStringMultiple(rTypeParamsDecls, R.IND + R.IND);
+      var synonymTypeName := escapeName(c.name);
+      var resultingType := GenType(c.base, false, false);
+
+      s := [
+        R.TypeDecl(
+          R.TypeSynonym(
+            [],
+            synonymTypeName, rTypeParamsDecls, resultingType
+        ))];
+
+      match c.witnessExpr {
+        case Some(e) => {
+          var rStmts, _, newEnv := GenStmts(c.witnessStmts, None, Environment.Empty(), false, R.RawExpr(""));
+          var rExpr, _, _ := GenExpr(e, None, newEnv, OwnershipOwned);
+          var constantName := escapeName(Name("_init_" + c.name.dafny_name));
+          s := s + [
+            R.TopFnDecl(
+              R.TopFn(
+                [], R.PUB,
+                R.Fn(
+                  constantName, [], [], Some(resultingType),
+                  "",
+                  Some(rStmts.Then(rExpr)))
+              )
+            )
+          ];
+        }
+        case None => {}
+      }
+    }
+
     method GenDatatype(c: Datatype) returns (s: seq<R.ModDecl>)
       modifies this
     {
@@ -1809,6 +1868,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
       }
     }
+
+    predicate IsRcWrapped(attributes: seq<Attribute>) {
+      (Attribute("auto-nongrowing-size", []) !in attributes &&
+       Attribute("rust_rc", ["false"]) !in attributes) ||
+      Attribute("rust_rc", ["true"]) in attributes
+    }
+
     method GenType(c: Type, inBinding: bool, inFn: bool) returns (s: R.Type) {
       match c {
         case Path(p, args, resolved) => {
@@ -2791,7 +2857,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if fromTpe == b {
         var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
-
         match nativeToType {
           case Some(v) =>
             r := R.dafny_runtime.MSel("truncate!").Apply([recursiveGen, R.ExprFromType(v)]);
@@ -2805,11 +2870,30 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
         }
-        assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       } else {
+        if nativeToType.Some? {
+          // Conversion between any newtypes that can be expressed as a native Rust type
+          match fromTpe {
+            case Path(_, _, Newtype(b0, range0, erase0, attributes0)) => {
+              var nativeFromType := NewtypeToRustType(b0, range0);
+              if nativeFromType.Some? {
+                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+                r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen, nativeToType.value), recOwned, expectedOwnership);
+                readIdents := recIdents;
+                return;
+              }
+            }
+            case _ =>
+          }
+          if fromTpe == Primitive(Char) {
+            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+            r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen.Sel("0"), nativeToType.value), recOwned, expectedOwnership);
+            readIdents := recIdents;
+            return;
+          }
+        }
         assume {:axiom} Convert(Convert(expr, fromTpe, b), b, toTpe) < e; // make termination go through
         r, resultingOwnership, readIdents := GenExpr(Convert(Convert(expr, fromTpe, b), b, toTpe), selfIdent, env, expectedOwnership);
-        assert OwnershipGuarantee(expectedOwnership, resultingOwnership);
       }
     }
 
@@ -3103,10 +3187,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
             i := i - 1;
           }
-
-          r := R.RawExpr(s);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
-          return;
         }
         case DatatypeValue(datatypeType, typeArgs, variant, isCo, values) => {
           r := GenPathExpr(datatypeType.path);
