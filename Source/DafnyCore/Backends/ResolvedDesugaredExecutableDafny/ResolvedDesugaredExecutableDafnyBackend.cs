@@ -8,7 +8,7 @@ public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
   protected override bool CanEmitUncompilableCode => false;
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
   public override string TargetName => "ResolvedDesugaredExecutableDafny";
-  public override bool IsStable => true;
+  public override bool IsStable => false;
   public override bool IsInternal => true;
   public override string TargetExtension => "dfy";
   public override bool SupportsInMemoryCompilation => false;
