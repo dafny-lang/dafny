@@ -163,7 +163,7 @@ public static class VerifyCommand {
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
         Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
-          (uint)completed.Result.RunTime.Seconds,
+          (uint)completed.Result.RunTime.TotalSeconds,
           completed.Result, batchReporter);
       }
 
