@@ -12,6 +12,8 @@ using DafnyCore.Options;
 using Microsoft.Dafny;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
+using Tomlyn.Helpers;
+using Tomlyn.Model;
 
 namespace DafnyCore;
 
@@ -59,20 +61,23 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
+      var content = Toml.FromModel(this, new TomlModelOptions() {
+        ConvertToToml = obj => {
+          if (obj is Enum) {
+            TomlFormatHelper.ToString(obj.ToString()!, TomlPropertyDisplayKind.Default);
+            return obj.ToString();
+          }
+
+          return obj;
+        }
+      }).Replace("\r\n", "\n");
+      writer.Write(content);
     }
   }
 
   public ManifestData Manifest { get; set; }
 
   public string ProgramText { get; set; }
-
-  // This must be independent from any user-provided options,
-  // and remain fixed over the lifetime of a single .doo file format version.
-  // We don't want to attempt to read the program text using --function-syntax:3 for example.
-  // If we change default option values in future Dafny major version bumps,
-  // this must be configured to stay the same.
-  private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
   public static Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
@@ -113,7 +118,7 @@ public class DooFile {
     var tw = new StringWriter {
       NewLine = "\n"
     };
-    var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
+    var pr = new Printer(tw, dafnyProgram.Options, PrintModes.Serialization);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
     // It's probably worth serializing a program in a more efficient way first
@@ -221,10 +226,10 @@ public class DooFile {
   // is restricted to only the new CLI.
 
   private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
-  private static readonly Dictionary<Option, bool> NoChecksNeeded = new();
+  private static readonly HashSet<Option> NoChecksNeeded = new();
 
   public static void RegisterLibraryCheck(Option option, OptionCompatibility.OptionCheck check) {
-    if (NoChecksNeeded.ContainsKey(option)) {
+    if (NoChecksNeeded.Contains(option)) {
       throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
     }
     OptionChecks.Add(option, check);
@@ -237,16 +242,20 @@ public class DooFile {
   }
 
   public static void RegisterNoChecksNeeded(Option option, bool semantic) {
-    if (OptionChecks.ContainsKey(option)) {
-      throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
+    if (semantic) {
+      RegisterLibraryCheck(option, OptionCompatibility.NoOpOptionCheck);
+    } else {
+      if (OptionChecks.ContainsKey(option)) {
+        throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
+      }
+      NoChecksNeeded.Add(option);
     }
-    NoChecksNeeded.Add(option, semantic);
   }
 
   public static void CheckOptions(IEnumerable<Option> allOptions) {
     var unsupportedOptions = allOptions.ToHashSet()
       .Where(o =>
-        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.ContainsKey(o))
+        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.Contains(o))
       .ToList();
     if (unsupportedOptions.Any()) {
       throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
