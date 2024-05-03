@@ -42,6 +42,7 @@ module {:extern "DAST"} DAST {
     | Class(Class)
     | Trait(Trait)
     | Newtype(Newtype)
+    | SynonymType(SynonymType)
     | Datatype(Datatype)
 
   datatype Type =
@@ -93,6 +94,10 @@ module {:extern "DAST"} DAST {
   datatype DatatypeCtor = DatatypeCtor(name: Name, args: seq<DatatypeDtor>, hasAnyArgs: bool /* includes ghost */)
 
   datatype Newtype = Newtype(name: Name, typeParams: seq<TypeArgDecl>, base: Type, range: NewtypeRange, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+
+  // At this point, constraints have been entirely removed,
+  // but synonym types might have different witnesses to use for by the compiler
+  datatype SynonymType = SynonymType(name: Name, typeParams: seq<TypeArgDecl>, base: Type, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
 
   datatype ClassItem = Method(Method)
 
