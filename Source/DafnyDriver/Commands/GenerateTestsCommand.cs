@@ -156,12 +156,10 @@ Path - Generate tests targeting path-coverage.");
       options.TestGenOptions.ForcePrune = value;
     });
 
-    DooFile.RegisterNoChecksNeeded(
-      LoopUnroll,
-      SequenceLengthLimit,
-      PrintBpl,
-      ExpectedCoverageReport,
-      ForcePrune
-    );
+    DooFile.RegisterNoChecksNeeded(LoopUnroll, false);
+    DooFile.RegisterNoChecksNeeded(SequenceLengthLimit, false);
+    DooFile.RegisterNoChecksNeeded(PrintBpl, false);
+    DooFile.RegisterNoChecksNeeded(ExpectedCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(ForcePrune, false);
   }
 }

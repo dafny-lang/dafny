@@ -52,10 +52,6 @@ public class CommonOptionBag {
   public static readonly Option<bool> StdIn = new("--stdin", () => false,
     @"Read standard input and treat it as an input .dfy file.");
 
-  public static readonly Option<bool> Check = new("--check", () => false, @"
-Instead of formatting files, verify that all files are already
-formatted through and return a non-zero exit code if it is not the case".TrimStart());
-
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
 true - In the compiled target code, transform any non-extern
@@ -316,10 +312,6 @@ May produce spurious warnings.") {
     IsHidden = true
   };
 
-  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
-    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
-  );
-
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -496,8 +488,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(InternalIncludeRuntimeOptionForExecution, (options, value) => { options.IncludeRuntime = value; });
     DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
-    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
-      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
@@ -517,16 +507,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
-      options.FormatCheck = value;
-    });
-
     DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
       options.UseStdin = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
-      options.DafnyPrintFile = value ? "-" : null;
     });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
@@ -591,59 +573,50 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
     );
-    DooFile.RegisterNoChecksNeeded(
-      WarnAsErrors,
-      ProgressOption,
-      LogLocation,
-      LogLevelOption,
-      ManualTriggerOption,
-      ShowHints,
-      Check,
-      Libraries,
-      Output,
-      PluginOption,
-      Prelude,
-      Target,
-      Verbose,
-      AllowDeprecation,
-      FormatPrint,
-      JsonDiagnostics,
-      QuantifierSyntax,
-      SpillTranslation,
-      StdIn,
-      TestAssumptions,
-      WarnShadowing,
-      ManualLemmaInduction,
-      TypeInferenceDebug,
-      GeneralTraits,
-      GeneralNewtypes,
-      TypeSystemRefresh,
-      VerificationLogFormat,
-      VerifyIncludedFiles,
-      DisableNonLinearArithmetic,
-      NewTypeInferenceDebug,
-      UseBaseFileName,
-      WarnMissingConstructorParenthesis,
-      UseJavadocLikeDocstringRewriterOption,
-      IncludeRuntimeOption,
-      InternalIncludeRuntimeOptionForExecution,
-      WarnContradictoryAssumptions,
-      WarnRedundantAssumptions,
-      VerificationCoverageReport,
-      NoTimeStampForCoverageReport,
-      DefaultFunctionOpacity,
-      UseStandardLibraries,
-      OptimizeErasableDatatypeWrapper,
-      AddCompileSuffix,
-      SystemModule,
-      ExecutionCoverageReport,
-      ExtractCounterexample,
-      ShowProofObligationExpressions
-      );
+    DooFile.RegisterNoChecksNeeded(WarnAsErrors, false);
+    DooFile.RegisterNoChecksNeeded(ProgressOption, false);
+    DooFile.RegisterNoChecksNeeded(LogLocation, false);
+    DooFile.RegisterNoChecksNeeded(LogLevelOption, false);
+    DooFile.RegisterNoChecksNeeded(ManualTriggerOption, true);
+    DooFile.RegisterNoChecksNeeded(ShowHints, false);
+    DooFile.RegisterNoChecksNeeded(Libraries, false);
+    DooFile.RegisterNoChecksNeeded(Output, false);
+    DooFile.RegisterNoChecksNeeded(PluginOption, false);
+    DooFile.RegisterNoChecksNeeded(Prelude, false);
+    DooFile.RegisterNoChecksNeeded(Target, false);
+    DooFile.RegisterNoChecksNeeded(Verbose, false);
+    DooFile.RegisterNoChecksNeeded(AllowDeprecation, true); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(JsonDiagnostics, false);
+    DooFile.RegisterNoChecksNeeded(QuantifierSyntax, true);
+    DooFile.RegisterNoChecksNeeded(SpillTranslation, false);
+    DooFile.RegisterNoChecksNeeded(StdIn, false);
+    DooFile.RegisterNoChecksNeeded(TestAssumptions, false);
+    DooFile.RegisterNoChecksNeeded(WarnShadowing, true); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(ManualLemmaInduction, true);
+    DooFile.RegisterNoChecksNeeded(TypeInferenceDebug, false);
+    DooFile.RegisterNoChecksNeeded(GeneralTraits, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(GeneralNewtypes, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(TypeSystemRefresh, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(VerificationLogFormat, false);
+    DooFile.RegisterNoChecksNeeded(VerifyIncludedFiles, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(DisableNonLinearArithmetic, true);
+    DooFile.RegisterNoChecksNeeded(NewTypeInferenceDebug, false);
+    DooFile.RegisterNoChecksNeeded(UseBaseFileName, false);
+    DooFile.RegisterNoChecksNeeded(WarnMissingConstructorParenthesis, true);
+    DooFile.RegisterNoChecksNeeded(IncludeRuntimeOption, false);
+    DooFile.RegisterNoChecksNeeded(InternalIncludeRuntimeOptionForExecution, false);
+    DooFile.RegisterNoChecksNeeded(WarnContradictoryAssumptions, true);
+    DooFile.RegisterNoChecksNeeded(WarnRedundantAssumptions, true);
+    DooFile.RegisterNoChecksNeeded(VerificationCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(NoTimeStampForCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(DefaultFunctionOpacity, true);
+    DooFile.RegisterNoChecksNeeded(UseStandardLibraries, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(OptimizeErasableDatatypeWrapper, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(AddCompileSuffix, false);  // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(SystemModule, false);
+    DooFile.RegisterNoChecksNeeded(ExecutionCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(ExtractCounterexample, false);
+    DooFile.RegisterNoChecksNeeded(ShowProofObligationExpressions, false);
   }
-
-  public static readonly Option<bool> FormatPrint = new("--print",
-    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
-  };
 }
 

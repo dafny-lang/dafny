@@ -144,18 +144,16 @@ public static class BoogieOptionBag {
         { NoVerify, OptionCompatibility.CheckOptionLibraryImpliesLocal },
       }
     );
-    DooFile.RegisterNoChecksNeeded(
-      Cores,
-      VerificationTimeLimit,
-      VerificationErrorLimit,
-      IsolateAssertions,
-      SolverLog,
-      SolverOption,
-      SolverOptionHelp,
-      SolverPath,
-      SolverPlugin,
-      SolverResourceLimit
-    );
+    DooFile.RegisterNoChecksNeeded(Cores, false);
+    DooFile.RegisterNoChecksNeeded(VerificationTimeLimit, false);
+    DooFile.RegisterNoChecksNeeded(VerificationErrorLimit, false);
+    DooFile.RegisterNoChecksNeeded(IsolateAssertions, false);
+    DooFile.RegisterNoChecksNeeded(SolverLog, false);
+    DooFile.RegisterNoChecksNeeded(SolverOption, false);
+    DooFile.RegisterNoChecksNeeded(SolverOptionHelp, false);
+    DooFile.RegisterNoChecksNeeded(SolverPath, false);
+    DooFile.RegisterNoChecksNeeded(SolverPlugin, false);
+    DooFile.RegisterNoChecksNeeded(SolverResourceLimit, false);
   }
 
   private static IReadOnlyList<string> SplitArguments(string commandLine) {

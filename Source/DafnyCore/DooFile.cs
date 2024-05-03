@@ -221,10 +221,10 @@ public class DooFile {
   // is restricted to only the new CLI.
 
   private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
-  private static readonly HashSet<Option> NoChecksNeeded = new();
+  private static readonly Dictionary<Option, bool> NoChecksNeeded = new();
 
   public static void RegisterLibraryCheck(Option option, OptionCompatibility.OptionCheck check) {
-    if (NoChecksNeeded.Contains(option)) {
+    if (NoChecksNeeded.ContainsKey(option)) {
       throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
     }
     OptionChecks.Add(option, check);
@@ -236,19 +236,17 @@ public class DooFile {
     }
   }
 
-  public static void RegisterNoChecksNeeded(params Option[] options) {
-    foreach (var option in options) {
-      if (OptionChecks.ContainsKey(option)) {
-        throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
-      }
-      NoChecksNeeded.Add(option);
+  public static void RegisterNoChecksNeeded(Option option, bool semantic) {
+    if (OptionChecks.ContainsKey(option)) {
+      throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
     }
+    NoChecksNeeded.Add(option, semantic);
   }
 
   public static void CheckOptions(IEnumerable<Option> allOptions) {
     var unsupportedOptions = allOptions.ToHashSet()
       .Where(o =>
-        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.Contains(o))
+        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.ContainsKey(o))
       .ToList();
     if (unsupportedOptions.Any()) {
       throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
