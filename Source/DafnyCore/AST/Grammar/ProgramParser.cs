@@ -76,7 +76,7 @@ public class ProgramParser {
     }
 
     if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-      var includedModules = await TryParseIncludes(files, defaultModule.Includes.ToList(),
+      var includedModules = TryParseIncludes(files, defaultModule.Includes.ToList(),
         builtIns, errorReporter, cancellationToken);
 
       foreach (var module in includedModules) {
@@ -206,7 +206,7 @@ public class ProgramParser {
     }
   }
 
-  public async Task<IList<DfyParseResult>> TryParseIncludes(
+  public IList<DfyParseResult> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     SystemModuleManager systemModuleManager,

@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.AccessControl;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
@@ -163,7 +164,7 @@ public static class DafnyNewCli {
     return true;
   }
 
-  public static Task<int> Execute(IConsole console, string[] arguments) {
+  public static Task<int> Execute(IConsole console, IReadOnlyList<string> arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
       if (!allowHidden) {
@@ -177,7 +178,7 @@ public static class DafnyNewCli {
       }
     }
 
-    return Parser.InvokeAsync(arguments, console);
+    return Parser.InvokeAsync(arguments.ToArray(), console);
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;
@@ -271,20 +272,34 @@ public static class DafnyNewCli {
 
     if (options.Get(DafnyFile.UnsafeDependencies)) {
       var project = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
-      foreach (var libraryRootSetFile in project.GetRootSourceUris(fileSystem)) {
-        var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, options, libraryRootSetFile,
-          project.StartingToken, true);
-        yield return file;
+      var projectOptions =
+        DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, uriOrigin, project.Options);
+      if (projectOptions != null) {
+        foreach (var libraryRootSetFile in project.GetRootSourceUris(fileSystem)) {
+          var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, projectOptions, libraryRootSetFile,
+            project.StartingToken, true);
+          if (file != null) {
+            yield return file;
+          }
+        }
       }
     } else {
       var outputWriter = new StringWriter();
       var errorWriter = new StringWriter();
+      if (options.Verbose) {
+        await outputWriter.WriteLineAsync($"Building dependency {options.GetPrintPath(uri.LocalPath)}");
+      }
+
+      var arguments = new List<string>() { "build", "-t=lib", uri.LocalPath, "--verbose" };
+      if (options.Get(CommonOptionBag.UseBaseFileName)) {
+        arguments.Add(CommonOptionBag.UseBaseFileName.Aliases.First());
+      }
       var exitCode = await Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
-        new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
+        arguments);
       if (exitCode != 0) {
         var output = outputWriter + errorWriter.ToString();
         reporter.Error(MessageSource.Project, uriOrigin,
-          $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
+          $"Could not build a Dafny library from {options.GetPrintPath(uri.LocalPath)} because:\n{output}");
         yield break;
       }
 

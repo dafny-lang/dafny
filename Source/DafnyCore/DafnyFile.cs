@@ -74,7 +74,10 @@ public class DafnyFile {
     }
 
     if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
-      yield return HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
+      var file = HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
+      if (file != null) {
+        yield return file;
+      }
       yield break;
     }
 
@@ -108,7 +111,7 @@ public class DafnyFile {
   public static readonly Option<bool> UnsafeDependencies = new("--unsafe-dependencies",
     "Allows Dafny to accept dependencies that may not have been verified with compatible options, which can be useful during development.");
 
-  public static DafnyFile HandleDafnyFile(IFileSystem fileSystem,
+  public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
     Uri uri, IToken origin, bool asLibrary = false) {
@@ -135,7 +138,7 @@ public class DafnyFile {
       }
 
       reporter.Error(MessageSource.Project, origin, $"file {options.GetPrintPath(filePath)} not found");
-      return null!;
+      return null;
     }
 
     if (!options.Get(UnsafeDependencies) && asLibrary) {

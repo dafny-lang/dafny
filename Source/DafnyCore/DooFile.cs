@@ -1,5 +1,6 @@
+#nullable enable
+
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -10,7 +11,6 @@ using System.Threading.Tasks;
 using DafnyCore.Generic;
 using DafnyCore.Options;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
 
 namespace DafnyCore;
@@ -129,7 +129,7 @@ public class DooFile {
   /// <summary>
   /// Returns the options as specified by the DooFile
   /// </summary>
-  public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+  public DafnyOptions? Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
         $"cannot load {options.GetPrintPath(filePath)}: .doo files cannot be used with the legacy CLI");
@@ -145,10 +145,9 @@ public class DooFile {
     return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
   }
 
-
-  public static DafnyOptions CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
+  public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
     DafnyOptions options, IToken origin,
-    Dictionary<string, object> libraryOptions) {
+    IDictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
