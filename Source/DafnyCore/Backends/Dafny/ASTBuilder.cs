@@ -1100,6 +1100,51 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class ExprWrapper : ExprContainer, BuildableExpr {
+    public Func<DAST.Expression, DAST.Expression> InternalWrapper;
+    [CanBeNull] public object Expr;
+
+    public ExprWrapper(Func<DAST.Expression, DAST.Expression> internalWrapper) {
+      this.InternalWrapper = internalWrapper;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (Expr == null) {
+        Expr = item;
+      } else {
+        throw new InvalidOperationException("AddExpr already had an object");
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (Expr == null) {
+        Expr = item;
+      } else {
+        throw new InvalidOperationException("AddExpr already had an object");
+      }
+    }
+
+    public DAST.Expression Finish() {
+      if (Expr == null) {
+        return ExprContainer.UnsupportedToExpr("Expected exactly one expression for ExprWrapper, got none");
+      } else if (Expr is BuildableExpr b) {
+        return b.Build();
+      } else if (Expr is DAST.Expression e) {
+        return e;
+      } else {
+        return ExprContainer.UnsupportedToExpr("Expected exactly one expression for ExprWrapper, got " + Expr);
+      }
+    }
+
+    public void AddUnsupported(string why) {
+      AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+
+    public DAST.Expression Build() {
+      return InternalWrapper(Finish());
+    }
+  }
+
   class ExprBuffer : ExprContainer, BuildableExpr {
     Stack<object> exprs = new();
     public readonly object parent;
@@ -1158,6 +1203,12 @@ namespace Microsoft.Dafny.Compilers {
     void AddExpr(DAST.Expression item);
 
     void AddBuildable(BuildableExpr item);
+
+    ExprWrapper Wrapper(Func<DAST.Expression, DAST.Expression> wrapper) {
+      var ret = new ExprWrapper(wrapper);
+      AddBuildable(ret);
+      return ret;
+    }
 
     BinOpBuilder BinOp(DAST.BinOp op) {
       var ret = new BinOpBuilder(op);
