@@ -413,11 +413,11 @@ namespace Microsoft.Dafny.Compilers {
         if (!isTpSupported(tp, out var why)) {
           AddUnsupported(why);
 
-          }
+        }
 
         var bounds = GenTypeBounds(tp);
 
-        typeParams.Add((DAST.TypeArgDecl) DAST.TypeArgDecl.create_TypeArgDecl(
+        typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
           Sequence<Rune>.UnicodeFromString(compileName), bounds));
       }
 
@@ -431,7 +431,7 @@ namespace Microsoft.Dafny.Compilers {
       literalSuffix = null;
       needsCastAfterArithmetic = false;
     }
-    
+
 
     private Sequence<DAST.Formal> GenFormals(List<Formal> formals) {
       List<DAST.Formal> paramsList = new();
