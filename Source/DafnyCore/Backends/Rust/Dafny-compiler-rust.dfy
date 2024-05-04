@@ -264,6 +264,19 @@ module RAST
     predicate CanReadWithoutClone() {
       U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || Bool?
     }
+    function ExtractMaybePlacebo(): Option<Type> {
+      match this {
+        case TypeApp(wrapper, arguments) =>
+          if (wrapper == TIdentifier("MaybePlacebo")
+              || wrapper == dafny_runtime_type.MSel("MaybePlacebo"))
+             && |arguments| == 1
+          then
+            Some(arguments[0])
+          else
+            None
+        case _ => None
+      }
+    }
     function ToString(ind: string): string {
       match this {
         case Bool() => "bool"
@@ -373,6 +386,20 @@ module RAST
                   )
     )
   }
+
+  const MaybeUninitPath := std_type.MSel("mem").MSel("MaybeUninit")
+
+  function MaybeUninitType(underlying: Type): Type {
+    MaybeUninitPath.Apply([underlying])
+  }
+  function MaybeUninitNew(underlying: Expr): Expr {
+    std.MSel("mem").MSel("MaybeUninit").MSel("new").Apply([underlying])
+  }
+
+  function MaybePlaceboType(underlying: Type): Type {
+    dafny_runtime_type.MSel("MaybePlacebo").Apply1(underlying)
+  }
+
 
   datatype Trait =
     | Trait(typeParams: seq<TypeParamDecl>, tpe: Type, where: string, body: seq<ImplMember>)
@@ -2235,7 +2262,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               var outType := GenType(m.outTypes[outI], false, false);
               var outName := escapeName(outVar.id);
               paramNames := paramNames + [outName];
-              var outMaybeType := if outType.CanReadWithoutClone() then outType else R.Borrowed(outType);
+              var outMaybeType := if outType.CanReadWithoutClone() then outType else R.MaybePlaceboType(outType);
               paramTypes := paramTypes[outName := outMaybeType];
 
               var outVarReturn, _, _ := GenExpr(Expression.Ident(outVar.id), None,
@@ -2362,10 +2389,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       match stmt {
         case DeclareVar(name, typ, Some(expression)) => {
           var tpe := GenType(typ, true, false);
-          var expr, exprOwnership, recIdents := GenExpr(expression, selfIdent, env, OwnershipOwned);
-          readIdents := recIdents;
-          generated := R.DeclareVar(R.MUT, escapeName(name), Some(tpe), Some(expr));
-          newEnv := env.AddAssigned(escapeName(name), tpe);
+          var varName := escapeName(name);
+          var hasCopySemantics := tpe.CanReadWithoutClone();
+          if expression.InitializationValue? && !hasCopySemantics {
+            generated := R.DeclareVar(R.MUT, varName, None, Some(R.dafny_runtime.MSel("MaybePlacebo").ApplyType1(tpe).MSel("new").Apply([])));
+            readIdents := {};
+            newEnv := env.AddAssigned(varName, R.MaybePlaceboType(tpe));
+          } else {
+            var expr, recIdents;
+            var exprOwnership;
+            expr, exprOwnership, recIdents := GenExpr(expression, selfIdent, env, OwnershipOwned);
+            readIdents := recIdents;
+            generated := R.DeclareVar(R.MUT, escapeName(name), Some(tpe), Some(expr));
+            newEnv := env.AddAssigned(escapeName(name), tpe);
+          }
         }
         case DeclareVar(name, typ, None) => {
           var newStmt := DeclareVar(name, typ, Some(InitializationValue(typ)));
@@ -2377,6 +2414,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if lhs.Ident? {
             var rustId := escapeName(lhs.ident.id);
             var tpe := env.GetType(rustId);
+            if tpe.Some? && tpe.value.ExtractMaybePlacebo().Some? {
+              exprGen := R.MaybePlacebo(exprGen);
+            }
           }
           var lhsGen, needsIIFE, recIdents, resEnv := GenAssignLhs(lhs, exprGen, selfIdent, env);
           generated := lhsGen;
@@ -2521,6 +2561,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
           if maybeOutVars.Some? && |maybeOutVars.value| == 1 {
             var outVar := escapeName(maybeOutVars.value[0].id);
+            if !env.CanReadWithoutClone(outVar) {
+              generated := R.MaybePlacebo(generated);
+            }
             generated := R.AssignVar(outVar, generated);
           } else if maybeOutVars.None? || |maybeOutVars.value| == 0 {
             // Nothing to do here.
@@ -2533,6 +2576,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             for outI := 0 to |outVars| {
               var outVar := escapeName(outVars[outI].id);
               var rhs := tmpId.Sel(Strings.OfNat(outI));
+              if !env.CanReadWithoutClone(outVar) {
+                rhs := R.MaybePlacebo(rhs);
+              }
               generated := generated.Then(R.AssignVar(outVar, rhs));
             }
           }
@@ -3200,8 +3246,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       r := R.Identifier(rName);
       var tpe := env.GetType(rName);
+      var placeboOpt := if tpe.Some? then tpe.value.ExtractMaybePlacebo() else None;
       var currentlyBorrowed := env.IsBorrowed(rName); // Otherwise names are owned
       var noNeedOfClone := env.CanReadWithoutClone(rName);
+      if placeboOpt.Some? {
+        r := r.Sel("read").Apply([]);
+        currentlyBorrowed := false;
+        noNeedOfClone := true; // No need to clone it, it's already owned
+      }
       if expectedOwnership == OwnershipAutoBorrowed {
         resultingOwnership := OwnershipOwned;
         // No need to do anything
