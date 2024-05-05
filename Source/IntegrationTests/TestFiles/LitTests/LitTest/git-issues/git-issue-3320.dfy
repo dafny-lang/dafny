@@ -2,16 +2,16 @@
 
 datatype Dt = A | B(b: set<nat>)
 
-function SetComprehension(sr: seq<Dt>): set<nat> {
-  set i, b | 0 <= i < |sr| && sr[i].B? && b in sr[i].b && 1 != 2 :: b
+function SetComprehension(s: seq<Dt>): set<nat> {
+  set i, b | 0 <= i < |s| && s[i].B? && b in s[i].b && 1 != 2 :: b
 }
 
-function MapComprehension(sr: seq<Dt>): map<int, int> {
-  map i, b | 0 <= i < |sr| && sr[i].B? && b in sr[i].b && 1 != 2 :: b := b
+function MapComprehension(s: seq<Dt>): map<int, int> {
+  map i, b | 0 <= i < |s| && s[i].B? && b in s[i].b && 1 != 2 :: b := b
 }
 
 method Main() {
-  var sr := [A, B({0})];
-  print SetComprehension(sr), "\n";
-  print MapComprehension(sr), "\n";
+  var s := [A, B({0})];
+  print SetComprehension(s), "\n";
+  print MapComprehension(s), "\n";
 }
