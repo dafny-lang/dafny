@@ -5690,12 +5690,11 @@ namespace Microsoft.Dafny.Compilers {
           unusedConjuncts.Remove(entry);
         }
 
-        if (LiteralExpr.IsTrue(localGuard)) {
-          return wr;
+        if (!LiteralExpr.IsTrue(localGuard)) {
+          wr = EmitIf(out var guardWriter, false, wr);
+          EmitExpr(localGuard, inLetExprBody, guardWriter, wStmts);
         }
 
-        wr = EmitIf(out var guardWriter, false, wr);
-        EmitExpr(localGuard, inLetExprBody, guardWriter, wStmts);
         return wr;
       }
     }
