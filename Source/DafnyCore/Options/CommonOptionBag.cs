@@ -245,7 +245,7 @@ true - Print debug information for the new type system.".TrimStart()) {
     IsHidden = true
   };
 
-  public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
+  public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files", () => true,
     "(deprecated) Has no affect.") {
     IsHidden = true
   };
@@ -509,7 +509,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(AllowWarnings, (options, value) => { options.FailOnWarnings = !value; });
     DafnyOptions.RegisterLegacyBinding(SkipIncludedFiles,
-      (options, value) => { options.VerifyAllModules = !value; });
+      (options, value) => {
+        var shouldVerify = options.Get(VerifyIncludedFiles) && !value; // non-default value overrides default one
+        options.VerifyAllModules = shouldVerify;
+      });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
       if (value) { options.TrackVerificationCoverage = true; }
     });
