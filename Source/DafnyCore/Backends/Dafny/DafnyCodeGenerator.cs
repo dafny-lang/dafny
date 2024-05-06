@@ -14,6 +14,7 @@ using Std.Wrappers;
 namespace Microsoft.Dafny.Compilers {
 
   class DafnyCodeGenerator : SinglePassCodeGenerator {
+
     ProgramBuilder items;
     public object currentBuilder;
     public bool emitUncompilableCode;
@@ -38,7 +39,6 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, string internalFieldPrefix, bool preventShadowing, bool canEmitUncompilableCode) : base(options, reporter) {
-      options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
@@ -252,7 +252,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static bool isTpSupported(TypeParameter tp, [CanBeNull] out string why) {
-      if (tp.Variance != TypeParameter.TPVariance.Non) {
+      if (tp.Variance == TypeParameter.TPVariance.Contra) {
         why = $"<b>Unsupported: <i>Type variance {tp.Variance} not supported</i></b>";
         return false;
       }
@@ -446,6 +446,29 @@ namespace Microsoft.Dafny.Compilers {
       return params_;
     }
 
+    protected override void TrDividedBlockStmt(Constructor m, DividedBlockStmt dividedBlockStmt, ConcreteSyntaxTree writer) {
+      TrStmtList(dividedBlockStmt.BodyInit, writer);
+      if (writer is BuilderSyntaxTree<StatementContainer> builder) {
+        var membersToInitialize = ((TopLevelDeclWithMembers)m.EnclosingClass).Members.Where((md =>
+          md is Field and not ConstantField { Rhs: { } }));
+        var outFormals = membersToInitialize.Select((MemberDecl md) =>
+          DAST.Formal.create_Formal(
+          Sequence<Rune>.UnicodeFromString(
+            (md is ConstantField ? InternalFieldPrefix : "") +
+            md.GetCompileName(Options)),
+              GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass).ParentFormalTypeParametersToActuals))
+          , ParseAttributes(md.Attributes)
+          )
+        ).ToList();
+        builder.Builder.AddStatement((DAST.Statement)DAST.Statement.create_ConstructorNewSeparator(
+          Sequence<_IFormal>.FromArray(outFormals.ToArray())));
+      } else {
+        throw new InvalidCastException("Divided block statement outside of a statement container");
+      }
+      // We need to indicate to Dafny that 
+      TrStmtList(dividedBlockStmt.BodyProper, writer);
+    }
+
     private class ClassWriter : IClassWriter {
       private readonly DafnyCodeGenerator compiler;
       private readonly ClassLike builder;
@@ -488,8 +511,21 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var overridingTrait = m.OverriddenMethod?.EnclosingClass;
+        if (m is Constructor { EnclosingClass: TopLevelDeclWithMembers cm }) {
+          // Constructors need to assign all fields without RHS
+          var membersToInitialize = cm.Members.Where((md =>
+            md is Field and not ConstantField { Rhs: { } }));
+          outVars = membersToInitialize.Select((MemberDecl md) =>
+            Sequence<Rune>.UnicodeFromString(
+              (md is ConstantField ? compiler.InternalFieldPrefix : "") +
+              md.GetCompileName(compiler.Options))
+          ).ToList();
+          /*outTypes = membersToInitialize.Select((MemberDecl md) =>
+            GenType(md.GetType())
+          ).ToList();*/
+        }
         var builder = this.builder.Method(
-          m.IsStatic, createBody,
+          m.IsStatic, createBody, m is Constructor, false,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           m.GetCompileName(compiler.Options),
           astTypeArgs, params_,
@@ -534,7 +570,7 @@ namespace Microsoft.Dafny.Compilers {
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
 
         var builder = this.builder.Method(
-          isStatic, createBody,
+          isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           name,
           astTypeArgs, params_,
@@ -561,7 +597,7 @@ namespace Microsoft.Dafny.Compilers {
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
 
         var builder = this.builder.Method(
-          isStatic, createBody,
+          isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           name,
           new(), (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
@@ -887,6 +923,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+
+
     protected override void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wrStmts, ConcreteSyntaxTree wrStmtsAfterCall) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
@@ -899,6 +937,10 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
       }
+    }
+
+    public override bool NeedsCustomReceiver(MemberDecl member) {
+      return member is Constructor || base.NeedsCustomReceiver(member);
     }
 
     protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
@@ -1193,9 +1235,28 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree CreateForLoop(string indexVar, Action<ConcreteSyntaxTree> bound, ConcreteSyntaxTree wr, string start = null) {
-      AddUnsupportedFeature(Token.NoToken, Feature.ForLoops);
-      return wr;
+    protected override void EmitArrayLength(Action<ConcreteSyntaxTree> arr, TypeRhs typeRhs, int d, bool native,
+      ConcreteSyntaxTree w) {
+      var arrayLengthBuilder = new ArrayLengthBuilder(GenType(typeRhs.Type), d, native);
+      arr(new BuilderSyntaxTree<ExprContainer>(arrayLengthBuilder, this));
+      if (w is BuilderSyntaxTree<ExprContainer> expressionContainer) {
+        expressionContainer.Builder.AddBuildable(arrayLengthBuilder);
+      } else {
+        throw new InvalidOperationException("ArrayLength within a non-expression context");
+      }
+    }
+
+    protected override ConcreteSyntaxTree CreateForLoop(string indexVar,
+      Action<ConcreteSyntaxTree> boundWriter, ConcreteSyntaxTree wr,
+      string start = null) {
+      if (wr is BuilderSyntaxTree<StatementContainer> statementContainer) {
+        var foreachBuilder = statementContainer.Builder.Foreach(indexVar, GenType(Dafny.Type.Int));
+        var nativeRangeBuilder = new NativeRangeBuilder(start);
+        foreachBuilder.AddBuildable(nativeRangeBuilder);
+        boundWriter(new BuilderSyntaxTree<ExprContainer>(nativeRangeBuilder, this));
+        return new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this);
+      }
+      throw new InvalidOperationException("Not in a statement container");
     }
 
     protected override ConcreteSyntaxTree CreateDoublingForLoop(string indexVar, int start, ConcreteSyntaxTree wr) {
@@ -1213,13 +1274,14 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitQuantifierExpr(Action<ConcreteSyntaxTree> collection, bool isForall, Type collectionElementType, BoundVar bv, ConcreteSyntaxTree wr) {
       if (GetExprBuilder(wr, out var builder)) {
-        var collectionBuf = new ExprBuffer(null);
-        collection(new BuilderSyntaxTree<ExprContainer>(collectionBuf, this));
-        var collectionAST = collectionBuf.Finish();
-
-        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_BoolLiteral(false)));
-
-        return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null), this);
+        var tp = GenType(collectionElementType);
+        var argBuilder = builder.Builder.BinOp("quantifier",
+          (DAST.Expression collectionExpr, DAST.Expression lambda) =>
+            (DAST.Expression)DAST.Expression.create_Quantifier(tp, collectionExpr, isForall, lambda)
+        );
+        var wBody = new BuilderSyntaxTree<ExprContainer>(argBuilder, this);
+        collection(wBody);
+        return wBody;
       } else {
         throw new InvalidOperationException();
       }
@@ -1294,7 +1356,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         var dimensionsAST = dimensions.Select(convert).ToArray();
 
-        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_NewArray(
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_NewUninitArray(
           Sequence<DAST.Expression>.FromArray(dimensionsAST),
           GenType(elementType)
         ));
@@ -1539,20 +1601,13 @@ namespace Microsoft.Dafny.Compilers {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
           GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true, ParseAttributes(typeSynonym.Attributes));
       } else if (topLevel is TraitDecl) {
-        AddUnsupportedFeature(Token.NoToken, Feature.Traits);
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
-          DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("<b>Unsupported: <i>Traits</i></b>")),
-          NewtypeRange.create_NoRange(), true, ParseAttributes(null)
-        );
-        // traits need a bit more work
-
-        // resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path);
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path, ParseAttributes(topLevel.Attributes));
       } else if (topLevel is DatatypeDecl) {
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(
           (DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
       } else if (topLevel is ClassDecl) {
-        // TODO(Mikael): have a separate type when we properly support classes
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype((DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_AllocatedDatatype(
+          (DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
       } else {
         // SubsetTypeDecl are covered by TypeSynonymDecl
         throw new InvalidOperationException(topLevel.GetType().ToString());
@@ -1609,8 +1664,6 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is IdentifierExpr) {
         // we don't need to create a copy of the identifier, that's language specific
         base.EmitExpr(expr, false, actualWr, wStmts);
-      } else if (expr is QuantifierExpr) {
-        AddUnsupported("<i>QuantifierExpr</i>");
       } else {
         base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
       }
@@ -1692,6 +1745,7 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = (string)idParam;
           break;
         case SpecialField.ID.ArrayLength:
+        case SpecialField.ID.ArrayLengthInt:
           break;
         case SpecialField.ID.Keys:
           break;
@@ -1746,7 +1800,9 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_ArrayLen(
           objExpr,
-          arraySpecial.IdParam != null ? ((int)arraySpecial.IdParam) : 0
+          GenType(objType),
+          arraySpecial.IdParam != null ? ((int)arraySpecial.IdParam) : 0,
+          false
         ), null, this);
       } else if (member is SpecialField { SpecialId: SpecialField.ID.Keys }) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
@@ -2123,6 +2179,26 @@ namespace Microsoft.Dafny.Compilers {
         lhs(new BuilderSyntaxTree<ExprContainer>(binOp, this));
 
         return new BuilderSyntaxTree<ExprContainer>(binOp, this);
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
+    protected override void EmitArrayIndexToInt(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wIndex) {
+      if (GetExprBuilder(wr, out var builder)) {
+        var binOp = builder.Builder.Wrapper((DAST.Expression nativeArrayIndex) =>
+          (DAST.Expression)DAST.Expression.create_ArrayIndexToInt(nativeArrayIndex));
+        wIndex = new BuilderSyntaxTree<ExprContainer>(binOp, this);
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
+    protected override void EmitArrayFinalize(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrArray, Type type) {
+      if (GetExprBuilder(wr, out var builder)) {
+        var binOp = builder.Builder.Wrapper((DAST.Expression arrayPointer) =>
+          (DAST.Expression)DAST.Expression.create_FinalizeNewArray(arrayPointer, GenType(type)));
+        wrArray = new BuilderSyntaxTree<ExprContainer>(binOp, this);
       } else {
         throw new InvalidOperationException();
       }

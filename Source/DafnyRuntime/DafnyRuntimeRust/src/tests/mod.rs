@@ -260,9 +260,15 @@ mod tests {
             }
         }
         let p = Array2::construct(p);
-        let p = unsafe { &*p };
-        assert_eq!(p.length0_usize(), 3);
-        assert_eq!(p.length1_usize(), 4);
+        assert_eq!(read!(p).length0_usize(), 3);
+        assert_eq!(read!(p).length1_usize(), 4);
+        let v = read!(p).to_vec();
+        assert_eq!(v.len(), 3);
+        assert_eq!(v, vec![
+            vec![int!(0), int!(1), int!(2), int!(3)],
+              vec![int!(1), int!(2), int!(3), int!(4)],
+              vec![int!(2), int!(3), int!(4), int!(5)]]);
+
         deallocate(p);
         // Allocate an array whose first dimension is zero
         let p = Array2::<DafnyInt>::placebos(&int!(0), &int!(4));
@@ -286,10 +292,13 @@ mod tests {
         assert_eq!(read!(a).length0(), int!(3));
         assert_eq!(read!(a).length1(), int!(2));
         assert_eq!(read!(a).length2(), int!(4));
+        let v = read!(a).to_vec();
+        assert_eq!(v.len(), 3);
         for i in 0..3 {
             for j in 0..2 {
                 for k in 0..4 {
                     assert_eq!(read!(a).data[i][j][k], DafnyInt::from(i * j + k));
+                    assert_eq!(v[i][j][k], DafnyInt::from(i * j + k));
                 }
             }
         }
@@ -457,19 +466,19 @@ mod tests {
     #[test]
     fn test_coercion_immutable() {
         let o = ClassWrapper::<i32>::constructor(1);
-        let a = UpcastTo::<*mut dyn Any>::upcast_to(&o);
+        let a = UpcastTo::<*mut dyn Any>::upcast_to(o);
         assert_eq!(cast!(a, ClassWrapper<i32>), o);
         let seq_o = seq![o];
-        let seq_a = UpcastTo::<Sequence<*mut dyn Any>>::upcast_to(&seq_o);
+        let seq_a = Sequence::<*mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(seq_o);
         assert_eq!(cast!(seq_a.get_usize(0), ClassWrapper<i32>), o);
         let set_o = set! {o};
-        let set_a = UpcastTo::<Set<*mut dyn Any>>::upcast_to(&set_o);
+        let set_a = Set::<*mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(set_o);
         assert_eq!(cast!(set_a.peek(), ClassWrapper<i32>), o);
         let multiset_o = multiset! {o, o};
-        let multiset_a = UpcastTo::<Multiset<*mut dyn Any>>::upcast_to(&multiset_o);
+        let multiset_a = Multiset::<*mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(multiset_o);
         assert_eq!(cast!(multiset_a.peek(), ClassWrapper<i32>), o);
         let map_o = map![1 => o, 2 => o];
-        let map_a = UpcastTo::<Map<i32, *mut dyn Any>>::upcast_to(&map_o);
+        let map_a = Map::<i32, *mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(map_o);
         assert_eq!(cast!(map_a.get(&1), ClassWrapper<i32>), o);
     }
 
@@ -666,12 +675,10 @@ mod tests {
             let mut val_assign = false;
             let mut next_assign = false;
             update_field_uninit_rcmut!(this.clone(), val, val_assign, val);
-            update_field_if_uninit_rcmut!(this.clone(), next, next_assign, None);
+            update_field_if_uninit_rcmut!(this.clone(), next, next_assign, Object(None));
         }
     }
     impl NodeRcMutTrait for NodeRcMut {}
-
-    UpcastToObject!(NodeRcMut, dyn NodeRcMutTrait);
 
     #[test]
     fn test_rcmut() {
@@ -682,11 +689,11 @@ mod tests {
         md!(x.clone()).next = x.clone();
         assert_eq!(refcount!(x.clone()), 3);
         assert_eq!(rd!(rd!(x.clone()).next.clone()).val, int!(42));
-        md!(rd!(x.clone()).next.clone()).next = None;
+        md!(rd!(x.clone()).next.clone()).next = Object(None);
         assert_eq!(refcount!(x.clone()), 2);
-        let y: Object<dyn Any> = x.upcast_to();
+        let y: Object<dyn Any> = x.clone().upcast_to();
         assert_eq!(refcount!(x.clone()), 3);
-        let z: Object<dyn NodeRcMutTrait> = x.upcast_to();
+        let z: Object<dyn NodeRcMutTrait> = x.clone().upcast_to();
         assert_eq!(refcount!(x.clone()), 4);
         let a2: Object<NodeRcMut> = cast_object!(y.clone(), NodeRcMut);
         assert_eq!(refcount!(x.clone()), 5);
@@ -695,7 +702,7 @@ mod tests {
         assert_eq!(refcount!(x.clone()), 6);
         assert_eq!(rd!(a3.clone()).val, int!(42));
         
-        let a: Object<[i32]> = rcmut::array_from_rc(Rc::new([42, 43, 44]));
+        let a: Object<[i32]> = rcmut::array_object_from_rc(Rc::new([42, 43, 44]));
         assert_eq!(rd!(a.clone()).len(), 3);
         assert_eq!(rd!(a.clone())[0], 42);
         assert_eq!(rd!(a.clone())[1], 43);
@@ -725,7 +732,7 @@ mod tests {
     }
     impl NodeRcMutTrait for NodeRawMut {}
     
-    UpcastTo!(NodeRawMut, dyn NodeRcMutTrait);
+    //UpcastTo!(NodeRawMut, dyn NodeRcMutTrait);
 
     #[test]
     fn test_rawmut() {
@@ -738,8 +745,8 @@ mod tests {
         assert_eq!(read!(read!(x.clone()).next.clone()).val, int!(42));
         modify!(read!(x.clone()).next.clone()).next = std::ptr::null_mut();
         //assert_eq!(refcount!(x.clone()), 2);
-        let y = x.upcast_to();
-        let z: *mut dyn NodeRcMutTrait = modify!(x).upcast_to();
+        let y: *mut dyn Any = x.upcast_to();
+        let z: *mut dyn NodeRcMutTrait = x.upcast_to();
         let a2: *mut NodeRawMut = cast!(y, NodeRawMut);
         let a3: *mut NodeRawMut = cast!(z, NodeRawMut);
         //assert_eq!(refcount!(x.clone()), 3);
