@@ -217,7 +217,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
+    var printTomlValue = PrintTomlOptionToCliValue(Uri, tomlValue, option);
     var parseResult = option.Parse(printTomlValue.ToArray());
     if (parseResult.Errors.Any()) {
       Errors.Error(MessageSource.Project, StartingToken, $"could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
@@ -230,8 +230,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return true;
   }
 
-  IEnumerable<string> PrintTomlOptionToCliValue(object value, Option valueType) {
-    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath)!;
+  public static IEnumerable<string> PrintTomlOptionToCliValue(Uri uri, object value, Option valueType) {
+    var projectDirectory = Path.GetDirectoryName(uri.LocalPath)!;
 
     if (value is TomlArray array) {
       List<string> elements;

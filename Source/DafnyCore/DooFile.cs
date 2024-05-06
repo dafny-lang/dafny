@@ -145,7 +145,8 @@ public class DooFile {
     return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
   }
 
-  public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
+  public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
+    string libraryFile,
     DafnyOptions options, IToken origin,
     IDictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
@@ -162,10 +163,16 @@ public class DooFile {
 
       object libraryValue;
       if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
-        if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
-              option.Name, option.ValueType, manifestValue, out libraryValue)) {
+        var printTomlValue = DafnyProject.PrintTomlOptionToCliValue(new Uri(libraryFile), manifestValue, option);
+        var parseResult = option.Parse(printTomlValue.ToArray());
+        if (parseResult.Errors.Any()) {
+          reporter.Error(MessageSource.Project, origin, $"could not parse value '{manifestValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
+          //value = null;
           return null;
         }
+        // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
+        // which is sadly not accessible without generics.
+        libraryValue = parseResult.GetValueForOption((dynamic)option);
       } else {
         // This else can occur because Tomlyn will drop aggregate properties with no values.
         // When this happens, use the default value
@@ -173,6 +180,7 @@ public class DooFile {
       }
 
       result.Options.OptionArguments[option] = libraryValue;
+      result.ApplyBinding(option);
       var prefix = $"cannot load {options.GetPrintPath(libraryFile)}";
       success = success && check(reporter, origin, prefix, option, localValue, libraryValue);
     }

@@ -17,6 +17,7 @@ using DafnyCore;
 using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
@@ -270,45 +271,43 @@ public static class DafnyNewCli {
       yield break;
     }
 
-    if (options.Get(DafnyFile.UnsafeDependencies)) {
-      var project = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
-      var projectOptions =
-        DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, uriOrigin, project.Options);
-      if (projectOptions != null) {
-        foreach (var libraryRootSetFile in project.GetRootSourceUris(fileSystem)) {
-          var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, projectOptions, libraryRootSetFile,
-            project.StartingToken, true);
+    var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
+    var dependencyOptions =
+      DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, uriOrigin, dependencyProject.Options);
+    if (dependencyOptions != null) {
+      if (options.Get(DafnyFile.UnsafeDependencies)) {
+        foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
+          var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, dependencyOptions, libraryRootSetFile,
+            dependencyProject.StartingToken, true);
           if (file != null) {
             yield return file;
           }
         }
-      }
-    } else {
-      var outputWriter = new StringWriter();
-      var errorWriter = new StringWriter();
-      if (options.Verbose) {
-        await outputWriter.WriteLineAsync($"Building dependency {options.GetPrintPath(uri.LocalPath)}");
-      }
+      } else {
+        if (options.Verbose) {
+          await options.OutputWriter.WriteLineAsync($"Building dependency {options.GetPrintPath(uri.LocalPath)}");
+        }
 
-      var arguments = new List<string>() { "build", "-t=lib", uri.LocalPath, "--verbose" };
-      if (options.Get(CommonOptionBag.UseBaseFileName)) {
-        arguments.Add(CommonOptionBag.UseBaseFileName.Aliases.First());
-      }
-      var exitCode = await Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
-        arguments);
-      if (exitCode != 0) {
-        var output = outputWriter + errorWriter.ToString();
-        reporter.Error(MessageSource.Project, uriOrigin,
-          $"Could not build a Dafny library from {options.GetPrintPath(uri.LocalPath)} because:\n{output}");
-        yield break;
-      }
+        dependencyOptions.Compile = true;
+        dependencyOptions.RunAfterCompile = false;
+        var libraryBackend = new LibraryBackend(dependencyOptions);
+        dependencyOptions.CompilerName = libraryBackend.TargetId;
 
-      var regex = new Regex($"Wrote Dafny library to (.*)\n");
-      var path = regex.Match(outputWriter.ToString());
-      var dooUri = new Uri(path.Groups[1].Value);
-      await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
-        yield return dooResult;
+        dependencyOptions.DafnyProject = dependencyProject;
+        dependencyOptions.CliRootSourceUris.Clear();
+        dependencyOptions.Compile = true;
+        dependencyOptions.RunAfterCompile = false;
+        var exitCode = await SynchronousCliCompilation.Run(dependencyOptions);
+        if (exitCode == 0) {
+          var dooUri = new Uri(libraryBackend.DooPath);
+          await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
+            yield return dooResult;
+          }
+        } else {
+          reporter.Error(MessageSource.Project, uriOrigin, $"Failed to build dependendency {options.GetPrintPath(uri.LocalPath)}");
+        }
       }
     }
+
   }
 }
