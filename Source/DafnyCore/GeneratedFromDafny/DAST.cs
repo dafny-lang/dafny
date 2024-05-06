@@ -5130,6 +5130,7 @@ namespace DAST {
     bool is_SetBoundedPool { get; }
     bool is_SeqBoundedPool { get; }
     bool is_IntRange { get; }
+    bool is_UnboundedIntRange { get; }
     DAST._ILiteral dtor_Literal_i_a0 { get; }
     Dafny.ISequence<Dafny.Rune> dtor_Ident_i_a0 { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_Companion_i_a0 { get; }
@@ -5190,6 +5191,8 @@ namespace DAST {
     bool dtor_includeDuplicates { get; }
     DAST._IExpression dtor_lo { get; }
     DAST._IExpression dtor_hi { get; }
+    bool dtor_up { get; }
+    DAST._IExpression dtor_start { get; }
     _IExpression DowncastClone();
   }
   public abstract class Expression : _IExpression {
@@ -5323,8 +5326,11 @@ namespace DAST {
     public static _IExpression create_SeqBoundedPool(DAST._IExpression of, bool includeDuplicates) {
       return new Expression_SeqBoundedPool(of, includeDuplicates);
     }
-    public static _IExpression create_IntRange(DAST._IExpression lo, DAST._IExpression hi) {
-      return new Expression_IntRange(lo, hi);
+    public static _IExpression create_IntRange(DAST._IExpression lo, DAST._IExpression hi, bool up) {
+      return new Expression_IntRange(lo, hi, up);
+    }
+    public static _IExpression create_UnboundedIntRange(DAST._IExpression start, bool up) {
+      return new Expression_UnboundedIntRange(start, up);
     }
     public bool is_Literal { get { return this is Expression_Literal; } }
     public bool is_Ident { get { return this is Expression_Ident; } }
@@ -5367,6 +5373,7 @@ namespace DAST {
     public bool is_SetBoundedPool { get { return this is Expression_SetBoundedPool; } }
     public bool is_SeqBoundedPool { get { return this is Expression_SeqBoundedPool; } }
     public bool is_IntRange { get { return this is Expression_IntRange; } }
+    public bool is_UnboundedIntRange { get { return this is Expression_UnboundedIntRange; } }
     public DAST._ILiteral dtor_Literal_i_a0 {
       get {
         var d = this;
@@ -5758,6 +5765,19 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_IntRange)d)._i_hi;
+      }
+    }
+    public bool dtor_up {
+      get {
+        var d = this;
+        if (d is Expression_IntRange) { return ((Expression_IntRange)d)._i_up; }
+        return ((Expression_UnboundedIntRange)d)._i_up;
+      }
+    }
+    public DAST._IExpression dtor_start {
+      get {
+        var d = this;
+        return ((Expression_UnboundedIntRange)d)._i_start;
       }
     }
     public abstract _IExpression DowncastClone();
@@ -7098,23 +7118,26 @@ namespace DAST {
   public class Expression_IntRange : Expression {
     public readonly DAST._IExpression _i_lo;
     public readonly DAST._IExpression _i_hi;
-    public Expression_IntRange(DAST._IExpression lo, DAST._IExpression hi) : base() {
+    public readonly bool _i_up;
+    public Expression_IntRange(DAST._IExpression lo, DAST._IExpression hi, bool up) : base() {
       this._i_lo = lo;
       this._i_hi = hi;
+      this._i_up = up;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_IntRange(_i_lo, _i_hi);
+      return new Expression_IntRange(_i_lo, _i_hi, _i_up);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_IntRange;
-      return oth != null && object.Equals(this._i_lo, oth._i_lo) && object.Equals(this._i_hi, oth._i_hi);
+      return oth != null && object.Equals(this._i_lo, oth._i_lo) && object.Equals(this._i_hi, oth._i_hi) && this._i_up == oth._i_up;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 40;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_hi));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_up));
       return (int) hash;
     }
     public override string ToString() {
@@ -7123,6 +7146,40 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_lo);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_hi);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_up);
+      s += ")";
+      return s;
+    }
+  }
+  public class Expression_UnboundedIntRange : Expression {
+    public readonly DAST._IExpression _i_start;
+    public readonly bool _i_up;
+    public Expression_UnboundedIntRange(DAST._IExpression start, bool up) : base() {
+      this._i_start = start;
+      this._i_up = up;
+    }
+    public override _IExpression DowncastClone() {
+      if (this is _IExpression dt) { return dt; }
+      return new Expression_UnboundedIntRange(_i_start, _i_up);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Expression_UnboundedIntRange;
+      return oth != null && object.Equals(this._i_start, oth._i_start) && this._i_up == oth._i_up;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 41;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_start));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_up));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Expression.UnboundedIntRange";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._i_start);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_up);
       s += ")";
       return s;
     }

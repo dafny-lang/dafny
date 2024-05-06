@@ -3840,12 +3840,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           return;
         }
-        case IntRange(lo, hi) => {
+        case IntRange(lo, hi, up) => {
           var lo, _, recIdentsLo := GenExpr(lo, selfIdent, env, OwnershipOwned);
           var hi, _, recIdentsHi := GenExpr(hi, selfIdent, env, OwnershipOwned);
-          r := R.dafny_runtime.MSel("integer_range").Apply([lo, hi]);
+          if up {
+            r := R.dafny_runtime.MSel("integer_range").Apply([lo, hi]);
+          } else {
+            r := R.dafny_runtime.MSel("integer_range_down").Apply([hi, lo]);
+          }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdentsLo + recIdentsHi;
+          return;
+        }
+        case UnboundedIntRange(start, up) => {
+          var start, _, recIdentStart := GenExpr(start, selfIdent, env, OwnershipOwned);
+          if up {
+            r := R.dafny_runtime.MSel("integer_range_unbounded").Apply1(start);
+          } else {
+            r := R.dafny_runtime.MSel("integer_range_down_unbounded").Apply1(start);
+          }
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          readIdents := recIdentStart;
           return;
         }
         case MapBuilder(keyType, valueType) => {

@@ -1145,10 +1145,42 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    // Return a writer to write the start expression, which is lo if going up, and hi if going down
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
-      AddUnsupportedFeature(tok, Feature.ForLoops);
-      return wr;
+      if (GetStatementBuilder(wr, out var statementContainer)) {
+        var indexName = loopIndex.SanitizedNameShadowable;
+        ForeachBuilder foreachBuilder = statementContainer.Builder.Foreach(
+          indexName, GenType(loopIndex.Type));
+        if (endVarName == null) {
+          var startBuilder = ((ExprContainer)foreachBuilder).Wrapper(start =>
+            (DAST.Expression)DAST.Expression.create_UnboundedIntRange(
+              start,
+              goingUp
+            ));
+          TrStmtList(body, new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this));
+          return new BuilderSyntaxTree<ExprContainer>(startBuilder, this);
+        } else {
+          var loHiBuilder = ((ExprContainer)foreachBuilder).BinOp("int_range", (DAST.Expression lo, DAST.Expression hi) =>
+             (DAST.Expression)DAST.Expression.create_IntRange(
+               lo,
+               hi,
+               goingUp
+             ));
+          TrStmtList(body, new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this));
+          BuilderSyntaxTree<ExprContainer> toReturn;
+          if (goingUp) {
+            var loBuf = new ExprBuffer(null);
+            toReturn = new BuilderSyntaxTree<ExprContainer>(loBuf, this);
+            loHiBuilder.AddBuildable(loBuf);
+          } else {
+            toReturn = new BuilderSyntaxTree<ExprContainer>(loHiBuilder, this);
+          }
+          loHiBuilder.AddExpr((DAST.Expression)DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(endVarName)));
+          return toReturn;
+        }
+      }
+      throw new InvalidOperationException();
     }
 
     protected override ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
@@ -2755,7 +2787,8 @@ namespace Microsoft.Dafny.Compilers {
         if (GetExprBuilder(wr, out var builder)) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_IntRange(
             loBuf.Finish(),
-            hiBuf.Finish()
+            hiBuf.Finish(),
+            true
           ));
         } else {
           throw new InvalidOperationException();

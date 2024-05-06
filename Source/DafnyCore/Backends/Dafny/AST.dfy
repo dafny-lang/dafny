@@ -204,7 +204,8 @@ module {:extern "DAST"} DAST {
     BoolBoundedPool() |
     SetBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
-    IntRange(lo: Expression, hi: Expression)
+    IntRange(lo: Expression, hi: Expression, up: bool) |
+    UnboundedIntRange(start: Expression, up: bool)
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
