@@ -170,7 +170,7 @@ module A.B.D {
 }".TrimStart();
     await SetUp(options => {
       options.Set(ProjectManager.Verification, VerifyOnMode.Never);
-      options.Set(CommonOptionBag.VerifyIncludedFiles, true);
+      options.Set(CommonOptionBag.SkipIncludedFiles, false);
 
     });
     var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

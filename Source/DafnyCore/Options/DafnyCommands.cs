@@ -29,6 +29,7 @@ public static class DafnyCommands {
     CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
+    CommonOptionBag.SkipIncludedFiles,
     CommonOptionBag.VerifyIncludedFiles,
     CommonOptionBag.ManualLemmaInduction,
     BoogieOptionBag.SolverPath,
