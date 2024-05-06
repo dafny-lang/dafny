@@ -86,6 +86,7 @@ public static class DafnyNewCli {
       }
 
       ProcessOption(context, CommonOptionBag.UseBaseFileName, dafnyOptions);
+      dafnyOptions.ApplyBinding(CommonOptionBag.UseBaseFileName);
 
       var singleFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
       if (singleFile != null) {
@@ -107,7 +108,15 @@ public static class DafnyNewCli {
         if (option == CommonOptionBag.UseBaseFileName) {
           continue;
         }
-        if (!ProcessOption(context, option, dafnyOptions)) {
+        ProcessOption(context, option, dafnyOptions);
+      }
+      foreach (var option in command.Options) {
+        try {
+          dafnyOptions.ApplyBinding(option);
+        } catch (Exception e) {
+          context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
+          await dafnyOptions.OutputWriter.WriteLineAsync(
+            $"Invalid value for option {option.Name}: {e.Message}");
           return;
         }
       }
@@ -120,7 +129,7 @@ public static class DafnyNewCli {
     command.SetHandler(Handle);
   }
 
-  private static bool ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
+  private static void ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
     var options = dafnyOptions.Options;
     var result = context.ParseResult.FindResultFor(option);
     object? projectFileValue = null;
@@ -150,16 +159,6 @@ public static class DafnyNewCli {
     }
 
     options.OptionArguments[option] = value;
-    try {
-      dafnyOptions.ApplyBinding(option);
-    } catch (Exception e) {
-      context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
-      dafnyOptions.OutputWriter.WriteLine(
-        $"Invalid value for option {option.Name}: {e.Message}");
-      return false;
-    }
-
-    return true;
   }
 
   public static Task<int> Execute(IConsole console, string[] arguments) {
