@@ -77,6 +77,7 @@ module {:extern "DAST"} DAST {
   datatype DatatypeType = DatatypeType(path: seq<Ident>, attributes: seq<Attribute>)
 
   datatype ResolvedType =
+    | AllocatedDatatype(datatypeType: DatatypeType)
     | Datatype(datatypeType: DatatypeType)
     | Trait(path: seq<Ident>, attributes: seq<Attribute>)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool, attributes: seq<Attribute>)
@@ -108,6 +109,8 @@ module {:extern "DAST"} DAST {
   datatype Method = Method(
     isStatic: bool,
     hasBody: bool,
+    outVarsAreUninitFieldsToAssign: bool, // For constructors
+    wasFunction: bool, // To choose between "&self" and "&mut self"
     overridingPath: Option<seq<Ident>>,
     name: Name,
     typeParams: seq<TypeArgDecl>,
@@ -136,7 +139,10 @@ module {:extern "DAST"} DAST {
     TailRecursive(body: seq<Statement>) |
     JumpTailCallStart() |
     Halt() |
-    Print(Expression)
+    Print(Expression) |
+    ConstructorNewSeparator(fields: seq<Formal>)
+  {
+  }
 
   datatype AssignLhs =
     Ident(ident: Ident) |
@@ -171,7 +177,9 @@ module {:extern "DAST"} DAST {
     Companion(seq<Ident>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
-    NewArray(dims: seq<Expression>, typ: Type) |
+    NewUninitArray(dims: seq<Expression>, typ: Type) |
+    ArrayIndexToInt(value: Expression) |
+    FinalizeNewArray(value: Expression, typ: Type) |
     DatatypeValue(datatypeType: DatatypeType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(string, Expression)>) |
     Convert(value: Expression, from: Type, typ: Type) |
     SeqConstruct(length: Expression, elem: Expression) |
@@ -188,7 +196,7 @@ module {:extern "DAST"} DAST {
     Ite(cond: Expression, thn: Expression, els: Expression) |
     UnOp(unOp: UnaryOp, expr: Expression, format1: Format.UnaryOpFormat) |
     BinOp(op: BinOp, left: Expression, right: Expression, format2: Format.BinaryOpFormat) |
-    ArrayLen(expr: Expression, dim: nat) |
+    ArrayLen(expr: Expression, exprType: Type, dim: nat, native: bool) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     Select(expr: Expression, field: Name, isConstant: bool, onDatatype: bool, fieldType: Type) |
@@ -207,7 +215,8 @@ module {:extern "DAST"} DAST {
     SetBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
     IntRange(lo: Expression, hi: Expression, up: bool) |
-    UnboundedIntRange(start: Expression, up: bool)
+    UnboundedIntRange(start: Expression, up: bool) |
+    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
