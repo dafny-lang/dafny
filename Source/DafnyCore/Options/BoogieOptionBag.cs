@@ -111,8 +111,10 @@ public static class BoogieOptionBag {
     });
     DafnyOptions.RegisterLegacyBinding(Cores,
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
-    DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
-    DafnyOptions.RegisterLegacyBinding(HiddenNoVerify, (o, f) => o.Verify = !f);
+    DafnyOptions.RegisterLegacyBinding(NoVerify, (options, value) => {
+      var shouldVerify = !value && !options.Get(HiddenNoVerify);
+      options.Verify = shouldVerify;
+    });
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
 
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
