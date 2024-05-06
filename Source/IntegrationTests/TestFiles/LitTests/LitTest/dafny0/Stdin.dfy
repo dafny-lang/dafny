@@ -5,5 +5,5 @@
 // (regression test for https://github.com/dafny-lang/dafny/issues/4135)
 // We don't capture the output to %t because it ends up including paths,
 // which are platform-dependent (i.e. "\" on Windows vs. "/" on Mac OS and Linux)
-// RUN: %exits-with 4 %baredafny verify --show-snippets:false --verify-included-files --stdin < %S/Input/IncludesTuples.dfy
+// RUN: %exits-with 4 %baredafny verify --show-snippets:false --stdin < %S/Input/IncludesTuples.dfy
 // RUN: %diff "%s.expect" "%t"

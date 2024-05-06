@@ -1,4 +1,4 @@
-// RUN: %baredafny verify --log-format:text --verify-included-files --allow-axioms --boogie -trackVerificationCoverage "%s" > "%t"
+// RUN: %baredafny verify --log-format:text --allow-axioms --boogie -trackVerificationCoverage "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: Results for M.RedundantAssumeMethod \(correctness\)
 // CHECK:     Proof dependencies:
