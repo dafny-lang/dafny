@@ -148,7 +148,7 @@ public static class BoogieOptionBag {
     DooFile.RegisterLibraryChecks(
       new Dictionary<Option, OptionCompatibility.OptionCheck> {
         { BoogieArguments, OptionCompatibility.CheckOptionMatches },
-        { NoVerify, OptionCompatibility.CheckOptionLibraryImpliesLocal },
+        { NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError },
       }
     );
     DooFile.RegisterNoChecksNeeded(HiddenNoVerify, false);

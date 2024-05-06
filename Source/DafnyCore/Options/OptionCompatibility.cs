@@ -52,15 +52,26 @@ public class OptionCompatibility {
     }
   }
 
+  public static bool OptionLibraryImpliesLocalError(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue) {
+    return CheckOptionLibraryImpliesLocal(reporter, origin, prefix, option, ErrorLevel.Error,
+      localValue, libraryValue);
+  }
+
+  public static bool OptionLibraryImpliesLocalWarning(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue) {
+    return CheckOptionLibraryImpliesLocal(reporter, origin, prefix, option, ErrorLevel.Warning,
+      localValue, libraryValue);
+  }
+
   /// Checks that the library option ==> the local option.
   /// E.g. --no-verify: the only incompatibility is if it's on in the library but not locally.
   /// Generally the right check for options that weaken guarantees.
-  public static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue) {
+  private static bool CheckOptionLibraryImpliesLocal(ErrorReporter reporter, IToken origin, string prefix, Option option, ErrorLevel severity, object localValue, object libraryValue) {
     if (OptionValuesImplied(libraryValue, localValue)) {
       return true;
     }
 
-    reporter.Error(MessageSource.Project, origin, $"{prefix}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Message(MessageSource.Project, severity, "", origin,
+      $"{prefix}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
     return false;
   }
 

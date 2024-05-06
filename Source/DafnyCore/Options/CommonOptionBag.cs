@@ -560,17 +560,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       new Dictionary<Option, OptionCompatibility.OptionCheck>() {
         { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
         { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
-        { RelaxDefiniteAssignment, OptionCompatibility.CheckOptionLibraryImpliesLocal },
-        { AllowAxioms, OptionCompatibility.CheckOptionLibraryImpliesLocal },
-        { AllowWarnings, (reporter, origin, prefix, option, localValue, libraryValue) => {
-            if (OptionCompatibility.OptionValuesImplied(libraryValue, localValue)) {
-              return true;
-            }
-            string message = OptionCompatibility.LocalImpliesLibraryMessage(prefix, option, localValue, libraryValue);
-            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
-            return false;
-          }
-        }
+        { RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError },
+        { AllowAxioms, OptionCompatibility.OptionLibraryImpliesLocalError },
+        { AllowWarnings, OptionCompatibility.OptionLibraryImpliesLocalWarning },
+        { AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning },
+        { WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning },
+        { UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError },
       }
     );
     DooFile.RegisterNoChecksNeeded(WarnAsErrors, false);
@@ -585,20 +580,18 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterNoChecksNeeded(Prelude, false);
     DooFile.RegisterNoChecksNeeded(Target, false);
     DooFile.RegisterNoChecksNeeded(Verbose, false);
-    DooFile.RegisterNoChecksNeeded(AllowDeprecation, true); // TODO does this need checks?
     DooFile.RegisterNoChecksNeeded(JsonDiagnostics, false);
     DooFile.RegisterNoChecksNeeded(QuantifierSyntax, true);
     DooFile.RegisterNoChecksNeeded(SpillTranslation, false);
     DooFile.RegisterNoChecksNeeded(StdIn, false);
     DooFile.RegisterNoChecksNeeded(TestAssumptions, false);
-    DooFile.RegisterNoChecksNeeded(WarnShadowing, true); // TODO does this need checks?
     DooFile.RegisterNoChecksNeeded(ManualLemmaInduction, true);
     DooFile.RegisterNoChecksNeeded(TypeInferenceDebug, false);
-    DooFile.RegisterNoChecksNeeded(GeneralTraits, false); // TODO does this need checks?
-    DooFile.RegisterNoChecksNeeded(GeneralNewtypes, false); // TODO does this need checks?
-    DooFile.RegisterNoChecksNeeded(TypeSystemRefresh, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(GeneralTraits, false);
+    DooFile.RegisterNoChecksNeeded(GeneralNewtypes, false);
+    DooFile.RegisterNoChecksNeeded(TypeSystemRefresh, false);
     DooFile.RegisterNoChecksNeeded(VerificationLogFormat, false);
-    DooFile.RegisterNoChecksNeeded(VerifyIncludedFiles, false); // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(VerifyIncludedFiles, false);
     DooFile.RegisterNoChecksNeeded(DisableNonLinearArithmetic, true);
     DooFile.RegisterNoChecksNeeded(NewTypeInferenceDebug, false);
     DooFile.RegisterNoChecksNeeded(UseBaseFileName, false);
@@ -610,9 +603,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterNoChecksNeeded(VerificationCoverageReport, false);
     DooFile.RegisterNoChecksNeeded(NoTimeStampForCoverageReport, false);
     DooFile.RegisterNoChecksNeeded(DefaultFunctionOpacity, true);
-    DooFile.RegisterNoChecksNeeded(UseStandardLibraries, false); // TODO does this need checks?
-    DooFile.RegisterNoChecksNeeded(OptimizeErasableDatatypeWrapper, false); // TODO does this need checks?
-    DooFile.RegisterNoChecksNeeded(AddCompileSuffix, false);  // TODO does this need checks?
+    DooFile.RegisterNoChecksNeeded(OptimizeErasableDatatypeWrapper, false); // TODO needs translation record registration
+    DooFile.RegisterNoChecksNeeded(AddCompileSuffix, false);  // TODO needs translation record registration
     DooFile.RegisterNoChecksNeeded(SystemModule, false);
     DooFile.RegisterNoChecksNeeded(ExecutionCoverageReport, false);
     DooFile.RegisterNoChecksNeeded(ExtractCounterexample, false);
