@@ -20,6 +20,7 @@ version = "0.1.0"
 dependencies = [
  "as-any",
  "itertools",
+ "nightly-crimes",
  "num",
  "once_cell",
  "paste",
@@ -38,6 +39,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
 dependencies = [
  "either",
+]
+
+[[package]]
+name = "nightly-crimes"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2004df590461afd6d73ce7493656e9df1e6962900e0a92fe74f11f6f40a7ad0"
+dependencies = [
+ "yolo-rustc-bootstrap",
 ]
 
 [[package]]
@@ -127,3 +137,9 @@ name = "paste"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
+
+[[package]]
+name = "yolo-rustc-bootstrap"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "769d61742f25c071b9095c2319e33ca8b9f4493e005b7417cdada58d8baea434"
