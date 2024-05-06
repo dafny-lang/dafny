@@ -1,4 +1,4 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-test2.doo(5,6): Error: Duplicate member name: c
+test2.doo(3,6): Error: Duplicate member name: c
 1 resolution/type errors detected in Test4.dfy
