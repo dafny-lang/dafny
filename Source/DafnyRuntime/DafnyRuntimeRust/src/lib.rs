@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests;
+
+mod system;
 pub use mem::MaybeUninit;
 use num::{bigint::ParseBigIntError, Integer, Num, One, Signed};
 pub use once_cell::unsync::Lazy;
@@ -13,8 +15,10 @@ use std::{
     hash::{Hash, Hasher},
     mem,
     ops::{Add, Deref, Div, Mul, Neg, Rem, Sub},
-    rc::Rc,
+    rc::{Rc, Weak},
 };
+
+pub use system::*;
 
 pub use itertools;
 pub use num::bigint::BigInt;
@@ -85,8 +89,8 @@ pub mod dafny_runtime_conversions {
     pub fn vec_to_dafny_array<T: Clone>(array: Vec<T>) -> DafnyArray<T> {
         Box::into_raw(array.into_boxed_slice())
     }
-    pub unsafe fn dafny_array2_to_vec2<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
-        Box::from_raw(ptr).to_vec2()
+    pub unsafe fn dafny_array2_to_vec<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
+        Box::from_raw(ptr).to_vec()
     }
 
     pub fn dafny_int_to_bigint(i: &DafnyInt) -> BigInt {
@@ -817,7 +821,7 @@ impl<T: DafnyTypeEq> Sequence<T> {
 }
 impl<T> PartialEq<Sequence<T>> for Sequence<T>
 where
-    T: DafnyTypeEq,
+    T: DafnyType + PartialEq<T>,
 {
     fn eq(&self, other: &Sequence<T>) -> bool {
         // Iterate through both elements and verify that they are equal
@@ -1984,6 +1988,12 @@ impl DafnyPrint for () {
 pub struct DafnyCharUTF16(pub u16);
 pub type DafnyStringUTF16 = Sequence<DafnyCharUTF16>;
 
+impl Default for DafnyCharUTF16 {
+    fn default() -> Self {
+        Self('a' as u16)
+    }
+}
+
 impl DafnyPrint for DafnyCharUTF16 {
     #[inline]
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
@@ -2034,9 +2044,31 @@ impl PartialOrd<DafnyCharUTF16> for DafnyCharUTF16 {
     }
 }
 
+impl Add<DafnyCharUTF16> for DafnyCharUTF16 {
+    type Output = DafnyCharUTF16;
+
+    fn add(self, rhs: DafnyCharUTF16) -> Self::Output {
+        DafnyCharUTF16(self.0 + rhs.0)
+    }
+}
+
+impl Sub<DafnyCharUTF16> for DafnyCharUTF16 {
+    type Output = DafnyCharUTF16;
+
+    fn sub(self, rhs: DafnyCharUTF16) -> Self::Output {
+        DafnyCharUTF16(self.0 - rhs.0)
+    }
+}
+
 #[derive(Clone)]
 pub struct DafnyChar(pub char);
 pub type DafnyString = Sequence<DafnyChar>;
+
+impl Default for DafnyChar {
+    fn default() -> Self {
+        Self('a')
+    }
+}
 
 impl DafnyPrint for DafnyChar {
     #[inline]
@@ -2075,6 +2107,22 @@ impl Eq for DafnyChar {}
 impl Hash for DafnyChar {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.0.hash(state)
+    }
+}
+
+impl Add<DafnyChar> for DafnyChar {
+    type Output = DafnyChar;
+
+    fn add(self, rhs: DafnyChar) -> Self::Output {
+        DafnyChar(unsafe { char::from_u32_unchecked(self.0 as u32 + rhs.0 as u32) })
+    }
+}
+
+impl Sub<DafnyChar> for DafnyChar {
+    type Output = DafnyChar;
+
+    fn sub(self, rhs: DafnyChar) -> Self::Output {
+        DafnyChar(unsafe { char::from_u32_unchecked(self.0 as u32 - rhs.0 as u32) })
     }
 }
 
@@ -2360,6 +2408,31 @@ macro_rules! int {
 // Arrays
 //////////
 
+macro_rules! ARRAY_GETTER_LENGTH0 {
+    () => {
+        #[inline]
+        pub fn length0(&self) -> DafnyInt {
+            DafnyInt::from(self.length0_usize())
+        }
+        #[inline]
+        pub fn length0_usize(&self) -> usize {
+            self.data.len()
+        }
+    }
+}
+macro_rules! ARRAY_GETTER_LENGTH {
+    ($field: ident, $field_usize: ident) => {
+        #[inline]
+        pub fn $field(&self) -> DafnyInt {
+            $crate::DafnyInt::from(self.$field_usize())
+        }
+        #[inline]
+        pub fn $field_usize(&self) -> usize {
+            self.$field
+        }
+    }
+}
+
 // An 1-dimensional Dafny array is a zero-cost abstraction over a pointer on a native array
 #[macro_export]
 macro_rules! array {
@@ -2368,113 +2441,363 @@ macro_rules! array {
     }
 }
 
-pub struct Array2<T> {
-    length1: usize,
-    data: Box<[Box<[T]>]>,
+macro_rules! ARRAY_INIT {
+    {$length: ident, $inner: expr} => {
+        $crate::array::initialize_box_usize($length, {
+            Rc::new(move |_| { $inner })
+        })
+    }
 }
-impl<T: Clone> Array2<T> {
-    #[inline]
-    pub fn length0(&self) -> DafnyInt {
-        DafnyInt::from(self.length0_usize())
-    }
-    #[inline]
-    pub fn length0_usize(&self) -> usize {
-        self.data.len()
-    }
-    #[inline]
-    pub fn length1(&self) -> DafnyInt {
-        DafnyInt::from(self.length1_usize())
-    }
-    #[inline]
-    pub fn length1_usize(&self) -> usize {
-        self.length1
-    }
 
-    pub fn placebos_usize(length0: usize, length1: usize) -> *mut Array2<MaybeUninit<T>> {
-        Box::into_raw(Box::new(Array2 {
-            length1: length1,
-            data: array::initialize_box_usize(length0, {
-                Rc::new(move |_| array::placebos_box_usize::<T>(length1))
-            }),
-        }))
+macro_rules! ARRAY_INIT_INNER {
+    ($length: ident) => {
+        $crate::array::placebos_box_usize::<T>($length)
     }
-    pub fn placebos(length0: &DafnyInt, length1: &DafnyInt) -> *mut Array2<MaybeUninit<T>> {
-        Self::placebos_usize(length0.as_usize(), length1.as_usize())
-    }
-    // Once all the elements have been initialized, transform the signature of the pointer
-    pub fn construct(p: *mut Array2<MaybeUninit<T>>) -> *mut Array2<T> {
-        unsafe { std::mem::transmute(p) }
-    }
+}
 
-    // Needs to test
-    pub fn to_vec2(self) -> Vec<Vec<T>> {
-        let mut v = Vec::new();
-        for i in 0..self.length0_usize() {
-            v.push(self.data[i].to_vec());
+// ARRAY_DATA_TYPE(length0, length1, length2) will return
+// Box<[Box<[Box<[T]>]>]>
+macro_rules! ARRAY_DATA_TYPE {
+    ($length:ident) => {
+        Box<[T]>
+    };
+    ($length:ident, $($rest_length:ident),+) => {
+        Box<[ARRAY_DATA_TYPE!($($rest_length),+)]>
+    };
+}
+
+// Macro to generate generalizations of the function placebos_usize to higher-dimensions arrays
+
+#[macro_export]
+macro_rules! INIT_ARRAY_DATA {
+    // Handle the innermost array initialization
+    ($ArrayType:ident, $last_length:ident) => {
+        ARRAY_INIT_INNER!($last_length)
+    };
+    // Handle recursive array initialization for multiple dimensions
+    ($ArrayType:ident, $first_length:ident, $($rest_length:ident),+) => {
+        ARRAY_INIT!($first_length, INIT_ARRAY_DATA!($ArrayType, $($rest_length),+))
+    };
+}
+
+macro_rules! ARRAY_METHODS {
+    // Accepts any number of length identifiers
+    ($ArrayType:ident, $length0: ident, $($length:ident),+) => {
+        pub fn placebos_usize(
+            $length0: usize,
+            $($length: usize),+
+        ) -> *mut $ArrayType<$crate::MaybeUninit<T>> {
+            Box::into_raw(Box::new($ArrayType {
+                $($length: $length),+,
+                data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
+            }))
         }
-        v
+
+        pub fn placebos(
+            $length0: &$crate::DafnyInt,
+            $($length: &$crate::DafnyInt),+
+        ) -> *mut $ArrayType<$crate::MaybeUninit<T>> {
+            Self::placebos_usize(
+                $length0.as_usize(),
+                $($length.as_usize()),+
+            )
+        }
+
+        // Once all the elements have been initialized, transform the signature of the pointer
+        pub fn construct(p: *mut $ArrayType<$crate::MaybeUninit<T>>) -> *mut $ArrayType<T> {
+            unsafe { std::mem::transmute(p) }
+        }
+        // Once all the elements have been initialized, transform the signature of the pointer
+        pub fn construct_rcmut(p: $crate::Object<$ArrayType<MaybeUninit<T>>>) -> Object<$ArrayType<T>> {
+            unsafe { std::mem::transmute(p) }
+        }
+    };
+}
+
+
+macro_rules! ARRAY_STRUCT {
+    ($ArrayType:ident, $length0: ident, $($length:ident),+) => {
+        pub struct $ArrayType<T> {
+            $($length: usize),+,
+            data: ARRAY_DATA_TYPE!($length0, $($length),+),
+        }
     }
 }
 
-pub struct Array3<T> {
-    length1: usize,
-    length2: usize,
-    data: Box<[Box<[Box<[T]>]>]>,
+macro_rules! ARRAY_TO_VEC_LOOP {
+    (@inner $self: ident, $tmp: ident, $data: expr) => {
+        $tmp.push($data.clone());
+    };
+    (@for $self: ident, $tmp: ident, $data: expr, $length_usize: ident $(, $rest_length_usize: ident)*) => {
+        for i in 0..$self.$length_usize() {
+            ARRAY_TO_VEC_LOOP!(@inner $self, $tmp, $data[i] $(, $rest_length_usize)*);
+        }
+    };
+    (@inner $self: ident, $outerTmp: ident, $data: expr $(, $rest_length_usize: ident)*) => {
+        {
+            let mut tmp = Vec::new();
+            ARRAY_TO_VEC_LOOP!(@for $self, tmp, $data $(, $rest_length_usize)*);
+            $outerTmp.push(tmp);
+        }
+    };
+    
+    ($self: ident, $data: expr $(, $rest_length_usize: ident)*) => {
+        {
+            let mut tmp = Vec::new();
+            ARRAY_TO_VEC_LOOP!(@for $self, tmp, $data $(, $rest_length_usize)*);
+            tmp
+        }
+    };
 }
-impl<T> Array3<T> {
-    #[inline]
-    pub fn length0(&self) -> DafnyInt {
-        DafnyInt::from(self.length0_usize())
-    }
-    #[inline]
-    pub fn length0_usize(&self) -> usize {
-        self.data.len()
-    }
-    #[inline]
-    pub fn length1(&self) -> DafnyInt {
-        DafnyInt::from(self.length1_usize())
-    }
-    #[inline]
-    pub fn length1_usize(&self) -> usize {
-        self.length1
-    }
-    #[inline]
-    pub fn length2(&self) -> DafnyInt {
-        DafnyInt::from(self.length2_usize())
-    }
-    #[inline]
-    pub fn length2_usize(&self) -> usize {
-        self.length2
-    }
 
-    pub fn placebos_usize(
-        length0: usize,
-        length1: usize,
-        length2: usize,
-    ) -> *mut Array3<MaybeUninit<T>> {
-        Box::into_raw(Box::new(Array3 {
-            length1: length1,
-            length2: length2,
-            data: array::initialize_box_usize(length0, {
-                Rc::new(move |_| {
-                    array::initialize_box_usize(length1, {
-                        Rc::new(move |_| array::placebos_box_usize::<T>(length2))
-                    })
-                })
-            }),
-        }))
+macro_rules! ARRAY_TO_VEC_TYPE {
+    ($length0: ident) => {
+        Vec<T>
+    };
+    ($length0: ident $(, $res_length: ident)*) => {
+        Vec<ARRAY_TO_VEC_TYPE!($($res_length), *)>
     }
-    pub fn placebos(
-        length0: &DafnyInt,
-        length1: &DafnyInt,
-        length2: &DafnyInt,
-    ) -> *mut Array3<MaybeUninit<T>> {
-        Self::placebos_usize(length0.as_usize(), length1.as_usize(), length2.as_usize())
+}
+
+macro_rules! ARRAY_TO_VEC {
+    ($length0_usize: ident $(, $res_length_usize: ident)*) => {
+        pub fn to_vec(&self) -> ARRAY_TO_VEC_TYPE!($length0_usize, $($res_length_usize),*) {
+            ARRAY_TO_VEC_LOOP!(self, self.data, $length0_usize, $($res_length_usize),*)
+        }
     }
-    // Once all the elements have been initialized, transform the signature of the pointer
-    pub fn construct(p: *mut Array3<MaybeUninit<T>>) -> *mut Array3<T> {
-        unsafe { std::mem::transmute(p) }
+}
+
+macro_rules! ARRAY_LENGTHS {
+    () => {
+
+    };
+    (($length0: ident, $length0_usize: ident) $(, $rest: tt)*) => {
+        ARRAY_GETTER_LENGTH0!();
+        ARRAY_LENGTHS!($(, $rest)*);
+    };
+    (, ($length: ident, $length_usize: ident) $(, $rest: tt)*) => {
+        ARRAY_GETTER_LENGTH!($length, $length_usize);
+        ARRAY_LENGTHS!($(, $rest)*);
     }
+}
+
+macro_rules! ARRAY_METHODS_WRAPPER {
+    ($ArrayType:ident, $(($length:ident, $length_usize: ident)), +) => {
+        ARRAY_METHODS!($ArrayType, $($length), +);
+    }
+}
+
+macro_rules! ARRAY_TO_VEC_WRAPPER {
+    ($(($length:ident, $length_usize: ident)), +) => {
+        ARRAY_TO_VEC!($($length_usize), +);
+    }
+}
+
+macro_rules! ARRAY_STRUCT_WRAPPER {
+    ($ArrayType:ident, $(($length:ident, $length_usize: ident)), +) => {
+        ARRAY_STRUCT!($ArrayType, $($length), +);
+    }
+}
+
+macro_rules! ARRAY_DEF {
+    ($ArrayType:ident, $(($length:ident, $length_usize: ident)), +) => {
+        ARRAY_STRUCT_WRAPPER!($ArrayType, $(($length, $length_usize)), +);
+        impl<T> $ArrayType<T> {
+            ARRAY_LENGTHS!{
+                $(($length, $length_usize)), +
+            }
+            ARRAY_METHODS_WRAPPER!{$ArrayType,
+                $(($length, $length_usize)), +
+            }
+        }
+        impl<T: Clone> $ArrayType<T> {
+            ARRAY_TO_VEC_WRAPPER!{
+                $(($length, $length_usize)), +
+            }
+        }
+    }
+}
+
+// Array2 to Array16
+
+ARRAY_DEF!{Array2, 
+    (length0, length0_usize),
+    (length1, length1_usize)
+}
+
+ARRAY_DEF!{Array3, 
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize)
+}
+
+ARRAY_DEF!{Array4,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize)
+}
+
+ARRAY_DEF!{Array5,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize)
+}
+
+ARRAY_DEF!{Array6,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize)
+}
+
+ARRAY_DEF!{Array7,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize)
+}
+
+ARRAY_DEF!{Array8,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize)
+}
+
+ARRAY_DEF!{Array9,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize)
+}
+
+ARRAY_DEF!{Array10,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize)
+}
+
+ARRAY_DEF!{Array11,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize),
+    (length10, length10_usize)
+}
+
+ARRAY_DEF!{Array12,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize),
+    (length10, length10_usize),
+    (length11, length11_usize)
+}
+
+ARRAY_DEF!{Array13,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize),
+    (length10, length10_usize),
+    (length11, length11_usize),
+    (length12, length12_usize)
+}
+
+ARRAY_DEF!{Array14,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize),
+    (length10, length10_usize),
+    (length11, length11_usize),
+    (length12, length12_usize),
+    (length13, length13_usize)
+}
+
+ARRAY_DEF!{Array15,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize),
+    (length10, length10_usize),
+    (length11, length11_usize),
+    (length12, length12_usize),
+    (length13, length13_usize),
+    (length14, length14_usize)
+}
+
+ARRAY_DEF!{Array16,
+    (length0, length0_usize),
+    (length1, length1_usize),
+    (length2, length2_usize),
+    (length3, length3_usize),
+    (length4, length4_usize),
+    (length5, length5_usize),
+    (length6, length6_usize),
+    (length7, length7_usize),
+    (length8, length8_usize),
+    (length9, length9_usize),
+    (length10, length10_usize),
+    (length11, length11_usize),
+    (length12, length12_usize),
+    (length13, length13_usize),
+    (length14, length14_usize),
+    (length15, length15_usize)
 }
 
 pub mod array {
@@ -2507,8 +2830,14 @@ pub mod array {
     pub fn placebos_usize<T>(n: usize) -> *mut [MaybeUninit<T>] {
         Box::into_raw(placebos_box_usize(n))
     }
+    pub fn placebos_usize_rcmut<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
+        super::rcmut::array_object_from_box(placebos_box_usize(n))
+    }
     // Once all the elements have been initialized, transform the signature of the pointer
     pub fn construct<T>(p: *mut [MaybeUninit<T>]) -> *mut [T] {
+        unsafe { std::mem::transmute(p) }
+    }
+    pub fn construct_rcmut<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
         unsafe { std::mem::transmute(p) }
     }
 
@@ -2650,6 +2979,16 @@ macro_rules! is {
     };
 }
 
+#[macro_export]
+macro_rules! is_rcmut {
+    ($raw:expr, $id:ty) => {
+        $crate::md!($raw)
+            .as_any_mut()
+            .downcast_mut::<$id>()
+            .is_some()
+    };
+}
+
 // cast_any is meant to be used on references only, to convert any references (classes or traits)*
 // to an Any reference trait
 #[macro_export]
@@ -2731,15 +3070,66 @@ macro_rules! update_field_if_uninit {
 // Reference-counted classes mode
 /////////////////
 
-pub type Object<T> = Option<rcmut::RcMut<T>>;
+pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
+
+impl<T: ?Sized> Eq for Object<T> {}
+
+impl<T: ?Sized> Clone for Object<T> {
+    fn clone(&self) -> Self {
+        Object(self.0.clone())
+    }
+}
+
+impl <T: ?Sized>Default for Object<T> {
+    fn default() -> Self {
+        Object(None)
+    }
+}
+
+impl<T: ?Sized> Debug for Object<T> {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        self.fmt_print(f, false)
+    }
+}
+impl <T: ?Sized> DafnyPrint for Object<T> {
+    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        write!(f, "<object>")
+    }
+}
+
+impl <T: ?Sized> PartialEq for Object<T> {
+    fn eq(&self, other: &Self) -> bool {
+        if let Some(p) = &self.0 {
+            if let Some(q) = &other.0 {
+                // To compare addresses, we need to ensure we only compare thin pointers
+                // https://users.rust-lang.org/t/comparing-addresses-between-fat-and-thin-pointers/89008
+                ::std::ptr::eq(p.as_ref().get() as *const (), q.as_ref().get() as *const ())
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+}
+
+impl <T: ?Sized> std::hash::Hash for Object<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        if let Some(p) = &self.0 {
+            p.as_ref().get().hash(state);
+        } else {
+            0.hash(state);
+        }
+    }
+}
 
 #[macro_export]
 macro_rules! cast_object {
     ($raw:expr, $id:ty) => {
         unsafe {
-            let res: Object<$id> = 
-            Some(Rc::from_raw(
-                Rc::into_raw($raw.unwrap()) as _));
+            let res: $crate::Object<$id> = 
+            $crate::Object(Some(::std::rc::Rc::from_raw(
+                ::std::rc::Rc::into_raw($raw.0.unwrap()) as _)));
             res
         }
     };
@@ -2750,10 +3140,20 @@ pub fn allocate_rcmut<T>() -> Object<T> {
     unsafe { mem::transmute(object::new::<MaybeUninit<T>>(MaybeUninit::uninit())) }
 }
 
+pub struct AllocationTracker {
+    allocations: Vec<Weak<dyn Any>>
+}
+
+pub fn allocate_rcmut_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
+    let res = allocate_rcmut::<T>();
+    allocation_tracker.allocations.push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
+    res
+}
+
 pub fn is_instance_of_rcmut<T: ?Sized + AsAny + 'static, U: 'static>(theobject: Object<T>) -> bool {
     // safety: Dafny won't call this function unless it can guarantee the object is still allocated
     unsafe { 
-        rcmut::borrow(&theobject.unwrap()).as_any().downcast_ref::<U>().is_some()
+        rcmut::borrow(&theobject.0.unwrap()).as_any().downcast_ref::<U>().is_some()
     }
 }
 
@@ -2761,7 +3161,7 @@ pub fn is_instance_of_rcmut<T: ?Sized + AsAny + 'static, U: 'static>(theobject: 
 #[macro_export]
 macro_rules! update_field_nodrop_rcmut {
     ($ptr:expr, $field: ident, $value:expr) => {
-        update_nodrop_rcmut!((rcmut::borrow_mut(&mut $ptr.clone().unwrap())).$field, $value)
+        $crate::update_nodrop_rcmut!(($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field, $value)
     };
 }
 
@@ -2779,7 +3179,7 @@ macro_rules! update_field_if_uninit_rcmut {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
         let computed_value = $value;
         if !$field_assigned {
-            update_field_nodrop_rcmut!($t, $field, computed_value);
+            $crate::update_field_nodrop_rcmut!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -2793,7 +3193,7 @@ macro_rules! update_field_uninit_rcmut {
         if $field_assigned {
             $crate::md!($t).$field = computed_value;
         } else {
-            update_field_nodrop_rcmut!($t, $field, computed_value);
+            $crate::update_field_nodrop_rcmut!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -2803,7 +3203,7 @@ macro_rules! update_field_uninit_rcmut {
 #[macro_export]
 macro_rules! md {
     ($x:expr) => {
-        unsafe { rcmut::borrow_mut(&mut $x.unwrap()) }
+        unsafe { $crate::rcmut::borrow_mut(&mut $x.0.unwrap()) }
     };
 }
 
@@ -2811,7 +3211,7 @@ macro_rules! md {
 #[macro_export]
 macro_rules! rd {
     ($x:expr) => {
-        unsafe { rcmut::borrow(& $x.unwrap()) }
+        unsafe { $crate::rcmut::borrow(& $x.0.unwrap()) }
     };
 }
 
@@ -2819,23 +3219,25 @@ macro_rules! rd {
 #[macro_export]
 macro_rules! refcount {
     ($x:expr) => {
-        Rc::strong_count(unsafe { rcmut::as_rc(& $x.unwrap()) })
+        Rc::strong_count(unsafe { rcmut::as_rc(& $x.0.unwrap()) })
     };
 }
 
-impl<T: 'static> UpcastTo<Object<dyn Any>> for Object<T> {
-    fn upcast_to(&self) -> Object<dyn Any> {
-        if self.is_none() {
-            None
-        } else {
-            Some(self.clone().unwrap() as Rc<UnsafeCell<dyn Any>>)
+pub mod object {
+    use std::any::Any;
+    use crate::AsAny;
+
+    pub fn new<T>(val: T) -> crate::Object<T> {
+        crate::Object(Some(crate::rcmut::new(val)))
+    }
+    pub fn downcast<T: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<T> {
+        unsafe {
+          crate::Object(Some(crate::rcmut::downcast::<T>(_self.0.unwrap()).unwrap())) // Use unwrap_unchecked?
         }
     }
-}
-
-pub mod object {
-    pub fn new<T>(val: T) -> crate::Object<T> {
-        Some(crate::rcmut::new(val))
+    #[inline]
+    pub fn is<T: 'static + ::std::any::Any>(_self: crate::Object<dyn Any>) -> bool {
+        is_rcmut!(_self, T)
     }
 }
 
@@ -2846,18 +3248,22 @@ pub mod rcmut {
     use std::rc::Rc;
     use std::sync::Arc;
 
-    pub fn array_from_rc<T>(data: Rc<[T]>) -> crate::Object<[T]> {
-        Some(unsafe { crate::rcmut::from_rc(data) })
+    pub fn array_object_from_rc<T>(data: Rc<[T]>) -> crate::Object<[T]> {
+        crate::Object(Some(unsafe { crate::rcmut::from_rc(data) }))
+    }
+    pub fn array_object_from_box<T>(data: Box<[T]>) -> crate::Object<[T]> {
+        let data: Rc<[T]> = data.into();
+        crate::Object(Some(unsafe { crate::rcmut::from_rc(data) }))
     }
     pub struct Array<T> {
         pub data: Box<[T]>,
     }
     impl<T> Array<T> {
         pub fn new(data: Box<[T]>) -> crate::Object<Array<T>> {
-            Some(crate::rcmut::new(Array { data }))
+            crate::Object(Some(crate::rcmut::new(Array { data })))
         }
 
-        pub fn placebos_usize(length: usize) -> Option<RcMut<Array<MaybeUninit<T>>>> {
+        pub fn placebos_usize(length: usize) -> crate::Object<Array<MaybeUninit<T>>> {
             let x = crate::array::placebos_box_usize::<T>(length);
             crate::rcmut::Array::<MaybeUninit<T>>::new(x)
         }
@@ -2900,6 +3306,12 @@ pub mod rcmut {
     #[inline]
     pub unsafe fn borrow_mut<T: ?Sized>(this: &mut RcMut<T>) -> &mut T {
         mem::transmute(this.get())
+    }
+
+    pub unsafe fn downcast<T: 'static>(this: RcMut<dyn ::std::any::Any>) -> Option<RcMut<T>> {
+        let t: Rc<dyn ::std::any::Any> = to_rc(this);
+        let t: Rc<T> = Rc::downcast::<T>(t).ok()?;
+        mem::transmute(t)
     }
 
     /// A reference counted smart pointer with unrestricted mutability.
@@ -2954,6 +3366,8 @@ pub mod rcmut {
 // A MaybePlacebo is a value that is either a placebo or a real value.
 // It is a wrapper around a MaybeUninit<T> value, but knowing whether the value is a placebo or not.
 // That way, when it is dropped, the underlying value is only dropped if it is not a placebo.
+
+#[derive(Clone)]
 pub struct MaybePlacebo<T>(Option<T>);
 impl<T: Clone> MaybePlacebo<T> {
     #[inline]
@@ -3001,102 +3415,132 @@ macro_rules! maybe_placebos_from {
 // Coercion
 ////////////////
 
-pub trait UpcastTo<U> {
-    fn upcast_to(&self) -> U;
+// For converting a datatype like Option<T> to an Option<Z> (still same type, arguments are changed)
+
+// For converting any value to a trait representation.
+pub trait UpcastTo<U>: Clone {
+    fn upcast_to(self) -> U;
 }
 
-#[macro_export]
-macro_rules! UpcastTo {
-    ($from:ty, $to:ty) => {
-        impl $crate::UpcastTo<*mut $to> for &mut $from {
-            fn upcast_to(&self) -> *mut $to {
-                (*self) as *const $to as *mut $to
-            }
+
+pub fn upcast<A, B>() -> Rc<impl Fn(A) -> B>
+  where A : UpcastTo<B>
+{
+    Rc::new(|x: A| x.upcast_to())
+}
+
+pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
+{
+    Rc::new(|x: A| x)
+}
+
+pub fn rc_coerce<T: Clone, U: Clone>(f: Rc<impl Fn(T) -> U>) -> Rc<impl Fn(Rc<T>) -> Rc<U>> {
+    Rc::new(move |x: Rc<T>| Rc::new(f.as_ref()(x.as_ref().clone())))
+}
+pub fn box_coerce<T: Clone, U: Clone>(f: Box<impl Fn(T) -> U>) -> Box<impl Fn(Box<T>) -> Box<U>> {
+    Box::new(move |x: Box<T>| Box::new(f.as_ref()(x.as_ref().clone())))
+}
+
+use nightly_crimes::nightly_crimes;
+nightly_crimes! {
+    #![feature(unsize)]
+    // To be used like UpcastTo::<Rc<dyn SomeType>>::upcast_to(x: Rc<StructType>)
+    //   if impl SomeType for StructType {} exists
+    // But also like  UpcastTo::<Rc<dyn SomeHyperType>>::upcast_to(x: Rc<dyn SomeType>)
+    //   if trait SomeType: SomeHyperType { ... } exists
+    impl<From, To> UpcastTo<::std::rc::Rc<To>> for ::std::rc::Rc<From>
+    where
+        From: ?Sized + core::marker::Unsize<To>,
+        To: ?Sized,
+    {
+        fn upcast_to(self) -> ::std::rc::Rc<To> {
+        self as ::std::rc::Rc<To>
         }
-    };
-}
-
-// UpcastTo for pointers
-impl<T: 'static> UpcastTo<*mut dyn Any> for *mut T {
-    fn upcast_to(&self) -> *mut dyn Any {
-        (*self) as *const dyn Any as *mut dyn Any
+    }
+    // UpcastTo for pointers
+    impl<From, To> UpcastTo<*mut To> for *mut From
+    where
+        From: 'static + ?Sized + core::marker::Unsize<To>,
+        To: ?Sized,
+    {
+        fn upcast_to(self) -> *mut To {
+            self as *const To as *mut To
+        }
     }
 }
 
-// UpcastTo for objects
-#[macro_export]
-macro_rules! UpcastToObject {
-    ($from:ty, $to:ty) => {
-        impl $crate::UpcastTo<Object<$to>> for Object<$from> {
-            fn upcast_to(&self) -> Object<$to> {
-                Some((*self).clone().unwrap()as Rc<UnsafeCell<$to>>)
-            }
-        }
-    };
+impl <From, To> UpcastTo<Object<To>> for Object<From>
+where
+    From: ?Sized,
+    To: ?Sized,
+    Rc<From>: UpcastTo<Rc<To>>,
+{
+    fn upcast_to(self) -> Object<To> {
+        Object(Some(unsafe { rcmut::from_rc(rcmut::to_rc(self.0.clone().unwrap()).upcast_to()) }))
+    }
 }
 
-
 // UpcastTo for sets
-impl<V, U> UpcastTo<Set<V>> for Set<U>
-where
-    V: DafnyTypeEq,
-    U: DafnyTypeEq + UpcastTo<V>,
+impl<U: DafnyTypeEq> Set<U>
 {
-    fn upcast_to(&self) -> Set<V> {
-        // We need to upcast individual elements
-        let mut new_set: HashSet<V> = HashSet::<V>::default();
-        for value in self.data.iter() {
-            new_set.insert(value.upcast_to());
-        }
-        Set::from_hashset_owned(new_set)
+    pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Set<U>) -> Set<V>> {
+        Rc::new(move |x: Set<U>| {
+            // We need to upcast individual elements
+            let f2 = f.clone();
+            let mut new_set: HashSet<V> = HashSet::<V>::default();
+            for value in x.data.iter() {
+                new_set.insert(f2(value.clone()));
+            }
+            Set::from_hashset_owned(new_set)
+        })
     }
 }
 
 // UpcastTo for sequences
-impl<V, U> UpcastTo<Sequence<V>> for Sequence<U>
-where
-    V: DafnyTypeEq,
-    U: DafnyTypeEq + UpcastTo<V>,
+impl<U: DafnyType> Sequence<U>
 {
-    fn upcast_to(&self) -> Sequence<V> {
+    pub fn coerce<V: DafnyType>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Sequence<U>) -> Sequence<V>> {
         // We need to upcast individual elements
-        let mut new_seq: Vec<V> = Vec::<V>::default();
-        for value in self.to_array().iter() {
-            new_seq.push(value.upcast_to());
-        }
-        Sequence::from_array_owned(new_seq)
+        Rc::new(move |x: Sequence<U>| {
+            let mut new_seq: Vec<V> = Vec::<V>::default();
+            let f2 = f.clone();
+            for value in x.to_array().iter() {
+                new_seq.push(f2(value.clone()));
+            }
+            Sequence::from_array_owned(new_seq)
+        })
     }
 }
 
 // Upcast for multisets
-impl<V, U> UpcastTo<Multiset<V>> for Multiset<U>
-where
-    V: DafnyTypeEq,
-    U: DafnyTypeEq + UpcastTo<V>,
+impl<U: DafnyTypeEq> Multiset<U>
 {
-    fn upcast_to(&self) -> Multiset<V> {
+    pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Multiset<U>) -> Multiset<V>> {
         // We need to upcast individual elements
-        let mut new_multiset: HashMap<V, DafnyInt> = HashMap::<V, DafnyInt>::default();
-        for (value, count) in self.data.iter() {
-            new_multiset.insert(value.upcast_to(), count.clone());
-        }
-        Multiset::from_hashmap_owned(new_multiset)
+        Rc::new(move |x: Multiset<U>| {
+                let f2 = f.clone();
+            // We need to upcast individual elements
+            let mut new_multiset: HashMap<V, DafnyInt> = HashMap::<V, DafnyInt>::default();
+            for (value, count) in x.data.into_iter() {
+                new_multiset.insert(f2(value), count.clone());
+            }
+            Multiset::from_hashmap_owned(new_multiset)
+        })
     }
 }
 
 // Upcast for Maps
-impl<K, U, V> UpcastTo<Map<K, V>> for Map<K, U>
-where
-    K: DafnyTypeEq,
-    U: DafnyTypeEq + UpcastTo<V>,
-    V: DafnyTypeEq,
+impl<K: DafnyTypeEq, U: DafnyTypeEq> Map<K, U>
 {
-    fn upcast_to(&self) -> Map<K, V> {
+    pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Map<K, U>) -> Map<K, V>> {
         // We need to upcast individual elements
-        let mut new_map: HashMap<K, V> = HashMap::<K, V>::default();
-        for (key, value) in self.data.iter() {
-            new_map.insert(key.clone(), value.upcast_to());
-        }
-        Map::from_hashmap_owned(new_map)
+        Rc::new(move |x: Map<K, U>| {
+            let f2 = f.clone();
+            let mut new_map: HashMap<K, V> = HashMap::<K, V>::default();
+            for (key, value) in x.data.iter() {
+                new_map.insert(key.clone(), f2(value.clone()));
+            }
+            Map::from_hashmap_owned(new_map)
+        })
     }
 }

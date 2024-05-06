@@ -1,0 +1,10 @@
+[package]
+name = "yolo-rustc-bootstrap"
+description = "Please do not use this."
+version = "1.0.2"
+edition = "2018"
+license = "BSD-2-Clause"
+repository = "https://github.com/m-ou-se/nightly-crimes"
+
+[lib]
+proc_macro = true

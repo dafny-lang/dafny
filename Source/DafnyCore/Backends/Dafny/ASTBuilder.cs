@@ -356,14 +356,14 @@ namespace Microsoft.Dafny.Compilers {
     void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
 
     public MethodBuilder Method(
-      bool isStatic, bool hasBody,
+      bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
       List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
     ) {
-      return new MethodBuilder(this, isStatic, hasBody, overridingPath, name, typeArgs, params_, outTypes, outVars);
+      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -374,6 +374,8 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly bool isStatic;
     readonly bool hasBody;
+    readonly bool outVarsAreUninitFieldsToAssign;
+    readonly bool wasFunction;
     readonly ISequence<ISequence<Rune>> overridingPath;
     readonly List<DAST.TypeArgDecl> typeArgs;
     readonly Sequence<DAST.Formal> params_;
@@ -383,7 +385,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public MethodBuilder(
       ClassLike parent,
-      bool isStatic, bool hasBody,
+      bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
@@ -393,6 +395,8 @@ namespace Microsoft.Dafny.Compilers {
       this.parent = parent;
       this.isStatic = isStatic;
       this.hasBody = hasBody;
+      this.outVarsAreUninitFieldsToAssign = outVarsAreUninitFieldsToAssign;
+      this.wasFunction = wasFunction;
       this.overridingPath = overridingPath;
       this.name = name;
       this.typeArgs = typeArgs;
@@ -422,6 +426,8 @@ namespace Microsoft.Dafny.Compilers {
       return (DAST.Method)DAST.Method.create(
         isStatic,
         hasBody,
+        outVarsAreUninitFieldsToAssign,
+        wasFunction,
         overridingPath != null ? Option<ISequence<ISequence<Rune>>>.create_Some(overridingPath) : Option<ISequence<ISequence<Rune>>>.create_None(),
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.TypeArgDecl>.FromArray(typeArgs.ToArray()),
@@ -1758,4 +1764,115 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
+  class NativeRangeBuilder : ExprContainer, BuildableExpr {
+    [CanBeNull] readonly string start;
+    [CanBeNull] object bound;
+
+    public NativeRangeBuilder(string start = null) {
+      this.start = start;
+      bound = null;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (bound != null) {
+        throw new InvalidOperationException();
+      } else {
+        bound = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (bound != null) {
+        throw new InvalidOperationException();
+      } else {
+        bound = item;
+      }
+    }
+
+    public static DAST.Expression ToNativeU64(int number) {
+      var origType = DAST.Type.create_Primitive(DAST.Primitive.create_Int());
+      var numberExpr = (DAST.Expression)DAST.Expression.create_Literal(
+        DAST.Literal.create_IntLiteral(Sequence<Rune>.UnicodeFromString($"{number}"),
+          origType)
+      );
+      return (DAST.Expression)DAST.Expression.create_Convert(numberExpr, origType, DAST.Type.create_Path(
+        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("u64")), Sequence<_IType>.Empty,
+        DAST.ResolvedType.create_Newtype(origType, DAST.NewtypeRange.create_U64(), true, Sequence<_IAttribute>.Empty)
+      ));
+    }
+
+    public DAST.Expression Build() {
+      var builtValue = new List<DAST.Expression>();
+      DAST.Expression endExpr;
+      if (bound == null) {
+        endExpr = ExprContainer.UnsupportedToExpr($"NativeRangeBuilder has no upper bound");
+      } else {
+        ExprContainer.RecursivelyBuild(new List<object> { bound }, builtValue);
+        endExpr = builtValue[0];
+      }
+
+      DAST.Expression startExpr;
+      if (start == null) {
+        startExpr = ToNativeU64(0);
+      } else {
+        startExpr = (DAST.Expression)DAST.Expression.create_Ident(
+          Sequence<Rune>.UnicodeFromString(start));
+      }
+
+      return (DAST.Expression)DAST.Expression.create_IntRange(
+        startExpr, endExpr, true);
+    }
+
+    public void AddUnsupported(string why) {
+      AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+  }
+
+  class ArrayLengthBuilder : ExprContainer, BuildableExpr {
+    private readonly DAST.Type arrayType;
+    private readonly int dim;
+    private object array;
+    private readonly bool native;
+
+    public ArrayLengthBuilder(DAST.Type arrayType, int dim, bool native) {
+      this.arrayType = arrayType;
+      this.dim = dim;
+      this.native = native;
+      array = null;
+    }
+
+    public void AddExpr(DAST.Expression item) {
+      if (array != null) {
+        throw new InvalidOperationException();
+      } else {
+        array = item;
+      }
+    }
+
+    public void AddBuildable(BuildableExpr item) {
+      if (array != null) {
+        throw new InvalidOperationException();
+      } else {
+        array = item;
+      }
+    }
+
+    public DAST.Expression Build() {
+      var builtValue = new List<DAST.Expression>();
+      DAST.Expression arrayExpr;
+      if (array == null) {
+        arrayExpr = ExprContainer.UnsupportedToExpr($"ArrayLengthBuilder has no array");
+      } else {
+        ExprContainer.RecursivelyBuild(new List<object> { array }, builtValue);
+        arrayExpr = builtValue[0];
+      }
+
+      return (DAST.Expression)DAST.Expression.create_ArrayLen(
+        arrayExpr, arrayType, new BigInteger(dim), native);
+    }
+
+    public void AddUnsupported(string why) {
+      AddExpr(ExprContainer.UnsupportedToExpr(why));
+    }
+  }
 }

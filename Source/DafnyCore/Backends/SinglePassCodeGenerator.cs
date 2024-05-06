@@ -6007,8 +6007,8 @@ namespace Microsoft.Dafny.Compilers {
         if (isReturning) {
           var elseBranch = wr;
           elseBranch = EmitBlock(elseBranch);
-          elseBranch = EmitReturnExpr(elseBranch);
           var wStmts = elseBranch.Fork();
+          elseBranch = EmitReturnExpr(elseBranch);
           EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
         }
         wr = thenWriter;
