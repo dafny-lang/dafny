@@ -49,6 +49,12 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "count"
   };
 
+  public static readonly Option<bool> HiddenNoVerify = new("--hidden-no-verify",
+    "Allows building unverified libraries without recording that they were not verified.") {
+    ArgumentHelpName = "count",
+    IsHidden = true
+  };
+
   public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit",
     "Limit the number of seconds spent trying to verify each procedure") {
     ArgumentHelpName = "seconds",
@@ -106,6 +112,7 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(Cores,
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
     DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
+    DafnyOptions.RegisterLegacyBinding(HiddenNoVerify, (o, f) => o.Verify = !f);
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
 
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
@@ -144,6 +151,7 @@ public static class BoogieOptionBag {
         { NoVerify, OptionCompatibility.CheckOptionLibraryImpliesLocal },
       }
     );
+    DooFile.RegisterNoChecksNeeded(HiddenNoVerify, false);
     DooFile.RegisterNoChecksNeeded(Cores, false);
     DooFile.RegisterNoChecksNeeded(VerificationTimeLimit, false);
     DooFile.RegisterNoChecksNeeded(VerificationErrorLimit, false);

@@ -63,6 +63,9 @@ public class DooFile {
     public void Write(TextWriter writer) {
       var content = Toml.FromModel(this, new TomlModelOptions() {
         ConvertToToml = obj => {
+          if (obj is FileSystemInfo fileSystemInfo) {
+            return fileSystemInfo.ToString();
+          }
           if (obj is Enum) {
             TomlFormatHelper.ToString(obj.ToString()!, TomlPropertyDisplayKind.Default);
             return obj.ToString();
@@ -79,14 +82,14 @@ public class DooFile {
 
   public string ProgramText { get; set; }
 
-  public static Task<DooFile> Read(string path) {
+  public static async Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
-    return Read(archive);
+    return await Read(archive);
   }
 
-  public static Task<DooFile> Read(Stream stream) {
+  public static async Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
-    return Read(archive);
+    return await Read(archive);
   }
 
   private static async Task<DooFile> Read(ZipArchive archive) {

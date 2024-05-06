@@ -17,7 +17,7 @@ verify: build-binary
 verify-all: update-binary-all
 
 build-binary:
-	$(DAFNY) build -t:lib dfyconfig.toml \
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) dfyconfig.toml \
 		`find . -name '*-${TARGETLANG}*.dfy'` \
 		--output:${DOO_FILE_SOURCE}
 
