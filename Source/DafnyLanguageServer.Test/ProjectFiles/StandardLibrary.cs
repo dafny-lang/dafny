@@ -22,6 +22,8 @@ method Foo() ensures false { }
     var path = Path.GetRandomFileName();
     var project = CreateAndOpenTestDocument(projectFile, Path.Combine(path, DafnyProject.FileName));
     var document = CreateAndOpenTestDocument(program, Path.Combine(path, "EditWhenUsingStandardLibrary.dfy"));
+    var diagnostics0 = await GetLastDiagnostics(project);
+    Assert.Empty(diagnostics0);
     var diagnostics1 = await GetLastDiagnostics(document);
     Assert.Single(diagnostics1);
     ApplyChange(ref document, new Range(0, 0, 1, 0), "method Bar() ensures true { }");

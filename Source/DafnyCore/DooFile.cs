@@ -63,6 +63,9 @@ public class DooFile {
     public void Write(TextWriter writer) {
       var content = Toml.FromModel(this, new TomlModelOptions() {
         ConvertToToml = obj => {
+          if (obj is IEnumerable<FileSystemInfo> infos) {
+            return infos.Select(i => i.ToString()).ToList();
+          }
           if (obj is FileSystemInfo fileSystemInfo) {
             return fileSystemInfo.ToString();
           }
