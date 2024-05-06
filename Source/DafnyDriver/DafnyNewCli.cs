@@ -304,7 +304,7 @@ public static class DafnyNewCli {
             yield return dooResult;
           }
         } else {
-          reporter.Error(MessageSource.Project, uriOrigin, $"Failed to build dependendency {options.GetPrintPath(uri.LocalPath)}");
+          reporter.Error(MessageSource.Project, uriOrigin, $"Failed to build dependency {options.GetPrintPath(uri.LocalPath)}");
         }
       }
     }
