@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 public class RunAllTestsMainMethod : IRewriter {
 
   static RunAllTestsMainMethod() {
-    DooFile.RegisterNoChecksNeeded(IncludeTestRunner);
+    DooFile.RegisterNoChecksNeeded(IncludeTestRunner, false);
   }
 
   public static Option<bool> IncludeTestRunner = new("--include-test-runner",
