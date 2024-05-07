@@ -4,7 +4,9 @@ CLI: Error: cannot load dfyconfig.toml: --unicode-char is set locally to False, 
 
 Dafny program verifier finished with 0 verified, 0 errors
 Building dependency dfyconfig.toml
+CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
 usesLibrary.dfy(13,11): Error: assertion might not hold
 
 Dafny program verifier finished with 0 verified, 1 error
-CLI: Error: Failed to build dependendency dfyconfig.toml
+CLI: Error: Failed to build dependency dfyconfig.toml
+CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used

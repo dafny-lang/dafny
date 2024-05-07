@@ -116,8 +116,9 @@ namespace Microsoft.Dafny {
       }
 
       ISet<String> filesSeen = new HashSet<string>();
+      var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(options.LibraryFiles).ToHashSet();
       foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
-                 Concat(CommonOptionBag.SplitOptionValueIntoFiles(options.LibraryFiles))) {
+                 Concat(libraryFiles)) {
         Contract.Assert(file != null);
         var extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
@@ -163,18 +164,19 @@ namespace Microsoft.Dafny {
           options.SourceFolders.Add(file);
         } else if (!isDafnyFile) {
           string errorOnNotRecognized;
-          {
-            if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
-              errorOnNotRecognized =
-                $"*** Error: Command-line argument '{nameToShow}' is neither a recognized option nor a filename with a supported extension ({string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions))}).";
-            } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
-              errorOnNotRecognized =
-                $"*** Error: Command-line argument '{nameToShow}' is neither a recognized option nor a filename with a supported extension ({string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions))}).";
-            } else {
-              errorOnNotRecognized =
-                $"*** Error: '{nameToShow}': Filename extension '{extension}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({string.Join(", ", supportedExtensions)})";
-            }
+          if (options.UsingNewCli && string.IsNullOrEmpty(extension) && file.Length > 0) {
+            errorOnNotRecognized =
+              $"*** Error: Command-line argument '{nameToShow}' is neither a recognized option nor a filename with a supported extension ({string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions))}).";
+          } else if (string.IsNullOrEmpty(extension) && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+            errorOnNotRecognized =
+              $"*** Error: Command-line argument '{nameToShow}' is neither a recognized option nor a filename with a supported extension ({string.Join(", ", Enumerable.Repeat(".dfy", 1).Concat(supportedExtensions))}).";
+          } else {
+            errorOnNotRecognized =
+              $"*** Error: '{nameToShow}': Filename extension '{extension}' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files ({string.Join(", ", supportedExtensions)})";
           }
+
+          options.Printer.ErrorWriteLine(options.OutputWriter, errorOnNotRecognized);
+          return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
         }
       }
 

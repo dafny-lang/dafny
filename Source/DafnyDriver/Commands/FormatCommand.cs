@@ -69,7 +69,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         SynchronousCliCompilation.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
-        dafnyFile = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ConsoleErrorReporter(options), options, new Uri(tempFileName), Token.NoToken, false);
+        dafnyFile = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ConsoleErrorReporter(options), options, new Uri(tempFileName), Token.NoToken);
       }
 
       var content = dafnyFile.GetContent();
@@ -154,6 +154,6 @@ Use '--print' to output the content of the formatted files instead of overwritin
   public static IEnumerable<DafnyFile> GetFilesForFolder(DafnyOptions options, string folderPath) {
     return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
       .Select(name => DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance,
-        new ConsoleErrorReporter(options), options, new Uri(name), Token.Cli, false));
+        new ConsoleErrorReporter(options), options, new Uri(name), Token.Cli));
   }
 }

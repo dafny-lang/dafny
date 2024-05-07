@@ -114,7 +114,7 @@ public class DafnyFile {
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
-    Uri uri, IToken origin, bool asLibrary = false) {
+    Uri uri, IToken origin, bool asLibrary = false, bool warnLibrary = true) {
     string canonicalPath;
     string baseName;
     if (uri.IsFile) {
@@ -141,7 +141,7 @@ public class DafnyFile {
       return null;
     }
 
-    if (!options.Get(UnsafeDependencies) && asLibrary) {
+    if (!options.Get(UnsafeDependencies) && asLibrary && warnLibrary) {
       reporter.Warning(MessageSource.Project, "", origin,
         $"The file '{options.GetPrintPath(filePath)}' was passed to --library. " +
         $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +

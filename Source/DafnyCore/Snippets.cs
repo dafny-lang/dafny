@@ -47,7 +47,7 @@ public class Snippets {
       try {
         // Note: This is not guaranteed to be the same file that Dafny parsed. To ensure that, Dafny should keep
         // an in-memory version of each file it parses.
-        var file = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ErrorReporterSink(options), options, uri, Token.NoToken, false);
+        var file = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ErrorReporterSink(options), options, uri, Token.NoToken);
         using var reader = file.GetContent();
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {
