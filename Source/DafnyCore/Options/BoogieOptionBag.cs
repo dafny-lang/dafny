@@ -44,14 +44,10 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "count",
   };
 
-  public static readonly Option<bool> NoVerify = new("--no-verify",
-    "Skip verification") {
-    ArgumentHelpName = "count"
-  };
+  public static readonly Option<bool> NoVerify = new("--no-verify", "Skip verification");
 
   public static readonly Option<bool> HiddenNoVerify = new("--hidden-no-verify",
     "Allows building unverified libraries without recording that they were not verified.") {
-    ArgumentHelpName = "count",
     IsHidden = true
   };
 
