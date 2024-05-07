@@ -8,7 +8,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DafnyCore.Generic;
 using DafnyCore.Options;
 using Microsoft.Dafny;
 using Tomlyn;
@@ -32,13 +31,16 @@ public class DooFile {
 
     public string DafnyVersion { get; set; }
 
-    public string SolverIdentifier { get; set; }
-    public string SolverVersion { get; set; }
+    public string? SolverIdentifier { get; set; }
+    public string? SolverVersion { get; set; }
 
     public Dictionary<string, object> Options { get; set; }
 
     public ManifestData() {
       // Only for TOML deserialization!
+      DooFileVersion = null!;
+      DafnyVersion = null!;
+      Options = null!;
     }
 
     public ManifestData(DafnyOptions options) {
@@ -103,15 +105,15 @@ public class DooFile {
   }
 
   private static async Task<DooFile> Read(ZipArchive archive) {
-    var result = new DooFile();
 
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
 
+    ManifestData manifest;
     await using (var manifestStream = manifestEntry.Open()) {
-      result.Manifest = DooFile.ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
+      manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
     var programTextEntry = archive.GetEntry(ProgramFileEntry);
@@ -119,11 +121,13 @@ public class DooFile {
       throw new ArgumentException(".doo file missing program text entry");
     }
 
+    string programText;
     await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = await reader.ReadToEndAsync();
+      programText = await reader.ReadToEndAsync();
     }
 
+    var result = new DooFile(manifest, programText);
     return result;
   }
 
@@ -138,10 +142,12 @@ public class DooFile {
     // before adding that feature.
     pr.PrintProgram(dafnyProgram, false);
     ProgramText = tw.ToString();
-    Manifest = new DooFile.ManifestData(dafnyProgram.Options);
+    Manifest = new ManifestData(dafnyProgram.Options);
   }
 
-  private DooFile() {
+  public DooFile(ManifestData manifest, string programText) {
+    Manifest = manifest;
+    ProgramText = programText;
   }
 
   /// <summary>
@@ -179,7 +185,7 @@ public class DooFile {
       }
       var localValue = options.Get(option);
 
-      object libraryValue;
+      object? libraryValue;
       if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
         var printTomlValue = DafnyProject.PrintTomlOptionToCliValue(new Uri(libraryFile), manifestValue, option);
         var parseResult = option.Parse(printTomlValue.ToArray());
