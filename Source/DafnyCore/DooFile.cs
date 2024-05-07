@@ -179,6 +179,7 @@ public class DooFile {
       }
 
       result.Options.OptionArguments[option] = libraryValue;
+      result.ApplyBinding(option);
       var prefix = $"cannot load {options.GetPrintPath(libraryFile)}";
       success = success && check(reporter, origin, prefix, option, localValue, libraryValue);
     }
