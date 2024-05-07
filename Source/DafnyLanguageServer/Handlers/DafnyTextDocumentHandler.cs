@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
-      return new TextDocumentAttributes(uri, uri.Path.EndsWith(DafnyProject.FileName) ? DafnyProjectLanguage : DafnyLanguage);
+      return new TextDocumentAttributes(uri, uri.Path.EndsWith(DafnyProject.FileName) ? "toml" : DafnyLanguage);
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
