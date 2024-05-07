@@ -147,25 +147,25 @@ public class DooFile {
   /// <summary>
   /// Returns the options as specified by the DooFile
   /// </summary>
-  public DafnyOptions? Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+  public DafnyOptions? Validate(ErrorReporter reporter, Uri file, DafnyOptions options, IToken origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {options.GetPrintPath(filePath)}: .doo files cannot be used with the legacy CLI");
+        $"cannot load {options.GetPrintPath(file.LocalPath)}: .doo files cannot be used with the legacy CLI");
       return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {options.GetPrintPath(filePath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+        $"cannot load {options.GetPrintPath(file.LocalPath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return null;
     }
 
-    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options,
+    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options,
       new Dictionary<Option, OptionCompatibility.OptionCheck>());
   }
 
   public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
-    string libraryFile,
+    Uri libraryFile,
     DafnyOptions options, IToken origin,
     IDictionary<string, object> libraryOptions,
     Dictionary<Option, OptionCompatibility.OptionCheck> additionalOptions) {
@@ -183,11 +183,10 @@ public class DooFile {
 
       object? libraryValue;
       if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
-        var printTomlValue = DafnyProject.PrintTomlOptionToCliValue(new Uri(libraryFile), manifestValue, option);
+        var printTomlValue = DafnyProject.PrintTomlOptionToCliValue(libraryFile, manifestValue, option);
         var parseResult = option.Parse(printTomlValue.ToArray());
         if (parseResult.Errors.Any()) {
           reporter.Error(MessageSource.Project, origin, $"could not parse value '{manifestValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
-          //value = null;
           return null;
         }
         // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
@@ -201,7 +200,7 @@ public class DooFile {
 
       result.Options.OptionArguments[option] = libraryValue;
       result.ApplyBinding(option);
-      var prefix = $"cannot load {options.GetPrintPath(libraryFile)}";
+      var prefix = $"cannot load {options.GetPrintPath(libraryFile.LocalPath)}";
       success = success && check(reporter, origin, prefix, option, localValue, libraryValue);
     }
 

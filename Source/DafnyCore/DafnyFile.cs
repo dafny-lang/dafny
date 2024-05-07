@@ -229,7 +229,7 @@ public class DafnyFile {
       }
     }
 
-    var validDooOptions = dooFile.Validate(reporter, filePath, options, origin);
+    var validDooOptions = dooFile.Validate(reporter, uri, options, origin);
     if (validDooOptions == null) {
       yield break;
     }
