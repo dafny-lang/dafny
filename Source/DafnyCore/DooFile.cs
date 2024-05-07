@@ -12,6 +12,8 @@ using DafnyCore.Generic;
 using DafnyCore.Options;
 using Microsoft.Dafny;
 using Tomlyn;
+using Tomlyn.Helpers;
+using Tomlyn.Model;
 
 namespace DafnyCore;
 
@@ -59,7 +61,23 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
+      var content = Toml.FromModel(this, new TomlModelOptions() {
+        ConvertToToml = obj => {
+          if (obj is IEnumerable<FileSystemInfo> fileSystemInfos) {
+            return fileSystemInfos.Select(i => i.ToString()).ToList();
+          }
+          if (obj is FileSystemInfo fileSystemInfo) {
+            return fileSystemInfo.ToString();
+          }
+          if (obj is Enum) {
+            TomlFormatHelper.ToString(obj.ToString()!, TomlPropertyDisplayKind.Default);
+            return obj.ToString();
+          }
+
+          return obj;
+        }
+      }).Replace("\r\n", "\n");
+      writer.Write(content);
     }
   }
 
@@ -93,7 +111,7 @@ public class DooFile {
     }
 
     await using (var manifestStream = manifestEntry.Open()) {
-      result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
+      result.Manifest = DooFile.ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
     var programTextEntry = archive.GetEntry(ProgramFileEntry);
@@ -120,7 +138,7 @@ public class DooFile {
     // before adding that feature.
     pr.PrintProgram(dafnyProgram, false);
     ProgramText = tw.ToString();
-    Manifest = new ManifestData(dafnyProgram.Options);
+    Manifest = new DooFile.ManifestData(dafnyProgram.Options);
   }
 
   private DooFile() {
