@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %exits-with 4 %verify --skip-included-files "%s" > "%t"
 // RUN: %exits-with 4 %verify "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 

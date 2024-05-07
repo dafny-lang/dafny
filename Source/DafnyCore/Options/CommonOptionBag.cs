@@ -246,7 +246,7 @@ true - Print debug information for the new type system.".TrimStart()) {
   };
 
   public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files", () => true,
-    "(deprecated) Has no affect.") {
+    "(deprecated) Verify code in included files.") {
     IsHidden = true
   };
 
