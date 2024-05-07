@@ -205,11 +205,9 @@ Where to output the translation record file. Defaults to the output directory. S
   };
 
   static IExecutableBackend() {
-    DooFile.RegisterNoChecksNeeded(
-      OuterModule,
-      TranslationRecords,
-      TranslationRecordOutput
-      );
+    DooFile.RegisterNoChecksNeeded(OuterModule, false);
+    DooFile.RegisterNoChecksNeeded(TranslationRecords, false);
+    DooFile.RegisterNoChecksNeeded(TranslationRecordOutput, false);
     TranslationRecord.RegisterLibraryChecks(
       new Dictionary<Option, OptionCompatibility.OptionCheck> {
         { OuterModule, OptionCompatibility.NoOpOptionCheck },
