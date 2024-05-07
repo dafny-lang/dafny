@@ -38,12 +38,6 @@ public class TranslationRecord {
         var optionValue = program.Options.Get((dynamic)option);
         recordedOptions.Add(option.Name, optionValue);
       }
-
-      // Persist Supported Target Options, but in this case no check is required.
-      foreach (var option in program.Options.Backend.SupportedOptions) {
-        var optionValue = program.Options.Get((dynamic)option);
-        recordedOptions.Add(option.Name, optionValue);
-      }
     }
   }
 

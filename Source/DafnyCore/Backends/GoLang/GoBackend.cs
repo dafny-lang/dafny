@@ -6,6 +6,7 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
@@ -33,10 +34,19 @@ public class GoBackend : ExecutableBackend {
   public bool GoModuleMode { get; set; } = true;
   public string GoModuleName;
 
-  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { CommonOptionBag.BackendModuleName };
+  public static readonly Option<string> GoModuleNameCliOption = new("--go-module-name",
+    @"This Option is used to specify the Go Module Name for the translated code".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { GoModuleNameCliOption };
+
+  static GoBackend() {
+    TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+      { GoModuleNameCliOption, OptionCompatibility.NoOpOptionCheck }
+    });
+  }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
-    var goModuleName = Options.Get(CommonOptionBag.BackendModuleName);
+    var goModuleName = Options.Get(GoModuleNameCliOption);
     GoModuleMode = goModuleName != null;
     if (GoModuleMode) {
       GoModuleName = goModuleName;
@@ -108,11 +118,12 @@ public class GoBackend : ExecutableBackend {
       }
     }
 
-    // Dafny used to compile to the old Go package system, whereas Go has moved on to a module
+    // Dafny used to compile to the old Go package system only, but Go has moved on to a module
     // system. Although compiler has moved to new system, it still doesn't generate the go.mod file which
-    // is required by go run. Keeping this until we decide if generating go.mod file is the right call.
+    // is required by go run. It also supports backwards compatability with GOPATH hence those env variables
+    // are still being used while running in GOPATH mode.
     if (GoModuleMode) {
-      outputWriter.WriteLine("go build/run skipped in Go Module Mode");
+      Reporter.Info(MessageSource.Compiler, Token.Cli, "go build/run skipped in Go Module Mode");
       return true;
     }
 

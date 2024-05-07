@@ -10,9 +10,6 @@ using System.Threading.Tasks;
 using DafnyCore.Generic;
 using DafnyCore.Options;
 using Microsoft.Dafny;
-using Microsoft.Dafny.Compilers;
-using Microsoft.Dafny.Plugins;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
 
 namespace DafnyCore;

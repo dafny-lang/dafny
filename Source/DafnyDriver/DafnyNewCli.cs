@@ -15,11 +15,7 @@ using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer;
-using Microsoft.Dafny.Plugins;
-using Tomlyn.Model;
-using Command = System.CommandLine.Command;
 
 namespace Microsoft.Dafny;
 
@@ -111,7 +107,7 @@ public static class DafnyNewCli {
         if (option == CommonOptionBag.UseBaseFileName) {
           continue;
         }
-        if (!ProcessOption(context, option, dafnyOptions, command)) {
+        if (!ProcessOption(context, option, dafnyOptions)) {
           return;
         }
       }
@@ -124,11 +120,11 @@ public static class DafnyNewCli {
     command.SetHandler(Handle);
   }
 
-  private static bool ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions, Command command = null) {
+  private static bool ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
     var options = dafnyOptions.Options;
     var result = context.ParseResult.FindResultFor(option);
     object? projectFileValue = null;
-    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, out projectFileValue, command) ?? false;
+    var hasProjectFileValue = dafnyOptions.DafnyProject?.TryGetValue(option, out projectFileValue) ?? false;
     object value;
     if (option.Arity.MaximumNumberOfValues <= 1) {
       // If multiple values aren't allowed, CLI options take precedence over project file options
@@ -222,7 +218,7 @@ public static class DafnyNewCli {
     }
     var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file);
 
-    projectFile.Validate(dafnyOptions.OutputWriter, AllOptions.Concat(DafnyProject.targetOptions));
+    projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
     return true;
   }

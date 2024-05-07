@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.Compilers {
     private bool GoModuleMode;
     private string GoModuleName;
     public GoCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
-      var goModuleName = Options.Get(CommonOptionBag.BackendModuleName);
+      var goModuleName = Options.Get(GoBackend.GoModuleNameCliOption);
       GoModuleMode = goModuleName != null;
       if (GoModuleMode) {
         GoModuleName = goModuleName.ToString();
@@ -209,23 +209,28 @@ namespace Microsoft.Dafny.Compilers {
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
       var goModuleName = "";
-      if (GoModuleMode && program.Compilation.AlreadyCompiledRoots.Contains(module.Tok.Uri)) {
-        var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
-        translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
-        object moduleName = null;
-        moduleOptions?.TryGetValue(CommonOptionBag.BackendModuleName.Name, out moduleName);
-
-        goModuleName = moduleName is string name ? moduleName + "/" : "";
-        if (String.IsNullOrEmpty(goModuleName)) {
-          Options.ErrorWriter.WriteLine($"Go Module Name not found for the module {module.GetCompileName(Options)}");
-        }
-      }
-
-      if (module.GetCompileName(Options).Equals("_System")) {
-        if (Options.IncludeRuntime) {
-          goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+      if (GoModuleMode) {
+        // "_System" module has a special handling because although it gets translated from a Dafny module,
+        // it is still part of the Dafny Runtime lib so has no associated go module name. It either uses the
+        // project module name if embedded or falls back to the Runtime module name.
+        if (module.GetCompileName(Options).Equals("_System")) {
+          if (Options.IncludeRuntime) {
+            goModuleName = GoModuleName + "/";
+          } else {
+            goModuleName = DafnyRuntimeGoModule;
+          }
         } else {
-          goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
+          // For every other Dafny Module, fetch the associated go module name from the dtr structure.
+          var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+          translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
+          object moduleName = null;
+          moduleOptions?.TryGetValue(GoBackend.GoModuleNameCliOption.Name, out moduleName);
+
+          goModuleName = moduleName is string name ? moduleName + "/" : "";
+          if (String.IsNullOrEmpty(goModuleName)) {
+            Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
+              $"Go Module Name not found for the module {module.GetCompileName(Options)}");
+          }
         }
       }
 

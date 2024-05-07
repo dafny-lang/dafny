@@ -6,12 +6,9 @@ using System.CommandLine;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using DafnyCore;
 using DafnyCore.Options;
-using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
 using Tomlyn.Model;
@@ -43,15 +40,6 @@ public class DafnyProject : IEquatable<DafnyProject> {
     col = 1
   };
 
-  [IgnoreDataMember]
-  public static IEnumerable<Option> targetOptions {
-    get {
-      var options = SinglePassCodeGenerator.Plugin
-        .GetCompilers(DafnyOptions.Default).Select(backend => new Option<string>(backend.TargetExtension));
-      DooFile.RegisterNoChecksNeeded(options.ToArray());
-      return options;
-    }
-  }
   public DafnyProject(Uri uri, Uri? @base, ISet<string> includes, ISet<string>? excludes = null, IDictionary<string, object>? options = null) {
     Uri = uri;
     Base = @base;
@@ -218,13 +206,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     }
   }
 
-  public bool TryGetValue(Option option, out object value, Command command = null) {
-    if (Options == null) {
-      value = null;
-      return false;
-    }
-    object tomlValue;
-    if (!Options.TryGetValue(option.Name, out tomlValue) && !(command != null && Options.TryGetValue(command.Name, out tomlValue) && tomlValue is TomlTable tomlTable && tomlTable.TryGetValue(option.Name, out tomlValue))) {
+  public bool TryGetValue(Option option, out object? value) {
+    if (!Options.TryGetValue(option.Name, out var tomlValue)) {
       value = null;
       return false;
     }

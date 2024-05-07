@@ -356,10 +356,6 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
 
-  public static readonly Option<string> BackendModuleName = new("--module-name",
-    @"This Option is used to create the top level module/project/package name".TrimStart()) {
-  };
-
   public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
     @"
 (Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
@@ -642,8 +638,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
       SystemModule,
       ExecutionCoverageReport,
       ExtractCounterexample,
-      BackendModuleName,
-      ShowProofObligationExpressions
+      ShowProofObligationExpressions,
+      GoBackend.GoModuleNameCliOption
       );
   }
 
