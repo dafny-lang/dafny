@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
       var concurrentModuleStats = new ConcurrentDictionary<string, PipelineStatistics>();
       var writerManager = new ConcurrentToSequentialWriteManager(options.OutputWriter);
 
-      if (options.Verify) {
+      if (options.Verify || options.Get(BoogieOptionBag.HiddenNoVerify)) {
         var before = errorReporter.ErrorCount;
         options.ProcessSolverOptions(errorReporter, Token.Cli);
         if (before != errorReporter.ErrorCount) {

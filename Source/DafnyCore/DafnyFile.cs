@@ -29,7 +29,7 @@ public class DafnyFile {
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
   static DafnyFile() {
-    DooFile.RegisterLibraryCheck(UnsafeDependencies, OptionCompatibility.CheckOptionLibraryImpliesLocal);
+    DooFile.RegisterLibraryCheck(UnsafeDependencies, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
   public static Uri ExposeInternalUri(string externalName, Uri internalUri) {

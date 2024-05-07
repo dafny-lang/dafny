@@ -14,7 +14,7 @@ public class Snippets {
     "Show a source code snippet for each Dafny message.");
 
   static Snippets() {
-    DooFile.RegisterNoChecksNeeded(ShowSnippets);
+    DooFile.RegisterNoChecksNeeded(ShowSnippets, false);
   }
 
   public static void WriteSourceCodeSnippet(DafnyOptions options, IToken tok, TextWriter tw) {

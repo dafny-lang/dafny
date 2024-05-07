@@ -154,6 +154,11 @@ public class Compilation : IDisposable {
       result.Add(DafnyFile.HandleStandardInput(Options, Token.Cli));
     }
 
+    if (!HasErrors && !result.Any()) {
+      errorReporter.Error(MessageSource.Project, GeneratorErrors.ErrorId.None, Project.StartingToken,
+        "no Dafny source files were specified as input");
+    }
+
     if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
       // For now the standard libraries are still translated from scratch.
       // This breaks separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
@@ -188,11 +193,6 @@ public class Compilation : IDisposable {
       if (filesMessage.Any()) {
         errorReporter.Info(MessageSource.Project, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
       }
-    }
-
-    if (!HasErrors && !result.Any()) {
-      errorReporter.Error(MessageSource.Project, GeneratorErrors.ErrorId.None, Project.StartingToken,
-        "no Dafny source files were specified as input");
     }
 
     // Allow specifying the same file twice on the CLI
