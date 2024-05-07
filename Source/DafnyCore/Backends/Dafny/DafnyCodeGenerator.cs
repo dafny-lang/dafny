@@ -56,7 +56,8 @@ namespace Microsoft.Dafny.Compilers {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported(why);
       } else {
-        throw new UnsupportedInvalidOperationException(why);
+        ThrowGeneralUnsupported();
+        // throw new UnsupportedInvalidOperationException(why);
       }
     }
 
@@ -108,13 +109,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
-      ThrowGeneralUnsupported();
-      throw new InvalidOperationException();
+      AddUnsupported("<i>Call to main</i>");
     }
 
     protected override ConcreteSyntaxTree CreateStaticMain(IClassWriter cw, string argsParameterName) {
-      ThrowGeneralUnsupported();
-      throw new InvalidOperationException();
+      AddUnsupported("<i>create static main</i>");
+      return new BuilderSyntaxTree<ExprContainer>(
+        new ExprBuffer(this), this);
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
@@ -178,8 +179,9 @@ namespace Microsoft.Dafny.Compilers {
         if (from == null || to == null || from.Equals(to, true)) {
           return wr;
         } else {
-          ThrowGeneralUnsupported();
-          throw new InvalidOperationException();
+          AddUnsupported($"<i>Coercion</i> from {from} to {to}");
+          return new BuilderSyntaxTree<ExprContainer>(
+            new ExprBuffer(this), this);
         }
       }
     }
@@ -189,11 +191,12 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is ClassContainer builder) {
         List<DAST.Type> typeParams = new();
         foreach (var tp in typeParameters) {
-          if (!isTpSupported(tp)) {
-            ThrowGeneralUnsupported(); //("Contravariance in type parameters");
+          var compileName = IdProtect(tp.GetCompileName(Options));
+          if (!isTpSupported(tp, out var why)) {
+            AddUnsupported(why);
           }
 
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
+          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
         }
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Class(name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList()));
@@ -204,19 +207,17 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TraitDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
-      throw new UnsupportedFeatureException(Token.NoToken, Feature.Traits);
-      // traits need a bit more work
 
-      // if (currentBuilder is TraitContainer builder) {
-      //   List<DAST.Type> typeParams = new();
-      //   foreach (var tp in trait.TypeArgs) {
-      //     typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
-      //   }
+      if (currentBuilder is TraitContainer builder) {
+        List<DAST.Type> typeParams = new();
+        foreach (var tp in trait.TypeArgs) {
+          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
+        }
 
-      //   return new ClassWriter(this, builder.Trait(name, typeParams));
-      // } else {
-      //   throw new InvalidOperationException();
-      // }
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
@@ -224,20 +225,31 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    private static bool isTpSupported(TypeParameter tp) {
-      return tp.Variance == TypeParameter.TPVariance.Non &&
-        tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified;
+    private static bool isTpSupported(TypeParameter tp, [CanBeNull] out string why) {
+      if (tp.Variance != TypeParameter.TPVariance.Non) {
+        why = $"<b>Unsupported: <i>Type variance {tp.Variance} not supported</i></b>";
+        return false;
+      }
+
+      if (tp.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified) {
+        why = $"<b>Unsupported: <i>Type parameter Equality support {tp.Characteristics.EqualitySupport} not supported for type parameters</i></b>";
+        return false;
+      }
+
+      why = null;
+      return true;
     }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (currentBuilder is DatatypeContainer builder) {
         List<DAST.Type> typeParams = new();
         foreach (var tp in dt.TypeArgs) {
-          if (!isTpSupported(tp) && !(dt is TupleTypeDecl)) {
-            ThrowGeneralUnsupported(); //("Contravariance in type parameters");
+          var compileName = IdProtect(tp.GetCompileName(Options));
+          if (!isTpSupported(tp, out var why) && !(dt is TupleTypeDecl)) {
+            AddUnsupported(why);
           }
 
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
+          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
         }
 
         List<DAST.DatatypeCtor> ctors = new();
@@ -340,11 +352,12 @@ namespace Microsoft.Dafny.Compilers {
         var valueType = map.Range;
         return (DAST.Type)DAST.Type.create_Map(GenType(keyType), GenType(valueType));
       } else if (xType is BitvectorType) {
-        ThrowGeneralUnsupported(); //("Bitvector types");
-        throw new InvalidOperationException();
+        AddUnsupported("<i>Bitvector types</i>");
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("Missing feature: Bitvector types"));
       } else {
-        ThrowGeneralUnsupported(); //("Type name for " + xType + " (" + typ.GetType() + ")");
-        throw new InvalidOperationException();
+        var why = "<i>Type name for " + xType + " (" + typ.GetType() + ")</i>";
+        AddUnsupported(why);
+        return (DAST.Type)DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString($"<b>Unsupported: {why}</b>"));
       }
     }
 
@@ -354,9 +367,9 @@ namespace Microsoft.Dafny.Compilers {
 
         List<DAST.Statement> witnessStmts = new();
         DAST.Expression witness = null;
+        var statementBuf = new StatementBuffer();
+        var buf = new ExprBuffer(null);
         if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          var statementBuf = new StatementBuffer();
-          var buf = new ExprBuffer(null);
           EmitExpr(
             sst.Witness, false,
             EmitCoercionIfNecessary(sst.Witness.Type, erasedType, null, new BuilderSyntaxTree<ExprContainer>(buf, this)),
@@ -365,17 +378,22 @@ namespace Microsoft.Dafny.Compilers {
           witness = buf.Finish();
           witnessStmts = statementBuf.PopAll();
         }
+        string baseName = sst.Var.CompileName;
+        DAST.Expression baseConstraint = buf.Finish();
+        var baseConstraintStmts = statementBuf.PopAll(); // TODO: Integrate in AST.
 
         List<DAST.Type> typeParams = new();
         foreach (var tp in sst.TypeArgs) {
-          if (!isTpSupported(tp)) {
-            ThrowGeneralUnsupported(); //("Contravariance in type parameters");
+          var compileName = tp.Name;
+          if (!isTpSupported(tp, out var why)) {
+            AddUnsupported(why);
           }
 
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(tp.Name)));
+          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
         }
 
-        builder.Newtype(sst.GetCompileName(Options), typeParams, GenType(erasedType), (DAST.NewtypeRange)NewtypeRange.create_NoRange(), witnessStmts, witness).Finish();
+        builder.Newtype(sst.GetCompileName(Options), typeParams,
+          GenType(erasedType), (NewtypeRange)NewtypeRange.create_NoRange(), witnessStmts, witness).Finish();
       } else {
         throw new InvalidOperationException();
       }
@@ -402,16 +420,18 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
         if (m.IsStatic && this.hasTypeArgs) {
-          ThrowGeneralUnsupported(); //("Static methods with type arguments");
+          compiler.AddUnsupported("<i>Static methods with type arguments</i>");
+          return new ConcreteSyntaxTree();
         }
 
         List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
-          if (!isTpSupported(typeArg.Formal)) {
-            ThrowGeneralUnsupported(); //("Contravariance in type parameters")
+          var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
+          if (!isTpSupported(typeArg.Formal, out var why)) {
+            compiler.AddUnsupported(why);
           }
 
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
         }
 
         List<DAST.Formal> params_ = new();
@@ -449,23 +469,26 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
-        throw new UnsupportedFeatureException(Token.NoToken, Feature.MethodSynthesis);
+        compiler.AddUnsupportedFeature(m.tok, Feature.MethodSynthesis);
+        return new ConcreteSyntaxTree();
       }
 
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
           List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
           bool forBodyInheritance, bool lookasideBody) {
         if (isStatic && this.hasTypeArgs) {
-          ThrowGeneralUnsupported(); //("Static methods with type arguments");
+          compiler.AddUnsupported("<i>Static functions with type arguments</i>");
+          return new ConcreteSyntaxTree();
         }
 
         List<DAST.Type> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
-          if (!isTpSupported(typeArg.Formal)) {
-            ThrowGeneralUnsupported(); //("Contravariance in type parameters");
+          var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
+          if (!isTpSupported(typeArg.Formal, out var why)) {
+            compiler.AddUnsupported(why);
           }
 
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options)))));
+          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
         }
 
         List<DAST.Formal> params_ = new();
@@ -498,7 +521,8 @@ namespace Microsoft.Dafny.Compilers {
       public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IToken tok,
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
         if (isStatic && this.hasTypeArgs) {
-          ThrowGeneralUnsupported(); //("Static fields with type arguments");
+          compiler.AddUnsupported("<i>Static fields with type arguments</i>");
+          return new ConcreteSyntaxTree();
         }
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
@@ -523,8 +547,14 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IToken tok,
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
-        ThrowGeneralUnsupported();
-        throw new InvalidOperationException();
+        compiler.AddUnsupported("<i>Create Getter Setter</i>");
+        if (createBody) {
+          setterWriter = new ConcreteSyntaxTree();
+          return new ConcreteSyntaxTree();
+        } else {
+          setterWriter = null;
+          return null;
+        }
       }
 
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type,
@@ -662,8 +692,11 @@ namespace Microsoft.Dafny.Compilers {
               );
             }
           } else if (type.IsArrowType) {
-            ThrowGeneralUnsupported();
-            throw new InvalidOperationException();
+            if (emitUncompilableCode) {
+              this.AddUnsupported("<i>Initializer for arrow type</i>");
+            } else {
+              ThrowGeneralUnsupported();
+            }
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
