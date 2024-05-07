@@ -1,17 +1,10 @@
 git-issue-3513.dfy(9,9): Error: module A does not exist
 1 resolution/type errors detected in git-issue-3513.dfy
-CLI: Warning: The file 'A.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
 A.dfy(4,9): Error: module B does not exist
 1 resolution/type errors detected in git-issue-3513.dfy
-CLI: Warning: The file 'A.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
-CLI: Warning: The file 'B.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
 
 Dafny program verifier did not attempt verification
-CLI: Warning: The file 'A.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
-CLI: Warning: The file 'B.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
 
 Dafny program verifier did not attempt verification
-CLI: Warning: The file 'A.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
-CLI: Warning: The file 'B.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
 
 Dafny program verifier did not attempt verification
