@@ -56,8 +56,7 @@ namespace Microsoft.Dafny.Compilers {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported(why);
       } else {
-        ThrowGeneralUnsupported();
-        // throw new UnsupportedInvalidOperationException(why);
+        throw new UnsupportedInvalidOperationException(why);
       }
     }
 
