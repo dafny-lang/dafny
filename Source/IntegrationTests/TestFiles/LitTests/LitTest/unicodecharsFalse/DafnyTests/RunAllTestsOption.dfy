@@ -1,4 +1,4 @@
-// RUN: %verify --allow-deprecation --unicode-char false --verify-included-files "%s" > "%t"
+// RUN: %verify --allow-deprecation --unicode-char false "%s" > "%t"
 // RUN: ! %baredafny test %args --allow-deprecation --unicode-char false --no-verify --target:cs "%s" >> "%t"
 // RUN: ! %baredafny test %args --allow-deprecation --unicode-char false --no-verify --target:java "%s" >> "%t"
 // RUN: ! %baredafny test %args --allow-deprecation --unicode-char false --no-verify --target:go "%s" >> "%t"

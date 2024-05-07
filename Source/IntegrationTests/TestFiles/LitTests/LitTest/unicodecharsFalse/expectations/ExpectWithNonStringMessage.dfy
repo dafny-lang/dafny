@@ -1,4 +1,4 @@
-// RUN: %verify --verify-included-files --allow-deprecation --unicode-char false "%s" > "%t"
+// RUN: %verify --allow-deprecation --unicode-char false "%s" > "%t"
 // RUN: ! %run --no-verify --target cs --allow-deprecation --unicode-char false "%s" >> "%t"
 // RUN: ! %run --no-verify --target go --allow-deprecation --unicode-char false "%s" >> "%t"
 // RUN: ! %run --no-verify --target java --allow-deprecation --unicode-char false "%s" >> "%t"

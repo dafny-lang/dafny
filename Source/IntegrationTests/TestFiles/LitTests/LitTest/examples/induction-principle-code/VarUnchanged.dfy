@@ -1,4 +1,4 @@
-// RUN: %verify --allow-axioms "%s" > "%t"
+// RUN: %verify --allow-axioms --skip-included-files "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "Utils.dfy"

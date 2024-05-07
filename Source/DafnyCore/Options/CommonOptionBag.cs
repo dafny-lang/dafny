@@ -245,8 +245,14 @@ true - Print debug information for the new type system.".TrimStart()) {
     IsHidden = true
   };
 
-  public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files",
-    "Verify code in included files.");
+  public static readonly Option<bool> VerifyIncludedFiles = new("--verify-included-files", () => true,
+    "(deprecated) Verify code in included files.") {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> SkipIncludedFiles = new("--skip-included-files",
+    "Do not verify code in included files.");
+
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
   };
@@ -502,8 +508,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
     DafnyOptions.RegisterLegacyBinding(AllowWarnings, (options, value) => { options.FailOnWarnings = !value; });
-    DafnyOptions.RegisterLegacyBinding(VerifyIncludedFiles,
-      (options, value) => { options.VerifyAllModules = value; });
+    DafnyOptions.RegisterLegacyBinding(SkipIncludedFiles,
+      (options, value) => {
+        var shouldVerify = options.Get(VerifyIncludedFiles) && !value; // non-default value overrides default one
+        options.VerifyAllModules = shouldVerify;
+      });
     DafnyOptions.RegisterLegacyBinding(WarnContradictoryAssumptions, (options, value) => {
       if (value) { options.TrackVerificationCoverage = true; }
     });
@@ -578,6 +587,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       new Dictionary<Option, OptionCompatibility.OptionCheck>() {
         { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
         { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
+        { SkipIncludedFiles, OptionCompatibility.CheckOptionLibraryImpliesLocal },
         { RelaxDefiniteAssignment, OptionCompatibility.CheckOptionLibraryImpliesLocal },
         { AllowAxioms, OptionCompatibility.CheckOptionLibraryImpliesLocal },
         { AllowWarnings, (reporter, origin, prefix, option, localValue, libraryValue) => {

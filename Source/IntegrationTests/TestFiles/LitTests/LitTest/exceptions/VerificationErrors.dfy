@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --skip-included-files
 
 
 include "./NatOutcome.dfy"

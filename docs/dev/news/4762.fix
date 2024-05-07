@@ -1,0 +1,1 @@
+By default, all included files are now verified as well. The option --verify-included-files has been replaced by --skip-included-files, which is false by default.

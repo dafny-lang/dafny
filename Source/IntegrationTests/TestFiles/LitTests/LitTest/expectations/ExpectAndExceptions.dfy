@@ -1,7 +1,7 @@
-// RUN: ! %run --target cs "%s" > "%t"
-// RUN: ! %run --target go "%s" >> "%t"
-// RUN: ! %run --target java "%s" >> "%t"
-// RUN: ! %run --target js "%s" >> "%t"
+// RUN: ! %run --skip-included-files --target cs "%s" > "%t"
+// RUN: ! %run --skip-included-files --target go "%s" >> "%t"
+// RUN: ! %run --skip-included-files --target java "%s" >> "%t"
+// RUN: ! %run --skip-included-files --target js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "../exceptions/NatOutcomeDt.dfy"

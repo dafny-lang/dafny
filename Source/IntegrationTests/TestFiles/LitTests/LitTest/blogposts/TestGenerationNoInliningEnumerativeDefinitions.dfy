@@ -1,13 +1,14 @@
 
 // Generating and Running Block-Based Tests:
 // RUN: %baredafny generate-tests %args Block %S/TestGenerationNoInliningEnumerativeDefinitions.dfy > %t-tests.dfy
-// RUN: %baredafny test %args --target:cs "%t-tests.dfy" >> "%t"
+// RUN: %baredafny test %args --skip-included-files --target:cs "%t-tests.dfy" > "%t"
 
 // Generating and Running Path-Based Tests:
 // RUN: %baredafny generate-tests %args Path %S/TestGenerationNoInliningEnumerativeDefinitions.dfy > %t-tests.dfy
-// RUN: %baredafny test %args --target:cs "%t-tests.dfy" >> "%t"
+// RUN: %baredafny test %args --skip-included-files --target:cs "%t-tests.dfy" >> "%t"
 
 // RUN: %OutputCheck --file-to-check "%t" "%s"
+
 // CHECK: .*Dafny program verifier finished with 2 verified, 0 errors*
 // CHECK: .*Evaluating the position: checked=no, checkmate=no*
 // CHECK: .*Evaluating the position: checked=yes, checkmate=yes*

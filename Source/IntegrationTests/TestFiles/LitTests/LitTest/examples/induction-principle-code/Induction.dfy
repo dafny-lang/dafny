@@ -1,4 +1,4 @@
-// RUN: %verify "%s" > "%t"
+// RUN: %verify --skip-included-files "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "Utils.dfy"
