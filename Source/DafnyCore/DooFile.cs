@@ -94,14 +94,14 @@ public class DooFile {
   // this must be configured to stay the same.
   private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
 
-  public static Task<DooFile> Read(string path) {
+  public static async Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
-    return Read(archive);
+    return await Read(archive);
   }
 
-  public static Task<DooFile> Read(Stream stream) {
+  public static async Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
-    return Read(archive);
+    return await Read(archive);
   }
 
   private static async Task<DooFile> Read(ZipArchive archive) {
