@@ -221,6 +221,6 @@ public class RecoverableUnsupportedFeatureException : UnsupportedFeatureExceptio
 }
 
 public class UnsupportedInvalidOperationException : InvalidOperationException {
-  public UnsupportedInvalidOperationException(string why) : base(why) {
+  public UnsupportedInvalidOperationException(string why) : base(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why) {
   }
 }
