@@ -11,7 +11,30 @@ namespace Microsoft.Dafny;
 
 public static class FormatCommand {
 
-  public static IEnumerable<Option> Options => DafnyCommands.FormatOptions;
+  static FormatCommand() {
+    DafnyOptions.RegisterLegacyBinding(CheckOption, (options, value) => {
+      options.FormatCheck = value;
+    });
+
+    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
+      options.DafnyPrintFile = value ? "-" : null;
+    });
+    DooFile.RegisterNoChecksNeeded(CheckOption, false);
+    DooFile.RegisterNoChecksNeeded(FormatPrint, false);
+  }
+
+  public static IEnumerable<Option> Options => new Option[] {
+    CheckOption,
+    FormatPrint,
+  }.Concat(DafnyCommands.ParserOptions);
+
+  public static readonly Option<bool> CheckOption = new("--check", () => false, @"
+Instead of formatting files, verify that all files are already
+formatted through and return a non-zero exit code if it is not the case".TrimStart());
+
+  public static readonly Option<bool> FormatPrint = new("--print",
+    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
+  };
 
   public static Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.

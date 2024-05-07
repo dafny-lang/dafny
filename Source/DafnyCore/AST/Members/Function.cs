@@ -315,7 +315,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
-    DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
+    DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption, true);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

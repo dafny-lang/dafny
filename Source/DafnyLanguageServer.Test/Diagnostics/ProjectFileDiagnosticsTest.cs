@@ -59,8 +59,8 @@ library = [""doesNotExist.dfy""]
 
     var project = CreateAndOpenTestDocument(projectFile, DafnyProject.FileName);
     var diagnostics = await GetLastDiagnostics(project, DiagnosticSeverity.Error);
-    Assert.Single(diagnostics);
-    Assert.Contains("not found", diagnostics[0].Message);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains(diagnostics, d => d.Message.Contains("not found"));
   }
 
   public ProjectFileDiagnosticsTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information)
