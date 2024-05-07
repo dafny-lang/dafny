@@ -591,7 +591,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
     );
-    DooFile.RegisterLibraryCheck(Libraries, OptionCompatibility.NoOpOptionCheck);
     DooFile.RegisterNoChecksNeeded(
       WarnAsErrors,
       ProgressOption,
@@ -600,6 +599,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ManualTriggerOption,
       ShowHints,
       Check,
+      Libraries,
       Output,
       PluginOption,
       Prelude,

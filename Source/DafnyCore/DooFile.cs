@@ -65,12 +65,6 @@ public class DooFile {
     public void Write(TextWriter writer) {
       var content = Toml.FromModel(this, new TomlModelOptions() {
         ConvertToToml = obj => {
-          if (obj is IEnumerable<FileSystemInfo> fileSystemInfos) {
-            return fileSystemInfos.Select(i => i.ToString()).ToList();
-          }
-          if (obj is FileSystemInfo fileSystemInfo) {
-            return fileSystemInfo.ToString();
-          }
           if (obj is Enum) {
             TomlFormatHelper.ToString(obj.ToString()!, TomlPropertyDisplayKind.Default);
             return obj.ToString();
@@ -166,13 +160,15 @@ public class DooFile {
       return null;
     }
 
-    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
+    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options,
+      new Dictionary<Option, OptionCompatibility.OptionCheck>());
   }
 
   public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
     string libraryFile,
     DafnyOptions options, IToken origin,
-    IDictionary<string, object> libraryOptions) {
+    IDictionary<string, object> libraryOptions,
+    Dictionary<Option, OptionCompatibility.OptionCheck> additionalOptions) {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();

@@ -273,7 +273,10 @@ public static class DafnyNewCli {
 
     var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
     var dependencyOptions =
-      DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, uriOrigin, dependencyProject.Options);
+      DooFile.CheckAndGetLibraryOptions(reporter, uri.LocalPath, options, uriOrigin, dependencyProject.Options,
+        new Dictionary<Option, OptionCompatibility.OptionCheck> {
+          { CommonOptionBag.Libraries, OptionCompatibility.NoOpOptionCheck }
+        });
     if (dependencyOptions != null) {
       if (options.Get(DafnyFile.UnsafeDependencies) || !options.Verify) {
         foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
