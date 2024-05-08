@@ -54,6 +54,16 @@ public class DooFile {
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
         var optionValue = options.Get((dynamic)option);
+        if (option == CommonOptionBag.QuantifierSyntax) {
+          switch (optionValue) {
+            case QuantifierSyntaxOptions.Version4:
+              optionValue = "4";
+              break;
+            case QuantifierSyntaxOptions.Version3:
+              optionValue = "3";
+              break;
+          }
+        }
         Options.Add(option.Name, optionValue);
       }
     }
