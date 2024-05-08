@@ -361,7 +361,7 @@ namespace Std.Collections.Seq {
             goto after__ASSIGN_SUCH_THAT_0;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 7247)");
+        throw new System.Exception("assign-such-that search produced no value (line 7245)");
       after__ASSIGN_SUCH_THAT_0: ;
         _113_left = Dafny.Set<__T>.Difference(_113_left, Dafny.Set<__T>.FromElements(_114_x));
         xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_114_x));
