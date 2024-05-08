@@ -134,11 +134,12 @@ public class Compilation : IDisposable {
     await started.Task;
 
     var result = new List<DafnyFile>();
-
+    var includedFiles = new List<DafnyFile>();
     foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri,
                        Project.StartingToken)) {
         result.Add(file);
+        includedFiles.Add(file);
       }
     }
 
@@ -186,12 +187,11 @@ public class Compilation : IDisposable {
       }
     }
 
-    var projectPath = Project.Uri.LocalPath;
-    if (projectPath.EndsWith(DafnyProject.FileName)) {
-      var projectDirectory = Path.GetDirectoryName(projectPath)!;
-      var filesMessage = string.Join("\n", result.Select(uri => Path.GetRelativePath(projectDirectory, uri.Uri.LocalPath)));
+    if (Project.UsesProjectFile) {
+      var projectDirectory = Path.GetDirectoryName(Project.Uri.LocalPath)!;
+      var filesMessage = string.Join("\n", includedFiles.Select(uri => Path.GetRelativePath(projectDirectory, uri.Uri.LocalPath)));
       if (filesMessage.Any()) {
-        errorReporter.Info(MessageSource.Project, Project.StartingToken, "Files referenced by project are:" + Environment.NewLine + filesMessage);
+        errorReporter.Info(MessageSource.Project, Project.StartingToken, "Files includes by project are:" + Environment.NewLine + filesMessage);
       }
     }
 
