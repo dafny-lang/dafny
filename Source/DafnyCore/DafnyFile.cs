@@ -109,7 +109,7 @@ public class DafnyFile {
   }
 
   public static readonly Option<bool> UnsafeDependencies = new("--unsafe-dependencies",
-    "Allows Dafny to accept dependencies that may not have been verified with compatible options, which can be useful during development.");
+    "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
 
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
