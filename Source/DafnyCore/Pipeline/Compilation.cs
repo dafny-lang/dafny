@@ -180,19 +180,22 @@ public class Compilation : IDisposable {
       }
     }
 
-    var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
-    foreach (var library in libraryFiles) {
+    var libraryDafnyFiles = new List<DafnyFile>();
+    var libraryPaths = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
+    foreach (var library in libraryPaths) {
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, new Uri(library), Project.StartingToken, true)) {
         result.Add(file);
+        libraryDafnyFiles.Add(file);
       }
     }
 
     if (Project.UsesProjectFile) {
       var projectDirectory = Path.GetDirectoryName(Project.Uri.LocalPath)!;
-      var filesMessage = string.Join("\n", includedFiles.Select(uri => Path.GetRelativePath(projectDirectory, uri.Uri.LocalPath)));
-      if (filesMessage.Any()) {
-        errorReporter.Info(MessageSource.Project, Project.StartingToken, "Files includes by project are:" + Environment.NewLine + filesMessage);
+      var includedRootsMessage = string.Join("\n", includedFiles.Select(dafnyFile => Path.GetRelativePath(projectDirectory, dafnyFile.Uri.LocalPath)));
+      if (includedRootsMessage == "") {
+        includedRootsMessage = "none";
       }
+      errorReporter.Info(MessageSource.Project, Project.StartingToken, "Files included by project are:" + Environment.NewLine + includedRootsMessage);
     }
 
     // Allow specifying the same file twice on the CLI
