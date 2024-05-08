@@ -22,10 +22,8 @@ static class MeasureComplexityCommand {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
 
-    DooFile.RegisterNoChecksNeeded(
-      Iterations,
-      RandomSeed
-    );
+    DooFile.RegisterNoChecksNeeded(Iterations, false);
+    DooFile.RegisterNoChecksNeeded(RandomSeed, false);
   }
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,

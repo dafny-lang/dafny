@@ -36,9 +36,7 @@ namespace Microsoft.Dafny {
         options.PrintMode = value;
       });
 
-      DooFile.RegisterNoChecksNeeded(new Option[] {
-        PrintMode
-      });
+      DooFile.RegisterNoChecksNeeded(PrintMode, false);
     }
 
     public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"

@@ -11,7 +11,7 @@ public abstract class MethodOrFunction : MemberDecl {
     "Allow exporting callables with preconditions, and importing callables with postconditions");
 
   static MethodOrFunction() {
-    DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.CheckOptionLibraryImpliesLocal);
+    DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
   public readonly List<TypeParameter> TypeArgs;

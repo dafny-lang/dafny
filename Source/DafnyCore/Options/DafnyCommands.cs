@@ -20,11 +20,6 @@ public static class DafnyCommands {
     }, false, "Dafny input files and/or a Dafny project file");
   }
 
-  public static IEnumerable<Option> FormatOptions => new Option[] {
-    CommonOptionBag.Check,
-    CommonOptionBag.FormatPrint,
-  }.Concat(ParserOptions);
-
   public static readonly IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
@@ -55,6 +50,7 @@ public static class DafnyCommands {
 
   public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
+    BoogieOptionBag.HiddenNoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
