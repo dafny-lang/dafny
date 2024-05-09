@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.IO;
 using System.Linq;
@@ -24,19 +26,41 @@ public class CachingTest : ClientBasedLanguageServerTest {
 
   protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
     sink = InMemorySink.Instance;
-    var logger = new LoggerConfiguration().MinimumLevel.Debug()
+    var memoryLogger = new LoggerConfiguration().MinimumLevel.Debug()
       .WriteTo.InMemory().CreateLogger();
-    var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
+    var factory = LoggerFactory.Create(b => b.AddSerilog(memoryLogger));
     serverOptions.Services.Replace(new ServiceDescriptor(typeof(ILoggerFactory), factory));
   }
 
-  async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits(TextDocumentItem documentItem) {
-    await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-    var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
-    var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolution cache hit"));
-    return (parseHits, resolveHits);
+  record CacheResults(int ParseHits, int ParseMisses, int ResolutionHits, int ResolutionMisses);
+
+  async Task<CacheResults> WaitAndCountHits(TextDocumentItem? documentItem) {
+    if (documentItem != null) {
+      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+    }
+    var parseHits = 0;
+    var parseMisses = 0;
+    var resolutionHits = 0;
+    var resolutionMisses = 0;
+    foreach (var message in sink.Snapshot().LogEvents.Select(le => le.MessageTemplate.Text)) {
+      if (documentItem != null && !message.Contains(documentItem.Uri.GetFileSystemPath())) {
+        continue;
+      }
+
+      if (message.Contains("Parse cache hit")) {
+        parseHits++;
+      } else if (message.Contains("Parse cache miss")) {
+        parseMisses++;
+      } else if (message.Contains("Resolution cache hit")) {
+        resolutionHits++;
+      } else if (message.Contains("Resolution cache miss")) {
+        resolutionMisses++;
+      }
+    }
+
+    return new CacheResults(parseHits, parseMisses, resolutionHits, resolutionMisses);
   }
-  
+
   [Fact]
   public async Task ChangedImportAffectsExport() {
 
@@ -156,14 +180,14 @@ use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
     ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCountForNoCaching = await WaitAndCountHits(noCaching);
     Assert.Equal(0, hitCountForNoCaching.ParseHits);
-    Assert.Equal(0, hitCountForNoCaching.ResolveHits);
+    Assert.Equal(0, hitCountForNoCaching.ResolutionHits);
 
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var hasCaching = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(hasCaching, CancellationToken);
     var hits0 = await WaitAndCountHits(hasCaching);
     Assert.Equal(0, hits0.ParseHits);
-    Assert.Equal(0, hits0.ResolveHits);
+    Assert.Equal(0, hits0.ResolutionHits);
 
     ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCount1 = await WaitAndCountHits(hasCaching);
@@ -175,21 +199,21 @@ use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
       "PrefixModuleInDefaultModule", "Content",
       "SpreadOverMultipleFiles", "Child1", "Child2"
     };
-    Assert.Equal(modules.Length, hitCount1.ResolveHits);
+    Assert.Equal(modules.Length, hitCount1.ResolutionHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref hasCaching, ((2, 0), (3, 0)), "");
     var hitCount2 = await WaitAndCountHits(hasCaching);
     Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
     // No resolution was done because the import didn't resolve.
-    Assert.Equal(hitCount1.ResolveHits, hitCount2.ResolveHits);
+    Assert.Equal(hitCount1.ResolutionHits, hitCount2.ResolutionHits);
 
     ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "  include \"./B.dfy\"\n");
     var hitCount3 = await WaitAndCountHits(hasCaching);
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
     // The resolution cache was pruned after the previous change, so no cache hits here, except for the system module
-    Assert.Equal(hitCount2.ResolveHits + 1, hitCount3.ResolveHits);
+    Assert.Equal(hitCount2.ResolutionHits + 1, hitCount3.ResolutionHits);
   }
 
   /// <summary>
@@ -271,16 +295,16 @@ module C {{
     var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var hits0 = await WaitAndCountHits(documentItem);
-    Assert.Equal(0, hits0.ResolveHits);
+    Assert.Equal(0, hits0.ResolutionHits);
 
 
     ApplyChange(ref documentItem, ((7, 17), (7, 18)), "22");
     var hitCount1 = await WaitAndCountHits(documentItem);
-    Assert.Equal(1, hitCount1.ResolveHits);
+    Assert.Equal(1, hitCount1.ResolutionHits);
 
     ApplyChange(ref documentItem, ((11, 17), (11, 18)), "32");
     var hitCount2 = await WaitAndCountHits(documentItem);
-    Assert.Equal(hitCount1.ResolveHits + 2, hitCount2.ResolveHits);
+    Assert.Equal(hitCount1.ResolutionHits + 2, hitCount2.ResolutionHits);
   }
 
   [Fact]
@@ -346,8 +370,8 @@ method Bar() {
     var diagnostics = await GetLastDiagnostics(project);
     Assert.Empty(diagnostics);
     await Task.Delay(1000);
-    Assert.DoesNotContain(telemetryReceiver.History, e => 
-      e.ExtensionData.TryGetValue("kind", out var value) && 
+    Assert.DoesNotContain(telemetryReceiver.History, e =>
+      e.ExtensionData.TryGetValue("kind", out var value) &&
       (long)value == (long)TelemetryPublisherBase.TelemetryEventKind.UnhandledException);
   }
 
@@ -369,24 +393,27 @@ method Bar() {
     var imported1 = CreateAndOpenTestDocument(largeImport1, Path.Combine(temp, "imported1.dfy"));
     var imported2 = CreateAndOpenTestDocument(largeImport2, Path.Combine(temp, "imported2.dfy"));
     var importer = CreateAndOpenTestDocument(importerSource, Path.Combine(temp, "importer.dfy"));
-    var project = CreateAndOpenTestDocument("", Path.Combine(temp, "dfyconfig.toml"));
+    var project = CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
 
-    //var resolutionSucceeded = await WaitUntilResolutionFinished(project);
-    //var diagnostics = await GetLastDiagnostics(project);
-    //Assert.True(resolutionSucceeded);
-    var before = await WaitAndCountHits(importer);
+    var before1 = await WaitAndCountHits(imported1);
+    var before2 = await WaitAndCountHits(imported2);
+
     ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
-    var during = await WaitAndCountHits(importer);
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     }
-    
-    var after = await WaitAndCountHits(importer);
-    var b = 3;
+
+    var after1 = await WaitAndCountHits(imported1);
+    var after2 = await WaitAndCountHits(imported2);
+    Assert.Equal(before1.ParseMisses, after1.ParseMisses);
+    Assert.Equal(before1.ResolutionMisses, after1.ResolutionMisses);
+    Assert.Equal(before2.ParseMisses, after2.ParseMisses);
+    Assert.Equal(before2.ResolutionMisses, after2.ResolutionMisses);
+    // Somehow, importer can have multiple parse hits, even though it always gets changed.
+    // Would be nice to understand how this can occur.
   }
 
-  private static string GetLargeFile(string moduleName, int lines)
-  {
+  private static string GetLargeFile(string moduleName, int lines) {
     string GetLineContent(int index) => $"  method Foo{index}() {{ assume {{:axiom}} false; }}";
     var contentBuilder = new StringBuilder();
     contentBuilder.AppendLine($"module {moduleName} {{");
@@ -399,5 +426,6 @@ method Bar() {
   }
 
   public CachingTest(ITestOutputHelper output) : base(output) {
+    sink = null!;
   }
 }
