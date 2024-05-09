@@ -399,7 +399,7 @@ method Bar() {
     var before2 = await WaitAndCountHits(imported2);
 
     ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 100; i++) {
       ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     }
 
