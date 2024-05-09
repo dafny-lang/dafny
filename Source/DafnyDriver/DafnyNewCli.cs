@@ -277,7 +277,7 @@ public static class DafnyNewCli {
           { CommonOptionBag.Libraries, OptionCompatibility.NoOpOptionCheck }
         });
     if (dependencyOptions != null) {
-      if (options.Get(DafnyFile.UnsafeDependencies) || !options.Verify) {
+      if (options.Get(DafnyFile.DoNotVerifyDependencies) || !options.Verify) {
         foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
           var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, dependencyOptions, libraryRootSetFile,
             dependencyProject.StartingToken, true, false);
