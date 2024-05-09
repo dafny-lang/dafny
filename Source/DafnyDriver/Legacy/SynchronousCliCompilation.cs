@@ -23,7 +23,6 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
-using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using VC;
@@ -639,7 +638,6 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static async Task<bool> CompileDafnyProgram(Program dafnyProgram, string dafnyProgramName,
                                            ReadOnlyCollection<string> otherFileNames, bool invokeCompiler) {
-
       var rewriters = RewriterCollection.GetRewriters(dafnyProgram.Reporter, dafnyProgram);
       foreach (var rewriter in rewriters) {
         rewriter.PostVerification(dafnyProgram);

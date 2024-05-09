@@ -9,9 +9,9 @@ public static class BuildCommand {
     result.AddArgument(DafnyCommands.FilesArgument);
     foreach (var option in new Option[] {
                  CommonOptionBag.Output,
-               }.Concat(DafnyCommands.ExecutionOptions).
-               Concat(DafnyCommands.ConsoleOutputOptions).
-               Concat(DafnyCommands.ResolverOptions)) {
+               }.Concat(DafnyCommands.ExecutionOptions)
+               .Concat(DafnyCommands.ConsoleOutputOptions)
+               .Concat(DafnyCommands.ResolverOptions)) {
       result.AddOption(option);
     }
 

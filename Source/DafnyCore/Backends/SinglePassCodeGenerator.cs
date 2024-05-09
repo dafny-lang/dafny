@@ -12,6 +12,7 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
+using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.GeneratorErrors;
@@ -181,7 +182,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Indicates the current program depends on the given module without creating it.
     /// Called when a module is out of scope for compilation, such as when using --library.
     /// </summary>
-    protected virtual void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected virtual void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName /*?*/) { }
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -1523,7 +1524,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (!module.ShouldCompile(program.Compilation)) {
-        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+        DependOnModule(program, module, externModule, libraryName);
         return;
       }
 
