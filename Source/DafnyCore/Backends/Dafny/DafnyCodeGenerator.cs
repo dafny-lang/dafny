@@ -416,7 +416,7 @@ namespace Microsoft.Dafny.Compilers {
         bool forBodyInheritance, bool lookasideBody) {
         if (m.IsStatic && this.hasTypeArgs) {
           compiler.AddUnsupported("<i>Static methods with type arguments</i>");
-          return new ConcreteSyntaxTree();
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
         List<DAST.Type> astTypeArgs = new();
@@ -465,7 +465,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         compiler.AddUnsupportedFeature(m.tok, Feature.MethodSynthesis);
-        return new ConcreteSyntaxTree();
+        return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
       }
 
       public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs,
@@ -473,7 +473,7 @@ namespace Microsoft.Dafny.Compilers {
           bool forBodyInheritance, bool lookasideBody) {
         if (isStatic && this.hasTypeArgs) {
           compiler.AddUnsupported("<i>Static functions with type arguments</i>");
-          return new ConcreteSyntaxTree();
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
         List<DAST.Type> astTypeArgs = new();
@@ -517,7 +517,7 @@ namespace Microsoft.Dafny.Compilers {
           bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
         if (isStatic && this.hasTypeArgs) {
           compiler.AddUnsupported("<i>Static fields with type arguments</i>");
-          return new ConcreteSyntaxTree();
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
@@ -544,8 +544,8 @@ namespace Microsoft.Dafny.Compilers {
           bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
         compiler.AddUnsupported("<i>Create Getter Setter</i>");
         if (createBody) {
-          setterWriter = new ConcreteSyntaxTree();
-          return new ConcreteSyntaxTree();
+          setterWriter = new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
+          return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         } else {
           setterWriter = null;
           return null;
@@ -1452,7 +1452,7 @@ namespace Microsoft.Dafny.Compilers {
     public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       if (currentBuilder is ExprContainer container) {
         EmitExpr(expr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(container, this), wStmts);
-        return new ConcreteSyntaxTree();
+        return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null), this);
       } else {
         throw new InvalidOperationException();
       }
