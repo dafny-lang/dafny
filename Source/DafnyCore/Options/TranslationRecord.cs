@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
-using Microsoft.Dafny.Plugins;
 using Tomlyn;
 
 namespace DafnyCore.Options;
@@ -20,7 +19,6 @@ public class TranslationRecord {
   public string DafnyVersion { get; set; }
 
   public Dictionary<string, Dictionary<string, object>> OptionsByModule { get; set; }
-
 
   public TranslationRecord(Program program) {
     FileFormatVersion = CurrentFileFormatVersion;

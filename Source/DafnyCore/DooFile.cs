@@ -36,6 +36,10 @@ public class DooFile {
 
     public Dictionary<string, object> Options { get; set; }
 
+    static ManifestData() {
+      CommonOptionBag.EnsureStaticConstructorHasRun();
+    }
+
     public ManifestData() {
       // Only for TOML deserialization!
       DooFileVersion = null!;
