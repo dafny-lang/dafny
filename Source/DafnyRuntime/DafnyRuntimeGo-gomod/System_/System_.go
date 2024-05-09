@@ -4,12 +4,13 @@
 package _System
 
 import (
-	_dafny "dafny"
 	os "os"
+
+	_dafny "github.com/dafny-lang/DafnyRuntimeGo/dafny"
 )
 
-var _ = os.Args
 var _ _dafny.Dummy__
+var _ = os.Args
 
 type Dummy__ struct{}
 
@@ -47,9 +48,4 @@ func (_this type_Nat_) Default() interface{} {
 
 func (_this type_Nat_) String() string {
 	return "_System.Nat"
-}
-func (_this *CompanionStruct_Nat_) Is_(__source _dafny.Int) bool {
-	var _0_x _dafny.Int = (__source)
-	_ = _0_x
-	return (_0_x).Sign() != -1
 }

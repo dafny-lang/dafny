@@ -89,9 +89,9 @@ namespace Microsoft.Dafny.Compilers {
       return file;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      moduleName = IdProtect(moduleName);
+      var moduleName = IdProtect(module.GetCompileName(Options));
       Imports.Add(moduleName);
     }
 
