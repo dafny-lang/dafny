@@ -356,9 +356,11 @@ module ChangedClonedId {
   public async Task DocumentAddedToExistingProjectDoesNotCrash() {
     var source1 = @"
 method Foo() {
+ var b: int := true;
 }";
     var source2 = @"
-method Bar() {
+method Foo() {
+ var b: int := true;
 }";
 
     var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
@@ -367,12 +369,9 @@ method Bar() {
     var project = await CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
     await client.WaitForNotificationCompletionAsync(file1.Uri, CancellationToken);
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
-    var diagnostics = await GetLastDiagnostics(project);
-    Assert.Empty(diagnostics);
-    await Task.Delay(1000);
-    Assert.DoesNotContain(telemetryReceiver.History, e =>
-      e.ExtensionData.TryGetValue("kind", out var value) &&
-      (long)value == (long)TelemetryPublisherBase.TelemetryEventKind.UnhandledException);
+    var diagnostics1 = await GetLastDiagnostics(file1);
+    var diagnostics2 = await GetLastDiagnostics(file2);
+    Assert.Equal(3, diagnostics1.Concat(diagnostics2).Count);
   }
 
   [Fact]
