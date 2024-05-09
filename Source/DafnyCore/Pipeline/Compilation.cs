@@ -136,24 +136,22 @@ public class Compilation : IDisposable {
     var result = new List<DafnyFile>();
 
     foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
-      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Project.StartingToken);
-      if (file != null) {
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri,
+                       Project.StartingToken)) {
         result.Add(file);
       }
     }
 
     foreach (var uri in Options.CliRootSourceUris) {
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
-      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli, false,
-        $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).");
-      if (file != null) {
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri, Token.Cli,
+                       false,
+                       $"command-line argument '{shortPath}' is neither a recognized option nor a Dafny input file (.dfy, .doo, or .toml).")) {
         result.Add(file);
       }
     }
     if (Options.UseStdin) {
-      var uri = new Uri("stdin:///");
-      var stdFile = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, uri, Token.Cli);
-      result.Add(stdFile!);
+      result.Add(DafnyFile.HandleStandardInput(Options, Token.Cli));
     }
 
     if (!HasErrors && !result.Any()) {
@@ -169,22 +167,21 @@ public class Compilation : IDisposable {
       if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
-        var targetSpecificFile = await DafnyFile.CreateAndValidate(errorReporter, OnDiskFileSystem.Instance, Options, stdlibDooUri, Project.StartingToken, asLibrary);
-        if (targetSpecificFile != null) {
+        await foreach (var targetSpecificFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, errorReporter,
+                         Options, stdlibDooUri, Project.StartingToken, asLibrary)) {
           result.Add(targetSpecificFile);
         }
       }
 
-      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, DafnyMain.StandardLibrariesDooUri, Project.StartingToken, asLibrary);
-      if (file != null) {
-        result.Add(file!);
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options,
+                       DafnyMain.StandardLibrariesDooUri, Project.StartingToken, asLibrary)) {
+        result.Add(file);
       }
     }
 
     var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryFiles) {
-      var file = await DafnyFile.CreateAndValidate(errorReporter, fileSystem, Options, new Uri(library), Project.StartingToken, true);
-      if (file != null) {
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, new Uri(library), Project.StartingToken, true)) {
         result.Add(file);
       }
     }

@@ -1,6 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
@@ -62,7 +60,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
           It.IsAny<Compilation>(),
           It.IsAny<CancellationToken>())).Callback(() => source.Cancel())
         .Throws<TaskCanceledException>();
-      var task = textDocumentLoader.ParseAsync(await GetCompilation(), source.Token);
+      var task = textDocumentLoader.ParseAsync(GetCompilation(), source.Token);
       try {
         await task;
         Assert.Fail("document load was not cancelled");
@@ -73,11 +71,11 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       }
     }
 
-    private async Task<Compilation> GetCompilation() {
+    private Compilation GetCompilation() {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
       var uri = versionedTextDocumentIdentifier.Uri.ToUri();
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
-      var file = await DafnyFile.CreateAndValidate(new ErrorReporterSink(DafnyOptions.Default), fs, DafnyOptions.Default, uri, Token.NoToken);
+      var file = DafnyFile.HandleDafnyFile(fs, new ErrorReporterSink(DafnyOptions.Default), DafnyOptions.Default, uri, Token.NoToken, false);
       var input = new CompilationInput(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(uri));
       var engine = new ExecutionEngine(DafnyOptions.Default, new VerificationResultCache(),
         CustomStackSizePoolTaskScheduler.Create(0, 0));
@@ -92,7 +90,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       parser.Setup(p => p.Parse(It.IsAny<Compilation>(),
           It.IsAny<CancellationToken>()))
         .Throws<InvalidOperationException>();
-      var task = textDocumentLoader.ParseAsync(await GetCompilation(), default);
+      var task = textDocumentLoader.ParseAsync(GetCompilation(), default);
       try {
         await task;
         Assert.Fail("document load did not fail");

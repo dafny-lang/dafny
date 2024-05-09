@@ -1,5 +1,3 @@
-low.dfyconfig.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
-mid.dfyconfig.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 high.dfyconfig.toml(1,0): Warning: only Dafny project files named dfyconfig.toml are recognised by the Dafny IDE.
 included.dfy(6,8): Warning: Shadowed local-variable name: x
 
