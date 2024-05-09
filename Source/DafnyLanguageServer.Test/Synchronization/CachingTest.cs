@@ -397,6 +397,7 @@ method Bar() {
 
     var before1 = await WaitAndCountHits(imported1);
     var before2 = await WaitAndCountHits(imported2);
+    var beforeImporter = await WaitAndCountHits(importer);
 
     ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     for (int i = 0; i < 100; i++) {
@@ -405,12 +406,16 @@ method Bar() {
 
     var after1 = await WaitAndCountHits(imported1);
     var after2 = await WaitAndCountHits(imported2);
+    var afterImporter = await WaitAndCountHits(importer);
     Assert.Equal(before1.ParseMisses, after1.ParseMisses);
     Assert.Equal(before1.ResolutionMisses, after1.ResolutionMisses);
     Assert.Equal(before2.ParseMisses, after2.ParseMisses);
     Assert.Equal(before2.ResolutionMisses, after2.ResolutionMisses);
-    // Somehow, importer can have multiple parse hits, even though it always gets changed.
+    // Somehow, importer can have many parse hits, even though it always gets changed.
     // Would be nice to understand how this can occur.
+    // ProjectManagerDatabase.UpdateDocument is serialized,
+    // But because parsing is scheduled on a separate thread, it might be possible for 
+    // Parsing to trigger twice after two calls to UpdateDocument, so then both parse calls work with the updated file system.
   }
 
   private static string GetLargeFile(string moduleName, int lines) {
