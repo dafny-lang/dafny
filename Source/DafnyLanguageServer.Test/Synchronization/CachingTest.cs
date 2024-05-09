@@ -1,9 +1,13 @@
+#nullable enable
+
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -22,10 +26,39 @@ public class CachingTest : ClientBasedLanguageServerTest {
 
   protected override void ServerOptionsAction(LanguageServerOptions serverOptions) {
     sink = InMemorySink.Instance;
-    var logger = new LoggerConfiguration().MinimumLevel.Debug()
+    var memoryLogger = new LoggerConfiguration().MinimumLevel.Debug()
       .WriteTo.InMemory().CreateLogger();
-    var factory = LoggerFactory.Create(b => b.AddSerilog(logger));
+    var factory = LoggerFactory.Create(b => b.AddSerilog(memoryLogger));
     serverOptions.Services.Replace(new ServiceDescriptor(typeof(ILoggerFactory), factory));
+  }
+
+  record CacheResults(int ParseHits, int ParseMisses, int ResolutionHits, int ResolutionMisses);
+
+  async Task<CacheResults> WaitAndCountHits(TextDocumentItem? documentItem) {
+    if (documentItem != null) {
+      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
+    }
+    var parseHits = 0;
+    var parseMisses = 0;
+    var resolutionHits = 0;
+    var resolutionMisses = 0;
+    foreach (var message in sink.Snapshot().LogEvents.Select(le => le.MessageTemplate.Text)) {
+      if (documentItem != null && !message.Contains(documentItem.Uri.GetFileSystemPath())) {
+        continue;
+      }
+
+      if (message.Contains("Parse cache hit")) {
+        parseHits++;
+      } else if (message.Contains("Parse cache miss")) {
+        parseMisses++;
+      } else if (message.Contains("Resolution cache hit")) {
+        resolutionHits++;
+      } else if (message.Contains("Resolution cache miss")) {
+        resolutionMisses++;
+      }
+    }
+
+    return new CacheResults(parseHits, parseMisses, resolutionHits, resolutionMisses);
   }
 
   [Fact]
@@ -147,21 +180,14 @@ use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
     ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCountForNoCaching = await WaitAndCountHits(noCaching);
     Assert.Equal(0, hitCountForNoCaching.ParseHits);
-    Assert.Equal(0, hitCountForNoCaching.ResolveHits);
+    Assert.Equal(0, hitCountForNoCaching.ResolutionHits);
 
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var hasCaching = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(hasCaching, CancellationToken);
     var hits0 = await WaitAndCountHits(hasCaching);
     Assert.Equal(0, hits0.ParseHits);
-    Assert.Equal(0, hits0.ResolveHits);
-
-    async Task<(int ParseHits, int ResolveHits)> WaitAndCountHits(TextDocumentItem documentItem) {
-      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
-      var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolution cache hit"));
-      return (parseHits, resolveHits);
-    }
+    Assert.Equal(0, hits0.ResolutionHits);
 
     ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
     var hitCount1 = await WaitAndCountHits(hasCaching);
@@ -173,21 +199,21 @@ use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
       "PrefixModuleInDefaultModule", "Content",
       "SpreadOverMultipleFiles", "Child1", "Child2"
     };
-    Assert.Equal(modules.Length, hitCount1.ResolveHits);
+    Assert.Equal(modules.Length, hitCount1.ResolutionHits);
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref hasCaching, ((2, 0), (3, 0)), "");
     var hitCount2 = await WaitAndCountHits(hasCaching);
     Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
     // No resolution was done because the import didn't resolve.
-    Assert.Equal(hitCount1.ResolveHits, hitCount2.ResolveHits);
+    Assert.Equal(hitCount1.ResolutionHits, hitCount2.ResolutionHits);
 
     ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "  include \"./B.dfy\"\n");
     var hitCount3 = await WaitAndCountHits(hasCaching);
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
     // The resolution cache was pruned after the previous change, so no cache hits here, except for the system module
-    Assert.Equal(hitCount2.ResolveHits + 1, hitCount3.ResolveHits);
+    Assert.Equal(hitCount2.ResolutionHits + 1, hitCount3.ResolutionHits);
   }
 
   /// <summary>
@@ -234,23 +260,18 @@ use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
     var firstFile = CreateTestDocument(source, "firstFile");
     await client.OpenDocumentAndWaitAsync(firstFile, CancellationToken);
 
-    async Task<int> WaitAndCountHits() {
-      await client.WaitForNotificationCompletionAsync(firstFile.Uri, CancellationToken);
-      return sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
-    }
-
     var secondFile = CreateTestDocument(source, "secondFile");
     await client.OpenDocumentAndWaitAsync(secondFile, CancellationToken);
     // No hit because Uri has changed
-    Assert.Equal(0, await WaitAndCountHits());
+    Assert.Equal(0, (await WaitAndCountHits(firstFile)).ParseHits);
 
     ApplyChange(ref secondFile, ((0, 0), (0, 0)), "// Make the file larger\n");
     // No hit because start of the file has changed
-    Assert.Equal(0, await WaitAndCountHits());
+    Assert.Equal(0, (await WaitAndCountHits(firstFile)).ParseHits);
 
     // No hit because end of file has changed
     ApplyChange(ref secondFile, ((19, 0), (19, 0)), "// Make the file larger\n");
-    Assert.Equal(0, await WaitAndCountHits());
+    Assert.Equal(0, (await WaitAndCountHits(firstFile)).ParseHits);
   }
 
   [Fact(Skip = "need hashing on modules to work")]
@@ -273,23 +294,17 @@ module C {{
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var documentItem = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-    var hits0 = await WaitAndCountHits();
-    Assert.Equal(0, hits0);
+    var hits0 = await WaitAndCountHits(documentItem);
+    Assert.Equal(0, hits0.ResolutionHits);
 
-    async Task<int> WaitAndCountHits() {
-      await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
-      var parseHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Parse cache hit"));
-      var resolveHits = sink.Snapshot().LogEvents.Count(le => le.MessageTemplate.Text.Contains("Resolve cache hit"));
-      return resolveHits;
-    }
 
     ApplyChange(ref documentItem, ((7, 17), (7, 18)), "22");
-    var hitCount1 = await WaitAndCountHits();
-    Assert.Equal(1, hitCount1);
+    var hitCount1 = await WaitAndCountHits(documentItem);
+    Assert.Equal(1, hitCount1.ResolutionHits);
 
     ApplyChange(ref documentItem, ((11, 17), (11, 18)), "32");
-    var hitCount2 = await WaitAndCountHits();
-    Assert.Equal(hitCount1 + 2, hitCount2);
+    var hitCount2 = await WaitAndCountHits(documentItem);
+    Assert.Equal(hitCount1.ResolutionHits + 2, hitCount2.ResolutionHits);
   }
 
   [Fact]
@@ -337,6 +352,80 @@ module ChangedClonedId {
     await AssertNoDiagnosticsAreComing(CancellationToken);
   }
 
+  [Fact]
+  public async Task DocumentAddedToExistingProjectDoesNotCrash() {
+    var source1 = @"
+method Foo() {
+}";
+    var source2 = @"
+method Bar() {
+}";
+
+    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var file1 = CreateAndOpenTestDocument(source1, Path.Combine(temp, "source1.dfy"));
+    var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
+    var project = await CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
+    await client.WaitForNotificationCompletionAsync(file1.Uri, CancellationToken);
+    ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
+    var diagnostics = await GetLastDiagnostics(project);
+    Assert.Empty(diagnostics);
+    await Task.Delay(1000);
+    Assert.DoesNotContain(telemetryReceiver.History, e =>
+      e.ExtensionData.TryGetValue("kind", out var value) &&
+      (long)value == (long)TelemetryPublisherBase.TelemetryEventKind.UnhandledException);
+  }
+
+  [Fact]
+  public async Task ConcurrentCompilationDoesNotBreakCaching() {
+    var largeImport1 = GetLargeFile("Imported1", 100);
+    var largeImport2 = GetLargeFile("Imported2", 100);
+
+    var importerSource = @"module Importer {
+  import Imported1
+  import Imported2
+  method Bar() {
+    Imported1.Foo0();
+    Imported2.Foo0();
+  }
+}";
+
+    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var imported1 = CreateAndOpenTestDocument(largeImport1, Path.Combine(temp, "imported1.dfy"));
+    var imported2 = CreateAndOpenTestDocument(largeImport2, Path.Combine(temp, "imported2.dfy"));
+    var importer = CreateAndOpenTestDocument(importerSource, Path.Combine(temp, "importer.dfy"));
+    var project = CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
+
+    var before1 = await WaitAndCountHits(imported1);
+    var before2 = await WaitAndCountHits(imported2);
+
+    ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
+    for (int i = 0; i < 10; i++) {
+      ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
+    }
+
+    var after1 = await WaitAndCountHits(imported1);
+    var after2 = await WaitAndCountHits(imported2);
+    Assert.Equal(before1.ParseMisses, after1.ParseMisses);
+    Assert.Equal(before1.ResolutionMisses, after1.ResolutionMisses);
+    Assert.Equal(before2.ParseMisses, after2.ParseMisses);
+    Assert.Equal(before2.ResolutionMisses, after2.ResolutionMisses);
+    // Somehow, importer can have multiple parse hits, even though it always gets changed.
+    // Would be nice to understand how this can occur.
+  }
+
+  private static string GetLargeFile(string moduleName, int lines) {
+    string GetLineContent(int index) => $"  method Foo{index}() {{ assume {{:axiom}} false; }}";
+    var contentBuilder = new StringBuilder();
+    contentBuilder.AppendLine($"module {moduleName} {{");
+    for (int lineNumber = 0; lineNumber < lines; lineNumber++) {
+      contentBuilder.AppendLine(GetLineContent(lineNumber));
+    }
+    contentBuilder.AppendLine("}");
+    var largeImport = contentBuilder.ToString();
+    return largeImport;
+  }
+
   public CachingTest(ITestOutputHelper output) : base(output) {
+    sink = null!;
   }
 }

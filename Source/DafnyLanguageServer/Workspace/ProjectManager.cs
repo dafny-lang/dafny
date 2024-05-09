@@ -134,16 +134,13 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription.Dispose();
     version += 1;
 
-    Migrator? migrator = null;
-    if (changes != null) {
-      migrator = createMigrator(changes, CancellationToken.None);
-      // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-      observer.Migrate(options, migrator, version);
-      latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
-    }
+    var input = new CompilationInput(options, version, Project);
+    IMigrator migrator = changes == null ? new NoopMigrator(triggeringFile) : createMigrator(changes, CancellationToken.None);
+    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+    observer.Migrate(options, migrator, version);
+    latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
 
     Compilation.Dispose();
-    var input = new CompilationInput(options, version, Project);
     Compilation = createCompilation(GetBoogie(), input);
     var migratedUpdates = GetStates(Compilation);
     states = new ReplaySubject<IdeState>(1);
@@ -174,7 +171,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     return boogieEngine;
   }
 
-  private void UpdateRecentChanges(DidChangeTextDocumentParams changes, Migrator? migrator) {
+  private void UpdateRecentChanges(DidChangeTextDocumentParams changes, IMigrator? migrator) {
     lock (RecentChanges) {
       var newChanges = changes.ContentChanges.Where(c => c.Range != null).
         Select(contentChange => new Location {
@@ -213,9 +210,16 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
 
-      var newState = await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
-      latestCompilationState = newState;
-      return newState;
+      try {
+        var newState =
+          await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
+        latestCompilationState = newState;
+        return newState;
+      } catch (Exception e) {
+        logger.LogError(e, "error while updating IDE state");
+        telemetryPublisher.PublishUnhandledException(e);
+        throw;
+      }
     }
   }
 
@@ -368,6 +372,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
+
       StartNewCompilation(uri, null);
     }
   }
