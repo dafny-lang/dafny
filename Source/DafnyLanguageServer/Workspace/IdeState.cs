@@ -35,8 +35,8 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> OldDiagnostics,
-  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> NewDiagnostics,
+  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> MigratedDiagnostics,
+  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> FreshDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -76,7 +76,7 @@ public record IdeState(
 
   public const string OutdatedPrefix = "Outdated: ";
 
-  public IdeState Migrate(DafnyOptions options, Migrator migrator, int newVersion, bool clientSide) {
+  public IdeState Migrate(DafnyOptions options, IMigrator migrator, int newVersion, bool clientSide) {
     var migratedVerificationTrees = VerificationTrees.ToImmutableDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
@@ -86,21 +86,21 @@ public record IdeState(
       : MigrateImplementationViews(migrator, CanVerifyStates);
 
     var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
-    foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
+    foreach (var phase in MigratedDiagnostics.Keys.Concat(FreshDiagnostics.Keys)) {
       if (phase.Parent == InternalExceptions.Instance) {
         continue;
       }
 
-      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).
-        Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
+      var diagnostics = MigratedDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).
+        Concat(FreshDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
       oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
     }
     return this with {
       Input = Input with {
         Version = newVersion
       },
-      OldDiagnostics = oldDiagnostics,
-      NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      MigratedDiagnostics = oldDiagnostics,
+      FreshDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
@@ -110,7 +110,7 @@ public record IdeState(
   }
 
   private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> MigrateImplementationViews(
-    Migrator migrator,
+    IMigrator migrator,
     ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> oldVerificationDiagnostics) {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
@@ -151,7 +151,7 @@ public record IdeState(
       s.Value.Values.SelectMany(cvs =>
         cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))).
           Concat(cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
-    var genericDiagnostics = (OldDiagnostics.Values.Concat(NewDiagnostics.Values)).SelectMany(x => x);
+    var genericDiagnostics = (MigratedDiagnostics.Values.Concat(FreshDiagnostics.Values)).SelectMany(x => x);
     return genericDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
   }
 
@@ -226,16 +226,19 @@ public record IdeState(
     }
     ownedUris.Add(determinedRootFiles.Project.Uri);
 
-    return this with {
+    var version = this.Version;
+    var previousNewDiagnostics = FreshDiagnostics;
+    var result = this with {
       OwnedUris = ownedUris,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(RootFilesPhase.Instance),
-      NewDiagnostics = NewDiagnostics.Add(RootFilesPhase.Instance, determinedRootFiles.Diagnostics),
+      MigratedDiagnostics = GetOldDiagnosticsAfterPhase(RootFilesPhase.Instance),
+      FreshDiagnostics = previousNewDiagnostics.Add(RootFilesPhase.Instance, determinedRootFiles.Diagnostics),
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
         file => VerificationTrees.GetValueOrDefault(file.Uri) ??
                 new DocumentVerificationTree(this.Program, file.Uri))
     };
+    return result;
   }
 
   private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
@@ -266,8 +269,8 @@ public record IdeState(
       var phase = new SingletonPhase(new MessageSourceBasedPhase(newDiagnostic.Diagnostic.Source), newDiagnostic.Diagnostic);
       var newDiagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()));
       return previousState with {
-        OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
-        NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+        MigratedDiagnostics = GetOldDiagnosticsAfterPhase(phase),
+        FreshDiagnostics = FreshDiagnostics.Add(phase, newDiagnostics)
       };
     }
 
@@ -293,8 +296,8 @@ public record IdeState(
     var newDiagnostics = ImmutableList.Create(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic));
     return previousState with {
       Status = CompilationStatus.InternalException,
-      OldDiagnostics = OldDiagnostics,
-      NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+      MigratedDiagnostics = MigratedDiagnostics,
+      FreshDiagnostics = FreshDiagnostics.Add(phase, newDiagnostics)
     };
   }
 
@@ -344,8 +347,8 @@ public record IdeState(
 
     var phase = new MessageSourceBasedPhase(MessageSource.Resolver);
     return previousState with {
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
-      NewDiagnostics = NewDiagnostics.Add(phase, finishedResolution.Diagnostics),
+      MigratedDiagnostics = GetOldDiagnosticsAfterPhase(phase),
+      FreshDiagnostics = FreshDiagnostics.Add(phase, finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
       ResolvedProgram = finishedResolution.Result.ResolvedProgram,
@@ -404,15 +407,15 @@ public record IdeState(
     var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
-      NewDiagnostics = NewDiagnostics.Add(completedPhase, newDiagnostics),
+      MigratedDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
+      FreshDiagnostics = FreshDiagnostics.Add(completedPhase, newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
   }
 
   private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
-    return OldDiagnostics.Where(
+    return MigratedDiagnostics.Where(
       kv => {
         var phase = kv.Key;
         while (phase != null) {
