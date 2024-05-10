@@ -126,7 +126,7 @@ public class RustBackend : DafnyExecutableBackend {
     return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
   }
   public override Encoding OutputWriterEncoding => Encoding.UTF8;
-  
+
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
