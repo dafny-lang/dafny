@@ -146,6 +146,10 @@ module _System {
  *   Shifts6
  * SCC at height 1:
  *   PQ
+ * SCC at height 1:
+ *   Rotate
+ * SCC at height 1:
+ *   TestActualRotate
  * SCC at height 0:
  *   EvenInt
  * SCC at height 0:
@@ -169,11 +173,11 @@ module _System {
  * SCC at height 0:
  *   R
  * SCC at height 0:
- *   Rotate
+ *   RotateLeft
+ * SCC at height 0:
+ *   RotateRight
  * SCC at height 0:
  *   SmallReal
- * SCC at height 0:
- *   TestActualRotate
  * SCC at height 0:
  *   TestActualShifting
  */

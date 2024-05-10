@@ -350,6 +350,7 @@ namespace Microsoft.Dafny {
     public string MethodsToTest = null;
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
+    public bool PrintDotCallGraph = false;
     public bool WarnShadowing = false;
     public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version4;
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
@@ -644,6 +645,10 @@ namespace Microsoft.Dafny {
 
         case "funcCallGraph":
           PrintFunctionCallGraph = true;
+          return true;
+
+        case "dotCallGraph":
+          PrintDotCallGraph = true;
           return true;
 
         case "warnShadowing":

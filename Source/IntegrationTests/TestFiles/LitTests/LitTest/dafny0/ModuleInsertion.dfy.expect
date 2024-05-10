@@ -222,8 +222,16 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 0:
+ * SCC at height 1:
  *   Main
+ * SCC at height 0:
+ *   Test
+ * SCC at height 0:
+ *   Test
+ * SCC at height 0:
+ *   Test
+ * SCC at height 0:
+ *   h
  */
 method Main()
 {
@@ -235,8 +243,16 @@ method Main()
 
 module Outer {
   /* CALL GRAPH for module Outer:
-   * SCC at height 0:
+   * SCC at height 1:
    *   Test
+   * SCC at height 0:
+   *   a
+   * SCC at height 0:
+   *   b
+   * SCC at height 0:
+   *   c
+   * SCC at height 0:
+   *   d
    */
   method Test()
   {
@@ -245,8 +261,10 @@ module Outer {
 
   module C {
     /* CALL GRAPH for module C:
-     * SCC at height 0:
+     * SCC at height 1:
      *   c
+     * SCC at height 0:
+     *   d
      */
     const c: int := 2 + D.d
 
@@ -255,8 +273,12 @@ module Outer {
 
   module A {
     /* CALL GRAPH for module A:
-     * SCC at height 0:
+     * SCC at height 1:
      *   a
+     * SCC at height 0:
+     *   b
+     * SCC at height 0:
+     *   c
      */
     const a: int := B.b + C.c
 
@@ -320,8 +342,14 @@ module Outer {
 
 module XY {
   /* CALL GRAPH for module XY:
-   * SCC at height 0:
+   * SCC at height 1:
    *   Test
+   * SCC at height 0:
+   *   m
+   * SCC at height 0:
+   *   m
+   * SCC at height 0:
+   *   n
    */
   method Test()
   {
@@ -337,8 +365,10 @@ module XY {
 
     module M {
       /* CALL GRAPH for module M:
-       * SCC at height 0:
+       * SCC at height 1:
        *   n
+       * SCC at height 0:
+       *   m
        */
       const n: int := Y.m - 5
 
@@ -399,10 +429,14 @@ module U {
 
   module V {
     /* CALL GRAPH for module V:
-     * SCC at height 1:
+     * SCC at height 2:
      *   Test
-     * SCC at height 0:
+     * SCC at height 1:
      *   x2
+     * SCC at height 0:
+     *   x0
+     * SCC at height 0:
+     *   x1
      */
     const x2: int := 14 + W.x1 + W.X.x0
 
@@ -413,8 +447,10 @@ module U {
 
     module W {
       /* CALL GRAPH for module W:
-       * SCC at height 0:
+       * SCC at height 1:
        *   x1
+       * SCC at height 0:
+       *   x0
        */
       const x1: int := 12 * X.x0
 

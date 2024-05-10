@@ -228,23 +228,22 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void PrintCallGraph(ModuleDefinition module, int indent) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
-      if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
-        // print call graph
-        Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
-        var SCCs = module.CallGraph.TopologicallySortedComponents();
+
+      void PrintGraph(Graph<ICallable> graph) {
+        var SCCs = graph.TopologicallySortedComponents();
         // Sort output SCCs in order of: descending height, then decreasing size of SCC, then alphabetical order of the name of
         // the representative element. By being this specific, we reduce changes in output from minor changes in the code. (With
         // more effort, we could be even more deterministic, if needed in the future.)
         SCCs.Sort((m, n) => {
-          var mm = module.CallGraph.GetSCCRepresentativePredecessorCount(m);
-          var nn = module.CallGraph.GetSCCRepresentativePredecessorCount(n);
+          var mm = graph.GetSCCRepresentativePredecessorCount(m);
+          var nn = graph.GetSCCRepresentativePredecessorCount(n);
           if (mm < nn) {
             return 1;
           } else if (mm > nn) {
             return -1;
           }
-          mm = module.CallGraph.GetSCCSize(m);
-          nn = module.CallGraph.GetSCCSize(n);
+          mm = graph.GetSCCSize(m);
+          nn = graph.GetSCCSize(n);
           if (mm < nn) {
             return 1;
           } else if (mm > nn) {
@@ -254,13 +253,48 @@ NoGhost - disable printing of functions, ghost methods, and proof
         });
         foreach (var callable in SCCs) {
           Indent(indent);
-          wr.WriteLine(" * SCC at height {0}:", module.CallGraph.GetSCCRepresentativePredecessorCount(callable));
-          var r = module.CallGraph.GetSCC(callable);
+          wr.WriteLine(" * SCC at height {0}:", graph.GetSCCRepresentativePredecessorCount(callable));
+          var r = graph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
             var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
             wr.WriteLine($" *   {m.NameRelativeToModule}{maybeByMethod}");
           }
+        }
+      }
+
+      void PrintDot(Graph<ICallable> graph) {
+        var heights = new Dictionary<int, IEnumerable<string>>();
+        Indent(indent);
+        wr.WriteLine($"digraph {module.Name} {{");
+        foreach (var v in graph.GetVertices()) {
+          var height = graph.GetSCCRepresentativePredecessorCount(v.N);
+          var name = v.N.NameRelativeToModule;
+          heights[height] = (heights.TryGetValue(height, out var vs) ? vs : new List<string>()).Append(name);
+          if (v.N.EnclosingModule != module) {
+            Indent(indent + 2);
+            wr.WriteLine($"\"{name}\" [style=dashed];");
+          }
+          foreach (var s in v.Successors) {
+            Indent(indent + 2);
+            wr.WriteLine($"\"{name}\" -> \"{s.N.NameRelativeToModule}\";");
+          }
+        }
+        foreach (var (_, vs) in heights) {
+          Indent(indent + 2);
+          wr.WriteLine($"{{ rank = same; {Util.Comma("; ", vs, (v => $"\"{v}\""))}; }}");
+        }
+        Indent(indent);
+        wr.WriteLine("}");
+      }
+
+      if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
+        // print call graph
+        Indent(indent); wr.WriteLine("/* CALL GRAPH for module {0}:", module.Name);
+        if (options.PrintDotCallGraph) {
+          PrintDot(module.CallGraph);
+        } else {
+          PrintGraph(module.CallGraph);
         }
         Indent(indent); wr.WriteLine(" */");
       }
