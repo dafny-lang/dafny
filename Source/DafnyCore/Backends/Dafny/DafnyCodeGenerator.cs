@@ -1155,7 +1155,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs,
         out ConcreteSyntaxTree collectionWriter, ConcreteSyntaxTree wr) {
       AddUnsupported("<i>CreateForeachIngredientLoop</i>");
-      throw new InvalidOperationException();
+      collectionWriter = new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null), this);
+      return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this);
     }
 
     protected override void EmitNew(Type type, IToken tok, CallStmt initCall, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -1341,7 +1342,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
       AddUnsupported("<i>FullTypeName</i>");
-      throw new InvalidOperationException();
+      return "FullTypeName";
     }
 
     private DAST.Type FullTypeNameAST(UserDefinedType udt, MemberDecl member = null) {
@@ -2559,7 +2560,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           // typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wPreconditions, tok)}";
           AddUnsupported("<i>TypeName</i>");
-          throw new InvalidOperationException();
+          return (ConcreteSyntaxTree w) => { };
         }
 
         if (boundVarType.IsNonNullRefType) {
