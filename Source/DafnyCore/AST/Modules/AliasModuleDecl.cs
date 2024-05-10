@@ -50,5 +50,17 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
     return true;
   }
 
+  /// <summary>
+  /// If no explicit name is given for an import declaration,
+  /// Then we consider this as a reference, not a declaration, from the IDE perspective.
+  /// So any further references to the imported module then resolve directly to the module,
+  /// Not to this import declaration.
+  ///
+  /// Code wise, it might be better not to let AliasModuleDecl inherit from Declaration,
+  /// since it is not always a declaration. 
+  /// </summary>
+  public override IToken NameToken =>
+    NameNode.StartToken == NameNode.EndToken ? TargetQId.Decl.NameToken : base.NameToken;
+
   public override IEnumerable<INode> Children => base.Children.Concat(new INode[] { TargetQId });
 }
