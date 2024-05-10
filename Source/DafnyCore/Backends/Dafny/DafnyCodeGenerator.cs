@@ -724,9 +724,11 @@ namespace Microsoft.Dafny.Compilers {
           container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass)));
         } else {
           if (type.AsTopLevelTypeWithMembers == null) { // git-issues/git-issue-697g.dfy while iterating over "nat"
-            throw new UnsupportedFeatureException(tok, Feature.RunAllTests);
+            AddUnsupportedFeature(tok, Feature.SubtypeConstraintsInQuantifiers);
+          } else {
+            container.Builder.AddExpr(
+              (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
           }
-          container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
         }
       } else {
         throw new InvalidOperationException();

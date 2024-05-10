@@ -1378,7 +1378,7 @@ pub trait AsAny {
 pub fn is_instance_of<C: ?Sized + AsAny, U: 'static>(theobject: *const C) -> bool {
     unsafe { &*theobject }.as_any().downcast_ref::<U>().is_some()
 }
-trait DafnyUpdowncast<U: ?Sized> {
+pub trait DafnyUpdowncast<U: ?Sized> {
     fn updowncast(&self) -> U;
     fn is_instance_of(&self) -> bool;
 }

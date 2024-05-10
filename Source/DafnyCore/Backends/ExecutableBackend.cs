@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
@@ -164,9 +165,15 @@ public abstract class ExecutableBackend : IExecutableBackend {
     TextWriter outputWriter,
     TextWriter errorWriter,
     string errorMessage = null) {
+    if (OutputWriterEncoding != null) {
+      psi.StandardOutputEncoding = OutputWriterEncoding;
+    }
+
     return StartProcess(psi, outputWriter) is { } process ?
       WaitForExit(process, outputWriter, errorWriter, errorMessage) : Task.FromResult(-1);
   }
+
+  public virtual Encoding OutputWriterEncoding => null;
 
   public async Task<int> WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
 

@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -123,7 +125,8 @@ public class RustBackend : DafnyExecutableBackend {
     psi.WorkingDirectory = targetDirectory;
     return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
   }
-
+  public override Encoding OutputWriterEncoding => Encoding.UTF8;
+  
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,

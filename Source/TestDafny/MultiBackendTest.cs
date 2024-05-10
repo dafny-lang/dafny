@@ -478,9 +478,8 @@ public class MultiBackendTest {
         checkOutput = "// CHECK: .*" + Regex.Escape(m2[0].Value.Trim()) + ".*";
       } else if (new Regex("^Unhandled exception.*$", RegexOptions.Multiline).Matches(contentCheck) is { Count: > 0 } m3) {
         checkOutput = "// CHECK-L: " + m3[0].Value.Trim();
-      } else if (new Regex("^error: failed to get `as-any` as a dependency of package$", RegexOptions.Multiline).Matches(contentCheck)
-                 is { Count: > 0 } m4) {
-        checkOutput = "// CHECK: .*error: failed to get `as-any` as a dependency.*";
+      } else if (new Regex("^(error:(?: \\w+)*).*$", RegexOptions.Multiline).Matches(contentCheck) is { Count: > 0 } m4) {
+        checkOutput = "// CHECK-L: " + m4[0].Value.Trim();
       } else {
         shouldSuffice = false;
         checkOutput = string.Join("\n",
@@ -521,7 +520,6 @@ public class MultiBackendTest {
     }
     return result;
   }
-
   private static async Task<(int, string, string)> RunDafny(IEnumerable<string> arguments) {
     var outputWriter = new StringWriter();
     var errorWriter = new StringWriter();

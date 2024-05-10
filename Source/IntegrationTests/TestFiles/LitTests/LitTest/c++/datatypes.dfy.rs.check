@@ -1,1 +1,1 @@
-// CHECK: .*Cannot declare local var outside of a statement container.*
+// CHECK: .*<i>Static\ methods\ with\ type\ arguments</i>.*
