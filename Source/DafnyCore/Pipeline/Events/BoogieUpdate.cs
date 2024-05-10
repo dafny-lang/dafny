@@ -11,4 +11,6 @@ public record BoogieUpdate(ProofDependencyManager ProofDependencyManager,
 
 public record PhaseFinished(IPhase Phase) : ICompilationEvent;
 public record PhaseStarted(IPhase Phase) : ICompilationEvent;
-public record PhaseDiscovered(IPhase Phase, IReadOnlyList<IPhase> Children) : ICompilationEvent;
+
+// Could PhaseFinished replace PhaseDiscovered? Maybe a parent can be finished even when its children are not finished yet.
+public record PhaseDiscovered(IPhase Phase, IReadOnlySet<IPhase> Children) : ICompilationEvent;

@@ -60,7 +60,7 @@ public class PhaseTree {
     }
   }
 
-  public PhaseTree ClearDiagnosticsAndPruneChildren(IPhase phase, IReadOnlyList<IPhase> newChildren) {
+  public PhaseTree ClearDiagnosticsAndPruneChildren(IPhase phase, IReadOnlyCollection<IPhase> newChildren) {
     var ancestors = phase.AncestorsAndSelf();
 
     return Recursive(this, ancestors)!;

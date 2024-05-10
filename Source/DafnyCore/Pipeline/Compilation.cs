@@ -118,9 +118,8 @@ public class Compilation : IDisposable {
 
     Project.Errors.CopyDiagnostics(errorReporter);
 
-    updates.OnNext(new PhaseDiscovered(RootPhase.Instance,
-      Enum.GetValues<MessageSource>().Select(s => new MessageSourceBasedPhase(s)).ToList()));
-
+    // updates.OnNext(new PhaseDiscovered(RootPhase.Instance,
+    //   Enum.GetValues<MessageSource>().Select(s => (IPhase)new MessageSourceBasedPhase(s)).ToHashSet()));
 
     started.TrySetResult();
   }
@@ -251,7 +250,7 @@ public class Compilation : IDisposable {
         GetDiagnosticsCopyAndClear()));
       var canVerifies = resolution.CanVerifies ?? Array.Empty<ICanVerify>();
       updates.OnNext(new PhaseDiscovered(new MessageSourceBasedPhase(MessageSource.Verifier),
-        canVerifies.Select(c => (IPhase)new VerificationOfSymbol(c)).ToList()));
+        canVerifies.Select(c => (IPhase)new VerificationOfSymbol(c)).ToHashSet()));
 
       staticDiagnosticsSubscription.Dispose();
       updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Cloner)));
@@ -396,7 +395,8 @@ public class Compilation : IDisposable {
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId).ToList();
 
       updates.OnNext(new PhaseDiscovered(verificationOfSymbol,
-        verificationTaskPerScope.Select(s => new VerificationOfScope(verificationOfSymbol, s.Key)).ToList()));
+        verificationTaskPerScope.Select(s =>
+          (IPhase)new VerificationOfScope(verificationOfSymbol, s.Key)).ToHashSet()));
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
 
       foreach (var scope in verificationTaskPerScope) {
@@ -405,7 +405,7 @@ public class Compilation : IDisposable {
 
         var scopeVerificationTasks = scope.ToList();
         updates.OnNext(new PhaseDiscovered(scopePhase,
-          scopeVerificationTasks.Select(t => new VerificationOfTask(scopePhase)).ToList()));
+          scopeVerificationTasks.Select(t => (IPhase)new VerificationOfTask(scopePhase)).ToHashSet()));
 
         var tasksForScope = new List<Task<IVerificationStatus>>();
         foreach (var verificationTask in scopeVerificationTasks) {
