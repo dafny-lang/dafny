@@ -48,6 +48,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task ExportImport() {
+      var source = @"
+module ><Low {
+  const x := 3
+}
+
+module High {
+  import [>Low<]
+
+  export
+    provides
+      [>Low<]
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportImport.dfy");
+    }
+
+    [Fact]
     public async Task AliasModuleDecl() {
       var source = @"
 module ><ToAlias {
