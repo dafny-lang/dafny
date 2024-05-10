@@ -19,6 +19,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task ResolutionErrorMigration() {
+      var source = @"module ResolutionError {
+  import   UnderlineComments2
+}";
+      var addition = @"module ParseError {
+  // I can underline comments in red.
+
+  function method Test() {
+
+  }
+}
+";
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), addition);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.DoesNotContain(diagnostics2, d => d.Range.Start.Line == 1);
+    }
+
+    [Fact]
     public async Task RedundantAssumptionsGetWarnings() {
       var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
       var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
