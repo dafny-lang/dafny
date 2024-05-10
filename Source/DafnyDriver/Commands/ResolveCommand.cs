@@ -13,6 +13,7 @@ static class ResolveCommand {
       result.AddOption(option);
     }
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+      options.Set(DafnyFile.DoNotVerifyDependencies, true);
       var compilation = CliCompilation.Create(options);
       compilation.Start();
       await compilation.Resolution;

@@ -7,6 +7,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 
@@ -41,6 +42,7 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
+        DafnyFile.DoNotVerifyDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
