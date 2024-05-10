@@ -17,6 +17,7 @@ using Serilog;
 using Serilog.Sinks.InMemory;
 using Xunit;
 using Xunit.Abstractions;
+using XunitAssertMessages;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
@@ -34,7 +35,7 @@ public class CachingTest : ClientBasedLanguageServerTest {
 
   record CacheResults(int ParseHits, int ParseMisses, int ResolutionHits, int ResolutionMisses);
 
-  async Task<CacheResults> WaitAndCountHits(TextDocumentItem? documentItem) {
+  async Task<CacheResults> WaitAndCountHits(TextDocumentItem? documentItem, bool filterDocument = true) {
     if (documentItem != null) {
       await client.WaitForNotificationCompletionAsync(documentItem.Uri, CancellationToken);
     }
@@ -43,7 +44,7 @@ public class CachingTest : ClientBasedLanguageServerTest {
     var resolutionHits = 0;
     var resolutionMisses = 0;
     foreach (var message in sink.Snapshot().LogEvents.Select(le => le.MessageTemplate.Text)) {
-      if (documentItem != null && !message.Contains(documentItem.Uri.GetFileSystemPath())) {
+      if (filterDocument && documentItem != null && !message.Contains(documentItem.Uri.GetFileSystemPath())) {
         continue;
       }
 
@@ -178,19 +179,19 @@ module ModC {
 use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
     var noCaching = await CreateOpenAndWaitForResolve(source, Path.Combine(temp, "noCaching.dfy"));
     ApplyChange(ref noCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
-    var hitCountForNoCaching = await WaitAndCountHits(noCaching);
+    var hitCountForNoCaching = await WaitAndCountHits(noCaching, false);
     Assert.Equal(0, hitCountForNoCaching.ParseHits);
     Assert.Equal(0, hitCountForNoCaching.ResolutionHits);
 
     var testFiles = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
     var hasCaching = CreateTestDocument(source, Path.Combine(testFiles, "test.dfy"));
     await client.OpenDocumentAndWaitAsync(hasCaching, CancellationToken);
-    var hits0 = await WaitAndCountHits(hasCaching);
+    var hits0 = await WaitAndCountHits(hasCaching, false);
     Assert.Equal(0, hits0.ParseHits);
     Assert.Equal(0, hits0.ResolutionHits);
 
     ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "// Pointless comment that triggers a reparse\n");
-    var hitCount1 = await WaitAndCountHits(hasCaching);
+    var hitCount1 = await WaitAndCountHits(hasCaching, false);
     Assert.Equal(2, hitCount1.ParseHits);
     var modules = new[] {
       "System",
@@ -203,13 +204,13 @@ use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
 
     // Removes the comment and the include and usage of B.dfy, which will prune the cache for B.dfy
     ApplyChange(ref hasCaching, ((2, 0), (3, 0)), "");
-    var hitCount2 = await WaitAndCountHits(hasCaching);
+    var hitCount2 = await WaitAndCountHits(hasCaching, false);
     Assert.Equal(hitCount1.ParseHits + 1, hitCount2.ParseHits);
     // No resolution was done because the import didn't resolve.
     Assert.Equal(hitCount1.ResolutionHits, hitCount2.ResolutionHits);
 
     ApplyChange(ref hasCaching, ((0, 0), (0, 0)), "  include \"./B.dfy\"\n");
-    var hitCount3 = await WaitAndCountHits(hasCaching);
+    var hitCount3 = await WaitAndCountHits(hasCaching, false);
     // No hit for B.dfy, since it was previously pruned
     Assert.Equal(hitCount2.ParseHits + 1, hitCount3.ParseHits);
     // The resolution cache was pruned after the previous change, so no cache hits here, except for the system module
@@ -367,11 +368,12 @@ method Foo() {
     var file1 = CreateAndOpenTestDocument(source1, Path.Combine(temp, "source1.dfy"));
     var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
     var project = await CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
-    await client.WaitForNotificationCompletionAsync(file1.Uri, CancellationToken);
+    await client.WaitForNotificationCompletionAsync(project.Uri, CancellationToken);
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
     var diagnostics1 = await GetLastDiagnostics(file1);
     var diagnostics2 = await GetLastDiagnostics(file2);
-    Assert.Equal(3, diagnostics1.Concat(diagnostics2).Count);
+    var combined = diagnostics1.Concat(diagnostics2);
+    AssertM.Equal(3, combined.Count, "diagnostics: " + string.Join("\n", combined));
   }
 
   [Fact]
