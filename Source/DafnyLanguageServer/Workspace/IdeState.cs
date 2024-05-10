@@ -10,21 +10,17 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public record IdeVerificationTaskState(Range Range, PublishedVerificationStatus Status,
-  IReadOnlyList<Diagnostic> Diagnostics, bool HitErrorLimit, IVerificationTask Task, IVerificationStatus RawStatus);
+  bool HitErrorLimit, IVerificationTask Task, IVerificationStatus RawStatus);
 
 public enum VerificationPreparationState { NotStarted, InProgress, Done }
 public record IdeCanVerifyState(VerificationPreparationState PreparationProgress,
-  ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks,
-  IReadOnlyList<Diagnostic> Diagnostics);
-
-
+  ImmutableDictionary<string, IdeVerificationTaskState> VerificationTasks);
 
 /// <summary>
 /// Contains information from the latest document, and from older documents if some information is missing,
@@ -35,8 +31,8 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> OldDiagnostics,
-  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> NewDiagnostics,
+  PhaseTree OldDiagnostics,
+  PhaseTree NewDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -48,23 +44,14 @@ public record IdeState(
   public Uri Uri => Input.Uri.ToUri();
   public int Version => Input.Version;
 
-  public static IEnumerable<Diagnostic> MarkDiagnosticsAsOutdated(IEnumerable<Diagnostic> diagnostics) {
-    return diagnostics.Select(diagnostic => diagnostic with {
-      Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
-      Message = diagnostic.Message.StartsWith(OutdatedPrefix)
-        ? diagnostic.Message
-        : OutdatedPrefix + diagnostic.Message
-    });
-  }
-
   public static IdeState InitialIdeState(CompilationInput input) {
     var program = new EmptyNode();
     return new IdeState(ImmutableHashSet<Uri>.Empty,
       input,
       CompilationStatus.Parsing,
       program,
-      ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty,
-      ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      PhaseTree.Empty(),
+      PhaseTree.Empty(),
       program,
       SymbolTable.Empty(),
       LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>>.Empty,
@@ -85,28 +72,30 @@ public record IdeState(
       ? CanVerifyStates
       : MigrateImplementationViews(migrator, CanVerifyStates);
 
-    var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
-    foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
-      if (phase.Parent == InternalExceptions.Instance) {
-        continue;
-      }
-
-      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).
-        Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
-      oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
-    }
+    var oldDiagnostics = NewDiagnostics.UpdateState(MigrateFileDiagnostic).
+      Merge(OldDiagnostics, MigrateFileDiagnostic);
     return this with {
       Input = Input with {
         Version = newVersion
       },
       OldDiagnostics = oldDiagnostics,
-      NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      NewDiagnostics = PhaseTree.Empty(),
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
         ? migrator.MigrateSymbolTable(SignatureAndCompletionTable) : LegacySignatureAndCompletionTable.Empty(options, Input.Project),
       VerificationTrees = migratedVerificationTrees
     };
+
+    FileDiagnostic? MigrateFileDiagnostic(FileDiagnostic fileDiagnostic) {
+      var d = migrator.MigrateDiagnostics(fileDiagnostic.Diagnostic);
+      if (d == null) {
+        return null;
+      }
+      return fileDiagnostic with {
+        Diagnostic = d
+      };
+    }
   }
 
   private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> MigrateImplementationViews(
@@ -130,7 +119,6 @@ public record IdeState(
         if (newInnerRange != null) {
           newValue = newValue.Add(innerEntry.Key, innerEntry.Value with {
             Range = newInnerRange,
-            Diagnostics = migrator.MigrateDiagnostics(innerEntry.Value.Diagnostics)
           });
         }
       }
@@ -147,12 +135,8 @@ public record IdeState(
   }
 
   public IEnumerable<FileDiagnostic> GetAllDiagnostics() {
-    var verificationDiagnostics = CanVerifyStates.SelectMany(s =>
-      s.Value.Values.SelectMany(cvs =>
-        cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))).
-          Concat(cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
-    var genericDiagnostics = (OldDiagnostics.Values.Concat(NewDiagnostics.Values)).SelectMany(x => x);
-    return genericDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
+    var genericDiagnostics = OldDiagnostics.AllDiagnostics.Concat(NewDiagnostics.AllDiagnostics);
+    return genericDiagnostics.Concat(GetErrorLimitDiagnostics());
   }
 
   private IEnumerable<FileDiagnostic> GetErrorLimitDiagnostics() {
@@ -187,6 +171,10 @@ public record IdeState(
         return HandleBoogieUpdate(options, logger, boogieUpdate);
       case CanVerifyPartsIdentified canVerifyPartsIdentified:
         return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
+      case PhaseFinished phaseFinished:
+        return HandlePhaseFinished(phaseFinished);
+      case PhaseDiscovered phaseDiscovered:
+        return HandlePhaseDiscovered(phaseDiscovered);
       case FinishedParsing finishedParsing:
         return HandleFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
@@ -200,13 +188,25 @@ public record IdeState(
       case ScheduledVerification scheduledVerification:
         return HandleScheduledVerification(scheduledVerification);
       default:
-        throw new ArgumentOutOfRangeException(nameof(e));
+        return this;
     }
+  }
+
+  private IdeState HandlePhaseDiscovered(PhaseDiscovered phaseDiscovered) {
+    return this with {
+      OldDiagnostics = OldDiagnostics.ClearDiagnosticsAndPruneChildren(phaseDiscovered.Phase, phaseDiscovered.Children)
+    };
+  }
+
+  private IdeState HandlePhaseFinished(PhaseFinished phaseFinished) {
+    return this with {
+      OldDiagnostics = OldDiagnostics.Remove(phaseFinished.Phase)
+    };
   }
 
   record RootFilesPhase : IPhase {
     public static readonly RootFilesPhase Instance = new();
-    public IPhase? Parent => null;
+    public IPhase? MaybeParent => null;
   }
 
   private async Task<IdeState> HandleDeterminedRootFiles(DafnyOptions options, ILogger logger,
@@ -228,7 +228,7 @@ public record IdeState(
 
     return this with {
       OwnedUris = ownedUris,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(RootFilesPhase.Instance),
+      OldDiagnostics = OldDiagnostics.Remove(RootFilesPhase.Instance),
       NewDiagnostics = NewDiagnostics.Add(RootFilesPhase.Instance, determinedRootFiles.Diagnostics),
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
@@ -250,8 +250,7 @@ public record IdeState(
     var verificationResult = new IdeCanVerifyState(PreparationProgress: preparationProgress,
       VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
-        Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
-      }), previousVerificationResult.Diagnostics);
+      }));
     return previousState with {
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, verificationResult))
@@ -263,11 +262,9 @@ public record IdeState(
 
     // Until resolution is finished, keep showing the old diagnostics. 
     if (previousState.Status > CompilationStatus.ResolutionStarted) {
-      var phase = new SingletonPhase(new MessageSourceBasedPhase(newDiagnostic.Diagnostic.Source), newDiagnostic.Diagnostic);
       var newDiagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()));
       return previousState with {
-        OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
-        NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+        NewDiagnostics = NewDiagnostics.Add(newDiagnostic.Diagnostic.Phase, newDiagnostics)
       };
     }
 
@@ -276,7 +273,7 @@ public record IdeState(
 
   public record InternalExceptions : IPhase {
     public static readonly IPhase Instance = new InternalExceptions();
-    public IPhase? Parent => null;
+    public IPhase? MaybeParent => null;
   }
 
   private IdeState HandleInternalCompilationException(InternalCompilationException internalCompilationException) {
@@ -289,12 +286,11 @@ public record IdeState(
       Range = new Range(0, 0, 0, 1)
     };
 
-    var phase = new SingletonPhase(InternalExceptions.Instance, internalErrorDiagnostic);
     var newDiagnostics = ImmutableList.Create(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic));
     return previousState with {
       Status = CompilationStatus.InternalException,
       OldDiagnostics = OldDiagnostics,
-      NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+      NewDiagnostics = NewDiagnostics.Add(InternalExceptions.Instance, newDiagnostics)
     };
   }
 
@@ -344,7 +340,7 @@ public record IdeState(
 
     var phase = new MessageSourceBasedPhase(MessageSource.Resolver);
     return previousState with {
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
+      OldDiagnostics = OldDiagnostics.Remove(phase),
       NewDiagnostics = NewDiagnostics.Add(phase, finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
@@ -361,8 +357,7 @@ public record IdeState(
     return results.Aggregate((a, b) => new IdeCanVerifyState(
       MergeStates(a.PreparationProgress, b.PreparationProgress),
       a.VerificationTasks.ToImmutableDictionary().Merge(b.VerificationTasks,
-        (aView, bView) => aView /* Merge should not occur */),
-      a.Diagnostics.Concat(b.Diagnostics)));
+        (aView, bView) => aView /* Merge should not occur */)));
   }
 
   private static VerificationPreparationState MergeStates(VerificationPreparationState a, VerificationPreparationState b) {
@@ -382,8 +377,7 @@ public record IdeState(
     return new IdeCanVerifyState(PreparationProgress: VerificationPreparationState.NotStarted,
       VerificationTasks: previousImplementations.ToImmutableDictionary(kv => kv.Key, kv => kv.Value with {
         Status = PublishedVerificationStatus.Stale,
-        Diagnostics = MarkDiagnosticsAsOutdated(kv.Value.Diagnostics).ToList()
-      }), previousIdeCanVerifyState?.Diagnostics ?? new List<Diagnostic>());
+      }));
   }
 
   private IdeState HandleFinishedParsing(FinishedParsing finishedParsing) {
@@ -404,27 +398,11 @@ public record IdeState(
     var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
+      OldDiagnostics = OldDiagnostics.Remove(completedPhase),
       NewDiagnostics = NewDiagnostics.Add(completedPhase, newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
-  }
-
-  private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
-    return OldDiagnostics.Where(
-      kv => {
-        var phase = kv.Key;
-        while (phase != null) {
-          if (phase.Equals(completedPhase)) {
-            return false;
-          }
-
-          phase = phase.Parent;
-        }
-
-        return true;
-      }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
   }
 
   private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {
@@ -444,9 +422,8 @@ public record IdeState(
         k => {
           var previous = previousImplementations.GetValueOrDefault(Compilation.GetTaskName(k));
           return new IdeVerificationTaskState(range, PublishedVerificationStatus.Queued,
-            previous?.Diagnostics ?? Array.Empty<Diagnostic>(),
             previous?.HitErrorLimit ?? false, k, new Stale());
-        }), new List<Diagnostic>());
+        }));
     return previousState with {
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, verificationResult))
@@ -463,7 +440,6 @@ public record IdeState(
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;
     var previousView = previousImplementations.GetValueOrDefault(name);
-    var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
     var hitErrorLimit = previousView?.HitErrorLimit ?? false;
 
     var internalErrorDiagnostic = new Diagnostic {
@@ -471,11 +447,11 @@ public record IdeState(
       Severity = DiagnosticSeverity.Error,
       Range = range
     };
-    diagnostics = diagnostics.Concat(new[] { internalErrorDiagnostic }).ToList();
 
-    var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, diagnostics.ToList(), hitErrorLimit, boogieException.Task, new Stale());
+    var view = new IdeVerificationTaskState(range, PublishedVerificationStatus.Error, hitErrorLimit, boogieException.Task, new Stale());
 
     return previousState with {
+      NewDiagnostics = previousState.NewDiagnostics.Add(InternalExceptions.Instance, new[] { new FileDiagnostic(uri, internalErrorDiagnostic) }),
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
           VerificationTasks = previousVerificationResult.VerificationTasks.SetItem(name, view)
@@ -497,9 +473,7 @@ public record IdeState(
     var counterExamples = previousState.Counterexamples;
     bool hitErrorLimit = previousView?.HitErrorLimit ?? false;
     IVerificationStatus rawStatus = boogieUpdate.BoogieStatus;
-    var diagnostics = previousView?.Diagnostics ?? Array.Empty<Diagnostic>();
     if (boogieUpdate.BoogieStatus is Running) {
-      diagnostics = Array.Empty<Diagnostic>();
       hitErrorLimit = false;
     }
 
@@ -510,34 +484,15 @@ public record IdeState(
 
       counterExamples = counterExamples.Concat(completed.Result.CounterExamples);
       hitErrorLimit |= completed.Result.MaxCounterExamples == completed.Result.CounterExamples.Count;
-      var newDiagnostics =
-        Compilation.GetDiagnosticsFromResult(options, previousState.Uri, boogieUpdate.CanVerify,
-          boogieUpdate.VerificationTask, completed.Result);
-      diagnostics = newDiagnostics.Select(d => d.ToLspDiagnostic()).ToList();
       logger.LogTrace(
-        $"Completed received for {previousState.Input} and found #{diagnostics.Count} diagnostics and #{completed.Result.CounterExamples.Count} counterexamples.");
+        $"Completed received for {previousState.Input} and found #{completed.Result.CounterExamples.Count} counterexamples.");
     }
 
-    var newCanVerifyDiagnostics = new List<Diagnostic>();
-    var taskState = new IdeVerificationTaskState(range, status, diagnostics.ToList(),
+    var taskState = new IdeVerificationTaskState(range, status,
       hitErrorLimit, boogieUpdate.VerificationTask, rawStatus);
     var newTaskStates = previousVerificationResult.VerificationTasks.SetItem(name, taskState);
 
     var scopeGroup = newTaskStates.Values.Where(s => s.Task.ScopeId == boogieUpdate.VerificationTask.ScopeId).ToList();
-    var allTasksAreCompleted = scopeGroup.All(s => s.Status >= PublishedVerificationStatus.Error);
-    if (allTasksAreCompleted) {
-
-      var errorReporter = new ObservableErrorReporter(options, uri);
-      List<DafnyDiagnostic> verificationCoverageDiagnostics = new();
-      errorReporter.Updates.Subscribe(d => verificationCoverageDiagnostics.Add(d.Diagnostic));
-
-      ProofDependencyWarnings.ReportSuspiciousDependencies(options,
-        scopeGroup.Select(s => new VerificationTaskResult(s.Task, ((Completed)s.RawStatus).Result)),
-        errorReporter, boogieUpdate.ProofDependencyManager);
-
-      newCanVerifyDiagnostics = previousVerificationResult.Diagnostics.Concat(verificationCoverageDiagnostics.Select(d => d.ToLspDiagnostic())).ToList();
-    }
-
     UpdateGutterIconTrees(logger, boogieUpdate, scopeGroup);
 
     return previousState with {
@@ -545,7 +500,6 @@ public record IdeState(
       CanVerifyStates = previousState.CanVerifyStates.SetItem(uri,
         previousState.CanVerifyStates[uri].SetItem(range, previousVerificationResult with {
           VerificationTasks = newTaskStates,
-          Diagnostics = newCanVerifyDiagnostics
         }))
     };
   }

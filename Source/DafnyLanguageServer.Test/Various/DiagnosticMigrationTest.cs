@@ -64,44 +64,35 @@ public class DiagnosticMigrationTest : ClientBasedLanguageServerTest {
     var verificationDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(verificationDiagnostics);
 
-    client.DidChangeTextDocument(new DidChangeTextDocumentParams {
-      TextDocument = new OptionalVersionedTextDocumentIdentifier {
-        Uri = documentItem.Uri,
-        Version = documentItem.Version + 1
+    ApplyChanges(ref documentItem, new[] {
+      new TextDocumentContentChangeEvent {
+        Range = new Range(1, 12, 1, 13),
+        Text = "!"
       },
-      ContentChanges = new[] {
-        new TextDocumentContentChangeEvent {
-          Range = new Range(1, 12, 1, 13),
-          Text = "!"
-        },
 
-        new TextDocumentContentChangeEvent {
-          Range = new Range(4, 4, 4, 10),
-          Text = "tempReturn"
-        },
+      new TextDocumentContentChangeEvent {
+        Range = new Range(4, 4, 4, 10),
+        Text = "tempReturn"
+      },
 
-        new TextDocumentContentChangeEvent {
-          Range = new Range(4, 4, 4, 14),
-          Text = "return"
-        },
+      new TextDocumentContentChangeEvent {
+        Range = new Range(4, 4, 4, 14),
+        Text = "return"
+      },
 
-        new TextDocumentContentChangeEvent {
-          Range = new Range(4, 4, 4, 4),
-          Text = "   "
-        }
+      new TextDocumentContentChangeEvent {
+        Range = new Range(4, 4, 4, 4),
+        Text = "   "
       }
     });
 
-    // NotificationPublisher.publishedDiagnostics is currently not migrated,
-    // that's why the equality check fails and these parse diagnostics are sent.
-    // Instead, there should be a single IDE state for the entire server, which is updated by a Compilation
-    // https://github.com/dafny-lang/dafny/issues/4377
-    var parseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Equal(verificationDiagnostics.Length, resolutionDiagnostics.Length);
-    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, resolutionDiagnostics[0].Message);
-    Assert.Equal(verificationDiagnostics[0].RelatedInformation, resolutionDiagnostics[0].RelatedInformation);
-    Assert.Equal(new Range(4, 7, 4, 13), resolutionDiagnostics[0].Range);
+    var migratedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    Assert.Equal(verificationDiagnostics.Length, migratedDiagnostics.Length);
+    Assert.Equal(IdeState.OutdatedPrefix + verificationDiagnostics[0].Message, migratedDiagnostics[0].Message);
+    Assert.Equal(verificationDiagnostics[0].RelatedInformation, migratedDiagnostics[0].RelatedInformation);
+    Assert.Equal(new Range(4, 7, 4, 13), migratedDiagnostics[0].Range);
+    var lastDiagnostics = await GetLastDiagnostics(documentItem);
+    Assert.Empty(lastDiagnostics);
   }
 
   [Fact]

@@ -125,6 +125,7 @@ method Multiply(x: bv10, y: bv10) returns (product: bv10)
 
       // Wait for parse diagnostics now, so they don't get cancelled.
       // After this we still have never completing verification diagnostics in the queue.
+      var migratedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       var parseErrorFixedDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationTokenWithHighTimeout, documentItem);
       Assert.Empty(parseErrorFixedDiagnostics);
 

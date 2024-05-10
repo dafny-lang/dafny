@@ -18,6 +18,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 using Xunit.Abstractions;
 using Xunit;
 using Xunit.Sdk;
@@ -32,6 +33,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   protected TestNotificationReceiver<FileVerificationStatus> verificationStatusReceiver;
   protected TestNotificationReceiver<CompilationStatusParams> compilationStatusReceiver;
   protected DiagnosticsReceiver diagnosticsReceiver;
+  protected TestNotificationReceiver<TelemetryEventParams> telemetryReceiver;
   protected TestNotificationReceiver<GhostDiagnosticsParams> ghostnessReceiver;
 
   private const int MaxRequestExecutionTimeMs = 180_000;
@@ -244,6 +246,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     cancellationSource = new();
     cancellationSource.CancelAfter(MaxRequestExecutionTimeMs);
 
+    telemetryReceiver = new(logger);
     diagnosticsReceiver = new(logger);
     compilationStatusReceiver = new(logger);
     verificationStatusReceiver = new(logger);
@@ -253,6 +256,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
     options.OnPublishDiagnostics(diagnosticsReceiver.NotificationReceived);
+    options.OnTelemetryEvent(telemetryReceiver.NotificationReceived);
     options.AddHandler(DafnyRequestNames.CompilationStatus,
       NotificationHandler.For<CompilationStatusParams>(compilationStatusReceiver.NotificationReceived));
     options.AddHandler(DafnyRequestNames.GhostDiagnostics,
@@ -278,6 +282,18 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
           Text = text
         }
       }
+    });
+  }
+
+
+  protected void ApplyChanges(ref TextDocumentItem documentItem, IReadOnlyList<TextDocumentContentChangeEvent> changes) {
+    documentItem = documentItem with { Version = documentItem.Version + 1 };
+    client.DidChangeTextDocument(new DidChangeTextDocumentParams {
+      TextDocument = new OptionalVersionedTextDocumentIdentifier {
+        Uri = documentItem.Uri,
+        Version = documentItem.Version
+      },
+      ContentChanges = changes.ToArray()
     });
   }
 

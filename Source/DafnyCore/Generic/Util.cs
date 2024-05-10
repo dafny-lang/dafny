@@ -8,14 +8,11 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
 using System.IO;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.GenericErrors;
-
 
 namespace Microsoft.Dafny {
   public static class Sets {
