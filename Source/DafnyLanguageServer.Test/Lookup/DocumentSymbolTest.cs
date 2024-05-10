@@ -11,7 +11,28 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
+    
+    [Fact]
+    public async Task ExportImport() {
+      var source = @"
+module Low {
+  const x := 3
+}
 
+module High {
+  import Low
+
+  export
+    provides
+      Low
+}
+".TrimStart();
+
+      var documentItem = CreateAndOpenTestDocument(source);
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      Assert.Equal(2, symbols.Count);
+    }
+    
     [Fact]
     public async Task NamelessClass() {
       var source = @"class {
