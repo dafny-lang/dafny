@@ -1,21 +1,10 @@
 #nullable enable
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
-using System.Reactive;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Extensions.Logging;
 
 namespace DafnyDriver.Commands;
-
-interface IDiagnosticsReporter {
-  void PhaseStart(IPhase phase);
-  void PhaseFinished(IPhase phase);
-  void NewDiagnostic(NewDiagnostic newDiagnostic);
-  void ChildrenDiscovered(PhaseChildrenDiscovered phaseDiscovered);
-}
 
 /// <summary>
 /// Orders phases by their start time.
@@ -24,108 +13,114 @@ interface IDiagnosticsReporter {
 class PhaseOrderedDiagnosticsReporter : IDiagnosticsReporter {
   private ILogger logger;
   private readonly Action<NewDiagnostic> processNewDiagnostic;
-  private readonly Dictionary<IPhase, IPhase> previousPhases = new();
-  private readonly Dictionary<IPhase, IPhase> nextPhases = new();
-  private readonly Dictionary<IPhase, IReadOnlyList<NewDiagnostic>> queuedDiagnostics = new();
-  private readonly Dictionary<IPhase, Unit> completed = new();
-  private IPhase? currentPhase;
+  private readonly Dictionary<IPhase, PhaseState> state = new();
+  private PhaseState? currentPhase;
   private readonly object myLock = new();
-
-  private IPhase userPhase = new PhaseFromObject(new object(), null);
 
   public PhaseOrderedDiagnosticsReporter(Action<NewDiagnostic> processNewDiagnostic, ILogger logger) {
     this.processNewDiagnostic = processNewDiagnostic;
     this.logger = logger;
-    previousPhases.TryAdd(RootPhase.Instance, userPhase);
   }
 
-  private bool SequenceCompleted(IPhase phase) => !queuedDiagnostics.TryGetValue(phase, out _);
-  private bool IsCompleted(IPhase phase) => completed.TryGetValue(phase, out _);
 
   public void PhaseStart(IPhase phase) {
     lock (myLock) {
+      var newPhaseState = new PhaseState(currentPhase, phase);
       if (currentPhase != null) {
-        previousPhases.TryAdd(phase, currentPhase);
-        nextPhases.TryAdd(currentPhase, phase);
+        currentPhase.Next = newPhaseState;
       }
-
-      queuedDiagnostics.TryAdd(phase, Array.Empty<NewDiagnostic>());
-
-      currentPhase = phase;
+      state[phase] = newPhaseState;
+      currentPhase = newPhaseState;
     }
   }
 
   public void PhaseFinished(IPhase phase) {
     lock (myLock) {
-      previousPhases.TryGetValue(phase, out var previousPhase);
-      completed.TryAdd(phase, Unit.Default);
-      var fullyCompleted = previousPhase == null || SequenceCompleted(previousPhase);
-      if (fullyCompleted) {
-        ProcessNewCompletedSequence(phase);
+      if (!state.TryGetValue(phase, out var phaseState)) {
+        phaseState = new PhaseState(currentPhase, phase);
+        state[phase] = phaseState;
       }
-    }
-  }
-
-  private void ProcessNewCompletedSequence(IPhase phase) {
-    var completedPhase = phase;
-    while (true) {
-      if (IsCompleted(completedPhase)) {
-        if (queuedDiagnostics.Remove(completedPhase, out var queuedDiagnosticsForPhase)) {
-          foreach (var diagnostic in queuedDiagnosticsForPhase!) {
-            processNewDiagnostic(diagnostic);
-          }
-
-          if (!nextPhases.TryGetValue(completedPhase, out completedPhase)) {
-            break; // Phase is the last one
-          }
-        } else {
-          break; // Phase was not started.
-        }
-      } else {
-        break;
-      }
+      phaseState.Finish(processNewDiagnostic);
     }
   }
 
   public void NewDiagnostic(NewDiagnostic newDiagnostic) {
     lock (myLock) {
-      IPhase? previousPhase = null;
-      var diagnosticPhase = newDiagnostic.Diagnostic.Phase;
-      while (diagnosticPhase != null) {
-        if (previousPhases.TryGetValue(diagnosticPhase, out previousPhase)) {
-          break;
-        }
-        diagnosticPhase = diagnosticPhase.MaybeParent;
+      var phase = newDiagnostic.Diagnostic.Phase;
+      PhaseState? phaseState = null;
+      while (phase != null && !state.TryGetValue(phase, out phaseState)) {
+        phase = phase.MaybeParent;
       }
 
-      IPhase? previousUncompletedPhase = previousPhase;
-      while (previousUncompletedPhase != null && !queuedDiagnostics.TryGetValue(previousUncompletedPhase, out _)) {
-        previousPhases.TryGetValue(previousUncompletedPhase, out previousUncompletedPhase);
-      }
+      if (phaseState == null) {
+        PhaseStart(newDiagnostic.Diagnostic.Phase);
+        NewDiagnostic(newDiagnostic);
 
-      var previousPhaseIsRunning = previousUncompletedPhase != null;
-      if (previousPhaseIsRunning) {
-        queuedDiagnostics.AddOrUpdate(previousPhase!,
-          Array.Empty<NewDiagnostic>(),
-          (_, existing) => existing.Concat(new[] { newDiagnostic }));
       } else {
-        processNewDiagnostic(newDiagnostic);
+        if (phaseState.Published) {
+          processNewDiagnostic(newDiagnostic);
+        } else {
+          phaseState.QueuedDiagnostics.Enqueue(newDiagnostic);
+        }
+      }
+    }
+  }
+}
+
+class PhaseState {
+  public IPhase Phase;
+  public PhaseState? Previous { get; }
+  public PhaseState? Next { get; set; }
+
+  public Queue<NewDiagnostic> QueuedDiagnostics { get; } = new();
+
+  public bool Finished { get; set; }
+  public bool Published { get; set; }
+
+  public PhaseState(PhaseState? previous, IPhase phase) {
+    Previous = previous;
+    Phase = phase;
+  }
+
+  public IEnumerable<IPhase> Lefts {
+    get {
+      yield return Phase;
+      if (Previous == null) {
+        yield break;
+      }
+
+      foreach (var l in Previous.Lefts) {
+        yield return l;
       }
     }
   }
 
-  public void ChildrenDiscovered(PhaseChildrenDiscovered phaseDiscovered) {
-    // if (previousPhases.TryGetValue(phaseDiscovered.Phase, out var previous)) {
-    //   foreach (var child in phaseDiscovered.Children) {
-    //     queuedDiagnostics.TryAdd(child, Array.Empty<NewDiagnostic>());
-    //     previousPhases.TryAdd(child, previous);
-    //     nextPhases.TryAdd(previous, child);
-    //     previous = child;
-    //   }
-    //   previousPhases.TryAdd(phaseDiscovered.Phase, previous);
-    //   nextPhases.TryAdd(previous, phaseDiscovered.Phase);
-    // } else {
-    //   throw new Exception();
-    // }
+  public IEnumerable<IPhase> Rights {
+    get {
+      yield return Phase;
+      if (Next == null) {
+      } else {
+        foreach (var r in Next.Rights) {
+          yield return r;
+        }
+      }
+    }
+  }
+
+  public void Finish(Action<NewDiagnostic> processNewDiagnostic) {
+    Finished = true;
+    if (Previous is { Published: false }) {
+      return;
+    }
+
+    var phaseToPublish = this;
+    while (phaseToPublish is { Finished: true }) {
+      phaseToPublish.Published = true;
+      foreach (var diagnostic in phaseToPublish.QueuedDiagnostics) {
+        processNewDiagnostic(diagnostic);
+      }
+
+      phaseToPublish = phaseToPublish.Next;
+    }
   }
 }

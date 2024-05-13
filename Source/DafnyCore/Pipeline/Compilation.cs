@@ -248,9 +248,7 @@ public class Compilation : IDisposable {
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopyAndClear()));
-      var canVerifies = resolution.CanVerifies ?? Array.Empty<ICanVerify>();
-      updates.OnNext(new PhaseChildrenDiscovered(new MessageSourceBasedPhase(MessageSource.Verifier),
-        canVerifies.Select(c => (IPhase)new VerificationOfSymbol(c)).ToHashSet()));
+      // var canVerifies = resolution.CanVerifies ?? Array.Empty<ICanVerify>();
 
       staticDiagnosticsSubscription.Dispose();
       updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Cloner)));
@@ -394,23 +392,21 @@ public class Compilation : IDisposable {
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId).ToList();
 
-      updates.OnNext(new PhaseChildrenDiscovered(verificationOfSymbol,
-        verificationTaskPerScope.Select(s =>
-          (IPhase)new VerificationOfScope(verificationOfSymbol, s.Key)).ToHashSet()));
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
 
       foreach (var scope in verificationTaskPerScope) {
 
         var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
+        // updates.OnNext(new PhaseStarted(scopePhase));
 
         var scopeVerificationTasks = scope.ToList();
-        updates.OnNext(new PhaseChildrenDiscovered(scopePhase,
-          scopeVerificationTasks.Select(t => (IPhase)new VerificationOfTask(scopePhase)).ToHashSet()));
 
         var tasksForScope = new List<Task<IVerificationStatus>>();
         foreach (var verificationTask in scopeVerificationTasks) {
           var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
           var task = VerifyTask(canVerify, seededTask);
+          var taskPhase = new VerificationOfTask(scopePhase);
+          // updates.OnNext(new PhaseStarted(taskPhase));
           tasksForScope.Add(task);
           tasksForSymbol.Add(task);
 
@@ -419,13 +415,12 @@ public class Compilation : IDisposable {
           _ = HandleTaskFinished();
           async Task HandleTaskFinished() {
             var status = await task;
-            var phase = new VerificationOfTask(scopePhase);
             if (status is Completed completed) {
-              ReportDiagnosticsInResult(Options, phase, canVerify.FullDafnyName, verificationTask.Token,
+              ReportDiagnosticsInResult(Options, taskPhase, canVerify.FullDafnyName, verificationTask.Token,
                 (uint)completed.Result.RunTime.Seconds,
                 completed.Result, errorReporter);
             }
-            updates.OnNext(new PhaseFinished(phase));
+            updates.OnNext(new PhaseFinished(taskPhase));
           }
         }
 

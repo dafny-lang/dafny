@@ -2,18 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
-using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
-using XUnitExtensions.Lit;
 
 namespace Microsoft.Dafny;
 

@@ -173,8 +173,8 @@ public record IdeState(
         return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
       case PhaseFinished phaseFinished:
         return HandlePhaseFinished(phaseFinished);
-      case PhaseChildrenDiscovered phaseDiscovered:
-        return HandlePhaseDiscovered(phaseDiscovered);
+      // case PhaseChildrenDiscovered phaseDiscovered:
+      //   return HandlePhaseDiscovered(phaseDiscovered);
       case FinishedParsing finishedParsing:
         return HandleFinishedParsing(finishedParsing);
       case FinishedResolution finishedResolution:
@@ -192,11 +192,11 @@ public record IdeState(
     }
   }
 
-  private IdeState HandlePhaseDiscovered(PhaseChildrenDiscovered phaseDiscovered) {
-    return this with {
-      OldDiagnostics = OldDiagnostics.ClearDiagnosticsAndPruneChildren(phaseDiscovered.Phase, phaseDiscovered.Children)
-    };
-  }
+  // private IdeState HandlePhaseDiscovered(PhaseChildrenDiscovered phaseDiscovered) {
+  //   return this with {
+  //     OldDiagnostics = OldDiagnostics.ClearDiagnosticsAndPruneChildren(phaseDiscovered.Phase, phaseDiscovered.Children)
+  //   };
+  // }
 
   private IdeState HandlePhaseFinished(PhaseFinished phaseFinished) {
     return this with {

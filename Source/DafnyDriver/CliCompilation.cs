@@ -124,8 +124,6 @@ public class CliCompilation {
       if (ev is PhaseStarted phaseStarted) {
         diagnosticsReporter.PhaseStart(phaseStarted.Phase);
         phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
-      } else if (ev is PhaseChildrenDiscovered phaseDiscovered) {
-        diagnosticsReporter.ChildrenDiscovered(phaseDiscovered);
       } else if (ev is PhaseFinished phaseFinished) {
         diagnosticsReporter.PhaseFinished(phaseFinished.Phase);
         if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {
