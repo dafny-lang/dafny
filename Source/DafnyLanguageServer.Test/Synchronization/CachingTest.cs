@@ -369,7 +369,9 @@ method Foo() {
     var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
     var project = await CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
     await client.WaitForNotificationCompletionAsync(project.Uri, CancellationToken);
+    // Change in file1 causes project detection to realize it's now part of project, so it is added there.
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
+    ApplyChange(ref file2, new Range(0, 0, 0, 0), "// added this comment\n");
     var diagnostics1 = await GetLastDiagnostics(file1);
     var diagnostics2 = await GetLastDiagnostics(file2);
     var combined = diagnostics1.Concat(diagnostics2);
@@ -412,11 +414,11 @@ method Foo() {
     Assert.Equal(before1.ResolutionMisses, after1.ResolutionMisses);
     Assert.Equal(before2.ParseMisses, after2.ParseMisses);
     Assert.Equal(before2.ResolutionMisses, after2.ResolutionMisses);
-    // Somehow, importer can have many parse hits, even though it always gets changed.
-    // Would be nice to understand how this can occur.
-    // ProjectManagerDatabase.UpdateDocument is serialized,
-    // But because parsing is scheduled on a separate thread, it might be possible for 
-    // Parsing to trigger twice after two calls to UpdateDocument, so then both parse calls work with the updated file system.
+    // Testing shows that importer can have many parse hits, even though it always gets changed.
+    // One explanation is that
+    // Although ProjectManagerDatabase.UpdateDocument is executed serially,
+    // because parsing is scheduled on a separate thread, it might be possible for 
+    // parsing to trigger twice after two calls to UpdateDocument, so then both parse calls work with the updated file system.
   }
 
   private static string GetLargeFile(string moduleName, int lines) {
