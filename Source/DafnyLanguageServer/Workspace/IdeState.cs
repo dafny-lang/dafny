@@ -200,8 +200,7 @@ public record IdeState(
   private async Task<IdeState> HandleDeterminedRootFiles(DafnyOptions options, ILogger logger,
     IProjectDatabase projectDatabase, DeterminedRootFiles determinedRootFiles) {
 
-    var errors = determinedRootFiles.Diagnostics.
-      Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
+    var errors = CurrentFastDiagnostics.Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : Status;
 
     var ownedUris = new HashSet<Uri>();
@@ -216,7 +215,6 @@ public record IdeState(
 
     return this with {
       OwnedUris = ownedUris,
-      CurrentFastDiagnostics = determinedRootFiles.Diagnostics,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
@@ -272,7 +270,7 @@ public record IdeState(
     TelemetryPublisherBase telemetryPublisher,
     FinishedResolution finishedResolution) {
     var previousState = this;
-    var errors = finishedResolution.Diagnostics.Where(d =>
+    var errors = CurrentFastDiagnostics.Where(d =>
       d.Diagnostic.Severity == DiagnosticSeverity.Error && d.Diagnostic.Source != MessageSource.Compiler.ToString()).ToList();
     var status = errors.Any() ? CompilationStatus.ResolutionFailed : CompilationStatus.ResolutionSucceeded;
 
@@ -312,7 +310,6 @@ public record IdeState(
       : previousState.SignatureAndCompletionTable;
 
     return previousState with {
-      CurrentFastDiagnostics = CurrentFastDiagnostics.AddRange(finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
       ResolvedProgram = finishedResolution.Result.ResolvedProgram,
@@ -363,14 +360,11 @@ public record IdeState(
         });
     }
 
-    var errors = finishedParsing.Diagnostics
-      .Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
+    var errors = CurrentFastDiagnostics.Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
-    var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      CurrentFastDiagnostics = CurrentFastDiagnostics.AddRange(newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
