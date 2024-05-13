@@ -368,6 +368,7 @@ method Foo() {
     var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var file1 = CreateAndOpenTestDocument(source1, Path.Combine(temp, "source1.dfy"));
     var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
+    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     var project = CreateAndOpenTestDocument("", Path.Combine(temp, "dfyconfig.toml"));
     // Change in file1 causes project detection to realize it's now part of project, so it is added there.
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
@@ -376,7 +377,7 @@ method Foo() {
     var diagnostics1 = await GetLastDiagnostics(file1);
     var diagnostics2 = await GetLastDiagnostics(file2);
     var combined = diagnostics1.Concat(diagnostics2);
-    AssertM.Equal(3, combined.Count, "diagnostics: " + string.Join("\n", combined));
+    AssertM.Equal(3, combined.Count, $"diagnostics[{combined.Count},{diagnostics1.Length},{diagnostics2.Length},{diagnostics0.Length}]: " + string.Join("\n", combined.Concat(diagnostics0)));
   }
 
   [Fact]
