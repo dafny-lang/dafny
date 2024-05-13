@@ -372,7 +372,6 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
-
       StartNewCompilation(uri, null);
     }
   }
