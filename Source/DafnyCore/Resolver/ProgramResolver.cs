@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
@@ -28,7 +29,7 @@ public class ProgramResolver {
     return null;
   }
 
-  public virtual void Resolve(CancellationToken cancellationToken) {
+  public virtual Task Resolve(CancellationToken cancellationToken) {
     Type.ResetScopes();
 
     Type.EnableScopes();
@@ -43,7 +44,7 @@ public class ProgramResolver {
     ComputeModuleDependencyGraph(Program, out var moduleDeclarationPointers);
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
+      return Task.CompletedTask;
     }
 
     var sortedDecls = dependencies.TopologicallySortedComponents();
@@ -71,7 +72,7 @@ public class ProgramResolver {
     }
 
     if (Reporter.ErrorCount != startingErrorCount) {
-      return;
+      return Task.CompletedTask;
     }
 
     Type.DisableScopes();
@@ -83,6 +84,7 @@ public class ProgramResolver {
       cancellationToken.ThrowIfCancellationRequested();
       rewriter.PostResolve(Program);
     }
+    return Task.CompletedTask;
   }
 
   public void AddSystemClass(TopLevelDeclWithMembers topLevelDeclWithMembers, Dictionary<string, MemberDecl> memberDictionary) {

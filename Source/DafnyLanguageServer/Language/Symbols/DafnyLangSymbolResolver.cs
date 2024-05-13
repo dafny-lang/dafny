@@ -2,6 +2,7 @@
 using System.CommandLine;
 using Microsoft.Extensions.Logging;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -31,26 +32,26 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     }
 
     private readonly ResolutionCache resolutionCache = new();
-    public void ResolveSymbols(Compilation compilation, Program program, CancellationToken cancellationToken) {
+    public async Task ResolveSymbols(Compilation compilation, Program program, CancellationToken cancellationToken) {
       // TODO The resolution requires mutual exclusion since it sets static variables of classes like Microsoft.Dafny.Type.
       //      Although, the variables are marked "ThreadStatic" - thus it might not be necessary. But there might be
       //      other classes as well.
-      resolverMutex.Wait(cancellationToken);
+      await resolverMutex.WaitAsync(cancellationToken);
       try {
-        RunDafnyResolver(compilation, program, cancellationToken);
+        await RunDafnyResolver(compilation, program, cancellationToken);
       }
       finally {
         resolverMutex.Release();
       }
     }
 
-    private void RunDafnyResolver(Compilation compilation, Program program, CancellationToken cancellationToken) {
+    private async Task RunDafnyResolver(Compilation compilation, Program program, CancellationToken cancellationToken) {
       var beforeResolution = DateTime.Now;
       try {
         var resolver = program.Options.Get(UseCaching)
           ? new CachingResolver(program, innerLogger, telemetryPublisher, resolutionCache)
           : new ProgramResolver(program);
-        resolver.Resolve(cancellationToken);
+        await resolver.Resolve(cancellationToken);
         if (compilation.HasErrors) {
           logger.LogDebug($"encountered errors while resolving {compilation.Project.Uri}");
         }
