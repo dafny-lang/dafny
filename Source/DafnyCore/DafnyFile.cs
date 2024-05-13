@@ -29,7 +29,7 @@ public class DafnyFile {
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
   static DafnyFile() {
-    DooFile.RegisterLibraryCheck(DoNotVerifyDependencies, OptionCompatibility.OptionLibraryImpliesLocalError);
+    DooFile.RegisterLibraryCheck(UnsafeDependencies, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
   public static Uri ExposeInternalUri(string externalName, Uri internalUri) {
@@ -108,7 +108,7 @@ public class DafnyFile {
     }
   }
 
-  public static readonly Option<bool> DoNotVerifyDependencies = new("--dont-verify-dependencies",
+  public static readonly Option<bool> UnsafeDependencies = new("--dont-verify-dependencies",
     "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
 
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
@@ -141,7 +141,7 @@ public class DafnyFile {
       return null;
     }
 
-    if (!options.Get(DoNotVerifyDependencies) && asLibrary && warnLibrary) {
+    if (!options.Get(UnsafeDependencies) && asLibrary && warnLibrary) {
       reporter.Warning(MessageSource.Project, "", origin,
         $"The file '{options.GetPrintPath(filePath)}' was passed to --library. " +
         $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
