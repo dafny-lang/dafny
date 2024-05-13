@@ -34,7 +34,8 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableList<FileDiagnostic> Diagnostics,
+  ImmutableList<FileDiagnostic> PreviousFastDiagnostics,
+  ImmutableList<FileDiagnostic> CurrentFastDiagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -43,6 +44,11 @@ public record IdeState(
   IReadOnlyDictionary<Uri, IReadOnlyList<Range>> GhostRanges,
   ImmutableDictionary<Uri, DocumentVerificationTree> VerificationTrees
 ) {
+
+  public ImmutableList<FileDiagnostic> FastDiagnostics => Status is CompilationStatus.Parsing or CompilationStatus.ResolutionStarted
+    ? PreviousFastDiagnostics
+    : CurrentFastDiagnostics;
+
   public Uri Uri => Input.Uri.ToUri();
   public int Version => Input.Version;
 
@@ -61,6 +67,7 @@ public record IdeState(
       input,
       CompilationStatus.Parsing,
       program,
+      ImmutableList<FileDiagnostic>.Empty,
       ImmutableList<FileDiagnostic>.Empty,
       program,
       SymbolTable.Empty(),
@@ -86,7 +93,8 @@ public record IdeState(
       Input = Input with {
         Version = newVersion
       },
-      Diagnostics = Diagnostics, // Prevent a diagnostics update by keeping the diagnostics the same
+      PreviousFastDiagnostics = CurrentFastDiagnostics,
+      CurrentFastDiagnostics = ImmutableList<FileDiagnostic>.Empty,
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
@@ -137,7 +145,7 @@ public record IdeState(
       s.Value.Values.SelectMany(cvs =>
         cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))).
           Concat(cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
-    return Diagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
+    return FastDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
   }
 
   private IEnumerable<FileDiagnostic> GetErrorLimitDiagnostics() {
@@ -208,12 +216,12 @@ public record IdeState(
 
     return this with {
       OwnedUris = ownedUris,
-      Diagnostics = status == CompilationStatus.ParsingFailed ? ImmutableList<FileDiagnostic>.Empty.AddRange(determinedRootFiles.Diagnostics) : Diagnostics,
+      CurrentFastDiagnostics = determinedRootFiles.Diagnostics,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
         file => VerificationTrees.GetValueOrDefault(file.Uri) ??
-                new DocumentVerificationTree(this.Program, file.Uri))
+                new DocumentVerificationTree(Program, file.Uri))
     };
   }
 
@@ -238,16 +246,9 @@ public record IdeState(
   }
 
   private IdeState HandleNewDiagnostic(NewDiagnostic newDiagnostic) {
-    var previousState = this;
-
-    // Until resolution is finished, keep showing the old diagnostics. 
-    if (previousState.Status > CompilationStatus.ResolutionStarted) {
-      return previousState with {
-        Diagnostics = Diagnostics.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()))
-      };
-    }
-
-    return previousState;
+    return this with {
+      CurrentFastDiagnostics = CurrentFastDiagnostics.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()))
+    };
   }
 
   private IdeState HandleInternalCompilationException(InternalCompilationException internalCompilationException) {
@@ -262,7 +263,7 @@ public record IdeState(
 
     return previousState with {
       Status = CompilationStatus.InternalException,
-      Diagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic)),
+      CurrentFastDiagnostics = CurrentFastDiagnostics.Add(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic)),
     };
   }
 
@@ -311,7 +312,7 @@ public record IdeState(
       : previousState.SignatureAndCompletionTable;
 
     return previousState with {
-      Diagnostics = ImmutableList<FileDiagnostic>.Empty.AddRange(finishedResolution.Diagnostics),
+      CurrentFastDiagnostics = CurrentFastDiagnostics.AddRange(finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
       ResolvedProgram = finishedResolution.Result.ResolvedProgram,
@@ -369,8 +370,7 @@ public record IdeState(
     var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      // Only publish diagnostics if compilation has stopped
-      Diagnostics = status == CompilationStatus.ParsingFailed ? ImmutableList<FileDiagnostic>.Empty.AddRange(newDiagnostics) : Diagnostics,
+      CurrentFastDiagnostics = CurrentFastDiagnostics.AddRange(newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
