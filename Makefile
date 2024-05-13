@@ -2,7 +2,7 @@ DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
 
-all: format exe dfyprod refman
+all: exe refman
 
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
