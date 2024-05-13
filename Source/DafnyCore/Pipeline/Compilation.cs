@@ -249,7 +249,7 @@ public class Compilation : IDisposable {
         resolution,
         GetDiagnosticsCopyAndClear()));
       var canVerifies = resolution.CanVerifies ?? Array.Empty<ICanVerify>();
-      updates.OnNext(new PhaseDiscovered(new MessageSourceBasedPhase(MessageSource.Verifier),
+      updates.OnNext(new PhaseChildrenDiscovered(new MessageSourceBasedPhase(MessageSource.Verifier),
         canVerifies.Select(c => (IPhase)new VerificationOfSymbol(c)).ToHashSet()));
 
       staticDiagnosticsSubscription.Dispose();
@@ -394,7 +394,7 @@ public class Compilation : IDisposable {
       var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
       var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId).ToList();
 
-      updates.OnNext(new PhaseDiscovered(verificationOfSymbol,
+      updates.OnNext(new PhaseChildrenDiscovered(verificationOfSymbol,
         verificationTaskPerScope.Select(s =>
           (IPhase)new VerificationOfScope(verificationOfSymbol, s.Key)).ToHashSet()));
       var tasksForSymbol = new List<Task<IVerificationStatus>>();
@@ -404,7 +404,7 @@ public class Compilation : IDisposable {
         var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
 
         var scopeVerificationTasks = scope.ToList();
-        updates.OnNext(new PhaseDiscovered(scopePhase,
+        updates.OnNext(new PhaseChildrenDiscovered(scopePhase,
           scopeVerificationTasks.Select(t => (IPhase)new VerificationOfTask(scopePhase)).ToHashSet()));
 
         var tasksForScope = new List<Task<IVerificationStatus>>();

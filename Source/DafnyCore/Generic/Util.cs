@@ -539,7 +539,7 @@ namespace Microsoft.Dafny {
 
     public static V AddOrUpdate<K, V>(this IDictionary<K, V> dictionary, K key, V newValue, Func<V, V, V> update) {
       if (dictionary.TryGetValue(key, out var existingValue)) {
-        var updated = update(existingValue, newValue);
+        var updated = update(newValue, existingValue);
         dictionary[key] = updated;
         return updated;
       }

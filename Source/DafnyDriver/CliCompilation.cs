@@ -27,6 +27,7 @@ public class CliCompilation {
   private int errorCount;
   private int warningCount;
   private readonly ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks = new();
+  private IDiagnosticsReporter diagnosticsReporter;
 
   public bool DidVerification { get; private set; }
 
@@ -100,8 +101,8 @@ public class CliCompilation {
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
-  public Task FinishedPhases() {
-    return Task.WhenAll(phaseTasks.Values.Select(ts => ts.Task));
+  public async Task FinishedPhases() {
+    await Task.WhenAll(phaseTasks.Values.Select(ts => ts.Task));
   }
 
   public void Start() {
@@ -114,15 +115,17 @@ public class CliCompilation {
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
-    IDiagnosticsReporter diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(d => ProcessNewDiagnostic(d, consoleReporter));
+    diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(
+      d => ProcessNewDiagnostic(d, consoleReporter),
+      new LoggerFactory().CreateLogger<PhaseOrderedDiagnosticsReporter>());
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
       if (ev is PhaseStarted phaseStarted) {
         diagnosticsReporter.PhaseStart(phaseStarted.Phase);
         phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
-      } else if (ev is PhaseDiscovered phaseDiscovered) {
-        diagnosticsReporter.PhaseDiscovered(phaseDiscovered);
+      } else if (ev is PhaseChildrenDiscovered phaseDiscovered) {
+        diagnosticsReporter.ChildrenDiscovered(phaseDiscovered);
       } else if (ev is PhaseFinished phaseFinished) {
         diagnosticsReporter.PhaseFinished(phaseFinished.Phase);
         if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {

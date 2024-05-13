@@ -173,7 +173,7 @@ public record IdeState(
         return HandleCanVerifyPartsUpdated(logger, canVerifyPartsIdentified);
       case PhaseFinished phaseFinished:
         return HandlePhaseFinished(phaseFinished);
-      case PhaseDiscovered phaseDiscovered:
+      case PhaseChildrenDiscovered phaseDiscovered:
         return HandlePhaseDiscovered(phaseDiscovered);
       case FinishedParsing finishedParsing:
         return HandleFinishedParsing(finishedParsing);
@@ -192,7 +192,7 @@ public record IdeState(
     }
   }
 
-  private IdeState HandlePhaseDiscovered(PhaseDiscovered phaseDiscovered) {
+  private IdeState HandlePhaseDiscovered(PhaseChildrenDiscovered phaseDiscovered) {
     return this with {
       OldDiagnostics = OldDiagnostics.ClearDiagnosticsAndPruneChildren(phaseDiscovered.Phase, phaseDiscovered.Children)
     };

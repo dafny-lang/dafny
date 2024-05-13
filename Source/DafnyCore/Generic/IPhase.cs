@@ -19,6 +19,15 @@ public static class PhaseExtensions {
 }
 /// <summary>
 /// A phase of compilation
+///
+/// The IDE will migrate state from phases of a previous compilation
+/// It wants to know when new state for a particular phase is available, so it can swap out the migrated state with the new
+/// The IDE also wants to know when a phase from a previous compilation no longer occurs in the new one, so it can remove that state.
+///   There is already client side cleanup of diagnostics whose ranges were removed.
+/// One could argue that with caching, migration of state is not needed. State migration means we display possibly incorrect results.
+///
+/// Migration of verification diagnostics has always seemed needed, because of how slow verification is.
+/// However, if we do verification caching at the statement level, maybe we do not even need to migrate that.
 /// 
 /// Phases can have a parent, and so phases form a tree.
 ///
