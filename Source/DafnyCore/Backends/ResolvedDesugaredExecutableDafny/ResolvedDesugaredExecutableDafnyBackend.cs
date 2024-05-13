@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace Microsoft.Dafny.Compilers;
 
 public class ResolvedDesugaredExecutableDafnyBackend : DafnyExecutableBackend {
-
+  protected override bool CanEmitUncompilableCode => false;
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".dfy" };
   public override string TargetName => "ResolvedDesugaredExecutableDafny";
   public override bool IsStable => true;
