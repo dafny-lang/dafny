@@ -19,13 +19,32 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task ResolutionErrorMigration() {
+      var source = @"module ResolutionError {
+  import   UnderlineComments2
+}";
+      var addition = @"module ParseError {
+  // I can underline comments in red.
+
+  function method Test() {
+
+  }
+}
+";
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), addition);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.DoesNotContain(diagnostics2, d => d.Range.Start.Line == 1);
+    }
+
+    [Fact]
     public async Task RedundantAssumptionsGetWarnings() {
       var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
       var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(3, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
@@ -117,6 +136,10 @@ function HasResolutionError(): int {
       var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
       Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
       ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
+
+      // Unnecessary diagnostics caused by: https://github.com/dafny-lang/dafny/issues/4377
+      _ = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+
       var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(parseDiagnostics2);
       Assert.Equal(MessageSource.Resolver.ToString(), parseDiagnostics2[0].Source);
@@ -235,10 +258,12 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var diagnostics1 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
+
+      var migrated2 = await GetNextDiagnostics(documentItem);
       var diagnostics2 = await GetNextDiagnostics(documentItem);
       Assert.Equal(5, diagnostics2.Length);
-      Assert.Equal("Parser", diagnostics2[0].Source);
-      Assert.Equal(DiagnosticSeverity.Error, diagnostics2[0].Severity);
+      Assert.Equal("Parser", diagnostics2[4].Source);
+      Assert.Equal(DiagnosticSeverity.Error, diagnostics2[4].Severity);
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
       Assert.Equal(PublishedVerificationStatus.Queued, await PopNextStatus());
@@ -1091,19 +1116,16 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
-      var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
-      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
+      var migratedDiagnostics2 = await GetNextDiagnostics(documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, migratedDiagnostics2);
       var firstVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
       Assert.Single(firstVerificationDiagnostics2); // Still contains second failing method
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
       // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics3 = await GetNextDiagnostics(documentItem);
-      var resolutionDiagnostics3 = await GetNextDiagnostics(documentItem);
-      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, resolutionDiagnostics3);
+      var migratedDiagnostics3 = await GetNextDiagnostics(documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, migratedDiagnostics3);
       var secondVerificationDiagnostics3 = await GetLastDiagnostics(documentItem);
       Assert.Empty(secondVerificationDiagnostics3);
 
@@ -1113,11 +1135,11 @@ method test2() {
 
     [Fact]
     public async Task ApplyChangeBeforeVerificationFinishes() {
-      var source = @"
+      var firstMethodSource = @"
 method test() {
   assert false;
-}
-".TrimStart() + SlowToVerifyNoLimit;
+}".TrimStart();
+      var source = firstMethodSource + SlowToVerifyNoLimit;
       await SetUp(options => options.Set(BoogieOptionBag.Cores, 1U));
       var documentItem = CreateTestDocument(source, "ApplyChangeBeforeVerificationFinishes.dfy");
       client.OpenDocument(documentItem);
@@ -1128,11 +1150,8 @@ method test() {
       // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
-      // https://github.com/dafny-lang/dafny/issues/4377
-      var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
-      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
+      var migratedDiagnostics2 = await GetNextDiagnostics(documentItem);
+      AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, migratedDiagnostics2);
       var secondVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
       var firstVerificationDiagnostics2 = diagnosticsReceiver.History[^2].Diagnostics.Where(d => d.Severity <= DiagnosticSeverity.Warning).ToArray();
       Assert.Empty(firstVerificationDiagnostics2); // Still contains second failing method
@@ -1166,8 +1185,11 @@ method test2() {
        */
       ApplyChange(ref documentItem, new Range((2, 0), (4, 0)), "");
 
+      var migratedDiagnosticsAfter = await GetNextDiagnostics(documentItem);
       var resolutionDiagnosticsAfter = await GetNextDiagnostics(documentItem);
+      var verificationDiagnosticsAfter = await GetLastDiagnostics(documentItem);
       Assert.Single(resolutionDiagnosticsAfter);
+      Assert.Single(verificationDiagnosticsAfter);
     }
 
     private static void AssertDiagnosticListsAreEqualBesidesMigration(Diagnostic[] expected, Diagnostic[] actual) {
@@ -1242,13 +1264,19 @@ method Foo() {
       var verificationDiagnostics = await GetLastDiagnostics(documentItem);
       Assert.Single(verificationDiagnostics);
       ApplyChange(ref documentItem, new Range(0, 0, 0, 1), "");
+
+      // Bug: https://github.com/dafny-lang/dafny/issues/4377
+      _ = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+
       var brokenSyntaxDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.True(brokenSyntaxDiagnostics.Length > 1);
       documentItem = documentItem with { Version = documentItem.Version + 1 };
       // Fix syntax error and replace method header so verification diagnostics are not migrated.
       ApplyChange(ref documentItem, new Range(0, 0, 1, 0), "method Bar() {\n");
+
       // Next line is made obsolete by resolving https://github.com/dafny-lang/dafny/issues/4377
       var unnecessaryDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+
       var resolutionDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Empty(resolutionDiagnostics.Diagnostics);
       var translationDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);

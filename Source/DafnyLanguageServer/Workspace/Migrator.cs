@@ -379,4 +379,41 @@ public class Migrator {
       yield return newNodeDiagnostic;
     }
   }
+
+  public IEnumerable<DiagnosticRelatedInformation> MigrateRelatedInformation(DiagnosticRelatedInformation related) {
+    var migratedRange = MigrateRange(related.Location.Range);
+    if (migratedRange == null) {
+      yield break;
+    }
+
+    yield return related with {
+      Location = related.Location with {
+        Range = migratedRange
+      }
+    };
+  }
+
+  public Diagnostic? MigrateDiagnostics(Diagnostic diagnostic) {
+    var newRange = MigrateRange(diagnostic.Range);
+    if (newRange == null) {
+      return null;
+    }
+
+    var newRelatedInformation = diagnostic.RelatedInformation?.SelectMany(MigrateRelatedInformation).ToList();
+    if (diagnostic.Source == MessageSource.Verifier.ToString()) {
+      return diagnostic with {
+        Range = newRange,
+        Severity = diagnostic.Severity == DiagnosticSeverity.Error ? DiagnosticSeverity.Warning : diagnostic.Severity,
+        Message = diagnostic.Message.StartsWith(IdeState.OutdatedPrefix)
+          ? diagnostic.Message
+          : IdeState.OutdatedPrefix + diagnostic.Message,
+        RelatedInformation = newRelatedInformation
+      };
+    }
+
+    return diagnostic with {
+      Range = newRange,
+      RelatedInformation = newRelatedInformation
+    };
+  }
 }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -9,7 +10,7 @@ public class BatchErrorReporter : ErrorReporter {
 
   public void CopyDiagnostics(ErrorReporter intoReporter) {
     foreach (var diagnostic in AllMessages) {
-      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
+      intoReporter.Message(diagnostic.Phase, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
     }
   }
 
@@ -22,13 +23,24 @@ public class BatchErrorReporter : ErrorReporter {
     };
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+  protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken rootTok, string msg) {
     if (ErrorsOnly && level != ErrorLevel.Error) {
       // discard the message
       return false;
     }
 
-    var dafnyDiagnostic = new DafnyDiagnostic(new MessageSourceBasedPhase(source), errorId, tok, msg, source, level, new List<DafnyRelatedInformation>());
+    // TODO remove duplication with OER
+    var relatedInformation = new List<DafnyRelatedInformation>();
+
+    var usingSnippets = Options.Get(Snippets.ShowSnippets);
+    if (rootTok is NestedToken nestedToken) {
+      relatedInformation.AddRange(
+        ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
+          nestedToken.Inner, nestedToken.Message, usingSnippets)
+      );
+    }
+
+    var dafnyDiagnostic = new DafnyDiagnostic(phase, errorId, rootTok, msg, level, relatedInformation);
     AllMessages.Add(dafnyDiagnostic);
     AllMessagesByLevel[level].Add(dafnyDiagnostic);
     return true;
@@ -39,7 +51,9 @@ public class BatchErrorReporter : ErrorReporter {
   }
 
   public override int CountExceptVerifierAndCompiler(ErrorLevel level) {
-    return AllMessagesByLevel[level].Count(message => message.Source != MessageSource.Verifier &&
-                                               message.Source != MessageSource.Compiler);
+    return AllMessagesByLevel[level].Count(message => {
+      var source = message.Phase.Source;
+      return source != MessageSource.Verifier && source != MessageSource.Compiler;
+    });
   }
 }

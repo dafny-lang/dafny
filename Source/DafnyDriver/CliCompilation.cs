@@ -26,6 +26,9 @@ public class CliCompilation {
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
   private int warningCount;
+  private readonly ConcurrentDictionary<IPhase, TaskCompletionSource> phaseTasks = new();
+  private IDiagnosticsReporter diagnosticsReporter;
+
   public bool DidVerification { get; private set; }
 
   private CliCompilation(
@@ -47,6 +50,7 @@ public class CliCompilation {
     var input = new CompilationInput(options, 0, options.DafnyProject);
     var executionEngine = new ExecutionEngine(options, new VerificationResultCache(), DafnyMain.LargeThreadScheduler);
     Compilation = createCompilation(executionEngine, input);
+
   }
 
   public async Task<int> GetAndReportExitCode() {
@@ -97,6 +101,10 @@ public class CliCompilation {
         new DafnyProgramVerifier(factory.CreateLogger<DafnyProgramVerifier>()), engine, input);
   }
 
+  public async Task FinishedPhases() {
+    await Task.WhenAll(phaseTasks.Values.Select(ts => ts.Task));
+  }
+
   public void Start() {
     if (Compilation.Started) {
       throw new InvalidOperationException("Compilation was already started");
@@ -107,23 +115,22 @@ public class CliCompilation {
       DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
       _ => throw new ArgumentOutOfRangeException()
     };
+    diagnosticsReporter = new PhaseOrderedDiagnosticsReporter(
+      d => ProcessNewDiagnostic(d, consoleReporter),
+      new LoggerFactory().CreateLogger<PhaseOrderedDiagnosticsReporter>());
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {
-      if (ev is NewDiagnostic newDiagnostic) {
-        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
-          errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Source,
-            _ => 1,
-            (_, previous) => previous + 1);
-          Interlocked.Increment(ref errorCount);
+      if (ev is PhaseStarted phaseStarted) {
+        diagnosticsReporter.PhaseStart(phaseStarted.Phase);
+        phaseTasks.TryAdd(phaseStarted.Phase, new TaskCompletionSource());
+      } else if (ev is PhaseFinished phaseFinished) {
+        diagnosticsReporter.PhaseFinished(phaseFinished.Phase);
+        if (phaseTasks.TryGetValue(phaseFinished.Phase, out var phaseTask)) {
+          phaseTask.TrySetResult();
         }
-
-        if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
-          Interlocked.Increment(ref warningCount);
-        }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+      } else if (ev is NewDiagnostic newDiagnostic) {
+        diagnosticsReporter.NewDiagnostic(newDiagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.Program.Name;
@@ -146,6 +153,20 @@ public class CliCompilation {
     Compilation.Start();
   }
 
+  private void ProcessNewDiagnostic(NewDiagnostic newDiagnostic, ErrorReporter consoleReporter) {
+    if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
+      Interlocked.Increment(ref warningCount);
+    } else if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
+      errorsPerSource.AddOrUpdate(newDiagnostic.Diagnostic.Phase.Source,
+        _ => 1,
+        (_, previous) => previous + 1);
+      Interlocked.Increment(ref errorCount);
+    }
+    var dafnyDiagnostic = newDiagnostic.Diagnostic;
+    consoleReporter.Message(dafnyDiagnostic.Phase, dafnyDiagnostic.Level,
+      dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+  }
+
   public DafnyOptions Options { get; }
 
   public bool VerifiedAssertions { get; private set; }
@@ -161,7 +182,10 @@ public class CliCompilation {
 
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
-        foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
+        var parts = canVerifyResult.TaskFilter == null
+          ? canVerifyPartsIdentified.Parts
+          : canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter);
+        foreach (var part in parts) {
           canVerifyResult.Tasks.Add(part);
         }
 

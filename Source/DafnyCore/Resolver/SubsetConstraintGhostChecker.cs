@@ -16,7 +16,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IToken tok, string msg) {
+    protected override bool MessageCore(IPhase phase, ErrorLevel level, string errorId, IToken tok, string msg) {
       if (!Collected && level == ErrorLevel.Error) {
         FirstCollectedMessage = msg;
         FirstCollectedToken = tok;

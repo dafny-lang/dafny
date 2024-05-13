@@ -118,6 +118,9 @@ public class Compilation : IDisposable {
 
     Project.Errors.CopyDiagnostics(errorReporter);
 
+    // updates.OnNext(new PhaseDiscovered(RootPhase.Instance,
+    //   Enum.GetValues<MessageSource>().Select(s => (IPhase)new MessageSourceBasedPhase(s)).ToHashSet()));
+
     started.TrySetResult();
   }
 
@@ -199,6 +202,8 @@ public class Compilation : IDisposable {
     var distinctResults = result.DistinctBy(d => d.Uri).ToList();
 
     updates.OnNext(new DeterminedRootFiles(Project, distinctResults, GetDiagnosticsCopyAndClear()));
+
+    updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Project)));
     return distinctResults;
   }
 
@@ -218,6 +223,7 @@ public class Compilation : IDisposable {
       updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Parser)));
       return programAfterParsing;
 
     } catch (OperationCanceledException) {
@@ -242,7 +248,16 @@ public class Compilation : IDisposable {
       updates.OnNext(new FinishedResolution(
         resolution,
         GetDiagnosticsCopyAndClear()));
+      // var canVerifies = resolution.CanVerifies ?? Array.Empty<ICanVerify>();
+
       staticDiagnosticsSubscription.Dispose();
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Cloner)));
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.RefinementTransformer)));
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Rewriter)));
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Resolver)));
+
+      updates.OnNext(new PhaseFinished(new MessageSourceBasedPhase(MessageSource.Translator)));
+      //Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration, Unknown
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
 
@@ -266,11 +281,10 @@ public class Compilation : IDisposable {
     return prefix;
   }
 
-  private int runningVerificationJobs;
-
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
+  public async Task<bool> VerifyLocation(FilePosition verifiableLocation,
+    bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
@@ -293,10 +307,10 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    return await VerifyCanVerify(canVerify, _ => true, null, onlyPrepareVerificationForGutterTests);
+    return await VerifyCanVerify(canVerify, null, null, onlyPrepareVerificationForGutterTests);
   }
 
-  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool>? taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
@@ -310,23 +324,28 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    if (!onlyPrepareVerificationForGutterTests && (randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
+    if (onlyPrepareVerificationForGutterTests) {
+      await VerifyUnverifiedSymbol(canVerify, resolution, _ => false, randomSeed);
+      return true;
+    }
+
+    if ((randomSeed == null && !verifyingOrVerifiedSymbols.TryAdd(canVerify, Unit.Default))) {
       return false;
     }
 
     updates.OnNext(new ScheduledVerification(canVerify));
 
-    if (onlyPrepareVerificationForGutterTests) {
-      await VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
-      return true;
-    }
-
-    _ = VerifyUnverifiedSymbol(onlyPrepareVerificationForGutterTests, canVerify, resolution, taskFilter, randomSeed);
+    _ = VerifyUnverifiedSymbol(canVerify, resolution, taskFilter, randomSeed);
     return true;
   }
 
-  private async Task VerifyUnverifiedSymbol(bool onlyPrepareVerificationForGutterTests, ICanVerify canVerify,
-    ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
+  private async Task VerifyUnverifiedSymbol(ICanVerify canVerify,
+    ResolutionResult resolution, Func<IVerificationTask, bool>? taskFilter, int? randomSeed) {
+
+    var verificationOfSymbol = new VerificationOfSymbol(canVerify);
+    if (taskFilter == null) {
+      updates.OnNext(new PhaseStarted(verificationOfSymbol));
+    }
     try {
 
       var ticket = verificationTickets.Dequeue(CancellationToken.None);
@@ -354,7 +373,7 @@ public class Compilation : IDisposable {
 
       // For updated to be reliable, tasksPerVerifiable must be Lazy
       var updated = false;
-      var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
+      IReadOnlyList<IVerificationTask> verificationTasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
           tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
@@ -370,36 +389,92 @@ public class Compilation : IDisposable {
       // When multiple calls to VerifyUnverifiedSymbol are made, the order in which they pass this await matches the call order.
       await ticket;
 
-      if (!onlyPrepareVerificationForGutterTests) {
-        foreach (var task in tasks.Where(taskFilter)) {
-          var seededTask = randomSeed == null ? task : task.FromSeed(randomSeed.Value);
-          VerifyTask(canVerify, seededTask);
+      var filteredVerificationTasks = taskFilter == null ? verificationTasks : verificationTasks.Where(taskFilter);
+      var verificationTaskPerScope = filteredVerificationTasks.GroupBy(t => t.ScopeId).ToList();
+
+      var tasksForSymbol = new List<Task<IVerificationStatus>>();
+
+      foreach (var scope in verificationTaskPerScope) {
+
+        var scopePhase = new VerificationOfScope(verificationOfSymbol, scope.Key);
+        // updates.OnNext(new PhaseStarted(scopePhase));
+
+        var scopeVerificationTasks = scope.ToList();
+
+        var tasksForScope = new List<Task<IVerificationStatus>>();
+        foreach (var verificationTask in scopeVerificationTasks) {
+          var seededTask = randomSeed == null ? verificationTask : verificationTask.FromSeed(randomSeed.Value);
+          var task = VerifyTask(canVerify, seededTask);
+          var taskPhase = new VerificationOfTask(scopePhase);
+          // updates.OnNext(new PhaseStarted(taskPhase));
+          tasksForScope.Add(task);
+          tasksForSymbol.Add(task);
+
+          // In master, the verification diagnostics get cleared when the thing starts running.
+          // We don't have a good key for a task.
+          _ = HandleTaskFinished();
+          async Task HandleTaskFinished() {
+            var status = await task;
+            if (status is Completed completed) {
+              ReportDiagnosticsInResult(Options, taskPhase, canVerify.FullDafnyName, verificationTask.Token,
+                (uint)completed.Result.RunTime.Seconds,
+                completed.Result, errorReporter);
+            }
+            updates.OnNext(new PhaseFinished(taskPhase));
+          }
+        }
+
+        _ = HandleScopeFinishedVerification();
+        async Task HandleScopeFinishedVerification() {
+          if (taskFilter != null) {
+            return;
+          }
+          var statuses = await Task.WhenAll(tasksForScope);
+          if (statuses.Any(s => s is Stale)) {
+            return;
+          }
+
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesForScope(Options, scopePhase,
+            errorReporter, transformedProgram!.ProofDependencyManager, scope.Key, statuses.Select(s => ((Completed)s).Result).ToList());
+
         }
       }
 
+      _ = HandleSymbolFinishedVerification();
+      async Task HandleSymbolFinishedVerification() {
+        if (taskFilter != null) {
+          return;
+        }
+        var statuses = await Task.WhenAll(tasksForSymbol);
+        if (statuses.Any(s => s is Stale)) {
+          return;
+        }
+
+        updates.OnNext(new PhaseFinished(verificationOfSymbol));
+      }
     }
     finally {
       verificationTickets.Enqueue(Unit.Default);
     }
   }
 
-  private void VerifyTask(ICanVerify canVerify, IVerificationTask task) {
+  private Task<IVerificationStatus> VerifyTask(ICanVerify canVerify, IVerificationTask task) {
     var statusUpdates = task.TryRun();
     if (statusUpdates == null) {
       if (task.CacheStatus is Completed completedCache) {
         HandleStatusUpdate(canVerify, task, completedCache);
       }
 
-      return;
+      return Task.FromResult(task.CacheStatus);
     }
 
-    var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug(
-      $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
-
+    var completed = new TaskCompletionSource<IVerificationStatus>();
     statusUpdates.Subscribe(
       update => {
         try {
+          if (update is Completed or Stale) {
+            completed.TrySetResult(update);
+          }
           HandleStatusUpdate(canVerify, task, update);
         } catch (Exception e) {
           logger.LogError(e, "Caught exception in statusUpdates OnNext.");
@@ -412,6 +487,7 @@ public class Compilation : IDisposable {
         }
       }
     );
+    return completed.Task;
   }
 
   public async Task Cancel(FilePosition filePosition) {
@@ -487,19 +563,7 @@ public class Compilation : IDisposable {
     CancelPendingUpdates();
   }
 
-  public static List<DafnyDiagnostic> GetDiagnosticsFromResult(DafnyOptions options, Uri uri, ICanVerify canVerify,
-    IVerificationTask task, VerificationRunResult result) {
-    var errorReporter = new ObservableErrorReporter(options, uri);
-    List<DafnyDiagnostic> diagnostics = new();
-    errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
-
-    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
-      task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
-
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
-  }
-
-  public static void ReportDiagnosticsInResult(DafnyOptions options, string name, Boogie.IToken token,
+  private static void ReportDiagnosticsInResult(DafnyOptions options, IPhase phase, string name, Boogie.IToken token,
     uint timeLimit,
     VerificationRunResult result,
     ErrorReporter errorReporter) {
@@ -512,14 +576,14 @@ public class Compilation : IDisposable {
         AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
       }
       var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
-      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
+      errorReporter.ReportBoogieError(phase, errorInformation, dafnyCounterExampleModel);
     }
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
     var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
-    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
+    boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(phase, outcomeError, null, false),
       name, token, null, TextWriter.Null,
       timeLimit, result.CounterExamples);
   }

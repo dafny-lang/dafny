@@ -61,7 +61,7 @@ static class MeasureComplexityCommand {
       // such as averages and standard-deviations.
       // For error diagnostics, we should group duplicates and say how often they occur.
       // Performance data of individual verification tasks (VCs) should be grouped by VcNum (the assertion batch).
-      VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
+
       var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
       var proofDependenciesReported = VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);

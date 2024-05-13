@@ -12,7 +12,7 @@ public static class DiagnosticUtil {
       Severity = ToSeverity(dafnyDiagnostic.Level),
       Message = dafnyDiagnostic.Message,
       Range = dafnyDiagnostic.Token.GetLspRange(),
-      Source = dafnyDiagnostic.Source.ToString(),
+      Source = dafnyDiagnostic.Phase.Source.ToString(),
       RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
         new DiagnosticRelatedInformation {
           Location = CreateLocation(r.Token),

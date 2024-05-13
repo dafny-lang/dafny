@@ -7,7 +7,7 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
+  public static void ReportBoogieError(this ErrorReporter reporter, IPhase phase, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
@@ -20,7 +20,7 @@ public static class ErrorReporterExtensions {
         // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
         // the execution trace message appears to not have any interesting information.
         if (auxiliaryInformation.Tok.line > 0) {
-          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+          reporter.Info(phase, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
         }
       }
     }
@@ -40,7 +40,7 @@ public static class ErrorReporterExtensions {
     foreach (var (inner, outer) in relatedInformation.Zip(tokens).Reverse()) {
       previous = new NestedToken(outer, previous, inner.Message);
     }
-    reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, previous, error.Msg);
+    reporter.Message(phase, ErrorLevel.Error, null, previous, error.Msg);
   }
 
   private const string RelatedLocationCategory = "Related location";
