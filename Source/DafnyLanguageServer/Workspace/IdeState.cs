@@ -10,7 +10,6 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 using Microsoft.Dafny.LanguageServer.Workspace.Notifications;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
@@ -35,8 +34,7 @@ public record IdeState(
   CompilationInput Input,
   CompilationStatus Status,
   Node Program,
-  ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> OldDiagnostics,
-  ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>> NewDiagnostics,
+  ImmutableList<FileDiagnostic> Diagnostics,
   Node? ResolvedProgram,
   SymbolTable SymbolTable,
   LegacySignatureAndCompletionTable SignatureAndCompletionTable,
@@ -63,8 +61,7 @@ public record IdeState(
       input,
       CompilationStatus.Parsing,
       program,
-      ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty,
-      ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      ImmutableList<FileDiagnostic>.Empty,
       program,
       SymbolTable.Empty(),
       LegacySignatureAndCompletionTable.Empty(input.Options, input.Project), ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>>.Empty,
@@ -85,22 +82,11 @@ public record IdeState(
       ? CanVerifyStates
       : MigrateImplementationViews(migrator, CanVerifyStates);
 
-    var oldDiagnostics = ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>>.Empty;
-    foreach (var phase in OldDiagnostics.Keys.Concat(NewDiagnostics.Keys)) {
-      if (phase.Parent == InternalExceptions.Instance) {
-        continue;
-      }
-
-      var diagnostics = OldDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty).
-        Concat(NewDiagnostics.GetValueOrDefault(phase, ImmutableList<FileDiagnostic>.Empty));
-      oldDiagnostics = oldDiagnostics.Add(phase, diagnostics);
-    }
     return this with {
       Input = Input with {
         Version = newVersion
       },
-      OldDiagnostics = oldDiagnostics,
-      NewDiagnostics = ImmutableDictionary<IPhase, ImmutableList<FileDiagnostic>>.Empty,
+      Diagnostics = ImmutableList<FileDiagnostic>.Empty,
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
@@ -151,8 +137,7 @@ public record IdeState(
       s.Value.Values.SelectMany(cvs =>
         cvs.VerificationTasks.SelectMany(t => t.Value.Diagnostics.Select(d => new FileDiagnostic(s.Key, d))).
           Concat(cvs.Diagnostics.Select(d => new FileDiagnostic(s.Key, d)))));
-    var genericDiagnostics = (OldDiagnostics.Values.Concat(NewDiagnostics.Values)).SelectMany(x => x);
-    return genericDiagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
+    return Diagnostics.Concat(verificationDiagnostics).Concat(GetErrorLimitDiagnostics());
   }
 
   private IEnumerable<FileDiagnostic> GetErrorLimitDiagnostics() {
@@ -204,11 +189,6 @@ public record IdeState(
     }
   }
 
-  record RootFilesPhase : IPhase {
-    public static readonly RootFilesPhase Instance = new();
-    public IPhase? Parent => null;
-  }
-
   private async Task<IdeState> HandleDeterminedRootFiles(DafnyOptions options, ILogger logger,
     IProjectDatabase projectDatabase, DeterminedRootFiles determinedRootFiles) {
 
@@ -228,8 +208,7 @@ public record IdeState(
 
     return this with {
       OwnedUris = ownedUris,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(RootFilesPhase.Instance),
-      NewDiagnostics = NewDiagnostics.Add(RootFilesPhase.Instance, determinedRootFiles.Diagnostics),
+      Diagnostics = Diagnostics.AddRange(determinedRootFiles.Diagnostics),
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
@@ -263,20 +242,12 @@ public record IdeState(
 
     // Until resolution is finished, keep showing the old diagnostics. 
     if (previousState.Status > CompilationStatus.ResolutionStarted) {
-      var phase = new SingletonPhase(new MessageSourceBasedPhase(newDiagnostic.Diagnostic.Source), newDiagnostic.Diagnostic);
-      var newDiagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()));
       return previousState with {
-        OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
-        NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+        Diagnostics = Diagnostics.Add(new FileDiagnostic(newDiagnostic.Uri, newDiagnostic.Diagnostic.ToLspDiagnostic()))
       };
     }
 
     return previousState;
-  }
-
-  public record InternalExceptions : IPhase {
-    public static readonly IPhase Instance = new InternalExceptions();
-    public IPhase? Parent => null;
   }
 
   private IdeState HandleInternalCompilationException(InternalCompilationException internalCompilationException) {
@@ -289,12 +260,9 @@ public record IdeState(
       Range = new Range(0, 0, 0, 1)
     };
 
-    var phase = new SingletonPhase(InternalExceptions.Instance, internalErrorDiagnostic);
-    var newDiagnostics = ImmutableList.Create(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic));
     return previousState with {
       Status = CompilationStatus.InternalException,
-      OldDiagnostics = OldDiagnostics,
-      NewDiagnostics = NewDiagnostics.Add(phase, newDiagnostics)
+      Diagnostics = Diagnostics.Add(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic)),
     };
   }
 
@@ -342,10 +310,8 @@ public record IdeState(
       ? legacySignatureAndCompletionTable
       : previousState.SignatureAndCompletionTable;
 
-    var phase = new MessageSourceBasedPhase(MessageSource.Resolver);
     return previousState with {
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(phase),
-      NewDiagnostics = NewDiagnostics.Add(phase, finishedResolution.Diagnostics),
+      Diagnostics = Diagnostics.AddRange(finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
       ResolvedProgram = finishedResolution.Result.ResolvedProgram,
@@ -400,31 +366,13 @@ public record IdeState(
       .Where(d => d.Diagnostic.Severity == DiagnosticSeverity.Error);
     var status = errors.Any() ? CompilationStatus.ParsingFailed : CompilationStatus.ResolutionStarted;
 
-    IPhase completedPhase = new MessageSourceBasedPhase(MessageSource.Parser);
     var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      OldDiagnostics = GetOldDiagnosticsAfterPhase(completedPhase),
-      NewDiagnostics = NewDiagnostics.Add(completedPhase, newDiagnostics),
+      Diagnostics = Diagnostics.AddRange(newDiagnostics),
       Status = status,
       VerificationTrees = trees
     };
-  }
-
-  private ImmutableDictionary<IPhase, IReadOnlyList<FileDiagnostic>> GetOldDiagnosticsAfterPhase(IPhase completedPhase) {
-    return OldDiagnostics.Where(
-      kv => {
-        var phase = kv.Key;
-        while (phase != null) {
-          if (phase.Equals(completedPhase)) {
-            return false;
-          }
-
-          phase = phase.Parent;
-        }
-
-        return true;
-      }).ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
   }
 
   private IdeState HandleCanVerifyPartsUpdated(ILogger logger, CanVerifyPartsIdentified canVerifyPartsIdentified) {

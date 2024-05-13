@@ -223,7 +223,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Parser), e));
+      updates.OnNext(new InternalCompilationException(MessageSource.Parser, e));
       throw;
     }
   }
@@ -249,7 +249,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Resolver), e));
+      updates.OnNext(new InternalCompilationException(MessageSource.Resolver, e));
       throw;
     }
   }
@@ -348,7 +348,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Verifier), e));
+        updates.OnNext(new InternalCompilationException(MessageSource.Verifier, e));
         throw;
       }
 
