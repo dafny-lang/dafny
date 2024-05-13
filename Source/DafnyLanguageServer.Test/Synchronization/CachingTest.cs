@@ -360,18 +360,19 @@ method Foo() {
  var b: int := true;
 }";
     var source2 = @"
+
 method Foo() {
- var b: int := true;
+ var b: bool := 3;
 }";
 
     var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     var file1 = CreateAndOpenTestDocument(source1, Path.Combine(temp, "source1.dfy"));
     var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
-    var project = await CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
-    await client.WaitForNotificationCompletionAsync(project.Uri, CancellationToken);
+    var project = CreateAndOpenTestDocument("", Path.Combine(temp, "dfyconfig.toml"));
     // Change in file1 causes project detection to realize it's now part of project, so it is added there.
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
     ApplyChange(ref file2, new Range(0, 0, 0, 0), "// added this comment\n");
+    var diagnostics0 = await GetLastDiagnostics(project);
     var diagnostics1 = await GetLastDiagnostics(file1);
     var diagnostics2 = await GetLastDiagnostics(file2);
     var combined = diagnostics1.Concat(diagnostics2);
@@ -433,7 +434,7 @@ method Foo() {
     return largeImport;
   }
 
-  public CachingTest(ITestOutputHelper output) : base(output) {
+  public CachingTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
     sink = null!;
   }
 }
