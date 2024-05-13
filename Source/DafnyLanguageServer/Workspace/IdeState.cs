@@ -80,7 +80,7 @@ public record IdeState(
 
   public const string OutdatedPrefix = "Outdated: ";
 
-  public IdeState Migrate(DafnyOptions options, Migrator migrator, int newVersion, bool clientSide) {
+  public IdeState Migrate(DafnyOptions options, IMigrator migrator, int newVersion, bool clientSide) {
     var migratedVerificationTrees = VerificationTrees.ToImmutableDictionary(
       kv => kv.Key, kv =>
         (DocumentVerificationTree)migrator.RelocateVerificationTree(kv.Value));
@@ -104,7 +104,7 @@ public record IdeState(
   }
 
   private ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> MigrateImplementationViews(
-    Migrator migrator,
+    IMigrator migrator,
     ImmutableDictionary<Uri, ImmutableDictionary<Range, IdeCanVerifyState>> oldVerificationDiagnostics) {
     var uri = migrator.MigratedUri;
     var previous = oldVerificationDiagnostics.GetValueOrDefault(uri);
@@ -213,7 +213,9 @@ public record IdeState(
     }
     ownedUris.Add(determinedRootFiles.Project.Uri);
 
-    return this with {
+    var version = this.Version;
+    var previousNewDiagnostics = FreshDiagnostics;
+    var result = this with {
       OwnedUris = ownedUris,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
@@ -221,6 +223,7 @@ public record IdeState(
         file => VerificationTrees.GetValueOrDefault(file.Uri) ??
                 new DocumentVerificationTree(Program, file.Uri))
     };
+    return result;
   }
 
   private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
