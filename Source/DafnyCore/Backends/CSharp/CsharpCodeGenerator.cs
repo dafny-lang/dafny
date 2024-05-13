@@ -927,7 +927,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var member in dt.Members) {
         if (member.IsGhost || member.IsStatic) { continue; }
         if (member is Function fn && !NeedsCustomReceiver(member)) {
-          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic,
+          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic,
             false, fn, interfaceTree, false, false);
         } else if (member is Method m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, interfaceTree, false, false);
@@ -957,7 +957,7 @@ namespace Microsoft.Dafny.Compilers {
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
-              if ((member is Function f && f.Formals.Exists(InvalidFormal))
+              if ((member is Function f && f.Ins.Exists(InvalidFormal))
                   || (member is Method m && m.Ins.Exists(InvalidFormal))
                   || NeedsTypeDescriptor(tp)) {
                 return true;
@@ -2653,7 +2653,7 @@ namespace Microsoft.Dafny.Compilers {
           var arguments = lambdaHeader.ForkInParens();
           lambdaHeader.Write(" => ");
 
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);
@@ -3422,15 +3422,16 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (ct is SetType) {
         var typeName = TypeName(ct.Arg, wr, tok);
-        return string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})");
+        wr.Write(string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})"));
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = TypeName(mt.Domain, wr, tok);
         var rantypeName = TypeName(mt.Range, wr, tok);
-        return $"{DafnyMapClass}<{domtypeName},{rantypeName}>.FromCollection({collName})";
+        wr.Write($"{DafnyMapClass}<{domtypeName},{rantypeName}>.FromCollection({collName})");
       } else {
         Contract.Assume(false);  // unexpected collection type
         throw new cce.UnreachableException();  // please compiler

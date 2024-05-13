@@ -33,7 +33,7 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     var diagnostics = await GetLastDiagnostics(project);
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Single(errors);
-    Assert.Contains("the referenced file", errors[0].Message);
+    Assert.Contains("but is part of a different project", errors[0].Message);
   }
 
   public readonly string hasShadowingSource = @"

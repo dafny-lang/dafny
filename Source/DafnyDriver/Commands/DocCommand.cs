@@ -26,11 +26,9 @@ static class DocCommand {
   }.Concat(DafnyCommands.ResolverOptions);
 
   static DocCommand() {
-    DafnyCore.DooFile.RegisterNoChecksNeeded(
-      DocProgramNameOption,
-      DocFilenameFormat,
-      DocShowModifyTime
-    );
+    DafnyCore.DooFile.RegisterNoChecksNeeded(DocProgramNameOption, false);
+    DafnyCore.DooFile.RegisterNoChecksNeeded(DocFilenameFormat, false);
+    DafnyCore.DooFile.RegisterNoChecksNeeded(DocShowModifyTime, false);
   }
 
   public static IEnumerable<Option> Options => DocOptions;

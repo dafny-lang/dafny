@@ -652,8 +652,8 @@ namespace Microsoft.Dafny {
               // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
               Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
               Dictionary<IVariable, Expression> directSubstMap = new Dictionary<IVariable, Expression>();
-              for (int i = 0; i < e.Function.Formals.Count; i++) {
-                Formal p = e.Function.Formals[i];
+              for (int i = 0; i < e.Function.Ins.Count; i++) {
+                Formal p = e.Function.Ins[i];
                 // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
@@ -705,9 +705,9 @@ namespace Microsoft.Dafny {
                     builder.Add(Assert(GetToken(e.Receiver), wh, desc));
                   }
                 }
-                Contract.Assert(e.Function.Formals.Count == e.Args.Count);
+                Contract.Assert(e.Function.Ins.Count == e.Args.Count);
                 for (int i = 0; i < e.Args.Count; i++) {
-                  var formal = e.Function.Formals[i];
+                  var formal = e.Function.Ins[i];
                   if (formal.IsOld) {
                     Expression ee = e.Args[i];
                     Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(e.AtLabel), ISALLOC, true);
@@ -791,7 +791,7 @@ namespace Microsoft.Dafny {
                       }
                       for (int i = 0; i < e.Args.Count; i++) {
                         Expression ee = e.Args[i];
-                        Formal ff = e.Function.Formals[i];
+                        Formal ff = e.Function.Ins[i];
                         allowance = Expression.CreateAnd(allowance, Expression.CreateEq(ee, Expression.CreateIdentExpr(ff), ff.Type));
                       }
                     }

@@ -89,9 +89,9 @@ namespace Microsoft.Dafny.Compilers {
       return file;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      moduleName = IdProtect(moduleName);
+      var moduleName = IdProtect(module.GetCompileName(Options));
       Imports.Add(moduleName);
     }
 
@@ -1303,7 +1303,7 @@ namespace Microsoft.Dafny.Compilers {
               return SuffixLvalue(obj, $".{IdName(fn)}");
             }
             return SimpleLvalue(w => {
-              var args = fn.Formals
+              var args = fn.Ins
                 .Where(f => !f.IsGhost)
                 .Select(_ => ProtectedFreshId("_eta"))
                 .Comma();
@@ -1827,8 +1827,9 @@ namespace Microsoft.Dafny.Compilers {
         : $"{tmpVarName} is None or {typeTest}");
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
-      return TypeHelperName(ct) + $"({collName})";
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
+      wr.Write(TypeHelperName(ct) + $"({collName})");
     }
 
     protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {

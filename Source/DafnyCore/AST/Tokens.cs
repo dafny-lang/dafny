@@ -58,6 +58,7 @@ public class Token : IToken {
   public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
   public static readonly Token NoToken = new();
   public static readonly Token Cli = new(1, 1);
+  public static readonly Token Ide = new(1, 1);
   public Token() : this(0, 0) { }
 
   public Token(int linenum, int colnum) {

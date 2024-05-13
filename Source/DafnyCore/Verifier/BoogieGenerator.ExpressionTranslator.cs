@@ -1744,7 +1744,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           // If the function doesn't use the heap, but global settings say to use it,
           // then we want to quantify over the heap so that heap in the trigger can match over
           // heap modifying operations. (see Test/dafny4/Bug144.dfy)
-          bool usesHeap = e.Function.ReadsHeap || e.Function.Formals.Any(f => f.Type.IsRefType);
+          bool usesHeap = e.Function.ReadsHeap || e.Function.Ins.Any(f => f.Type.IsRefType);
           if (!usesHeap) {
             Statistics_HeapAsQuantifierCount++;
           }
@@ -1757,7 +1757,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         }
         for (int i = 0; i < e.Args.Count; i++) {
           Expression ee = e.Args[i];
-          Type t = e.Function.Formals[i].Type;
+          Type t = e.Function.Ins[i].Type;
           Expr tr_ee = TrExpr(ee);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
           args.Add(BoogieGenerator.CondApplyBox(GetToken(e), tr_ee, cce.NonNull(ee.Type), t));

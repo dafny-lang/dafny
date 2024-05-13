@@ -12,6 +12,7 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
+using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using static Microsoft.Dafny.GeneratorErrors;
@@ -181,7 +182,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Indicates the current program depends on the given module without creating it.
     /// Called when a module is out of scope for compilation, such as when using --library.
     /// </summary>
-    protected virtual void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected virtual void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName /*?*/) { }
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
@@ -971,9 +972,12 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tp != null);
       return IdProtect(tp.GetCompileName(Options));
     }
+    protected virtual string GetCompileNameNotProtected(IVariable v) {
+      return v.CompileName;
+    }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
-      return IdProtect(v.CompileName);
+      return IdProtect(GetCompileNameNotProtected(v));
     }
     protected virtual string IdMemberName(MemberSelectExpr mse) {
       Contract.Requires(mse != null);
@@ -1443,7 +1447,8 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// The "ct" type is either a SetType or a MapType.
     /// </summary>
-    protected abstract string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr);
+    protected abstract void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt);
 
     /// <summary>
     /// Returns a pair (ty, f) where
@@ -1519,7 +1524,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (!module.ShouldCompile(program.Compilation)) {
-        DependOnModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+        DependOnModule(program, module, externModule, libraryName);
         return;
       }
 
@@ -1528,8 +1533,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
       foreach (TopLevelDecl d in module.TopLevelDecls) {
-        bool compileIt = true;
-        if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
+        if (!ProgramResolver.ShouldCompile(d)) {
           continue;
         }
 
@@ -2125,7 +2129,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is Function fn) {
             if (!Attributes.Contains(fn.Attributes, "extern")) {
               Contract.Assert(fn.Body != null);
-              var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
+              var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
               EmitCallToInheritedFunction(fn, null, w);
             }
           } else if (member is Method method) {
@@ -2236,7 +2240,7 @@ namespace Microsoft.Dafny.Compilers {
             }
           } else if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
-              var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok, false, false, f, false, false);
+              var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Ins, f.ResultType, f.tok, false, false, f, false, false);
               Contract.Assert(w == null); // since we requested no body
             } else if (TraitRepeatsInheritedDeclarations) {
               RedeclareInheritedMember(f, classWriter);
@@ -2252,7 +2256,7 @@ namespace Microsoft.Dafny.Compilers {
             Error(ErrorId.c_function_has_no_body, f.tok, "Function {0} has no body so it cannot be compiled", errorWr, f.FullName);
           } else if (c is NewtypeDecl && f != f.Original) {
             CompileFunction(f, classWriter, false);
-            var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Formals, f.ResultType, f.tok,
+            var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Ins, f.ResultType, f.tok,
               false, true, f, true, false);
             EmitCallToInheritedFunction(f, c, w);
           } else {
@@ -2327,7 +2331,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(wGet == null && wSet == null); // since the previous line said not to create a body
       } else if (member is Function) {
         var fn = ((Function)member).Original;
-        var wBody = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, false, false);
+        var wBody = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, false, fn, false, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Method) {
         var method = ((Method)member).Original;
@@ -2407,11 +2411,11 @@ namespace Microsoft.Dafny.Compilers {
       EmitThis(heir != null ? FromFatPointer(UserDefinedType.FromTopLevelDecl(f.tok, heir), w) : w, true);
       sep = ", ";
 
-      for (int j = 0, l = 0; j < f.Formals.Count; j++) {
-        var p = f.Formals[j];
+      for (int j = 0, l = 0; j < f.Ins.Count; j++) {
+        var p = f.Ins[j];
         if (!p.IsGhost) {
           wr.Write(sep);
-          w = EmitCoercionIfNecessary(f.Original.Formals[j].Type, f.Formals[j].Type, f.tok, wr);
+          w = EmitCoercionIfNecessary(f.Original.Ins[j].Type, f.Ins[j].Type, f.tok, wr);
           w.Write(IdName(p));
           sep = ", ";
           l++;
@@ -2653,7 +2657,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(f.Body != null || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
       var w = cw.CreateFunction(IdName(f), CombineAllTypeArguments(f),
-        f.Formals, f.ResultType, f.tok, f.IsStatic,
+        f.Ins, f.ResultType, f.tok, f.IsStatic,
         !f.IsExtern(Options, out _, out _), f, false, lookasideBody);
       if (w != null) {
         IVariable accVar = null;
@@ -2808,7 +2812,7 @@ namespace Microsoft.Dafny.Compilers {
         var bv = pat.Var;
         if (!bv.IsGhost) {
           var wStmts = wr.Fork();
-          var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
+          var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
@@ -2957,8 +2961,8 @@ namespace Microsoft.Dafny.Compilers {
           inTypes.Add(null);
           DeclareLocalVar(inTmp, null, null, e.Receiver, inLetExprBody, wr);
         }
-        for (int i = 0; i < e.Function.Formals.Count; i++) {
-          Formal p = e.Function.Formals[i];
+        for (int i = 0; i < e.Function.Ins.Count; i++) {
+          Formal p = e.Function.Ins[i];
           if (!p.IsGhost) {
             string inTmp = ProtectedFreshId("_in");
             inTmps.Add(inTmp);
@@ -2986,7 +2990,7 @@ namespace Microsoft.Dafny.Compilers {
           EndStmt(wr);
           n++;
         }
-        foreach (var p in e.Function.Formals) {
+        foreach (var p in e.Function.Ins) {
           if (!p.IsGhost) {
             EmitIdentifier(
               inTmps[n],
@@ -3664,7 +3668,7 @@ namespace Microsoft.Dafny.Compilers {
           Error(ErrorId.c_bodyless_modify_statement_forbidden, s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
         }
       } else if (stmt is TryRecoverStatement h) {
-        EmitHaltRecoveryStmt(h.TryBody, h.HaltMessageVar.CompileName, h.RecoverBody, wr);
+        EmitHaltRecoveryStmt(h.TryBody, IdName(h.HaltMessageVar), h.RecoverBody, wr);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
@@ -5588,8 +5592,8 @@ namespace Microsoft.Dafny.Compilers {
         var thn = EmitIf(out var guardWriter, false, wr);
         EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
         EmitSetBuilder_Add(setType, collectionName, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Build(setType, e.tok, collectionName, wr);
-        EmitReturnExpr(s, bwr);
+        var returned = EmitReturnExpr(bwr);
+        GetCollectionBuilder_Build(setType, e.tok, collectionName, returned, wStmts);
 
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
@@ -5642,8 +5646,8 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(e.TermLeft, inLetExprBody, termLeftWriter, wStmts);
         }
 
-        var s = GetCollectionBuilder_Build(mapType, e.tok, collection_name, wr);
-        EmitReturnExpr(s, bwr);
+        var returned = EmitReturnExpr(bwr);
+        GetCollectionBuilder_Build(mapType, e.tok, collection_name, returned, wStmts);
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
@@ -6097,7 +6101,7 @@ namespace Microsoft.Dafny.Compilers {
       if (pat.Var != null) {
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
+          CreateIIFE(IdName(bv), bv.Type, bv.Tok, bodyType, pat.tok, wr, ref wStmts, out var wrRhs, out var wrBody);
           wrRhs = EmitDowncastIfNecessary(rhsType, bv.Type, bv.tok, wrRhs);
           rhs(wrRhs);
           return wrBody;
@@ -6179,11 +6183,11 @@ namespace Microsoft.Dafny.Compilers {
         sep = ", ";
       }
       for (int i = 0; i < e.Args.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost) {
+        if (!e.Function.Ins[i].IsGhost) {
           wr.Write(sep);
           var fromType = e.Args[i].Type;
-          var w = EmitCoercionIfNecessary(fromType, e.Function.Formals[i].Type, tok: e.tok, wr: wr);
-          var instantiatedToType = e.Function.Formals[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
+          var w = EmitCoercionIfNecessary(fromType, e.Function.Ins[i].Type, tok: e.tok, wr: wr);
+          var instantiatedToType = e.Function.Ins[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";

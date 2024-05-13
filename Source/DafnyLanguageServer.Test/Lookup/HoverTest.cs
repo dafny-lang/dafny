@@ -672,7 +672,7 @@ method test() {
 //         ^[Unformatted comment] // Does not work yet.
   var xf := f();
 //          ^[Rich comment\n|  |  |\n| --- | --- |\n| **Returns** | 1 no matter what |]
-}", true, o => o.Set(CommonOptionBag.UseJavadocLikeDocstringRewriterOption, true));
+}", true, o => o.Set(InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption, true));
     }
   }
 }

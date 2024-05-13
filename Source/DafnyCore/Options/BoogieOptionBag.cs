@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Transactions;
 using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -43,9 +44,11 @@ public static class BoogieOptionBag {
     ArgumentHelpName = "count",
   };
 
-  public static readonly Option<bool> NoVerify = new("--no-verify",
-    "Skip verification") {
-    ArgumentHelpName = "count"
+  public static readonly Option<bool> NoVerify = new("--no-verify", "Skip verification");
+
+  public static readonly Option<bool> HiddenNoVerify = new("--hidden-no-verify",
+    "Allows building unverified libraries without recording that they were not verified.") {
+    IsHidden = true
   };
 
   public static readonly Option<uint> VerificationTimeLimit = new("--verification-time-limit",
@@ -104,7 +107,10 @@ public static class BoogieOptionBag {
     });
     DafnyOptions.RegisterLegacyBinding(Cores,
       (o, f) => o.VcsCores = f == 0 ? (1 + System.Environment.ProcessorCount) / 2 : (int)f);
-    DafnyOptions.RegisterLegacyBinding(NoVerify, (o, f) => o.Verify = !f);
+    DafnyOptions.RegisterLegacyBinding(NoVerify, (options, value) => {
+      var shouldVerify = !value && !options.Get(HiddenNoVerify);
+      options.Verify = shouldVerify;
+    });
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
 
     DafnyOptions.RegisterLegacyBinding(SolverPath, (options, value) => {
@@ -138,23 +144,22 @@ public static class BoogieOptionBag {
 
 
     DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, DooFile.OptionCheck> {
-        { BoogieArguments, DooFile.CheckOptionMatches },
-        { NoVerify, DooFile.CheckOptionLibraryImpliesLocal },
+      new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { BoogieArguments, OptionCompatibility.CheckOptionMatches },
+        { NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError },
       }
     );
-    DooFile.RegisterNoChecksNeeded(
-      Cores,
-      VerificationTimeLimit,
-      VerificationErrorLimit,
-      IsolateAssertions,
-      SolverLog,
-      SolverOption,
-      SolverOptionHelp,
-      SolverPath,
-      SolverPlugin,
-      SolverResourceLimit
-    );
+    DooFile.RegisterNoChecksNeeded(HiddenNoVerify, false);
+    DooFile.RegisterNoChecksNeeded(Cores, false);
+    DooFile.RegisterNoChecksNeeded(VerificationTimeLimit, false);
+    DooFile.RegisterNoChecksNeeded(VerificationErrorLimit, false);
+    DooFile.RegisterNoChecksNeeded(IsolateAssertions, false);
+    DooFile.RegisterNoChecksNeeded(SolverLog, false);
+    DooFile.RegisterNoChecksNeeded(SolverOption, false);
+    DooFile.RegisterNoChecksNeeded(SolverOptionHelp, false);
+    DooFile.RegisterNoChecksNeeded(SolverPath, false);
+    DooFile.RegisterNoChecksNeeded(SolverPlugin, false);
+    DooFile.RegisterNoChecksNeeded(SolverResourceLimit, false);
   }
 
   private static IReadOnlyList<string> SplitArguments(string commandLine) {

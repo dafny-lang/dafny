@@ -149,7 +149,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (member is Function function) {
-        CheckParameterDefaultValues(function.Formals, context);
+        CheckParameterDefaultValues(function.Ins, context);
         function.Req.ForEach(e => CheckExpression(e.E, context));
         function.Ens.ForEach(e => CheckExpression(e.E, context));
         CheckSpecFrameExpression(function.Reads, context);

@@ -7,6 +7,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 
@@ -15,8 +16,10 @@ namespace Microsoft.Dafny;
 public static class VerifyCommand {
 
   static VerifyCommand() {
-    DooFile.RegisterNoChecksNeeded(FilterSymbol);
-    DooFile.RegisterNoChecksNeeded(FilterPosition);
+    // Note these don't need checks because they are only "dafny verify" options;
+    // they can't be specified when building a doo file.
+    DooFile.RegisterNoChecksNeeded(FilterSymbol, false);
+    DooFile.RegisterNoChecksNeeded(FilterPosition, false);
   }
 
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
@@ -39,6 +42,7 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
+        DafnyFile.UnsafeDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
@@ -161,7 +165,7 @@ public static class VerifyCommand {
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
         Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
-          (uint)completed.Result.RunTime.Seconds,
+          (uint)completed.Result.RunTime.TotalSeconds,
           completed.Result, batchReporter);
       }
 
