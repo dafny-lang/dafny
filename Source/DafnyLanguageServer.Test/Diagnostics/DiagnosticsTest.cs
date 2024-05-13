@@ -115,7 +115,7 @@ function HasResolutionError(): int {
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
       var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
-      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
+      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Parser.ToString());
       ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
       var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(parseDiagnostics2);

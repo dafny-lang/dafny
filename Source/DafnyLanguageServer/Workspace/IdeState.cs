@@ -86,7 +86,7 @@ public record IdeState(
       Input = Input with {
         Version = newVersion
       },
-      Diagnostics = ImmutableList<FileDiagnostic>.Empty,
+      Diagnostics = Diagnostics, // Prevent a diagnostics update by keeping the diagnostics the same
       Status = CompilationStatus.Parsing,
       CanVerifyStates = verificationResults,
       SignatureAndCompletionTable = options.Get(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable)
@@ -208,7 +208,7 @@ public record IdeState(
 
     return this with {
       OwnedUris = ownedUris,
-      Diagnostics = Diagnostics.AddRange(determinedRootFiles.Diagnostics),
+      Diagnostics = status == CompilationStatus.ParsingFailed ? ImmutableList<FileDiagnostic>.Empty.AddRange(determinedRootFiles.Diagnostics) : Diagnostics,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
         file => file.Uri,
@@ -262,7 +262,7 @@ public record IdeState(
 
     return previousState with {
       Status = CompilationStatus.InternalException,
-      Diagnostics = Diagnostics.Add(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic)),
+      Diagnostics = ImmutableList<FileDiagnostic>.Empty.Add(new FileDiagnostic(previousState.Input.Uri.ToUri(), internalErrorDiagnostic)),
     };
   }
 
@@ -311,7 +311,7 @@ public record IdeState(
       : previousState.SignatureAndCompletionTable;
 
     return previousState with {
-      Diagnostics = Diagnostics.AddRange(finishedResolution.Diagnostics),
+      Diagnostics = ImmutableList<FileDiagnostic>.Empty.AddRange(finishedResolution.Diagnostics),
       Status = status,
       Counterexamples = Array.Empty<Counterexample>(),
       ResolvedProgram = finishedResolution.Result.ResolvedProgram,
@@ -369,7 +369,8 @@ public record IdeState(
     var newDiagnostics = finishedParsing.Diagnostics;
     return previousState with {
       Program = finishedParsing.Program,
-      Diagnostics = Diagnostics.AddRange(newDiagnostics),
+      // Only publish diagnostics if compilation has stopped
+      Diagnostics = status == CompilationStatus.ParsingFailed ? ImmutableList<FileDiagnostic>.Empty.AddRange(newDiagnostics) : Diagnostics,
       Status = status,
       VerificationTrees = trees
     };
