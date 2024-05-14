@@ -1,2 +1,6 @@
-
-Dafny program verifier finished with TODO verified, TODO errors
+git-issue-5369.dfy(20,2): Error: expression is not allowed to invoke a method (m)
+git-issue-5369.dfy(20,40): Error: expression is not allowed to invoke a method (m)
+git-issue-5369.dfy(20,42): Error: arguments to <= must have a common supertype (got int and (unused -- call to method m))
+git-issue-5369.dfy(20,4): Error: expecting element type to be assignable to nat (got (unused -- call to method m))
+git-issue-5369.dfy(32,9): Error: unresolved identifier: ThereIsASmallest
+5 resolution/type errors detected in git-issue-5369.dfy
