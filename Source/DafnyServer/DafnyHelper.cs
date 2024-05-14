@@ -58,7 +58,9 @@ namespace Microsoft.Dafny {
 
     private bool Resolve() {
       var resolver = new ProgramResolver(dafnyProgram);
-      resolver.Resolve(CancellationToken.None);
+#pragma warning disable VSTHRD002
+      resolver.Resolve(CancellationToken.None).Wait();
+#pragma warning restore VSTHRD002
       return reporter.Count(ErrorLevel.Error) == 0;
     }
 

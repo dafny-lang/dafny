@@ -125,14 +125,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand, bool changedOnOpen = false) {
-      if (!fileSystem.Exists(documentId.Uri.ToUri())) {
+      var uri = documentId.Uri.ToUri();
+      if (!fileSystem.Exists(uri)) {
         return null;
       }
 
-      var project = await GetProject(documentId.Uri.ToUri());
+      var project = await GetProject(uri);
 
       lock (myLock) {
-        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
+        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
 
         if (projectManagerForFile != null) {
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
@@ -148,11 +149,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 // Enable garbage collection
                 managersByProject.Remove(projectManagerForFile.Project.Uri);
               }
+              logger.LogDebug($"Migrating file {uri} to existing project {project.Uri}");
             }
 
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
                                     createProjectManager(scheduler, verificationCache, project);
-            projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
+            projectManagerForFile.OpenDocument(uri, true);
           }
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
@@ -169,14 +171,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(scheduler, verificationCache, project);
-              projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
+              projectManagerForFile.OpenDocument(uri, true);
             } else {
               return null;
             }
           }
         }
 
-        managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
+        managersBySourceFile[uri] = projectManagerForFile;
         managersByProject[project.Uri] = projectManagerForFile;
         return projectManagerForFile;
       }

@@ -1,26 +1,23 @@
 using System;
 using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
 static class CacheExtensions {
-  public static T ProfileAndPruneCache<T, Key, Value>(this PruneIfNotUsedSinceLastPruneCache<Key, Value> cache,
-    Func<T> useCache, TelemetryPublisherBase telemetryPublisher, string programName, string activity)
-    where Value : class where Key : notnull {
-    var beforeTotal = cache.Count;
-    var result = useCache();
-    var afterCount = cache.Count;
-    var added = afterCount - beforeTotal;
-    cache.Prune();
-    var hitsOrAdded = cache.Count;
-    var hits = hitsOrAdded - added;
-    telemetryPublisher.PublishTelemetry(ImmutableDictionary<string, object>.Empty.
-      Add("subject", "caching").
-      Add("activity", activity).
-      Add("resource", programName.ToString()).
-      Add("hits", hits).
-      Add("total", hitsOrAdded));
-    return result;
+  public static async Task<T> ProfileAndPruneCache<T, TKey, TValue>(this PruneIfNotUsedSinceLastPruneCache<TKey, TValue> cache,
+    Func<Task<T>> useCache, ILogger logger, TelemetryPublisherBase telemetryPublisher, string programName, string activity,
+    CancellationToken cancellationToken)
+    where TValue : class where TKey : notnull {
+    var result = await cache.UseAndPrune(useCache, cancellationToken);
+    telemetryPublisher.PublishTelemetry(ImmutableDictionary<string, object>.Empty.Add("subject", "caching")
+      .Add("activity", activity).Add("resource", programName).Add("hits", result.Hits).Add("pruned", result.Pruned)
+      .Add("total", result.Total));
+
+    return result.Result;
   }
 }
