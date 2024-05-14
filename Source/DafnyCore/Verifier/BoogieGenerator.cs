@@ -3577,7 +3577,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
         LocalVariable local = new LocalVariable(bv.RangeToken, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
-        local.type = local.OptionalType;  // resolve local here
+        local.type = local.SyntacticType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(bv, ie);
@@ -3622,7 +3622,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       var local = new LocalVariable(v.RangeToken, v.Name, v.Type, v.IsGhost);
-      local.type = local.OptionalType;  // resolve local here
+      local.type = local.SyntacticType;  // resolve local here
       var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(v, ie);

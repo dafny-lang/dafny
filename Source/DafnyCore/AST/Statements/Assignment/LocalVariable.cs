@@ -14,7 +14,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(name != null);
-    Contract.Invariant(OptionalType != null);
+    Contract.Invariant(SyntacticType != null);
   }
 
   public override IToken Tok => RangeToken.StartToken;
@@ -22,7 +22,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public LocalVariable(Cloner cloner, LocalVariable original)
     : base(cloner, original) {
     name = original.Name;
-    OptionalType = cloner.CloneType(original.OptionalType);
+    SyntacticType = cloner.CloneType(original.SyntacticType);
     IsTypeExplicit = original.IsTypeExplicit;
     IsGhost = original.IsGhost;
 
@@ -37,7 +37,8 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     Contract.Requires(type != null);  // can be a proxy, though
 
     this.name = name;
-    this.OptionalType = type;
+    IsTypeExplicit = type != null;
+    this.SyntacticType = type ?? new InferredTypeProxy();
     if (type is InferredTypeProxy) {
       ((InferredTypeProxy)type).KeepConstraints = true;
     }
@@ -82,8 +83,9 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public string CompileName =>
     compileName ??= SanitizedName;
 
-  public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
-  Type IVariable.OptionalType { get { return this.OptionalType; } }
+  // TODO rename and update comment? Or make it nullable?
+  public readonly Type SyntacticType;  // this is the type mentioned in the declaration, if any
+  Type IVariable.OptionalType => SyntacticType;
 
   [FilledInDuringResolution]
   internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
@@ -128,14 +130,14 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   }
 
   public IToken NameToken => RangeToken.StartToken;
-  public bool IsTypeExplicit = false;
+  public bool IsTypeExplicit { get; }
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 
   public override IEnumerable<INode> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
-      IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
+      IsTypeExplicit ? new List<Node>() { SyntacticType ?? type } : Enumerable.Empty<Node>());
 
   public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {

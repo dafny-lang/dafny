@@ -60,10 +60,11 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   /// Code wise, it might be better not to let AliasModuleDecl inherit from Declaration,
   /// since it is not always a declaration. 
   /// </summary>
-  public override IToken NameToken =>
-    NameNode.StartToken == NameNode.EndToken ? TargetQId.Decl.NameToken : base.NameToken;
+  public override IToken NameToken => HasAlias ? base.NameToken : TargetQId.Decl.NameToken;
 
-  public override SymbolKind? Kind => NameNode.StartToken == NameNode.EndToken ? null : base.Kind;
+  private bool HasAlias => NameNode.RangeToken.IsSet();
+
+  public override SymbolKind? Kind => !HasAlias ? null : base.Kind;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new INode[] { TargetQId });
 }
