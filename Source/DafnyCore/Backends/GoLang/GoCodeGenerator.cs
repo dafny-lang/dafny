@@ -2574,11 +2574,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public string PublicModuleIdProtect(string name) {
-      if (name == "C") {
-        return "_C";
-      } else {
-        return name;
-      }
+      return name switch {
+        "C" => "_C",
+        "fmt" => "_fmt",
+        _ => name
+      };
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
