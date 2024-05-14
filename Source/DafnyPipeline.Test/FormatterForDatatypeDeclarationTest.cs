@@ -1,4 +1,5 @@
-﻿using JetBrains.Annotations;
+﻿using System.Threading.Tasks;
+using JetBrains.Annotations;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -7,15 +8,15 @@ namespace DafnyPipeline.Test;
 [Collection("Singleton Test Collection - FormatterForDatatypeDeclaration")]
 public class FormatterForDatatypeDeclarationTest : FormatterBaseTest {
   [Fact]
-  public void FormatterWorksForFinalSpaceAfterDatatype() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForFinalSpaceAfterDatatype() {
+    await FormatterWorksFor(@"
 datatype Maybe<T> = None | Some(get: T)
 ");
   }
 
   [Fact]
-  public void FormatWorksForDataTypes() {
-    FormatterWorksFor(@"
+  public async Task FormatWorksForDataTypes() {
+    await FormatterWorksFor(@"
 include ""test1""
 include
   ""test2""
@@ -66,8 +67,8 @@ datatype D =
   }
 
   [Fact]
-  public void FormatterWorksForUniversalPatternShiftDatatypeParens() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForUniversalPatternShiftDatatypeParens() {
+    await FormatterWorksFor(@"
 newtype b17 = x | 0 <= x < (10 as bv8 << -1) as int
 newtype b18 = x | 0 <= x < (10 as bv8 >> -1) as int
 
@@ -84,8 +85,8 @@ datatype T = Test
   }
 
   [Fact]
-  public void FormatterWorksForIteratorsAfterDatatypes() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForIteratorsAfterDatatypes() {
+    await FormatterWorksFor(@"
 datatype MG5 =  MG5(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
 iterator        MG6(      x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x))
 iterator        MG7(ghost x: int, y: int := FG(x), ghost z: int := FC(x), w: int := FC(x)) // error: call to FC passes in a ghost expression
@@ -99,8 +100,8 @@ iterator Iter0(x: int := y, y: int := 0)
 
 
   [Fact]
-  public void FormatterWorksForDatatypeWithVerticalBarAfterwardsOrOneLine() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForDatatypeWithVerticalBarAfterwardsOrOneLine() {
+    await FormatterWorksFor(@"
 datatype Single =
   SingleWithArguments(a: int)
 
@@ -117,8 +118,8 @@ datatype Eq =
   }
 
   [Fact]
-  public void FormatterWorksForDoublecomment() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForDoublecomment() {
+    await FormatterWorksFor(@"
 datatype Test =
   | Zero
     /* Zero */
@@ -131,14 +132,14 @@ datatype Test =
 ");
   }
   [Fact]
-  public void FormatterWorksForSingleDatatypeConstructor() {
-    FormatterWorksFor(@"
+  public async Task FormatterWorksForSingleDatatypeConstructor() {
+    await FormatterWorksFor(@"
 datatype C = C(
   arg1: int,
   arg2: int
 )
 ", reduceBlockiness: true);
-    FormatterWorksFor(@"
+    await FormatterWorksFor(@"
 datatype C = C(
                arg1: int,
                arg2: int

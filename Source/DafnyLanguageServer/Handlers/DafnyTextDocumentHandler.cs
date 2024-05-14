@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// break the background processing if used.
   /// </remarks>
   public class DafnyTextDocumentHandler : TextDocumentSyncHandlerBase {
-    private const string LanguageId = "dafny";
+    private const string DafnyLanguage = "dafny";
 
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
@@ -50,13 +50,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
       return new TextDocumentSyncRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage(LanguageId),
+        DocumentSelector = new DocumentSelector(DocumentFilter.ForLanguage(DafnyLanguage), DocumentFilter.ForPattern("**/*dfyconfig.toml")),
         Change = TextDocumentSyncKind.Incremental
       };
     }
 
     public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
-      return new TextDocumentAttributes(uri, LanguageId);
+      return new TextDocumentAttributes(uri, uri.Path.EndsWith(DafnyProject.FileName) ? "toml" : DafnyLanguage);
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {

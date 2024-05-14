@@ -8,8 +8,7 @@ public class TernaryExpr : Expression, ICloneable<TernaryExpr> {
   public readonly Expression E0;
   public readonly Expression E1;
   public readonly Expression E2;
-  public enum Opcode { /*SOON: IfOp,*/ PrefixEqOp, PrefixNeqOp }
-  public static readonly bool PrefixEqUsesNat = false;  // "k" is either a "nat" or an "ORDINAL"
+  public enum Opcode { PrefixEqOp, PrefixNeqOp }
 
   public TernaryExpr(Cloner cloner, TernaryExpr original) : base(cloner, original) {
     Op = original.Op;

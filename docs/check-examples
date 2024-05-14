@@ -121,7 +121,7 @@ outdir="$dir/../Test/docexamples"
 
 coverage=0
 permOptions="--show-snippets:false "
-defOptions="--function-syntax:4 --use-basename-for-filename --unicode-char:false"
+defOptions="--function-syntax:4 --use-basename-for-filename"
 legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0"
 
 while getopts 'c' opt; do
@@ -340,6 +340,7 @@ do
         if [ -z "$expect" -a "$useHeadings" == "0" ]; then
           defaultExit=0
         elif [ "$iswarn" == "1" ]; then
+          dOptions="$dOptions --allow-warnings"
           defaultExit=0
         elif [ "$verb" == "verify" ]; then
           defaultExit=4

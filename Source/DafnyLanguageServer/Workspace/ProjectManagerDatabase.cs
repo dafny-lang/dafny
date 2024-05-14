@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
@@ -49,7 +50,10 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     public async Task UpdateDocument(DidChangeTextDocumentParams documentChange) {
-      fileSystem.UpdateDocument(documentChange);
+      var success = fileSystem.UpdateDocument(documentChange);
+      if (!success) {
+        throw new ArgumentException("the document change ranges did not match ranges inside the documents");
+      }
       var documentUri = documentChange.TextDocument.Uri;
       var manager = await GetProjectManager(documentUri, false);
       if (manager == null) {
@@ -121,14 +125,15 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<ProjectManager?> GetProjectManager(TextDocumentIdentifier documentId, bool createOnDemand, bool changedOnOpen = false) {
-      if (!fileSystem.Exists(documentId.Uri.ToUri())) {
+      var uri = documentId.Uri.ToUri();
+      if (!fileSystem.Exists(uri)) {
         return null;
       }
 
-      var project = await GetProject(documentId.Uri.ToUri());
+      var project = await GetProject(uri);
 
       lock (myLock) {
-        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(documentId.Uri.ToUri());
+        var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
 
         if (projectManagerForFile != null) {
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
@@ -144,11 +149,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
                 // Enable garbage collection
                 managersByProject.Remove(projectManagerForFile.Project.Uri);
               }
+              logger.LogDebug($"Migrating file {uri} to existing project {project.Uri}");
             }
 
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
                                     createProjectManager(scheduler, verificationCache, project);
-            projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
+            projectManagerForFile.OpenDocument(uri, true);
           }
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
@@ -165,14 +171,14 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(scheduler, verificationCache, project);
-              projectManagerForFile.OpenDocument(documentId.Uri.ToUri(), true);
+              projectManagerForFile.OpenDocument(uri, true);
             } else {
               return null;
             }
           }
         }
 
-        managersBySourceFile[documentId.Uri.ToUri()] = projectManagerForFile;
+        managersBySourceFile[uri] = projectManagerForFile;
         managersByProject[project.Uri] = projectManagerForFile;
         return projectManagerForFile;
       }
@@ -180,15 +186,16 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<DafnyProject> GetProject(Uri uri) {
       return uri.LocalPath.EndsWith(DafnyProject.FileName)
-        ? await DafnyProject.Open(fileSystem, serverOptions, uri)
+        ? await DafnyProject.Open(fileSystem, serverOptions, uri, Token.Ide)
         : (await FindProjectFile(uri) ?? ImplicitProject(uri));
     }
 
     public static DafnyProject ImplicitProject(Uri uri) {
-      var implicitProject = new DafnyProject {
-        Includes = new[] { uri.LocalPath },
-        Uri = uri
-      };
+      var implicitProject = new DafnyProject(
+        uri, null,
+        new[] { uri.LocalPath }.ToHashSet(),
+        new HashSet<string>(),
+        new Dictionary<string, object>());
       return implicitProject;
     }
 
@@ -199,7 +206,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       while (!string.IsNullOrEmpty(folder) && projectFile == null) {
         projectFile = await OpenProjectInFolder(folder);
 
-        if (projectFile != null && projectFile.Uri != sourceUri && projectFile.ContainsSourceFile(sourceUri) == false) {
+        if (projectFile != null && projectFile.Uri != sourceUri &&
+            !(projectFile.Errors.HasErrors || projectFile.ContainsSourceFile(sourceUri))) {
           projectFile = null;
         }
 
@@ -228,7 +236,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return Task.FromResult<DafnyProject?>(null);
       }
 
-      return DafnyProject.Open(fileSystem, serverOptions, configFileUri);
+      return DafnyProject.Open(fileSystem, serverOptions, configFileUri, Token.Ide)!;
     }
 
     public IEnumerable<ProjectManager> Managers => managersByProject.Values;

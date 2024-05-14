@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,6 +7,7 @@ using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
@@ -25,6 +27,9 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   }
 
   /// <summary>
+  /// When you run this test with a debugger, it grinds to a halt and will appear deadlocked.
+  /// Change all the numbers to smaller values (let's say 1) to workaround this problem.
+  /// 
   /// This test should complete in less than a second, because it opens a moderately sized file
   /// on which it makes edits so quickly that the edits should all be processed in a single compilation.
   /// And a single compilation should complete in less than 200ms.
@@ -36,19 +41,20 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
   /// </summary>
   [Fact]
   public async Task QuickEditsInLargeFile() {
-    string GetLineContent(int index) => $"method Foo{index}() {{ assume false; }}";
+    string GetLineContent(int index) => $"method Foo{index}() {{ assume {{:axiom}} false; }}";
     var contentBuilder = new StringBuilder();
     for (int lineNumber = 0; lineNumber < 1000; lineNumber++) {
       contentBuilder.AppendLine(GetLineContent(lineNumber));
     }
     var source = contentBuilder.ToString();
 
-    double lowest = double.MaxValue;
     Exception lastException = null;
+    List<double> timeToScheduleHistory = new();
+    List<double> divisionHistory = new();
     try {
       for (int attempt = 0; attempt < 10; attempt++) {
-        var cancelSource = new CancellationTokenSource();
-        var measurementTask = AssertThreadPoolIsAvailable(cancelSource.Token);
+        var threadPoolSchedulingCancellationToken = new CancellationTokenSource();
+        var threadPoolSchedulingTimeTask = TrackThreadPoolSchedulingTime(threadPoolSchedulingCancellationToken.Token);
         var beforeOpen = DateTime.Now;
         var documentItem = await CreateOpenAndWaitForResolve(source, "ManyFastEditsUsingLargeFiles.dfy",
           cancellationToken: CancellationTokenWithHighTimeout);
@@ -62,11 +68,12 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         var afterChange = DateTime.Now;
         var changeMilliseconds = (afterChange - afterOpen).TotalMilliseconds;
         await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-        cancelSource.Cancel();
-        var averageTimeToSchedule = await measurementTask;
+        threadPoolSchedulingCancellationToken.Cancel();
+        var averageTimeToSchedule = await threadPoolSchedulingTimeTask;
         var division = changeMilliseconds / openMilliseconds;
-        lowest = Math.Min(lowest, division);
 
+        timeToScheduleHistory.Add(averageTimeToSchedule);
+        divisionHistory.Add(division);
         // Commented code left in intentionally
         // await output.WriteLineAsync("openMilliseconds: " + openMilliseconds);
         // await output.WriteLineAsync("changeMilliseconds: " + changeMilliseconds);
@@ -88,18 +95,21 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     } catch (OperationCanceledException) {
     }
 
-    await output.WriteLineAsync("lowest division " + lowest);
+    logger.LogInformation("Average time to schedule history: \n" + string.Join(", ", timeToScheduleHistory));
+    logger.LogInformation("Division history: \n" + string.Join(", ", divisionHistory));
     throw lastException!;
   }
 
-  private async Task<double> AssertThreadPoolIsAvailable(CancellationToken durationToken) {
+  private async Task<double> TrackThreadPoolSchedulingTime(CancellationToken durationToken) {
     int ticks = 0;
     var waitTime = 100;
     var start = DateTime.Now;
     while (!durationToken.IsCancellationRequested) {
+      // Measuring the time Task.Run takes is the point of this method.
       await Task.Run(() => {
         Thread.Sleep(waitTime);
       });
+
       ticks++;
     }
 

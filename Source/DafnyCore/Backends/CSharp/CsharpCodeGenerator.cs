@@ -927,7 +927,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var member in dt.Members) {
         if (member.IsGhost || member.IsStatic) { continue; }
         if (member is Function fn && !NeedsCustomReceiver(member)) {
-          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Formals, fn.ResultType, fn.tok, fn.IsStatic,
+          CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic,
             false, fn, interfaceTree, false, false);
         } else if (member is Method m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, interfaceTree, false, false);
@@ -957,7 +957,7 @@ namespace Microsoft.Dafny.Compilers {
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
-              if ((member is Function f && f.Formals.Exists(InvalidFormal))
+              if ((member is Function f && f.Ins.Exists(InvalidFormal))
                   || (member is Method m && m.Ins.Exists(InvalidFormal))
                   || NeedsTypeDescriptor(tp)) {
                 return true;
@@ -1725,7 +1725,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
-            var arguments = Util.Comma(udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)} x{i}");
+            var arguments = Util.Comma(udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)} {idGenerator.FreshId("x")}");
             return $"(({arguments}) => {rangeDefaultValue})";
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
@@ -1993,8 +1993,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
-      var typeArgs = arg.Type.AsArrowType == null ? "" : $"<{TypeName(arg.Type, wr, null, null)}>";
-      var suffix = arg.Type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
+      var type = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type);
+      var typeArgs = type.AsArrowType == null ? "" : $"<{TypeName(type, wr, null, null)}>";
+      var suffix = type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
       wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
     }
 
@@ -2652,7 +2653,7 @@ namespace Microsoft.Dafny.Compilers {
           var arguments = lambdaHeader.ForkInParens();
           lambdaHeader.Write(" => ");
 
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               var ty = arg.Type.Subst(typeMap);
@@ -3421,15 +3422,16 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (ct is SetType) {
         var typeName = TypeName(ct.Arg, wr, tok);
-        return string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})");
+        wr.Write(string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})"));
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = TypeName(mt.Domain, wr, tok);
         var rantypeName = TypeName(mt.Range, wr, tok);
-        return $"{DafnyMapClass}<{domtypeName},{rantypeName}>.FromCollection({collName})";
+        wr.Write($"{DafnyMapClass}<{domtypeName},{rantypeName}>.FromCollection({collName})");
       } else {
         Contract.Assume(false);  // unexpected collection type
         throw new cce.UnreachableException();  // please compiler

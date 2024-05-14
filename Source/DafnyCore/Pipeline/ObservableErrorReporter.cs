@@ -41,7 +41,7 @@ namespace Microsoft.Dafny {
         );
       }
 
-      var dafnyDiagnostic = new DafnyDiagnostic(errorId, rootTok, msg, source, level, relatedInformation);
+      var dafnyDiagnostic = new DafnyDiagnostic(new MessageSourceBasedPhase(source), errorId!, rootTok, msg, source, level, relatedInformation);
       AddDiagnosticForFile(dafnyDiagnostic, GetUriOrDefault(rootTok));
       return true;
     }

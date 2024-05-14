@@ -41,7 +41,8 @@ library = [""{producerPath}""]".TrimStart();
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
     await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var diagnostics = await GetLastDiagnostics(projectFile);
+    Assert.Single(diagnostics);
   }
 
   /// <summary>
@@ -81,8 +82,9 @@ module Consumer {
     var tempDirectory = Path.GetRandomFileName();
     var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Single(diagnostics);
-    Assert.Equal("no Dafny source files were specified as input", diagnostics.First().Message);
+    var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+    Assert.Single(errors);
+    Assert.Equal("no Dafny source files were specified as input", errors.First().Message);
   }
 
   [Fact]
@@ -193,14 +195,15 @@ method Foo() {
   var x := 3;
   if (true) {
     var x := 4;
+    var y: int := true; 
   }
 }
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem);
-    Assert.Single(diagnostics);
-    Assert.Contains("Shadowed", diagnostics[0].Message);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains(diagnostics, d => d.Message.Contains("Shadowed"));
   }
 
   [Fact]

@@ -42,6 +42,10 @@ Italicized words in the given messages indicate variable content.
 {% include_relative Errors-Resolver3.md %}
 {% include_relative Errors-Rewriter.md %}
 
+# **Refinement Errors**
+
+{% include_relative Errors-Refinement.md %}
+
 # **Verification Errors**
 
 _This section is a work in progress_

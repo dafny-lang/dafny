@@ -28,12 +28,12 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, "source.dfy"), "hasErrorInSyntax");
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, DafnyProject.FileName), "");
 
-    await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
+    var project = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
 
-    var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+    var diagnostics = await GetLastDiagnostics(project);
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Single(errors);
-    Assert.Contains("the referenced file", errors[0].Message);
+    Assert.Contains("but is part of a different project", errors[0].Message);
   }
 
   public readonly string hasShadowingSource = @"

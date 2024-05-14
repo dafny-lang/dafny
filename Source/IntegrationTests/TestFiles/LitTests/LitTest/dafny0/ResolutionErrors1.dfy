@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-axioms
+
 
 // ------------------------ inferred type arguments ----------------------------
 
@@ -156,13 +156,19 @@ module UnderspecifiedTypes {
     var n, p, T0 :| 12 <= n && n in T0 && 10 <= p && p in T0 && T0 <= S && p % 2 != n % 2;
     var T1 :| 12 in T1 && T1 <= S;
     var T2 :| T2 <= S && 12 in T2;
-    var T3 :| 120 in T3;  // error: underspecified type
+
     var T3'0: set<int> :| 120 in T3'0;
     var T3'1: multiset<int> :| 120 in T3'1;
     var T3'2: map<int,bool> :| 120 in T3'2;
     var T3'3: seq<int> :| 120 in T3'3;
     var T3'4: bool :| 120 in T3'4;  // error: second argument to 'in' cannot be bool
     var T4 :| T4 <= S;
+  }
+}
+
+module UnderspecifiedTypes' {
+  method M() {
+    var T3 :| 120 in T3;  // error: underspecified type
   }
 }
 

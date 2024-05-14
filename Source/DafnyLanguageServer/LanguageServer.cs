@@ -24,12 +24,12 @@ namespace Microsoft.Dafny.LanguageServer {
         ProjectManager.Verification,
         GhostStateDiagnosticCollector.GhostIndicators,
         GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
-        LanguageServer.VerifySnapshots,
+        VerifySnapshots,
         DafnyLangSymbolResolver.UseCaching,
         ProjectManager.UpdateThrottling,
         DeveloperOptionBag.BoogiePrint,
         CommonOptionBag.EnforceDeterminism,
-        CommonOptionBag.UseJavadocLikeDocstringRewriterOption,
+        InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption,
         LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ResolverOptions);

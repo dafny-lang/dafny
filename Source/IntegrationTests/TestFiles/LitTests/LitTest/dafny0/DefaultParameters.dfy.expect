@@ -1,12 +1,12 @@
 DefaultParameters.dfy(55,23): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(63,42): Error: default value might not be allocated in the two-state function's previous state
-DefaultParameters.dfy(67,38): Error: default value might not be allocated in the two-state lemma's previous state
+DefaultParameters.dfy(63,42): Error: default value could not be proved to be allocated in the two-state function's previous state
+DefaultParameters.dfy(67,38): Error: default value could not be proved to be allocated in the two-state lemma's previous state
 DefaultParameters.dfy(92,2): Error: a postcondition could not be proved on this return path
 DefaultParameters.dfy(91,16): Related location: this is the postcondition that could not be proved
 DefaultParameters.dfy(102,15): Error: assertion might not hold
 DefaultParameters.dfy(110,15): Error: assertion might not hold
-DefaultParameters.dfy(124,37): Error: insufficient reads clause to read field
-DefaultParameters.dfy(131,40): Error: insufficient reads clause to read field
+DefaultParameters.dfy(124,37): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
+DefaultParameters.dfy(131,40): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(135,49): Error: possible division by zero
 DefaultParameters.dfy(137,43): Error: possible division by zero
 DefaultParameters.dfy(140,34): Error: possible division by zero
@@ -38,13 +38,13 @@ DefaultParameters.dfy(229,8): Error: decreases clause might not decrease
 DefaultParameters.dfy(235,4): Error: decreases clause might not decrease
 DefaultParameters.dfy(235,6): Error: decreases clause might not decrease
 DefaultParameters.dfy(241,4): Error: decreases clause might not decrease
-DefaultParameters.dfy(251,31): Error: insufficient reads clause to read field
+DefaultParameters.dfy(251,31): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(258,40): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(267,41): Error: possible division by zero
 DefaultParameters.dfy(320,45): Error: a precondition for this call could not be proved
 DefaultParameters.dfy(319,15): Related location: this is the precondition that could not be proved
-DefaultParameters.dfy(326,36): Error: insufficient reads clause to read array element
-DefaultParameters.dfy(327,54): Error: insufficient reads clause to read array element
+DefaultParameters.dfy(326,36): Error: insufficient reads clause to read array element; Array elements cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
+DefaultParameters.dfy(327,54): Error: insufficient reads clause to read array element; Array elements cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(360,38): Error: possible division by zero
 DefaultParameters.dfy(361,40): Error: possible division by zero
 DefaultParameters.dfy(362,32): Error: possible division by zero
@@ -70,10 +70,10 @@ DefaultParameters.dfy(493,18): Error: value does not satisfy the subset constrai
 DefaultParameters.dfy(494,32): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(500,15): Error: a precondition for this call could not be proved
 DefaultParameters.dfy(503,13): Related location: this is the precondition that could not be proved
-DefaultParameters.dfy(520,38): Error: insufficient reads clause to read field
-DefaultParameters.dfy(521,40): Error: insufficient reads clause to read field
-DefaultParameters.dfy(524,49): Error: insufficient reads clause to read field
-DefaultParameters.dfy(548,38): Error: insufficient reads clause to read field
+DefaultParameters.dfy(520,38): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
+DefaultParameters.dfy(521,40): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
+DefaultParameters.dfy(524,49): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
+DefaultParameters.dfy(548,38): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(601,11): Error: assertion might not hold
 DefaultParameters.dfy(582,18): Related location: this proposition could not be proved
 

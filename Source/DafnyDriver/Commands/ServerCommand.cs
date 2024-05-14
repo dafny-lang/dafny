@@ -16,15 +16,14 @@ public class ServerCommand {
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(LanguageServer.VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
 
-    DooFile.RegisterNoChecksNeeded(
-      ProjectManager.Verification,
-      GhostStateDiagnosticCollector.GhostIndicators,
-      GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
-      LanguageServer.VerifySnapshots,
-      DafnyLangSymbolResolver.UseCaching,
-      ProjectManager.UpdateThrottling,
-      LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
-    );
+    DooFile.RegisterNoChecksNeeded(ProjectManager.Verification, false);
+    DooFile.RegisterNoChecksNeeded(GhostStateDiagnosticCollector.GhostIndicators, false);
+    DooFile.RegisterNoChecksNeeded(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, false);
+    DooFile.RegisterNoChecksNeeded(LanguageServer.VerifySnapshots, false);
+    DooFile.RegisterNoChecksNeeded(DafnyLangSymbolResolver.UseCaching, false);
+    DooFile.RegisterNoChecksNeeded(ProjectManager.UpdateThrottling, false);
+    DooFile.RegisterNoChecksNeeded(ProjectManager.ReuseSolvers, false);
+    DooFile.RegisterNoChecksNeeded(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable, false);
   }
 
   private static Command Create() {
@@ -33,6 +32,7 @@ public class ServerCommand {
       result.Add(option);
     }
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+      options.Set(DafnyFile.UnsafeDependencies, true);
       LanguageServer.ConfigureDafnyOptionsForServer(options);
       await LanguageServer.Start(options);
       return 0;

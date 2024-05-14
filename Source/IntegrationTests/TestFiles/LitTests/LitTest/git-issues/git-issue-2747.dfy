@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %testDafnyForEachResolver "%s" -- --allow-warnings
 
 
 ghost function AnotherBrokenFunction(): nat {

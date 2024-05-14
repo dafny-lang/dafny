@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /generalTraits:legacy "%s" > "%t"
-// RUN: %exits-with 2 %dafny /generalTraits:datatype "%s" >> "%t"
+// RUN: %exits-with 2 %build --general-traits legacy "%s" > "%t"
+// RUN: %exits-with 2 %build --general-traits datatype "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {

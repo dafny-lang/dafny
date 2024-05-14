@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-inference "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file ensures that trigger splitting picks the right tokens

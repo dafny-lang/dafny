@@ -121,7 +121,6 @@ namespace Microsoft.Dafny {
       foreach (var formatLogger in formatLoggers) {
         await formatLogger.Flush();
       }
-      await options.OutputWriter.FlushAsync();
     }
 
     public static IEnumerable<TestResult> VerificationToTestResults(VerificationScopeResult result) {

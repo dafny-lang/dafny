@@ -974,7 +974,11 @@ namespace Microsoft.Dafny.Compilers {
         return $"{DafnyMultiSetClass}.Empty";
       } else if (xType is SeqType seq) {
         if (seq.Arg.IsCharType) {
-          return "''";
+          if (UnicodeCharEnabled) {
+            return "_dafny.Seq.UnicodeFromString(\"\")";
+          } else {
+            return "\"\"";
+          }
         }
         return $"{DafnySeqClass}.of()";
       } else if (xType is MapType) {
@@ -1138,7 +1142,7 @@ namespace Microsoft.Dafny.Compilers {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
-      bool isString = arg.Type.NormalizeToAncestorType().IsStringType;
+      bool isString = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType;
       bool isStringLiteral = arg is StringLiteralExpr;
       bool isGeneric = arg.Type.NormalizeToAncestorType().AsSeqType is { Arg.IsTypeParameter: true };
       var wStmts = wr.Fork();
@@ -1741,7 +1745,7 @@ namespace Microsoft.Dafny.Compilers {
           var prefixWr = new ConcreteSyntaxTree();
           var prefixSep = "";
           prefixWr.Write("(");
-          foreach (var arg in fn.Formals) {
+          foreach (var arg in fn.Ins) {
             if (!arg.IsGhost) {
               var name = idGenerator.FreshId("_eta");
               prefixWr.Write("{0}{1}", prefixSep, name);
@@ -2566,9 +2570,10 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       // collections are built in place
-      return collName;
+      wr.Write(collName);
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

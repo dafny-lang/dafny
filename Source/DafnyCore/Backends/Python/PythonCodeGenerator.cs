@@ -89,9 +89,9 @@ namespace Microsoft.Dafny.Compilers {
       return file;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      moduleName = IdProtect(moduleName);
+      var moduleName = IdProtect(module.GetCompileName(Options));
       Imports.Add(moduleName);
     }
 
@@ -713,7 +713,13 @@ namespace Microsoft.Dafny.Compilers {
         case RealType:
           return $"{DafnyRuntimeModule}.BigRational()";
         case CollectionType:
-          return $"{TypeHelperName(xType)}({{}})";
+          if (xType is SeqType { Arg: { IsCharType: true } }) {
+            var wrString = new ConcreteSyntaxTree();
+            StringLiteralWrapper(wrString).Write("\"\"");
+            return wrString.ToString();
+          } else {
+            return $"{TypeHelperName(xType)}({{}})";
+          }
         case UserDefinedType udt: {
             var cl = udt.ResolvedClass;
             Contract.Assert(cl != null);
@@ -736,7 +742,7 @@ namespace Microsoft.Dafny.Compilers {
                     var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, usePlaceboValue,
                       constructTypeParameterDefaultsFromTypeDescriptors);
                     // The final TypeArg contains the result type
-                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => $"x{i}");
+                    var arguments = udt.TypeArgs.SkipLast(1).Comma((_, i) => idGenerator.FreshId("x"));
                     return $"(lambda {arguments}: {rangeDefaultValue})";
                   default:
                     return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, usePlaceboValue,
@@ -856,7 +862,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
-      if (UnicodeCharEnabled && arg.Type.IsStringType) {
+      if (UnicodeCharEnabled && DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType) {
         TrParenExpr(arg, wr, false, wStmts);
         wr.Write(".VerbatimString(False)");
       } else {
@@ -1027,16 +1033,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case StringLiteralExpr str:
-          if (UnicodeCharEnabled) {
-            wr.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, ");
-            TrStringLiteral(str, wr);
-            wr.Write("))");
-          } else {
-            wr.Write($"{DafnySeqMakerFunction}(");
-            TrStringLiteral(str, wr);
-            wr.Write(")");
-          }
-
+          TrStringLiteral(str, StringLiteralWrapper(wr));
           break;
         case StaticReceiverExpr:
           wr.Write(TypeName(e.Type, wr, e.tok));
@@ -1061,6 +1058,20 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
       }
+    }
+
+    private ConcreteSyntaxTree StringLiteralWrapper(ConcreteSyntaxTree wr) {
+      ConcreteSyntaxTree wrStringGoesHere;
+      if (UnicodeCharEnabled) {
+        wr.Write($"{DafnySeqMakerFunction}(map({DafnyRuntimeModule}.CodePoint, ");
+        wrStringGoesHere = wr.Fork();
+        wr.Write("))");
+      } else {
+        wr.Write($"{DafnySeqMakerFunction}(");
+        wrStringGoesHere = wr.Fork();
+        wr.Write(")");
+      }
+      return wrStringGoesHere;
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
@@ -1292,7 +1303,7 @@ namespace Microsoft.Dafny.Compilers {
               return SuffixLvalue(obj, $".{IdName(fn)}");
             }
             return SimpleLvalue(w => {
-              var args = fn.Formals
+              var args = fn.Ins
                 .Where(f => !f.IsGhost)
                 .Select(_ => ProtectedFreshId("_eta"))
                 .Comma();
@@ -1816,8 +1827,9 @@ namespace Microsoft.Dafny.Compilers {
         : $"{tmpVarName} is None or {typeTest}");
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
-      return TypeHelperName(ct) + $"({collName})";
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
+      wr.Write(TypeHelperName(ct) + $"({collName})");
     }
 
     protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {

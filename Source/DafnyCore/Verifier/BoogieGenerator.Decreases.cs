@@ -33,16 +33,15 @@ public partial class BoogieGenerator {
   ///     allowance || (calleeDecreases LESS contextDecreases).
   /// </summary>
   void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
-                            Bpl.Expr allowance,
+                            Expression allowance,
                             Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
                             Dictionary<TypeParameter, Type> typeMap,
-                            ExpressionTranslator etranCurrent, ExpressionTranslator etranInitial, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
+                            ExpressionTranslator etranCurrent, bool oldCaller, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
     Contract.Requires(tok != null);
     Contract.Requires(cce.NonNullElements(contextDecreases));
     Contract.Requires(cce.NonNullElements(calleeDecreases));
     Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
     Contract.Requires(etranCurrent != null);
-    Contract.Requires(etranInitial != null);
     Contract.Requires(builder != null);
 
     // The interpretation of the given decreases-clause expression tuples is as a lexicographic tuple, extended into
@@ -62,6 +61,8 @@ public partial class BoogieGenerator {
     var types1 = new List<Type>();
     var callee = new List<Expr>();
     var caller = new List<Expr>();
+    var oldExpressions = new List<Expression>();
+    var newExpressions = new List<Expression>();
     if (RefinementToken.IsInherited(tok, currentModule) && contextDecreases.All(e => !RefinementToken.IsInherited(e.tok, currentModule))) {
       // the call site is inherited but all the context decreases expressions are new
       tok = new ForceCheckToken(tok);
@@ -69,22 +70,31 @@ public partial class BoogieGenerator {
     for (int i = 0; i < N; i++) {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
       Expression e1 = contextDecreases[i];
+      if (oldCaller) {
+        e1 = new OldExpr(e1.tok, e1) {
+          Type = e1.Type // To ensure that e1 stays resolved
+        };
+      }
       if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
         N = i;
         break;
       }
+      oldExpressions.Add(e1);
+      newExpressions.Add(e0);
       toks.Add(new NestedToken(tok, e1.tok));
       types0.Add(e0.Type.NormalizeExpand());
       types1.Add(e1.Type.NormalizeExpand());
       callee.Add(etranCurrent.TrExpr(e0));
-      caller.Add(etranInitial.TrExpr(e1));
+      caller.Add(etranCurrent.TrExpr(e1));
     }
     bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
     Bpl.Expr decrExpr = DecreasesCheck(toks, types0, types1, callee, caller, builder, "", endsWithWinningTopComparison, false);
     if (allowance != null) {
-      decrExpr = Bpl.Expr.Or(allowance, decrExpr);
+      decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
-    builder.Add(Assert(tok, decrExpr, new PODesc.Terminates(inferredDecreases, false, hint)));
+    builder.Add(Assert(tok, decrExpr, new
+      PODesc.Terminates(inferredDecreases, null, allowance,
+                        oldExpressions, newExpressions, hint)));
   }
 
   /// <summary>
@@ -125,7 +135,7 @@ public partial class BoogieGenerator {
         // we only need to check lower bound for integers--sets, sequences, booleans, references, and datatypes all have natural lower bounds
         Bpl.Expr prefixIsLess = Bpl.Expr.False;
         for (int i = 0; i < k; i++) {
-          prefixIsLess = Bpl.Expr.Or(prefixIsLess, Less[i]);
+          prefixIsLess = BplOr(prefixIsLess, Less[i]);
         };
 
         Bpl.Expr zero = null;
@@ -140,9 +150,9 @@ public partial class BoogieGenerator {
         if (zero != null) {
           Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
           for (int i = 0; i < k; i++) {
-            bounded = Bpl.Expr.Or(bounded, Less[i]);
+            bounded = BplOr(bounded, Less[i]);
           }
-          Bpl.Cmd cmd = Assert(toks[k], Bpl.Expr.Or(bounded, Eq[k]), new PODesc.DecreasesBoundedBelow(N, k, zeroStr, suffixMsg));
+          Bpl.Cmd cmd = Assert(toks[k], BplOr(bounded, Eq[k]), new PODesc.DecreasesBoundedBelow(N, k, zeroStr, suffixMsg));
           builder.Add(cmd);
         }
       }
@@ -154,10 +164,10 @@ public partial class BoogieGenerator {
       Bpl.Expr eq = Eq[i];
       if (allowNoChange) {
         // decrCheck = atmost && (eq ==> decrCheck)
-        decrCheck = Bpl.Expr.And(less, Bpl.Expr.Imp(eq, decrCheck));
+        decrCheck = BplAnd(less, BplImp(eq, decrCheck));
       } else {
         // decrCheck = less || (eq && decrCheck)
-        decrCheck = Bpl.Expr.Or(less, Bpl.Expr.And(eq, decrCheck));
+        decrCheck = BplOr(less, BplAnd(eq, decrCheck));
       }
     }
     return decrCheck;
@@ -236,9 +246,9 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Lt(b0, b1);
       atmost = Bpl.Expr.Le(b0, b1);
     } else if (ty0 is BoolType) {
-      eq = Bpl.Expr.Iff(e0, e1);
-      less = Bpl.Expr.And(Bpl.Expr.Not(e0), e1);
-      atmost = Bpl.Expr.Imp(e0, e1);
+      eq = BplIff(e0, e1);
+      less = BplAnd(Bpl.Expr.Not(e0), e1);
+      atmost = BplImp(e0, e1);
     } else if (ty0 is CharType) {
       eq = Bpl.Expr.Eq(e0, e1);
       var operand0 = FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, e0);
@@ -263,8 +273,8 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Lt(b0, b1);
       atmost = Bpl.Expr.Le(b0, b1);
       if (ty0.IsNumericBased(Type.NumericPersuasion.Int) && includeLowerBound) {
-        less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
-        atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
+        less = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), less);
+        atmost = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), b0), atmost);
       }
 
     } else if (ty0.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -272,8 +282,8 @@ public partial class BoogieGenerator {
       less = Bpl.Expr.Le(e0, Bpl.Expr.Sub(e1, Bpl.Expr.Literal(BaseTypes.BigDec.FromInt(1))));
       atmost = Bpl.Expr.Le(e0, e1);
       if (includeLowerBound) {
-        less = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), less);
-        atmost = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), atmost);
+        less = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), less);
+        atmost = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(BaseTypes.BigDec.ZERO), e0), atmost);
       }
 
     } else if (ty0 is IteratorDecl.EverIncreasingType) {
@@ -342,9 +352,9 @@ public partial class BoogieGenerator {
       Contract.Assert(ty0.IsRefType);  // otherwise, unexpected type
       var b0 = Bpl.Expr.Neq(e0, predef.Null);
       var b1 = Bpl.Expr.Neq(e1, predef.Null);
-      eq = Bpl.Expr.Iff(b0, b1);
-      less = Bpl.Expr.And(Bpl.Expr.Not(b0), b1);
-      atmost = Bpl.Expr.Imp(b0, b1);
+      eq = BplIff(b0, b1);
+      less = BplAnd(Bpl.Expr.Not(b0), b1);
+      atmost = BplImp(b0, b1);
     }
   }
 }

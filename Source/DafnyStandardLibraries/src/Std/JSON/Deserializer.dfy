@@ -69,7 +69,7 @@ module Std.JSON.Deserializer {
     hd as uint16
   }
 
-  function {:tailrecursion} {:vcs_split_on_every_assert} Unescape(str: seq<uint16>, start: nat := 0, prefix: seq<uint16> := []): DeserializationResult<seq<uint16>>
+  function {:tailrecursion} {:isolate_assertions} Unescape(str: seq<uint16>, start: nat := 0, prefix: seq<uint16> := []): DeserializationResult<seq<uint16>>
     decreases |str| - start
   { // Assumes UTF-16 strings
     if start >= |str| then Success(prefix)
