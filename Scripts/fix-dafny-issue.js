@@ -107,7 +107,7 @@ const rl = readline.createInterface({
 let cache = {};
 constants.cache = cache;
 let questionCache = {}; // Used for tests only.
-constants.questionCache = cache;
+constants.questionCache = questionCache;
 // Ask the given question and returns the answer of the user
 const question = function(input) {
   if(Object.keys(constants.questionCache).length > 0) {
