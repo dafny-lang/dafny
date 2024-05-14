@@ -306,9 +306,17 @@ namespace Microsoft.Dafny {
           compiled = await Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, outcome, moduleStats, verified);
         } catch (UnsupportedFeatureException e) {
           if (!options.Backend.UnsupportedFeatures.Contains(e.Feature)) {
-            throw new Exception($"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
+            throw new Exception(
+              $"'{e.Feature}' is not an element of the {options.Backend.TargetId} compiler's UnsupportedFeatures set");
           }
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
+
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, e.Token,
+            e.Message);
+          compiled = false;
+        } catch (UnsupportedInvalidOperationException e) {
+          // Not having this catch makes all tests running for all compilers take 10-15x longer on Windows,
+          // just because of the Dafny compiler.
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, Token.NoToken, e.Message);
           compiled = false;
         }
 

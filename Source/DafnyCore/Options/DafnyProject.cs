@@ -31,7 +31,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public ISet<string> Excludes { get; }
   public IDictionary<string, object> Options { get; }
 
-  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
+  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath).EndsWith(FileName);
   public bool ImplicitFromCli;
 
   public IToken StartingToken => ImplicitFromCli ? Token.Cli : new Token {
