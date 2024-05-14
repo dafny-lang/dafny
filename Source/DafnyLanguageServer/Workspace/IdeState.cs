@@ -213,9 +213,7 @@ public record IdeState(
     }
     ownedUris.Add(determinedRootFiles.Project.Uri);
 
-    var version = this.Version;
-    var previousNewDiagnostics = FreshDiagnostics;
-    var result = this with {
+    return this with {
       OwnedUris = ownedUris,
       Status = status,
       VerificationTrees = determinedRootFiles.Roots.ToImmutableDictionary(
@@ -223,7 +221,6 @@ public record IdeState(
         file => VerificationTrees.GetValueOrDefault(file.Uri) ??
                 new DocumentVerificationTree(Program, file.Uri))
     };
-    return result;
   }
 
   private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
