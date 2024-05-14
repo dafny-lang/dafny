@@ -42,8 +42,6 @@ public class Compilation : IDisposable {
 
   public bool Started => started.Task.IsCompleted;
 
-  private readonly ConcurrentDictionary<Uri, ConcurrentStack<DafnyDiagnostic>> staticDiagnostics = new();
-
   /// <summary>
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>
@@ -98,7 +96,6 @@ public class Compilation : IDisposable {
       if (newDiagnostic.Diagnostic.Level == ErrorLevel.Error) {
         HasErrors = true;
       }
-      staticDiagnostics.GetOrAdd(newDiagnostic.Uri, _ => new()).Push(newDiagnostic.Diagnostic);
     });
 
     cancellationSource = new();
@@ -120,15 +117,6 @@ public class Compilation : IDisposable {
 
     started.TrySetResult();
   }
-
-  private ImmutableList<FileDiagnostic> GetDiagnosticsCopyAndClear() {
-    var result = staticDiagnostics.SelectMany(k =>
-      k.Value.Select(v => new FileDiagnostic(k.Key, v.ToLspDiagnostic()))).ToImmutableList();
-    staticDiagnostics.Clear();
-    return result;
-  }
-
-
 
   private async Task<IReadOnlyList<DafnyFile>> DetermineRootFiles() {
     await started.Task;
@@ -201,7 +189,7 @@ public class Compilation : IDisposable {
     // Allow specifying the same file twice on the CLI
     var distinctResults = result.DistinctBy(d => d.Uri).ToList();
 
-    updates.OnNext(new DeterminedRootFiles(Project, distinctResults, GetDiagnosticsCopyAndClear()));
+    updates.OnNext(new DeterminedRootFiles(Project, distinctResults));
     return distinctResults;
   }
 
@@ -218,7 +206,7 @@ public class Compilation : IDisposable {
       var cloner = new Cloner(true);
       programAfterParsing = new Program(cloner, transformedProgram);
 
-      updates.OnNext(new FinishedParsing(programAfterParsing, GetDiagnosticsCopyAndClear()));
+      updates.OnNext(new FinishedParsing(programAfterParsing));
       logger.LogDebug(
         $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
       return programAfterParsing;
@@ -226,7 +214,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Parser), e));
+      updates.OnNext(new InternalCompilationException(MessageSource.Parser, e));
       throw;
     }
   }
@@ -242,9 +230,7 @@ public class Compilation : IDisposable {
         return null;
       }
 
-      updates.OnNext(new FinishedResolution(
-        resolution,
-        GetDiagnosticsCopyAndClear()));
+      updates.OnNext(new FinishedResolution(resolution));
       staticDiagnosticsSubscription.Dispose();
       logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
       return resolution;
@@ -252,7 +238,7 @@ public class Compilation : IDisposable {
     } catch (OperationCanceledException) {
       throw;
     } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Resolver), e));
+      updates.OnNext(new InternalCompilationException(MessageSource.Resolver, e));
       throw;
     }
   }
@@ -351,7 +337,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(new MessageSourceBasedPhase(MessageSource.Verifier), e));
+        updates.OnNext(new InternalCompilationException(MessageSource.Verifier, e));
         throw;
       }
 

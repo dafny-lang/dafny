@@ -7,8 +7,5 @@ namespace Microsoft.Dafny;
 
 public record FileDiagnostic(Uri Uri, Diagnostic Diagnostic);
 
-public record DeterminedRootFiles(
-  DafnyProject Project,
-  IReadOnlyList<DafnyFile> Roots,
-  ImmutableList<FileDiagnostic> Diagnostics) : ICompilationEvent {
+public record DeterminedRootFiles(DafnyProject Project, IReadOnlyList<DafnyFile> Roots) : ICompilationEvent {
 }
