@@ -2550,6 +2550,7 @@ namespace Microsoft.Dafny {
 
       bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
       ie = new IdentifierExpr(tok, bv.Name);
+      bv.RangeToken = iv.RangeToken;
       ie.Var = bv;  // resolve here
       ie.Type = bv.Type;  // resolve here
     }
