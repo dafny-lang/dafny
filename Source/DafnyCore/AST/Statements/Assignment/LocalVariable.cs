@@ -131,7 +131,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       IsTypeExplicit ? new List<Node>() { OptionalType ?? type } : Enumerable.Empty<Node>());
 
-  public SymbolKind Kind => SymbolKind.Variable;
+  public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
   }

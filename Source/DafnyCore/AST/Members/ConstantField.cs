@@ -47,7 +47,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   public bool AllowsAllocation => true;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { Rhs }.Where(x => x != null));
-  public override SymbolKind Kind => SymbolKind.Constant;
+  public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public ModuleDefinition ContainingModule => EnclosingModule;

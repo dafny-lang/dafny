@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using SymbolKind = OmniSharp.Extensions.LanguageServer.Protocol.Models.SymbolKind;
 
 namespace Microsoft.Dafny;
 
@@ -61,6 +62,8 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   /// </summary>
   public override IToken NameToken =>
     NameNode.StartToken == NameNode.EndToken ? TargetQId.Decl.NameToken : base.NameToken;
+
+  public override SymbolKind? Kind => NameNode.StartToken == NameNode.EndToken ? null : base.Kind;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new INode[] { TargetQId });
 }
