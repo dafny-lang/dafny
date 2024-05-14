@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr>, ICanFormat {
+public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
   public IEnumerable<Expression> OldExpressions { get; }
   public IEnumerable<Expression> NewExpressions { get; }
 
@@ -38,9 +38,5 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr>, ICanForm
         yield return newExpr;
       }
     }
-  }
-
-  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    throw new NotImplementedException();
   }
 }
