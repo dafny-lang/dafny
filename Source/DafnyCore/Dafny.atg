@@ -2323,7 +2323,7 @@ UpdateStmt<out Statement/*!*/ s>
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
-      MaybeDecreasesToExpression<out exceptionExpr, false, false>
+      Expression<out exceptionExpr, false, false>
       { Attribute<ref attrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
@@ -2342,7 +2342,7 @@ UpdateStmt<out Statement/*!*/ s>
       ("expect"|"assert"|"assume")    (. var tok = t; .)
       { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
-   MaybeDecreasesToExpression<out exceptionExpr, false, false>
+   Expression<out exceptionExpr, false, false>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
@@ -2488,7 +2488,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
          ("expect"|"assert"|"assume")  (. var tok = t; .)
          { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
-      MaybeDecreasesToExpression<out exceptionExpr, false, false>
+      Expression<out exceptionExpr, false, false>
       { Attribute<ref attrs> }       (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
@@ -2975,7 +2975,7 @@ AssumeStmt<out Statement/*!*/ s>
   .)
   "assume"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( Expression<out e, false, true>
+  ( MaybeDecreasesToExpression<out e, false, true>
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
@@ -3218,16 +3218,17 @@ MaybeDecreasesToExpression<out Expression e, bool allowLemma, bool allowLambda, 
      Expression tmp = null;
      IToken x = null;
   .)
-  Expression<out tmp, allowLemma, allowLambda, allowBitwiseOps>   (. oldExprs.Add(tmp); .)
-  { IF(IsComma())
-    ","
+  NotDecreasesToExpression<out tmp, allowLemma, allowLambda, allowBitwiseOps>   (. oldExprs.Add(tmp); .)
+  { ","
     NotDecreasesToExpression<out tmp, false, false>                             (. oldExprs.Add(tmp); .)
   }
   [ "decreases"                                                                 (. x = t; .)
-    "to"
+    ident                                                                       (. if (t.val != "to") {
+                                                                                     SemErr(ErrorId.none, t, "Expected 'to'");
+                                                                                   }
+                                                                                .)
     NotDecreasesToExpression<out tmp, allowLemma, allowLambda, allowBitwiseOps> (. newExprs.Add(tmp); .)
-    { IF(IsComma())
-      ","
+    { ","
       NotDecreasesToExpression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
     }
   ]
@@ -3683,6 +3684,7 @@ ConstAtomExpression<out Expression e>
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
   | ParensExpression<out e>
+  | "(" MaybeDecreasesToExpression<out e, false, false> ")"
   ) (. if(x!= null) { e.RangeToken = new RangeToken(x, t); } .)
   .
 
