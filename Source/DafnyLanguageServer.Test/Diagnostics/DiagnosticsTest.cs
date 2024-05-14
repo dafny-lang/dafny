@@ -19,6 +19,24 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task ResolutionErrorMigration() {
+      var source = @"module ResolutionError {
+  import   UnderlineComments2
+}";
+      var addition = @"module ParseError {
+  // I can underline comments in red.
+  function method Test() {
+  }
+}
+";
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), addition);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.DoesNotContain(diagnostics2, d => d.Range.Start.Line == 1);
+    }
+
+    [Fact]
     public async Task RedundantAssumptionsGetWarnings() {
       var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
       var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
@@ -115,7 +133,7 @@ function HasResolutionError(): int {
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
       var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
-      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
+      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Parser.ToString());
       ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
       var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(parseDiagnostics2);
