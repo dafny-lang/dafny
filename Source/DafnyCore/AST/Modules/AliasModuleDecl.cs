@@ -64,6 +64,8 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
 
   private bool HasAlias => NameNode.RangeToken.IsSet();
 
+  public override IToken Tok => HasAlias ? NameNode.StartToken : StartToken;
+
   public override SymbolKind? Kind => !HasAlias ? null : base.Kind;
 
   public override IEnumerable<INode> Children => base.Children.Concat(new INode[] { TargetQId });
