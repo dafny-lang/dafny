@@ -4,7 +4,4 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public record FinishedParsing(
-  Program Program,
-  ImmutableList<FileDiagnostic> Diagnostics) : ICompilationEvent {
-}
+public record FinishedParsing(Program Program) : ICompilationEvent;
