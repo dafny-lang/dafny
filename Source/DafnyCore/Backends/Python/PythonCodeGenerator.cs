@@ -1153,9 +1153,9 @@ namespace Microsoft.Dafny.Compilers {
         _ => MangleName(name)
       };
     }
-    
-    
-    public readonly HashSet<string> ReservedModuleNames = new () {
+
+
+    public readonly HashSet<string> ReservedModuleNames = new() {
       "math"
     };
 
