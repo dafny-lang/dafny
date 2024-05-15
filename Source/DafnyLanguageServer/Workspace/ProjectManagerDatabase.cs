@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     };
 
     static ProjectManagerDatabase() {
-      DooFile.RegisterNoChecksNeeded(ProjectManager.UpdateThrottling, false);
+      DooFile.RegisterNoChecksNeeded(ProjectFileCacheExpiry, false);
     }
 
     private readonly object myLock = new();
