@@ -1080,7 +1080,10 @@ namespace Microsoft.Dafny {
 
       var dReceiver = Constraints.ApproximateReceiverType(receiverPreType, memberName);
       if (dReceiver == null) {
-        ReportError(tok, "type of the receiver is not fully determined at this program point");
+        if (reportErrorOnMissingMember) {
+          ReportError(tok, "type of the receiver is not fully determined at this program point");
+        }
+
         return (null, null);
       }
 
@@ -1451,7 +1454,7 @@ namespace Microsoft.Dafny {
 
       var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved ?? expr.Lhs; // Sometimes resolution comes later, but pre-types have already been set
-      if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
+      if (lhs is {PreType: PreTypePlaceholderModule}) {
         var ri = (Resolver_IdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = ModuleResolver.GetSignatureExt(sig);
@@ -1509,7 +1512,7 @@ namespace Microsoft.Dafny {
           ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
-      } else if (lhs != null && lhs.PreType is PreTypePlaceholderType) {
+      } else if (lhs is {PreType: PreTypePlaceholderType}) {
         var ri = (Resolver_IdentifierExpr)lhs;
         // ----- 3. Look up name in type
         // expand any synonyms
@@ -1553,18 +1556,22 @@ namespace Microsoft.Dafny {
 
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name, resolutionContext);
+        var (member, tentativeReceiverPreType) = FindMember(expr.tok, expr.Lhs.PreType, name, resolutionContext,
+          expr.Lhs.Resolved != null);
         if (member != null) {
           if (!member.IsStatic) {
             var receiver = expr.Lhs;
-            AddSubtypeConstraint(tentativeReceiverPreType, receiver.PreType, expr.tok, $"receiver type ({{1}}) does not have a member named '{name}'");
-            r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverPreType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            AddSubtypeConstraint(tentativeReceiverPreType, receiver.PreType, expr.tok,
+              $"receiver type ({{1}}) does not have a member named '{name}'");
+            r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverPreType, member, args, expr.OptTypeArguments,
+              resolutionContext, allowMethodCall);
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, new InferredTypeProxy(), true) {
               PreType = tentativeReceiverPreType,
               ObjectToDiscard = lhs
             };
-            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext,
+              allowMethodCall);
           }
         }
       }
