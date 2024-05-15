@@ -52,8 +52,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
-      client.OpenDocument(documentItem);
+      var documentItem = CreateAndOpenTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 

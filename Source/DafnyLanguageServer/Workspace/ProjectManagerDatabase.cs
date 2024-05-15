@@ -152,7 +152,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           projectManagerForFile = null;
         }
 
-        bool triggerCompilation;
+        bool triggerCompilation = false;
         if (projectManagerForFile != null) {
 
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
@@ -167,9 +167,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
                                     createProjectManager(scheduler, verificationCache, project);
             projectManagerForFile.OpenDocument(uri, true);
+            triggerCompilation = true;
           }
-
-          triggerCompilation = true;
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
           if (managerForProject is { IsDisposed: true }) {
