@@ -1,0 +1,6 @@
+DecreasesTo2.dfy(5,24): Error: invalid UnaryExpression
+DecreasesTo2.dfy(9,21): Error: ident expected
+DecreasesTo2.dfy(9,12): Error: expected 'to'
+DecreasesTo2.dfy(13,10): Error: invalid UnaryExpression
+DecreasesTo2.dfy(13,22): Error: invalid UnaryExpression
+5 parse errors detected in DecreasesTo2.dfy

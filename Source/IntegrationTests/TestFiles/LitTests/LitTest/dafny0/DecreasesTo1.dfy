@@ -1,4 +1,5 @@
-// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s"
+// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 method GoodInstances(x: int, y: int) {
   assert (true decreases to false);
