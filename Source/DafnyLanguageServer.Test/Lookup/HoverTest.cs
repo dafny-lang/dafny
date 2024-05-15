@@ -86,6 +86,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     }
 
     [Fact]
+    public async Task Crash() {
+      var source = @"
+module M {
+  method m()
+}
+module P refines M {
+  method m ... {
+    while true { ...; }
+  }
+}";
+
+      var document = CreateAndOpenTestDocument(source);
+      var hoverResult = await client.RequestHover(new HoverParams() {
+        Position = new Position(0, 20),
+        TextDocument = document
+      }, CancellationToken);
+      Assert.Null(hoverResult);
+    }
+
+    [Fact]
     public async Task RecoverableParseErrorTypeRhs() {
       var markup = @"
 class Bla { }
