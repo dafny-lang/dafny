@@ -87,9 +87,10 @@ module Consumer {
 
   [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
+    const int cacheExpiry = 1000;
     await SetUp(options => {
       options.WarnShadowing = false;
-      options.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
+      options.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, cacheExpiry);
     });
     var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(tempDirectory);
@@ -113,7 +114,9 @@ method Foo() {
 warn-shadowing = true";
 
     await FileTestExtensions.WriteWhenUnlocked(projectFilePath, warnShadowingOn);
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+    await Task.Delay(cacheExpiry);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem);
 
