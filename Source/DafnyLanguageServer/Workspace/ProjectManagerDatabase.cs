@@ -146,7 +146,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       lock (myLock) {
         var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
 
-        if (projectManagerForFile is { IsDisposed: false }) {
+        if (projectManagerForFile is { IsDisposed: true }) {
           // Defensive coding
           logger.LogError("Found disposed project manager through managersBySourceFile.");
           projectManagerForFile = null;
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           triggerCompilation = true;
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
-          if (managerForProject is { IsDisposed: false }) {
+          if (managerForProject is { IsDisposed: true }) {
             // Defensive coding
             logger.LogError("Found disposed project manager through managersByProject.");
             managerForProject = null;
@@ -181,14 +181,6 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
             triggerCompilation = changedOnOpen;
-            if (changedOnOpen) {
-              projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams {
-                ContentChanges = Array.Empty<TextDocumentContentChangeEvent>(),
-                TextDocument = new OptionalVersionedTextDocumentIdentifier {
-                  Uri = documentId.Uri
-                }
-              });
-            }
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(scheduler, verificationCache, project);
