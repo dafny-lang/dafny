@@ -687,6 +687,9 @@ public partial class Parser {
 
   Expression ProcessTupleArgs(List<ActualBinding> args, IToken lp) {
     if (args.Count == 1 && !args[0].IsGhost) {
+      if (args[0].FormalParameterName != null) {
+        SemErr(ErrorId.p_no_parenthesized_binding, lp, "binding not allowed in parenthesized expression");
+      }
       return args[0].Actual;
     } else {
       // Compute the actual position of ghost arguments
