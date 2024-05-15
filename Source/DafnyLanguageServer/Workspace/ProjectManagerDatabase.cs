@@ -157,13 +157,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
           if (filesProjectHasChanged) {
-            {
-              logger.LogDebug($"Migrating file {uri} from project {projectManagerForFile.Project.Uri} to project {project.Uri}");
-              var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
-              if (previousProjectHasNoDocuments) {
-                // Enable garbage collection
-                managersByProject.Remove(projectManagerForFile.Project.Uri);
-              }
+            logger.LogDebug($"Migrating file {uri} from project {projectManagerForFile.Project.Uri} to project {project.Uri}");
+            var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
+            if (previousProjectHasNoDocuments) {
+              // Enable garbage collection
+              managersByProject.Remove(projectManagerForFile.Project.Uri);
             }
 
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
