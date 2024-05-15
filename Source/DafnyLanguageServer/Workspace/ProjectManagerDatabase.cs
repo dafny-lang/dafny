@@ -1,10 +1,12 @@
 ﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Runtime.Caching;
 using System.Threading.Tasks;
+using DafnyCore;
 using Microsoft.Boogie;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -14,8 +16,17 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
   /// Contains a collection of ProjectManagers
   /// </summary>
   public class ProjectManagerDatabase : IProjectDatabase {
+    public static readonly Option<int> ProjectFileCacheExpiry = new("--project-file-cache-expiry", () => DefaultProjectFileCacheExpiryTime,
+      @"How many milliseconds the server will cache project file contents".TrimStart()) {
+      IsHidden = true
+    };
+
+    static ProjectManagerDatabase() {
+      DooFile.RegisterNoChecksNeeded(ProjectManager.UpdateThrottling, false);
+    }
+    
     private readonly object myLock = new();
-    public const int ProjectFileCacheExpiryTime = 100;
+    public const int DefaultProjectFileCacheExpiryTime = 100;
 
     private readonly CreateProjectManager createProjectManager;
     private readonly ILogger<ProjectManagerDatabase> logger;
@@ -218,6 +229,11 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     }
 
     private async Task<DafnyProject?> OpenProjectInFolder(string folderPath) {
+      var cacheExpiry = serverOptions.Get(ProjectFileCacheExpiry);
+      if (cacheExpiry == 0) {
+        return await OpenProjectInFolderUncached(folderPath);
+      }
+      
       var cachedResult = projectFilePerFolderCache.Get(folderPath);
       if (cachedResult != null) {
         return cachedResult == nullRepresentative ? null : ((DafnyProject?)cachedResult)?.Clone();
@@ -225,7 +241,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
       var result = await OpenProjectInFolderUncached(folderPath);
       projectFilePerFolderCache.Set(new CacheItem(folderPath, (object?)result ?? nullRepresentative), new CacheItemPolicy {
-        AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(ProjectFileCacheExpiryTime)))
+        AbsoluteExpiration = new DateTimeOffset(DateTime.Now.Add(TimeSpan.FromMilliseconds(cacheExpiry)))
       });
       return result?.Clone();
     }

@@ -39,7 +39,7 @@ library = [""{producerPath}""]".TrimStart();
     Directory.CreateDirectory(consumerDirectory);
     await File.WriteAllTextAsync(Path.Combine(consumerDirectory, "consumer.dfy"), consumerSource);
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
 
     var diagnostics = await GetLastDiagnostics(projectFile);
     Assert.Single(diagnostics);
@@ -66,7 +66,7 @@ module Consumer {
     MarkupTestFile.GetPositionAndRanges(consumerSourceMarkup, out var consumerSource, out var gotoPosition, out _);
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(tempDirectory, "consumer.dfy"));
     await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
     // Let consumer.dfy realize it has a new project file 
     var definition1 = await RequestDefinition(consumer, gotoPosition);
     Assert.Empty(definition1);
@@ -112,7 +112,7 @@ method Foo() {
 warn-shadowing = true";
 
     await FileTestExtensions.WriteWhenUnlocked(projectFilePath, warnShadowingOn);
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem);
 

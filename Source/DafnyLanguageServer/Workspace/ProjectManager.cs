@@ -32,7 +32,7 @@ public delegate ProjectManager CreateProjectManager(
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
-public class ProjectManager : IDisposable {
+public class ProjectManager {
 
   public const int DefaultThrottleTime = 100;
   public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
