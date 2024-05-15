@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -102,7 +103,7 @@ method {:resource_limit ""10e6""} test() {
       }
     }
 
-    public CancelVerificationTest(ITestOutputHelper output) : base(output) {
+    public CancelVerificationTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
     }
   }
 }
