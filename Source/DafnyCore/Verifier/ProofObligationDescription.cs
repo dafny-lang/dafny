@@ -1031,14 +1031,23 @@ public class SubrangeCheck : ProofObligationDescription {
   private readonly bool isSubset;
   private readonly bool isCertain;
   private readonly string cause;
+  private readonly Expression check;
 
-  public SubrangeCheck(string prefix, string sourceType, string targetType, bool isSubset, bool isCertain, [CanBeNull] string cause) {
+  public SubrangeCheck(
+    string prefix, string sourceType, string targetType,
+    bool isSubset, bool isCertain, [CanBeNull] string cause, [CanBeNull] Expression check
+  ) {
     this.prefix = prefix;
     this.sourceType = sourceType;
     this.targetType = targetType;
     this.isSubset = isSubset;
     this.isCertain = isCertain;
     this.cause = cause is null ? "" : $" (possible cause: {cause})";
+    this.check = check;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return check;
   }
 }
 

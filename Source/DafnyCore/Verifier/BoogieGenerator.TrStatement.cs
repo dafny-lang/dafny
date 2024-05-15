@@ -502,7 +502,7 @@ namespace Microsoft.Dafny {
         locals.Add(r);
         var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
         CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran, "variable declaration RHS");
-        CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
+        CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
         builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, s.tok, pat.Expr, e => Expr.Eq(e, rIe), "variable declaration"));
       } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
         // try/recover statements are currently internal-only AST nodes that cannot be
@@ -934,7 +934,26 @@ namespace Microsoft.Dafny {
         var name = indexVarName + "#x";
         var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
         var x = new Bpl.IdentifierExpr(tok, name);
-        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out var desc);
+
+        var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
+        var source = new IdentifierExpr(Token.NoToken, sourceBoundVar);
+        var loBound = dLo == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, dLo, source);
+        var hiBound = dHi == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Lt, source, dHi);
+        var bounds = (loBound, hiBound) switch {
+          (not null, not null) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loBound, hiBound),
+          (not null, null) => loBound,
+          (null, not null) => hiBound,
+        };
+        Expression CheckContext(Expression check) => new ForallExpr(
+          Token.NoToken,
+          RangeToken.NoToken,
+          new() { sourceBoundVar },
+          bounds,
+          check,
+          null
+        );
+        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, source, CheckContext, out var desc);
+        
         if (cre != null) {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
@@ -1255,7 +1274,7 @@ namespace Microsoft.Dafny {
           lhsType = ((MultiSelectExpr)lhs).Type;
         }
         var translatedRhs = etran.TrExpr(rhs);
-        CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, definedness);
+        CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, rhs, definedness);
         if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = fse.Member as Field;
@@ -1772,7 +1791,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr bRhs = bLhss[i];  // the RHS (bRhs) of the assignment to the actual call-LHS (lhs) was a LHS (bLhss[i]) in the Boogie call statement
-        CheckSubrange(lhs.tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, builder);
+        CheckSubrange(lhs.tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, null, builder);
         bRhs = CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
 
         lhsBuilders[i](bRhs, false, builder, etran);
@@ -1907,7 +1926,7 @@ namespace Microsoft.Dafny {
           builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
-          CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), builder);
+          CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
           bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
         }
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
@@ -2630,7 +2649,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
 
         Bpl.Expr bRhs = etran.TrExpr(e.Expr);
-        CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, builder);
+        CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, builder);
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
@@ -2709,7 +2728,7 @@ namespace Microsoft.Dafny {
               foreach (var v in tRhs.InitDisplay) {
                 var EE_ii = etran.TrExpr(v);
                 // assert EE_ii satisfies any subset-type constraints;
-                CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
+                CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, v, builder);
                 // assume nw[ii] == EE_ii;
                 var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
                 builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), EE_ii)));
@@ -2735,7 +2754,7 @@ namespace Microsoft.Dafny {
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
         }
         // bLhs := $nw;
-        CheckSubrange(tok, nw, tRhs.Type, rhsTypeConstraint, builder);
+        CheckSubrange(tok, nw, tRhs.Type, rhsTypeConstraint, null, builder);
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment

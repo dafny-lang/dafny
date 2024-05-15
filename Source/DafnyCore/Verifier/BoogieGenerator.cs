@@ -18,6 +18,7 @@ using DafnyCore;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using DafnyCore.Verifier;
+using JetBrains.Annotations;
 using Microsoft.Dafny.Triggers;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
@@ -143,7 +144,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(codeContext == null || codeContext.EnclosingModule == currentModule);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
@@ -153,7 +154,7 @@ namespace Microsoft.Dafny {
       return d.IsVisibleInScope(currentScope);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool VisibleInScope(Type t) {
       if (t is UserDefinedType udt && udt.ResolvedClass != null && !t.IsTypeParameter) {
         return VisibleInScope(udt.ResolvedClass);
@@ -161,19 +162,19 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool RevealedInScope(Declaration d) {
       Contract.Requires(d != null);
       return d.IsRevealedInScope(currentScope);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool RevealedInScope(RevealableTypeDecl d) {
       Contract.Requires(d != null);
       return RevealedInScope(d.AsTopLevelDecl);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
       if (!d.ShouldVerify(program.Compilation)) {
@@ -191,7 +192,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool InVerificationScope(RedirectingTypeDecl d) {
       Contract.Requires(d != null);
       Contract.Requires(d is Declaration);
@@ -2339,7 +2340,7 @@ namespace Microsoft.Dafny {
         var e = formal.DefaultValue;
         CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
 
       if (EmitImplementation(ctor.Attributes)) {
@@ -2394,7 +2395,7 @@ namespace Microsoft.Dafny {
         if (wh != null) {
           localTypeAssumptions.Add(TrAssumeCmd(p.tok, wh));
         }
-        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, p.Type, localTypeAssumptions);
+        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, p.Type, new IdentifierExpr(p.Tok, p), localTypeAssumptions);
         args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
       }
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(mc.tok, mc.Ctor.FullName, predef.DatatypeType);
@@ -2479,7 +2480,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder)
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Expression dRhs, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
@@ -2487,7 +2488,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhsType != null);
       Contract.Requires(builder != null);
       if (pat.Var != null) {
-        CheckSubrange(rhsTok, rhs, rhsType, pat.Var.Type, builder);
+        CheckSubrange(rhsTok, rhs, rhsType, pat.Var.Type, dRhs, builder);
       } else if (pat.Arguments != null) {
         Contract.Assert(pat.Ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == pat.Ctor.Destructors.Count);  // follows from successful resolution
@@ -2511,7 +2512,7 @@ namespace Microsoft.Dafny {
           var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
           Type argType = dtor.Type.Subst(typeSubstMap);
           var de = CondApplyUnbox(arg.tok, r, dtor.Type, argType);
-          CheckCasePatternShape(arg, de, arg.tok, argType, builder);
+          CheckCasePatternShape(arg, arg.Expr, de, arg.tok, argType, builder);
         }
       }
     }
@@ -3945,8 +3946,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       return "this." + field.Name;
     }
+  
+    // Surrounds the given subrange-check expression with necessary context (e.g. quantifier bounds)
+    public delegate Expression SubrangeCheckContext(Expression check);
 
-    Bpl.Expr GetSubrangeCheck(Bpl.Expr bSource, Type sourceType, Type targetType, out PODesc.ProofObligationDescription desc, string errorMessagePrefix = "") {
+    Bpl.Expr GetSubrangeCheck(
+      Bpl.Expr bSource, Type sourceType, Type targetType,
+      // allow null for checked expressions that cannot necessarily be named without side effects, such as method out-params
+      [CanBeNull] Expression source,
+      [CanBeNull] SubrangeCheckContext context,
+      out PODesc.ProofObligationDescription desc, string errorMessagePrefix = "") {
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
@@ -3969,6 +3978,15 @@ namespace Microsoft.Dafny {
       } else {
         cre = MkIs(bSource, targetType);
       }
+
+      Expression dafnyCheck = null;
+      context ??= (e => e);
+      if (source != null) {
+        dafnyCheck = context(new TypeTestExpr(source.Tok, source, targetType));
+      }
+      // type checks of the form `f is T -> U` are only available in the refreshed type system
+      var canTestFunctionTypes = options.Get(CommonOptionBag.TypeSystemRefresh);
+      
       if (udt != null && udt.IsRefType) {
         var s = sourceType.NormalizeExpandKeepConstraints();
         var certain = false;
@@ -3977,31 +3995,35 @@ namespace Microsoft.Dafny {
           certain = udt.ResolvedClass.TypeArgs.Count == 0;
           cause = "it may be null";
         }
-        desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), false, certain, cause);
+        desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), false, certain, cause, dafnyCheck);
       } else if (udt != null && ArrowType.IsTotalArrowTypeName(udt.Name)) {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
-          "it may be partial or have read effects");
+          "it may be partial or have read effects",
+          canTestFunctionTypes ? dafnyCheck : null
+        );
       } else if (udt != null && ArrowType.IsPartialArrowTypeName(udt.Name)) {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
-          "it may have read effects");
+          "it may have read effects",
+          canTestFunctionTypes ? dafnyCheck : null
+        );
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
           targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
-          false, null);
+          false, null, dafnyCheck);
       }
       return cre;
     }
 
-    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
+    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      var cre = GetSubrangeCheck(bSource, sourceType, targetType, out var desc, errorMsgPrefix);
+      var cre = GetSubrangeCheck(bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
       if (cre != null) {
         builder.Add(Assert(tok, cre, desc));
       }

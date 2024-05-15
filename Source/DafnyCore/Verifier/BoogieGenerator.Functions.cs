@@ -135,7 +135,7 @@ public partial class BoogieGenerator {
         var e = formal.DefaultValue;
         CheckWellformed(e, wfo, locals, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No frame scope for default values
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
         if (formal.IsOld) {
           Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);

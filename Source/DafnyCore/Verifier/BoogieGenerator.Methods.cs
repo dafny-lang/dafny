@@ -684,7 +684,7 @@ namespace Microsoft.Dafny {
             var e = formal.DefaultValue;
             CheckWellformed(e, wfo, localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No scope for default parameters
             builder.Add(new Boogie.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-            CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+            CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
             if (formal.IsOld) {
               Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
