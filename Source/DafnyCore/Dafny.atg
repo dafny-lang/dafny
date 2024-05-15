@@ -3222,7 +3222,7 @@ MaybeDecreasesToExpression<out Expression e>
   [ "decreases"                                                                 (. x = t; .)
     ident                                                                       (. if (t.val != "to") {
                                                                                      /* TODO: create ErrorId, and improve the error message */
-                                                                                     SemErr(ErrorId.none, t, "Expected 'to'");
+                                                                                     SemErr(ErrorId.none, t, "expected 'to'");
                                                                                    }
                                                                                 .)
     NotDecreasesToExpression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
@@ -3236,14 +3236,14 @@ MaybeDecreasesToExpression<out Expression e>
       } else if (args.Count() > 0 && newExprs.Count() > 0) {
         var formals = args.Where(arg => arg.FormalParameterName != null).ToList();
         if (formals.Any()) {
-          SemErr(ErrorId.none, formals[0].FormalParameterName, "Bindings are not allowed in `decreases to` expressions.");
+          SemErr(ErrorId.none, formals[0].FormalParameterName, "bindings are not allowed in `decreases to` expressions.");
         }
         var oldExprs = args.Select(arg => arg.Actual).ToList();
         e = new DecreasesToExpr(x, oldExprs, newExprs);
         e.RangeToken = new RangeToken(oldExprs[0].tok, newExprs[newExprs.Count() - 1].tok);
       } else {
         /* TODO: create ErrorId, and improve the error message */
-        SemErr(ErrorId.none, t, $"A `decreases to` expression must have at least one expression on each side");
+        SemErr(ErrorId.none, t, $"a `decreases to` expression must have at least one expression on each side");
         e = null;
       }
   .)
