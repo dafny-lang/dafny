@@ -685,13 +685,12 @@ public partial class Parser {
     return la.kind == _assume || la.kind == _assert || la.kind == _expect;
   }
 
-  Expression ProcessTupleArgs(List<ActualBinding> args) {
+  Expression ProcessTupleArgs(List<ActualBinding> args, IToken lp) {
     if (args.Count == 1 && !args[0].IsGhost) {
       return args[0].Actual;
     } else {
       // Compute the actual position of ghost arguments
       var ghostness = new bool[args.Count];
-      var lp = args[0].Actual.tok;
       for (var i = 0; i < args.Count; i++) {
         ghostness[i] = false;
       }

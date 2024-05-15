@@ -3212,7 +3212,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
   NotDecreasesToExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   .
 
-MaybeDecreasesToExpression<out Expression e>
+MaybeDecreasesToExpression<out Expression e, IToken lp>
 = (. List<ActualBinding> args = new();
      List<Expression> newExprs = new();
      Expression tmp = null;
@@ -3232,7 +3232,7 @@ MaybeDecreasesToExpression<out Expression e>
   ]
   (.
       if (newExprs.Count() == 0) {
-        e = ProcessTupleArgs(args);
+        e = ProcessTupleArgs(args, lp);
       } else if (args.Count() > 0 && newExprs.Count() > 0) {
         var formals = args.Where(arg => arg.FormalParameterName != null).ToList();
         if (formals.Any()) {
@@ -3765,17 +3765,23 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expr
 
 /*------------------------------------------------------------------------*/
 ParensExpression<out Expression e>
-= (. IToken lp; IToken rp;
+= (. IToken lp = null; IToken rp = null;
      var args = new List<ActualBinding>();
+     e = dummyExpr;
   .)
-  "("                                        (. lp = t; .)
-  MaybeDecreasesToExpression<out e>
-  ")"                                        (. rp = t;
-                                                if (e is not DatatypeValue) {
-                                                  e = new ParensExpression(lp, e);
-                                                }
-                                                e.RangeToken = new RangeToken(lp, rp);
-                                             .)
+ "("                                        (. lp = t; .)
+  (
+    MaybeDecreasesToExpression<out e, lp>
+    ")"                                     (. rp = t;
+                                               if (e is not DatatypeValue) {
+                                                 e = new ParensExpression(lp, e);
+                                               }
+                                            .)
+  |
+    ")"                                     (. rp = t;
+                                               e = ProcessTupleArgs(new List<ActualBinding>(), lp);
+                                            .)
+  )                                         (. e.RangeToken = new RangeToken(lp, rp); .)
   .
 
 /*------------------------------------------------------------------------*/
