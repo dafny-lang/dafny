@@ -376,7 +376,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     }
   }
 
+  public bool IsDisposed { get; private set; }
+
   public void Dispose() {
+    IsDisposed = true;
     boogieEngine?.Dispose();
     Compilation.Dispose();
     observerSubscription.Dispose();

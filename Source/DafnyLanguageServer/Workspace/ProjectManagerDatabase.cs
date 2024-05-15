@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     static ProjectManagerDatabase() {
       DooFile.RegisterNoChecksNeeded(ProjectManager.UpdateThrottling, false);
     }
-    
+
     private readonly object myLock = new();
     public const int DefaultProjectFileCacheExpiryTime = 100;
 
@@ -142,12 +142,19 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var project = await GetProject(uri);
-      bool triggerCompilation;
 
       lock (myLock) {
         var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
 
+        if (projectManagerForFile is { IsDisposed: false }) {
+          // Defensive coding
+          logger.LogError("Found disposed project manager through managersBySourceFile.");
+          projectManagerForFile = null;
+        }
+
+        bool triggerCompilation;
         if (projectManagerForFile != null) {
+
           var filesProjectHasChanged = !projectManagerForFile.Project.Equals(project);
           if (filesProjectHasChanged) {
             {
@@ -167,6 +174,12 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           triggerCompilation = true;
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
+          if (managerForProject is { IsDisposed: false }) {
+            // Defensive coding
+            logger.LogError("Found disposed project manager through managersByProject.");
+            managerForProject = null;
+          }
+
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
             triggerCompilation = changedOnOpen;
@@ -233,7 +246,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       if (cacheExpiry == 0) {
         return await OpenProjectInFolderUncached(folderPath);
       }
-      
+
       var cachedResult = projectFilePerFolderCache.Get(folderPath);
       if (cachedResult != null) {
         return cachedResult == nullRepresentative ? null : ((DafnyProject?)cachedResult)?.Clone();

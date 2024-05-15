@@ -20,31 +20,31 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     var path = Path.GetTempPath();
     var project = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
     var file1 = CreateAndOpenTestDocument("method Foo() { }", Path.Combine(path, "file1.dfy"));
-    
+
     client.CloseDocument(project);
     var project2 = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
-    ApplyChange(ref file1, new Range(0,0,0,0), @"syntaxError");
+    ApplyChange(ref file1, new Range(0, 0, 0, 0), @"syntaxError");
     var error = await GetLastDiagnostics(file1);
     Assert.NotEmpty(error);
   }
-  
+
   [Fact]
   public async Task ChangeAndUndoProjectWithMultipleFiles() {
     var path = Path.GetTempPath();
     var project = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
     var file1 = CreateAndOpenTestDocument("method Foo() { }", Path.Combine(path, "file1.dfy"));
     var file2 = CreateAndOpenTestDocument("method Bar() { }", Path.Combine(path, "file2.dfy"));
-    
-    ApplyChange(ref project, new Range(0,0,0,0), @"includes = [""**/*.dfy""]
+
+    ApplyChange(ref project, new Range(0, 0, 0, 0), @"includes = [""**/*.dfy""]
 ");
-    ApplyChange(ref file1, new Range(0,0,0,0), @"//comment\n");
-    ApplyChange(ref project, new Range(0,0,1,0), "");
+    ApplyChange(ref file1, new Range(0, 0, 0, 0), @"//comment\n");
+    ApplyChange(ref project, new Range(0, 0, 1, 0), "");
     var fine = await GetLastDiagnostics(project);
-    ApplyChange(ref file2, new Range(0,0,0,0), @"syntaxError");
+    ApplyChange(ref file2, new Range(0, 0, 0, 0), @"syntaxError");
     var error = await GetLastDiagnostics(file2);
     Assert.NotEmpty(error);
   }
-  
+
   [Fact]
   public async Task OpenAndCloseConcurrentlySeparateProjects() {
     int documentsToLoadConcurrently = 50;
