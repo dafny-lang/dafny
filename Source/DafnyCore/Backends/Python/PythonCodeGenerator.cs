@@ -83,7 +83,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
-      moduleName = IdProtect(moduleName);
+      moduleName = PublicModuleIdProtect(moduleName);
       var file = wr.NewFile($"{moduleName}.py");
       EmitImports(moduleName, file);
       return file;
@@ -170,7 +170,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
+      var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
         iter.FullName, iter.TypeArgs, iter, null, iter.tok, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
@@ -1152,6 +1152,19 @@ namespace Microsoft.Dafny.Compilers {
       return name switch {
         _ => MangleName(name)
       };
+    }
+    
+    
+    public readonly HashSet<string> ReservedModuleNames = new () {
+      "math"
+    };
+
+    public string PublicModuleIdProtect(string name) {
+      if (ReservedModuleNames.Contains(name)) {
+        return "_" + name;
+      } else {
+        return IdProtect(name);
+      }
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
