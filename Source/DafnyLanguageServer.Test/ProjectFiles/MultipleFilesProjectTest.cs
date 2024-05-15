@@ -135,7 +135,6 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "includes = [\"*.dfy\"]");
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -161,8 +160,6 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
-
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -220,7 +217,6 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await FileTestExtensions.WriteWhenUnlocked(projectFilePath, @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -256,7 +252,6 @@ warn-shadowing = true
     Assert.Equal(2, diagnostics1.Count(d => d.Severity <= DiagnosticSeverity.Warning));
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
     ApplyChange(ref projectFile, new Range(3, 17, 3, 21), "false");
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);

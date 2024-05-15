@@ -70,7 +70,6 @@ warn-shadowing = true
     Assert.Contains("Shadowed", diagnostics0[0].Message);
 
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, DafnyProject.FileName), "");
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
 
     ApplyChange(ref sourceFile, new Range(0, 0, 0, 0), "//comment\n");
     var diagnostics1 = await GetLastDiagnostics(sourceFile);

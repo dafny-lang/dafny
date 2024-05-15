@@ -39,7 +39,6 @@ library = [""{producerPath}""]".TrimStart();
     Directory.CreateDirectory(consumerDirectory);
     await File.WriteAllTextAsync(Path.Combine(consumerDirectory, "consumer.dfy"), consumerSource);
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
 
     var diagnostics = await GetLastDiagnostics(projectFile);
     Assert.Single(diagnostics);
@@ -66,7 +65,6 @@ module Consumer {
     MarkupTestFile.GetPositionAndRanges(consumerSourceMarkup, out var consumerSource, out var gotoPosition, out _);
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(tempDirectory, "consumer.dfy"));
     await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    await Task.Delay(ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
     // Let consumer.dfy realize it has a new project file 
     var definition1 = await RequestDefinition(consumer, gotoPosition);
     Assert.Empty(definition1);
@@ -89,7 +87,10 @@ module Consumer {
 
   [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
-    await SetUp(options => options.WarnShadowing = false);
+    await SetUp(options => {
+      options.WarnShadowing = false;
+      options.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, ProjectManagerDatabase.DefaultProjectFileCacheExpiryTime);
+    });
     var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
     Directory.CreateDirectory(tempDirectory);
     var projectFilePath = Path.Combine(tempDirectory, DafnyProject.FileName);
