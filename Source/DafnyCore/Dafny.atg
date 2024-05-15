@@ -3220,11 +3220,11 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
   .)
   TupleArgs<args>
   [ "decreases"                                                                 (. x = t; .)
-    ident                                                                       (. if (t.val != "to") {
-                                                                                     /* TODO: create ErrorId, and improve the error message */
-                                                                                     SemErr(ErrorId.none, t, "expected 'to'");
-                                                                                   }
-                                                                                .)
+    ident
+    (. if (t.val != "to") {
+         SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
+       }
+    .)
     NotDecreasesToExpression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
     { ","
       NotDecreasesToExpression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
@@ -3236,14 +3236,15 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
       } else if (args.Count() > 0 && newExprs.Count() > 0) {
         var formals = args.Where(arg => arg.FormalParameterName != null).ToList();
         if (formals.Any()) {
-          SemErr(ErrorId.none, formals[0].FormalParameterName, "bindings are not allowed in `decreases to` expressions.");
+          SemErr(ErrorId.p_binding_in_decreases_to,
+                 formals[0].FormalParameterName,
+                 "bindings are not allowed in `decreases to` expressions.");
         }
         var oldExprs = args.Select(arg => arg.Actual).ToList();
         e = new DecreasesToExpr(x, oldExprs, newExprs);
         e.RangeToken = new RangeToken(oldExprs[0].tok, newExprs[newExprs.Count() - 1].tok);
       } else {
-        /* TODO: create ErrorId, and improve the error message */
-        SemErr(ErrorId.none, t, $"a `decreases to` expression must have at least one expression on each side");
+        // Unreachable
         e = null;
       }
   .)

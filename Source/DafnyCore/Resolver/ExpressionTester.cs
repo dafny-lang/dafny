@@ -352,8 +352,8 @@ public class ExpressionTester {
       subexpressionsAreInsideBranchesOnlyExcept = matchExpr.Source;
 
     } else if (expr is DecreasesToExpr _) {
-      // TODO: create ErrorId
-      ReportError(ErrorId.none, expr, "a `decreasesto` expression is allowed only in specification and ghost contexts");
+      ReportError(ErrorId.r_decreases_to_only_in_specification,
+                  expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
       return false;
 
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
