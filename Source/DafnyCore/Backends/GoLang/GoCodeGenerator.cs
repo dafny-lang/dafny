@@ -2601,7 +2601,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ReservedModuleNames.Contains(name)) {
         return "_" + name;
       } else {
-        return name;
+        return IdProtect(name);
       }
     }
 
