@@ -102,7 +102,7 @@ method {:resource_limit ""10e6""} test() {
       }
     }
 
-    public CancelVerificationTest(ITestOutputHelper output) : base(output) {
+    public CancelVerificationTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
     }
   }
 }
