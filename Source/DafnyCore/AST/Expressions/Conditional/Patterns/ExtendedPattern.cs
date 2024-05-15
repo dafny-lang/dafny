@@ -96,6 +96,11 @@ public abstract class ExtendedPattern : TokenNode {
       Contract.Assert(tupleTypeDecl.Ctors.Count == 1);
       Contract.Assert(tupleTypeDecl.Ctors[0] == tupleTypeDecl.GroundingCtor);
       idpat.Ctor = tupleTypeDecl.GroundingCtor;
+      if (idpat.Id != tupleTypeDecl.GroundingCtor.Name) {
+        resolver.Reporter.Error(MessageSource.Resolver, idpat.Tok,
+        $"found constructor {idpat.Id} but expected a {tupleTypeDecl.Dims}-tuple");
+        return;
+      }
 
       //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
       if (udt.TypeArgs.Count != idpat.Arguments.Count) {
