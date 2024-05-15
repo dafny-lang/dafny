@@ -1,25 +1,29 @@
 // RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s"
 
 method GoodInstances(x: int, y: int) {
-  assert true decreases to false;
-  assert 1 decreases to 0;
-  assert x decreases to x - 1;
-  assert x, y decreases to x, y - 1;
+  assert (true decreases to false);
+  assert (1 decreases to 0);
+  assert (x decreases to x - 1);
+  assert (x, y decreases to x, y - 1);
   var s := {x, y, x*y};
   var s' := s - {x};
-  assert  s, s, s decreases to s, s, s' ;
+  assert  (s, s, s decreases to s, s, s') ;
+}
+
+method Nested() {
+  assert (true, (true decreases to false)) == (true, true);
 }
 
 method BadInstance1() {
-  assert 0 decreases to 1;
+  assert (0 decreases to 1);
 }
 
 method BadInstance2(x: int) {
-  assert x - 1 decreases to x;
+  assert (x - 1 decreases to x);
 }
 
 method BadInstance3(x: int, y: int) {
-  assert x, y - 1 decreases to x, y;
+  assert (x, y - 1 decreases to x, y);
 }
 
 // The following are failures in termination proofs, used to test the
@@ -62,6 +66,6 @@ method BadLoop(x: int, y: int) {
 
 /*
 method BadTypes () {
-  assert true decreases to 0;
+  assert (true decreases to 0);
 }
 */

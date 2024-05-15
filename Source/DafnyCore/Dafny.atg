@@ -2919,12 +2919,12 @@ AssertStmt<out Statement/*!*/ s>
   ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
-    MaybeDecreasesToExpression<out e, false, true>
+    Expression<out e, false, true>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     | (.
-        SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, "expected either 'by' or a semicolon following the assert expression");
+        SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, $"expected either 'by' or a semicolon following the assert expression (got {t.val})");
       .)
     )
   | ellipsis                                   (. dotdotdot = t; 
@@ -2975,7 +2975,7 @@ AssumeStmt<out Statement/*!*/ s>
   .)
   "assume"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( MaybeDecreasesToExpression<out e, false, true>
+  ( Expression<out e, false, false>
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
@@ -3212,34 +3212,38 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
   NotDecreasesToExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   .
 
-MaybeDecreasesToExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
-= (. List<Expression> oldExprs = new();
+MaybeDecreasesToExpression<out Expression e>
+= (. List<ActualBinding> args = new();
      List<Expression> newExprs = new();
      Expression tmp = null;
      IToken x = null;
   .)
-  NotDecreasesToExpression<out tmp, allowLemma, allowLambda, allowBitwiseOps>   (. oldExprs.Add(tmp); .)
-  { ","
-    NotDecreasesToExpression<out tmp, false, false>                             (. oldExprs.Add(tmp); .)
-  }
+  TupleArgs<args>
   [ "decreases"                                                                 (. x = t; .)
     ident                                                                       (. if (t.val != "to") {
+                                                                                     /* TODO: create ErrorId, and improve the error message */
                                                                                      SemErr(ErrorId.none, t, "Expected 'to'");
                                                                                    }
                                                                                 .)
-    NotDecreasesToExpression<out tmp, allowLemma, allowLambda, allowBitwiseOps> (. newExprs.Add(tmp); .)
+    NotDecreasesToExpression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
     { ","
       NotDecreasesToExpression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
     }
   ]
   (.
-      if(oldExprs.Count() == 1 && newExprs.Count() == 0) {
-        e = tmp;
-      } else if (oldExprs.Count() > 0 && newExprs.Count() > 0){
+      if (newExprs.Count() == 0) {
+        e = ProcessTupleArgs(args);
+      } else if (args.Count() > 0 && newExprs.Count() > 0) {
+        var formals = args.Where(arg => arg.FormalParameterName != null).ToList();
+        if (formals.Any()) {
+          SemErr(ErrorId.none, formals[0].FormalParameterName, "Bindings are not allowed in `decreases to` expressions.");
+        }
+        var oldExprs = args.Select(arg => arg.Actual).ToList();
         e = new DecreasesToExpr(x, oldExprs, newExprs);
+        e.RangeToken = new RangeToken(oldExprs[0].tok, newExprs[newExprs.Count() - 1].tok);
       } else {
         /* TODO: create ErrorId, and improve the error message */
-        SemErr(ErrorId.none, t, "a `decreases to` expression must have at least one expression on each side");
+        SemErr(ErrorId.none, t, $"A `decreases to` expression must have at least one expression on each side");
         e = null;
       }
   .)
@@ -3684,7 +3688,6 @@ ConstAtomExpression<out Expression e>
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
   | ParensExpression<out e>
-  | "(" MaybeDecreasesToExpression<out e, false, false> ")"
   ) (. if(x!= null) { e.RangeToken = new RangeToken(x, t); } .)
   .
 
@@ -3766,39 +3769,13 @@ ParensExpression<out Expression e>
      var args = new List<ActualBinding>();
   .)
   "("                                        (. lp = t; .)
-  [ TupleArgs<args> ]
-  ")"                                        (. rp = t; .)
-  (. if (args.Count == 1 && !args[0].IsGhost) {
-       if (args[0].FormalParameterName != null) {
-         SemErr(ErrorId.p_no_parenthesized_binding, new RangeToken(lp,rp), "binding not allowed in parenthesized expression");
-       }
-       e = new ParensExpression(lp, args[0].Actual);
-     } else {
-       // Compute the actual position of ghost arguments
-       var ghostness = new bool[args.Count];
-       for (var i = 0; i < args.Count; i++) {
-         ghostness[i] = false;
-       }
-       for (var i = 0; i < args.Count; i++) {
-         var arg = args[i];
-         if (arg.IsGhost) {
-           if (arg.FormalParameterName == null) {
-             ghostness[i] = true;
-           } else {
-             var success = int.TryParse(arg.FormalParameterName.val, out var index);
-             if (success && 0 <= index && index < args.Count) {
-               ghostness[index] = true;
-             }
-           }
-         }
-       }
-       var argumentGhostness = ghostness.ToList();
-       // make sure the corresponding tuple type exists
-       SystemModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
-       e = new DatatypeValue(lp, SystemModuleManager.TupleTypeName(argumentGhostness), SystemModuleManager.TupleTypeCtorName(args.Count), args);
-     }
-     e.RangeToken = new RangeToken(lp, rp);
-  .)
+  MaybeDecreasesToExpression<out e>
+  ")"                                        (. rp = t;
+                                                if (e is not DatatypeValue) {
+                                                  e = new ParensExpression(lp, e);
+                                                }
+                                                e.RangeToken = new RangeToken(lp, rp);
+                                             .)
   .
 
 /*------------------------------------------------------------------------*/
