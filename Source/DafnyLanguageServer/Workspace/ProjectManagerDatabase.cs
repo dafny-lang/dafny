@@ -142,6 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
       }
 
       var project = await GetProject(uri);
+      bool triggerCompilation;
 
       lock (myLock) {
         var projectManagerForFile = managersBySourceFile.GetValueOrDefault(uri);
@@ -154,23 +155,27 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
               // Scrap the project manager.
               projectManagerForFile.CloseAsync();
               managersByProject.Remove(project.Uri);
-            } else {
+            } else 
+            {
+              logger.LogDebug($"Migrating file {uri} from project {projectManagerForFile.Project.Uri} to project {project.Uri}");
               var previousProjectHasNoDocuments = projectManagerForFile.CloseDocument(projectManagerForFile.Project.Uri);
               if (previousProjectHasNoDocuments) {
                 // Enable garbage collection
                 managersByProject.Remove(projectManagerForFile.Project.Uri);
               }
-              logger.LogDebug($"Migrating file {uri} to existing project {project.Uri}");
             }
 
             projectManagerForFile = managersByProject.GetValueOrDefault(project.Uri) ??
                                     createProjectManager(scheduler, verificationCache, project);
             projectManagerForFile.OpenDocument(uri, true);
           }
+
+          triggerCompilation = true;
         } else {
           var managerForProject = managersByProject.GetValueOrDefault(project.Uri);
           if (managerForProject != null) {
             projectManagerForFile = managerForProject;
+            triggerCompilation = changedOnOpen;
             if (changedOnOpen) {
               projectManagerForFile.UpdateDocument(new DidChangeTextDocumentParams {
                 ContentChanges = Array.Empty<TextDocumentContentChangeEvent>(),
@@ -182,7 +187,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
           } else {
             if (createOnDemand) {
               projectManagerForFile = createProjectManager(scheduler, verificationCache, project);
-              projectManagerForFile.OpenDocument(uri, true);
+              triggerCompilation = true;
             } else {
               return null;
             }
@@ -191,6 +196,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
         managersBySourceFile[uri] = projectManagerForFile;
         managersByProject[project.Uri] = projectManagerForFile;
+        projectManagerForFile.OpenDocument(uri, triggerCompilation);
         return projectManagerForFile;
       }
     }
