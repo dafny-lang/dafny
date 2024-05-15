@@ -1987,7 +1987,12 @@ public abstract class CollectionType : NonProxyType {
   /// </summary>
   protected CollectionType(Type arg, Type other) {
     this.arg = arg;
-    this.TypeArgs = new List<Type> { arg, other };
+    TypeArgs = new List<Type>(2);
+    if (arg != null && other != null) {
+      TypeArgs.Add(arg);
+      TypeArgs.Add(other);
+    }
+    Debug.Assert(arg == null && other == null || arg != null && other != null);
   }
 
   protected CollectionType(Cloner cloner, CollectionType original) {
