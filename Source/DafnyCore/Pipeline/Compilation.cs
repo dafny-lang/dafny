@@ -116,9 +116,13 @@ public class Compilation : IDisposable {
       await ParsedProgram;
       await Resolution;
     } catch (Exception e) {
-      logger.LogCritical(e, "internal exception");
-      updates.OnNext(new InternalCompilationException(MessageSource.Parser, e));
+      HandleException(e);
     }
+  }
+
+  private void HandleException(Exception e) {
+    logger.LogCritical(e, "internal exception");
+    updates.OnNext(new InternalCompilationException(MessageSource.Project, e));
   }
 
   public void Start() {
@@ -250,8 +254,6 @@ public class Compilation : IDisposable {
     return prefix;
   }
 
-  private int runningVerificationJobs;
-
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
   public async Task<bool> VerifyLocation(FilePosition verifiableLocation, bool onlyPrepareVerificationForGutterTests = false) {
@@ -332,7 +334,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(MessageSource.Verifier, e));
+        HandleException(e);
         throw;
       }
 
@@ -376,10 +378,6 @@ public class Compilation : IDisposable {
 
       return;
     }
-
-    var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug(
-      $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
 
     statusUpdates.Subscribe(
       update => {
@@ -429,7 +427,6 @@ public class Compilation : IDisposable {
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
-    // TODO https://github.com/dafny-lang/dafny/issues/3416
     var program = await ParsedProgram;
     if (program == null) {
       return null;
