@@ -1454,7 +1454,7 @@ namespace Microsoft.Dafny {
 
       var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved ?? expr.Lhs; // Sometimes resolution comes later, but pre-types have already been set
-      if (lhs is {PreType: PreTypePlaceholderModule}) {
+      if (lhs is { PreType: PreTypePlaceholderModule }) {
         var ri = (Resolver_IdentifierExpr)lhs;
         var sig = ((ModuleDecl)ri.Decl).AccessibleSignature(false);
         sig = ModuleResolver.GetSignatureExt(sig);
@@ -1512,7 +1512,7 @@ namespace Microsoft.Dafny {
           ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
-      } else if (lhs is {PreType: PreTypePlaceholderType}) {
+      } else if (lhs is { PreType: PreTypePlaceholderType }) {
         var ri = (Resolver_IdentifierExpr)lhs;
         // ----- 3. Look up name in type
         // expand any synonyms
