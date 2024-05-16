@@ -69,7 +69,13 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
     }
   }
 
-  public override IEnumerable<Statement> PreResolveSubStatements => SubStatements;
+  public override IEnumerable<Statement> PreResolveSubStatements {
+    get {
+      if (S != null) {
+        yield return S;
+      }
+    }
+  }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return true;
