@@ -3884,58 +3884,81 @@ namespace Microsoft.Dafny {
       return isAlloc == null ? isPred : isPred == null ? isAlloc : BplAnd(isPred, isAlloc);
     }
 
-    // Returns an expression, which, if false, means that the two LHS expressions are
+    // Returns expressions, which, if false, means that the two LHS expressions are
     // not distinct; if null then the LHSs are trivially distinct
-    Bpl.Expr CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran) {
+    void CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran, out Expression dExpr, out Bpl.Expr bExpr) {
+      // Helper functions to make the following more concise
+      Expression DfyBin(BinaryExpr.Opcode op, Expression e0, Expression e1) =>
+        new BinaryExpr(Token.NoToken, op, e0, e1);
+      Expression DfyOr(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Or, e0, e1);
+      Expression DfyNeq(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Neq, e0, e1);
+      Expression DfyLe(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Le, e0, e1);
+      Expression DfyLt(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Lt, e0, e1);
+      
       {
+        dExpr = null;
+        bExpr = null;
         if (lhsa is IdentifierExpr iea && lhsb is IdentifierExpr ieb) {
           if (iea.Name != ieb.Name) {
-            return null;
+            return;
           }
 
-          return Bpl.Expr.False;
+          dExpr = new LiteralExpr(Token.NoToken, false);
+          bExpr = Bpl.Expr.False;
+          return;
         }
       }
       {
         if (lhsa is MemberSelectExpr iea && lhsb is MemberSelectExpr ieb) {
           if (iea.Member is Field fa && ieb.Member is Field fb) {
             if (fa != fb) {
-              return null;
+              return;
             }
 
-            return Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
+            dExpr = DfyNeq(iea.Obj, ieb.Obj);
+            bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
+            return;
           }
         }
       }
       {
         if (lhsa is SeqSelectExpr iea && lhsb is SeqSelectExpr ieb) {
-          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
+          dExpr = DfyNeq(iea.Seq, ieb.Seq);
+          bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
+          
           if (iea.E1 == null && ieb.E1 == null) {
-            ex = BplOr(ex, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+            dExpr = DfyOr(dExpr, DfyNeq(iea.E0, ieb.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
           } else if (iea.E1 == null && ieb.E1 != null) {
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
-            ex = BplOr(ex, Bpl.Expr.Lt(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+            dExpr = DfyOr(dExpr, DfyLe(ieb.E1, iea.E0));
+            dExpr = DfyOr(dExpr, DfyLt(iea.E0, ieb.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+            bExpr = BplOr(bExpr, Bpl.Expr.Lt(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
           } else if (iea.E1 != null && ieb.E1 == null) {
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
-            ex = BplOr(ex, Bpl.Expr.Lt(etran.TrExpr(ieb.E0), etran.TrExpr(iea.E0)));
+            dExpr = DfyOr(dExpr, DfyLe(iea.E1, ieb.E0));
+            dExpr = DfyOr(dExpr, DfyLt(ieb.E0, iea.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            bExpr = BplOr(bExpr, Bpl.Expr.Lt(etran.TrExpr(ieb.E0), etran.TrExpr(iea.E0)));
           } else {
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+            dExpr = DfyOr(dExpr, DfyLe(iea.E1, ieb.E0));
+            dExpr = DfyOr(dExpr, DfyLe(ieb.E1, iea.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
           }
-          return ex;
+
+          return;
         }
       }
       {
         if (lhsa is MultiSelectExpr iea && lhsb is MultiSelectExpr ieb && iea.Indices.Count == ieb.Indices.Count) {
-          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Array), etran.TrExpr(ieb.Array));
+          dExpr = DfyNeq(iea.Array, ieb.Array);
+          bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Array), etran.TrExpr(ieb.Array));
           for (int i = 0; i < iea.Indices.Count; i++) {
-            ex = BplOr(ex, Bpl.Expr.Neq(etran.TrExpr(iea.Indices[i]), etran.TrExpr(ieb.Indices[i])));
+            dExpr = DfyOr(dExpr, DfyNeq(iea.Indices[i], ieb.Indices[i]));
+            bExpr = BplOr(bExpr, Bpl.Expr.Neq(etran.TrExpr(iea.Indices[i]), etran.TrExpr(ieb.Indices[i])));
           }
-          return ex;
         }
       }
-
-      return null;
     }
 
     /// <summary>
@@ -4029,7 +4052,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void Check_NewRestrictions(IToken tok, Bpl.Expr obj, Field f, Bpl.Expr rhs, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void Check_NewRestrictions(IToken tok, Expression dObj, Bpl.Expr obj, Field f, Bpl.Expr rhs, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(obj != null);
       Contract.Requires(f != null);
@@ -4043,7 +4066,7 @@ namespace Microsoft.Dafny {
         var fId = new Bpl.IdentifierExpr(tok, GetField(f));
         var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs,
           ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, obj, fId), predef.SetType));
-        builder.Add(Assert(tok, subset, new PODesc.AssignmentShrinks(f.Name)));
+        builder.Add(Assert(tok, subset, new PODesc.AssignmentShrinks(dObj, f.Name)));
       }
     }
 

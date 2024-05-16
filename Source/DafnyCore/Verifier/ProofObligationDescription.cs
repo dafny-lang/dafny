@@ -1314,13 +1314,19 @@ public class DistinctLHS : ProofObligationDescription {
   private readonly string might;
   private readonly string when;
   private readonly string whenSuffix;
+  private readonly Expression expr;
 
-  public DistinctLHS(string lhsa, string lhsb, bool useMight, bool useWhen) {
+  public DistinctLHS(string lhsa, string lhsb, bool useMight, bool useWhen, Expression expr) {
     this.lhsa = lhsa;
     this.lhsb = lhsb;
     this.might = useMight ? "might " : "";
     this.when = useWhen ? "when " : "";
     this.whenSuffix = useWhen ? ", they must be assigned the same value" : "";
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -1450,10 +1456,22 @@ public class AssignmentShrinks : ProofObligationDescription {
 
   public override string ShortDescription => "assignment shrinks";
 
+  private readonly Expression receiver;
   private readonly string fieldName;
 
-  public AssignmentShrinks(string fieldName) {
+  public AssignmentShrinks(Expression receiver, string fieldName) {
+    this.receiver = receiver;
     this.fieldName = fieldName;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var receiverDotField = new ExprDotName(Token.NoToken, receiver, fieldName, null);
+    return new BinaryExpr(
+      Token.NoToken,
+      BinaryExpr.Opcode.And,
+      new OldExpr(Token.NoToken, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, receiver)),
+      new BinaryExpr(Token.NoToken, BinaryExpr.ResolvedOpcode.Subset, receiverDotField, new OldExpr(Token.NoToken, receiverDotField))
+    );
   }
 }
 

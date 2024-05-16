@@ -1279,7 +1279,7 @@ namespace Microsoft.Dafny {
           var fse = (MemberSelectExpr)lhs;
           var field = fse.Member as Field;
           Contract.Assert(field != null);
-          Check_NewRestrictions(fse.tok, obj, field, translatedRhs, definedness, etran);
+          Check_NewRestrictions(fse.tok, fse.Obj, obj, field, translatedRhs, definedness, etran);
         }
       }
 
@@ -2393,19 +2393,19 @@ namespace Microsoft.Dafny {
     delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
 
     void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
-      if (e != null) {
-        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
-          Printer.ExprToString(options, lhsb), e != Bpl.Expr.False, false)));
+      CheckDistinctness(lhsa, lhsb, etran, out var dExpr, out var bExpr);
+      if (bExpr != null) {
+        builder.Add(Assert(GetToken(lhsa), bExpr, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
+          Printer.ExprToString(options, lhsb), bExpr != Bpl.Expr.False, false, dExpr)));
       }
     }
 
     void AssertDistinctness(Expression lhsa, Expression lhsb, Bpl.Expr rhsa, Bpl.Expr rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
-      if (e != null) {
-        e = BplOr(e, Bpl.Expr.Eq(rhsa, rhsb));
-        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
-          Printer.ExprToString(options, lhsb), false, true)));
+      CheckDistinctness(lhsa, lhsb, etran, out var dExpr, out var bExpr);
+      if (bExpr != null) {
+        bExpr = BplOr(bExpr, Bpl.Expr.Eq(rhsa, rhsb));
+        builder.Add(Assert(GetToken(lhsa), bExpr, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
+          Printer.ExprToString(options, lhsb), false, true, dExpr)));
       }
     }
 
@@ -2513,7 +2513,7 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 var fseField = fse.Member as Field;
                 Contract.Assert(fseField != null);
-                Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
+                Check_NewRestrictions(tok, fse.Obj, obj, fseField, rhs, bldr, et);
                 var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
                 var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
                 proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
