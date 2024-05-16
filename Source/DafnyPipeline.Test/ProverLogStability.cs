@@ -135,7 +135,7 @@ type ImapSimulator<!A, B> =
 
     private async IAsyncEnumerable<string> GetProverLogsForProgramAsync(DafnyOptions options,
       IEnumerable<BoogieProgram> boogiePrograms) {
-      string directory = GetFreshTempPath();
+      string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
       options.ProverLogFilePath = temp1;
