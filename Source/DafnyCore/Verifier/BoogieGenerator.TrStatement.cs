@@ -1302,11 +1302,17 @@ namespace Microsoft.Dafny {
         var Rhs = ((ExprRhs)s0.Rhs).Expr;
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
+        var lhsComponents = lhs switch {
+          SeqSelectExpr seq => new List<Expression> { seq.Seq, seq.E0 },
+          MultiSelectExpr multi => (new List<Expression> { multi.Array }).Concat(multi.Indices).ToList(),
+          MemberSelectExpr mse => new List<Expression> { mse.Obj },
+          _ => throw new cce.UnreachableException()
+        };
         definedness.Add(Assert(s0.Tok,
           BplOr(
             BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
-          new PODesc.ForallLHSUnique()));
+          new PODesc.ForallLHSUnique(s.BoundVars, s.Range, lhsComponents, Rhs)));
       }
 
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -2234,7 +2240,7 @@ namespace Microsoft.Dafny {
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));
     }
-
+    
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
       string description;
       if (lhs is MemberSelectExpr) {

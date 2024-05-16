@@ -25,6 +25,18 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
     return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression };
   }
 
+  // Returns a list of primed copies of the given `BoundVar`s.
+  protected static List<BoundVar> MakePrimedBoundVars(List<BoundVar> bvars) {
+    return bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
+  }
+
+  // Returns a substitution map from each given `BoundVar`s to a substitutable expression of a primed copy of the var.
+  protected static Dictionary<IVariable, Expression> MakePrimedBoundVarSubstMap(List<BoundVar> bvars, out List<BoundVar> primedVars, out List<Expression> primedExprs) {
+    primedVars = MakePrimedBoundVars(bvars);
+    primedExprs = primedVars.Select(ToSubstitutableExpression).ToList();
+    return bvars.Zip(primedExprs).ToDictionary(item => item.Item1 as IVariable, item => item.Item2);
+  }
+
   public virtual bool ProvedOutsideUserCode => false;
 }
 
@@ -1166,12 +1178,49 @@ public class IsNonRecursive : ProofObligationDescription {
 
 public class ForallLHSUnique : ProofObligationDescription {
   public override string SuccessDescription =>
-    "left-hand sides of forall-statement bound variables are unique";
+    "left-hand sides of forall-statement bound variables are unique (or right-hand sides are equivalent)";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables might refer to the same location";
+    "left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)";
 
   public override string ShortDescription => "forall bound unique";
+
+  private readonly List<BoundVar> bvars;
+  private readonly Expression range;
+  private readonly List<Expression> lhsComponents;
+  private readonly Expression rhs;
+
+  public ForallLHSUnique(List<BoundVar> bvars, Expression range, List<Expression> lhsComponents, Expression rhs) {
+    this.bvars = bvars;
+    this.range = range;
+    this.lhsComponents = lhsComponents;
+    this.rhs = rhs;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var substMap = MakePrimedBoundVarSubstMap(bvars, out var primedVars, out _);
+    var sub = new Substituter(null, substMap, new());
+    var combinedVars = bvars.Concat(primedVars).ToList();
+
+    // range && range[i0 := i0', i1 := i1', ...]
+    var rangeAndRangePrime = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, sub.Substitute(range));
+    // i0 != i0' || i1 != i1' || ...
+    var indicesDistinct = bvars
+      .Select(var =>
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, ToSubstitutableExpression(var), substMap[var]))
+      .Aggregate((acc, disjunct) =>
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
+    var combinedRange = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, rangeAndRangePrime, indicesDistinct); 
+    
+    var condition = lhsComponents
+      // either at least one LHS component is distinct...
+      .Select(lhs => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, lhs, sub.Substitute(lhs)))
+      // ... or the RHS is always the same
+      .Append(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, rhs, sub.Substitute(rhs)))
+      .Aggregate((acc, disjunct) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
+    
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, combinedVars, combinedRange, condition, null);
+  }
 }
 
 public class ElementInDomain : ProofObligationDescription {
@@ -1403,13 +1452,8 @@ public class LetSuchThatUnique : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
-    var bvarprimes = bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
-    var bvarprimesExprs = bvarprimes.Select(ToSubstitutableExpression).ToList();
-    var subContract = new Substituter(null,
-      Enumerable.Zip(bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
-        item => item.Item1, item => item.Item2),
-      new Dictionary<TypeParameter, Type>()
-    );
+    var substMap = MakePrimedBoundVarSubstMap(bvars, out var bvarprimes, out var bvarprimesExprs);
+    var subContract = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
     var conditionSecondBoundVar = subContract.Substitute(condition);
     var conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[0], bvarprimesExprs[0]);
     for (var i = 1; i < bvarsExprs.Count; i++) {
