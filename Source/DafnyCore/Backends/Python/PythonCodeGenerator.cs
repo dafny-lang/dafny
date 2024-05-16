@@ -686,8 +686,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string FullName(TopLevelDecl decl) {
-      var localDefinition = decl.EnclosingModuleDefinition == enclosingModule;
-      return IdProtect(localDefinition ? decl.GetCompileName(Options) : decl.GetFullCompileName(Options));
+      var segments = new List<string> { IdProtect(decl.GetCompileName(Options)) } ;
+      if (decl.EnclosingModuleDefinition != enclosingModule) {
+        segments = decl.EnclosingModuleDefinition.GetCompileName(Options).Split('.').Select(PublicModuleIdProtect).Concat(segments).ToList();
+      }
+      return string.Join('.', segments);
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
@@ -1155,16 +1158,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
 
-    public readonly HashSet<string> ReservedModuleNames = new() {
-      "math"
+    private readonly HashSet<string> ReservedModuleNames = new() {
+      "itertools", "math", "typing", "sys"
     };
 
-    public string PublicModuleIdProtect(string name) {
+    private string PublicModuleIdProtect(string name) {
       if (ReservedModuleNames.Contains(name)) {
         return "_" + name;
-      } else {
-        return IdProtect(name);
       }
+      return IdProtect(name);
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
