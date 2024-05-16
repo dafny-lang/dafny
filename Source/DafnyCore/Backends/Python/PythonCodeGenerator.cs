@@ -686,7 +686,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string FullName(TopLevelDecl decl) {
-      var segments = new List<string> { IdProtect(decl.GetCompileName(Options)) } ;
+      var segments = new List<string> { IdProtect(decl.GetCompileName(Options)) };
       if (decl.EnclosingModuleDefinition != enclosingModule) {
         segments = decl.EnclosingModuleDefinition.GetCompileName(Options).Split('.').Select(PublicModuleIdProtect).Concat(segments).ToList();
       }
