@@ -124,6 +124,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
     public async Task<IdeState?> GetResolvedDocumentAsyncInternal(TextDocumentIdentifier documentId) {
       var manager = await GetProjectManager(documentId, false);
+      logger.LogDebug($"project manager found for {documentId.Uri}");
       if (manager != null) {
         return await manager.GetStateAfterResolutionAsync();
       }

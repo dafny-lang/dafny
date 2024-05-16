@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -76,6 +77,6 @@ warn-shadowing = true
     Assert.Empty(diagnostics1);
   }
 
-  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output) {
+  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }
