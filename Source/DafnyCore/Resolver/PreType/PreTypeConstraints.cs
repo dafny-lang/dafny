@@ -583,7 +583,7 @@ namespace Microsoft.Dafny {
       preType = preType.Normalize();
       if (preType is PreTypeProxy) {
         return false;
-      } else if (preType is UnusedPreType) {
+      } else if (preType is MethodPreType) {
         return true;
       }
 
