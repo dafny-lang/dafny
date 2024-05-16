@@ -2590,7 +2590,7 @@ namespace Microsoft.Dafny.Compilers {
     }).join(""))
      */
     public readonly HashSet<string> ReservedModuleNames = new() {
-      "C",
+      "c",
       "archive",
       "bufio",
       "builtin",
