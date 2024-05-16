@@ -2640,7 +2640,7 @@ namespace Microsoft.Dafny.Compilers {
     };
 
     public string PublicModuleIdProtect(string name) {
-      if (ReservedModuleNames.Contains(name)) {
+      if (ReservedModuleNames.Contains(name.ToLower())) {
         return "_" + name;
       } else {
         return IdProtect(name);
