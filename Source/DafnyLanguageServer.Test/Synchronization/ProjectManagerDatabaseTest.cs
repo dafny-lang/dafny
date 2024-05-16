@@ -17,7 +17,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task CloseAndReopenProject() {
-    var path = Path.GetTempPath();
+    var path = GetFreshTempPath();
     var project = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
     var file1 = CreateAndOpenTestDocument("method Foo() { }", Path.Combine(path, "file1.dfy"));
 
@@ -30,7 +30,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ChangeAndUndoProjectWithMultipleFiles() {
-    var path = Path.GetTempPath();
+    var path = GetFreshTempPath();
     var project = CreateAndOpenTestDocument("", Path.Combine(path, DafnyProject.FileName));
     var file1 = CreateAndOpenTestDocument("method Foo() { }", Path.Combine(path, "file1.dfy"));
     var file2 = CreateAndOpenTestDocument("method Bar() { }", Path.Combine(path, "file2.dfy"));

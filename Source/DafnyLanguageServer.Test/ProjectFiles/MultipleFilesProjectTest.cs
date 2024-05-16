@@ -30,7 +30,7 @@ method Bar() {
 }
 ";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
@@ -63,7 +63,7 @@ method Bar() {
 }
 ";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
@@ -93,7 +93,7 @@ method Bar() {
 }
 ";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var producerPath = Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy");
     var producerUri = DocumentUri.File(producerPath);
@@ -126,7 +126,7 @@ method Consumes() {
 method Produces() {}
 ".TrimStart();
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     await CreateOpenAndWaitForResolve(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -205,7 +205,7 @@ method Consumes() {
 method Produces() {}
 ".TrimStart();
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);

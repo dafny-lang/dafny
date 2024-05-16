@@ -17,7 +17,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ProducerLibrary() {
-    var libraryDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var libraryDirectory = GetFreshTempPath();
     var producerSource = @"
 module Producer {
   const x := 3
@@ -35,7 +35,7 @@ module Consumer {
 [options]
 library = [""{producerPath}""]".TrimStart();
 
-    var consumerDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var consumerDirectory = GetFreshTempPath();
     Directory.CreateDirectory(consumerDirectory);
     await File.WriteAllTextAsync(Path.Combine(consumerDirectory, "consumer.dfy"), consumerSource);
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
@@ -92,7 +92,7 @@ module Consumer {
       options.WarnShadowing = false;
       options.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, cacheExpiry);
     });
-    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var tempDirectory = GetFreshTempPath();
     Directory.CreateDirectory(tempDirectory);
     var projectFilePath = Path.Combine(tempDirectory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, "");
@@ -165,7 +165,7 @@ warn-shadowing = false
 quantifier-syntax = 4
 function-syntax = 4";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
 
     var noProjectFile = await CreateOpenAndWaitForResolve(source, "orphaned.dfy");
@@ -186,7 +186,7 @@ function-syntax = 4";
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     var outerProjectFile = CreateTestDocument(outerSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
@@ -218,7 +218,7 @@ method Foo() {
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
 
