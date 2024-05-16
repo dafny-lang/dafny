@@ -85,7 +85,7 @@ module High {
 
     [Fact]
     public async Task CanResolveSymbolsForMultiFileProjects() {
-      var temp = Path.GetTempPath();
+      var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       await CreateOpenAndWaitForResolve("", Path.Combine(temp, DafnyProject.FileName));
       var file1 = CreateAndOpenTestDocument("method Foo() {}", Path.Combine(temp, "file1.dfy"));
       var file2 = CreateAndOpenTestDocument("method Bar() {}", Path.Combine(temp, "file2.dfy"));
