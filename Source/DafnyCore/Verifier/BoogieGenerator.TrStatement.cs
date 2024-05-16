@@ -2249,7 +2249,7 @@ namespace Microsoft.Dafny {
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));
     }
-
+    
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
       string description;
       if (lhs is MemberSelectExpr) {
