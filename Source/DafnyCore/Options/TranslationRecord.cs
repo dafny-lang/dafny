@@ -26,7 +26,7 @@ public class TranslationRecord {
 
     OptionsByModule = new();
 
-    foreach (var module in program.RawModules()) {
+    foreach (var module in program.CompileModules) {
       if (module is DefaultModuleDefinition || !module.ShouldCompile(program.Compilation)) {
         continue;
       }
