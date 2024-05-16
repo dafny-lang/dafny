@@ -198,9 +198,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private IObservable<IdeState> GetStates(Compilation compilation) {
     var initialState = latestIdeState;
-    var latestCompilationState = initialState with {
+    var previousIdeStateTask = Task.FromResult(initialState with {
       Input = compilation.Input,
-    };
+    });
 
     return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
 
@@ -211,10 +211,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       }
 
       try {
-        var newState =
-          await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
-        latestCompilationState = newState;
-        return newState;
+        var previousIdeState = await previousIdeStateTask;
+        previousIdeStateTask = previousIdeState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
+        return await previousIdeStateTask;
       } catch (Exception e) {
         logger.LogError(e, "error while updating IDE state");
         telemetryPublisher.PublishUnhandledException(e);
