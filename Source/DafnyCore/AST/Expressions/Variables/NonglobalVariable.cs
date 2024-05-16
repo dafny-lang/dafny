@@ -8,6 +8,17 @@ namespace Microsoft.Dafny;
 public abstract class NonglobalVariable : TokenNode, IVariable {
   readonly string name;
 
+  protected NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
+    Contract.Requires(tok != null);
+    Contract.Requires(name != null);
+    Contract.Requires(type != null);
+    this.tok = tok;
+    this.name = name;
+    IsTypeExplicit = type != null;
+    this.type = type ?? new InferredTypeProxy();
+    this.isGhost = isGhost;
+  }
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(name != null);
@@ -88,7 +99,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     compileName ??= SanitizedName;
 
   Type type;
-  public bool IsTypeExplicit = false;
+  public bool IsTypeExplicit { get; set; }
   public Type SyntacticType { get { return type; } }  // returns the non-normalized type
   public PreType PreType { get; set; }
 
@@ -127,20 +138,10 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     IsGhost = true;
   }
 
-  public NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
-    this.tok = tok;
-    this.name = name;
-    this.type = type;
-    this.isGhost = isGhost;
-  }
-
   public IToken NameToken => tok;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
-  public SymbolKind Kind => SymbolKind.Variable;
+  public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
   }

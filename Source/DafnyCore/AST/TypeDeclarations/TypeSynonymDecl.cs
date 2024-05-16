@@ -12,7 +12,7 @@ public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
   }
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
-  public override SymbolKind Kind => SymbolKind.Class;
+  public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "type synonym";
   }
@@ -24,7 +24,7 @@ public class InternalTypeSynonymDecl : TypeSynonymDeclBase {
     : base(rangeToken, name, characteristics, typeArgs, module, rhs, attributes) {
   }
 
-  public override SymbolKind Kind => SymbolKind.Class;
+  public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "type synonym";
   }
