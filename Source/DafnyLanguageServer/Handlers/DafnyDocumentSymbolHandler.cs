@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      if (string.IsNullOrEmpty(symbol.NameToken.val)) {
+      if (!symbol.Kind.HasValue || string.IsNullOrEmpty(symbol.NameToken.val)) {
         return children;
       }
 
@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           Name = symbol.NameToken.val,
           Detail = documentation,
           Range = range,
-          Kind = (SymbolKind)symbol.Kind,
+          Kind = symbol.Kind.Value,
           SelectionRange = symbol.NameToken == Token.NoToken ? range : symbol.NameToken.ToRange().ToLspRange()
         }
       };

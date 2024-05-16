@@ -96,7 +96,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual SymbolKind Kind => SymbolKind.Field;
+  public virtual SymbolKind? Kind => SymbolKind.Field;
 
   public string GetDescription(DafnyOptions options) {
     var prefix = IsMutable ? "var" : "const";
