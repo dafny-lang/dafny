@@ -59,7 +59,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   }
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
-  public override SymbolKind Kind => SymbolKind.Class;
+  public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";
   }
