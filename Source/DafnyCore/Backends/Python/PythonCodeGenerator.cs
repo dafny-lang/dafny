@@ -10,13 +10,28 @@ using Microsoft.BaseTypes;
 namespace Microsoft.Dafny.Compilers {
 
   class PythonCodeGenerator : SinglePassCodeGenerator {
+
+    private bool PythonModuleMode;
+    private string PythonModuleName;
+
     public PythonCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      var pythonModuleName = Options.Get(PythonBackend.PythonModuleNameCliOption);
+      PythonModuleMode = pythonModuleName != null;
+      
+      if (PythonModuleMode) {
+        PythonModuleName = pythonModuleName.ToString();
+      }
+
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
+
+      Imports.Add(
+        PythonModuleMode ? PythonModuleName + ".internaldafny.generated." + DafnyDefaultModule : DafnyDefaultModule
+      );
     }
 
-    private readonly List<string> Imports = new() { DafnyDefaultModule };
+    private readonly List<string> Imports = new() { };
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
@@ -24,7 +39,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeCoverageReport
     };
 
-    public override string ModuleSeparator => "_";
+    public override string ModuleSeparator => ".";
 
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
@@ -49,15 +64,23 @@ namespace Microsoft.Dafny.Compilers {
       , "raise", "return", "try", "while", "with", "yield" };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
+      string path;
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimePython", wr);
+        path = PythonModuleMode ? PythonModuleName + "/" : "";
+      } else {
+        path = PythonModuleMode ? DafnyRuntimeModule : "";
       }
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_py", wr);
       }
 
       Imports.Add(DafnyRuntimeModule);
+      // Imports.Add(path);
+      // Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
       EmitImports(null, wr);
+      // Keep the import writers so that we can import subsequent modules into the main one
+      // EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
       wr.WriteLine();
     }
 
@@ -83,16 +106,61 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
+
+        var pythonModuleName = PythonModuleMode ? PythonModuleName + ".internaldafny.generated." : "";
+
+        // if (moduleName.Equals("module_")) {
+        //   pythonModuleName = 
+        //   // if (Options.IncludeRuntime) {
+        //   //   goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+        //   // } else {
+        //   //   goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
+        //   // }
+        // }
+
       moduleName = IdProtect(moduleName);
       var file = wr.NewFile($"{moduleName}.py");
-      EmitImports(moduleName, file);
+      EmitImports(pythonModuleName + moduleName, file);
       return file;
     }
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      var moduleName = IdProtect(module.GetCompileName(Options));
-      Imports.Add(moduleName);
+      var pythonModuleName = "";
+
+      // if (PythonModuleMode) {
+          // For every other Dafny Module, fetch the associated module name from the dtr structure.
+          var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+          translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
+          object moduleName = null;
+          moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out moduleName);
+
+          // Console.WriteLine(moduleName);
+          // Console.WriteLine(module.FullDafnyName);
+
+          /*
+            import.Path = goModuleName + import.Path;
+          */
+
+          if (moduleName is string && !string.IsNullOrEmpty((string) moduleName)) {
+
+            // if (moduleName is )
+
+          pythonModuleName = moduleName is string name ? moduleName + ".internaldafny.generated." : "";
+          if (String.IsNullOrEmpty(pythonModuleName)) {
+            Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
+              $"Python Module Name not found for the module {module.GetCompileName(Options)}");
+          }
+          }
+
+          
+        // }
+      // }
+
+      // var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+      // import.Path = pythonModuleName + import.Path;
+      // var import = pythonModuleName + import.Path;
+      Imports.Add(pythonModuleName + IdProtect(module.GetCompileName(Options)));
     }
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
@@ -101,7 +169,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
       wr.WriteLine();
-      Imports.ForEach(module => wr.WriteLine($"import {module}"));
+      Imports.ForEach(module => wr.WriteLine($"import {module} as {module.Split('.').Last()}"));
       if (moduleName != null) {
         wr.WriteLine();
         wr.WriteLine($"# Module: {moduleName}");
