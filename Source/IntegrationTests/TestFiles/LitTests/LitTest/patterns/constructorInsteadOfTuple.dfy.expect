@@ -1,2 +1,2 @@
-crash.dfy(21,21): Error: found constructor Mult but expected a 2-tuple
-1 resolution/type errors detected in crash.dfy
+constructorInsteadOfTuple.dfy(21,21): Error: found constructor Mult but expected a 2-tuple
+1 resolution/type errors detected in constructorInsteadOfTuple.dfy

@@ -96,20 +96,14 @@ public abstract class ExtendedPattern : TokenNode {
       Contract.Assert(tupleTypeDecl.Ctors.Count == 1);
       Contract.Assert(tupleTypeDecl.Ctors[0] == tupleTypeDecl.GroundingCtor);
       idpat.Ctor = tupleTypeDecl.GroundingCtor;
-      if (idpat.Id != tupleTypeDecl.GroundingCtor.Name) {
-        resolver.Reporter.Error(MessageSource.Resolver, idpat.Tok,
-        $"found constructor {idpat.Id} but expected a {tupleTypeDecl.Dims}-tuple");
-        return;
-      }
 
-      //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
-      if (udt.TypeArgs.Count != idpat.Arguments.Count) {
+      if (idpat.Id != tupleTypeDecl.GroundingCtor.Name) {
         if (idpat.Id.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           resolver.reporter.Error(MessageSource.Resolver, this.Tok,
             $"the case pattern is a {idpat.Arguments.Count}-element tuple, while the match expression is a {udt.TypeArgs.Count}-element tuple");
         } else {
-          resolver.reporter.Error(MessageSource.Resolver, this.Tok,
-            $"case pattern {idpat.Id} has {idpat.Arguments.Count} arguments whereas the match expression has {udt.TypeArgs.Count}");
+          resolver.Reporter.Error(MessageSource.Resolver, idpat.Tok,
+            $"found constructor {idpat.Id} but expected a {tupleTypeDecl.Dims}-tuple");
         }
       }
 
