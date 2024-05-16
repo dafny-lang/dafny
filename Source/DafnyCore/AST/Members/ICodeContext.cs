@@ -94,7 +94,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
   public RangeToken RangeToken => CwInner.RangeToken;
   public IToken NameToken => CwInner.NameToken;
-  public SymbolKind Kind => CwInner.Kind;
+  public SymbolKind? Kind => CwInner.Kind;
   public string GetDescription(DafnyOptions options) {
     return CwInner.GetDescription(options);
   }
@@ -130,7 +130,7 @@ public class DontUseICallable : ICallable {
   public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
   public RangeToken RangeToken => throw new cce.UnreachableException();
   public IToken NameToken => throw new cce.UnreachableException();
-  public SymbolKind Kind => throw new cce.UnreachableException();
+  public SymbolKind? Kind => throw new cce.UnreachableException();
   public string GetDescription(DafnyOptions options) {
     throw new cce.UnreachableException();
   }

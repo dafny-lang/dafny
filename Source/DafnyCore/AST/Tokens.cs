@@ -205,6 +205,9 @@ public abstract class TokenWrapper : IToken {
 
 public static class TokenExtensions {
 
+
+  public static bool IsSet(this IToken token) => token.Uri != null;
+
   public static string TokenToString(this IToken tok, DafnyOptions options) {
     if (tok == Token.Cli) {
       return "CLI";
