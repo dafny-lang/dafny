@@ -26,12 +26,8 @@ namespace Microsoft.Dafny.Compilers {
         Imports.Add("DafnyProfiling");
       }
 
-      // If using module mode, apply the module prefix to this module's `module_` import.
-      // TODO: ".internaldafny.generated." SHOULD be the outer-module value, if provided.
-      // But I don't know if it's appropriate to grab that value from this code,
-      // or the appropriate way to grab it.
       Imports.Add(
-        PythonModuleMode ? PythonModuleName + ".internaldafny.generated." + DafnyDefaultModule : DafnyDefaultModule
+        PythonModuleMode ? PythonModuleName + DafnyDefaultModule : DafnyDefaultModule
       );
     }
 
@@ -43,7 +39,13 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeCoverageReport
     };
 
-    public override string ModuleSeparator => ".";
+    // TODO: Change this to ".", at least for outer-module strings.
+    // Currently, this MUST be a "_" as this flattens some Dafny extern declarations
+    // (ex. {:extern "StandardLibrary.UInt"} is compiled to module "StandardLibrary_UInt.py")\
+    // However, this separator also applies to outer-module strings,
+    // and flattens the outer-module strings.
+    // If 
+    public override string ModuleSeparator => "_";
 
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
@@ -109,26 +111,10 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
 
-        // TODO: ".internaldafny.generated." should be removed.
-        // Problem:
-        // outer-module string is not applied to externs.
-        // The outer-module is passed into here correctly;
-        // `moduleName` already has the outer-module string.
-        // However, if the module name is an extern,
-        // the outer-module string is not applied.
-        // Fix: Apply outer-module prefix to externs.
         var pythonModuleName = PythonModuleMode ? PythonModuleName : "";
 
         moduleName = IdProtect(moduleName);
-        // TODO: When removing ".internaldafny.generated." above,
-        // split moduleName on `.`, take final part, and use that as the filename.
-        // If the moduleName with outer-module is (ex.) ".internaldafny.generated.MyModule",
-        // the file will be written as ".internaldafny.generated.MyModule.py",
-        // which Python cannot interpret.
-        // ex:
-        var filename = moduleName.Split(".").Last();
-        var file = wr.NewFile($"{filename}.py");
-        // var file = wr.NewFile($"{moduleName}.py");
+        var file = wr.NewFile($"{moduleName}.py");
         EmitImports(pythonModuleName + moduleName, file);
         return file;
     }
@@ -145,15 +131,7 @@ namespace Microsoft.Dafny.Compilers {
       object moduleName = null;
       moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out moduleName);
       if (moduleName is string && !string.IsNullOrEmpty((string) moduleName)) {
-        // TODO: ".internaldafny.generated." should be removed.
-        // Problem:
-        // outer-module string is not applied to externs.
-        // The outer-module is passed into here correctly;
-        // `moduleName` already has the outer-module string.
-        // However, if the module name is an extern,
-        // the outer-module string is not applied.
-        // Fix: Apply outer-module prefix to externs.
-        pythonModuleName = moduleName is string name ? (string) moduleName /* + ".internaldafny.generated." */ : "";
+        pythonModuleName = moduleName is string name ? (string) moduleName : "";
         if (String.IsNullOrEmpty(pythonModuleName)) {
           Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
             $"Python Module Name not found for the module {module.GetCompileName(Options)}");

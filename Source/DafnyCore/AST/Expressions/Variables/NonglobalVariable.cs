@@ -40,7 +40,6 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
   /// <returns>A string uniquely determined from <c>nm</c>, containing none of the characters in
   /// <c>specialChars</c>.</returns>
   public static string SanitizeName(string nm) {
-    Console.WriteLine(nm);
     if (nm.Length == 0) {
       return "";
     }
