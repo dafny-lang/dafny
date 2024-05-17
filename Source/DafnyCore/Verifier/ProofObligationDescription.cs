@@ -795,6 +795,16 @@ public class FrameDereferenceNonNull : ProofObligationDescription {
     "frame expression might dereference null";
 
   public override string ShortDescription => "frame dereference";
+
+  private readonly Expression expr;
+
+  public FrameDereferenceNonNull(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, expr, new LiteralExpr(Token.NoToken));
+  }
 }
 
 public class Terminates : ProofObligationDescription {
