@@ -936,23 +936,11 @@ namespace Microsoft.Dafny {
         var x = new Bpl.IdentifierExpr(tok, name);
 
         var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
-        var source = new IdentifierExpr(Token.NoToken, sourceBoundVar);
-        var loBound = dLo == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, dLo, source);
-        var hiBound = dHi == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Lt, source, dHi);
-        var bounds = (loBound, hiBound) switch {
-          (not null, not null) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loBound, hiBound),
-          (not null, null) => loBound,
-          (null, not null) => hiBound,
-        };
-        Expression CheckContext(Expression check) => new ForallExpr(
-          Token.NoToken,
-          RangeToken.NoToken,
-          new() { sourceBoundVar },
-          bounds,
-          check,
-          null
-        );
-        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, source, CheckContext, out var desc);
+        var checkContext = MakeNumericBoundsSubrangeCheckContext(sourceBoundVar, dLo, dHi);
+        var cre = GetSubrangeCheck(
+          x, Type.Int, indexVar.Type,
+          new IdentifierExpr(Token.NoToken, sourceBoundVar),
+          checkContext, out var desc);
 
         if (cre != null) {
           locals.Add(xVar);
@@ -1006,6 +994,27 @@ namespace Microsoft.Dafny {
       }
 
       TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
+    }
+
+    private static SubrangeCheckContext MakeNumericBoundsSubrangeCheckContext(BoundVar bvar, Expression lo, Expression hi) {
+      var source = new IdentifierExpr(Token.NoToken, bvar);
+      var loBound = lo == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, lo, source);
+      var hiBound = hi == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Lt, source, hi);
+      var bounds = (loBound, hiBound) switch {
+        (not null, not null) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loBound, hiBound),
+        (not null, null) => loBound,
+        (null, not null) => hiBound,
+      };
+      Expression CheckContext(Expression check) => new ForallExpr(
+        Token.NoToken,
+        RangeToken.NoToken,
+        new() { bvar },
+        bounds,
+        check,
+        null
+      );
+
+      return CheckContext;
     }
 
     private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
