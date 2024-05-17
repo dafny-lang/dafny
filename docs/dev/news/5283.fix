@@ -1,1 +1,1 @@
-Support for user-defined module with the same name as Go built-in modules, checked for all compilers
+Avoid name clashes with Go built-in modules
