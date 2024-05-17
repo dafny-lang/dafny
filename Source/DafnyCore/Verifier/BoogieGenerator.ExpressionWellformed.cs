@@ -587,9 +587,23 @@ namespace Microsoft.Dafny {
             }
 
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
+              // unwrap renamed local lambdas
+              var funcExpr = e.Function;
+              while (funcExpr is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
+                funcExpr = cse.ResolvedExpression;
+              }
+              if (funcExpr is IdentifierExpr ie) {
+                funcExpr = new IdentifierExpr(ie.tok, ie.DafnyName);
+              }
+              var dPrecond = new ApplyExpr(
+                Token.NoToken,
+                new ExprDotName(Token.NoToken, funcExpr, "requires", null),
+                e.Args,
+                Token.NoToken);
+              
               // check precond
-              var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
-              builder.Add(Assert(GetToken(expr), precond, new PODesc.PreconditionSatisfied(null, null)));
+              var bPrecond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
+              builder.Add(Assert(GetToken(expr), bPrecond, new PODesc.PreconditionSatisfied(dPrecond, null, null)));
             }
 
             if (wfOptions.DoReadsChecks && !fnCoreType.IsArrowTypeWithoutReadEffects) {
@@ -728,7 +742,7 @@ namespace Microsoft.Dafny {
               if (e.Function.Name == "reads" && !e.Receiver.Type.IsArrowTypeWithoutReadEffects) {
                 var arguments = etran.FunctionInvocationArguments(e, null, null);
                 var precondition = FunctionCall(e.tok, Requires(e.Args.Count), Bpl.Type.Bool, arguments);
-                builder.Add(Assert(GetToken(expr), precondition, new PODesc.PreconditionSatisfied(null, null)));
+                builder.Add(Assert(GetToken(expr), precondition, new PODesc.PreconditionSatisfied(null, null, null)));
 
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
@@ -742,14 +756,19 @@ namespace Microsoft.Dafny {
                 }
 
               } else {
-
+                // Directly substitutes arguments for formals, to be displayed to the user
+                var directSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
+                var directSub = new Substituter(e.Receiver, directSubstMap, e.GetTypeArgumentSubstitutions());
+                  
                 foreach (AttributedExpression p in e.Function.Req) {
+                  var directPrecond = directSub.Substitute(p.E);
+                  
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
                     if (ss.IsChecked) {
                       var tok = new NestedToken(GetToken(expr), ss.Tok);
-                      var desc = new PODesc.PreconditionSatisfied(errorMessage, successMessage);
+                      var desc = new PODesc.PreconditionSatisfied(directPrecond, errorMessage, successMessage);
                       if (wfOptions.AssertKv != null) {
                         // use the given assert attribute only
                         builder.Add(Assert(tok, ss.E, desc, wfOptions.AssertKv));

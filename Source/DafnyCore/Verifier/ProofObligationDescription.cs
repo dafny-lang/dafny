@@ -517,8 +517,15 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "precondition";
 
-  public PreconditionSatisfied([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public PreconditionSatisfied(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
