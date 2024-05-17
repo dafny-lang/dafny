@@ -600,7 +600,7 @@ namespace Microsoft.Dafny {
                 new ExprDotName(Token.NoToken, funcExpr, "requires", null),
                 e.Args,
                 Token.NoToken);
-              
+
               // check precond
               var bPrecond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
               builder.Add(Assert(GetToken(expr), bPrecond, new PODesc.PreconditionSatisfied(dPrecond, null, null)));
@@ -759,10 +759,10 @@ namespace Microsoft.Dafny {
                 // Directly substitutes arguments for formals, to be displayed to the user
                 var directSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
                 var directSub = new Substituter(e.Receiver, directSubstMap, e.GetTypeArgumentSubstitutions());
-                  
+
                 foreach (AttributedExpression p in e.Function.Req) {
                   var directPrecond = directSub.Substitute(p.E);
-                  
+
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
