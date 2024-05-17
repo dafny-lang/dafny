@@ -2945,12 +2945,6 @@ namespace Microsoft.Dafny {
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
         ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, iter);
       }
-      foreach (AttributedExpression e in iter.Requires) {
-        ResolveAttributes(e, new ResolutionContext(iter, false));
-        ResolveExpression(e.E, new ResolutionContext(iter, false));
-        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
-        ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
-      }
 
       scope.PopMarker();  // for the in-parameters
 
@@ -2960,9 +2954,18 @@ namespace Microsoft.Dafny {
       currentClass = iter;
       Contract.Assert(scope.AllowInstance);
 
-      foreach (AttributedExpression e in iter.YieldRequires) {
+      // Requires clause in instance context
+      foreach (AttributedExpression e in iter.Requires) {
         ResolveAttributes(e, new ResolutionContext(iter, false));
         ResolveExpression(e.E, new ResolutionContext(iter, false));
+        Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
+        ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
+      }
+
+      foreach (AttributedExpression e in iter.YieldRequires) {
+        // Yield preconditions are two-state!
+        ResolveAttributes(e, new ResolutionContext(iter, true));
+        ResolveExpression(e.E, new ResolutionContext(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Yield precondition must be a boolean (got {0})");
       }

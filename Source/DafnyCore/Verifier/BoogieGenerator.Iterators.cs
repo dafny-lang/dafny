@@ -42,8 +42,11 @@ namespace Microsoft.Dafny {
       isAllocContext = new IsAllocContext(options, false);
 
       // declare the oldest iterator heap
-      Constant oldestIterHeap = new(iter.tok, new TypedIdent(iter.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator), predef.HeapType), unique: false);
-      sink.AddTopLevelDeclaration(oldestIterHeap);
+      Constant ensuresOldHeapG = new(iter.tok, new TypedIdent(iter.tok, "$_EnsuresOldHeap_Global", predef.HeapType), unique: false);
+      sink.AddTopLevelDeclaration(ensuresOldHeapG);
+
+      Constant yrOldHeapG = new(iter.tok, new TypedIdent(iter.tok, "$_YieldRequiresOldHeap_Global", predef.HeapType), unique: false);
+      sink.AddTopLevelDeclaration(yrOldHeapG);
 
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
@@ -85,11 +88,6 @@ namespace Microsoft.Dafny {
       var mod = new List<Bpl.IdentifierExpr>();
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
-      // if kind == Wf then this precond. lets it figure out allocatedness
-      // else kind == Impl, then it does impl checking
-      req.Add(Requires(iter.tok, true, Boogie.Expr.Eq(
-        new Bpl.IdentifierExpr(iter.tok, "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator)), etran.HeapExpr), null, null, null));
-
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
         req.Add(Requires(iter.tok, true, etran.HeightContext(iter), null, null, null));
@@ -117,6 +115,7 @@ namespace Microsoft.Dafny {
           }
         }
         comment = "user-defined postconditions";
+        // Note that $_EnsuresOldHeap_Global == old($Heap)
         foreach (var p in iter.Ensures) {
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
@@ -188,6 +187,11 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
       }
 
+      // save heap before havoc in $_YieldRequiresOldHeap
+      var yrOldHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType));
+      localVariables.Add(yrOldHeap);
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, yrOldHeap), etran.HeapExpr));
+
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
       var th = new ThisExpr(iter);  // resolve here
       var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
@@ -196,24 +200,10 @@ namespace Microsoft.Dafny {
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
         new List<Bpl.IdentifierExpr>()));
 
-      // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
-      var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, iter.tok, new List<Expression>());
-      validCall.Function = iter.Member_Valid;  // resolve here
-      validCall.Type = Type.Bool;  // resolve here
-      validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
-      validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
-
-      builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
-
-      // check well-formedness of the user-defined part of the yield-requires
-      foreach (var p in iter.YieldRequires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator yield-requires clause");
-      }
-
-      // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
-      var oldIterHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType));
-      localVariables.Add(oldIterHeap);
-      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
+      // save $_YieldEnsuresOldHeap := Heap;
+      var yeOldHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType));
+      localVariables.Add(yeOldHeap);
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, yeOldHeap), etran.HeapExpr));
 
       // simulate a modifies this, this._modifies, this._new;
       var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
@@ -223,7 +213,7 @@ namespace Microsoft.Dafny {
         new List<Bpl.IdentifierExpr>()));
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
-      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType), iter);
+      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType), iter);
       var old_nw = new OldExpr(iter.tok, nw);
       old_nw.Type = nw.Type;  // resolve here
       var setDiff = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub, nw, old_nw);
@@ -231,6 +221,12 @@ namespace Microsoft.Dafny {
       Expression cond = new FreshExpr(iter.tok, setDiff);
       cond.Type = Type.Bool;  // resolve here
       builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
+
+      var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, iter.tok, new List<Expression>());
+      validCall.Function = iter.Member_Valid;  // resolve here
+      validCall.Type = Type.Bool;  // resolve here
+      validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
+      validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
 
       // check wellformedness of postconditions
       var yeBuilder = new BoogieStmtListBuilder(this, options);
@@ -259,8 +255,20 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.YieldEnsures) {
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
       }
+
+      // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
+      builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
+
+      // check well-formedness of the user-defined part of the yield-requires
+      // where the old state is before the havoc
+      foreach (var p in iter.YieldRequires) {
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder,
+          new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType), iter), "iterator yield-requires clause");
+      }
+
+      // Ensures clause is checked at old($Heap) == $_EnsuresOldHeap_Global
       foreach (var p in iter.Ensures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran, "iterator ensures clause");
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, etran, "iterator ensures clause");
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
@@ -319,15 +327,13 @@ namespace Microsoft.Dafny {
       yieldCountVariable.TypedIdent.WhereExpr = YieldCountAssumption(iter, etran);  // by doing this after setting "yieldCountVariable", the variable can be used by YieldCountAssumption
       localVariables.Add(yieldCountVariable);
       builder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable), Bpl.Expr.Literal(0))));
-      // add a variable $_OldIterHeap
-      var oih = new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType);
-      Bpl.Expr wh = BplAnd(
-        FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, oih),
-        HeapSucc(oih, etran.HeapExpr));
-      localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
-      // do an initial YieldHavoc -- Siva is removing this b/c he doesn't know why it's here
-      // YieldHavoc(iter.tok, iter, builder, etran);
+      // add a variable $_YieldEnsuresOldHeap := $Heap
+      localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType /*, wh*/)));
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType), etran.HeapExpr));
+
+      // add a variable $_YieldRequiresOldHeap
+      localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType)));
 
       // translate the body of the iterator
       var stmts = TrStmt2StmtList(builder, iter.Body, localVariables, etran);
@@ -385,16 +391,19 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Generate:
-    ///   havoc Heap \ {this} \ _reads \ _new;
+    ///   $_YieldRequiresOldHeap := $Heap;
+    ///   havoc $Heap \ {this} \ _reads \ _new;
     ///   assume this.Valid();
-    ///   assume YieldRequires;
-    ///   $_OldIterHeap := Heap;
+    ///   assume YieldRequires[old($Heap) --> $_YieldRequiresOldHeap];
+    ///   $_YieldEnsuresOldHeap := $Heap;
     /// </summary>
     void YieldHavoc(IToken tok, IteratorDecl iter, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(iter != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
+      // $_YieldRequiresOldHeap := $Heap;
+      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_YieldRequiresOldHeap", predef.HeapType), etran.HeapExpr));
       // havoc Heap \ {this} \ _reads \ _new;
       var th = new ThisExpr(iter);
       var rds = new MemberSelectExpr(tok, th, iter.Member_Reads);
@@ -402,12 +411,14 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.CallCmd(tok, "$YieldHavoc",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
+      // $_YieldEnsuresOldHeap := Heap;
+      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_YieldEnsuresOldHeap", predef.HeapType), etran.HeapExpr));
       // assume YieldRequires;
       foreach (var p in iter.YieldRequires) {
-        builder.Add(TrAssumeCmdWithDependencies(etran, tok, p.E, "iterator yield-requires clause"));
+        builder.Add(TrAssumeCmdWithDependencies(new ExpressionTranslator(
+          this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType), iter)
+        , tok, p.E, "iterator yield-requires clause"));
       }
-      // $_OldIterHeap := Heap;
-      builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, "$_OldIterHeap", predef.HeapType), etran.HeapExpr));
     }
   }
 }

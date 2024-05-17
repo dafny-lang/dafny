@@ -1683,28 +1683,51 @@ namespace Microsoft.Dafny {
       }
       mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
 
-      // for iterators: MoveNext() free ensures old(!_begun) ==> $Heap_at_[this] == $Heap
-      if (m.EnclosingClass is IteratorDecl iter /*&& kind != MethodTranslationKind.SpecWellformedness*/) {
-        AddEnsures(ens, Ensures(m.tok, true,
-          m == iter.Member_MoveNext ?
-            // MoveNext(): free ensures old(!begun) ==> $Heap_at_[this] == $Heap
-            BplAnd(
-              BplImp(
-                etran.Old.TrExpr(iter.Member_Begun_Expr)
-              , Boogie.Expr.Eq(
-                  new Bpl.IdentifierExpr(m.tok,
-                    "$Heap_at_" + iter.FirstHeap.AssignUniqueId(CurrentIdGenerator))
-                , etran.HeapExpr
-                )
-              )
-            // MoveNext(): free ensures begun
-            , etran.TrExpr(iter.Member_Begun_Expr)
-            )
-          // constructor: free ensures !begun
-          : etran.TrExpr(new UnaryOpExpr(m.tok, UnaryOpExpr.Opcode.Not, iter.Member_Begun_Expr) { Type = Type.Bool })
-          , null, null, null
-          )
-        );
+      if (m.EnclosingClass is IteratorDecl iter /*&& kind == MethodTranslationKind.Call*/) {
+        if (m == iter.Member_MoveNext) {
+          // Translation of Requires and YieldEnsures covered in the normal flow (at the right heaps)
+
+          // Problem here: method parameters are shadowing 
+          Bpl.IdentifierExpr yrOldHeapG = new(m.Tok, "$_YieldRequiresOldHeap_Global", predef.HeapType);
+
+          ExpressionTranslator yrTran = new(this, predef, etran.HeapExpr, yrOldHeapG, m);
+
+          foreach (var p in iter.YieldRequires) {
+            req.Add(Requires(m.tok, false,
+              // requires begun ==> YieldRequires[old($Heap) |-> $_YieldRequiresOldHeap_Global]
+              BplImp(etran.TrExpr(iter.Member_Begun_Expr), yrTran.TrExpr(p.E)),
+            null, null, "coroutines: yield requires clause where old($Heap) == $_YieldRequiresOldHeap_Global"));
+          }
+
+          Bpl.IdentifierExpr ensuresOldHeapG = new(m.Tok, "$_EnsuresOldHeap_Global", predef.HeapType);
+
+          // Sets up value of $_EnsuresOldHeap_Global for Ensures clauses /
+          // $_YieldRequiresOldHeap_Global for Yield Requires clause on re-entry
+
+          // free ensures
+          //   if old(!_begun) then $_EnsuresOldHeap_Global == $Heap
+          AddEnsures(ens, Ensures(m.tok, true, BplImp(
+            Bpl.Expr.Not(etran.Old.TrExpr(iter.Member_Begun_Expr))
+          , Boogie.Expr.Eq(ensuresOldHeapG, etran.HeapExpr)
+          ), null, null, "coroutines: identifies $_EnsuresOldHeap_Global for caller"));
+
+          // free ensures more ==> $_YieldRequiresOldHeap_Global == $Heap
+          AddEnsures(ens, Ensures(m.tok, true,
+            BplImp(new Bpl.IdentifierExpr(m.tok, outParams[0]), Bpl.Expr.Eq(yrOldHeapG, etran.HeapExpr))
+          , null, null, "coroutines: identifies $_YieldRequiresOldHeap_Global for caller"));
+
+          // free ensures !more ==> Ensures[old($Heap) |-> $_EnsuresOldHeap_Global]
+          ExpressionTranslator ensEtran = new(this, predef, etran.HeapExpr, ensuresOldHeapG, m);
+          foreach (var p in iter.Ensures) {
+            AddEnsures(ens, Ensures(m.tok, true, BplImp(
+              Bpl.Expr.Not(new Bpl.IdentifierExpr(m.tok, outParams[0])),
+              ensEtran.TrExpr(p.E)
+            ), null, null, "coroutines: ensures clause where old($Heap) == $_EnsuresOldHeap_Global"));
+          }
+          // MoveNext() already ensures _begun
+        } else {
+          // constructor already ensures !_begun
+        }
       }
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
@@ -1771,20 +1794,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-
-      /*if (m.EnclosingClass is IteratorDecl iter) {
-        if (m == iter.Member_MoveNext) {
-          switch (kind) {
-            case MethodTranslationKind.SpecWellformedness:
-              break;
-            case MethodTranslationKind.Implementation:
-              // The implementation of 
-              break;
-          }
-        } else {
-
-        }
-      }*/
 
       var name = MethodName(m, kind);
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
