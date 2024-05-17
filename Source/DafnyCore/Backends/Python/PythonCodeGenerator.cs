@@ -27,7 +27,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       Imports.Add(
-        PythonModuleMode ? PythonModuleName + DafnyDefaultModule : DafnyDefaultModule
+        PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule
       );
     }
 
@@ -66,7 +66,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimePython", wr);
-        path = PythonModuleMode ? PythonModuleName + "." : "";
       }
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_py", wr);
@@ -99,7 +98,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
-      var pythonModuleName = PythonModuleMode ? PythonModuleName : "";
+      var pythonModuleName = PythonModuleMode ? PythonModuleName + "." : "";
 
       moduleName = PublicModuleIdProtect(moduleName);
       var file = wr.NewFile($"{moduleName}.py");
@@ -116,10 +115,10 @@ namespace Microsoft.Dafny.Compilers {
       // even if this module is not using module mode
       var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
       translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
-      object moduleName = null;
+      object dependencyModuleName = null;
       moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out dependencyModuleName);
       if (dependencyModuleName is string && !string.IsNullOrEmpty((string) dependencyModuleName)) {
-        dependencyPythonModuleName = dependencyModuleName is string name ? (string) dependencyModuleName : "";
+        dependencyPythonModuleName = dependencyModuleName is string name ? (string) dependencyModuleName + ".": "";
         if (String.IsNullOrEmpty(dependencyPythonModuleName)) {
           Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
             $"Python Module Name not found for the module {module.GetCompileName(Options)}");
@@ -127,7 +126,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var dependencyCompileName = IdProtect(module.GetCompileName(Options));
-      Imports.Add(pythonModuleName + dependencyCompileName);
+      Imports.Add(dependencyPythonModuleName + dependencyCompileName);
     }
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
