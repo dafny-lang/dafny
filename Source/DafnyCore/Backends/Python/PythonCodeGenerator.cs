@@ -113,7 +113,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var pythonModuleName = PythonModuleMode ? PythonModuleName : "";
 
-        moduleName = IdProtect(moduleName);
+        moduleName = PublicModuleIdProtect(moduleName);
         var file = wr.NewFile($"{moduleName}.py");
         EmitImports(pythonModuleName + moduleName, file);
         return file;
@@ -216,7 +216,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateIterator(IteratorDecl iter, ConcreteSyntaxTree wr) {
-      var cw = (ClassWriter)CreateClass(IdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
+      var cw = (ClassWriter)CreateClass(PublicModuleIdProtect(iter.EnclosingModuleDefinition.GetCompileName(Options)), IdName(iter), false,
         iter.FullName, iter.TypeArgs, iter, null, iter.tok, wr);
       var constructorWriter = cw.ConstructorWriter;
       var w = cw.MethodWriter;
@@ -732,8 +732,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string FullName(TopLevelDecl decl) {
-      var localDefinition = decl.EnclosingModuleDefinition == enclosingModule;
-      return IdProtect(localDefinition ? decl.GetCompileName(Options) : decl.GetFullCompileName(Options));
+      var segments = new List<string> { IdProtect(decl.GetCompileName(Options)) };
+      if (decl.EnclosingModuleDefinition != enclosingModule) {
+        segments = decl.EnclosingModuleDefinition.GetCompileName(Options).Split('.').Select(PublicModuleIdProtect).Concat(segments).ToList();
+      }
+      return string.Join('.', segments);
     }
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
@@ -1198,6 +1201,18 @@ namespace Microsoft.Dafny.Compilers {
       return name switch {
         _ => MangleName(name)
       };
+    }
+
+
+    private readonly HashSet<string> ReservedModuleNames = new() {
+      "itertools", "math", "typing", "sys"
+    };
+
+    private string PublicModuleIdProtect(string name) {
+      if (ReservedModuleNames.Contains(name)) {
+        return "_" + name;
+      }
+      return IdProtect(name);
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null) {
@@ -1873,8 +1888,9 @@ namespace Microsoft.Dafny.Compilers {
         : $"{tmpVarName} is None or {typeTest}");
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
-      return TypeHelperName(ct) + $"({collName})";
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
+      wr.Write(TypeHelperName(ct) + $"({collName})");
     }
 
     protected override (Type, Action<ConcreteSyntaxTree>) EmitIntegerRange(Type type, Action<ConcreteSyntaxTree> wLo, Action<ConcreteSyntaxTree> wHi) {

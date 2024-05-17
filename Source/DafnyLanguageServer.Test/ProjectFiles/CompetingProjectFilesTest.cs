@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -33,7 +34,7 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     var diagnostics = await GetLastDiagnostics(project);
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Single(errors);
-    Assert.Contains("the referenced file", errors[0].Message);
+    Assert.Contains("but is part of a different project", errors[0].Message);
   }
 
   public readonly string hasShadowingSource = @"
@@ -77,6 +78,6 @@ warn-shadowing = true
     Assert.Empty(diagnostics1);
   }
 
-  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output) {
+  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }

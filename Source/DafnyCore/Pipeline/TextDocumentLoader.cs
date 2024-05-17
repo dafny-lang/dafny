@@ -41,16 +41,16 @@ namespace Microsoft.Dafny {
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(compilation, program, cancellationToken), cancellationToken);
+        () => ResolveInternal(compilation, program, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
     }
 
-    private ResolutionResult? ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
+    private async Task<ResolutionResult?> ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
       if (program.HasParseErrors) {
         return null;
       }
 
-      symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
+      await symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
 
       compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
 

@@ -394,7 +394,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual SymbolKind Kind => SymbolKind.Method;
+  public virtual SymbolKind? Kind => SymbolKind.Method;
   public string GetDescription(DafnyOptions options) {
     var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";

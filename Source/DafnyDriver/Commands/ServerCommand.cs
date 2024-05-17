@@ -32,6 +32,7 @@ public class ServerCommand {
       result.Add(option);
     }
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, context) => {
+      options.Set(DafnyFile.UnsafeDependencies, true);
       LanguageServer.ConfigureDafnyOptionsForServer(options);
       await LanguageServer.Start(options);
       return 0;
