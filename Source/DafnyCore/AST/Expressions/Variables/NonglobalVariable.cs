@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -39,6 +40,10 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
   /// <returns>A string uniquely determined from <c>nm</c>, containing none of the characters in
   /// <c>specialChars</c>.</returns>
   public static string SanitizeName(string nm) {
+    Console.WriteLine(nm);
+    if (nm.Length == 0) {
+      return "";
+    }
     if ('0' <= nm[0] && nm[0] <= '9') {
       // the identifier is one that consists of just digits
       return "_" + nm;

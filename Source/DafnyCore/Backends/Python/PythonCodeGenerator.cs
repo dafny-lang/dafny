@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.Compilers {
       string path;
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimePython", wr);
-        path = PythonModuleMode ? PythonModuleName + "/" : "";
+        path = PythonModuleMode ? PythonModuleName + "." : "";
       } else {
         path = PythonModuleMode ? DafnyRuntimeModule : "";
       }
@@ -76,8 +76,6 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       Imports.Add(DafnyRuntimeModule);
-      // Imports.Add(path);
-      // Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
       EmitImports(null, wr);
       // Keep the import writers so that we can import subsequent modules into the main one
       // EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
@@ -107,60 +105,34 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
 
-        var pythonModuleName = PythonModuleMode ? PythonModuleName + ".internaldafny.generated." : "";
+        var pythonModuleName = PythonModuleMode ? PythonModuleName : "";
 
-        // if (moduleName.Equals("module_")) {
-        //   pythonModuleName = 
-        //   // if (Options.IncludeRuntime) {
-        //   //   goModuleName = GoModuleMode ? GoModuleName + "/" : "";
-        //   // } else {
-        //   //   goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
-        //   // }
-        // }
-
-      moduleName = IdProtect(moduleName);
-      var file = wr.NewFile($"{moduleName}.py");
-      EmitImports(pythonModuleName + moduleName, file);
-      return file;
+        moduleName = IdProtect(moduleName);
+        var file = wr.NewFile($"{moduleName}.py");
+        EmitImports(pythonModuleName + moduleName, file);
+        return file;
     }
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
       var pythonModuleName = "";
 
-      // if (PythonModuleMode) {
-          // For every other Dafny Module, fetch the associated module name from the dtr structure.
-          var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
-          translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
-          object moduleName = null;
-          moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out moduleName);
+      // If the module being depended on was compiled using module mode,
+      // this module needs to rely on it using its translation record,
+      // even if this module is not using module mode
+      var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+      translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
+      object moduleName = null;
+      moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out moduleName);
+      if (moduleName is string && !string.IsNullOrEmpty((string) moduleName)) {
+        pythonModuleName = moduleName is string name ? (string) moduleName : "";
+        if (String.IsNullOrEmpty(pythonModuleName)) {
+          Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
+            $"Python Module Name not found for the module {module.GetCompileName(Options)}");
+        }
+      }
 
-          // Console.WriteLine(moduleName);
-          // Console.WriteLine(module.FullDafnyName);
-
-          /*
-            import.Path = goModuleName + import.Path;
-          */
-
-          if (moduleName is string && !string.IsNullOrEmpty((string) moduleName)) {
-
-            // if (moduleName is )
-
-          pythonModuleName = moduleName is string name ? moduleName + ".internaldafny.generated." : "";
-          if (String.IsNullOrEmpty(pythonModuleName)) {
-            Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
-              $"Python Module Name not found for the module {module.GetCompileName(Options)}");
-          }
-          }
-
-          
-        // }
-      // }
-
-      // var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
-      // import.Path = pythonModuleName + import.Path;
-      // var import = pythonModuleName + import.Path;
-      Imports.Add(pythonModuleName + IdProtect(module.GetCompileName(Options)));
+      Imports.Add(pythonModuleName + ".internaldafny.generated." + IdProtect(module.GetCompileName(Options)));
     }
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
