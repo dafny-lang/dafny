@@ -373,6 +373,7 @@ method Foo() {
     // Change in file1 causes project detection to realize it's now part of project, so it is added there.
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
     ApplyChange(ref file2, new Range(0, 0, 0, 0), "// added this comment\n");
+    await client.WaitForNotificationCompletionAsync(project.Uri, CancellationToken);
     var diagnostics0 = await GetLastDiagnostics(project);
     var diagnostics1 = await GetLastDiagnostics(file1);
     var diagnostics2 = await GetLastDiagnostics(file2);
