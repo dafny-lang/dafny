@@ -15,7 +15,7 @@ namespace Microsoft.Dafny {
   public class PrecedenceLinter : IRewriter {
     private readonly CompilationData compilation;
     // Don't perform linting on doo files in general, since the source has already been processed.
-    internal override void PostResolve(ModuleDefinition moduleDefinition) {
+    internal override void PreResolve(ModuleDefinition moduleDefinition) {
       if (moduleDefinition.tok.Uri != null && !moduleDefinition.ShouldVerify(compilation)) {
         return;
       }
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
     private readonly CompilationData compilation;
     private readonly ErrorReporter reporter;
 
-    public PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter) {
+    public PrecedenceLinterVisitor(CompilationData compilation, ErrorReporter reporter) : base(false) {
       this.compilation = compilation;
       this.reporter = reporter;
     }

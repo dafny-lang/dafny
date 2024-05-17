@@ -98,12 +98,12 @@ module [>Used<] {
     public async Task ModuleImport2() {
       var source = @"
 module User {
- [>import<] Used
+ import Used
  
  const x := Us><ed.x
 }
 
-module Used {
+module [>Used<] {
   const x := 3
 }".TrimStart();
       await AssertPositionsLineUpWithRanges(source);
@@ -302,7 +302,7 @@ module Consumer {
     [Fact]
     public async Task JumpToOtherModule() {
       var source = @"
-module Provider {
+module {>2:Provider<} {
   class A {
     var [>x<]: int;
 
@@ -326,7 +326,7 @@ module Consumer {
 }
 
 module Consumer2 {
-  [>import<] Provider
+  import Provider
 
   type A2 = Pro><vider.A
 }".TrimStart();

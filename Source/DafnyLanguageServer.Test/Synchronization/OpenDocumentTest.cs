@@ -99,7 +99,8 @@ method Recurse(x: int) returns (r: int) {
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       // Empty files currently yield only a warning.
-      Assert.True((await GetLastDiagnostics(documentItem)).All(d => d.Severity != DiagnosticSeverity.Error));
+      var diagnostics = await GetLastDiagnostics(documentItem);
+      Assert.True(diagnostics.All(d => d.Severity != DiagnosticSeverity.Error));
     }
 
     [Fact]
