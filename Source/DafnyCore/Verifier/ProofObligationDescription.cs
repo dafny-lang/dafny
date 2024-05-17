@@ -27,7 +27,7 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
 
   // Returns a list of primed copies of the given `BoundVar`s.
   protected static List<BoundVar> MakePrimedBoundVars(List<BoundVar> bvars) {
-    return bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
+    return bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.Name + "'", bvar.Type)).ToList();
   }
 
   // Returns a substitution map from each given `BoundVar`s to a substitutable expression of a primed copy of the var.
