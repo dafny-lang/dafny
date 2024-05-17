@@ -711,7 +711,7 @@ namespace Microsoft.Dafny {
         // on the method, and {:assume_concurrent} is NOT present on the reads clause.
         if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
             !Attributes.Contains(m.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-          var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+          var desc = new PODesc.ConcurrentFrameEmpty(m, "reads");
           if (etran.readsFrame != null) {
             CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
           } else {
@@ -729,7 +729,7 @@ namespace Microsoft.Dafny {
         // and {:assume_concurrent} is NOT present on the modifies clause.
         if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
             !Attributes.Contains(m.Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-          var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
+          var desc = new PODesc.ConcurrentFrameEmpty(m, "modifies");
           CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
         }
 

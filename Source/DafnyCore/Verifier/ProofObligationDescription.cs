@@ -1521,19 +1521,31 @@ public class AssignmentShrinks : ProofObligationDescription {
 
 public class ConcurrentFrameEmpty : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{frameName} is empty ({{:concurrent}} restriction)";
+    $"{frameName} clause is empty ({{:concurrent}} restriction)";
 
   public override string FailureDescription =>
-    $"{frameName} could not be proved to be empty ({{:concurrent}} restriction)";
+    $"{frameName} clause could not be proved to be empty ({{:concurrent}} restriction)";
 
   public override string ShortDescription => "concurrency safety";
 
   public override bool ProvedOutsideUserCode => true;
 
+  private readonly MethodOrFunction decl;
   private readonly string frameName;
 
-  public ConcurrentFrameEmpty(string frameName) {
+  public ConcurrentFrameEmpty(MethodOrFunction decl, string frameName) {
+    this.decl = decl;
     this.frameName = frameName;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var bvars = decl.Ins.Select(formal => new BoundVar(formal.Tok, formal.Name, formal.Type)).ToList();
+    var func = new ExprDotName(Token.NoToken, new NameSegment(Token.NoToken, decl.Name, null), frameName, null);
+    var args = bvars.Select(bvar => new IdentifierExpr(Token.NoToken, bvar) as Expression).ToList();
+    var call = new ApplyExpr(Token.NoToken, func, args, Token.NoToken);
+    var isEmpty = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, call,
+      new SetDisplayExpr(Token.NoToken, true, new()));
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, bvars, null, isEmpty, null);
   }
 }
 

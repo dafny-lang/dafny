@@ -171,7 +171,7 @@ public partial class BoogieGenerator {
 
     // If the function is marked as {:concurrent}, check that the reads clause is empty.
     if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
-      var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+      var desc = new PODesc.ConcurrentFrameEmpty(f, "reads");
       CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
     }
 
