@@ -1577,9 +1577,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void CheckElementInitReturnSubrangeCheck(List<Expression> dims, Expression init, out Expression dafnySource, out SubrangeCheckContext checkContext)
-    {
-      var quantifiedVars = 
+    private static void CheckElementInitReturnSubrangeCheck(List<Expression> dims, Expression init, out Expression dafnySource, out SubrangeCheckContext checkContext) {
+      var quantifiedVars =
         Enumerable.Range(0, dims.Count)
           .Select(i => {
             var name = $"i{i}";

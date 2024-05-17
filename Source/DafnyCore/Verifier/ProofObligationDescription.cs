@@ -47,14 +47,14 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
     out List<BoundVar> primedVars, out Substituter sub, out Expression combinedRange) {
     var substMap = MakePrimedBoundVarSubstMap(bvars, out primedVars, out _);
     sub = new Substituter(null, substMap, new());
-    
+
     var rangeAndRangePrime = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, sub.Substitute(range));
     var indicesDistinct = bvars
       .Select(var =>
         new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, ToSubstitutableExpression(var), substMap[var]))
       .Aggregate((acc, disjunct) =>
         new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
-    combinedRange = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, rangeAndRangePrime, indicesDistinct); 
+    combinedRange = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, rangeAndRangePrime, indicesDistinct);
   }
 
   public virtual bool ProvedOutsideUserCode => false;
@@ -1033,7 +1033,7 @@ public class IndicesInDomain : ProofObligationDescription {
     var indexVars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
     var indexVarExprs = indexVars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
     var indexRanges = dims.Select((dim, i) => new ChainingExpression(
-      Token.NoToken, 
+      Token.NoToken,
       new() { zero, indexVarExprs[i], dim },
       new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
       new() { Token.NoToken, Token.NoToken },
@@ -1236,7 +1236,7 @@ public class ForallLHSUnique : ProofObligationDescription {
       // ... or the RHS is always the same
       .Append(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, rhs, sub.Substitute(rhs)))
       .Aggregate((acc, disjunct) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
-    
+
     return new ForallExpr(Token.NoToken, RangeToken.NoToken, combinedVars, combinedRange, condition, null);
   }
 }

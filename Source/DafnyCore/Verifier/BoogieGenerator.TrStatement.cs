@@ -953,7 +953,7 @@ namespace Microsoft.Dafny {
           null
         );
         var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, source, CheckContext, out var desc);
-        
+
         if (cre != null) {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
@@ -2240,7 +2240,7 @@ namespace Microsoft.Dafny {
       // assume $IsGoodHeap($Heap)
       builder.Add(AssumeGoodHeap(tok, etran));
     }
-    
+
     private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
       string description;
       if (lhs is MemberSelectExpr) {

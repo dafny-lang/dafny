@@ -3894,7 +3894,7 @@ namespace Microsoft.Dafny {
       Expression DfyNeq(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Neq, e0, e1);
       Expression DfyLe(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Le, e0, e1);
       Expression DfyLt(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Lt, e0, e1);
-      
+
       {
         dExpr = null;
         bExpr = null;
@@ -3925,7 +3925,7 @@ namespace Microsoft.Dafny {
         if (lhsa is SeqSelectExpr iea && lhsb is SeqSelectExpr ieb) {
           dExpr = DfyNeq(iea.Seq, ieb.Seq);
           bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
-          
+
           if (iea.E1 == null && ieb.E1 == null) {
             dExpr = DfyOr(dExpr, DfyNeq(iea.E0, ieb.E0));
             bExpr = BplOr(bExpr, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
@@ -3969,7 +3969,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       return "this." + field.Name;
     }
-  
+
     // Surrounds the given subrange-check expression with necessary context (e.g. quantifier bounds)
     public delegate Expression SubrangeCheckContext(Expression check);
 
@@ -4009,7 +4009,7 @@ namespace Microsoft.Dafny {
       }
       // type checks of the form `f is T -> U` are only available in the refreshed type system
       var canTestFunctionTypes = options.Get(CommonOptionBag.TypeSystemRefresh);
-      
+
       if (udt != null && udt.IsRefType) {
         var s = sourceType.NormalizeExpandKeepConstraints();
         var certain = false;
