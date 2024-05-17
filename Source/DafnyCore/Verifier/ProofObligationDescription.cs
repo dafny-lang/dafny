@@ -37,6 +37,26 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
     return bvars.Zip(primedExprs).ToDictionary(item => item.Item1 as IVariable, item => item.Item2);
   }
 
+  // Creates primed copies of the given `BoundVar`s along with a Substituter for substituting the primed vars,
+  // and also returns a combined quantifier range of the form
+  //
+  //   range && range[i0 := i0', i1 := i1', ...] && (i0 != i0' || i1 != i1' || ...)
+  //
+  // Made for use in comparing expressions across loop iterations / quantified bodies.
+  protected static void MakePrimedBoundVarsAndRange(List<BoundVar> bvars, Expression range,
+    out List<BoundVar> primedVars, out Substituter sub, out Expression combinedRange) {
+    var substMap = MakePrimedBoundVarSubstMap(bvars, out primedVars, out _);
+    sub = new Substituter(null, substMap, new());
+    
+    var rangeAndRangePrime = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, sub.Substitute(range));
+    var indicesDistinct = bvars
+      .Select(var =>
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, ToSubstitutableExpression(var), substMap[var]))
+      .Aggregate((acc, disjunct) =>
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
+    combinedRange = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, rangeAndRangePrime, indicesDistinct); 
+  }
+
   public virtual bool ProvedOutsideUserCode => false;
 }
 
@@ -1198,20 +1218,8 @@ public class ForallLHSUnique : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var substMap = MakePrimedBoundVarSubstMap(bvars, out var primedVars, out _);
-    var sub = new Substituter(null, substMap, new());
+    MakePrimedBoundVarsAndRange(bvars, range, out var primedVars, out var sub, out var combinedRange);
     var combinedVars = bvars.Concat(primedVars).ToList();
-
-    // range && range[i0 := i0', i1 := i1', ...]
-    var rangeAndRangePrime = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, sub.Substitute(range));
-    // i0 != i0' || i1 != i1' || ...
-    var indicesDistinct = bvars
-      .Select(var =>
-        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, ToSubstitutableExpression(var), substMap[var]))
-      .Aggregate((acc, disjunct) =>
-        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
-    var combinedRange = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, rangeAndRangePrime, indicesDistinct); 
-    
     var condition = lhsComponents
       // either at least one LHS component is distinct...
       .Select(lhs => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, lhs, sub.Substitute(lhs)))
@@ -1347,6 +1355,28 @@ public class ComprehensionNoAlias : ProofObligationDescription {
     "key expressions might be referring to the same value";
 
   public override string ShortDescription => "unique key expressions";
+
+  private readonly List<BoundVar> bvars;
+  private readonly Expression range;
+  private readonly Expression key;
+  private readonly Expression value;
+
+  public ComprehensionNoAlias(List<BoundVar> bvars, Expression range, Expression key, Expression value) {
+    this.bvars = bvars;
+    this.range = range;
+    this.key = key;
+    this.value = value;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    MakePrimedBoundVarsAndRange(bvars, range, out var primedVars, out var sub, out var combinedRange);
+    var combinedVars = bvars.Concat(primedVars).ToList();
+    var condition = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or,
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, key, sub.Substitute(key)),
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value, sub.Substitute(value))
+    );
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, combinedVars, combinedRange, condition, null);
+  }
 }
 
 public class DistinctLHS : ProofObligationDescription {

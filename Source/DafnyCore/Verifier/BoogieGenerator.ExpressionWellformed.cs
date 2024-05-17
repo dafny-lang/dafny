@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny {
                     var different = BplOr(
                       Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                       Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                    b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias()));
+                    b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias(mc.BoundVars, mc.Range, mc.TermLeft, mc.Term)));
                   });
                 }
               });
