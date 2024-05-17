@@ -44,6 +44,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
 [options]
 warn-contradictory-assumptions = true
 warn-redundant-assumptions = true
+allow-axioms = false
 ");
 
       var source = @"
