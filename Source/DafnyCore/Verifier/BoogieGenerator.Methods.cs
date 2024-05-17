@@ -959,13 +959,13 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Boogie.Requires>();
       // free requires fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null, null));
+      req.Add(Requires(f.tok, true, null, etran.HeightContext(f), null, null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = HeapSucc(prevHeap, currHeap);
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-        req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+        req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       }
       // modifies $Heap
       var mod = new List<Boogie.IdentifierExpr> {
@@ -1654,13 +1654,13 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null, null));
+        req.Add(Requires(m.tok, true, null, etran.HeightContext(m), null, null, null));
         if (m is TwoStateLemma) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
           var a1 = HeapSucc(prevHeap, currHeap);
           var a2 = FunctionCall(m.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-          req.Add(Requires(m.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+          req.Add(Requires(m.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
         }
       }
       if (m is TwoStateLemma) {
@@ -1674,7 +1674,7 @@ namespace Microsoft.Dafny {
               "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
               dafnyFormalIdExpr
             );
-            var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
+            var require = Requires(formal.tok, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, desc.SuccessDescription, null);
             require.Description = desc;
             req.Add(require);
@@ -1711,7 +1711,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
+          AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
@@ -1729,11 +1729,14 @@ namespace Microsoft.Dafny {
           }
         }
         if (m is Constructor && kind == MethodTranslationKind.Call) {
+          var dafnyFresh = new OldExpr(Token.NoToken,
+            new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
           var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null, null, "constructor allocates the object"));
+          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, dafnyFresh, fresh, null, null, "constructor allocates the object"));
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
-          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
+          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
 
         // add the fuel assumption for the reveal method of a opaque method
@@ -1743,7 +1746,7 @@ namespace Microsoft.Dafny {
             MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
             if (selectExpr != null) {
               Function f = selectExpr.Member as Function;
-              AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
+              AddEnsures(ens, Ensures(m.tok, true, null, GetRevealConstant(f), null, null, null));
             }
           }
         }

@@ -1,0 +1,8 @@
+﻿yield-ensures.dfy(8,24): Error: possible violation of yield-ensures condition
+ Asserted expression: count == val
+yield-ensures.dfy(5,25): Related location: this proposition could not be proved
+yield-ensures.dfy(8,24): Error: possible violation of yield-ensures condition
+ Asserted expression: 0 <= -i && -i <= count
+yield-ensures.dfy(6,18): Related location: this proposition could not be proved
+
+Dafny program verifier finished with 1 verified, 2 errors

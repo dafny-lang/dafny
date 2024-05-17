@@ -568,8 +568,15 @@ public class RequiresDescription : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "requires";
 
-  public RequiresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public RequiresDescription(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -590,11 +597,18 @@ public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "ensures";
 
-  public EnsuresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public EnsuresDescription(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
   }
 
   public override bool IsImplicit => false;
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class LoopInvariant : ProofObligationDescriptionCustomMessages {
@@ -606,8 +620,15 @@ public class LoopInvariant : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "loop invariant";
 
-  public LoopInvariant([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public LoopInvariant(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -673,6 +694,16 @@ public class YieldEnsures : ProofObligationDescription {
     "possible violation of yield-ensures condition";
 
   public override string ShortDescription => "yield ensures";
+
+  private readonly Expression expr;
+
+  public YieldEnsures(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class TraitFrame : ProofObligationDescription {

@@ -71,13 +71,13 @@ public partial class BoogieGenerator {
     // the procedure itself
     var req = new List<Bpl.Requires>();
     // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-    req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null, null));
+    req.Add(Requires(f.tok, true, null, etran.HeightContext(f), null, null, null));
     if (f is TwoStateFunction) {
       // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
       var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
       var a1 = HeapSucc(prevHeap, currHeap);
       var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-      req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+      req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
     }
 
     // modifies $Heap
