@@ -39,12 +39,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeCoverageReport
     };
 
-    // TODO: Change this to ".", at least for outer-module strings.
-    // Currently, this MUST be a "_" as this flattens some Dafny extern declarations
-    // (ex. {:extern "StandardLibrary.UInt"} is compiled to module "StandardLibrary_UInt.py")\
-    // However, this separator also applies to outer-module strings,
-    // and flattens the outer-module strings.
-    // If 
     public override string ModuleSeparator => "_";
 
     private const string DafnyRuntimeModule = "_dafny";
@@ -70,12 +64,9 @@ namespace Microsoft.Dafny.Compilers {
       , "raise", "return", "try", "while", "with", "yield" };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
-      string path;
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimePython", wr);
         path = PythonModuleMode ? PythonModuleName + "." : "";
-      } else {
-        path = PythonModuleMode ? DafnyRuntimeModule : "";
       }
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_py", wr);
@@ -83,8 +74,6 @@ namespace Microsoft.Dafny.Compilers {
 
       Imports.Add(DafnyRuntimeModule);
       EmitImports(null, wr);
-      // Keep the import writers so that we can import subsequent modules into the main one
-      // EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
       wr.WriteLine();
     }
 
@@ -110,18 +99,17 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
+      var pythonModuleName = PythonModuleMode ? PythonModuleName : "";
 
-        var pythonModuleName = PythonModuleMode ? PythonModuleName : "";
-
-        moduleName = PublicModuleIdProtect(moduleName);
-        var file = wr.NewFile($"{moduleName}.py");
-        EmitImports(pythonModuleName + moduleName, file);
-        return file;
+      moduleName = PublicModuleIdProtect(moduleName);
+      var file = wr.NewFile($"{moduleName}.py");
+      EmitImports(pythonModuleName + moduleName, file);
+      return file;
     }
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      var pythonModuleName = "";
+      var dependencyPythonModuleName = "";
 
       // If the module being depended on was compiled using module mode,
       // this module needs to rely on it using the dependency's translation record,
@@ -129,16 +117,17 @@ namespace Microsoft.Dafny.Compilers {
       var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
       translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
       object moduleName = null;
-      moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out moduleName);
-      if (moduleName is string && !string.IsNullOrEmpty((string) moduleName)) {
-        pythonModuleName = moduleName is string name ? (string) moduleName : "";
-        if (String.IsNullOrEmpty(pythonModuleName)) {
+      moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out dependencyModuleName);
+      if (dependencyModuleName is string && !string.IsNullOrEmpty((string) dependencyModuleName)) {
+        dependencyPythonModuleName = dependencyModuleName is string name ? (string) dependencyModuleName : "";
+        if (String.IsNullOrEmpty(dependencyPythonModuleName)) {
           Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
             $"Python Module Name not found for the module {module.GetCompileName(Options)}");
         }
       }
 
-      Imports.Add(pythonModuleName + IdProtect(module.GetCompileName(Options)));
+      var dependencyCompileName = IdProtect(module.GetCompileName(Options));
+      Imports.Add(pythonModuleName + dependencyCompileName);
     }
 
     private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
@@ -147,6 +136,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
       wr.WriteLine();
+      // Alias nested imports to the final segment of the import string
+      // ex. `import a.b.c as c`
       Imports.ForEach(module => wr.WriteLine($"import {module} as {module.Split('.').Last()}"));
       if (moduleName != null) {
         wr.WriteLine();

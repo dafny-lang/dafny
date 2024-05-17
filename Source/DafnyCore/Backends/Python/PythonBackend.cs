@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DafnyCore.Options;
-using System;
 
 namespace Microsoft.Dafny.Compilers;
 

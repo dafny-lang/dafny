@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
-using System;
 using System.Linq;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
