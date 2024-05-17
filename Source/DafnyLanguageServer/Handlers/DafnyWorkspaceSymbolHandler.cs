@@ -37,6 +37,12 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         var state = await projectManager.GetStateAfterParsingAsync();
         foreach (var def in state.SymbolTable.Definitions) {
           cancellationToken.ThrowIfCancellationRequested();
+
+          if (!def.Kind.HasValue) {
+            logger.LogWarning($"Definition without kind in symbol table: {def}");
+            continue;
+          }
+
           // CreateLocation called below uses the .Uri field of Tokens which
           // seems to occasionally be null while testing this from VSCode
           if (def.NameToken == null || def.NameToken.Uri == null) {
@@ -57,7 +63,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             result.TryAdd(new SymbolInformation {
               Name = name,
               ContainerName = def.Kind.ToString(),
-              Kind = def.Kind,
+              Kind = def.Kind.Value,
               Location = DiagnosticUtil.CreateLocation(def.NameToken)
             }, matchDistance);
           }

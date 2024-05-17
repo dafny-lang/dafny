@@ -94,7 +94,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
   }
 
   public abstract IToken NameToken { get; }
-  public SymbolKind Kind => throw new NotImplementedException();
+  public SymbolKind? Kind => throw new NotImplementedException();
   public string GetDescription(DafnyOptions options) {
     throw new NotImplementedException();
   }

@@ -602,8 +602,8 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newVars = new List<LocalVariable>();
       foreach (var v in vars) {
-        var tt = v.OptionalType.Subst(typeMap);
-        if (!forceSubstitutionOfVars && tt == v.OptionalType) {
+        var tt = v.SyntacticType.Subst(typeMap);
+        if (!forceSubstitutionOfVars && tt == v.SyntacticType) {
           newVars.Add(v);
         } else {
           anythingChanged = true;

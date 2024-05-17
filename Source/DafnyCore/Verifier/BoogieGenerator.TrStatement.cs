@@ -628,7 +628,7 @@ namespace Microsoft.Dafny {
             if (v is LocalVariable) {
               var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type,
                 v.IsGhost);
-              vcopy.type = vcopy.OptionalType; // resolve local here
+              vcopy.type = vcopy.SyntacticType; // resolve local here
               IdentifierExpr ie = new IdentifierExpr(vcopy.Tok,
                 vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
               ie.Var = vcopy;
@@ -1882,7 +1882,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
         var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
-        local.type = local.OptionalType;  // resolve local here
+        local.type = local.SyntacticType;  // resolve local here
         var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(formal, ie);

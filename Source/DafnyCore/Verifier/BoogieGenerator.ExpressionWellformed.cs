@@ -658,7 +658,7 @@ namespace Microsoft.Dafny {
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
-                local.type = local.OptionalType;  // resolve local here
+                local.type = local.SyntacticType;  // resolve local here
                 IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
                 ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
                 substMap.Add(p, ie);
