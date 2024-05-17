@@ -198,22 +198,23 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private IObservable<IdeState> GetStates(Compilation compilation) {
     var initialState = latestIdeState;
-    var previousIdeStateTask = Task.FromResult(initialState with {
+    var previousIdeState = initialState with {
       Input = compilation.Input,
-    });
+    };
 
-    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => Update(ev));
 
-    async Task<IdeState> Update(ICompilationEvent ev) {
+    IdeState Update(ICompilationEvent ev) {
       if (ev is InternalCompilationException compilationException) {
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
 
       try {
-        var previousIdeState = await previousIdeStateTask;
-        previousIdeStateTask = previousIdeState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
-        return await previousIdeStateTask;
+#pragma warning disable VSTHRD002
+        previousIdeState = previousIdeState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev).Result;
+#pragma warning restore VSTHRD002
+        return previousIdeState;
       } catch (Exception e) {
         logger.LogError(e, "error while updating IDE state");
         telemetryPublisher.PublishUnhandledException(e);
