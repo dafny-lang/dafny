@@ -983,6 +983,18 @@ public class MatchIsComplete : ProofObligationDescription {
     this.matchForm = matchForm;
     this.missing = missing;
   }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(Token.NoToken, false);
+  }
+
+  // ReSharper disable once UnusedMember.Global
+  public string GetExtraExplanation() {
+    return (
+      "\n  in an added catch-all case:"
+      + "\n    case _ => ..."
+    );
+  }
 }
 
 public class AlternativeIsComplete : ProofObligationDescription {
@@ -995,6 +1007,18 @@ public class AlternativeIsComplete : ProofObligationDescription {
   public override string ShortDescription => "alternative complete";
 
   public override bool ProvedOutsideUserCode => true;
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(Token.NoToken, false);
+  }
+
+  // ReSharper disable once UnusedMember.Global
+  public string GetExtraExplanation() {
+    return (
+      "\n  in an added catch-all case:"
+      + "\n    case true => ..."
+    );
+  }
 }
 
 public class PatternShapeIsValid : ProofObligationDescription {
