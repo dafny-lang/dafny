@@ -1195,6 +1195,16 @@ public class PrefixEqualityLimit : ProofObligationDescription {
     "prefix-equality limit must be at least 0";
 
   public override string ShortDescription => "prefix-equality limit";
+
+  private readonly Expression expr;
+
+  public PrefixEqualityLimit(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, new LiteralExpr(Token.NoToken, 0), expr);
+  }
 }
 
 public class ForRangeBoundsValid : ProofObligationDescription {

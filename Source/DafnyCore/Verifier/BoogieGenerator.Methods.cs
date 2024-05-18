@@ -1091,7 +1091,7 @@ namespace Microsoft.Dafny {
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
-      
+
       // conjunction of class post-conditions
       var allOverrideEns = f.Ens.Count == 0 ? null : f.Ens
         .Select(e => e.E)
