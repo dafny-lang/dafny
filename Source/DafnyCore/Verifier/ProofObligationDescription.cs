@@ -1030,10 +1030,16 @@ public class PatternShapeIsValid : ProofObligationDescription {
 
   public override string ShortDescription => "pattern shape valid";
 
+  private readonly Expression expr;
   private readonly string ctorName;
 
-  public PatternShapeIsValid(string ctorName) {
+  public PatternShapeIsValid(Expression expr, string ctorName) {
+    this.expr = expr;
     this.ctorName = ctorName;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ExprDotName(Token.NoToken, expr, ctorName + "?", null);
   }
 }
 
@@ -1047,9 +1053,17 @@ public class ValidConstructorNames : ProofObligationDescription {
   public override string ShortDescription => "valid constructor names";
 
   private readonly string ctorNames;
+  private readonly Expression root;
+  private readonly List<DatatypeCtor> ctors;
 
-  public ValidConstructorNames(string ctorNames) {
-    this.ctorNames = ctorNames;
+  public ValidConstructorNames(Expression root, List<DatatypeCtor> ctors) {
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+    this.root = root;
+    this.ctors = ctors;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeIsOneCtorAssertion(root, ctors);
   }
 }
 
@@ -1064,10 +1078,18 @@ public class DestructorValid : ProofObligationDescription {
 
   private readonly string dtorName;
   private readonly string ctorNames;
+  private readonly Expression root;
+  private readonly List<DatatypeCtor> ctors;
 
-  public DestructorValid(string dtorName, string ctorNames) {
-    this.dtorName = dtorName;
-    this.ctorNames = ctorNames;
+  public DestructorValid(DatatypeDestructor dtor, Expression root, List<DatatypeCtor> ctors) {
+    this.dtorName = dtor.Name;
+    this.ctorNames = dtor.EnclosingCtorNames("or");
+    this.root = root;
+    this.ctors = ctors;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeIsOneCtorAssertion(root, ctors);
   }
 }
 
@@ -1082,15 +1104,22 @@ public class NotGhostVariant : ProofObligationDescription {
 
   private readonly string subject;
   private readonly string ctorNames;
+  private readonly Expression root;
+  private readonly List<DatatypeCtor> ctors;
 
-  public NotGhostVariant(string subject, List<DatatypeCtor> ctors) {
+  public NotGhostVariant(string subject, Expression root, List<DatatypeCtor> ctors) {
     this.subject = subject;
     this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+    this.root = root;
+    this.ctors = ctors;
   }
 
-  public NotGhostVariant(string whatKind, string dtorNames, List<DatatypeCtor> ctors) {
-    this.subject = $"{whatKind} {dtorNames}";
-    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+  public NotGhostVariant(string whatKind, string dtorNames, Expression root, List<DatatypeCtor> ctors)
+  : this($"{whatKind} {dtorNames}", root, ctors) {
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not, Utils.MakeIsOneCtorAssertion(root, ctors));
   }
 }
 
@@ -1733,5 +1762,11 @@ internal class Utils {
       new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x11_0000))
     );
     return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
+  }
+
+  internal static Expression MakeIsOneCtorAssertion(Expression root, List<DatatypeCtor> ctors) {
+    return ctors
+      .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.Name + "?", null) as Expression)
+      .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
   }
 }

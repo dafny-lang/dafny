@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
                 builder.Add(TrAssumeCmd(selectExpr.tok, correctConstructor));
               } else {
                 builder.Add(Assert(GetToken(expr), correctConstructor,
-                  new PODesc.DestructorValid(dtor.Name, dtor.EnclosingCtorNames("or"))));
+                  new PODesc.DestructorValid(dtor, e.Obj, dtor.EnclosingCtors)));
               }
               CheckNotGhostVariant(e, "destructor", dtor.EnclosingCtors, builder, etran);
             } else if (e.Member is DatatypeDiscriminator discriminator) {
@@ -1039,7 +1039,7 @@ namespace Microsoft.Dafny {
                       var notGhostCtor = BplAnd(ghostConstructors.ConvertAll(
                         ctor => Bpl.Expr.Not(FunctionCall(expr.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, value))));
                       builder.Add(Assert(GetToken(expr), notGhostCtor,
-                        new PODesc.NotGhostVariant("equality", ghostConstructors)));
+                        new PODesc.NotGhostVariant("equality", operand, ghostConstructors)));
                     }
 
                     CheckOperand(e.E0);
@@ -1239,7 +1239,7 @@ namespace Microsoft.Dafny {
               // Every constructor has this destructor; no need to check anything
             } else {
               builder.Add(Assert(GetToken(expr), correctConstructor,
-                new PODesc.ValidConstructorNames(DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
+                new PODesc.ValidConstructorNames(updateExpr.Root, e.LegalSourceConstructors)));
             }
 
             CheckNotGhostVariant(e.InCompiledContext, updateExpr, e.Root, "update of", e.Members,
@@ -1394,6 +1394,7 @@ namespace Microsoft.Dafny {
           builder.Add(Assert(GetToken(exprUsedForToken), notGhostCtor,
             new PODesc.NotGhostVariant(whatKind,
               Util.PrintableNameList(members.ConvertAll(member => member.Name), "and"),
+              datatypeValue,
               enclosingGhostConstructors)));
         }
       }

@@ -2503,7 +2503,7 @@ namespace Microsoft.Dafny {
           // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
           builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
         } else {
-          builder.Add(Assert(pat.tok, correctConstructor, new PODesc.PatternShapeIsValid(ctor.Name)));
+          builder.Add(Assert(pat.tok, correctConstructor, new PODesc.PatternShapeIsValid(dRhs, ctor.Name)));
         }
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
