@@ -1091,13 +1091,21 @@ namespace Microsoft.Dafny {
         var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
-
+      
+      // conjunction of class post-conditions
+      var allOverrideEns = f.Ens.Count == 0 ? null : f.Ens
+        .Select(e => e.E)
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in f.OverriddenFunction.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
+        var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
+          var constraint = allOverrideEns == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true, constraint)));
         }
       }
     }
@@ -1181,13 +1189,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
+      var subReqs = new List<Expression>();
       foreach (var req in f.OverriddenFunction.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
-        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E), "overridden function requires clause"));
+        var subReq = sub.Substitute(req.E);
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, subReq, "overridden function requires clause"));
+        subReqs.Add(subReq);
       }
+      var allTraitReqs = subReqs.Count == 0 ? null : subReqs
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
-      foreach (var s in f.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false)));
+      foreach (var req in f.Req) {
+        foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
+          var constraint = allTraitReqs == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false, constraint)));
+        }
       }
     }
 
@@ -1421,12 +1439,20 @@ namespace Microsoft.Dafny {
       foreach (var en in m.Ens) {
         builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E, "overridden ensures clause"));
       }
+      // conjunction of class post-conditions
+      var allOverrideEns = m.Ens.Count == 0 ? null : m.Ens
+        .Select(e => e.E)
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
-        foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger()));
+        var subEn = sub.Substitute(en.E);
+        foreach (var s in TrSplitExpr(subEn, etran, false, out _).Where(s => s.IsChecked)) {
+          var constraint = allOverrideEns == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger(constraint)));
         }
       }
     }
@@ -1440,13 +1466,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
+      var subReqs = new List<Expression>();
       foreach (var req in m.OverriddenMethod.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
-        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E), "overridden requires clause"));
+        var subReq = sub.Substitute(req.E);
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, subReq, "overridden requires clause"));
+        subReqs.Add(subReq);
       }
+      var allTraitReqs = subReqs.Count == 0 ? null : subReqs
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
-      foreach (var s in m.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker()));
+      foreach (var req in m.Req) {
+        foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
+          var constraint = allTraitReqs == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker(constraint)));
+        }
       }
     }
 

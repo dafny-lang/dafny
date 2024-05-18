@@ -652,6 +652,16 @@ public class EnsuresStronger : ProofObligationDescription {
   public override string ShortDescription => "ensures stronger";
 
   public override bool ProvedOutsideUserCode => true;
+
+  private readonly Expression expr;
+
+  public EnsuresStronger(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class RequiresWeaker : ProofObligationDescription {
@@ -664,6 +674,16 @@ public class RequiresWeaker : ProofObligationDescription {
   public override string ShortDescription => "requires weaker";
 
   public override bool ProvedOutsideUserCode => true;
+
+  private readonly Expression expr;
+
+  public RequiresWeaker(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class ForallPostcondition : ProofObligationDescription {
@@ -932,8 +952,15 @@ public class FunctionContractOverride : ProofObligationDescription {
   private string RestrictionDesc =>
     isEnsures ? "more detailed postcondition" : "more permissive precondition";
 
-  public FunctionContractOverride(bool isEnsures) {
+  private readonly Expression expr;
+
+  public FunctionContractOverride(bool isEnsures, Expression expr) {
     this.isEnsures = isEnsures;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
