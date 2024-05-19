@@ -25,6 +25,38 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
     return new ParensExpression(bvar.tok, expression) { Type = bvar.Type, ResolvedExpression = expression };
   }
 
+  // Returns a list of primed copies of the given `BoundVar`s.
+  protected static List<BoundVar> MakePrimedBoundVars(List<BoundVar> bvars) {
+    return bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.Name + "'", bvar.Type)).ToList();
+  }
+
+  // Returns a substitution map from each given `BoundVar`s to a substitutable expression of a primed copy of the var.
+  protected static Dictionary<IVariable, Expression> MakePrimedBoundVarSubstMap(List<BoundVar> bvars, out List<BoundVar> primedVars, out List<Expression> primedExprs) {
+    primedVars = MakePrimedBoundVars(bvars);
+    primedExprs = primedVars.Select(ToSubstitutableExpression).ToList();
+    return bvars.Zip(primedExprs).ToDictionary(item => item.Item1 as IVariable, item => item.Item2);
+  }
+
+  // Creates primed copies of the given `BoundVar`s along with a Substituter for substituting the primed vars,
+  // and also returns a combined quantifier range of the form
+  //
+  //   range && range[i0 := i0', i1 := i1', ...] && (i0 != i0' || i1 != i1' || ...)
+  //
+  // Made for use in comparing expressions across loop iterations / quantified bodies.
+  protected static void MakePrimedBoundVarsAndRange(List<BoundVar> bvars, Expression range,
+    out List<BoundVar> primedVars, out Substituter sub, out Expression combinedRange) {
+    var substMap = MakePrimedBoundVarSubstMap(bvars, out primedVars, out _);
+    sub = new Substituter(null, substMap, new());
+
+    var rangeAndRangePrime = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, range, sub.Substitute(range));
+    var indicesDistinct = bvars
+      .Select(var =>
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, ToSubstitutableExpression(var), substMap[var]))
+      .Aggregate((acc, disjunct) =>
+        new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
+    combinedRange = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, rangeAndRangePrime, indicesDistinct);
+  }
+
   public virtual bool ProvedOutsideUserCode => false;
 }
 
@@ -485,8 +517,15 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "precondition";
 
-  public PreconditionSatisfied([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public PreconditionSatisfied(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -763,6 +802,16 @@ public class FrameDereferenceNonNull : ProofObligationDescription {
     "frame expression might dereference null";
 
   public override string ShortDescription => "frame dereference";
+
+  private readonly Expression expr;
+
+  public FrameDereferenceNonNull(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, expr, new LiteralExpr(Token.NoToken));
+  }
 }
 
 public class Terminates : ProofObligationDescription {
@@ -976,9 +1025,36 @@ public class IndicesInDomain : ProofObligationDescription {
   public override string ShortDescription => "indices in domain";
 
   private readonly string objType;
+  private readonly List<Expression> dims;
+  private readonly Expression init;
 
-  public IndicesInDomain(string objType) {
+  public IndicesInDomain(string objType, List<Expression> dims, Expression init) {
+    Contract.Requires(dims is { Count: > 0 });
     this.objType = objType;
+    this.dims = dims;
+    this.init = init;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var zero = new LiteralExpr(Token.NoToken, 0);
+    var indexVars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
+    var indexVarExprs = indexVars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
+    var indexRanges = dims.Select((dim, i) => new ChainingExpression(
+      Token.NoToken,
+      new() { zero, indexVarExprs[i], dim },
+      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
+      new() { Token.NoToken, Token.NoToken },
+      new() { null, null }
+    ) as Expression).ToList();
+    var indicesRange = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
+      Token.NoToken,
+      indexRanges,
+      Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
+      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
+      Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
+    );
+    var precond = new FunctionCallExpr(Token.NoToken, "requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, indexVars, indicesRange, precond, null);
   }
 }
 
@@ -1004,14 +1080,23 @@ public class SubrangeCheck : ProofObligationDescription {
   private readonly bool isSubset;
   private readonly bool isCertain;
   private readonly string cause;
+  private readonly Expression check;
 
-  public SubrangeCheck(string prefix, string sourceType, string targetType, bool isSubset, bool isCertain, [CanBeNull] string cause) {
+  public SubrangeCheck(
+    string prefix, string sourceType, string targetType,
+    bool isSubset, bool isCertain, [CanBeNull] string cause, [CanBeNull] Expression check
+  ) {
     this.prefix = prefix;
     this.sourceType = sourceType;
     this.targetType = targetType;
     this.isSubset = isSubset;
     this.isCertain = isCertain;
     this.cause = cause is null ? "" : $" (possible cause: {cause})";
+    this.check = check;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return check;
   }
 }
 
@@ -1130,12 +1215,37 @@ public class IsNonRecursive : ProofObligationDescription {
 
 public class ForallLHSUnique : ProofObligationDescription {
   public override string SuccessDescription =>
-    "left-hand sides of forall-statement bound variables are unique";
+    "left-hand sides of forall-statement bound variables are unique (or right-hand sides are equivalent)";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables might refer to the same location";
+    "left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)";
 
   public override string ShortDescription => "forall bound unique";
+
+  private readonly List<BoundVar> bvars;
+  private readonly Expression range;
+  private readonly List<Expression> lhsComponents;
+  private readonly Expression rhs;
+
+  public ForallLHSUnique(List<BoundVar> bvars, Expression range, List<Expression> lhsComponents, Expression rhs) {
+    this.bvars = bvars;
+    this.range = range;
+    this.lhsComponents = lhsComponents;
+    this.rhs = rhs;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    MakePrimedBoundVarsAndRange(bvars, range, out var primedVars, out var sub, out var combinedRange);
+    var combinedVars = bvars.Concat(primedVars).ToList();
+    var condition = lhsComponents
+      // either at least one LHS component is distinct...
+      .Select(lhs => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, lhs, sub.Substitute(lhs)))
+      // ... or the RHS is always the same
+      .Append(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, rhs, sub.Substitute(rhs)))
+      .Aggregate((acc, disjunct) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, acc, disjunct));
+
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, combinedVars, combinedRange, condition, null);
+  }
 }
 
 public class ElementInDomain : ProofObligationDescription {
@@ -1262,6 +1372,28 @@ public class ComprehensionNoAlias : ProofObligationDescription {
     "key expressions might be referring to the same value";
 
   public override string ShortDescription => "unique key expressions";
+
+  private readonly List<BoundVar> bvars;
+  private readonly Expression range;
+  private readonly Expression key;
+  private readonly Expression value;
+
+  public ComprehensionNoAlias(List<BoundVar> bvars, Expression range, Expression key, Expression value) {
+    this.bvars = bvars;
+    this.range = range;
+    this.key = key;
+    this.value = value;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    MakePrimedBoundVarsAndRange(bvars, range, out var primedVars, out var sub, out var combinedRange);
+    var combinedVars = bvars.Concat(primedVars).ToList();
+    var condition = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or,
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Neq, key, sub.Substitute(key)),
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, value, sub.Substitute(value))
+    );
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, combinedVars, combinedRange, condition, null);
+  }
 }
 
 public class DistinctLHS : ProofObligationDescription {
@@ -1278,13 +1410,19 @@ public class DistinctLHS : ProofObligationDescription {
   private readonly string might;
   private readonly string when;
   private readonly string whenSuffix;
+  private readonly Expression expr;
 
-  public DistinctLHS(string lhsa, string lhsb, bool useMight, bool useWhen) {
+  public DistinctLHS(string lhsa, string lhsb, bool useMight, bool useWhen, Expression expr) {
     this.lhsa = lhsa;
     this.lhsb = lhsb;
     this.might = useMight ? "might " : "";
     this.when = useWhen ? "when " : "";
     this.whenSuffix = useWhen ? ", they must be assigned the same value" : "";
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -1361,13 +1499,8 @@ public class LetSuchThatUnique : ProofObligationDescription {
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var bvarsExprs = bvars.Select(bvar => new IdentifierExpr(bvar.tok, bvar)).ToList();
-    var bvarprimes = bvars.Select(bvar => new BoundVar(Token.NoToken, bvar.DafnyName + "'", bvar.Type)).ToList();
-    var bvarprimesExprs = bvarprimes.Select(ToSubstitutableExpression).ToList();
-    var subContract = new Substituter(null,
-      Enumerable.Zip(bvars, bvarprimesExprs).ToDictionary<(BoundVar, Expression), IVariable, Expression>(
-        item => item.Item1, item => item.Item2),
-      new Dictionary<TypeParameter, Type>()
-    );
+    var substMap = MakePrimedBoundVarSubstMap(bvars, out var bvarprimes, out var bvarprimesExprs);
+    var subContract = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
     var conditionSecondBoundVar = subContract.Substitute(condition);
     var conclusion = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, bvarsExprs[0], bvarprimesExprs[0]);
     for (var i = 1; i < bvarsExprs.Count; i++) {
@@ -1414,28 +1547,52 @@ public class AssignmentShrinks : ProofObligationDescription {
 
   public override string ShortDescription => "assignment shrinks";
 
+  private readonly Expression receiver;
   private readonly string fieldName;
 
-  public AssignmentShrinks(string fieldName) {
+  public AssignmentShrinks(Expression receiver, string fieldName) {
+    this.receiver = receiver;
     this.fieldName = fieldName;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var receiverDotField = new ExprDotName(Token.NoToken, receiver, fieldName, null);
+    return new BinaryExpr(
+      Token.NoToken,
+      BinaryExpr.Opcode.And,
+      new OldExpr(Token.NoToken, new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, receiver)),
+      new BinaryExpr(Token.NoToken, BinaryExpr.ResolvedOpcode.Subset, receiverDotField, new OldExpr(Token.NoToken, receiverDotField))
+    );
   }
 }
 
 public class ConcurrentFrameEmpty : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{frameName} is empty ({{:concurrent}} restriction)";
+    $"{frameName} clause is empty ({{:concurrent}} restriction)";
 
   public override string FailureDescription =>
-    $"{frameName} could not be proved to be empty ({{:concurrent}} restriction)";
+    $"{frameName} clause could not be proved to be empty ({{:concurrent}} restriction)";
 
   public override string ShortDescription => "concurrency safety";
 
   public override bool ProvedOutsideUserCode => true;
 
+  private readonly MethodOrFunction decl;
   private readonly string frameName;
 
-  public ConcurrentFrameEmpty(string frameName) {
+  public ConcurrentFrameEmpty(MethodOrFunction decl, string frameName) {
+    this.decl = decl;
     this.frameName = frameName;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var bvars = decl.Ins.Select(formal => new BoundVar(formal.Tok, formal.Name, formal.Type)).ToList();
+    var func = new ExprDotName(Token.NoToken, new NameSegment(Token.NoToken, decl.Name, null), frameName, null);
+    var args = bvars.Select(bvar => new IdentifierExpr(Token.NoToken, bvar) as Expression).ToList();
+    var call = new ApplyExpr(Token.NoToken, func, args, Token.NoToken);
+    var isEmpty = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, call,
+      new SetDisplayExpr(Token.NoToken, true, new()));
+    return new ForallExpr(Token.NoToken, RangeToken.NoToken, bvars, null, isEmpty, null);
   }
 }
 
