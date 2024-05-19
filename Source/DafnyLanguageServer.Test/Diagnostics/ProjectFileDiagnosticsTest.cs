@@ -27,7 +27,7 @@ public class ProjectFileDiagnosticsTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ProjectFileErrorIsShownFromDafnyFile() {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);

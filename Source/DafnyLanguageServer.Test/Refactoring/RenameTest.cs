@@ -111,7 +111,7 @@ abstract module B { import [>><A<] }
     /// Create an empty project file in a new temporary directory, and return the temporary directory's path.
     /// </summary>
     protected async Task<string> SetUpProjectFile() {
-      var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var tempDir = GetFreshTempPath();
       Directory.CreateDirectory(tempDir);
       var projectFilePath = Path.Combine(tempDir, DafnyProject.FileName);
       await File.WriteAllTextAsync(projectFilePath, "");

@@ -127,7 +127,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
     await SetUp(options => {
       options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
     var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
     var documentItem2 = await CreateOpenAndWaitForResolve(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
@@ -173,7 +173,7 @@ module A.B.D {
       options.Set(CommonOptionBag.VerifyIncludedFiles, true);
 
     });
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     var documentItem1 = CreateTestDocument(source, Path.Combine(directory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
     var documentItem2 = CreateTestDocument(source2, Path.Combine(directory, "B.dfy"));
