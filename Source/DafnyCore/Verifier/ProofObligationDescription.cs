@@ -568,8 +568,15 @@ public class RequiresDescription : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "requires";
 
-  public RequiresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public RequiresDescription(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -590,11 +597,18 @@ public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "ensures";
 
-  public EnsuresDescription([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public EnsuresDescription(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
   }
 
   public override bool IsImplicit => false;
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class LoopInvariant : ProofObligationDescriptionCustomMessages {
@@ -606,8 +620,15 @@ public class LoopInvariant : ProofObligationDescriptionCustomMessages {
 
   public override string ShortDescription => "loop invariant";
 
-  public LoopInvariant([CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  private readonly Expression expr;
+
+  public LoopInvariant(Expression expr, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -631,6 +652,16 @@ public class EnsuresStronger : ProofObligationDescription {
   public override string ShortDescription => "ensures stronger";
 
   public override bool ProvedOutsideUserCode => true;
+
+  private readonly Expression expr;
+
+  public EnsuresStronger(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class RequiresWeaker : ProofObligationDescription {
@@ -643,6 +674,16 @@ public class RequiresWeaker : ProofObligationDescription {
   public override string ShortDescription => "requires weaker";
 
   public override bool ProvedOutsideUserCode => true;
+
+  private readonly Expression expr;
+
+  public RequiresWeaker(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class ForallPostcondition : ProofObligationDescription {
@@ -673,6 +714,16 @@ public class YieldEnsures : ProofObligationDescription {
     "possible violation of yield-ensures condition";
 
   public override string ShortDescription => "yield ensures";
+
+  private readonly Expression expr;
+
+  public YieldEnsures(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
 }
 
 public class TraitFrame : ProofObligationDescription {
@@ -901,8 +952,15 @@ public class FunctionContractOverride : ProofObligationDescription {
   private string RestrictionDesc =>
     isEnsures ? "more detailed postcondition" : "more permissive precondition";
 
-  public FunctionContractOverride(bool isEnsures) {
+  private readonly Expression expr;
+
+  public FunctionContractOverride(bool isEnsures, Expression expr) {
     this.isEnsures = isEnsures;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -925,6 +983,18 @@ public class MatchIsComplete : ProofObligationDescription {
     this.matchForm = matchForm;
     this.missing = missing;
   }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(Token.NoToken, false);
+  }
+
+  // ReSharper disable once UnusedMember.Global
+  public string GetExtraExplanation() {
+    return (
+      "\n  in an added catch-all case:"
+      + "\n    case _ => ..."
+    );
+  }
 }
 
 public class AlternativeIsComplete : ProofObligationDescription {
@@ -937,6 +1007,18 @@ public class AlternativeIsComplete : ProofObligationDescription {
   public override string ShortDescription => "alternative complete";
 
   public override bool ProvedOutsideUserCode => true;
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(Token.NoToken, false);
+  }
+
+  // ReSharper disable once UnusedMember.Global
+  public string GetExtraExplanation() {
+    return (
+      "\n  in an added catch-all case:"
+      + "\n    case true => ..."
+    );
+  }
 }
 
 public class PatternShapeIsValid : ProofObligationDescription {
@@ -948,10 +1030,16 @@ public class PatternShapeIsValid : ProofObligationDescription {
 
   public override string ShortDescription => "pattern shape valid";
 
+  private readonly Expression expr;
   private readonly string ctorName;
 
-  public PatternShapeIsValid(string ctorName) {
+  public PatternShapeIsValid(Expression expr, string ctorName) {
+    this.expr = expr;
     this.ctorName = ctorName;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new ExprDotName(Token.NoToken, expr, ctorName + "?", null);
   }
 }
 
@@ -965,9 +1053,17 @@ public class ValidConstructorNames : ProofObligationDescription {
   public override string ShortDescription => "valid constructor names";
 
   private readonly string ctorNames;
+  private readonly Expression root;
+  private readonly List<DatatypeCtor> ctors;
 
-  public ValidConstructorNames(string ctorNames) {
-    this.ctorNames = ctorNames;
+  public ValidConstructorNames(Expression root, List<DatatypeCtor> ctors) {
+    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+    this.root = root;
+    this.ctors = ctors;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeIsOneCtorAssertion(root, ctors);
   }
 }
 
@@ -982,10 +1078,18 @@ public class DestructorValid : ProofObligationDescription {
 
   private readonly string dtorName;
   private readonly string ctorNames;
+  private readonly Expression root;
+  private readonly List<DatatypeCtor> ctors;
 
-  public DestructorValid(string dtorName, string ctorNames) {
-    this.dtorName = dtorName;
-    this.ctorNames = ctorNames;
+  public DestructorValid(DatatypeDestructor dtor, Expression root, List<DatatypeCtor> ctors) {
+    this.dtorName = dtor.Name;
+    this.ctorNames = dtor.EnclosingCtorNames("or");
+    this.root = root;
+    this.ctors = ctors;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeIsOneCtorAssertion(root, ctors);
   }
 }
 
@@ -1000,15 +1104,22 @@ public class NotGhostVariant : ProofObligationDescription {
 
   private readonly string subject;
   private readonly string ctorNames;
+  private readonly Expression root;
+  private readonly List<DatatypeCtor> ctors;
 
-  public NotGhostVariant(string subject, List<DatatypeCtor> ctors) {
+  public NotGhostVariant(string subject, Expression root, List<DatatypeCtor> ctors) {
     this.subject = subject;
     this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+    this.root = root;
+    this.ctors = ctors;
   }
 
-  public NotGhostVariant(string whatKind, string dtorNames, List<DatatypeCtor> ctors) {
-    this.subject = $"{whatKind} {dtorNames}";
-    this.ctorNames = DatatypeDestructor.PrintableCtorNameList(ctors, "or");
+  public NotGhostVariant(string whatKind, string dtorNames, Expression root, List<DatatypeCtor> ctors)
+  : this($"{whatKind} {dtorNames}", root, ctors) {
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not, Utils.MakeIsOneCtorAssertion(root, ctors));
   }
 }
 
@@ -1137,6 +1248,16 @@ public class PrefixEqualityLimit : ProofObligationDescription {
     "prefix-equality limit must be at least 0";
 
   public override string ShortDescription => "prefix-equality limit";
+
+  private readonly Expression expr;
+
+  public PrefixEqualityLimit(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, new LiteralExpr(Token.NoToken, 0), expr);
+  }
 }
 
 public class ForRangeBoundsValid : ProofObligationDescription {
@@ -1641,5 +1762,11 @@ internal class Utils {
       new BinaryExpr(expr.tok, BinaryExpr.Opcode.Lt, expr, Expression.CreateIntLiteral(expr.tok, 0x11_0000))
     );
     return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
+  }
+
+  internal static Expression MakeIsOneCtorAssertion(Expression root, List<DatatypeCtor> ctors) {
+    return ctors
+      .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.Name + "?", null) as Expression)
+      .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
   }
 }

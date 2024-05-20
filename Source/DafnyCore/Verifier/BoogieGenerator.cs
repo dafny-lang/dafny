@@ -2317,7 +2317,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
+      req.Add(Requires(ctor.tok, true, null, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
@@ -2503,7 +2503,7 @@ namespace Microsoft.Dafny {
           // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
           builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
         } else {
-          builder.Add(Assert(pat.tok, correctConstructor, new PODesc.PatternShapeIsValid(ctor.Name)));
+          builder.Add(Assert(pat.tok, correctConstructor, new PODesc.PatternShapeIsValid(dRhs, ctor.Name)));
         }
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -3430,19 +3430,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
+      var ens = Ensures(tok, free, dafnyCondition, condition, errorMessage, successMessage, comment);
       proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
 
-    Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Ensures Ensures(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var unwrappedToken = ForceCheckToken.Unwrap(tok);
       Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
-      var description = new PODesc.EnsuresDescription(errorMessage, successMessage);
+      var description = new PODesc.EnsuresDescription(dafnyCondition, errorMessage, successMessage);
       ens.Description = description;
       if (!free) {
         ReportAssertion(unwrappedToken, description);
@@ -3455,17 +3455,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
+      var req = Requires(tok, free, dafnyCondition, condition, errorMessage, successMessage, comment);
       proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
 
-    Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Requires Requires(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
-      Contract.Requires(condition != null);
+      Contract.Requires(bCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      req.Description = new PODesc.RequiresDescription(errorMessage, successMessage);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, bCondition, comment);
+      req.Description = new PODesc.RequiresDescription(dafnyCondition, errorMessage, successMessage);
       return req;
     }
 

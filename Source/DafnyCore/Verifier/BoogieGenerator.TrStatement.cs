@@ -79,10 +79,12 @@ namespace Microsoft.Dafny {
         }
         // this.ys := this.ys + [this.y];
         var th = new ThisExpr(iter);
+        var dafnyOutExprs = new List<Expression>();
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
           var dafnyY = new MemberSelectExpr(s.Tok, th, y);
+          dafnyOutExprs.Add(dafnyY);
           var ys = iter.OutsHistoryFields[i];
           var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
@@ -103,6 +105,18 @@ namespace Microsoft.Dafny {
         builder.Add(AssumeGoodHeap(s.Tok, etran));
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
         var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType), iter);
+
+        var rhss = s.Rhss == null
+          ? dafnyOutExprs
+          : s.Rhss.Select(rhs => rhs is ExprRhs e ? e.Expr : null).ToList();
+        var fieldSubstMap = iter.OutsFields.Zip(rhss)
+          .Where(outRhs => outRhs.Second != null)
+          .ToDictionary(
+            outRhs => outRhs.First.Name,
+            outRhs => outRhs.Second
+          );
+        var fieldSub = new SpecialFieldSubstituter(fieldSubstMap);
+
         foreach (var p in iter.YieldEnsures) {
           var ss = TrSplitExpr(p.E, yeEtran, true, out var splitHappened);
           foreach (var split in ss) {
@@ -110,7 +124,7 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.Tok);
-              var desc = new PODesc.YieldEnsures();
+              var desc = new PODesc.YieldEnsures(fieldSub.Substitute(p.E));
               builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
@@ -732,7 +746,7 @@ namespace Microsoft.Dafny {
               var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                var desc = new PODesc.PrefixEqualityLimit();
+                var desc = new PODesc.PrefixEqualityLimit(index);
                 b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
               }
             }
@@ -1488,12 +1502,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
           var wInv = BplImp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               var cmd = TrAssumeCmd(split.E.tok, wInv);
               proofDependencies?.AddProofDependencyId(cmd, loopInv.E.tok, new InvariantDependency(loopInv.E));
@@ -2902,5 +2916,6 @@ namespace Microsoft.Dafny {
       CheckWellformed(expr, options, locals, builder, etran);
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
+
   }
 }
