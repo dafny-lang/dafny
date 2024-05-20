@@ -79,10 +79,12 @@ namespace Microsoft.Dafny {
         }
         // this.ys := this.ys + [this.y];
         var th = new ThisExpr(iter);
+        var dafnyOutExprs = new List<Expression>();
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
           var dafnyY = new MemberSelectExpr(s.Tok, th, y);
+          dafnyOutExprs.Add(dafnyY);
           var ys = iter.OutsHistoryFields[i];
           var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
@@ -104,11 +106,14 @@ namespace Microsoft.Dafny {
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
         var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType), iter);
 
-        var fieldSubstMap = iter.OutsFields.Zip(s.Rhss)
-          .Where(outRhs => outRhs.Second is ExprRhs)
+        var rhss = s.Rhss == null
+          ? dafnyOutExprs
+          : s.Rhss.Select(rhs => rhs is ExprRhs e ? e.Expr : null).ToList();
+        var fieldSubstMap = iter.OutsFields.Zip(rhss)
+          .Where(outRhs => outRhs.Second != null)
           .ToDictionary(
             outRhs => outRhs.First.Name,
-            outRhs => (outRhs.Second as ExprRhs)?.Expr
+            outRhs => outRhs.Second
           );
         var fieldSub = new SpecialFieldSubstituter(fieldSubstMap);
 
