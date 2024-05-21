@@ -13,8 +13,8 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class Substituter {
     protected Expression receiverReplacement { get; }
-    protected Dictionary<IVariable, Expression> substMap { get; }
-    protected Dictionary<TypeParameter, Type> typeMap { get; }
+    public Dictionary<IVariable, Expression> substMap { get; }
+    public Dictionary<TypeParameter, Type> typeMap { get; }
     protected readonly Label oldHeapLabel;
     [CanBeNull] protected readonly SystemModuleManager SystemModuleManager; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
