@@ -5647,7 +5647,22 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
 
+        IVariable receiver = null;
+        if (enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true }) {
+          var name = ProtectedFreshId("_this");
+          var ty = ModuleResolver.GetThisType(e.tok, thisContext);
+          receiver = new LocalVariable(RangeToken.NoToken, name, ty, false) {
+            type = ty
+          };
+          var _this = new ThisExpr(thisContext);
+          wr = EmitBetaRedex(new List<string>() {IdName(receiver)}, new List<Expression>() {_this}, new List<Type>() {_this.Type}, expr.Type, expr.tok, inLetExprBody, wr, ref wStmts);
+        }
+
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
+        if (receiver != null) {
+          su = new Substituter(new IdentifierExpr(e.tok, receiver), su.substMap, su.typeMap);
+        }
+
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
