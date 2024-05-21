@@ -49,7 +49,7 @@ public class TranslationRecord {
   }
   
   private static bool ModuleEmptyForCompilation(ModuleDefinition module) {
-    return !module.DefaultClass.Members.Any()
+    return !(module.DefaultClass?.Members.Any() ?? false)   // DefaultClass is null for _System
            && module.TopLevelDecls.All(d => d is DefaultClassDecl or ModuleDecl);
   }
   
