@@ -35,6 +35,7 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Single(errors);
     Assert.Contains("but is part of a different project", errors[0].Message);
+    Directory.Delete(tempDirectory);
   }
 
   public readonly string hasShadowingSource = @"

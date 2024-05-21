@@ -84,6 +84,7 @@ method ContradictoryAssumeMethod(n: int)
         diagnostic.Range == new Range(12, 11, 12, 17) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
+      Directory.Delete(directory);
     }
 
     [Fact]

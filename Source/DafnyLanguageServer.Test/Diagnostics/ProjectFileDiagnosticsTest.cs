@@ -37,6 +37,7 @@ public class ProjectFileDiagnosticsTest : ClientBasedLanguageServerTest {
     Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
     Assert.Single(errors);
     Assert.Contains(errors, d => d.Message.Contains("Unexpected token"));
+    Directory.Delete(directory);
   }
 
   [Fact]
