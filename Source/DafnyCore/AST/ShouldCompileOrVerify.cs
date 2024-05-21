@@ -31,19 +31,7 @@ public static class ShouldCompileOrVerify {
       }
     }
 
-    // This is primarily here to exclude prefix modules
-    // (e.g. something like A.B that only appears in a module A.B.C { ... } declaration)
-    // since those can appear in multiple separately-compiled projects. 
-    if (ModuleEmptyForCompilation(module)) {
-      return false;
-    }
-
     return program.UrisToCompile.Contains(module.Tok.Uri);
-  }
-
-  private static bool ModuleEmptyForCompilation(ModuleDefinition module) {
-    return !module.DefaultClass.Members.Any()
-           && module.TopLevelDecls.All(d => d is DefaultClassDecl or ModuleDecl);
   }
 
   public static bool ShouldVerify(this INode declaration, CompilationData compilation) {
