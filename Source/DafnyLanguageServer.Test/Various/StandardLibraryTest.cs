@@ -52,7 +52,7 @@ method Foo() returns (s: ><Option<int>) {
 [options]
 standard-libraries = true";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), projectSource);
 

@@ -106,6 +106,24 @@ public class Compilation : IDisposable {
     RootFiles = DetermineRootFiles();
     ParsedProgram = ParseAsync();
     Resolution = ResolveAsync();
+
+    _ = LogExceptions();
+  }
+
+  private async Task LogExceptions() {
+    try {
+      await RootFiles;
+      await ParsedProgram;
+      await Resolution;
+    } catch (OperationCanceledException) {
+    } catch (Exception e) {
+      HandleException(e);
+    }
+  }
+
+  private void HandleException(Exception e) {
+    logger.LogCritical(e, "internal exception");
+    updates.OnNext(new InternalCompilationException(MessageSource.Project, e));
   }
 
   public void Start() {
@@ -168,12 +186,10 @@ public class Compilation : IDisposable {
       }
     }
 
-    var libraryDafnyFiles = new List<DafnyFile>();
     var libraryPaths = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryPaths) {
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, new Uri(library), Project.StartingToken, true)) {
         result.Add(file);
-        libraryDafnyFiles.Add(file);
       }
     }
 
@@ -194,53 +210,37 @@ public class Compilation : IDisposable {
   }
 
   private async Task<Program?> ParseAsync() {
-    try {
-      await RootFiles;
-      if (HasErrors) {
-        return null;
-      }
-
-      transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
-      transformedProgram.HasParseErrors = HasErrors;
-
-      var cloner = new Cloner(true);
-      programAfterParsing = new Program(cloner, transformedProgram);
-
-      updates.OnNext(new FinishedParsing(programAfterParsing));
-      logger.LogDebug(
-        $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
-      return programAfterParsing;
-
-    } catch (OperationCanceledException) {
-      throw;
-    } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(MessageSource.Parser, e));
-      throw;
+    await RootFiles;
+    if (HasErrors) {
+      return null;
     }
+
+    transformedProgram = await documentLoader.ParseAsync(this, cancellationSource.Token);
+    transformedProgram.HasParseErrors = HasErrors;
+
+    var cloner = new Cloner(true);
+    programAfterParsing = new Program(cloner, transformedProgram);
+
+    updates.OnNext(new FinishedParsing(programAfterParsing));
+    logger.LogDebug(
+      $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
+    return programAfterParsing;
   }
 
   private async Task<ResolutionResult?> ResolveAsync() {
-    try {
-      await ParsedProgram;
-      if (transformedProgram == null) {
-        return null;
-      }
-      var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
-      if (resolution == null) {
-        return null;
-      }
-
-      updates.OnNext(new FinishedResolution(resolution));
-      staticDiagnosticsSubscription.Dispose();
-      logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
-      return resolution;
-
-    } catch (OperationCanceledException) {
-      throw;
-    } catch (Exception e) {
-      updates.OnNext(new InternalCompilationException(MessageSource.Resolver, e));
-      throw;
+    await ParsedProgram;
+    if (transformedProgram == null) {
+      return null;
     }
+    var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
+    if (resolution == null) {
+      return null;
+    }
+
+    updates.OnNext(new FinishedResolution(resolution));
+    staticDiagnosticsSubscription.Dispose();
+    logger.LogDebug($"Passed resolvedCompilation to documentUpdates.OnNext, resolving ResolvedCompilation task for version {Input.Version}.");
+    return resolution;
   }
 
   public static string GetTaskName(IVerificationTask task) {
@@ -254,8 +254,6 @@ public class Compilation : IDisposable {
 
     return prefix;
   }
-
-  private int runningVerificationJobs;
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
@@ -337,7 +335,7 @@ public class Compilation : IDisposable {
       } catch (OperationCanceledException) {
         throw;
       } catch (Exception e) {
-        updates.OnNext(new InternalCompilationException(MessageSource.Verifier, e));
+        HandleException(e);
         throw;
       }
 
@@ -381,10 +379,6 @@ public class Compilation : IDisposable {
 
       return;
     }
-
-    var incrementedJobs = Interlocked.Increment(ref runningVerificationJobs);
-    logger.LogDebug(
-      $"Incremented jobs for task, remaining jobs {incrementedJobs}, {Input.Uri} version {Input.Version}");
 
     statusUpdates.Subscribe(
       update => {
@@ -434,7 +428,6 @@ public class Compilation : IDisposable {
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
-    // TODO https://github.com/dafny-lang/dafny/issues/3416
     var program = await ParsedProgram;
     if (program == null) {
       return null;
