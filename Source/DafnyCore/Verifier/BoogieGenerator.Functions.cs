@@ -71,13 +71,13 @@ public partial class BoogieGenerator {
     // the procedure itself
     var req = new List<Bpl.Requires>();
     // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-    req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null, null));
+    req.Add(Requires(f.tok, true, null, etran.HeightContext(f), null, null, null));
     if (f is TwoStateFunction) {
       // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
       var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
       var a1 = HeapSucc(prevHeap, currHeap);
       var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-      req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+      req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
     }
 
     // modifies $Heap
@@ -135,7 +135,7 @@ public partial class BoogieGenerator {
         var e = formal.DefaultValue;
         CheckWellformed(e, wfo, locals, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No frame scope for default values
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
         if (formal.IsOld) {
           Bpl.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
@@ -171,7 +171,7 @@ public partial class BoogieGenerator {
 
     // If the function is marked as {:concurrent}, check that the reads clause is empty.
     if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
-      var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+      var desc = new PODesc.ConcurrentFrameEmpty(f, "reads");
       CheckFrameEmpty(f.tok, etran, etran.ReadsFrame(f.tok), builder, desc, null);
     }
 

@@ -18,6 +18,7 @@ using DafnyCore;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using DafnyCore.Verifier;
+using JetBrains.Annotations;
 using Microsoft.Dafny.Triggers;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
@@ -143,7 +144,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(codeContext == null || codeContext.EnclosingModule == currentModule);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
       if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
@@ -153,7 +154,7 @@ namespace Microsoft.Dafny {
       return d.IsVisibleInScope(currentScope);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool VisibleInScope(Type t) {
       if (t is UserDefinedType udt && udt.ResolvedClass != null && !t.IsTypeParameter) {
         return VisibleInScope(udt.ResolvedClass);
@@ -161,19 +162,19 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool RevealedInScope(Declaration d) {
       Contract.Requires(d != null);
       return d.IsRevealedInScope(currentScope);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool RevealedInScope(RevealableTypeDecl d) {
       Contract.Requires(d != null);
       return RevealedInScope(d.AsTopLevelDecl);
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool InVerificationScope(Declaration d) {
       Contract.Requires(d != null);
       if (!d.ShouldVerify(program.Compilation)) {
@@ -191,7 +192,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     bool InVerificationScope(RedirectingTypeDecl d) {
       Contract.Requires(d != null);
       Contract.Requires(d is Declaration);
@@ -2316,7 +2317,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(ctor.tok, true, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
+      req.Add(Requires(ctor.tok, true, null, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
@@ -2339,7 +2340,7 @@ namespace Microsoft.Dafny {
         var e = formal.DefaultValue;
         CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
 
       if (EmitImplementation(ctor.Attributes)) {
@@ -2394,7 +2395,7 @@ namespace Microsoft.Dafny {
         if (wh != null) {
           localTypeAssumptions.Add(TrAssumeCmd(p.tok, wh));
         }
-        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, p.Type, localTypeAssumptions);
+        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, p.Type, new IdentifierExpr(p.Tok, p), localTypeAssumptions);
         args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
       }
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(mc.tok, mc.Ctor.FullName, predef.DatatypeType);
@@ -2479,7 +2480,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder)
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Expression dRhs, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
@@ -2487,7 +2488,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(rhsType != null);
       Contract.Requires(builder != null);
       if (pat.Var != null) {
-        CheckSubrange(rhsTok, rhs, rhsType, pat.Var.Type, builder);
+        CheckSubrange(rhsTok, rhs, rhsType, pat.Var.Type, dRhs, builder);
       } else if (pat.Arguments != null) {
         Contract.Assert(pat.Ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == pat.Ctor.Destructors.Count);  // follows from successful resolution
@@ -2502,7 +2503,7 @@ namespace Microsoft.Dafny {
           // There is only one constructor, so the value must have been constructed by it; might as well assume that here.
           builder.Add(TrAssumeCmd(pat.tok, correctConstructor));
         } else {
-          builder.Add(Assert(pat.tok, correctConstructor, new PODesc.PatternShapeIsValid(ctor.Name)));
+          builder.Add(Assert(pat.tok, correctConstructor, new PODesc.PatternShapeIsValid(dRhs, ctor.Name)));
         }
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -2511,7 +2512,7 @@ namespace Microsoft.Dafny {
           var r = new Bpl.NAryExpr(arg.tok, new Bpl.FunctionCall(GetReadonlyField(dtor)), new List<Bpl.Expr> { rhs });
           Type argType = dtor.Type.Subst(typeSubstMap);
           var de = CondApplyUnbox(arg.tok, r, dtor.Type, argType);
-          CheckCasePatternShape(arg, de, arg.tok, argType, builder);
+          CheckCasePatternShape(arg, arg.Expr, de, arg.tok, argType, builder);
         }
       }
     }
@@ -3429,19 +3430,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      var ens = Ensures(tok, free, condition, errorMessage, successMessage, comment);
+      var ens = Ensures(tok, free, dafnyCondition, condition, errorMessage, successMessage, comment);
       proofDependencies?.AddProofDependencyId(ens, tok, new EnsuresDependency(tok, dafnyCondition));
       return ens;
     }
 
-    Bpl.Ensures Ensures(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Ensures Ensures(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var unwrappedToken = ForceCheckToken.Unwrap(tok);
       Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
-      var description = new PODesc.EnsuresDescription(errorMessage, successMessage);
+      var description = new PODesc.EnsuresDescription(dafnyCondition, errorMessage, successMessage);
       ens.Description = description;
       if (!free) {
         ReportAssertion(unwrappedToken, description);
@@ -3454,17 +3455,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(dafnyCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
-      var req = Requires(tok, free, condition, errorMessage, successMessage, comment);
+      var req = Requires(tok, free, dafnyCondition, condition, errorMessage, successMessage, comment);
       proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
     }
 
-    Bpl.Requires Requires(IToken tok, bool free, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Requires Requires(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment) {
       Contract.Requires(tok != null);
-      Contract.Requires(condition != null);
+      Contract.Requires(bCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, condition, comment);
-      req.Description = new PODesc.RequiresDescription(errorMessage, successMessage);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, bCondition, comment);
+      req.Description = new PODesc.RequiresDescription(dafnyCondition, errorMessage, successMessage);
       return req;
     }
 
@@ -3884,58 +3885,81 @@ namespace Microsoft.Dafny {
       return isAlloc == null ? isPred : isPred == null ? isAlloc : BplAnd(isPred, isAlloc);
     }
 
-    // Returns an expression, which, if false, means that the two LHS expressions are
+    // Returns expressions, which, if false, means that the two LHS expressions are
     // not distinct; if null then the LHSs are trivially distinct
-    Bpl.Expr CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran) {
+    void CheckDistinctness(Expression lhsa, Expression lhsb, ExpressionTranslator etran, out Expression dExpr, out Bpl.Expr bExpr) {
+      // Helper functions to make the following more concise
+      Expression DfyBin(BinaryExpr.Opcode op, Expression e0, Expression e1) =>
+        new BinaryExpr(Token.NoToken, op, e0, e1);
+      Expression DfyOr(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Or, e0, e1);
+      Expression DfyNeq(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Neq, e0, e1);
+      Expression DfyLe(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Le, e0, e1);
+      Expression DfyLt(Expression e0, Expression e1) => DfyBin(BinaryExpr.Opcode.Lt, e0, e1);
+
       {
+        dExpr = null;
+        bExpr = null;
         if (lhsa is IdentifierExpr iea && lhsb is IdentifierExpr ieb) {
           if (iea.Name != ieb.Name) {
-            return null;
+            return;
           }
 
-          return Bpl.Expr.False;
+          dExpr = new LiteralExpr(Token.NoToken, false);
+          bExpr = Bpl.Expr.False;
+          return;
         }
       }
       {
         if (lhsa is MemberSelectExpr iea && lhsb is MemberSelectExpr ieb) {
           if (iea.Member is Field fa && ieb.Member is Field fb) {
             if (fa != fb) {
-              return null;
+              return;
             }
 
-            return Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
+            dExpr = DfyNeq(iea.Obj, ieb.Obj);
+            bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Obj), etran.TrExpr(ieb.Obj));
+            return;
           }
         }
       }
       {
         if (lhsa is SeqSelectExpr iea && lhsb is SeqSelectExpr ieb) {
-          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
+          dExpr = DfyNeq(iea.Seq, ieb.Seq);
+          bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Seq), etran.TrExpr(ieb.Seq));
+
           if (iea.E1 == null && ieb.E1 == null) {
-            ex = BplOr(ex, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+            dExpr = DfyOr(dExpr, DfyNeq(iea.E0, ieb.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Neq(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
           } else if (iea.E1 == null && ieb.E1 != null) {
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
-            ex = BplOr(ex, Bpl.Expr.Lt(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
+            dExpr = DfyOr(dExpr, DfyLe(ieb.E1, iea.E0));
+            dExpr = DfyOr(dExpr, DfyLt(iea.E0, ieb.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+            bExpr = BplOr(bExpr, Bpl.Expr.Lt(etran.TrExpr(iea.E0), etran.TrExpr(ieb.E0)));
           } else if (iea.E1 != null && ieb.E1 == null) {
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
-            ex = BplOr(ex, Bpl.Expr.Lt(etran.TrExpr(ieb.E0), etran.TrExpr(iea.E0)));
+            dExpr = DfyOr(dExpr, DfyLe(iea.E1, ieb.E0));
+            dExpr = DfyOr(dExpr, DfyLt(ieb.E0, iea.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            bExpr = BplOr(bExpr, Bpl.Expr.Lt(etran.TrExpr(ieb.E0), etran.TrExpr(iea.E0)));
           } else {
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
-            ex = BplOr(ex, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
+            dExpr = DfyOr(dExpr, DfyLe(iea.E1, ieb.E0));
+            dExpr = DfyOr(dExpr, DfyLe(ieb.E1, iea.E0));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(iea.E1), etran.TrExpr(ieb.E0)));
+            bExpr = BplOr(bExpr, Bpl.Expr.Le(etran.TrExpr(ieb.E1), etran.TrExpr(iea.E0)));
           }
-          return ex;
+
+          return;
         }
       }
       {
         if (lhsa is MultiSelectExpr iea && lhsb is MultiSelectExpr ieb && iea.Indices.Count == ieb.Indices.Count) {
-          Bpl.Expr ex = Bpl.Expr.Neq(etran.TrExpr(iea.Array), etran.TrExpr(ieb.Array));
+          dExpr = DfyNeq(iea.Array, ieb.Array);
+          bExpr = Bpl.Expr.Neq(etran.TrExpr(iea.Array), etran.TrExpr(ieb.Array));
           for (int i = 0; i < iea.Indices.Count; i++) {
-            ex = BplOr(ex, Bpl.Expr.Neq(etran.TrExpr(iea.Indices[i]), etran.TrExpr(ieb.Indices[i])));
+            dExpr = DfyOr(dExpr, DfyNeq(iea.Indices[i], ieb.Indices[i]));
+            bExpr = BplOr(bExpr, Bpl.Expr.Neq(etran.TrExpr(iea.Indices[i]), etran.TrExpr(ieb.Indices[i])));
           }
-          return ex;
         }
       }
-
-      return null;
     }
 
     /// <summary>
@@ -3947,7 +3971,15 @@ namespace Microsoft.Dafny {
       return "this." + field.Name;
     }
 
-    Bpl.Expr GetSubrangeCheck(Bpl.Expr bSource, Type sourceType, Type targetType, out PODesc.ProofObligationDescription desc, string errorMessagePrefix = "") {
+    // Surrounds the given subrange-check expression with necessary context (e.g. quantifier bounds)
+    public delegate Expression SubrangeCheckContext(Expression check);
+
+    Bpl.Expr GetSubrangeCheck(
+      Bpl.Expr bSource, Type sourceType, Type targetType,
+      // allow null for checked expressions that cannot necessarily be named without side effects, such as method out-params
+      [CanBeNull] Expression source,
+      [CanBeNull] SubrangeCheckContext context,
+      out PODesc.ProofObligationDescription desc, string errorMessagePrefix = "") {
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
@@ -3970,6 +4002,15 @@ namespace Microsoft.Dafny {
       } else {
         cre = MkIs(bSource, targetType);
       }
+
+      Expression dafnyCheck = null;
+      context ??= (e => e);
+      if (source != null) {
+        dafnyCheck = context(new TypeTestExpr(source.Tok, source, targetType));
+      }
+      // type checks of the form `f is T -> U` are only available in the refreshed type system
+      var canTestFunctionTypes = options.Get(CommonOptionBag.TypeSystemRefresh);
+
       if (udt != null && udt.IsRefType) {
         var s = sourceType.NormalizeExpandKeepConstraints();
         var certain = false;
@@ -3978,37 +4019,41 @@ namespace Microsoft.Dafny {
           certain = udt.ResolvedClass.TypeArgs.Count == 0;
           cause = "it may be null";
         }
-        desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), false, certain, cause);
+        desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), false, certain, cause, dafnyCheck);
       } else if (udt != null && ArrowType.IsTotalArrowTypeName(udt.Name)) {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
-          "it may be partial or have read effects");
+          "it may be partial or have read effects",
+          canTestFunctionTypes ? dafnyCheck : null
+        );
       } else if (udt != null && ArrowType.IsPartialArrowTypeName(udt.Name)) {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(), true, false,
-          "it may have read effects");
+          "it may have read effects",
+          canTestFunctionTypes ? dafnyCheck : null
+        );
       } else {
         desc = new PODesc.SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
           targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
             ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
           },
-          false, null);
+          false, null, dafnyCheck);
       }
       return cre;
     }
 
-    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
+    void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, Expression source, BoogieStmtListBuilder builder, string errorMsgPrefix = "") {
       Contract.Requires(tok != null);
       Contract.Requires(bSource != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      var cre = GetSubrangeCheck(bSource, sourceType, targetType, out var desc, errorMsgPrefix);
+      var cre = GetSubrangeCheck(bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
       if (cre != null) {
         builder.Add(Assert(tok, cre, desc));
       }
     }
 
-    void Check_NewRestrictions(IToken tok, Bpl.Expr obj, Field f, Bpl.Expr rhs, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void Check_NewRestrictions(IToken tok, Expression dObj, Bpl.Expr obj, Field f, Bpl.Expr rhs, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(obj != null);
       Contract.Requires(f != null);
@@ -4022,7 +4067,7 @@ namespace Microsoft.Dafny {
         var fId = new Bpl.IdentifierExpr(tok, GetField(f));
         var subset = FunctionCall(tok, BuiltinFunction.SetSubset, null, rhs,
           ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, obj, fId), predef.SetType));
-        builder.Add(Assert(tok, subset, new PODesc.AssignmentShrinks(f.Name)));
+        builder.Add(Assert(tok, subset, new PODesc.AssignmentShrinks(dObj, f.Name)));
       }
     }
 

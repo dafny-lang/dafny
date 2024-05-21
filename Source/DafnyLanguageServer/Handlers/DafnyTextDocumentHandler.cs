@@ -63,8 +63,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       logger.LogDebug("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
         await projects.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+      } catch (InvalidOperationException e) {
+        if (!e.Message.Contains("because it is already open")) {
+          telemetryPublisher.PublishUnhandledException(e);
+        }
+        throw;
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
+        throw;
       }
 
       logger.LogDebug($"Finished opening document {notification.TextDocument.Uri}");

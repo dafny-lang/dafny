@@ -1208,11 +1208,11 @@ public partial class BoogieGenerator {
     Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType == toType.IsRefType);
     if (toType.IsRefType) {
       PutSourceIntoLocal();
-      CheckSubrange(tok, o, fromType, toType, builder, errorMsgPrefix);
+      CheckSubrange(tok, o, fromType, toType, expr, builder, errorMsgPrefix);
       return;
     } else if (fromType.IsTraitType) {
       PutSourceIntoLocal();
-      CheckSubrange(tok, o, fromType, toType, builder, errorMsgPrefix);
+      CheckSubrange(tok, o, fromType, toType, expr, builder, errorMsgPrefix);
       return;
     }
 
@@ -1436,7 +1436,7 @@ public partial class BoogieGenerator {
     // the procedure itself
     var req = new List<Bpl.Requires>();
     // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-    req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null, null));
+    req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
     // modifies $Heap
     var mod = new List<Bpl.IdentifierExpr> {
         etran.HeapCastToIdentifierExpr,
