@@ -48,6 +48,7 @@ method Bar() {
       var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse");
       var a7 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(somethingElse.Uri, a7.Uri);
+      Directory.Delete(directory);
     }
 
     [Fact]
@@ -71,6 +72,7 @@ method Foo() returns (x: int) {
       };
       var documents = new[] { projectFile.Uri, documentItem1.Uri, DocumentUri.File(secondFilePath) };
       await CheckExpectedStatuses(expectedStatuses, documents);
+      Directory.Delete(directory);
     }
 
     private async Task CheckExpectedStatuses(CompilationStatus[] expectedStatuses, DocumentUri[] documents) {
@@ -112,6 +114,7 @@ method Foo() returns (x: int) {
       foreach (var _ in new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) }) {
         await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken);
       }
+      Directory.Delete(directory);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

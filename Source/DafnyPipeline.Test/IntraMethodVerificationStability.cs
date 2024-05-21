@@ -221,6 +221,7 @@ module SomeModule {
       foreach (var proverFile in Directory.GetFiles(directory)) {
         yield return await File.ReadAllTextAsync(proverFile);
       }
+      Directory.Delete(directory);
     }
 
     ISet<string> UniqueNonCommentLines(string input) {
