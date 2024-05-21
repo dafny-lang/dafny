@@ -1,0 +1,4 @@
+git-issue-5369.dfy(20,2): Error: expression is not allowed to invoke a method (m)
+git-issue-5369.dfy(20,40): Error: expression is not allowed to invoke a method (m)
+git-issue-5369.dfy(32,9): Error: unresolved identifier: ThereIsASmallest
+3 resolution/type errors detected in git-issue-5369.dfy

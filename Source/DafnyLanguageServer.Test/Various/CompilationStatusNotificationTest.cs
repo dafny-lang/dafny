@@ -32,7 +32,7 @@ method Bar() {
 }
 ";
 
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
       await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
@@ -56,7 +56,7 @@ method Bar() {
 method Foo() returns (x: int) {
   return 2;
 }".TrimStart();
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -90,7 +90,7 @@ method Foo() returns (x: int) {
 
     [Fact]
     public async Task MultipleDocumentsSuccessfulResolution() {
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);

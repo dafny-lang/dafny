@@ -79,10 +79,12 @@ namespace Microsoft.Dafny {
         }
         // this.ys := this.ys + [this.y];
         var th = new ThisExpr(iter);
+        var dafnyOutExprs = new List<Expression>();
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
           var dafnyY = new MemberSelectExpr(s.Tok, th, y);
+          dafnyOutExprs.Add(dafnyY);
           var ys = iter.OutsHistoryFields[i];
           var dafnyYs = new MemberSelectExpr(s.Tok, th, ys);
           var dafnySingletonY = new SeqDisplayExpr(s.Tok, new List<Expression>() { dafnyY });
@@ -103,6 +105,18 @@ namespace Microsoft.Dafny {
         builder.Add(AssumeGoodHeap(s.Tok, etran));
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
         var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType), iter);
+
+        var rhss = s.Rhss == null
+          ? dafnyOutExprs
+          : s.Rhss.Select(rhs => rhs is ExprRhs e ? e.Expr : null).ToList();
+        var fieldSubstMap = iter.OutsFields.Zip(rhss)
+          .Where(outRhs => outRhs.Second != null)
+          .ToDictionary(
+            outRhs => outRhs.First.Name,
+            outRhs => outRhs.Second
+          );
+        var fieldSub = new SpecialFieldSubstituter(fieldSubstMap);
+
         foreach (var p in iter.YieldEnsures) {
           var ss = TrSplitExpr(p.E, yeEtran, true, out var splitHappened);
           foreach (var split in ss) {
@@ -110,7 +124,7 @@ namespace Microsoft.Dafny {
               // this postcondition was inherited into this module, so just ignore it
             } else if (split.IsChecked) {
               var yieldToken = new NestedToken(s.Tok, split.Tok);
-              var desc = new PODesc.YieldEnsures();
+              var desc = new PODesc.YieldEnsures(fieldSub.Substitute(p.E));
               builder.Add(AssertNS(yieldToken, split.E, desc, stmt.Tok, null));
             }
           }
@@ -502,7 +516,7 @@ namespace Microsoft.Dafny {
         locals.Add(r);
         var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
         CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran, "variable declaration RHS");
-        CheckCasePatternShape(pat, rIe, rhs.tok, pat.Expr.Type, builder);
+        CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
         builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, s.tok, pat.Expr, e => Expr.Eq(e, rIe), "variable declaration"));
       } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
         // try/recover statements are currently internal-only AST nodes that cannot be
@@ -732,7 +746,7 @@ namespace Microsoft.Dafny {
               var index = ((TernaryExpr)stmt.Steps[i]).E0;
               TrStmt_CheckWellformed(index, b, locals, etran, false);
               if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-                var desc = new PODesc.PrefixEqualityLimit();
+                var desc = new PODesc.PrefixEqualityLimit(index);
                 b.Add(AssertNS(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
               }
             }
@@ -934,7 +948,14 @@ namespace Microsoft.Dafny {
         var name = indexVarName + "#x";
         var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
         var x = new Bpl.IdentifierExpr(tok, name);
-        var cre = GetSubrangeCheck(x, Type.Int, indexVar.Type, out var desc);
+
+        var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
+        var checkContext = MakeNumericBoundsSubrangeCheckContext(sourceBoundVar, dLo, dHi);
+        var cre = GetSubrangeCheck(
+          x, Type.Int, indexVar.Type,
+          new IdentifierExpr(Token.NoToken, sourceBoundVar),
+          checkContext, out var desc);
+
         if (cre != null) {
           locals.Add(xVar);
           builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
@@ -987,6 +1008,27 @@ namespace Microsoft.Dafny {
       }
 
       TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
+    }
+
+    private static SubrangeCheckContext MakeNumericBoundsSubrangeCheckContext(BoundVar bvar, Expression lo, Expression hi) {
+      var source = new IdentifierExpr(Token.NoToken, bvar);
+      var loBound = lo == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Le, lo, source);
+      var hiBound = hi == null ? null : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Lt, source, hi);
+      var bounds = (loBound, hiBound) switch {
+        (not null, not null) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, loBound, hiBound),
+        (not null, null) => loBound,
+        (null, not null) => hiBound,
+      };
+      Expression CheckContext(Expression check) => new ForallExpr(
+        Token.NoToken,
+        RangeToken.NoToken,
+        new() { bvar },
+        bounds,
+        check,
+        null
+      );
+
+      return CheckContext;
     }
 
     private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
@@ -1255,12 +1297,12 @@ namespace Microsoft.Dafny {
           lhsType = ((MultiSelectExpr)lhs).Type;
         }
         var translatedRhs = etran.TrExpr(rhs);
-        CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, definedness);
+        CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, rhs, definedness);
         if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
           var field = fse.Member as Field;
           Contract.Assert(field != null);
-          Check_NewRestrictions(fse.tok, obj, field, translatedRhs, definedness, etran);
+          Check_NewRestrictions(fse.tok, fse.Obj, obj, field, translatedRhs, definedness, etran);
         }
       }
 
@@ -1283,11 +1325,17 @@ namespace Microsoft.Dafny {
         var Rhs = ((ExprRhs)s0.Rhs).Expr;
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
+        var lhsComponents = lhs switch {
+          SeqSelectExpr seq => new List<Expression> { seq.Seq, seq.E0 },
+          MultiSelectExpr multi => (new List<Expression> { multi.Array }).Concat(multi.Indices).ToList(),
+          MemberSelectExpr mse => new List<Expression> { mse.Obj },
+          _ => throw new cce.UnreachableException()
+        };
         definedness.Add(Assert(s0.Tok,
           BplOr(
             BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
             Bpl.Expr.Eq(rhs, rhsPrime)),
-          new PODesc.ForallLHSUnique()));
+          new PODesc.ForallLHSUnique(s.BoundVars, s.Range, lhsComponents, Rhs)));
       }
 
       definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -1454,12 +1502,12 @@ namespace Microsoft.Dafny {
         var ss = TrSplitExpr(loopInv.E, etran, false, out var splitHappened);
         if (!splitHappened) {
           var wInv = BplImp(w, etran.TrExpr(loopInv.E));
-          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));
+          invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage)));
         } else {
           foreach (var split in ss) {
             var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
             if (split.IsChecked) {
-              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
+              invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage)));  // TODO: it would be fine to have this use {:subsumption 0}
             } else {
               var cmd = TrAssumeCmd(split.E.tok, wInv);
               proofDependencies?.AddProofDependencyId(cmd, loopInv.E.tok, new InvariantDependency(loopInv.E));
@@ -1778,7 +1826,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr bRhs = bLhss[i];  // the RHS (bRhs) of the assignment to the actual call-LHS (lhs) was a LHS (bLhss[i]) in the Boogie call statement
-        CheckSubrange(lhs.tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, builder);
+        CheckSubrange(lhs.tok, bRhs, s.Method.Outs[i].Type.Subst(tySubst), rhsTypeConstraint, null, builder);
         bRhs = CondApplyBox(lhs.tok, bRhs, lhs.Type, lhsType);
 
         lhsBuilders[i](bRhs, false, builder, etran);
@@ -1916,7 +1964,7 @@ namespace Microsoft.Dafny {
           builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
-          CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), builder);
+          CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
           bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
           dActual = actual;
         }
@@ -2385,19 +2433,19 @@ namespace Microsoft.Dafny {
     delegate void AssignToLhs(Bpl.Expr/*?*/ rhs, bool origRhsIsHavoc, BoogieStmtListBuilder builder, ExpressionTranslator etran);
 
     void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
-      if (e != null) {
-        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
-          Printer.ExprToString(options, lhsb), e != Bpl.Expr.False, false)));
+      CheckDistinctness(lhsa, lhsb, etran, out var dExpr, out var bExpr);
+      if (bExpr != null) {
+        builder.Add(Assert(GetToken(lhsa), bExpr, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
+          Printer.ExprToString(options, lhsb), bExpr != Bpl.Expr.False, false, dExpr)));
       }
     }
 
     void AssertDistinctness(Expression lhsa, Expression lhsb, Bpl.Expr rhsa, Bpl.Expr rhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      Bpl.Expr e = CheckDistinctness(lhsa, lhsb, etran);
-      if (e != null) {
-        e = BplOr(e, Bpl.Expr.Eq(rhsa, rhsb));
-        builder.Add(Assert(GetToken(lhsa), e, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
-          Printer.ExprToString(options, lhsb), false, true)));
+      CheckDistinctness(lhsa, lhsb, etran, out var dExpr, out var bExpr);
+      if (bExpr != null) {
+        bExpr = BplOr(bExpr, Bpl.Expr.Eq(rhsa, rhsb));
+        builder.Add(Assert(GetToken(lhsa), bExpr, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
+          Printer.ExprToString(options, lhsb), false, true, dExpr)));
       }
     }
 
@@ -2505,7 +2553,7 @@ namespace Microsoft.Dafny {
               if (rhs != null) {
                 var fseField = fse.Member as Field;
                 Contract.Assert(fseField != null);
-                Check_NewRestrictions(tok, obj, fseField, rhs, bldr, et);
+                Check_NewRestrictions(tok, fse.Obj, obj, fseField, rhs, bldr, et);
                 var h = (Bpl.IdentifierExpr)et.HeapExpr;  // TODO: is this cast always justified?
                 var cmd = Bpl.Cmd.SimpleAssign(tok, h, UpdateHeap(tok, h, obj, new Bpl.IdentifierExpr(tok, GetField(fseField)), rhs));
                 proofDependencies?.AddProofDependencyId(cmd, lhs.tok, new AssignmentDependency(stmt.RangeToken));
@@ -2641,7 +2689,7 @@ namespace Microsoft.Dafny {
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
 
         Bpl.Expr bRhs = etran.TrExpr(e.Expr);
-        CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, builder);
+        CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, builder);
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
@@ -2720,7 +2768,7 @@ namespace Microsoft.Dafny {
               foreach (var v in tRhs.InitDisplay) {
                 var EE_ii = etran.TrExpr(v);
                 // assert EE_ii satisfies any subset-type constraints;
-                CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, builder);
+                CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, v, builder);
                 // assume nw[ii] == EE_ii;
                 var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
                 builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), EE_ii)));
@@ -2746,7 +2794,7 @@ namespace Microsoft.Dafny {
           TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
         }
         // bLhs := $nw;
-        CheckSubrange(tok, nw, tRhs.Type, rhsTypeConstraint, builder);
+        CheckSubrange(tok, nw, tRhs.Type, rhsTypeConstraint, null, builder);
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
@@ -2879,5 +2927,6 @@ namespace Microsoft.Dafny {
       CheckWellformed(expr, options, locals, builder, etran);
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
+
   }
 }

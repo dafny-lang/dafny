@@ -415,7 +415,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     source = source.TrimStart();
     if (includeProjectFile) {
       var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
