@@ -226,7 +226,7 @@ public record IdeState(
   private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
     var previousState = this;
 
-    var uri = scheduledVerification.CanVerify.Tok.Uri;
+    var uri = scheduledVerification.CanVerify.NameToken.Uri;
     var range = scheduledVerification.CanVerify.NameToken.GetLspRange();
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;

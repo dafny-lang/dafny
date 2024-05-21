@@ -415,7 +415,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   protected async Task<TextDocumentItem> GetDocumentItem(string source, string filename, bool includeProjectFile) {
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     source = source.TrimStart();
     if (includeProjectFile) {
       var projectFile = CreateTestDocument("", Path.Combine(directory, DafnyProject.FileName));
@@ -438,7 +438,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     var documentItem = await CreateOpenAndWaitForResolve(cleanSource, filePath);
     for (var index = 0; index < positions.Count; index++) {
       var position = positions[index];
-      var range = ranges.ContainsKey(string.Empty) ? ranges[string.Empty][index] : ranges[index.ToString()].Single();
+      var range = ranges.ContainsKey(index.ToString()) ? ranges[index.ToString()].Single() : ranges[string.Empty][index];
       var result = (await RequestDefinition(documentItem, position)).Single();
       Assert.Equal(range, result.Location!.Range);
     }

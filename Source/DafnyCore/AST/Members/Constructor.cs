@@ -11,7 +11,7 @@ public class Constructor : Method {
     Contract.Invariant(Body == null || Body is DividedBlockStmt);
   }
 
-  public override SymbolKind Kind => SymbolKind.Constructor;
+  public override SymbolKind? Kind => SymbolKind.Constructor;
   protected override string GetQualifiedName() {
     return EnclosingClass.Name;
   }

@@ -32,7 +32,7 @@ public delegate ProjectManager CreateProjectManager(
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
-public class ProjectManager : IDisposable {
+public class ProjectManager {
 
   public const int DefaultThrottleTime = 100;
   public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
@@ -198,23 +198,23 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   private IObservable<IdeState> GetStates(Compilation compilation) {
     var initialState = latestIdeState;
-    var latestCompilationState = initialState with {
+    var previousIdeState = initialState with {
       Input = compilation.Input,
     };
 
-    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => Update(ev));
 
-    async Task<IdeState> Update(ICompilationEvent ev) {
+    IdeState Update(ICompilationEvent ev) {
       if (ev is InternalCompilationException compilationException) {
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
 
       try {
-        var newState =
-          await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
-        latestCompilationState = newState;
-        return newState;
+#pragma warning disable VSTHRD002
+        previousIdeState = previousIdeState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev).Result;
+#pragma warning restore VSTHRD002
+        return previousIdeState;
       } catch (Exception e) {
         logger.LogError(e, "error while updating IDE state");
         telemetryPublisher.PublishUnhandledException(e);
@@ -376,7 +376,10 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     }
   }
 
+  public bool IsDisposed { get; private set; }
+
   public void Dispose() {
+    IsDisposed = true;
     boogieEngine?.Dispose();
     Compilation.Dispose();
     observerSubscription.Dispose();

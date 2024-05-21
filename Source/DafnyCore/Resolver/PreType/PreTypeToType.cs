@@ -140,7 +140,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       return;
     }
 
-    if (expr.PreType is UnusedPreType) {
+    if (expr.PreType is MethodPreType) {
       expr.Type = new InferredTypeProxy();
       return;
     }
