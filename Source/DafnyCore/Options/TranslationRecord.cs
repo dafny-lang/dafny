@@ -30,7 +30,7 @@ public class TranslationRecord {
       if (module is DefaultModuleDefinition || !module.ShouldCompile(program.Compilation)) {
         continue;
       }
-      
+
       // This is primarily here to exclude prefix modules
       // (e.g. something like A.B that only appears in a module A.B.C { ... } declaration)
       // since those can appear in multiple separately-compiled projects. 
@@ -47,12 +47,12 @@ public class TranslationRecord {
       }
     }
   }
-  
+
   private static bool ModuleEmptyForCompilation(ModuleDefinition module) {
     return !(module.DefaultClass?.Members.Any() ?? false)   // DefaultClass is null for _System
            && module.TopLevelDecls.All(d => d is DefaultClassDecl or ModuleDecl);
   }
-  
+
   public static TranslationRecord Empty(Program program) {
     return new TranslationRecord() {
       FileFormatVersion = CurrentFileFormatVersion,
