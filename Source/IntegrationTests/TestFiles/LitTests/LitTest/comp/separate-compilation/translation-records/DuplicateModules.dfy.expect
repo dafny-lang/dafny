@@ -1,10 +1,14 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
+Dafny program verifier finished with 1 verified, 0 errors
 
-Dafny program verifier finished with 0 verified, 0 errors
-CLI: Error: cannot load Foo.dtr: it contains translation metadata for the module Foo, which is in scope for translation in the current program
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier finished with 1 verified, 0 errors
+
+Dafny program verifier finished with 1 verified, 0 errors
+CLI: Error: cannot load Foo-cs.dtr: it contains translation metadata for the module Parent.Foo, which is in scope for translation in the current program
 Translation was aborted because errors were found
 
-Dafny program verifier finished with 0 verified, 0 errors
-CLI: Error: cannot load Bar.dtr: module Bar already appears in another translation record
+Dafny program verifier finished with 1 verified, 0 errors
+CLI: Error: cannot load Bar-cs.dtr: module Parent.Bar already appears in another translation record
 Translation was aborted because errors were found
