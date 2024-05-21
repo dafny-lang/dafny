@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     [Fact]
     public async Task DiagnosticsAreClearedUponCloseWhenUsingProject() {
       var source = "method Foo() { var c: int := true; }";
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
       var document = CreateAndOpenTestDocument(source, Path.Combine(directory, "DiagnosticsAreClearedUponCloseWhenUsingProject.dfy"));

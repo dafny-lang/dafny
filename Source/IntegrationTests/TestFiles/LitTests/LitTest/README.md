@@ -104,7 +104,7 @@ and then right-click the test you wish to debug and select
 so you may wish to remove the calls you are not interested in first, e.g. if you are debugging an issue with a specific compiler.
 
 ## Updating test expect files
-If you set the static field `DiffCommand.UpdateExpectFile` to true instead of false, then the `diff` command in tests will not do a comparison but instead overwrite the expected file with the actual contents. This can be useful when you need to update expect files.
+If you set the environment variable `DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE` to `true`, then the `diff` command in tests will not do a comparison but instead overwrite the expected file with the actual contents. This can be useful when you need to update expect files.
 
 ## Updating compiler-specific test expect files
 To update compiler-specific error-aware output files for tests running with `%forEachDafnyCompiler`,
