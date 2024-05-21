@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       var afterCloseDiagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Contains(new[] { afterCloseDiagnostics, afterCloseDiagnostics2 },
         d => d.Uri == document.Uri && !d.Diagnostics.Any());
-      Directory.Delete(directory);
+      Directory.Delete(directory, true);
     }
 
     [Fact]
