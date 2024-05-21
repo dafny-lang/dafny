@@ -206,6 +206,7 @@ public record IdeState(
     var ownedUris = new HashSet<Uri>();
     foreach (var file in determinedRootFiles.Roots) {
       var uriProject = await projectDatabase.GetProject(file.Uri);
+      logger.LogDebug($"HandleDeterminedRootFiles found project for {file.Uri} to be {uriProject.Uri}");
       var ownedUri = uriProject.Equals(determinedRootFiles.Project);
       if (ownedUri) {
         ownedUris.Add(file.Uri);
