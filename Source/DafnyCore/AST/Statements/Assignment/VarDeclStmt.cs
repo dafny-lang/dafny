@@ -43,12 +43,6 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
           yield return e;
         }
       }
-
-      if (this.Update != null) {
-        foreach (var e in this.Update.NonSpecificationSubExpressions) {
-          yield return e;
-        }
-      }
     }
   }
 

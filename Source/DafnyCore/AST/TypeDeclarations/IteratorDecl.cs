@@ -67,7 +67,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
     DecreasesFields = new List<Field>();
 
     YieldCountVariable = new LocalVariable(rangeToken, "_yieldCount", new EverIncreasingType(), true);
-    YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
+    YieldCountVariable.type = YieldCountVariable.SyntacticType;  // resolve YieldCountVariable here
   }
 
   /// <summary>

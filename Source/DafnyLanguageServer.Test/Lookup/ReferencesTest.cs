@@ -39,12 +39,64 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
 
       var documentItem = CreateTestDocument(cleanSource, fileName);
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+      await AssertNoResolutionErrors(documentItem);
 
       foreach (var position in allPositions) {
         var result = await RequestReferences(documentItem, position);
         var resultRanges = result.Select(location => location.Range).ToHashSet();
         Assert.Equal(expectedRanges, resultRanges);
       }
+    }
+
+    [Fact]
+    public async Task ExplicitTypeBoundVariableInLambda() {
+      var source = @"
+datatype ><C = Cons
+method Foo() {
+  var f := (x: [>C<]) => 3;
+  var c: [>C<] := Cons;
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportNamedImport.dfy");
+    }
+
+    [Fact]
+    public async Task ExportNamedImport() {
+      var source = @"
+module Low {
+  const x := 3
+}
+
+module High {
+  import ><MyLow = Low
+
+  export
+    provides
+      [>MyLow<]
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportNamedImport.dfy");
+    }
+
+    [Fact]
+    public async Task ExportNamelessImport() {
+      var source = @"
+module ><Low {
+  const x := 3
+}
+
+module High {
+  import [>Low<]
+
+  export
+    provides
+      [>Low<]
+}
+".TrimStart();
+
+      await AssertReferences(source, "ExportImport.dfy");
     }
 
     [Fact]

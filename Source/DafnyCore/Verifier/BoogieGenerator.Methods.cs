@@ -684,7 +684,7 @@ namespace Microsoft.Dafny {
             var e = formal.DefaultValue;
             CheckWellformed(e, wfo, localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null)); // No scope for default parameters
             builder.Add(new Boogie.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-            CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, builder);
+            CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
 
             if (formal.IsOld) {
               Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
@@ -711,7 +711,7 @@ namespace Microsoft.Dafny {
         // on the method, and {:assume_concurrent} is NOT present on the reads clause.
         if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
             !Attributes.Contains(m.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-          var desc = new PODesc.ConcurrentFrameEmpty("reads clause");
+          var desc = new PODesc.ConcurrentFrameEmpty(m, "reads");
           if (etran.readsFrame != null) {
             CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
           } else {
@@ -729,7 +729,7 @@ namespace Microsoft.Dafny {
         // and {:assume_concurrent} is NOT present on the modifies clause.
         if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
             !Attributes.Contains(m.Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-          var desc = new PODesc.ConcurrentFrameEmpty("modifies clause");
+          var desc = new PODesc.ConcurrentFrameEmpty(m, "modifies");
           CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
         }
 
@@ -959,13 +959,13 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Boogie.Requires>();
       // free requires fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null, null));
+      req.Add(Requires(f.tok, true, null, etran.HeightContext(f), null, null, null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = HeapSucc(prevHeap, currHeap);
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-        req.Add(Requires(f.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+        req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       }
       // modifies $Heap
       var mod = new List<Boogie.IdentifierExpr> {
@@ -1092,12 +1092,20 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
       }
 
+      // conjunction of class post-conditions
+      var allOverrideEns = f.Ens.Count == 0 ? null : f.Ens
+        .Select(e => e.E)
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in f.OverriddenFunction.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
+        var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true)));
+          var constraint = allOverrideEns == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true, constraint)));
         }
       }
     }
@@ -1181,13 +1189,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
+      var subReqs = new List<Expression>();
       foreach (var req in f.OverriddenFunction.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
-        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, sub.Substitute(req.E), "overridden function requires clause"));
+        var subReq = sub.Substitute(req.E);
+        builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, subReq, "overridden function requires clause"));
+        subReqs.Add(subReq);
       }
+      var allTraitReqs = subReqs.Count == 0 ? null : subReqs
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
-      foreach (var s in f.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false)));
+      foreach (var req in f.Req) {
+        foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
+          var constraint = allTraitReqs == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false, constraint)));
+        }
       }
     }
 
@@ -1421,12 +1439,20 @@ namespace Microsoft.Dafny {
       foreach (var en in m.Ens) {
         builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E, "overridden ensures clause"));
       }
+      // conjunction of class post-conditions
+      var allOverrideEns = m.Ens.Count == 0 ? null : m.Ens
+        .Select(e => e.E)
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
       foreach (var en in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
-        foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
-          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger()));
+        var subEn = sub.Substitute(en.E);
+        foreach (var s in TrSplitExpr(subEn, etran, false, out _).Where(s => s.IsChecked)) {
+          var constraint = allOverrideEns == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger(constraint)));
         }
       }
     }
@@ -1440,13 +1466,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
+      var subReqs = new List<Expression>();
       foreach (var req in m.OverriddenMethod.Req) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
-        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, sub.Substitute(req.E), "overridden requires clause"));
+        var subReq = sub.Substitute(req.E);
+        builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, subReq, "overridden requires clause"));
+        subReqs.Add(subReq);
       }
+      var allTraitReqs = subReqs.Count == 0 ? null : subReqs
+        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
-      foreach (var s in m.Req.SelectMany(req => TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked))) {
-        builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker()));
+      foreach (var req in m.Req) {
+        foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
+          var constraint = allTraitReqs == null
+            ? null
+            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker(constraint)));
+        }
       }
     }
 
@@ -1654,13 +1690,13 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null, null));
+        req.Add(Requires(m.tok, true, null, etran.HeightContext(m), null, null, null));
         if (m is TwoStateLemma) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
           var a1 = HeapSucc(prevHeap, currHeap);
           var a2 = FunctionCall(m.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-          req.Add(Requires(m.tok, true, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+          req.Add(Requires(m.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
         }
       }
       if (m is TwoStateLemma) {
@@ -1674,7 +1710,7 @@ namespace Microsoft.Dafny {
               "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
               dafnyFormalIdExpr
             );
-            var require = Requires(formal.tok, false, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
+            var require = Requires(formal.tok, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
               desc.FailureDescription, desc.SuccessDescription, null);
             require.Description = desc;
             req.Add(require);
@@ -1711,7 +1747,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
+          AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
@@ -1729,11 +1765,14 @@ namespace Microsoft.Dafny {
           }
         }
         if (m is Constructor && kind == MethodTranslationKind.Call) {
+          var dafnyFresh = new OldExpr(Token.NoToken,
+            new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
           var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, fresh, null, null, "constructor allocates the object"));
+          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, dafnyFresh, fresh, null, null, "constructor allocates the object"));
         }
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
-          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
+          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
         }
 
         // add the fuel assumption for the reveal method of a opaque method
@@ -1743,7 +1782,7 @@ namespace Microsoft.Dafny {
             MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
             if (selectExpr != null) {
               Function f = selectExpr.Member as Function;
-              AddEnsures(ens, Ensures(m.tok, true, GetRevealConstant(f), null, null, null));
+              AddEnsures(ens, Ensures(m.tok, true, null, GetRevealConstant(f), null, null, null));
             }
           }
         }
