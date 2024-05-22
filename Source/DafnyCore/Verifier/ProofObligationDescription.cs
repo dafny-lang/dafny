@@ -891,9 +891,10 @@ public class Terminates : ProofObligationDescription {
   private readonly List<Expression> oldExpressions;
   private readonly List<Expression> newExpressions;
   private readonly List<VarDeclStmt> prevGhostLocals;
+  private bool allowNoChange;
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    Expression expr = new DecreasesToExpr(Token.NoToken, oldExpressions, newExpressions);
+    Expression expr = new DecreasesToExpr(Token.NoToken, oldExpressions, newExpressions, allowNoChange);
     if (allowance is not null) {
       expr = Expression.CreateOr(allowance, expr);
     }
@@ -917,12 +918,13 @@ public class Terminates : ProofObligationDescription {
     return null;
   }
 
-  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, bool allowNoChange, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;
     this.allowance = allowance;
     this.oldExpressions = oldExpressions;
     this.newExpressions = newExpressions;
+    this.allowNoChange = allowNoChange;
     this.hint = hint;
   }
 }

@@ -8,9 +8,12 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
   public IEnumerable<Expression> OldExpressions { get; }
   public IEnumerable<Expression> NewExpressions { get; }
 
-  public DecreasesToExpr(IToken tok, IEnumerable<Expression> oldExpressions, IEnumerable<Expression> newExpressions) : base(tok) {
+  public bool AllowNoChange { get; }
+
+  public DecreasesToExpr(IToken tok, IEnumerable<Expression> oldExpressions, IEnumerable<Expression> newExpressions, bool allowNoChange) : base(tok) {
     OldExpressions = oldExpressions;
     NewExpressions = newExpressions;
+    AllowNoChange = allowNoChange;
   }
 
   public DecreasesToExpr(Cloner cloner, DecreasesToExpr original) : base(cloner, original) {
@@ -22,7 +25,8 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
   public DecreasesToExpr Clone(Cloner cloner) {
     var result = new DecreasesToExpr(tok,
       OldExpressions.Select(cloner.CloneExpr),
-      NewExpressions.Select(cloner.CloneExpr));
+      NewExpressions.Select(cloner.CloneExpr),
+      AllowNoChange);
     if (cloner.CloneResolvedFields) {
       result.Type = Type;
     }

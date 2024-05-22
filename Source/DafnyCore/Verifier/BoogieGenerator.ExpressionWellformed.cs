@@ -759,8 +759,8 @@ namespace Microsoft.Dafny {
 
               } else {
                 // Directly substitutes arguments for formals, to be displayed to the user
-                var directSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
-                var directSub = new Substituter(e.Receiver, directSubstMap, e.GetTypeArgumentSubstitutions());
+                var argSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
+                var directSub = new Substituter(e.Receiver, argSubstMap, e.GetTypeArgumentSubstitutions());
 
                 foreach (AttributedExpression p in e.Function.Req) {
                   var directPrecond = directSub.Substitute(p.E);

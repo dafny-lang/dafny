@@ -96,7 +96,7 @@ public partial class BoogieGenerator {
     }
     builder.Add(Assert(tok, decrExpr, new
       PODesc.Terminates(inferredDecreases, null, allowance,
-                        oldExpressions, newExpressions, hint)));
+                        oldExpressions, newExpressions, endsWithWinningTopComparison, hint)));
   }
 
   /// <summary>

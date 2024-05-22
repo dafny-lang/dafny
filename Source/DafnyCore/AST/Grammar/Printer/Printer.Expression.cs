@@ -1202,7 +1202,11 @@ namespace Microsoft.Dafny {
           PrintExpression(oldExpr, false);
           comma = true;
         }
-        wr.Write(" decreases to ");
+        if (decreasesToExpr.AllowNoChange) {
+          wr.Write(" nonincreases to ");
+        } else {
+          wr.Write(" decreases to ");
+        }
         comma = false;
         foreach (var newExpr in decreasesToExpr.NewExpressions) {
           if (comma) {

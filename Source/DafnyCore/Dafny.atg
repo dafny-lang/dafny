@@ -144,6 +144,7 @@ TOKENS
   by = "by".
   in = "in".
   decreases = "decreases".
+  nonincreases = "nonincreases".
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
@@ -3212,9 +3213,12 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
      List<Expression> newExprs = new();
      Expression tmp = null;
      IToken x = null;
+     bool allowNoChange = false;
   .)
   TupleArgs<args>
-  [ "decreases"                                                                 (. x = t; .)
+  [ ( "decreases"                                                               (. allowNoChange = false; .)
+    | "nonincreases"                                                            (. allowNoChange = true; .)
+    ) (. x = t; .)
     ident
     (. if (t.val != "to") {
          SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
@@ -3236,7 +3240,7 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
                  "bindings are not allowed in `decreases to` expressions.");
         }
         var oldExprs = args.Select(arg => arg.Actual).ToList();
-        e = new DecreasesToExpr(x, oldExprs, newExprs);
+        e = new DecreasesToExpr(x, oldExprs, newExprs, allowNoChange);
         e.RangeToken = new RangeToken(oldExprs[0].tok, newExprs[newExprs.Count() - 1].tok);
       } else {
         // Unreachable

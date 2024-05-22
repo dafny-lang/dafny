@@ -428,7 +428,7 @@ namespace Microsoft.Dafny {
       } else if (expr is DecreasesToExpr decreasesToExpr) {
         List<Expression> oldExpressionsSubst = SubstituteExprList(decreasesToExpr.OldExpressions.ToList());
         List<Expression> newExpressionsSubst = SubstituteExprList(decreasesToExpr.NewExpressions.ToList());
-        newExpr = new DecreasesToExpr(decreasesToExpr.tok, oldExpressionsSubst, newExpressionsSubst) {
+        newExpr = new DecreasesToExpr(decreasesToExpr.tok, oldExpressionsSubst, newExpressionsSubst, decreasesToExpr.AllowNoChange) {
           Type = decreasesToExpr.Type
         };
 
