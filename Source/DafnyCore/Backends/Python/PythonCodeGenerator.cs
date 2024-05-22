@@ -25,10 +25,6 @@ namespace Microsoft.Dafny.Compilers {
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
-
-      Imports.Add(
-        PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule
-      );
     }
 
     private readonly List<string> Imports = new() { };
@@ -43,6 +39,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
+    private const string DafnySystemModule = "System_";
+    private const ISet<string> DafnyRuntimeModules = new HashSet<string> { DafnyRuntimeModule, DafnySystemModule, };
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
@@ -134,6 +132,12 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
+
+      // Don't emit `import module_` for DafnyRuntime
+      if (!(DafnyRuntimeModules.Contains(moduleName))) {
+        wr.WriteLine($"import {DafnyDefaultModule}");
+      }
+      
       wr.WriteLine();
       // Alias nested imports to the final segment of the import string
       // ex. `import a.b.c as c`
