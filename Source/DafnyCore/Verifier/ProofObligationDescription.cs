@@ -1019,7 +1019,7 @@ public class MatchIsComplete : ProofObligationDescription {
   }
 
   // ReSharper disable once UnusedMember.Global
-  public string GetExtraExplanation() {
+  public override string GetExtraExplanation() {
     return (
       "\n  in an added catch-all case:"
       + "\n    case _ => ..."
@@ -1043,7 +1043,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
   }
 
   // ReSharper disable once UnusedMember.Global
-  public string GetExtraExplanation() {
+  public override string GetExtraExplanation() {
     return (
       "\n  in an added catch-all case:"
       + "\n    case true => ..."
