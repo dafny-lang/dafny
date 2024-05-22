@@ -1,6 +1,5 @@
 // RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
 method GoodInstances(x: int, y: int) {
   assert (true decreases to false);
   assert (1 decreases to 0);
@@ -9,6 +8,7 @@ method GoodInstances(x: int, y: int) {
   var s := {x, y, x*y};
   var s' := s - {x};
   assert  (s, s, s decreases to s, s, s') ;
+  assert (0 nonincreases to 0);
 }
 
 method Nested() {
@@ -70,3 +70,7 @@ method BadTypes () {
   assert (true decreases to 0);
 }
 */
+
+method BadInstance4() {
+  assert (0 nonincreases to 1);
+}

@@ -14,5 +14,7 @@ DecreasesTo1.dfy(57,2): Error: decreases expression might not decrease
    and with the following declarations at the beginning of the loop body:
      var prev_x': int := x';
      var prev_y': int := y';
+DecreasesTo1.dfy(75,9): Error: assertion might not hold
+ Asserted expression: 0 nonincreases to 1
 
-Dafny program verifier finished with 2 verified, 6 errors
+Dafny program verifier finished with 2 verified, 7 errors

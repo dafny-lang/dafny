@@ -1501,7 +1501,7 @@ namespace Microsoft.Dafny {
               toks.Add(new NestedToken(decreasesToExpr.tok, oldExpr.tok));
             }
             var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, null,
-              null, false, false);
+              null, decreasesToExpr.AllowNoChange, false);
             return decreasesExpr;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
