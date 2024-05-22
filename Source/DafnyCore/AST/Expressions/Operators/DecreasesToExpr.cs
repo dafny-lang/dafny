@@ -19,18 +19,11 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
   public DecreasesToExpr(Cloner cloner, DecreasesToExpr original) : base(cloner, original) {
     OldExpressions = original.OldExpressions.Select(cloner.CloneExpr);
     NewExpressions = original.NewExpressions.Select(cloner.CloneExpr);
-    // TODO: Type = original.Type if CloneResolvedFields?
+    AllowNoChange = original.AllowNoChange;
   }
 
   public DecreasesToExpr Clone(Cloner cloner) {
-    var result = new DecreasesToExpr(tok,
-      OldExpressions.Select(cloner.CloneExpr),
-      NewExpressions.Select(cloner.CloneExpr),
-      AllowNoChange);
-    if (cloner.CloneResolvedFields) {
-      result.Type = Type;
-    }
-    return result;
+    return new DecreasesToExpr(cloner, this);
   }
 
   public override IEnumerable<Expression> SubExpressions {
