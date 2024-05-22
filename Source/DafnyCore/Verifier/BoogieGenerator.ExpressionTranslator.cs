@@ -1490,16 +1490,17 @@ namespace Microsoft.Dafny {
             List<Type> oldTypes = new();
             List<Expr> newExprs = new();
             List<Expr> oldExprs = new();
-            List<IToken> toks = new();
+            List<IToken> oldToks = new();
+            List<IToken> newToks = new();
+            foreach (var oldExpr in decreasesToExpr.OldExpressions) {
+              oldTypes.Add(oldExpr.Type);
+              oldExprs.Add(TrExpr(oldExpr));
+            }
             foreach (var newExpr in decreasesToExpr.NewExpressions) {
               newTypes.Add(newExpr.Type);
               newExprs.Add(TrExpr(newExpr));
             }
-            foreach (var oldExpr in decreasesToExpr.OldExpressions) {
-              oldTypes.Add(oldExpr.Type);
-              oldExprs.Add(TrExpr(oldExpr));
-              toks.Add(new NestedToken(decreasesToExpr.tok, oldExpr.tok));
-            }
+            List<IToken> toks = oldExprs.Zip(newExprs, (_, _) => (IToken)decreasesToExpr.RangeToken).ToList();
             var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, null,
               null, decreasesToExpr.AllowNoChange, false);
             return decreasesExpr;

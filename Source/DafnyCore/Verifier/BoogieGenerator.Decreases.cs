@@ -358,5 +358,8 @@ public partial class BoogieGenerator {
       less = BplAnd(Bpl.Expr.Not(b0), b1);
       atmost = BplImp(b0, b1);
     }
+
+    less.tok = tok;
+    atmost.tok = tok;
   }
 }
