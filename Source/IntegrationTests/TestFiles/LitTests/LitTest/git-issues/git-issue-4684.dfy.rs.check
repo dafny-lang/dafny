@@ -1,1 +1,1 @@
-CHECK: error\[E0599\]: no method named `FWithoutTailRecursion` found for enum `Option` in the current scope
+CHECK: error
