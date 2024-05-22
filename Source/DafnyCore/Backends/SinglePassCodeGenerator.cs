@@ -5655,7 +5655,7 @@ namespace Microsoft.Dafny.Compilers {
             type = ty
           };
           var _this = new ThisExpr(thisContext);
-          wr = EmitBetaRedex(new List<string>() {IdName(receiver)}, new List<Expression>() {_this}, new List<Type>() {_this.Type}, expr.Type, expr.tok, inLetExprBody, wr, ref wStmts);
+          wr = EmitBetaRedex(new List<string>() { IdName(receiver) }, new List<Expression>() { _this }, new List<Type>() { _this.Type }, expr.Type, expr.tok, inLetExprBody, wr, ref wStmts);
         }
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
