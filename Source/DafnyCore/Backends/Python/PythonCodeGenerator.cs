@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Compilers {
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
     private const string DafnySystemModule = "System_";
-    private const ISet<string> DafnyRuntimeModules = new HashSet<string> { DafnyRuntimeModule, DafnySystemModule, };
+    private static readonly ISet<string> DafnyRuntimeModuleNames = new HashSet<string> { DafnyRuntimeModule, DafnySystemModule, };
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
@@ -132,13 +132,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
-
-      // Don't emit `import module_` for DafnyRuntime
-      if (!(DafnyRuntimeModules.Contains(moduleName))) {
-        wr.WriteLine($"import {DafnyDefaultModule}");
-      }
       
       wr.WriteLine();
+      // Don't emit `import module_` for modules in the DafnyRuntimePython.
+      // The DafnyRuntimePython doesn't have a module.py file, so the import isn't valid.
+      if (!(DafnyRuntimeModuleNames.Contains(moduleName))) {
+        wr.WriteLine($"import {(PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule)} as {DafnyDefaultModule}");
+      }
       // Alias nested imports to the final segment of the import string
       // ex. `import a.b.c as c`
       Imports.ForEach(module => wr.WriteLine($"import {module} as {module.Split('.').Last()}"));
