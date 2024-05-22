@@ -115,6 +115,7 @@ public class Compilation : IDisposable {
       await RootFiles;
       await ParsedProgram;
       await Resolution;
+    } catch (OperationCanceledException) {
     } catch (Exception e) {
       HandleException(e);
     }
