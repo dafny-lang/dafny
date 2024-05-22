@@ -206,6 +206,7 @@ public record IdeState(
     var ownedUris = new HashSet<Uri>();
     foreach (var file in determinedRootFiles.Roots) {
       var uriProject = await projectDatabase.GetProject(file.Uri);
+      logger.LogDebug($"HandleDeterminedRootFiles found project for {file.Uri} to be {uriProject.Uri}");
       var ownedUri = uriProject.Equals(determinedRootFiles.Project);
       if (ownedUri) {
         ownedUris.Add(file.Uri);
@@ -226,7 +227,7 @@ public record IdeState(
   private IdeState HandleScheduledVerification(ScheduledVerification scheduledVerification) {
     var previousState = this;
 
-    var uri = scheduledVerification.CanVerify.Tok.Uri;
+    var uri = scheduledVerification.CanVerify.NameToken.Uri;
     var range = scheduledVerification.CanVerify.NameToken.GetLspRange();
     var previousVerificationResult = previousState.CanVerifyStates[uri][range];
     var previousImplementations = previousVerificationResult.VerificationTasks;

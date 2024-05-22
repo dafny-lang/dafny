@@ -1,0 +1,4 @@
+﻿alternative-is-complete.dfy(7,2): Error: alternative cases fail to cover all possibilities
+ Asserted expression: false
+
+Dafny program verifier finished with 0 verified, 1 error

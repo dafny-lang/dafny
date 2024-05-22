@@ -174,7 +174,7 @@ module ModC {
 ".TrimStart();
 
 
-    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var temp = GetFreshTempPath();
     var noCachingProject = await CreateOpenAndWaitForResolve(@"[options]
 use-caching = false", Path.Combine(temp, "dfyconfig.toml"));
     var noCaching = await CreateOpenAndWaitForResolve(source, Path.Combine(temp, "noCaching.dfy"));
@@ -365,10 +365,9 @@ method Foo() {
  var b: bool := 3;
 }";
 
-    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var temp = GetFreshTempPath();
     var file1 = CreateAndOpenTestDocument(source1, Path.Combine(temp, "source1.dfy"));
     var file2 = CreateAndOpenTestDocument(source2, Path.Combine(temp, "source2.dfy"));
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     var project = CreateAndOpenTestDocument("", Path.Combine(temp, "dfyconfig.toml"));
     // Change in file1 causes project detection to realize it's now part of project, so it is added there.
     ApplyChange(ref file1, new Range(0, 0, 0, 0), "// added this comment\n");
@@ -395,7 +394,7 @@ method Foo() {
   }
 }";
 
-    var temp = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var temp = GetFreshTempPath();
     var imported1 = CreateAndOpenTestDocument(largeImport1, Path.Combine(temp, "imported1.dfy"));
     var imported2 = CreateAndOpenTestDocument(largeImport2, Path.Combine(temp, "imported2.dfy"));
     var importer = CreateAndOpenTestDocument(importerSource, Path.Combine(temp, "importer.dfy"));
