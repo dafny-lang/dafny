@@ -1947,7 +1947,6 @@ public abstract class CollectionType : NonProxyType {
   }
   public void SetTypeArg(Type arg) {
     Contract.Requires(arg != null);
-    Contract.Requires(1 <= this.TypeArgs.Count);  // this is actually an invariant of all collection types
     Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
     this.arg = arg;
 
@@ -1957,7 +1956,6 @@ public abstract class CollectionType : NonProxyType {
   public virtual void SetTypeArgs(Type arg, Type other) {
     Contract.Requires(arg != null);
     Contract.Requires(other != null);
-    Contract.Requires(this.TypeArgs.Count == 2);
     Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
     this.arg = arg;
 
