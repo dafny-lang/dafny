@@ -1,6 +1,3 @@
 [submodule "Test/libraries"]
 	path = Source/IntegrationTests/TestFiles/LitTests/LitTest/libraries
 	url = https://github.com/dafny-lang/libraries.git
-[submodule "boogie"]
-	path = boogie
-	url = git@github.com:boogie-org/boogie.git
