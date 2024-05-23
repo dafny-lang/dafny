@@ -105,13 +105,13 @@ public class SymbolTable {
   /// </summary>
   public ImmutableList<ISymbol> Definitions { get; }
 
-  public ISet<Location> GetUsages(Uri uri, Position position) {
+  public IEnumerable<Location> GetUsages(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {
       return forFile.Query(position).
         SelectMany(node => DeclarationToUsages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
-        Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() }).ToHashSet();
+        Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() });
     }
-    return Sets.Empty<Location>();
+    return Enumerable.Empty<Location>();
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {
