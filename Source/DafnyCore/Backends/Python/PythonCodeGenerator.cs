@@ -346,7 +346,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string DtCtorDeclarationName(DatatypeCtor ctor, bool full = false) {
       var dt = ctor.EnclosingDatatype;
-      return $"{(full ? dt.GetFullCompileName(Options) : dt.GetCompileName(Options))}_{ctor.GetCompileName(Options)}";
+      return $"{(full ? dt.GetFullCompileName(Options) : IdProtect(dt.GetCompileName(Options)))}_{ctor.GetCompileName(Options)}";
     }
 
     protected IClassWriter DeclareType(TopLevelDecl d, SubsetTypeDecl.WKind witnessKind, Expression witness, ConcreteSyntaxTree wr) {
