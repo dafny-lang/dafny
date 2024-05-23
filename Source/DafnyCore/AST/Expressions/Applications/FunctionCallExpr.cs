@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallExpr> {
+public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionCallExpr> {
   public string Name;
   public readonly Expression Receiver;
   public readonly IToken OpenParen;  // can be null if Args.Count == 0
@@ -144,7 +144,7 @@ public class FunctionCallExpr : Expression, IHasUsages, ICloneable<FunctionCallE
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return Enumerable.Repeat(Function, 1);
   }
 

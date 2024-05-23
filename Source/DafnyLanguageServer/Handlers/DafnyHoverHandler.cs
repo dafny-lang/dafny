@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         state.ResolvedProgram.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
-      if (declarationOrUsage is IHasUsages usage) {
+      if (declarationOrUsage is IHasReferences usage) {
         symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
       } else {
         // If we hover over a usage, display the information of the declaration

@@ -81,7 +81,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   }
 }
 
-public abstract class MatchCase : TokenNode, IHasUsages {
+public abstract class MatchCase : TokenNode, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -102,7 +102,7 @@ public abstract class MatchCase : TokenNode, IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return new[] { Ctor };
   }
 }

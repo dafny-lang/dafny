@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ModuleQualifiedId : Node, IHasUsages {
+public class ModuleQualifiedId : Node, IHasReferences {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
@@ -73,7 +73,7 @@ public class ModuleQualifiedId : Node, IHasUsages {
 
   public IToken NameToken => Path.Last().StartToken;
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
     // Decl might not be set yet so we need to resolve it here.
     return Enumerable.Repeat(ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)), 1);

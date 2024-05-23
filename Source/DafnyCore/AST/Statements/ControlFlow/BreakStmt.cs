@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
-public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
+public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
   public readonly IToken TargetLabel;
   public readonly bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
@@ -51,7 +51,7 @@ public class BreakStmt : Statement, IHasUsages, ICloneable<BreakStmt> {
     this.IsContinue = isContinue;
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return new[] { TargetStmt }.OfType<IDeclarationOrUsage>();
   }
 

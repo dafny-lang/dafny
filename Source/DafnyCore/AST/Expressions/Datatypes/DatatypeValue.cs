@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, ICanFormat {
+public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValue>, ICanFormat {
   public readonly string DatatypeName;
   public readonly string MemberName;
   public readonly ActualBindings Bindings;
@@ -64,7 +64,7 @@ public class DatatypeValue : Expression, IHasUsages, ICloneable<DatatypeValue>, 
   public override IEnumerable<Expression> SubExpressions =>
     Arguments ?? Enumerable.Empty<Expression>();
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return Enumerable.Repeat(Ctor, 1);
   }
 

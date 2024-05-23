@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class UserDefinedType : NonProxyType, IHasUsages {
+public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
@@ -523,7 +523,7 @@ public class UserDefinedType : NonProxyType, IHasUsages {
   }
 
   public IToken NameToken => tok;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return new[] { ResolvedClass };
   }
 

@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDeclarationOrUsage {
+public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISymbol {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -134,4 +135,6 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, IDe
   internal FreshIdGenerator IdGenerator = new();
   public override IEnumerable<INode> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
   public override IEnumerable<INode> PreResolveChildren => Children;
+  public abstract SymbolKind? Kind { get; }
+  public abstract string GetDescription(DafnyOptions options);
 }

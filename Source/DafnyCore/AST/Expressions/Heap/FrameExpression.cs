@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class FrameExpression : TokenNode, IHasUsages {
+public class FrameExpression : TokenNode, IHasReferences {
   public readonly Expression OriginalExpression; // may be a WildcardExpr
   [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
 
@@ -51,7 +51,7 @@ public class FrameExpression : TokenNode, IHasUsages {
   public IToken NameToken => tok;
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return new[] { Field }.Where(x => x != null);
   }
 }

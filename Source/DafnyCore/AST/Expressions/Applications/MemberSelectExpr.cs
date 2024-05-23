@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectExpr> {
+public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSelectExpr> {
   public readonly Expression Obj;
   public string MemberName;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
@@ -294,7 +294,7 @@ public class MemberSelectExpr : Expression, IHasUsages, ICloneable<MemberSelectE
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return new[] { Member };
   }
 

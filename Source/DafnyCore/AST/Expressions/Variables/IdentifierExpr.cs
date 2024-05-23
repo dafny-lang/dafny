@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr> {
+public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierExpr> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -52,7 +52,7 @@ public class IdentifierExpr : Expression, IHasUsages, ICloneable<IdentifierExpr>
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IEnumerable<IDeclarationOrUsage> GetReferences() {
     return Enumerable.Repeat(Var, 1);
   }
 
