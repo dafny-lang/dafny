@@ -74,3 +74,11 @@ method BadTypes () {
 method BadInstance4() {
   assert (0 nonincreases to 1);
 }
+
+method BadInstance5(i: int, b: bool) {
+  assert (i decreases to b);
+}
+
+method BadInstance6() {
+  assert (0 decreases to false);
+}

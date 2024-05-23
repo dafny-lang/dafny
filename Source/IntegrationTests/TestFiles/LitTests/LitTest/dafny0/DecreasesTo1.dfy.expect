@@ -16,5 +16,9 @@ DecreasesTo1.dfy(57,2): Error: decreases expression might not decrease
      var prev_y': int := y';
 DecreasesTo1.dfy(75,9): Error: assertion might not hold
  Asserted expression: 0 nonincreases to 1
+DecreasesTo1.dfy(79,9): Error: assertion might not hold
+ Asserted expression: i decreases to b
+DecreasesTo1.dfy(83,9): Error: assertion might not hold
+ Asserted expression: 0 decreases to false
 
-Dafny program verifier finished with 2 verified, 7 errors
+Dafny program verifier finished with 2 verified, 9 errors

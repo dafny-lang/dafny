@@ -1172,13 +1172,6 @@ namespace Microsoft.Dafny {
           ResolveExpression(subexpr, resolutionContext);
         }
 
-        var oldEs = decreasesToExpr.OldExpressions;
-        var newEs = decreasesToExpr.NewExpressions;
-        foreach (var (o, n) in oldEs.Zip(newEs)) {
-          // TODO: This isn't the right check, though it's close. Maybe move CompatibleDecreasesTypes and make it work in the type checker?
-          AddAssignableConstraint(o.tok, o.Type, n.Type, $"`{o}` and `{n}` in `decreases to` expression have incompatible types.");
-        }
-
         decreasesToExpr.Type = Type.Bool;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
