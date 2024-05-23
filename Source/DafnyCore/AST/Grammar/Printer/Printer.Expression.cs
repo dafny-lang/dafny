@@ -1145,12 +1145,7 @@ namespace Microsoft.Dafny {
         int i = 0;
         foreach (var mc in e.Cases) {
           bool isLastCase = i == e.Cases.Count - 1;
-          wr.Write(" case");
-          PrintAttributes(mc.Attributes);
-          wr.Write(" ");
-          PrintExtendedPattern(mc.Pat);
-          wr.Write(" => ");
-          PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
+          PrintNestedMatchCase(isRightmost, isFollowedBySemicolon, mc, isLastCase, parensNeeded);
           i++;
         }
         if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
@@ -1201,6 +1196,16 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    public void PrintNestedMatchCase(bool isRightmost, bool isFollowedBySemicolon, NestedMatchCaseExpr mc, bool isLastCase,
+      bool parensNeeded) {
+      wr.Write(" case");
+      PrintAttributes(mc.Attributes);
+      wr.Write(" ");
+      PrintExtendedPattern(mc.Pat);
+      wr.Write(" => ");
+      PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
     }
   }
 }
