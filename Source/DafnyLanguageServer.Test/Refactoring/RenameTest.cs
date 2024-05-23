@@ -25,6 +25,16 @@ const i := 0
     }
 
     [Fact]
+    public async Task EmptyModules() {
+      var source = @"
+module [>><C<] {}
+".TrimStart();
+
+      var tempDir = await SetUpProjectFile();
+      await AssertRangesRenamed(source, tempDir, "foobar");
+    }
+    
+    [Fact]
     public async Task InvalidNewNameIsNoOp() {
       var documentItem = await CreateOpenAndWaitForResolve("");
       var workspaceEdit = await RequestRename(documentItem, new Position(0, 0), "");
