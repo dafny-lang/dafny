@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Compilers {
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
     private const string DafnySystemModule = "System_";
-    private static readonly ISet<string> DafnyRuntimeModuleNames = new HashSet<string> { DafnySystemModule, };
+    private static readonly ISet<string> DafnyRuntimeGeneratedModuleNames = new HashSet<string> { DafnySystemModule, };
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
@@ -134,9 +134,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from itertools import count");
       
       wr.WriteLine();
-      // Don't emit `import module_` for modules in the DafnyRuntimePython.
+      // Don't emit `import module_` for generated modules in the DafnyRuntimePython.
       // The DafnyRuntimePython doesn't have a module.py file, so the import isn't valid.
-      if (!(DafnyRuntimeModuleNames.Contains(moduleName))) {
+      if (!(DafnyRuntimeGeneratedModuleNames.Contains(moduleName))) {
         wr.WriteLine($"import {(PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule)} as {DafnyDefaultModule}");
       }
       // Alias nested imports to the final segment of the import string
