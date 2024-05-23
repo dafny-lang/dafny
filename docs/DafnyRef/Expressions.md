@@ -1864,17 +1864,19 @@ The Boolean expression `(a, ..., b decreases to a', ..., b')` encodes
 this ordering. For example, the following assertions are valid:
 <!-- %check-verify -->
 ```dafny
-assert (1 decreases to 0);
-assert (true, false decreases to false, true);
-assert (x, y decreases to x - 1, y);
+method M(x: int, y: int) {
+  assert (1 decreases to 0);
+  assert (true, false decreases to false, true);
+  assert (x, y decreases to x - 1, y);
+}
 ```
 
-Conversely, the following assertions are invalid:
-<!-- %check-resolve -->
+Conversely, the following assertion is invalid:
+<!-- %check-verify Expressions.5.expect -->
 ```dafny
-assert (x decreases to x + 1);
-assert (1 decreases to 1);
-assert (x, y decreases to x + 1, y - 1);
+method M(x: int, y: int) {
+  assert (x decreases to x + 1);
+}
 ```
 
 Currently, `decreases to` expressions must be written in parentheses to
