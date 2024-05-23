@@ -122,7 +122,10 @@ public class SymbolTable {
     return node == null ? null : NodeToLocation(node);
   }
 
-  internal static Location NodeToLocation(IHasNavigationToken node) {
+  internal static Location? NodeToLocation(IHasNavigationToken node) {
+    if (node.NavigationToken.Uri == null) {
+      return null;
+    }
     return new Location {
       Uri = DocumentUri.From(node.NavigationToken.Uri),
       Range = node.NavigationToken.GetLspRange()
