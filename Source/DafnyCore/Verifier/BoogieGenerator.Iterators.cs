@@ -42,10 +42,10 @@ namespace Microsoft.Dafny {
       isAllocContext = new IsAllocContext(options, false);
 
       // declare the oldest iterator heap
-      Constant ensuresOldHeapG = new(iter.tok, new TypedIdent(iter.tok, "$_EnsuresOldHeap_Global", predef.HeapType), unique: false);
+      Constant ensuresOldHeapG = new(iter.tok, new TypedIdent(iter.tok, "$_EnsuresOldHeap_Global_" + iter.Name, predef.HeapType), unique: false);
       sink.AddTopLevelDeclaration(ensuresOldHeapG);
 
-      Constant yrOldHeapG = new(iter.tok, new TypedIdent(iter.tok, "$_YieldRequiresOldHeap_Global", predef.HeapType), unique: false);
+      Constant yrOldHeapG = new(iter.tok, new TypedIdent(iter.tok, "$_YieldRequiresOldHeap_Global_" + iter.Name, predef.HeapType), unique: false);
       sink.AddTopLevelDeclaration(yrOldHeapG);
 
       // wellformedness check for method specification

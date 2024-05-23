@@ -48,7 +48,13 @@ namespace Microsoft.Dafny {
       } else if (labelName != null) {
         label = DominatingStatementLabels.Find(labelName);
         if (label == null) {
-          reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
+          if (labelName == "yield_ensures") {
+            return new Label(tok, "yield_ensures");
+          } else if (labelName == "yield_requires") {
+            return new Label(tok, "yield_requires");
+          } else {
+            reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
+          }
         }
       }
       return label;
@@ -5941,7 +5947,13 @@ namespace Microsoft.Dafny {
       if (e.AtTok != null) {
         atLabel = DominatingStatementLabels.Find(e.AtTok.val);
         if (atLabel == null) {
-          reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
+          if (e.AtTok.val == "yield_ensures") {
+            atLabel = new Label(e.AtTok, "yield_ensures");
+          } else if (e.AtTok.val == "yield_requires") {
+            atLabel = new Label(e.AtTok, "yield_requires");
+          } else {
+            reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
+          }
         }
       }
       if (r == null) {

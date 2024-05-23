@@ -1688,7 +1688,7 @@ namespace Microsoft.Dafny {
           // Translation of Requires and YieldEnsures covered in the normal flow (at the right heaps)
 
           // Problem here: method parameters are shadowing 
-          Bpl.IdentifierExpr yrOldHeapG = new(m.Tok, "$_YieldRequiresOldHeap_Global", predef.HeapType);
+          Bpl.IdentifierExpr yrOldHeapG = new(m.Tok, "$_YieldRequiresOldHeap_Global_" + iter.Name, predef.HeapType);
 
           ExpressionTranslator yrTran = new(this, predef, etran.HeapExpr, yrOldHeapG, m);
 
@@ -1699,7 +1699,7 @@ namespace Microsoft.Dafny {
             null, null, "coroutines: yield requires clause where old($Heap) == $_YieldRequiresOldHeap_Global"));
           }
 
-          Bpl.IdentifierExpr ensuresOldHeapG = new(m.Tok, "$_EnsuresOldHeap_Global", predef.HeapType);
+          Bpl.IdentifierExpr ensuresOldHeapG = new(m.Tok, "$_EnsuresOldHeap_Global_" + iter.Name, predef.HeapType);
 
           // Sets up value of $_EnsuresOldHeap_Global for Ensures clauses /
           // $_YieldRequiresOldHeap_Global for Yield Requires clause on re-entry

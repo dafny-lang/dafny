@@ -166,7 +166,14 @@ namespace Microsoft.Dafny {
         if (label == null) {
           return Old;
         }
-        var heapAt = new Boogie.IdentifierExpr(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), predef.HeapType);
+        Boogie.IdentifierExpr heapAt;
+        if (label.Name == "yield_ensures") {
+          heapAt = new(Token.NoToken, "$_YieldEnsuresOldHeap", predef.HeapType);
+        } else if (label.Name == "yield_requires") {
+          heapAt = new(Token.NoToken, "$_YieldRequiresOldHeap", predef.HeapType);
+        } else {
+          heapAt = new(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), predef.HeapType);
+        }
         return new ExpressionTranslator(BoogieGenerator, predef, heapAt, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
       }
 
