@@ -31,9 +31,6 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     /// Assert that when finding-references at each cursor position and each regular span,
     /// the client returns all ranges marked with regular spans.
     /// </summary>
-    /// <param name="source"></param>
-    /// <param name="fileName"></param>
-    /// <param name="includeDeclaration"></param>
     private async Task AssertReferences(string source, string fileName, bool includeDeclaration = false) {
       MarkupTestFile.GetPositionsAndRanges(
         source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
