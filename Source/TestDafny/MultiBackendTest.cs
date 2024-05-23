@@ -366,6 +366,7 @@ public class MultiBackendTest {
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       var runtimePath = Path.Join(libPath, "DafnyRuntime.dll");
       dafnyArgs = dafnyArgs.Concat(new[] { "--include-runtime:false", "--input", runtimePath });
+      Directory.Delete(tempOutputDirectory);
     }
 
     int exitCode;

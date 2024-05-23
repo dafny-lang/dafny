@@ -201,42 +201,49 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
+      try {
 
-      var errors = diagnosticsPerFile.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
-        Where(x => x.Severity == DiagnosticSeverity.Error && x.Source != MessageSource.Verifier.ToString()).ToList();
-      var tree = state.VerificationTrees.GetValueOrDefault(uri);
-      if (tree == null) {
-        return;
-      }
+        bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
 
-      var linesCount = tree.Range.End.Line + 1;
-      var fileVersion = filesystem.GetVersion(uri);
-      if (linesCount == 0) {
-        return;
-      }
-
-      var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
-        DocumentUri.From(uri),
-        fileVersion,
-        tree.Children,
-        errors,
-        linesCount,
-        verificationStarted
-      );
-      if (logger.IsEnabled(LogLevel.Trace)) {
-        var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
-        logger.LogDebug($"Sending gutter icons for compilation {state.Input.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
-                        $"icons: {icons}\n" +
-                        $"stacktrace:\n{Environment.StackTrace}");
-      }
-
-      lock (previouslyPublishedIcons) {
-        var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
-        if (previous == null || !previous.PerLineStatus.SequenceEqual(verificationStatusGutter.PerLineStatus)) {
-          previouslyPublishedIcons[uri] = verificationStatusGutter;
-          languageServer.TextDocument.SendNotification(verificationStatusGutter);
+        var errors = diagnosticsPerFile.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).Where(x =>
+          x.Severity == DiagnosticSeverity.Error && x.Source != MessageSource.Verifier.ToString()).ToList();
+        var tree = state.VerificationTrees.GetValueOrDefault(uri);
+        if (tree == null) {
+          return;
         }
+
+        var linesCount = tree.Range.End.Line + 1;
+        var fileVersion = filesystem.GetVersion(uri);
+        if (linesCount == 0) {
+          return;
+        }
+
+        var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
+          DocumentUri.From(uri),
+          fileVersion,
+          tree.Children,
+          errors,
+          linesCount,
+          verificationStarted
+        );
+        if (logger.IsEnabled(LogLevel.Trace)) {
+          var icons = string.Join(' ',
+            verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
+          logger.LogDebug(
+            $"Sending gutter icons for compilation {state.Input.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
+            $"icons: {icons}\n" +
+            $"stacktrace:\n{Environment.StackTrace}");
+        }
+
+        lock (previouslyPublishedIcons) {
+          var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
+          if (previous == null || !previous.PerLineStatus.SequenceEqual(verificationStatusGutter.PerLineStatus)) {
+            previouslyPublishedIcons[uri] = verificationStatusGutter;
+            languageServer.TextDocument.SendNotification(verificationStatusGutter);
+          }
+        }
+      } catch (Exception e) {
+        logger.LogError(e, "Exception while publishing gutter icons");
       }
     }
 
