@@ -123,11 +123,6 @@ public class PythonBackend : ExecutableBackend {
       }
     }
 
-    if (PythonModuleMode) {
-      Reporter.Info(MessageSource.Compiler, Token.Cli, "python build/run skipped in Python Module Mode");
-      return (true, null);
-    }
-
     if (!runAfterCompile) {
       var psi = PrepareProcessStartInfo(DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";

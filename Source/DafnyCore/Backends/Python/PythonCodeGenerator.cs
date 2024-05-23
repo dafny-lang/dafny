@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.Compilers {
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
     private const string DafnySystemModule = "System_";
-    private static readonly ISet<string> DafnyRuntimeModuleNames = new HashSet<string> { DafnyRuntimeModule, DafnySystemModule, };
+    private static readonly ISet<string> DafnyRuntimeModuleNames = new HashSet<string> { DafnySystemModule, };
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
