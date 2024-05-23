@@ -62,11 +62,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetReferences() {
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return (IEnumerable<ISymbol>)LegalSourceConstructors ?? Array.Empty<ISymbol>();
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {

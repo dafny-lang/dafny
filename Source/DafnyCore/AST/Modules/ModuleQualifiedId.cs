@@ -71,9 +71,9 @@ public class ModuleQualifiedId : Node, IHasReferences {
     set => throw new NotSupportedException();
   }
 
-  public IToken NameToken => Path.Last().StartToken;
+  public IToken NavigationToken => Path.Last().StartToken;
 
-  public IEnumerable<IDeclarationOrUsage> GetReferences() {
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
     // Decl might not be set yet so we need to resolve it here.
     return Enumerable.Repeat(ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)), 1);

@@ -140,8 +140,8 @@ namespace Microsoft.Dafny {
     internal IToken GetToken(INode node) {
       if (flags.ReportRanges) {
         // Filter against IHasUsages to only select declarations, not usages.
-        if (node is IDeclarationOrUsage declarationOrUsage && node is not IHasReferences) {
-          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NameToken);
+        if (node is IHasNavigationToken declarationOrUsage && node is not IHasReferences) {
+          return new BoogieRangeToken(node.StartToken, node.EndToken, declarationOrUsage.NavigationToken);
         }
 
         return new BoogieRangeToken(node.StartToken, node.EndToken, node.Tok);

@@ -64,11 +64,11 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   public override IEnumerable<Expression> SubExpressions =>
     Arguments ?? Enumerable.Empty<Expression>();
 
-  public IEnumerable<IDeclarationOrUsage> GetReferences() {
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return Enumerable.Repeat(Ctor, 1);
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
     return true;

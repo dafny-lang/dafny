@@ -51,9 +51,9 @@ public class BreakStmt : Statement, IHasReferences, ICloneable<BreakStmt> {
     this.IsContinue = isContinue;
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetReferences() {
-    return new[] { TargetStmt }.OfType<IDeclarationOrUsage>();
+  public IEnumerable<IHasNavigationToken> GetReferences() {
+    return new[] { TargetStmt }.OfType<IHasNavigationToken>();
   }
 
-  public IToken NameToken => Tok;
+  public IToken NavigationToken => Tok;
 }

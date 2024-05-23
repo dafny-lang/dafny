@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       foreach (var projectManager in projects.Managers) {
         cancellationToken.ThrowIfCancellationRequested();
         var state = await projectManager.GetStateAfterParsingAsync();
-        foreach (var def in state.SymbolTable.Definitions) {
+        foreach (var def in state.SymbolTable.Symbols) {
           cancellationToken.ThrowIfCancellationRequested();
 
           if (!def.Kind.HasValue) {
@@ -45,17 +45,17 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
           // CreateLocation called below uses the .Uri field of Tokens which
           // seems to occasionally be null while testing this from VSCode
-          if (def.NameToken == null || def.NameToken.Uri == null) {
+          if (def.NavigationToken == null || def.NavigationToken.Uri == null) {
             logger.LogWarning($"Definition without name token in symbol table: {def}");
             continue;
           }
-          if (def.NameToken.val == null) {
+          if (def.NavigationToken.val == null) {
             logger.LogWarning($"Definition without name in symbol table: {def}");
             continue;
           }
 
           // This matching could be improved by using the qualified name of the symbol here.
-          var name = def.NameToken.val;
+          var name = def.NavigationToken.val;
           if (name.ToLower().Contains(queryText)) {
             // The fewer extra characters there are in the string, the
             // better the match.
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
               Name = name,
               ContainerName = def.Kind.ToString(),
               Kind = def.Kind.Value,
-              Location = DiagnosticUtil.CreateLocation(def.NameToken)
+              Location = DiagnosticUtil.CreateLocation(def.NavigationToken)
             }, matchDistance);
           }
         }

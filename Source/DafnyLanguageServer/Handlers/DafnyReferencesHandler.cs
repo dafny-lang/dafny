@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new LocationContainer();
       }
 
-      var usages = state.SymbolTable.GetUsages(declaration.Uri.ToUri(), declaration.Range.Start).ToList();
+      var usages = state.SymbolTable.GetReferences(declaration.Uri.ToUri(), declaration.Range.Start).ToList();
       if (request.Context.IncludeDeclaration) {
         usages.Add(declaration);
       }

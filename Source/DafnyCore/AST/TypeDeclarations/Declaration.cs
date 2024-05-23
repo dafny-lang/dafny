@@ -17,7 +17,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public Name NameNode;
 
   public override IToken Tok => NameNode.StartToken;
-  public virtual IToken NameToken => NameNode.StartToken;
+  public virtual IToken NavigationToken => NameNode.StartToken;
 
   public string Name => NameNode.Value;
   public bool IsRefining;

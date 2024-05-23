@@ -103,35 +103,37 @@ public class SymbolTable {
   ///  A list of all definitions, such as methods, classes, functions, etc., used for workspace-wide symbol
   /// lookup.
   /// </summary>
-  public ImmutableList<ISymbol> Definitions { get; }
+  public ImmutableList<ISymbol> Symbols { get; }
 
-  public IEnumerable<Location> GetUsages(Uri uri, Position position) {
+  public IEnumerable<Location> GetReferences(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {
       return forFile.Query(position).
-        SelectMany(node => DeclarationToUsages.GetOrDefault(node, () => (ISet<IDeclarationOrUsage>)new HashSet<IDeclarationOrUsage>())).
-        Select(u => new Location { Uri = u.NameToken.Filepath, Range = u.NameToken.GetLspRange() });
+        SelectMany(node => NodeToReferences.GetOrDefault(node, () => (ISet<IHasNavigationToken>)new HashSet<IHasNavigationToken>())).
+        Select(u => new Location { Uri = u.NavigationToken.Filepath, Range = u.NavigationToken.GetLspRange() });
     }
     return Enumerable.Empty<Location>();
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {
-    var node = GetNode(uri, position);
+    var node = GetDeclarationNode(uri, position);
     return node == null ? null : NodeToLocation(node);
   }
 
-  internal static Location NodeToLocation(IDeclarationOrUsage node) {
+  internal static Location NodeToLocation(IHasNavigationToken node) {
     return new Location {
-      Uri = DocumentUri.From(node.NameToken.Uri),
-      Range = node.NameToken.GetLspRange()
+      Uri = DocumentUri.From(node.NavigationToken.Uri),
+      Range = node.NavigationToken.GetLspRange()
     };
   }
 
-  public IDeclarationOrUsage? GetNode(Uri uri, Position position) {
+  public IHasNavigationToken? GetDeclarationNode(Uri uri, Position position) {
     if (!nodePositions.TryGetValue(uri, out var forFile)) {
       return null;
     }
     return forFile.Query(position)
-      .Select(node => UsageToDeclaration.GetOrDefault(node, () => (IDeclarationOrUsage?)null))
+      .Select(node => ReferenceToNode.GetOrDefault(node, () =>
+        // If this token is not referred to, we assume it is a declaration
+        node))
       .FirstOrDefault(x => x != null);
   }
 }

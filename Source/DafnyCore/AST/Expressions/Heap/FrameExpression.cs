@@ -48,10 +48,10 @@ public class FrameExpression : TokenNode, IHasReferences {
     }
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
-  public IEnumerable<IDeclarationOrUsage> GetReferences() {
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { Field }.Where(x => x != null);
   }
 }
