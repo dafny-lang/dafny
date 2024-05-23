@@ -33,7 +33,7 @@ module [>><C<] {}
       var tempDir = await SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "foobar");
     }
-    
+
     [Fact]
     public async Task InvalidNewNameIsNoOp() {
       var documentItem = await CreateOpenAndWaitForResolve("");
