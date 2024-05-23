@@ -137,9 +137,7 @@ public class SymbolTable {
       return null;
     }
     return forFile.Query(position)
-      .Select(node => ReferenceToNode.GetOrDefault(node, () =>
-        // If this token is not referred to, we assume it is a declaration
-        node))
+      .Select(node => node is ISymbol ? node : ReferenceToNode.GetValueOrDefault(node))
       .FirstOrDefault(x => x != null);
   }
 }
