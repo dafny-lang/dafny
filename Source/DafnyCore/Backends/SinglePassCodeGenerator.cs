@@ -7,7 +7,6 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
 using System.Linq;
 using System.Numerics;
 using System.IO;
@@ -3792,7 +3791,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <summary>
     /// Returns a type whose target type is the same as the target type of the values returned by the emitted enumeration.
     /// The output value of "collectionWriter" is an action that emits the enumeration.
-    /// Note that, while the values returned bny the enumeration have the target representation of "bv.Type", they may
+    /// Note that, while the values returned by the enumeration have the target representation of "bv.Type", they may
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
     Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
@@ -5568,6 +5567,7 @@ namespace Microsoft.Dafny.Compilers {
         //   }
         //   return Dafny.Set<G>.FromCollection(_coll);
         // }))()
+        // We also split R(i,j,k,l) to evaluate it as early as possible.
         wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr, ref wStmts);
         e = (SetComprehension)su.Substitute(e);
 
@@ -5580,18 +5580,22 @@ namespace Microsoft.Dafny.Compilers {
         EmitSetBuilder_New(wr, e, collectionName);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
+        var processedBounds = new HashSet<IVariable>();
+        List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts = Expression.Conjuncts(e.Range).Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
+        unusedConjuncts.ForEach(entry => entry.frees.IntersectWith(e.BoundVars));
+        wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
+          processedBounds.Add(bv);
           var tmpVar = ProtectedFreshId("_compr_");
           var wStmtsLoop = wr.Fork();
           var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
           wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, inLetExprBody, e.tok, collection, wr);
+          wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         }
 
-        var thn = EmitIf(out var guardWriter, false, wr);
-        EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
-        EmitSetBuilder_Add(setType, collectionName, e.Term, inLetExprBody, thn);
+        EmitSetBuilder_Add(setType, collectionName, e.Term, inLetExprBody, wr);
         var returned = EmitReturnExpr(bwr);
         GetCollectionBuilder_Build(setType, e.tok, collectionName, returned, wStmts);
 
@@ -5613,6 +5617,7 @@ namespace Microsoft.Dafny.Compilers {
         //   }
         //   return Dafny.Map<U, V>.FromCollection(_coll);
         // }))()
+        // We also split R(i,j,k,l) to evaluate it as early as possible.
         wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr, ref wStmts);
         e = (MapComprehension)su.Substitute(e);
 
@@ -5627,18 +5632,22 @@ namespace Microsoft.Dafny.Compilers {
         EmitMapBuilder_New(wr, e, collection_name);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
+        var processedBounds = new HashSet<IVariable>();
+        List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts = Expression.Conjuncts(e.Range).Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
+        unusedConjuncts.ForEach(entry => entry.frees.IntersectWith(e.BoundVars));
+        wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
+          processedBounds.Add(bv);
           var tmpVar = ProtectedFreshId("_compr_");
           var wStmtsLoop = wr.Fork();
           var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
           wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, bv.tok, collection, wr);
+          wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         }
 
-        var thn = EmitIf(out var guardWriter, false, wr);
-        EmitExpr(e.Range, inLetExprBody, guardWriter, wStmts);
-        var termLeftWriter = EmitMapBuilder_Add(mapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
+        var termLeftWriter = EmitMapBuilder_Add(mapType, e.tok, collection_name, e.Term, inLetExprBody, wr);
         if (e.TermLeft == null) {
           Contract.Assert(e.BoundVars.Count == 1);
           EmitIdentifier(IdName(e.BoundVars[0]), termLeftWriter);
@@ -5677,6 +5686,21 @@ namespace Microsoft.Dafny.Compilers {
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      }
+      ConcreteSyntaxTree EmitGuardFragment(List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts, HashSet<IVariable> processedBounds, ConcreteSyntaxTree wr) {
+        Expression localGuard = Expression.CreateBoolLiteral(expr.tok, true);
+
+        foreach (var entry in unusedConjuncts.ToList().Where(entry => entry.frees.IsSubsetOf(processedBounds))) {
+          localGuard = Expression.CreateAnd(localGuard, entry.conj);
+          unusedConjuncts.Remove(entry);
+        }
+
+        if (!LiteralExpr.IsTrue(localGuard)) {
+          wr = EmitIf(out var guardWriter, false, wr);
+          EmitExpr(localGuard, inLetExprBody, guardWriter, wStmts);
+        }
+
+        return wr;
       }
     }
 
