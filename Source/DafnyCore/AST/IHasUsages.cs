@@ -60,7 +60,7 @@ public static class AstExtensions {
 }
 
 public interface ISymbol : IDeclarationOrUsage {
-  SymbolKind Kind { get; }
+  SymbolKind? Kind { get; }
 
   string GetDescription(DafnyOptions options);
 }

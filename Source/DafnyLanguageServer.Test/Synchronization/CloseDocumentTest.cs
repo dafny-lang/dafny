@@ -1,22 +1,43 @@
+using System.IO;
 using System.Linq;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  public class CloseDocumentTest : DafnyLanguageServerTestBase, IAsyncLifetime {
-    private ILanguageClient client;
+  public class CloseDocumentTest : ClientBasedLanguageServerTest {
 
-    public async Task InitializeAsync() {
-      (client, Server) = await Initialize(_ => { }, _ => { });
+    [Fact]
+    public async Task DiagnosticsAreClearedUponCloseWhenUsingProject() {
+      var source = "method Foo() { var c: int := true; }";
+      var directory = GetFreshTempPath();
+      Directory.CreateDirectory(directory);
+      await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
+      var document = CreateAndOpenTestDocument(source, Path.Combine(directory, "DiagnosticsAreClearedUponCloseWhenUsingProject.dfy"));
+      var diagnostics = await GetLastDiagnostics(document);
+      Assert.Single(diagnostics);
+      client.CloseDocument(document);
+      var afterCloseDiagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      var afterCloseDiagnostics2 = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+      Assert.Contains(new[] { afterCloseDiagnostics, afterCloseDiagnostics2 },
+        d => d.Uri == document.Uri && !d.Diagnostics.Any());
+      Directory.Delete(directory, true);
     }
 
-    public Task DisposeAsync() {
-      return Task.CompletedTask;
+    [Fact]
+    public async Task DiagnosticsAreClearedUponClose() {
+      var source = "method Foo() { var c: int := true; }";
+      var document = CreateAndOpenTestDocument(source);
+      var diagnostics = await GetLastDiagnostics(document);
+      Assert.Single(diagnostics);
+      client.CloseDocument(document);
+      var afterCloseDiagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
+      Assert.Empty(afterCloseDiagnostics);
     }
 
     [Fact]

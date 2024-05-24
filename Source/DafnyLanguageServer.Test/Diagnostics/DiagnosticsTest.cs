@@ -19,13 +19,56 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task ResolutionErrorMigration() {
+      var source = @"module ResolutionError {
+  import   UnderlineComments2
+}";
+      var addition = @"module ParseError {
+  // I can underline comments in red.
+  function method Test() {
+  }
+}
+";
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem);
+      ApplyChange(ref documentItem, new Range(0, 0, 0, 0), addition);
+      var diagnostics2 = await GetLastDiagnostics(documentItem);
+      Assert.DoesNotContain(diagnostics2, d => d.Range.Start.Line == 1);
+    }
+
+    [Fact]
     public async Task RedundantAssumptionsGetWarnings() {
-      var path = Path.Combine(testFilesDirectory, "ProofDependencies/LSPProofDependencyTest.dfy");
-      var documentItem = CreateTestDocument(await File.ReadAllTextAsync(path), path);
+      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      Directory.CreateDirectory(directory);
+      await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), @"
+[options]
+warn-contradictory-assumptions = true
+warn-redundant-assumptions = true
+allow-axioms = false
+");
+
+      var source = @"
+method RedundantAssumeMethod(n: int)
+{
+    // either one or the other assumption shouldn't be covered
+    assume n > 4;
+    assume n > 3;
+    assert n > 1;
+}
+
+method ContradictoryAssumeMethod(n: int)
+{
+    assume n > 0;
+    assume n < 0;
+    assume n == 5; // shouldn't be covered
+    assert n < 10; // shouldn't be covered
+}
+".TrimStart();
+      var documentItem = CreateTestDocument(source, Path.Combine(directory, "RedundantAssumptionsGetWarnings.dfy"));
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
 
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(3, diagnostics.Length);
+      Assert.Equal(8, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
         diagnostic.Range == new Range(3, 11, 3, 16) &&
@@ -41,6 +84,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
         diagnostic.Range == new Range(12, 11, 12, 17) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
+      Directory.Delete(directory, true);
     }
 
     [Fact]
@@ -115,7 +159,7 @@ function HasResolutionError(): int {
       await AssertNoDiagnosticsAreComing(CancellationToken);
       ApplyChange(ref documentItem, new Range(1, 0, 1, 0), "disturbFunctionKeyword");
       var parseDiagnostics1 = await GetLastDiagnostics(documentItem);
-      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Resolver.ToString());
+      Assert.Contains(parseDiagnostics1, d => d.Source == MessageSource.Parser.ToString());
       ApplyChange(ref documentItem, new Range(1, 0, 1, "disturbFunctionKeyword".Length), "");
       var parseDiagnostics2 = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(parseDiagnostics2);

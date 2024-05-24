@@ -7,24 +7,6 @@ using System.Linq;
 
 namespace Microsoft.Dafny {
 
-  public record MessageSourceBasedPhase(MessageSource MessageSource) : IPhase {
-    public IPhase? Parent => null;
-  }
-
-  public record SingletonPhase(IPhase Parent, object Key) : IPhase;
-
-
-  /// <summary>
-  /// A phase of compilation
-  /// 
-  /// A phases can have a parent, and so phases form a tree.
-  ///
-  /// The children of a phase, are the phases that are discovered and completed as phase of that parent.
-  /// </summary>
-  public interface IPhase {
-    IPhase? Parent { get; }
-  }
-
   public enum ErrorLevel {
     Info, Warning, Error
   }
@@ -34,8 +16,7 @@ namespace Microsoft.Dafny {
   }
 
   public record DafnyRelatedInformation(IToken Token, string Message);
-  public record DafnyDiagnostic(IPhase Phase, string ErrorId, IToken Token, string Message,
-    MessageSource Source, ErrorLevel Level,
+  public record DafnyDiagnostic(MessageSource Source, string ErrorId, IToken Token, string Message, ErrorLevel Level,
     IReadOnlyList<DafnyRelatedInformation> RelatedInformation);
 
   public class ErrorReporterSink : ErrorReporter {

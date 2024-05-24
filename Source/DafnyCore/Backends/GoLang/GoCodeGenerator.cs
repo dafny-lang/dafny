@@ -2582,11 +2582,77 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /* Obtained by running the following on the console on the page https://pkg.go.dev/std :
+     var lineLength = 0; copy([...document.querySelectorAll(
+    "td > div.UnitDirectories-pathCell > div > span, "+
+    "td > div.UnitDirectories-pathCell > div > a")]
+    .map((e, i) => {
+        var res = JSON.stringify(e.textContent);
+        if(lineLength + res.length > 94) {
+            lineLength = res.length;
+            res = ",\n      " + res;
+        } else if(i > 0) {
+            res = "," + res;
+            lineLength += res.length;
+        }
+        return res;
+    }).join(""))
+     */
+    public readonly HashSet<string> ReservedModuleNames = new() {
+      "c",
+      "archive",
+      "bufio",
+      "builtin",
+      "bytes",
+      "cmp",
+      "compress",
+      "container",
+      "context",
+      "crypto",
+      "database",
+      "debug",
+      "embed",
+      "encoding",
+      "errors",
+      "expvar",
+      "flag",
+      "fmt",
+      "go",
+      "hash",
+      "html",
+      "image",
+      "index",
+      "internal",
+      "io",
+      "log",
+      "maps",
+      "math",
+      "mime",
+      "net",
+      "os",
+      "path",
+      "plugin",
+      "reflect",
+      "regexp",
+      "runtime",
+      "slices",
+      "sort",
+      "strconv",
+      "strings",
+      "sync",
+      "syscall",
+      "testing",
+      "text",
+      "time",
+      "unicode",
+      "unsafe"
+    };
+
     public string PublicModuleIdProtect(string name) {
-      if (name == "C") {
-        return "_C";
+      if (ReservedModuleNames.Contains(name.ToLower())) {
+        return "_" + name;
       } else {
-        return name;
+        return IdProtect(name);
       }
     }
 
