@@ -27,15 +27,17 @@ public class ProjectFileDiagnosticsTest : ClientBasedLanguageServerTest {
   [Fact]
   public async Task ProjectFileErrorIsShownFromDafnyFile() {
     var projectFileSource = @"includes = [stringWithoutQuotes]";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);
     await CreateOpenAndWaitForResolve("method Foo() { }", Path.Combine(directory, "ProjectFileErrorIsShownFromDafnyFile.dfy"));
-    var diagnostics = await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken);
+    var diagnostics = (await diagnosticsReceiver.AwaitNextNotificationAsync(CancellationToken));
+    var errors = diagnostics.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Equal(DocumentUri.File(projectFilePath), diagnostics.Uri.GetFileSystemPath());
-    Assert.Single(diagnostics.Diagnostics);
-    Assert.Contains(diagnostics.Diagnostics, d => d.Message.Contains("Unexpected token"));
+    Assert.Single(errors);
+    Assert.Contains(errors, d => d.Message.Contains("Unexpected token"));
+    Directory.Delete(directory, true);
   }
 
   [Fact]

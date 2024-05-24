@@ -43,7 +43,7 @@ public class SymbolTable {
     // a suffix tree.
     var definitions = visited
       .OfType<ISymbol>()
-      .Where(symbol => relevantDafnySymbolKinds.Contains(symbol.Kind))
+      .Where(symbol => symbol.Kind.HasValue && relevantDafnySymbolKinds.Contains(symbol.Kind.Value))
       .ToImmutableList();
 
     return new SymbolTable(usages, definitions);

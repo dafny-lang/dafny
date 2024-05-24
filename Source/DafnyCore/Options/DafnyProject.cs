@@ -31,7 +31,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
   public ISet<string> Excludes { get; }
   public IDictionary<string, object> Options { get; }
 
-  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath) == FileName;
+  public bool UsesProjectFile => Path.GetFileName(Uri.LocalPath).EndsWith(FileName);
   public bool ImplicitFromCli;
 
   public IToken StartingToken => ImplicitFromCli ? Token.Cli : new Token {
@@ -48,7 +48,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     Options = options ?? new Dictionary<string, object>();
   }
 
-  public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri, bool defaultIncludes = true) {
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri, IToken uriOrigin,
+    bool defaultIncludes = true, bool serverNameCheck = true) {
 
     var emptyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
       new Dictionary<string, object>());
@@ -66,7 +67,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
         model.Options ?? new Dictionary<string, object>());
 
       if (result.Base != null) {
-        var baseProject = await Open(fileSystem, dafnyOptions, result.Base, false);
+        var baseProject = await Open(fileSystem, dafnyOptions, result.Base, new Token {
+          Uri = uri,
+          line = 1,
+          col = 1
+        }, false, false);
         baseProject.Errors.CopyDiagnostics(result.Errors);
         foreach (var include in baseProject.Includes) {
           if (!result.Excludes.Contains(include)) {
@@ -91,7 +96,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       }
     } catch (IOException e) {
       result = emptyProject;
-      result.Errors.Error(MessageSource.Project, result.StartingToken, e.Message);
+      result.Errors.Error(MessageSource.Project, uriOrigin, e.Message);
     } catch (TomlException tomlException) {
       var propertyNotFoundRegex = new Regex(
         @$"\((\d+),(\d+)\) : error : The property `(\w+)` was not found on object type {typeof(DafnyProject).FullName}");
@@ -124,7 +129,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       }
     }
 
-    if (Path.GetFileName(uri.LocalPath) != FileName) {
+    if (serverNameCheck && Path.GetFileName(uri.LocalPath) != FileName) {
       result.Errors.Warning(MessageSource.Project, "", result.StartingToken, $"only Dafny project files named {FileName} are recognised by the Dafny IDE.");
     }
 
@@ -212,7 +217,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
       return false;
     }
 
-    var printTomlValue = PrintTomlOptionToCliValue(tomlValue, option);
+    var printTomlValue = PrintTomlOptionToCliValue(Uri, tomlValue, option);
     var parseResult = option.Parse(printTomlValue.ToArray());
     if (parseResult.Errors.Any()) {
       Errors.Error(MessageSource.Project, StartingToken, $"could not parse value '{tomlValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
@@ -225,8 +230,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return true;
   }
 
-  IEnumerable<string> PrintTomlOptionToCliValue(object value, Option valueType) {
-    var projectDirectory = Path.GetDirectoryName(Uri.LocalPath)!;
+  public static IEnumerable<string> PrintTomlOptionToCliValue(Uri uri, object value, Option valueType) {
+    var projectDirectory = Path.GetDirectoryName(uri.LocalPath)!;
 
     if (value is TomlArray array) {
       List<string> elements;

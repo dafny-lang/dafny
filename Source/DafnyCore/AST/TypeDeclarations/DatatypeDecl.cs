@@ -82,7 +82,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   }
 
   public override IEnumerable<ISymbol> ChildSymbols => base.ChildSymbols.Concat(Ctors);
-  public override SymbolKind Kind => SymbolKind.Enum;
+  public override SymbolKind? Kind => SymbolKind.Enum;
 
   public bool SetIndent(int indent, TokenNewIndentCollector formatter) {
     var indent2 = indent + formatter.SpaceTab;

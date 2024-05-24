@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -52,8 +53,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
         options.Set(BoogieOptionBag.Cores, 2U);
         options.Set(ProjectManager.Verification, VerifyOnMode.Save);
       });
-      var documentItem = CreateTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
-      client.OpenDocument(documentItem);
+      var documentItem = CreateAndOpenTestDocument(SlowToVerify2, "ChangingTheDocumentStopsManualVerification.dfy");
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(11, 23), CancellationToken));
       Assert.True(await client.RunSymbolVerification(documentItem, new Position(0, 23), CancellationToken));
 
@@ -102,7 +102,7 @@ method {:resource_limit ""10e6""} test() {
       }
     }
 
-    public CancelVerificationTest(ITestOutputHelper output) : base(output) {
+    public CancelVerificationTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
     }
   }
 }
