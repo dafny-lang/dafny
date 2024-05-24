@@ -16,7 +16,6 @@ using System.Reflection;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
@@ -1166,7 +1165,6 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
-
       } else if (expr is DecreasesToExpr decreasesToExpr) {
         foreach (var subexpr in decreasesToExpr.SubExpressions) {
           ResolveExpression(subexpr, resolutionContext);
