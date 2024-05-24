@@ -1,6 +1,0 @@
-includes = ["usesLibrary.dfy"]
-
-[options]
-library = [
-  "wrappersLib.dfy"
-]

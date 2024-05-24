@@ -14,6 +14,7 @@ public class ConcatReadOnlyLists<T> : IReadOnlyList<T> {
   public ConcatReadOnlyLists(IReadOnlyList<T> left, IReadOnlyList<T> right) {
     Left = left;
     Right = right;
+    Count = left.Count + right.Count;
   }
 
   public IReadOnlyList<T> Left { get; }
@@ -26,7 +27,7 @@ public class ConcatReadOnlyLists<T> : IReadOnlyList<T> {
     return GetEnumerator();
   }
 
-  public int Count => Left.Count + Right.Count;
+  public int Count { get; private set; }
 
   public T this[int index] => index < Left.Count ? Left[index] : Right[index - Left.Count];
 }

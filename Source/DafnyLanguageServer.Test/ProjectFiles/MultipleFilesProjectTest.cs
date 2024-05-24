@@ -30,7 +30,7 @@ method Bar() {
 }
 ";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
@@ -44,6 +44,7 @@ method Bar() {
     Assert.Single(diagnostics2.Diagnostics);
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("char"));
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("int"));
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -63,7 +64,7 @@ method Bar() {
 }
 ";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy"), producerSource);
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
@@ -73,6 +74,7 @@ method Bar() {
     Assert.Single(diagnostics1);
     Assert.Contains("assertion might not hold", diagnostics1.First().Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -93,7 +95,7 @@ method Bar() {
 }
 ";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var producerPath = Path.Combine(directory, "OnDiskProducerVerificationErrors_producer.dfy");
     var producerUri = DocumentUri.File(producerPath);
@@ -112,6 +114,7 @@ method Bar() {
     Assert.Contains("assertion might not hold", consumerDiagnostics.First().Message);
     Assert.Single(producerDiagnostics);
     Assert.Contains("assertion might not hold", producerDiagnostics.First().Message);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -126,7 +129,7 @@ method Consumes() {
 method Produces() {}
 ".TrimStart();
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(directory, "firstFile.dfy"));
     await CreateOpenAndWaitForResolve(producer, Path.Combine(directory, "secondFile.dfy"));
@@ -135,10 +138,10 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "includes = [\"*.dfy\"]");
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -161,8 +164,6 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
-
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
@@ -208,7 +209,7 @@ method Consumes() {
 method Produces() {}
 ".TrimStart();
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
     var projectFilePath = Path.Combine(directory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, projectFileSource);
@@ -220,10 +221,10 @@ method Produces() {}
     Assert.Empty(producesDefinition1);
 
     await FileTestExtensions.WriteWhenUnlocked(projectFilePath, @"includes = [""firstFile.dfy"", ""secondFile.dfy""]");
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -256,7 +257,6 @@ warn-shadowing = true
     Assert.Equal(2, diagnostics1.Count(d => d.Severity <= DiagnosticSeverity.Warning));
     Assert.Contains(diagnostics1, s => s.Message.Contains("Shadowed"));
 
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     ApplyChange(ref projectFile, new Range(3, 17, 3, 21), "false");
 
     var resolutionDiagnostics2 = await diagnosticsReceiver.AwaitNextWarningOrErrorDiagnosticsAsync(CancellationToken);

@@ -1,5 +1,6 @@
+#nullable enable
+
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -7,11 +8,11 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using DafnyCore.Generic;
 using DafnyCore.Options;
 using Microsoft.Dafny;
-using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Tomlyn;
+using Tomlyn.Helpers;
+using Tomlyn.Model;
 
 namespace DafnyCore;
 
@@ -30,13 +31,20 @@ public class DooFile {
 
     public string DafnyVersion { get; set; }
 
-    public string SolverIdentifier { get; set; }
-    public string SolverVersion { get; set; }
+    public string? SolverIdentifier { get; set; }
+    public string? SolverVersion { get; set; }
 
     public Dictionary<string, object> Options { get; set; }
 
+    static ManifestData() {
+      CommonOptionBag.EnsureStaticConstructorHasRun();
+    }
+
     public ManifestData() {
       // Only for TOML deserialization!
+      DooFileVersion = null!;
+      DafnyVersion = null!;
+      Options = null!;
     }
 
     public ManifestData(DafnyOptions options) {
@@ -50,6 +58,16 @@ public class DooFile {
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
         var optionValue = options.Get((dynamic)option);
+        if (option == CommonOptionBag.QuantifierSyntax) {
+          switch (optionValue) {
+            case QuantifierSyntaxOptions.Version4:
+              optionValue = "4";
+              break;
+            case QuantifierSyntaxOptions.Version3:
+              optionValue = "3";
+              break;
+          }
+        }
         Options.Add(option.Name, optionValue);
       }
     }
@@ -59,7 +77,17 @@ public class DooFile {
     }
 
     public void Write(TextWriter writer) {
-      writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
+      var content = Toml.FromModel(this, new TomlModelOptions() {
+        ConvertToToml = obj => {
+          if (obj is Enum) {
+            TomlFormatHelper.ToString(obj.ToString()!, TomlPropertyDisplayKind.Default);
+            return obj.ToString();
+          }
+
+          return obj;
+        }
+      }).Replace("\r\n", "\n");
+      writer.Write(content);
     }
   }
 
@@ -67,33 +95,26 @@ public class DooFile {
 
   public string ProgramText { get; set; }
 
-  // This must be independent from any user-provided options,
-  // and remain fixed over the lifetime of a single .doo file format version.
-  // We don't want to attempt to read the program text using --function-syntax:3 for example.
-  // If we change default option values in future Dafny major version bumps,
-  // this must be configured to stay the same.
-  private static DafnyOptions ProgramSerializationOptions => DafnyOptions.Default;
-
-  public static Task<DooFile> Read(string path) {
+  public static async Task<DooFile> Read(string path) {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Read);
-    return Read(archive);
+    return await Read(archive);
   }
 
-  public static Task<DooFile> Read(Stream stream) {
+  public static async Task<DooFile> Read(Stream stream) {
     using var archive = new ZipArchive(stream);
-    return Read(archive);
+    return await Read(archive);
   }
 
   private static async Task<DooFile> Read(ZipArchive archive) {
-    var result = new DooFile();
 
     var manifestEntry = archive.GetEntry(ManifestFileEntry);
     if (manifestEntry == null) {
       throw new ArgumentException(".doo file missing manifest entry");
     }
 
+    ManifestData manifest;
     await using (var manifestStream = manifestEntry.Open()) {
-      result.Manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
+      manifest = ManifestData.Read(new StreamReader(manifestStream, Encoding.UTF8));
     }
 
     var programTextEntry = archive.GetEntry(ProgramFileEntry);
@@ -101,11 +122,13 @@ public class DooFile {
       throw new ArgumentException(".doo file missing program text entry");
     }
 
+    string programText;
     await using (var programTextStream = programTextEntry.Open()) {
       var reader = new StreamReader(programTextStream, Encoding.UTF8);
-      result.ProgramText = await reader.ReadToEndAsync();
+      programText = await reader.ReadToEndAsync();
     }
 
+    var result = new DooFile(manifest, programText);
     return result;
   }
 
@@ -113,7 +136,7 @@ public class DooFile {
     var tw = new StringWriter {
       NewLine = "\n"
     };
-    var pr = new Printer(tw, ProgramSerializationOptions, PrintModes.Serialization);
+    var pr = new Printer(tw, dafnyProgram.Options, PrintModes.Serialization);
     // afterResolver is false because we don't yet have a way to safely skip resolution
     // when reading the program back into memory.
     // It's probably worth serializing a program in a more efficient way first
@@ -123,32 +146,36 @@ public class DooFile {
     Manifest = new ManifestData(dafnyProgram.Options);
   }
 
-  private DooFile() {
+  public DooFile(ManifestData manifest, string programText) {
+    Manifest = manifest;
+    ProgramText = programText;
   }
 
   /// <summary>
   /// Returns the options as specified by the DooFile
   /// </summary>
-  public DafnyOptions Validate(ErrorReporter reporter, string filePath, DafnyOptions options, IToken origin) {
+  public DafnyOptions? Validate(ErrorReporter reporter, Uri file, DafnyOptions options, IToken origin) {
     if (!options.UsingNewCli) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {options.GetPrintPath(filePath)}: .doo files cannot be used with the legacy CLI");
+        $"cannot load {options.GetPrintPath(file.LocalPath)}: .doo files cannot be used with the legacy CLI");
       return null;
     }
 
     if (options.VersionNumber != Manifest.DafnyVersion) {
       reporter.Error(MessageSource.Project, origin,
-        $"cannot load {options.GetPrintPath(filePath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
+        $"cannot load {options.GetPrintPath(file.LocalPath)}: it was built with Dafny {Manifest.DafnyVersion}, which cannot be used by Dafny {options.VersionNumber}");
       return null;
     }
 
-    return CheckAndGetLibraryOptions(reporter, filePath, options, origin, Manifest.Options);
+    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options,
+      new Dictionary<Option, OptionCompatibility.OptionCheck>());
   }
 
-
-  public static DafnyOptions CheckAndGetLibraryOptions(ErrorReporter reporter, string libraryFile,
+  public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
+    Uri libraryFile,
     DafnyOptions options, IToken origin,
-    Dictionary<string, object> libraryOptions) {
+    IDictionary<string, object> libraryOptions,
+    Dictionary<Option, OptionCompatibility.OptionCheck> additionalOptions) {
     var result = new DafnyOptions(options);
     var success = true;
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
@@ -161,12 +188,17 @@ public class DooFile {
       }
       var localValue = options.Get(option);
 
-      object libraryValue;
+      object? libraryValue;
       if (libraryOptions.TryGetValue(option.Name, out var manifestValue)) {
-        if (!TomlUtil.TryGetValueFromToml(reporter, origin, null,
-              option.Name, option.ValueType, manifestValue, out libraryValue)) {
+        var printTomlValue = DafnyProject.PrintTomlOptionToCliValue(libraryFile, manifestValue, option);
+        var parseResult = option.Parse(printTomlValue.ToArray());
+        if (parseResult.Errors.Any()) {
+          reporter.Error(MessageSource.Project, origin, $"could not parse value '{manifestValue}' for option '{option.Name}' that has type '{option.ValueType.Name}'");
           return null;
         }
+        // By using the dynamic keyword, we can use the generic version of GetValueForOption which does type conversion,
+        // which is sadly not accessible without generics.
+        libraryValue = parseResult.GetValueForOption((dynamic)option);
       } else {
         // This else can occur because Tomlyn will drop aggregate properties with no values.
         // When this happens, use the default value
@@ -174,7 +206,8 @@ public class DooFile {
       }
 
       result.Options.OptionArguments[option] = libraryValue;
-      var prefix = $"cannot load {options.GetPrintPath(libraryFile)}";
+      result.ApplyBinding(option);
+      var prefix = $"cannot load {options.GetPrintPath(libraryFile.LocalPath)}";
       success = success && check(reporter, origin, prefix, option, localValue, libraryValue);
     }
 
@@ -236,8 +269,10 @@ public class DooFile {
     }
   }
 
-  public static void RegisterNoChecksNeeded(params Option[] options) {
-    foreach (var option in options) {
+  public static void RegisterNoChecksNeeded(Option option, bool semantic) {
+    if (semantic) {
+      RegisterLibraryCheck(option, OptionCompatibility.NoOpOptionCheck);
+    } else {
       if (OptionChecks.ContainsKey(option)) {
         throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
       }

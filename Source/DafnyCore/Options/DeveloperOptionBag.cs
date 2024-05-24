@@ -54,11 +54,9 @@ enabling necessary special handling.".TrimStart()) {
         options.FileTimestamp);
     });
 
-    DooFile.RegisterNoChecksNeeded(
-      BoogiePrint,
-      PrintOption,
-      ResolvedPrint,
-      Bootstrapping
-    );
+    DooFile.RegisterNoChecksNeeded(BoogiePrint, false);
+    DooFile.RegisterNoChecksNeeded(PrintOption, false);
+    DooFile.RegisterNoChecksNeeded(ResolvedPrint, false);
+    DooFile.RegisterNoChecksNeeded(Bootstrapping, false);
   }
 }

@@ -24,12 +24,13 @@ namespace Microsoft.Dafny.LanguageServer {
         ProjectManager.Verification,
         GhostStateDiagnosticCollector.GhostIndicators,
         GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus,
-        LanguageServer.VerifySnapshots,
+        VerifySnapshots,
         DafnyLangSymbolResolver.UseCaching,
         ProjectManager.UpdateThrottling,
+        ProjectManagerDatabase.ProjectFileCacheExpiry,
         DeveloperOptionBag.BoogiePrint,
         CommonOptionBag.EnforceDeterminism,
-        CommonOptionBag.UseJavadocLikeDocstringRewriterOption,
+        InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption,
         LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ResolverOptions);
@@ -65,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer {
             .ConfigureLogging(SetupLogging)
             .WithUnhandledExceptionHandler(LogException)
             // ReSharper disable once AccessToModifiedClosure
-            .WithDafnyLanguageServer(() => shutdownServer!())
+            .WithDafnyLanguageServer(dafnyOptions, () => shutdownServer!())
         );
         // Prevent any other parts of the language server to actually write to standard output.
         await using var logWriter = new LogWriter();

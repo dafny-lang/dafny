@@ -1,0 +1,2 @@
+- Fix a code navigation bug that could occur when navigating to and from module imports
+- Fix a code navigation bug that could occur when navigating to and from explicit types of variables

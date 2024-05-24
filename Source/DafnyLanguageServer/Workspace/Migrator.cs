@@ -15,8 +15,39 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 public delegate Migrator CreateMigrator(DidChangeTextDocumentParams changeParams, CancellationToken cancellationToken);
 
-public class Migrator {
+public interface IMigrator {
+  VerificationTree RelocateVerificationTree(VerificationTree tree);
+  Uri MigratedUri { get; }
+  Range? MigrateRange(Range range, bool isFullRange = false);
+  IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> diagnostics);
+  LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable table);
+}
 
+class NoopMigrator : IMigrator {
+  public NoopMigrator(Uri migratedUri) {
+    MigratedUri = migratedUri;
+  }
+
+  public VerificationTree RelocateVerificationTree(VerificationTree tree) {
+    return tree;
+  }
+
+  public Uri MigratedUri { get; }
+  public Range MigrateRange(Range range, bool isFullRange = false) {
+    return range;
+  }
+
+  public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> diagnostics) {
+    return diagnostics;
+  }
+
+  public LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable table) {
+    return table;
+  }
+}
+
+
+public class Migrator : IMigrator {
   private readonly ILogger<Migrator> logger;
   private readonly DidChangeTextDocumentParams changeParams;
   private readonly CancellationToken cancellationToken;

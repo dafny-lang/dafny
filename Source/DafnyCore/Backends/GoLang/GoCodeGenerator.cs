@@ -10,15 +10,27 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using DafnyCore;
 using JetBrains.Annotations;
+using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
+    //TODO: This is tentative, update this to point to public module once available.
+    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
+
+    private bool GoModuleMode;
+    private string GoModuleName;
     public GoCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      var goModuleName = Options.Get(GoBackend.GoModuleNameCliOption);
+      GoModuleMode = goModuleName != null;
+      if (GoModuleMode) {
+        GoModuleName = goModuleName.ToString();
+      }
       if (Options?.CoverageLegendFile != null) {
+        //TODO: What's the module name for this?
         Imports.Add(new Import { Name = "DafnyProfiling", Path = "DafnyProfiling" });
       }
     }
@@ -47,7 +59,6 @@ namespace Microsoft.Dafny.Compilers {
     private string MainModuleName;
     private static List<Import> StandardImports =
       new List<Import> {
-        new Import { Name = "_dafny", Path = "dafny" },
         new Import { Name = "os", Path = "os" },
       };
     private static string DummyTypeName = "Dummy__";
@@ -64,15 +75,22 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
-      // Keep the import writers so that we can import subsequent modules into the main one
-      EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
 
+      string path;
       if (Options.IncludeRuntime) {
         EmitRuntimeSource("DafnyRuntimeGo", wr);
+        path = GoModuleMode ? GoModuleName + "/" : "";
+      } else {
+        path = GoModuleMode ? DafnyRuntimeGoModule : "";
       }
+      Imports.Add(new Import { Name = "_dafny", Path = $"{path}dafny" });
+
       if (Options.Get(CommonOptionBag.UseStandardLibraries)) {
         EmitRuntimeSource("DafnyStandardLibraries_go", wr);
       }
+
+      // Keep the import writers so that we can import subsequent modules into the main one
+      EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
     }
 
     private string DafnyTypeDescriptor => $"{HelperModulePrefix}TypeDescriptor";
@@ -156,6 +174,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
+
       return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
     }
 
@@ -167,21 +186,56 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
+      var goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+      if (moduleName.Equals("_System")) {
+        if (Options.IncludeRuntime) {
+          goModuleName = GoModuleMode ? GoModuleName + "/" : "";
+        } else {
+          goModuleName = GoModuleMode ? DafnyRuntimeGoModule : "";
+        }
+      }
       ModuleName = PublicModuleIdProtect(moduleName);
       var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
-
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
       EmitModuleHeader(w);
 
+      import.Path = goModuleName + import.Path;
       AddImport(import);
 
       return w;
     }
 
-    protected override void DependOnModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      var import = CreateImport(moduleName, isDefault, externModule, libraryName);
+      var goModuleName = "";
+      if (GoModuleMode) {
+        // "_System" module has a special handling because although it gets translated from a Dafny module,
+        // it is still part of the Dafny Runtime lib so has no associated go module name. It either uses the
+        // project module name if embedded or falls back to the Runtime module name.
+        if (module.GetCompileName(Options).Equals("_System")) {
+          if (Options.IncludeRuntime) {
+            goModuleName = GoModuleName + "/";
+          } else {
+            goModuleName = DafnyRuntimeGoModule;
+          }
+        } else {
+          // For every other Dafny Module, fetch the associated go module name from the dtr structure.
+          var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+          translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
+          object moduleName = null;
+          moduleOptions?.TryGetValue(GoBackend.GoModuleNameCliOption.Name, out moduleName);
+
+          goModuleName = moduleName is string name ? moduleName + "/" : "";
+          if (String.IsNullOrEmpty(goModuleName)) {
+            Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
+              $"Go Module Name not found for the module {module.GetCompileName(Options)}");
+          }
+        }
+      }
+
+      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+      import.Path = goModuleName + import.Path;
       AddImport(import);
     }
 
@@ -2519,11 +2573,77 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /* Obtained by running the following on the console on the page https://pkg.go.dev/std :
+     var lineLength = 0; copy([...document.querySelectorAll(
+    "td > div.UnitDirectories-pathCell > div > span, "+
+    "td > div.UnitDirectories-pathCell > div > a")]
+    .map((e, i) => {
+        var res = JSON.stringify(e.textContent);
+        if(lineLength + res.length > 94) {
+            lineLength = res.length;
+            res = ",\n      " + res;
+        } else if(i > 0) {
+            res = "," + res;
+            lineLength += res.length;
+        }
+        return res;
+    }).join(""))
+     */
+    public readonly HashSet<string> ReservedModuleNames = new() {
+      "c",
+      "archive",
+      "bufio",
+      "builtin",
+      "bytes",
+      "cmp",
+      "compress",
+      "container",
+      "context",
+      "crypto",
+      "database",
+      "debug",
+      "embed",
+      "encoding",
+      "errors",
+      "expvar",
+      "flag",
+      "fmt",
+      "go",
+      "hash",
+      "html",
+      "image",
+      "index",
+      "internal",
+      "io",
+      "log",
+      "maps",
+      "math",
+      "mime",
+      "net",
+      "os",
+      "path",
+      "plugin",
+      "reflect",
+      "regexp",
+      "runtime",
+      "slices",
+      "sort",
+      "strconv",
+      "strings",
+      "sync",
+      "syscall",
+      "testing",
+      "text",
+      "time",
+      "unicode",
+      "unsafe"
+    };
+
     public string PublicModuleIdProtect(string name) {
-      if (name == "C") {
-        return "_C";
+      if (ReservedModuleNames.Contains(name.ToLower())) {
+        return "_" + name;
       } else {
-        return name;
+        return IdProtect(name);
       }
     }
 
@@ -3876,12 +3996,13 @@ namespace Microsoft.Dafny.Compilers {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (ct is SetType) {
-        return collName + ".ToSet()";
+        wr.Write(collName + ".ToSet()");
       } else {
         Contract.Assert(ct is MapType);
-        return collName + ".ToMap()";
+        wr.Write(collName + ".ToMap()");
       }
     }
 
