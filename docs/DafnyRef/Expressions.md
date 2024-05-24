@@ -1856,9 +1856,10 @@ takes on the default value declared in the callee for that optional parameter.
 When proving that a loop or recursive callable terminates, Dafny
 automatically generates a proof obligation that the sequence of
 expressions listed in a `decreases` clause gets smaller (in the
-termination ordering) with each iteration or recursive call. Normally,
-this proof obligation is purely internal. However, it can be written as
-a Dafny expression using the `decreases to` operator.
+[lexicographic termination ordering](#sec-decreases-clause)) with each
+iteration or recursive call. Normally, this proof obligation is purely
+internal. However, it can be written as a Dafny expression using the
+`decreases to` operator.
 
 The Boolean expression `(a, ..., b decreases to a', ..., b')` encodes
 this ordering. For example, the following assertions are valid:
