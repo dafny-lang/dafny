@@ -316,7 +316,7 @@ public class Compilation : IDisposable {
     ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
     try {
 
-      var ticket = verificationTickets.Dequeue(CancellationToken.None);
+      var ticket = verificationTickets.Dequeue();
       var containingModule = canVerify.ContainingModule;
 
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>> tasksForModule;
