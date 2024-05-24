@@ -51,11 +51,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
     [Fact]
     public async Task AllRelevantSymbolKindsDetected() {
       var documentItem = await GetDocumentItem(@"
+
 class TestClass {}
 
 module TestModule {}
 
-function TestFunction(): int { 42 }
+function TransparentTestFunction(): int { 42 }
+opaque function OpaqueTestFunction(): int { 42 }
 
 method TestMethod() returns (x: int) {
   x := 42;
@@ -72,18 +74,25 @@ predicate TestPredicate() { false }", "test-workspace-symbols.dfy", false);
       var testSymbols = new List<string> {
         "TestClass",
         "TestModule",
-        "TestFunction",
+        "TestMethod",
+        "TransparentTestFunction",
+        "OpaqueTestFunction",
         "TestDatatype",
         "TestConstructor",
         "TestTrait",
         "TestPredicate",
       };
 
-      var response = await client.RequestWorkspaceSymbols(new WorkspaceSymbolParams {
+      var allResponse = await client.RequestWorkspaceSymbols(new WorkspaceSymbolParams {
         Query = "test"
       });
+      Assert.Equal(testSymbols.Count, allResponse.Count());
       foreach (var testSymbol in testSymbols) {
-        Assert.True(response.Any(symbol => symbol.Name.Contains(testSymbol)),
+        var singleResponse = await client.RequestWorkspaceSymbols(new WorkspaceSymbolParams() {
+          Query = testSymbol
+        });
+        Assert.Single(singleResponse);
+        Assert.True(allResponse.Count(symbol => symbol.Name == testSymbol) == 1,
           $"Could not find {testSymbol}");
       }
     }
