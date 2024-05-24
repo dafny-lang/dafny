@@ -233,7 +233,7 @@ func (_static *CompanionStruct_Sequence_) Drop(_this Sequence, lo uint32) Sequen
 		_ = ret
 		var _out5 Sequence
 		_ = _out5
-		_out5 = Companion_Sequence_.Subsequence(_this, lo, (_this).Cardinality())
+		_out5 = (_this).Subsequence(lo, (_this).Cardinality())
 		ret = _out5
 		return ret
 	}
@@ -244,7 +244,7 @@ func (_static *CompanionStruct_Sequence_) Take(_this Sequence, hi uint32) Sequen
 		_ = ret
 		var _out6 Sequence
 		_ = _out6
-		_out6 = Companion_Sequence_.Subsequence(_this, uint32(0), hi)
+		_out6 = (_this).Subsequence(uint32(0), hi)
 		ret = _out6
 		return ret
 	}
@@ -312,13 +312,13 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequenc
 		_ = _15_leftElement
 		var _out11 interface{}
 		_ = _out11
-		_out11 = Companion_Sequence_.Select(left, _14_i)
+		_out11 = (left).Select(_14_i)
 		_15_leftElement = _out11
 		var _16_rightElement interface{}
 		_ = _16_rightElement
 		var _out12 interface{}
 		_ = _out12
-		_out12 = Companion_Sequence_.Select(right, _14_i)
+		_out12 = (right).Select(_14_i)
 		_16_rightElement = _out12
 		if !AreEqual(_15_leftElement, _16_rightElement) {
 			ret = false
@@ -378,7 +378,7 @@ func (_static *CompanionStruct_Sequence_) Contains(s Sequence, t interface{}) bo
 		_ = _18_element
 		var _out16 interface{}
 		_ = _out16
-		_out16 = Companion_Sequence_.Select(s, _17_i)
+		_out16 = (s).Select(_17_i)
 		_18_element = _out16
 		if AreEqual(_18_element, t) {
 			_hresult = true
