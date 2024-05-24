@@ -23,7 +23,7 @@ using Location = OmniSharp.Extensions.LanguageServer.Protocol.Models.Location;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate ProjectManager CreateProjectManager(
-  CustomStackSizePoolTaskScheduler scheduler,
+  TaskScheduler scheduler,
   VerificationResultCache verificationCache,
   DafnyProject project);
 
@@ -61,7 +61,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly ILogger<ProjectManager> logger;
 
   private readonly VerificationResultCache cache;
-  private readonly CustomStackSizePoolTaskScheduler scheduler;
+  private readonly TaskScheduler scheduler;
 
   /// <summary>
   /// The version of this project.
@@ -98,7 +98,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     IProjectDatabase projectDatabase,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
-    CustomStackSizePoolTaskScheduler scheduler,
+    TaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;

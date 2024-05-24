@@ -30,7 +30,7 @@ const i := 0
 module [>><C<] {}
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "foobar");
     }
 
@@ -43,7 +43,7 @@ module [>><C<] {}
 
     [Fact]
     public async Task RenameNonSymbolFails() {
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       var documentItem = await CreateOpenAndWaitForResolve("module Foo {}", Path.Combine(tempDir, "tmp.dfy"));
       var workspaceEdit = await RequestRename(documentItem, new Position(0, 6), "space");
       Assert.Null(workspaceEdit);
@@ -58,7 +58,7 @@ method M() {
 }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "foobar");
     }
 
@@ -69,7 +69,7 @@ method [>foobar<]()
 method U() { [>><foobar<](); }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "M");
     }
 
@@ -82,7 +82,7 @@ module C { import [>><A<] }
 module D { import [>A<] }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(source, tempDir, "AAA");
     }
 
@@ -100,7 +100,7 @@ module B {
 }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "CCC");
     }
 
@@ -113,18 +113,16 @@ abstract module [>A<] {}
 abstract module B { import [>><A<] }
 ".TrimStart();
 
-      var tempDir = await SetUpProjectFile();
+      var tempDir = SetUpProjectFile();
       await AssertRangesRenamed(new[] { sourceA, sourceB }, tempDir, "AAA");
     }
 
     /// <summary>
     /// Create an empty project file in a new temporary directory, and return the temporary directory's path.
     /// </summary>
-    protected async Task<string> SetUpProjectFile() {
+    protected string SetUpProjectFile() {
       var tempDir = GetFreshTempPath();
-      Directory.CreateDirectory(tempDir);
-      var projectFilePath = Path.Combine(tempDir, DafnyProject.FileName);
-      await File.WriteAllTextAsync(projectFilePath, "");
+      CreateAndOpenTestDocument("", Path.Combine(tempDir, DafnyProject.FileName));
       return tempDir;
     }
 

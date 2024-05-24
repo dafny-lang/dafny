@@ -35,7 +35,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
     private readonly Dictionary<Uri, ProjectManager> managersBySourceFile = new();
     private readonly LanguageServerFilesystem fileSystem;
     private readonly VerificationResultCache verificationCache = new();
-    private readonly CustomStackSizePoolTaskScheduler scheduler;
+    private readonly TaskScheduler scheduler;
     private readonly MemoryCache projectFilePerFolderCache = new("projectFiles");
     private readonly object nullRepresentative = new(); // Needed because you can't store null in the MemoryCache, but that's a value we want to cache.
     private readonly DafnyOptions serverOptions;
