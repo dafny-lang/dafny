@@ -4686,7 +4686,7 @@ namespace Microsoft.Dafny.Compilers {
           idx => {
             var w = new ConcreteSyntaxTree();
             EmitArrayIndexToInt(w, out var wIdentifier);
-            wIdentifier.Write(idx.ToString());
+            wIdentifier.Write(indices[idx]);
             return w.ToString();
           }));
         wArray.Write(nw);
