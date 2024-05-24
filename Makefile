@@ -7,20 +7,18 @@ all: exe refman
 exe:
 	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
-dfyprodformat:
+format-dfy:
 	(cd "${DIR}"/Source/DafnyCore ; ../../Binaries/Dafny.exe format .)
 
-dfyprodinit: 
+dfy-to-cs: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
 
-dfyprod: dfyprodformat dfyprodinit
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+dfy-to-cs-exe: dfy-to-cs exe
 
-dfydevinit:
+dfy-to-cs-noverify:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)
 
-dfydev: dfydevinit
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+dfy-to-cs-noverify-exe: dfy-to-cs-noverify exe
 
 boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
@@ -84,3 +82,11 @@ clean:
 	make -C ${DIR}/docs/DafnyRef clean
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	echo Source/*/bin Source/*/obj
+
+# `make pr` will bring you in a state suitable for submitting a PR
+# - Builds the Dafny executable
+# - Use the build to convert core .dfy files to .cs
+# - Rebuilds the Dafny executable with this .cs files
+# - Apply dafny format on all dfy files
+# - Apply dotnet format on all cs files except the generated ones
+pr: exe dfy-to-cs-exe format-dfy format

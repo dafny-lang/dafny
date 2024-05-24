@@ -315,7 +315,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     DafnyOptions.RegisterLegacyBinding(FunctionSyntaxOption, (options, value) => {
       options.FunctionSyntax = functionSyntaxOptionsMap[value];
     });
-    DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption);
+    DooFile.RegisterNoChecksNeeded(FunctionSyntaxOption, true);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -482,7 +482,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return null;
   }
 
-  public SymbolKind Kind => SymbolKind.Function;
+  public SymbolKind? Kind => SymbolKind.Function;
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingClass.EnclosingModuleDefinition;
   public string GetDescription(DafnyOptions options) {
@@ -491,14 +491,14 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     return $"{WhatKind} {AstExtensions.GetMemberQualification(this)}{Name}({formals}): {resultType}";
   }
 
-  public void AutoRevealDependencies(AutoRevealFunctionDependencies Rewriter, DafnyOptions Options,
-    ErrorReporter Reporter) {
+  public void AutoRevealDependencies(AutoRevealFunctionDependencies rewriter, DafnyOptions options,
+    ErrorReporter reporter) {
     if (Body is null) {
       return;
     }
 
     if (ByMethodDecl is not null) {
-      ByMethodDecl.AutoRevealDependencies(Rewriter, Options, Reporter);
+      ByMethodDecl.AutoRevealDependencies(rewriter, options, reporter);
     }
 
     object autoRevealDepsVal = null;
@@ -506,7 +506,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
       ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
-      }, s => Reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
+      }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Tok, s));
 
     // Default behavior is reveal all dependencies
     int autoRevealDepth = int.MaxValue;
@@ -522,7 +522,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     var currentClass = EnclosingClass;
     List<AutoRevealFunctionDependencies.RevealStmtWithDepth> addedReveals = new();
 
-    foreach (var func in Rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
+    foreach (var func in rewriter.GetEnumerator(this, currentClass, SubExpressions)) {
       var revealStmt =
         AutoRevealFunctionDependencies.BuildRevealStmt(func.Function, Tok, EnclosingClass.EnclosingModuleDefinition);
 
@@ -558,7 +558,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
+      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, tok,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }

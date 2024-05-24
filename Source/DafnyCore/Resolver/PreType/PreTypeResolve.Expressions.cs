@@ -1591,6 +1591,7 @@ namespace Microsoft.Dafny {
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given resolutionContext
           ReportError(tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
+          return null;
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null) {
@@ -1608,7 +1609,7 @@ namespace Microsoft.Dafny {
           rr.PreTypeApplication_JustMember.Add(ta);
           subst.Add(method.TypeArgs[i], ta);
         }
-        rr.PreType = new UnusedPreType($"call to {method.WhatKind} {method.Name}");  // fill in this field, in order to make "rr" resolved
+        rr.PreType = new MethodPreType($"call to {method.WhatKind} {method.Name}");  // fill in this field, in order to make "rr" resolved
       }
       return rr;
     }

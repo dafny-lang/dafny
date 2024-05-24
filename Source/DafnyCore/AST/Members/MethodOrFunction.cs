@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
@@ -10,7 +11,7 @@ public abstract class MethodOrFunction : MemberDecl {
     "Allow exporting callables with preconditions, and importing callables with postconditions");
 
   static MethodOrFunction() {
-    DooFile.RegisterLibraryCheck(AllowExternalContracts, DooFile.CheckOptionLibraryImpliesLocal);
+    DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
   public readonly List<TypeParameter> TypeArgs;

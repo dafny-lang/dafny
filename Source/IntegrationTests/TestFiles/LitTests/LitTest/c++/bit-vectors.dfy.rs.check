@@ -1,1 +1,1 @@
-// CHECK-L: error[E0433]: failed to resolve: use of undeclared crate or module `num`
+// CHECK-L: error: missing angle brackets in associated item path

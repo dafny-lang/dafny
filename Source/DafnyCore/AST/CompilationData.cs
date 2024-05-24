@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
@@ -28,4 +29,6 @@ public class CompilationData {
   // TODO move to DocumentAfterParsing once that's used by the CLI
   [FilledInDuringResolution]
   public ISet<Uri> UrisToCompile;
+
+  public TranslationRecord AlreadyTranslatedRecord { get; set; }
 }

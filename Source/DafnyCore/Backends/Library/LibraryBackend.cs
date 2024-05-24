@@ -39,6 +39,8 @@ public class LibraryBackend : ExecutableBackend {
   // Necessary since Compiler is null
   public override string ModuleSeparator => ".";
 
+  public string DooPath { get; set; }
+
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     return null;
   }
@@ -52,7 +54,7 @@ public class LibraryBackend : ExecutableBackend {
     throw new NotSupportedException();
   }
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
     if (!Options.UsingNewCli) {
       throw new UnsupportedFeatureException(dafnyProgram.GetStartOfFirstFileToken(), Feature.LegacyCLI);
     }
@@ -75,12 +77,21 @@ public class LibraryBackend : ExecutableBackend {
     ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
 
     var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-    var dooPath = DooFilePath(dafnyProgramName);
+    DooPath = DooFilePath(dafnyProgramName);
 
-    File.Delete(dooPath);
-    ZipFile.CreateFromDirectory(targetDirectory, dooPath);
+    File.Delete(DooPath);
+
+    try {
+      ZipFile.CreateFromDirectory(targetDirectory, DooPath);
+    } catch (IOException) {
+      if (File.Exists(DooPath)) {
+        await outputWriter.WriteLineAsync($"Failed to delete doo file at {DooPath}");
+      }
+
+      throw;
+    }
     if (Options.Verbose) {
-      await outputWriter.WriteLineAsync($"Wrote Dafny library to {dooPath}");
+      await outputWriter.WriteLineAsync($"Wrote Dafny library to {DooPath}");
     }
 
     return (true, null);
