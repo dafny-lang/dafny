@@ -1488,26 +1488,27 @@ namespace Microsoft.Dafny {
           case DecreasesToExpr decreasesToExpr:
             var oldArray = decreasesToExpr.OldExpressions.ToArray();
             var newArray = decreasesToExpr.NewExpressions.ToArray();
-            List<Type> newTypes = new();
-            List<Type> oldTypes = new();
             List<Expr> newExprs = new();
             List<Expr> oldExprs = new();
+            List<Expression> newExprsDafny = new();
+            List<Expression> oldExprsDafny = new();
             int N = Math.Min(oldArray.Length, newArray.Length);
             for (int i = 0; i < N; i++) {
               if (!CompatibleDecreasesTypes(oldArray[i].Type, newArray[i].Type)) {
                 N = i;
                 break;
               }
-              oldTypes.Add(oldArray[i].Type);
+              oldExprsDafny.Add(oldArray[i]);
               oldExprs.Add(TrExpr(oldArray[i]));
-              newTypes.Add(newArray[i].Type);
+              newExprsDafny.Add(newArray[i]);
               newExprs.Add(TrExpr(newArray[i]));
             }
 
             bool endsWithWinningTopComparison = N == oldArray.Length && N < newArray.Length;
             var allowNoChange = decreasesToExpr.AllowNoChange || endsWithWinningTopComparison;
             List<IToken> toks = oldExprs.Zip(newExprs, (_, _) => (IToken)decreasesToExpr.RangeToken).ToList();
-            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, null,
+            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, null,
+              newExprsDafny, oldExprsDafny, newExprs, oldExprs, null,
               null, allowNoChange, false);
             return decreasesExpr;
           default:

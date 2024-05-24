@@ -58,8 +58,6 @@ public partial class BoogieGenerator {
 
     int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
     var toks = new List<IToken>();
-    var types0 = new List<Type>();
-    var types1 = new List<Type>();
     var callee = new List<Expr>();
     var caller = new List<Expr>();
     var oldExpressions = new List<Expression>();
@@ -84,13 +82,11 @@ public partial class BoogieGenerator {
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
       toks.Add(new NestedToken(tok, e1.tok));
-      types0.Add(e0.Type.NormalizeExpand());
-      types1.Add(e1.Type.NormalizeExpand());
       callee.Add(etranCurrent.TrExpr(e0));
       caller.Add(etranCurrent.TrExpr(e1));
     }
     bool endsWithWinningTopComparison = N == contextDecreases.Count && N < calleeDecreases.Count;
-    Bpl.Expr decrExpr = DecreasesCheck(toks, types0, types1, callee, caller, builder, "", endsWithWinningTopComparison, false);
+    Bpl.Expr decrExpr = DecreasesCheck(toks, null, newExpressions, oldExpressions, callee, caller, builder, "", endsWithWinningTopComparison, false);
     if (allowance != null) {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
@@ -106,28 +102,36 @@ public partial class BoogieGenerator {
   /// If builder is non-null, then the check '0 ATMOST decr' is generated to builder.
   /// Requires all types in types0 and types1 to be non-proxy non-synonym types (that is, callers should invoke NormalizeExpand)
   /// </summary>
-  Bpl.Expr DecreasesCheck(List<IToken> toks, List<Type> types0, List<Type> types1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
+  Bpl.Expr DecreasesCheck(List<IToken> toks, List<VarDeclStmt> prevGhostLocals,
+                          List<Expression> dafny0, List<Expression> dafny1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
                           BoogieStmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound) {
     Contract.Requires(cce.NonNullElements(toks));
-    Contract.Requires(cce.NonNullElements(types0));
-    Contract.Requires(cce.NonNullElements(types1));
+    Contract.Requires(cce.NonNullElements(dafny0));
+    Contract.Requires(cce.NonNullElements(dafny1));
     Contract.Requires(cce.NonNullElements(ee0));
     Contract.Requires(cce.NonNullElements(ee1));
     Contract.Requires(predef != null);
-    Contract.Requires(types0.Count == types1.Count && types0.Count == ee0.Count && ee0.Count == ee1.Count);
+    Contract.Requires(dafny0.Count == dafny1.Count && dafny0.Count == ee0.Count && ee0.Count == ee1.Count);
     Contract.Requires(builder == null || suffixMsg != null);
     Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-    int N = types0.Count;
+    int N = dafny0.Count;
 
+    // TODO: NormalizeExpandKeepConstraints below?
     // compute eq and less for each component of the lexicographic tuple
     List<Bpl.Expr> Eq = new List<Bpl.Expr>(N);
     List<Bpl.Expr> Less = new List<Bpl.Expr>(N);
+    List<Expression> EqDafny = new List<Expression>(N);
+    List<Expression> LessDafny = new List<Expression>(N);
     for (int i = 0; i < N; i++) {
       Bpl.Expr less, atmost, eq;
-      ComputeLessEq(toks[i], types0[i], types1[i], ee0[i], ee1[i], out less, out atmost, out eq, includeLowerBound);
+      var ty0 = dafny0[i].Type.NormalizeExpandKeepConstraints();
+      var ty1 = dafny1[i].Type.NormalizeExpandKeepConstraints();
+      ComputeLessEq(toks[i], ty0, ty1, ee0[i], ee1[i], out less, out atmost, out eq, includeLowerBound);
       Eq.Add(eq);
+      EqDafny.Add(Expression.CreateEq(dafny0[i], dafny1[i], dafny0[i].Type.NormalizeExpand()));
       Less.Add(allowNoChange ? atmost : less);
+      LessDafny.Add(Expression.CreateLess(dafny0[i], dafny1[i]));
     }
     if (builder != null) {
       // check: 0 <= ee1
@@ -141,20 +145,28 @@ public partial class BoogieGenerator {
         };
 
         Bpl.Expr zero = null;
+        Expression dafnyZero = null;
         string zeroStr = null;
-        if (types0[k].IsNumericBased(Type.NumericPersuasion.Int)) {
+        if (dafny0[k].Type.NormalizeExpandKeepConstraints().IsNumericBased(Type.NumericPersuasion.Int)) {
           zero = Bpl.Expr.Literal(0);
+          dafnyZero = Expression.CreateIntLiteral(dafny0[k].tok, 0);
           zeroStr = "0";
-        } else if (types0[k].IsNumericBased(Type.NumericPersuasion.Real)) {
+        } else if (dafny0[k].Type.NormalizeExpandKeepConstraints().IsNumericBased(Type.NumericPersuasion.Real)) {
           zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
+          dafnyZero = Expression.CreateRealLiteral(dafny0[k].tok, BigDec.ZERO);
           zeroStr = "0.0";
         }
         if (zero != null) {
           Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
+          Expression boundedDafny = Expression.CreateLess(dafnyZero, dafny1[k]);
           for (int i = 0; i < k; i++) {
             bounded = BplOr(bounded, Less[i]);
+            boundedDafny = Expression.CreateOr(boundedDafny, LessDafny[i]);
           }
-          Bpl.Cmd cmd = Assert(toks[k], BplOr(bounded, Eq[k]), new PODesc.DecreasesBoundedBelow(N, k, zeroStr, suffixMsg));
+
+          Expression dafnyBound = Expression.CreateOr(boundedDafny, EqDafny[k]);
+          Bpl.Cmd cmd = Assert(toks[k], BplOr(bounded, Eq[k]),
+            new PODesc.DecreasesBoundedBelow(N, k, zeroStr, prevGhostLocals, dafnyBound, suffixMsg));
           builder.Add(cmd);
         }
       }
