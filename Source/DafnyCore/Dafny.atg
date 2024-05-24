@@ -2920,7 +2920,7 @@ AssertStmt<out Statement/*!*/ s>
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
     | (.
-        SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, $"expected either 'by' or a semicolon following the assert expression");
+        SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, "expected either 'by' or a semicolon following the assert expression");
       .)
     )
   | ellipsis                                   (. dotdotdot = t; 
@@ -3203,11 +3203,6 @@ Forall = "forall".
 Exists = "exists".
 QSep = "::".
 
-Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
-=
-  NotDecreasesToExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
-  .
-
 MaybeDecreasesToExpression<out Expression e, IToken lp>
 = (. List<ActualBinding> args = new();
      List<Expression> newExprs = new();
@@ -3216,17 +3211,17 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
      bool allowNoChange = false;
   .)
   TupleArgs<args>
-  [ ( "decreases"                                                               (. allowNoChange = false; .)
-    | "nonincreases"                                                            (. allowNoChange = true; .)
+  [ ( "decreases"                                                 (. allowNoChange = false; .)
+    | "nonincreases"                                              (. allowNoChange = true; .)
     ) (. x = t; .)
     ident
     (. if (t.val != "to") {
          SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
        }
     .)
-    NotDecreasesToExpression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
+    Expression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
     { ","
-      NotDecreasesToExpression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
+      Expression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
     }
   ]
   (.
@@ -3266,7 +3261,7 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
  * at the top level of this expression. It is passed in as "false" only inside
  * cardinality brackets, that is, "|expr|".
  */
-NotDecreasesToExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
+Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken semiToken; .)
   [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Calls with side-effects such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
