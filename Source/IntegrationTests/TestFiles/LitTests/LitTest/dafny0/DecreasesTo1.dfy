@@ -65,12 +65,6 @@ method BadLoop(x: int, y: int) {
   }
 }
 
-/*
-method BadTypes () {
-  assert (true decreases to 0);
-}
-*/
-
 method BadInstance4() {
   assert (0 nonincreases to 1);
 }
