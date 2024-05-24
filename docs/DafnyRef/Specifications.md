@@ -366,9 +366,9 @@ the decreases clause, the decreases tuple automatically decreases on any
 calls in a non-recursive context.
 
 Though Dafny fixes a well-founded order that it uses when checking
-termination, Dafny does not surface this ordering directly in
-expressions. That is, syntactically, there is no single operator that
-stands for the well-founded ordering.
+termination, Dafny does not normally surface this ordering directly in
+expressions. However, it is possible to write such ordering constraints
+using [`decreases to` expressions](#sec-termination-ordering-expressions).
 
 ### 7.1.4. Framing ([grammar](#g-frame-expression)) {#sec-frame-expression}
 
