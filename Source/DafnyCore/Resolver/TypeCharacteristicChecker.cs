@@ -86,10 +86,8 @@ namespace Microsoft.Dafny {
             if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
               // here's our chance to infer the need for equality support
               foreach (var p in iter.Ins) {
-                if (InferRequiredEqualitySupport(tp, p.Type)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
-                    TypeParameter.EqualitySupportValue.InferredRequired;
+                if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                   done = true;
                   break;
                 }
@@ -99,10 +97,8 @@ namespace Microsoft.Dafny {
                 if (done) {
                   break;
                 }
-                if (InferRequiredEqualitySupport(tp, p.Type)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
-                    TypeParameter.EqualitySupportValue.InferredRequired;
+                if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                   break;
                 }
               }
@@ -115,12 +111,11 @@ namespace Microsoft.Dafny {
               foreach (var tp in function.TypeArgs) {
                 if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
-                  if (InferRequiredEqualitySupport(tp, function.ResultType)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  if (InferAndSetEqualitySupport(tp, function.ResultType, reporter)) {
+                    // the call to InferAndSetEqualitySupport made the necessary updates
                   } else {
                     foreach (var p in function.Ins) {
-                      if (InferRequiredEqualitySupport(tp, p.Type)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                      if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
                         break;
                       }
                     }
@@ -133,8 +128,7 @@ namespace Microsoft.Dafny {
                 if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
                   foreach (var p in method.Ins) {
-                    if (InferRequiredEqualitySupport(tp, p.Type)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
                       done = true;
                       break;
                     }
@@ -144,8 +138,7 @@ namespace Microsoft.Dafny {
                     if (done) {
                       break;
                     }
-                    if (InferRequiredEqualitySupport(tp, p.Type)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
                       break;
                     }
                   }
@@ -161,6 +154,9 @@ namespace Microsoft.Dafny {
       var requiresEqualitySupport = InferRequiredEqualitySupport(tp, type);
       if (requiresEqualitySupport) {
         tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+        if (reporter is not ErrorReporterWrapper) {
+          reporter.Info(MessageSource.Resolver, tp.tok, "(==)");
+        }
       }
       return requiresEqualitySupport;
     }
