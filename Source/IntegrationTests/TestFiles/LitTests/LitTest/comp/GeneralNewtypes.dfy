@@ -13,6 +13,7 @@ method Main() {
   NewBehaviors.Test();
   TypeParameters.Test();
   AutoInit.Test();
+  RefinementB.Test(2.0, 3.0);
 }
 
 module Numerics {
@@ -615,24 +616,34 @@ module TypeParameters {
 module AutoInit {
   newtype A<Unused> = x: int | 5 <= x witness 5
   newtype B<Unused> = z: real | true
-  newtype Int32<Unused> = x | -0x8000_0000 <= x < 0x8000_0000
+  newtype Int32<Unused> = x | -0x8000_0000 <= x < 0x8000_0000 witness 7
   newtype N<G> = G
 
   newtype pos = x: int | 0 < x witness 19
 
-  method M<X(0)>() returns (x: X) {
-    x := *;
-  }
-
   method TestOne<X(0)>() {
-    var x := M<X>();
+    var x: X := *;
     print x, "\n";
   }
 
   method Test() {
     TestOne<A<pos>>(); // 5
     TestOne<B<pos>>(); // 0.0
-    TestOne<Int32<pos>>(); // 0
-    TestOne<N<Int32<pos>>>(); // 0
+    TestOne<Int32<pos>>(); // 7
+    TestOne<N<Int32<pos>>>(); // 7
   }
+}
+
+abstract module RefinementA {
+  type AbstractType
+  newtype NAT = AbstractType /* `witness *` */
+  newtype NATx = x: AbstractType | true witness *
+
+  method Test(n: NAT, nx: NATx) {
+    print n, " ", nx, "\n";
+  }
+}
+
+module RefinementB refines RefinementA {
+  type AbstractType = real
 }
