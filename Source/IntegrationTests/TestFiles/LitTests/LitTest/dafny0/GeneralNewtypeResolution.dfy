@@ -934,3 +934,23 @@ module RefinementNewtypes refines RefinementBase {
     C // error: refinement cannot change variance
   > = x: int | true
 }
+
+module Cycle0 {
+  newtype W<X> = X
+  newtype A = w: W<A> | true // error: cycle: A -> A
+}
+
+module Cycle1 {
+  newtype W<X> = X
+  newtype A = W<A> // error: cycle: A -> A
+}
+
+module Cycle2 {
+  newtype W<X> = X
+  type A = W<A> // error: cycle: A -> A
+}
+
+module Cycle3 {
+  type W<X> = X
+  newtype A = W<A> // error: cycle: A -> A
+}

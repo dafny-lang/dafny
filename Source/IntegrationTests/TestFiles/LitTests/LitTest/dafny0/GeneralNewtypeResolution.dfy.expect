@@ -189,7 +189,11 @@ GeneralNewtypeResolution.dfy(927,4): Error: type parameter 'ZZ' is not allowed t
 GeneralNewtypeResolution.dfy(932,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
 GeneralNewtypeResolution.dfy(933,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
 GeneralNewtypeResolution.dfy(934,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
-191 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(940,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(945,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(950,7): Error: type-synonym cycle: A -> A
+GeneralNewtypeResolution.dfy(955,10): Error: recursive constraint dependency involving a newtype: A -> A
+195 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype ('MyOrdinal') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype ('MyObject') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype ('MyTrait') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got Trait)
@@ -350,4 +354,8 @@ GeneralNewtypeResolution.dfy(927,4): Error: type parameter 'ZZ' is not allowed t
 GeneralNewtypeResolution.dfy(932,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
 GeneralNewtypeResolution.dfy(933,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
 GeneralNewtypeResolution.dfy(934,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
-159 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(940,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(945,10): Error: recursive constraint dependency involving a newtype: A -> A
+GeneralNewtypeResolution.dfy(950,7): Error: type-synonym cycle: A -> A
+GeneralNewtypeResolution.dfy(955,10): Error: recursive constraint dependency involving a newtype: A -> A
+163 resolution/type errors detected in GeneralNewtypeResolution.dfy
