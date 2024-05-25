@@ -12,6 +12,7 @@ method Main() {
   NewtypeIsTests.Test();
   NewBehaviors.Test();
   TypeParameters.Test();
+  AutoInit.Test();
 }
 
 module Numerics {
@@ -608,5 +609,26 @@ module TypeParameters {
 
   function Unwrap3(x: Wrapper<Wrapper<Wrapper<int32>>>): int32 {
     x as Wrapper<Wrapper<int32>> as Wrapper<int32> as int32
+  }
+}
+
+module AutoInit {
+  newtype A<Unused> = x: int | 5 <= x witness 5
+  newtype B<Unused> = z: real | true
+
+  newtype pos = x: int | 0 < x witness 19
+
+  method M<X(0)>() returns (x: X) {
+    x := *;
+  }
+
+  method TestOne<X(0)>() {
+    var x := M<X>();
+    print x, "\n";
+  }
+
+  method Test() {
+    TestOne<A<pos>>(); // 5
+    TestOne<B<pos>>(); // 0.0
   }
 }
