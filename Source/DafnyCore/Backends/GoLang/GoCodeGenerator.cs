@@ -1304,10 +1304,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(ownerName != null);
       Contract.Requires(abstractWriter != null || concreteWriter != null);
 
-      var customReceiver = createBody && !forBodyInheritance && member != null && (
-        NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member));
-      EnsureSame( NeedsCustomReceiverOriginal(member),
-    NeedsCustomReceiver(member) ||NeedsCustomReceiverComplement(member));
+      var customReceiver = createBody && !forBodyInheritance && member != null && NeedsCustomReceiver(member);
       ConcreteSyntaxTree wr;
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
@@ -2907,7 +2904,7 @@ namespace Microsoft.Dafny.Compilers {
             EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
-        } else if (EnsureSame(NeedsCustomReceiverOriginal(member) && !(member.EnclosingClass is TraitDecl), NeedsCustomReceiver(member)) && NeedsCustomReceiver(member)) {
+        } else if (NeedsCustomReceiverNotTrait(member)) {
           // instance const in a newtype
           Contract.Assert(typeArgs.Count == 0);
           lvalue = SimpleLvalue(w => {

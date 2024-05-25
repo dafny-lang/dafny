@@ -26,15 +26,6 @@ namespace Microsoft.Dafny.Compilers {
   }
 
   public abstract class SinglePassCodeGenerator {
-
-    public bool EnsureSame(bool a, bool b) {
-      if (a != b) {
-        throw new InvalidOperationException($"Was not equal, got {a} and {b}");
-      }
-
-      return true;
-    }
-
     // Dafny names cannot start with "_". Hence, if an internal Dafny name is problematic in the target language,
     // we can prefix it with "_".
     // However, for backends such as Rust which need special internal fields, we want to clearly
@@ -2066,13 +2057,13 @@ namespace Microsoft.Dafny.Compilers {
       decls.AddRange(consts);
     }
 
-    public virtual bool NeedsCustomReceiverComplement(MemberDecl member) {
+    public bool NeedsCustomReceiver(MemberDecl member) {
+      return NeedsCustomReceiverNotTrait(member) || NeedsCustomReceiverSpecialCase(member);
+    }
+
+    public virtual bool NeedsCustomReceiverSpecialCase(MemberDecl member) {
       if (member.IsStatic) {
         return false;
-      }
-
-      if (member.EnclosingClass is NewtypeDecl) {
-        return true;
       }
       return member.EnclosingClass is TraitDecl
              && (member is ConstantField {Rhs: { }} 
@@ -2080,16 +2071,15 @@ namespace Microsoft.Dafny.Compilers {
                or Method {Body: { }});
     }
 
-    public virtual bool NeedsCustomReceiver(MemberDecl member) {
+    public virtual bool NeedsCustomReceiverNotTrait(MemberDecl member) {
       Contract.Requires(member != null);
       // One of the limitations in many target language encodings are restrictions to instance members. If an
       // instance member can't be directly expressed in the target language, we make it a static member with an
       // additional first argument specifying the `this`, giving it a `CustomReceiver`.
       // Such backends would typically override this method to return "true" in this case.
-      if (member.EnclosingClass is TraitDecl) {
-        return false;
-      }
       if (member.IsStatic) {
+        return false;
+      } else if (member.EnclosingClass is TraitDecl) {
         return false;
       } else if (member.EnclosingClass is NewtypeDecl) {
         return true;
@@ -2239,8 +2229,7 @@ namespace Microsoft.Dafny.Compilers {
               if (cf.IsStatic) {
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, true, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
-              } else if (EnsureSame(NeedsCustomReceiverOriginal(cf), NeedsCustomReceiver(cf) || NeedsCustomReceiverComplement(cf))
-                         && (NeedsCustomReceiver(cf) || NeedsCustomReceiverComplement(cf))) {
+              } else if (NeedsCustomReceiver(cf)) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
@@ -2826,8 +2815,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
         var typeArgs = CombineAllTypeArguments(m, ty.TypeArgs, m.TypeArgs.ConvertAll(tp => (Type)Type.Bool));
-        bool customReceiver = NeedsCustomReceiver(m);
-		EnsureSame(!(m.EnclosingClass is TraitDecl) && NeedsCustomReceiverOriginal(m), customReceiver);
+        bool customReceiver = NeedsCustomReceiverNotTrait(m);
 
         if (receiver != null && !customReceiver) {
           w.Write("{0}.", IdName(receiver));
@@ -4916,8 +4904,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         Contract.Assert(lvalues.Count == outTmps.Count);
 
-        bool customReceiver = NeedsCustomReceiver(s.Method);
-		EnsureSame(!(s.Method.EnclosingClass is TraitDecl) && NeedsCustomReceiverOriginal(s.Method), customReceiver);
+        bool customReceiver = NeedsCustomReceiverNotTrait(s.Method);
 
         var returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 1 && returnStyleOuts && !SupportsMultipleReturns ? ProtectedFreshId("_outcollector") : null;
@@ -5302,8 +5289,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          var customReceiver = NeedsCustomReceiver(e.Member);
-		  EnsureSame(NeedsCustomReceiverOriginal(e.Member) && !(e.Member.EnclosingClass is TraitDecl), customReceiver);
+          var customReceiver = NeedsCustomReceiverNotTrait(e.Member);
           if (!customReceiver && !e.Member.IsStatic) {
             Action<ConcreteSyntaxTree> obj;
             // The eta conversion here is to avoid capture of the receiver, because the call to EmitMemberSelect below may generate
@@ -6250,8 +6236,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = EmitCoercionIfNecessary(f.Original.ResultType, toType, e.tok, wr);
       }
 
-      var customReceiver = NeedsCustomReceiver(f);
-EnsureSame(!(f.EnclosingClass is TraitDecl) && NeedsCustomReceiverOriginal(f), customReceiver);
+      var customReceiver = NeedsCustomReceiverNotTrait(f);
       string qual = "";
       string compileName = "";
       if (f.IsExtern(Options, out qual, out compileName) && qual != null) {

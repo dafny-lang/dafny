@@ -926,12 +926,12 @@ namespace Microsoft.Dafny.Compilers {
     private void CompileDatatypeInterfaceMembers(DatatypeDecl dt, ConcreteSyntaxTree interfaceTree) {
       foreach (var member in dt.Members) {
         if (member.IsGhost || member.IsStatic) { continue; }
-        if (member is Function fn && !EnsureSame(NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member), NeedsCustomReceiverOriginal(member))) {
+        if (member is Function fn && !NeedsCustomReceiver(member)) {
           CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic,
             false, fn, interfaceTree, false, false);
-        } else if (member is Method m && !EnsureSame(NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member), NeedsCustomReceiverOriginal(member))) {
+        } else if (member is Method m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, interfaceTree, false, false);
-        } else if (member is ConstantField c && !EnsureSame(NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member), NeedsCustomReceiverOriginal(member))) {
+        } else if (member is ConstantField c && !NeedsCustomReceiver(member)) {
           CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, interfaceTree, null));
         }
       }
@@ -978,7 +978,7 @@ namespace Microsoft.Dafny.Compilers {
       return base.NeedsCustomReceiverOriginal(member);
     }
 
-    public override bool NeedsCustomReceiverComplement(MemberDecl member) {
+    public override bool NeedsCustomReceiverSpecialCase(MemberDecl member) {
       //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
       if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
         foreach (var tp in d.TypeArgs) {
@@ -1006,7 +1006,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      return base.NeedsCustomReceiverComplement(member);
+      return base.NeedsCustomReceiverSpecialCase(member);
     }
 
 
@@ -1426,7 +1426,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || (member?.EnclosingClass is TraitDecl && CodeGenerator.EnsureSame(CodeGenerator.NeedsCustomReceiver(member) || CodeGenerator.NeedsCustomReceiverComplement(member), CodeGenerator.NeedsCustomReceiverOriginal(member)))) {
+          if (isStatic || (member?.EnclosingClass is TraitDecl && CodeGenerator.NeedsCustomReceiver(member))) {
             return StaticMemberWriter;
           }
         }
@@ -1470,7 +1470,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      var customReceiver = createBody && !forBodyInheritance && EnsureSame(NeedsCustomReceiver(m) || NeedsCustomReceiverComplement(m), NeedsCustomReceiverOriginal(m));
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var keywords = Keywords(createBody, m.IsStatic || customReceiver, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
       AddTestCheckerIfNeeded(m.Name, m, wr);
@@ -1544,7 +1544,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected ConcreteSyntaxTree/*?*/ CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
 
-      var customReceiver = createBody && !forBodyInheritance && EnsureSame(NeedsCustomReceiver(member), NeedsCustomReceiverOriginal(member));
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write(Keywords(createBody, isStatic || customReceiver, false));
@@ -1585,7 +1585,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       Contract.Assume(member is Method { IsTailRecursive: true } or Function { IsTailRecursive: true }); // precondition
-      if (!member.IsStatic && !EnsureSame(NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member), NeedsCustomReceiverOriginal(member))) {
+      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
         var receiverType = member.EnclosingClass is DatatypeDecl dt ? DtTypeName(dt) : "var";
         wr.WriteLine($"{receiverType} _this = this;");
       }
@@ -2535,7 +2535,7 @@ namespace Microsoft.Dafny.Compilers {
       //Use the interface if applicable (not handwritten, or incompatible variance)
       if ((cl is DatatypeDecl)
           && !ignoreInterface
-          && (member is null || !EnsureSame(NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member), NeedsCustomReceiverOriginal(member)))) {
+          && (member is null || !NeedsCustomReceiver(member))) {
         return (cl.EnclosingModuleDefinition.TryToAvoidName ? "" : IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + DtTypeName(cl, false);
       }
 
@@ -2551,8 +2551,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       var custom =
-        (enclosingMethod != null && (enclosingMethod.IsTailRecursive || EnsureSame(NeedsCustomReceiver(enclosingMethod) || NeedsCustomReceiverComplement(enclosingMethod), NeedsCustomReceiverOriginal(enclosingMethod)))) ||
-        (enclosingFunction != null && (enclosingFunction.IsTailRecursive || EnsureSame(NeedsCustomReceiver(enclosingFunction) || NeedsCustomReceiverComplement(enclosingFunction), NeedsCustomReceiverOriginal(enclosingMethod)))) ||
+        (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
+        (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
         (thisContext is NewtypeDecl && !callToInheritedMember) ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
@@ -2708,7 +2708,7 @@ namespace Microsoft.Dafny.Compilers {
               w.Write(")");
             }
           });
-        } else if (EnsureSame(NeedsCustomReceiverOriginal(member) && !(member.EnclosingClass is TraitDecl), NeedsCustomReceiver(member))) {
+        } else if (NeedsCustomReceiverNotTrait(member)) {
           // instance const in a newtype or belongs to a datatype
           Contract.Assert(typeArgs.Count == 0 || member.EnclosingClass is DatatypeDecl);
           return SimpleLvalue(w => {

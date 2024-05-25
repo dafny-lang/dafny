@@ -449,7 +449,7 @@ namespace Microsoft.Dafny.Compilers {
 
       public ConcreteSyntaxTree Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         if (createBody) {
-          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && CodeGenerator.NeedsCustomReceiver(member))) {
+          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && CodeGenerator.NeedsCustomReceiverNotTrait(member))) {
             return StaticMemberWriter;
           }
         }
@@ -546,7 +546,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = DafnyTupleClass(nonGhostOuts);
       }
-      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiverNotTrait(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       foreach (var instrumenter in Instrumenters) {
         instrumenter.BeforeMethod(m, wr);
@@ -595,7 +595,7 @@ namespace Microsoft.Dafny.Compilers {
         // No need for abstract version of static method
         return null;
       }
-      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiverNotTrait(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       wr.Write(TypeParameters(TypeArgumentInstantiation.ToFormals(ForTypeParameters(typeArgs, member, lookasideBody)), " "));
@@ -1269,8 +1269,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
       var custom =
-        (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiver(enclosingMethod))) ||
-        (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiver(enclosingFunction))) ||
+        (enclosingMethod != null && (enclosingMethod.IsTailRecursive || NeedsCustomReceiverNotTrait(enclosingMethod))) ||
+        (enclosingFunction != null && (enclosingFunction.IsTailRecursive || NeedsCustomReceiverNotTrait(enclosingFunction))) ||
         (thisContext is NewtypeDecl && !callToInheritedMember) ||
         thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
@@ -1492,7 +1492,7 @@ namespace Microsoft.Dafny.Compilers {
             EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
-        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+        } else if (NeedsCustomReceiverNotTrait(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
           Contract.Assert(typeArgs.Count == 0);
           lvalue = SimpleLvalue(w => {
@@ -3446,7 +3446,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
-      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
+      if (!member.IsStatic && !NeedsCustomReceiverNotTrait(member)) {
         var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
         var receiverTypeName = TypeName(receiverType, wr, member.tok);
         if (member.EnclosingClass.IsExtern(Options, out _, out _)) {

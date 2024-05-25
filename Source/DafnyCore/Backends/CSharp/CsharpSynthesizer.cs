@@ -76,7 +76,7 @@ public class CsharpSynthesizer {
     // The following few lines are identical to those in Compiler.CreateMethod:
     var customReceiver = createBody &&
                          !forBodyInheritance &&
-                         codeGenerator.NeedsCustomReceiver(method);
+                         codeGenerator.NeedsCustomReceiverNotTrait(method);
     var keywords = codeGenerator.Keywords(true, true);
     var returnType = codeGenerator.GetTargetReturnTypeReplacement(method, wr);
     var typeParameters = codeGenerator.TypeParameters(SinglePassCodeGenerator.TypeArgumentInstantiation.
