@@ -2065,9 +2065,9 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       }
       return member.EnclosingClass is TraitDecl
-             && (member is ConstantField {Rhs: { }} 
-               or Function {Body: { }} 
-               or Method {Body: { }});
+             && (member is ConstantField { Rhs: { } }
+               or Function { Body: { } }
+               or Method { Body: { } });
     }
 
     public virtual bool NeedsCustomReceiverInDatatype(MemberDecl member) {

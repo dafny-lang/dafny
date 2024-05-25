@@ -84,10 +84,20 @@ clean:
 	(cd ${DIR}; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
 	echo Source/*/bin Source/*/obj
 
+update-cs-module:
+	(cd ${DIR}; cd Source/DafnyRuntime; make update-system-module)
+
+update-go-module:
+	(cd ${DIR}; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
+
+update-runtime-dafny:
+	(cd ${DIR}; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
 # - Use the build to convert core .dfy files to .cs
 # - Rebuilds the Dafny executable with this .cs files
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
-pr: exe dfy-to-cs-exe format-dfy format
+# - Rebuild the Go and C# runtime modules as needed.
+pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module

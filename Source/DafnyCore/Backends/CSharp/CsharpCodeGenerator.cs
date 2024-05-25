@@ -946,7 +946,7 @@ namespace Microsoft.Dafny.Compilers {
         return "";
       }
     }
-    
+
     public override bool NeedsCustomReceiverInDatatype(MemberDecl member) {
       Contract.Requires(!member.IsStatic && member.EnclosingClass is DatatypeDecl);
       if (member.EnclosingClass is DatatypeDecl d) {
