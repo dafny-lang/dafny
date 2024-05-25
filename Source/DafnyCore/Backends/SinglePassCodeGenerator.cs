@@ -2057,10 +2057,10 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public bool NeedsCustomReceiver(MemberDecl member) {
-      return NeedsCustomReceiverNotTrait(member) || NeedsCustomReceiverSpecialCase(member);
+      return NeedsCustomReceiverNotTrait(member) || NeedsCustomReceiverInTrait(member);
     }
 
-    public virtual bool NeedsCustomReceiverSpecialCase(MemberDecl member) {
+    public virtual bool NeedsCustomReceiverInTrait(MemberDecl member) {
       if (member.IsStatic) {
         return false;
       }

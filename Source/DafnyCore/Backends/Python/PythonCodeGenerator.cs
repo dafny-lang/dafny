@@ -504,8 +504,8 @@ namespace Microsoft.Dafny.Compilers {
       if (createBody) {
         return getterWriter;
       }
-      getterWriter.WriteLine($"return self._{name}");
-      setterWriter.WriteLine($"self._{name} = value");
+      getterWriter.WriteLine($"return self.{InternalFieldPrefix}{name}");
+      setterWriter.WriteLine($"self.{InternalFieldPrefix}{name} = value");
       setterWriter = null;
       return null;
     }
@@ -1296,7 +1296,7 @@ namespace Microsoft.Dafny.Compilers {
                 obj(w);
               }
               if (compiledName.Length > 0) {
-                w.Write($".{(sf is ConstantField && internalAccess ? "_" : "")}{compiledName}");
+                w.Write($".{(sf is ConstantField && internalAccess ? InternalFieldPrefix : "")}{compiledName}");
               }
               var sep = "(";
               EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
