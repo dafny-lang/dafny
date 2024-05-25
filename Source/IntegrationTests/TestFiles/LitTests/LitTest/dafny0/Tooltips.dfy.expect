@@ -10,9 +10,9 @@ Tooltips.dfy(15,9): Info: (==)
 Tooltips.dfy(16,9): Info: (==)
 Tooltips.dfy(17,11): Info: (==)
 Tooltips.dfy(18,11): Info: (==)
-Tooltips.dfy(20,10): Info: (==)
-Tooltips.dfy(21,21): Info: (==)
-Tooltips.dfy(22,12): Info: (==)
+Tooltips.dfy(20,7): Info: (==)
+Tooltips.dfy(21,7): Info: (==)
+Tooltips.dfy(22,9): Info: (==)
 Tooltips.dfy(23,9): Info: (==)
 
 Dafny program verifier finished with 2 verified, 0 errors
