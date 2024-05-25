@@ -813,3 +813,70 @@ module TypeParametersForTypeSynonyms {
     wb := b as Wrapper<bool>;
   }
 }
+
+module TypeVarianceIsUsedCorrectly {
+  datatype P0<X> = R(f: int -> X)
+  datatype P1<!X> = R(f: int -> X)
+  datatype P2<+X> = R(f: int -> X)
+  datatype P3<*X> = R(f: int -> X)
+  datatype P4<-X> = R(f: int -> X) // error
+
+  datatype M0<X> = R(f: X -> int) // error
+  datatype M1<!X> = R(f: X -> int)
+  datatype M2<+X> = R(f: X -> int) // error
+  datatype M3<*X> = R(f: X -> int) // error
+  datatype M4<-X> = R(f: X -> int)
+
+  newtype Co0<X> = s: seq<int -> X> | true
+  newtype Co1<!X> = s: seq<int -> X> | true
+  newtype Co2<+X> = s: seq<int -> X> | true
+  newtype Co3<*X> = s: seq<int -> X> | true
+  newtype Co4<-X> = s: seq<int -> X> | true // error: X is not used properly
+
+  newtype Contra0<X> = s: seq<X -> int> | true // error: X is not used properly
+  newtype Contra1<!X> = s: seq<X -> int> | true
+  newtype Contra2<+X> = s: seq<X -> int> | true // error: X is not used properly
+  newtype Contra3<*X> = s: seq<X -> int> | true // error: X is not used properly
+  newtype Contra4<-X> = s: seq<X -> int> | true
+}
+
+module TypeCharacteristicsAreUsedCorrectly {
+  export
+    provides A0, A1, A2, A3, B0, B1, B2, B3
+    provides G0, G1, G2, G3, H0, H1, H2, H3
+
+  type NeedsEq<X(==)>
+  type NeedsAutoInit<X(0)>
+  type NeedsNonempty<X(00)>
+  type NeedsNoReferences<X(!new)>
+
+  newtype A0<Y> = NeedsEq<Y> // error: Y does not support (==)
+  newtype A1<Y> = NeedsAutoInit<Y> // error: Y does not support (0)
+  newtype A2<Y> = NeedsNonempty<Y> // error: Y does not support (00)
+  newtype A3<Y> = NeedsNoReferences<Y> // error: Y does not support (!new)
+
+  newtype B0<Z(==)> = NeedsEq<Z>
+  newtype B1<Z(0)> = NeedsAutoInit<Z>
+  newtype B2<Z(00)> = NeedsNonempty<Z>
+  newtype B3<Z(!new)> = NeedsNoReferences<Z>
+
+  type G0<Y> = NeedsEq<Y> // error: Y does not support (==)
+  type G1<Y> = NeedsAutoInit<Y> // error: Y does not support (0)
+  type G2<Y> = NeedsNonempty<Y> // error: Y does not support (00)
+  type G3<Y> = NeedsNoReferences<Y> // error: Y does not support (!new)
+
+  type H0<Z(==)> = NeedsEq<Z>
+  type H1<Z(0)> = NeedsAutoInit<Z>
+  type H2<Z(00)> = NeedsNonempty<Z>
+  type H3<Z(!new)> = NeedsNoReferences<Z>
+}
+
+module EqualitySupportInference {
+  export
+    reveals *
+
+  type NeedsEq<X(==)>
+
+  type Z0<Y> = NeedsEq<Y> // no problem, because Y is inferred to be (==)
+  newtype A0<Y> = NeedsEq<Y> // no problem, because Y is inferred to be (==)
+}

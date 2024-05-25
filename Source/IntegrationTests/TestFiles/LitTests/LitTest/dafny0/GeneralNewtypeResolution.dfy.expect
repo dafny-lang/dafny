@@ -150,7 +150,26 @@ GeneralNewtypeResolution.dfy(715,7): Error: RHS (of type bool) not assignable to
 GeneralNewtypeResolution.dfy(720,12): Error: type conversion target type not determined (got 'Wrapper<?4>')
 GeneralNewtypeResolution.dfy(759,12): Error: type conversion target type not determined (got '?4')
 GeneralNewtypeResolution.dfy(798,12): Error: type conversion target type not determined (got '?4')
-152 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(830,10): Error: a newtype ('Co0') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(831,10): Error: a newtype ('Co1') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(832,10): Error: a newtype ('Co2') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(833,10): Error: a newtype ('Co3') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(834,10): Error: a newtype ('Co4') must be based on some numeric type (got seq<int -> X>)
+GeneralNewtypeResolution.dfy(836,10): Error: a newtype ('Contra0') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(837,10): Error: a newtype ('Contra1') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(838,10): Error: a newtype ('Contra2') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(839,10): Error: a newtype ('Contra3') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(840,10): Error: a newtype ('Contra4') must be based on some numeric type (got seq<X -> int>)
+GeneralNewtypeResolution.dfy(853,10): Error: a newtype ('A0') must be based on some numeric type (got NeedsEq<Y>)
+GeneralNewtypeResolution.dfy(854,10): Error: a newtype ('A1') must be based on some numeric type (got NeedsAutoInit<Y>)
+GeneralNewtypeResolution.dfy(855,10): Error: a newtype ('A2') must be based on some numeric type (got NeedsNonempty<Y>)
+GeneralNewtypeResolution.dfy(856,10): Error: a newtype ('A3') must be based on some numeric type (got NeedsNoReferences<Y>)
+GeneralNewtypeResolution.dfy(858,10): Error: a newtype ('B0') must be based on some numeric type (got NeedsEq<Z>)
+GeneralNewtypeResolution.dfy(859,10): Error: a newtype ('B1') must be based on some numeric type (got NeedsAutoInit<Z>)
+GeneralNewtypeResolution.dfy(860,10): Error: a newtype ('B2') must be based on some numeric type (got NeedsNonempty<Z>)
+GeneralNewtypeResolution.dfy(861,10): Error: a newtype ('B3') must be based on some numeric type (got NeedsNoReferences<Z>)
+GeneralNewtypeResolution.dfy(881,10): Error: a newtype ('A0') must be based on some numeric type (got NeedsEq<Y>)
+171 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype ('MyOrdinal') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype ('MyObject') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype ('MyTrait') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got Trait)
@@ -275,4 +294,20 @@ GeneralNewtypeResolution.dfy(715,7): Error: RHS (of type bool) not assignable to
 GeneralNewtypeResolution.dfy(720,12): Error: type conversion target type not determined (got 'Wrapper<?4>')
 GeneralNewtypeResolution.dfy(759,12): Error: type conversion target type not determined (got '?4')
 GeneralNewtypeResolution.dfy(798,12): Error: type conversion target type not determined (got '?4')
-123 resolution/type errors detected in GeneralNewtypeResolution.dfy
+GeneralNewtypeResolution.dfy(822,32): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(824,24): Error: formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')
+GeneralNewtypeResolution.dfy(826,25): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(827,25): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(834,34): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(836,30): Error: formal type parameter 'X' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'X' as '-X' or '!X')
+GeneralNewtypeResolution.dfy(838,31): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(839,31): Error: formal type parameter 'X' is not used according to its variance specification
+GeneralNewtypeResolution.dfy(853,18): Error: type parameter (X) passed to type NeedsEq must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 853 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
+GeneralNewtypeResolution.dfy(854,18): Error: type parameter (X) passed to type NeedsAutoInit must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 854 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+GeneralNewtypeResolution.dfy(855,18): Error: type parameter (X) passed to type NeedsNonempty must be nonempty (got Y) (perhaps try declaring type parameter 'Y' on line 855 as 'Y(00)', which says it can only be instantiated with a nonempty type)
+GeneralNewtypeResolution.dfy(856,18): Error: type parameter (X) passed to type NeedsNoReferences must contain no references (got Y) (perhaps try declaring type parameter 'Y' on line 856 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+GeneralNewtypeResolution.dfy(863,15): Error: type parameter (X) passed to type NeedsEq must support equality (got Y) (perhaps try declaring type parameter 'Y' on line 863 as 'Y(==)', which says it can only be instantiated with a type that supports equality)
+GeneralNewtypeResolution.dfy(864,15): Error: type parameter (X) passed to type NeedsAutoInit must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 864 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+GeneralNewtypeResolution.dfy(865,15): Error: type parameter (X) passed to type NeedsNonempty must be nonempty (got Y) (perhaps try declaring type parameter 'Y' on line 865 as 'Y(00)', which says it can only be instantiated with a nonempty type)
+GeneralNewtypeResolution.dfy(866,15): Error: type parameter (X) passed to type NeedsNoReferences must contain no references (got Y) (perhaps try declaring type parameter 'Y' on line 866 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+139 resolution/type errors detected in GeneralNewtypeResolution.dfy
