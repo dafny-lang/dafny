@@ -880,3 +880,57 @@ module EqualitySupportInference {
   type Z0<Y> = NeedsEq<Y> // no problem, because Y is inferred to be (==)
   newtype A0<Y> = NeedsEq<Y> // no problem, because Y is inferred to be (==)
 }
+
+module RefinementBase {
+  type A<T>
+
+  type N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ>
+  type O<V, W(0), X(00), Y(==), YY, Z(!new), ZZ>
+
+  type V<+A, B, -C>
+  type W<+A, B, -C>
+}
+
+module RefinementSubsetTypes refines RefinementBase {
+  type A<U> = x: int | true // renaming is allowed when refining an abstract type
+
+  type N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ> = x: int | true
+  type O<
+    V(0), // error: refinement cannot change type characteristics
+    W(00), // error: refinement cannot change type characteristics
+    X, // error: refinement cannot change type characteristics
+    Y, // error: refinement cannot change type characteristics
+    YY(==), // error: refinement cannot change type characteristics
+    Z, // error: refinement cannot change type characteristics
+    ZZ(!new) // error: refinement cannot change type characteristics
+  > = x: int | true
+
+  type V<+A, B, -C> = x: int | true
+  type W<
+    -A, // error: refinement cannot change variance
+    +B, // error: refinement cannot change variance
+    C // error: refinement cannot change variance
+  > = x: int | true
+}
+
+module RefinementNewtypes refines RefinementBase {
+  newtype A<U> = x: int | true // renaming is allowed when refining an abstract type
+
+  newtype N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ> = x: int | true
+  newtype O<
+    V(0), // error: refinement cannot change type characteristics
+    W(00), // error: refinement cannot change type characteristics
+    X, // error: refinement cannot change type characteristics
+    Y, // error: refinement cannot change type characteristics
+    YY(==), // error: refinement cannot change type characteristics
+    Z, // error: refinement cannot change type characteristics
+    ZZ(!new) // error: refinement cannot change type characteristics
+  > = x: int | true
+
+  newtype V<+A, B, -C> = x: int | true
+  newtype W<
+    -A, // error: refinement cannot change variance
+    +B, // error: refinement cannot change variance
+    C // error: refinement cannot change variance
+  > = x: int | true
+}
