@@ -861,6 +861,8 @@ public partial class BoogieGenerator {
     } else if (typ.IsTraitType) {
       Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy);
       return null;
+    } else if (typ.IsTypeParameter) {
+      return null;
     } else {
       Contract.Assume(false);  // unexpected type
       return null;

@@ -36,5 +36,7 @@ GeneralNewtypeVerify.dfy(361,13): Error: rotate amount must be non-negative
 GeneralNewtypeVerify.dfy(364,11): Error: rotate amount must not exceed the width of the result (5)
 GeneralNewtypeVerify.dfy(367,27): Error: result of operation might violate subset type constraint for 'nat'
 GeneralNewtypeVerify.dfy(371,35): Error: result of operation might violate newtype constraint for 'BV'
+GeneralNewtypeVerify.dfy(490,7): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+GeneralNewtypeVerify.dfy(491,10): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 
-Dafny program verifier finished with 30 verified, 38 errors
+Dafny program verifier finished with 30 verified, 40 errors

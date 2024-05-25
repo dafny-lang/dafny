@@ -485,6 +485,12 @@ module TypeParametersForTypeSynonym {
   }
 }
 
+module ExpandToTypeParameterWithoutWitness {
+  // The following two lines once had caused a crash in the verifier
+  type A<Y> = y: Y | true // error: 
+  newtype B<Z> = z: Z | true // error: 
+}
+
 /*
 module RealConversions {
   method TestRealIsInt0(r: real)
