@@ -1159,7 +1159,10 @@ namespace Microsoft.Dafny.Compilers {
 
 
     private readonly HashSet<string> ReservedModuleNames = new() {
-      "itertools", "math", "typing", "sys"
+      "itertools",
+      "math",
+      "typing",
+      "sys"
     };
 
     private string PublicModuleIdProtect(string name) {

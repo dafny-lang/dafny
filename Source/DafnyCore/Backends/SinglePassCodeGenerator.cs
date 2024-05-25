@@ -27,6 +27,14 @@ namespace Microsoft.Dafny.Compilers {
 
   public abstract class SinglePassCodeGenerator {
 
+    public bool EnsureSame(bool a, bool b) {
+      if (a != b) {
+        throw new InvalidOperationException($"Was not equal, got {a} and {b}");
+      }
+
+      return true;
+    }
+
     // Dafny names cannot start with "_". Hence, if an internal Dafny name is problematic in the target language,
     // we can prefix it with "_".
     // However, for backends such as Rust which need special internal fields, we want to clearly
@@ -2058,6 +2066,20 @@ namespace Microsoft.Dafny.Compilers {
       decls.AddRange(consts);
     }
 
+    public virtual bool NeedsCustomReceiverComplement(MemberDecl member) {
+      if (member.IsStatic) {
+        return false;
+      }
+
+      if (member.EnclosingClass is NewtypeDecl) {
+        return true;
+      }
+      return member.EnclosingClass is TraitDecl
+             && (member is ConstantField {Rhs: { }} 
+               or Function {Body: { }} 
+               or Method {Body: { }});
+    }
+
     public virtual bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       // One of the limitations in many target language encodings are restrictions to instance members. If an
@@ -2071,6 +2093,27 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       } else if (member.EnclosingClass is NewtypeDecl) {
         return true;
+      } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
+        // An undefined value "o" cannot use this o.F(...) form in most languages.
+        // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, datatypeDecl, out _);
+      } else {
+        return false;
+      }
+    }
+
+
+    public virtual bool NeedsCustomReceiverOriginal(MemberDecl member) {
+      Contract.Requires(member != null);
+      // One of the limitations in many target language encodings are restrictions to instance members. If an
+      // instance member can't be directly expressed in the target language, we make it a static member with an
+      // additional first argument specifying the `this`, giving it a `CustomReceiver`.
+      if (member.IsStatic) {
+        return false;
+      } else if (member.EnclosingClass is NewtypeDecl) {
+        return true;
+      } else if (member.EnclosingClass is TraitDecl) {
+        return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
         // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
@@ -2118,7 +2161,7 @@ namespace Microsoft.Dafny.Compilers {
               sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
               // get { return this._{0}; }
               EmitThis(sw);
-              sw.Write("._{0}", cf.GetCompileName(Options));
+              sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
             } else {
               EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.tok, true), w);
             }
@@ -2196,7 +2239,8 @@ namespace Microsoft.Dafny.Compilers {
               if (cf.IsStatic) {
                 wBody = CreateFunctionOrGetter(cf, IdName(cf), c, true, true, false, classWriter);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
-              } else if (NeedsCustomReceiver(cf)) {
+              } else if (EnsureSame(NeedsCustomReceiverOriginal(cf), NeedsCustomReceiver(cf) || NeedsCustomReceiverComplement(cf))
+                         && (NeedsCustomReceiver(cf) || NeedsCustomReceiverComplement(cf))) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
@@ -2783,6 +2827,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var typeArgs = CombineAllTypeArguments(m, ty.TypeArgs, m.TypeArgs.ConvertAll(tp => (Type)Type.Bool));
         bool customReceiver = NeedsCustomReceiver(m);
+		EnsureSame(!(m.EnclosingClass is TraitDecl) && NeedsCustomReceiverOriginal(m), customReceiver);
 
         if (receiver != null && !customReceiver) {
           w.Write("{0}.", IdName(receiver));
@@ -4872,6 +4917,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(lvalues.Count == outTmps.Count);
 
         bool customReceiver = NeedsCustomReceiver(s.Method);
+		EnsureSame(!(s.Method.EnclosingClass is TraitDecl) && NeedsCustomReceiverOriginal(s.Method), customReceiver);
 
         var returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 1 && returnStyleOuts && !SupportsMultipleReturns ? ProtectedFreshId("_outcollector") : null;
@@ -5257,6 +5303,7 @@ namespace Microsoft.Dafny.Compilers {
           var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
           var customReceiver = NeedsCustomReceiver(e.Member);
+		  EnsureSame(NeedsCustomReceiverOriginal(e.Member) && !(e.Member.EnclosingClass is TraitDecl), customReceiver);
           if (!customReceiver && !e.Member.IsStatic) {
             Action<ConcreteSyntaxTree> obj;
             // The eta conversion here is to avoid capture of the receiver, because the call to EmitMemberSelect below may generate
@@ -6204,6 +6251,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var customReceiver = NeedsCustomReceiver(f);
+EnsureSame(!(f.EnclosingClass is TraitDecl) && NeedsCustomReceiverOriginal(f), customReceiver);
       string qual = "";
       string compileName = "";
       if (f.IsExtern(Options, out qual, out compileName) && qual != null) {

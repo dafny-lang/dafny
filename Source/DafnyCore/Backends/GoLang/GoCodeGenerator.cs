@@ -1288,15 +1288,6 @@ namespace Microsoft.Dafny.Compilers {
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
-    public override bool NeedsCustomReceiver(MemberDecl member) {
-      Contract.Requires(member != null);
-      if (!member.IsStatic && member.EnclosingClass is TraitDecl) {
-        return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
-      }
-
-      return base.NeedsCustomReceiver(member);
-    }
-
     private ConcreteSyntaxTree CreateSubroutine(string name, List<TypeArgumentInstantiation> typeArgs,
       List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType,
       List<Formal>/*?*/ overriddenInParams, List<Formal>/*?*/ overriddenOutParams, Type/*?*/ overriddenResultType,
@@ -1313,7 +1304,10 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(ownerName != null);
       Contract.Requires(abstractWriter != null || concreteWriter != null);
 
-      var customReceiver = createBody && !forBodyInheritance && member != null && NeedsCustomReceiver(member);
+      var customReceiver = createBody && !forBodyInheritance && member != null && (
+        NeedsCustomReceiver(member) || NeedsCustomReceiverComplement(member));
+      EnsureSame( NeedsCustomReceiverOriginal(member),
+    NeedsCustomReceiver(member) ||NeedsCustomReceiverComplement(member));
       ConcreteSyntaxTree wr;
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
@@ -2913,7 +2907,7 @@ namespace Microsoft.Dafny.Compilers {
             EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w);
             w.Write(")");
           });
-        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+        } else if (EnsureSame(NeedsCustomReceiverOriginal(member) && !(member.EnclosingClass is TraitDecl), NeedsCustomReceiver(member)) && NeedsCustomReceiver(member)) {
           // instance const in a newtype
           Contract.Assert(typeArgs.Count == 0);
           lvalue = SimpleLvalue(w => {
