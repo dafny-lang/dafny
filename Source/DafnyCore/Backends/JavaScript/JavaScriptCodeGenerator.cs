@@ -716,7 +716,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var customReceiver = !forBodyInheritance && NeedsCustomReceiverNotTrait(m);
+      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var sep = "";
       WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, m.EnclosingClass, m, lookasideBody), wr, ref sep, tp => $"rtd$_{tp.GetCompileName(Options)}");
@@ -746,7 +746,7 @@ namespace Microsoft.Dafny.Compilers {
         return null;
       }
 
-      var customReceiver = !forBodyInheritance && NeedsCustomReceiverNotTrait(member);
+      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var sep = "";
       WriteRuntimeTypeDescriptorsFormals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, lookasideBody), wr, ref sep,
@@ -1769,7 +1769,7 @@ namespace Microsoft.Dafny.Compilers {
               w.Write(")");
             }
           });
-        } else if (NeedsCustomReceiverNotTrait(member) && !(member.EnclosingClass is TraitDecl)) {
+        } else if (NeedsCustomReceiverNotTrait(member)) {
           // instance const in a newtype
           return SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));

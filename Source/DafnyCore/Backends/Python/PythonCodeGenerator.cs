@@ -518,7 +518,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
-      var customReceiver = !forBodyInheritance && NeedsCustomReceiverNotTrait(m);
+      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(m);
       if (m.IsStatic || customReceiver) { wr.WriteLine("@staticmethod"); }
       var protectedName = !forBodyInheritance ? CompanionMemberIdName(m) : IdName(m);
       wr.Write($"def {protectedName}(");
@@ -562,7 +562,7 @@ namespace Microsoft.Dafny.Compilers {
       List<Formal> formals, Type resultType, IToken tok, bool isStatic, bool createBody, MemberDecl member,
       ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) { return null; }
-      var customReceiver = !forBodyInheritance && NeedsCustomReceiverNotTrait(member);
+      var customReceiver = !forBodyInheritance && NeedsCustomReceiver(member);
       if (isStatic || customReceiver) { wr.WriteLine("@staticmethod"); }
       var protectedName = !forBodyInheritance ? CompanionMemberIdName(member) : IdName(member);
       wr.Write($"def {protectedName}(");
@@ -1289,7 +1289,7 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField sf: {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
             return SimpleLvalue(w => {
-              var customReceiver = NeedsCustomReceiverNotTrait(sf) && sf.EnclosingClass is not TraitDecl;
+              var customReceiver = NeedsCustomReceiverNotTrait(sf);
               if (sf.IsStatic || customReceiver) {
                 w.Write(TypeName_Companion(objType, w, member.tok, member));
               } else {

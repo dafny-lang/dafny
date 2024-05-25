@@ -2092,27 +2092,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-
-    public virtual bool NeedsCustomReceiverOriginal(MemberDecl member) {
-      Contract.Requires(member != null);
-      // One of the limitations in many target language encodings are restrictions to instance members. If an
-      // instance member can't be directly expressed in the target language, we make it a static member with an
-      // additional first argument specifying the `this`, giving it a `CustomReceiver`.
-      if (member.IsStatic) {
-        return false;
-      } else if (member.EnclosingClass is NewtypeDecl) {
-        return true;
-      } else if (member.EnclosingClass is TraitDecl) {
-        return member is ConstantField { Rhs: { } } or Function { Body: { } } or Method { Body: { } };
-      } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
-        // An undefined value "o" cannot use this o.F(...) form in most languages.
-        // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, datatypeDecl, out _);
-      } else {
-        return false;
-      }
-    }
-
     void CompileClassMembers(Program program, TopLevelDeclWithMembers c, IClassWriter classWriter) {
       Contract.Requires(c != null);
       Contract.Requires(classWriter != null);

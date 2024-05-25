@@ -947,37 +947,6 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public override bool NeedsCustomReceiverOriginal(MemberDecl member) {
-      //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
-      if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
-        foreach (var tp in d.TypeArgs) {
-          bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
-                                       || ty.TypeArgs.Exists(InvalidType);
-          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SyntacticType);
-          switch (tp.Variance) {
-            //Can only be in output
-            case TypeParameter.TPVariance.Co:
-              if ((member is Function f && f.Ins.Exists(InvalidFormal))
-                  || (member is Method m && m.Ins.Exists(InvalidFormal))
-                  || NeedsTypeDescriptor(tp)) {
-                return true;
-              }
-              break;
-            //Can only be in input
-            case TypeParameter.TPVariance.Contra:
-              if ((member is Function fn && InvalidType(fn.ResultType))
-                  || (member is Method me && me.Outs.Exists(InvalidFormal))
-                  || (member is ConstantField c && InvalidType(c.Type))) {
-                return true;
-              }
-              break;
-          }
-        }
-      }
-
-      return base.NeedsCustomReceiverOriginal(member);
-    }
-
     public override bool NeedsCustomReceiverSpecialCase(MemberDecl member) {
       //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
       if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
