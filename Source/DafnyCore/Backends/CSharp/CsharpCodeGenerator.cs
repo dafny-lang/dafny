@@ -946,10 +946,10 @@ namespace Microsoft.Dafny.Compilers {
         return "";
       }
     }
-
-    public override bool NeedsCustomReceiverSpecialCase(MemberDecl member) {
-      //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
-      if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
+    
+    public override bool NeedsCustomReceiverInDatatype(MemberDecl member) {
+      Contract.Requires(!member.IsStatic && member.EnclosingClass is DatatypeDecl);
+      if (member.EnclosingClass is DatatypeDecl d) {
         foreach (var tp in d.TypeArgs) {
           bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
                                        || ty.TypeArgs.Exists(InvalidType);
@@ -975,9 +975,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      return base.NeedsCustomReceiverSpecialCase(member);
+      return base.NeedsCustomReceiverInDatatype(member);
     }
-
 
     private void CompileDatatypeConstructors(DatatypeDecl dt, ConcreteSyntaxTree wrx) {
       Contract.Requires(dt != null);

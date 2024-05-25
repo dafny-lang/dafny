@@ -2070,6 +2070,15 @@ namespace Microsoft.Dafny.Compilers {
                or Method {Body: { }});
     }
 
+    public virtual bool NeedsCustomReceiverInDatatype(MemberDecl member) {
+      Contract.Requires(!member.IsStatic && member.EnclosingClass is DatatypeDecl);
+      if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
+        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, datatypeDecl, out _);
+      } else {
+        return false;
+      }
+    }
+
     public virtual bool NeedsCustomReceiverNotTrait(MemberDecl member) {
       Contract.Requires(member != null);
       // One of the limitations in many target language encodings are restrictions to instance members. If an
@@ -2085,7 +2094,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (member.EnclosingClass is DatatypeDecl datatypeDecl) {
         // An undefined value "o" cannot use this o.F(...) form in most languages.
         // Also, an erasable wrapper type has a receiver that's not part of the enclosing target class.
-        return datatypeDecl.Ctors.Any(ctor => ctor.IsGhost) || DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, datatypeDecl, out _);
+        return NeedsCustomReceiverInDatatype(member);
       } else {
         return false;
       }
