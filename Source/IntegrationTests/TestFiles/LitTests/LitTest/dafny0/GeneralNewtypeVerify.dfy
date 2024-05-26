@@ -548,6 +548,19 @@ module BaseTypeConstraintHelpsWellformednessNewtype {
   newtype NotWellformed = n: NotSeven | P(n) // error: precondition violation
 }
 
+module SimpleNewtypeWitness {
+  newtype A = x: int | 100 <= x witness 102
+  newtype B = a: A | true witness 103
+
+  newtype C = A // error: default witness 0 does not satisfy constraint
+  newtype D = A witness 104
+  newtype E = A ghost witness 104
+  newtype F = A witness *
+
+  newtype G = A witness 13 // error: 13 does not satisfy constraint
+  newtype H = A ghost witness 13 // error: 13 does not satisfy constraint
+}
+
 /*
 module RealConversions {
   method TestRealIsInt0(r: real)

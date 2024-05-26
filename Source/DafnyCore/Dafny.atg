@@ -786,16 +786,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
     "|"
     Expression<out constraint, false, true>
-    (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
-    [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-        Expression<out witness, false, true>
-      | "witness"
-        ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-        | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
-        )
-      )
-    ]
+    WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
          new BoundVar(bvId, bvId.val, baseType){ 
@@ -804,13 +795,18 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
          constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
+    WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType, parentTraits, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
+         baseType, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
+    .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType, parentTraits, members, attrs, isRefining: true);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType,
+         SubsetTypeDecl.WKind.CompiledZero, null,
+         parentTraits, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
@@ -846,16 +842,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
       "|"
       Expression<out constraint, false, true>
-      (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
-      [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-          Expression<out witness, false, true>
-        | "witness"
-          ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-          | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
-          )
-        )
-      ]
+      WitnessClause<out var witnessKind, out witness>
       (. td = new SubsetTypeDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, 
             new BoundVar(bvId, bvId.val, ty){ IsTypeExplicit = !(ty is InferredTypeProxy) }, constraint, witnessKind, witness, attrs);
          kind = "subset type";
@@ -882,6 +869,21 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      td.TokenWithTrailingDocString = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
+  .
+
+WitnessClause<out SubsetTypeDecl.WKind witnessKind, out Expression witness>
+= (. witnessKind = SubsetTypeDecl.WKind.CompiledZero;
+     witness = null;
+  .)
+  [ IF(IsWitness())
+    ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
+      Expression<out witness, false, true>
+    | "witness"
+      ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+      | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
+      )
+    )
+  ]
   .
 
 /*------------------------------------------------------------------------*/

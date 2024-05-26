@@ -14,6 +14,7 @@ method Main() {
   TypeParameters.Test();
   AutoInit.Test();
   RefinementB.Test(2.0, 3.0);
+  SimpleNewtypeWitness.Test();
 }
 
 module Numerics {
@@ -646,4 +647,17 @@ abstract module RefinementA {
 
 module RefinementB refines RefinementA {
   type AbstractType = real
+}
+
+module SimpleNewtypeWitness {
+  newtype A = x: int | 100 <= x witness 102
+  newtype B = a: A | true witness 103
+  newtype C = A witness 104
+
+  method Test() {
+    var a: A := *;
+    var b: B := *;
+    var c: C := *;
+    print a, " ", b, " ", c, "\n"; // 102 103 104
+  }
 }

@@ -86,7 +86,8 @@ namespace Microsoft.Dafny {
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
         if (dd.Var == null) {
-          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), dd.TypeArgs.ConvertAll(CloneTypeParam), newParent, CloneType(dd.BaseType),
+          return new NewtypeDecl(Range(dd.RangeToken), dd.NameNode.Clone(this), dd.TypeArgs.ConvertAll(CloneTypeParam), newParent,
+            CloneType(dd.BaseType), dd.WitnessKind, CloneExpr(dd.Witness),
             dd.ParentTraits.ConvertAll(CloneType),
             dd.Members.ConvertAll(d => CloneMember(d, false)), CloneAttributes(dd.Attributes), dd.IsRefining);
         } else {

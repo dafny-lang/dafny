@@ -168,3 +168,13 @@ module New {
     a := new [] [20, 50, 70];
   }
 }
+
+module SimpleNewtypeWitness {
+  newtype A = x: int | 100 <= x witness 102
+  newtype B = a: A | true witness 103
+
+  newtype C = A
+  newtype D = A witness 104
+  newtype E = A ghost witness 104
+  newtype F = A witness *
+}

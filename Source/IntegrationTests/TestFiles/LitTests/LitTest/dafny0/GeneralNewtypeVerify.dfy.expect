@@ -45,5 +45,8 @@ GeneralNewtypeVerify.dfy(536,37): Error: function precondition could not be prov
 GeneralNewtypeVerify.dfy(529,15): Related location
 GeneralNewtypeVerify.dfy(548,40): Error: function precondition could not be proved
 GeneralNewtypeVerify.dfy(541,15): Related location
+GeneralNewtypeVerify.dfy(555,10): Error: trying witness 0: result of operation might violate newtype constraint for 'A'
+GeneralNewtypeVerify.dfy(560,24): Error: result of operation might violate newtype constraint for 'A'
+GeneralNewtypeVerify.dfy(561,30): Error: result of operation might violate newtype constraint for 'A'
 
-Dafny program verifier finished with 36 verified, 45 errors
+Dafny program verifier finished with 40 verified, 48 errors

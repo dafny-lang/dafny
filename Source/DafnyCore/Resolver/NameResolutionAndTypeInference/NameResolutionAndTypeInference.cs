@@ -131,7 +131,7 @@ namespace Microsoft.Dafny {
           scope.AllowInstance = false;
           ResolveExpression(newtypeDecl.Witness, new ResolutionContext(codeContext, false));
           scope.PopMarker();
-          ConstrainSubtypeRelation(newtypeDecl.Var.Type, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.Var.Type, newtypeDecl.Witness.Type);
+          ConstrainSubtypeRelation(newtypeDecl.BaseType, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.BaseType, newtypeDecl.Witness.Type);
         }
         SolveAllTypeConstraints();
 

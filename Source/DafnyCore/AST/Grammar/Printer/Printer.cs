@@ -309,11 +309,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("| ");
             PrintExpression(dd.Constraint, true);
             wr.WriteLine();
-            if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
-              Indent(indent + IndentAmount);
-              PrintWitnessClause(dd);
-              wr.WriteLine();
-            }
+          }
+          if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
+            Indent(indent + IndentAmount);
+            PrintWitnessClause(dd);
+            wr.WriteLine();
           }
           if (dd.Members.Count != 0) {
             Indent(indent);
