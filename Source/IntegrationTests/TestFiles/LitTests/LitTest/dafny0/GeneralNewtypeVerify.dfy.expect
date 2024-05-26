@@ -38,5 +38,12 @@ GeneralNewtypeVerify.dfy(367,27): Error: result of operation might violate subse
 GeneralNewtypeVerify.dfy(371,35): Error: result of operation might violate newtype constraint for 'BV'
 GeneralNewtypeVerify.dfy(490,7): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 GeneralNewtypeVerify.dfy(491,10): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+GeneralNewtypeVerify.dfy(496,7): Error: trying witness 0: result of operation might violate subset type constraint for 'Never'
+GeneralNewtypeVerify.dfy(507,10): Error: trying witness 0: result of operation might violate newtype constraint for 'Never'
+GeneralNewtypeVerify.dfy(518,10): Error: trying witness 0: result of operation might violate newtype constraint for 'Never'
+GeneralNewtypeVerify.dfy(536,37): Error: function precondition could not be proved
+GeneralNewtypeVerify.dfy(529,15): Related location
+GeneralNewtypeVerify.dfy(548,40): Error: function precondition could not be proved
+GeneralNewtypeVerify.dfy(541,15): Related location
 
-Dafny program verifier finished with 30 verified, 40 errors
+Dafny program verifier finished with 36 verified, 45 errors

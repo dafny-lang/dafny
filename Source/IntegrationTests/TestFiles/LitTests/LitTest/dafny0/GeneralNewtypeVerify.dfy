@@ -491,6 +491,63 @@ module ExpandToTypeParameterWithoutWitness {
   newtype B<Z> = z: Z | true // error: 
 }
 
+module AutoInitValueSubsetType {
+  type Never = x: int | false witness *
+  type Impossible = n: Never | true // error: default witness 0 does not satisfy constraint of base type
+
+  method Test() {
+    var x: Impossible := *;
+    assert false;
+    print 10 / x;
+  }
+}
+
+module AutoInitValueNewtype {
+  newtype Never = x: int | false witness *
+  newtype Impossible = n: Never | true // error: default witness 0 does not satisfy constraint of base type
+
+  method Test() {
+    var x: Impossible := *;
+    assert false;
+    print 10 / x;
+  }
+}
+
+module AutoInitValueNewtypeWithoutVar {
+  newtype Never = x: int | false witness *
+  newtype Impossible = Never // error: default witness 0 does not satisfy constraint of base type
+
+  method Test() {
+    var x: Impossible := *;
+    assert false;
+    print 10 / x;
+  }
+}
+
+module BaseTypeConstraintHelpsWellformednessSubsetType {
+  predicate P(x: NotSeven)
+    requires x != 6
+  {
+    true
+  }
+
+  type NotSeven = x: int | x != 7 witness *
+  type Okay = n: NotSeven | P(if 8 <= n then n else n - 1)
+  type NotWellformed = n: NotSeven | P(n) // error: precondition violation
+}
+
+module BaseTypeConstraintHelpsWellformednessNewtype {
+  predicate P(x: NotSeven)
+    requires x != 6
+  {
+    true
+  }
+
+  newtype NotSeven = x: int | x != 7 witness *
+  newtype Okay = n: NotSeven | P(if 8 <= n then n else n - 1)
+  newtype NotWellformed = n: NotSeven | P(n) // error: precondition violation
+}
+
 /*
 module RealConversions {
   method TestRealIsInt0(r: real)
