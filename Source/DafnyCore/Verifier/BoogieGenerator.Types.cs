@@ -1433,7 +1433,8 @@ public partial class BoogieGenerator {
     var inParams = MkTyParamFormals(decl.TypeArgs, true);
     Bpl.Type varType = TrType(decl.Var.Type);
     Bpl.Expr wh = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), decl.Var.Type, etran, NOALLOC);
-    inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType, wh), true));
+    // Do NOT use a where-clause in this declaration, because that would spoil the witness checking.
+    inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), true));
 
     // the procedure itself
     var req = new List<Bpl.Requires>();
@@ -1468,6 +1469,7 @@ public partial class BoogieGenerator {
     // define frame;
     // if (*) {
     //   // The following is collected in constraintCheckBuilder:
+    //   assume the where-clause for the bound variable
     //   check constraint is well-formed;
     //   assume constraint;
     //   do reads checks;
@@ -1478,6 +1480,7 @@ public partial class BoogieGenerator {
 
     // check well-formedness of the constraint (including termination, and delayed reads checks)
     var constraintCheckBuilder = new BoogieStmtListBuilder(this, options);
+    constraintCheckBuilder.Add(new Bpl.AssumeCmd(decl.tok, wh));
     var builderInitializationArea = new BoogieStmtListBuilder(this, options);
     var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
     delayer.DoWithDelayedReadsChecks(false, wfo => {
