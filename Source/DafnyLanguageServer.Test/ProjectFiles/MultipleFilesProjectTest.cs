@@ -44,6 +44,7 @@ method Bar() {
     Assert.Single(diagnostics2.Diagnostics);
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("char"));
     Assert.Contains(diagnostics, d => d.Diagnostics.First().Message.Contains("int"));
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -73,6 +74,7 @@ method Bar() {
     Assert.Single(diagnostics1);
     Assert.Contains("assertion might not hold", diagnostics1.First().Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -112,6 +114,7 @@ method Bar() {
     Assert.Contains("assertion might not hold", consumerDiagnostics.First().Message);
     Assert.Single(producerDiagnostics);
     Assert.Contains("assertion might not hold", producerDiagnostics.First().Message);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -138,6 +141,7 @@ method Produces() {}
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -220,6 +224,7 @@ method Produces() {}
 
     var producesDefinition2 = await RequestDefinition(consumer, new Position(1, 3));
     Assert.Single(producesDefinition2);
+    Directory.Delete(directory, true);
   }
 
   [Fact]
