@@ -234,16 +234,11 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, string what) {
-      if (expr.StartToken == null) {
-        // Might be a resolved expression.
-        VisitIndependentComponent(expr);
-      } else {
-        VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
-      }
+      VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
-      if (expr is ParensExpression || errorToken.FromIncludeDirective(compilation)) {
+      if (expr is ApplySuffix || expr is ParensExpression || errorToken.FromIncludeDirective(compilation)) {
         VisitIndependentComponent(expr);
       } else {
         var st = new LeftMargin(rightMargin);
