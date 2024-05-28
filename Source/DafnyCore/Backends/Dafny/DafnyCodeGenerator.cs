@@ -2699,8 +2699,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
       if (GetStatementBuilder(wr, out var builder)) {
         var eType = e.Type.AsMapType;
-        var keyType = GenType(eType.Range);
-        var valueType = GenType(eType.Domain);
+        var keyType = GenType(eType.Domain);
+        var valueType = GenType(eType.Range);
         var mapType = DAST.Type.create_MapBuilder(keyType, valueType);
         builder.Builder.AddStatement(
           (DAST.Statement)DAST.Statement.create_DeclareVar(
