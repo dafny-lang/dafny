@@ -35,7 +35,7 @@ env:
 jobs:
 
   publish-release:
-    runs-on: macos-11   # Put back 'ubuntu-20.04' if macos-11 fails in any way
+    runs-on: macos-13   # Put back 'ubuntu-20.04' if macos-13 fails in any way
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
