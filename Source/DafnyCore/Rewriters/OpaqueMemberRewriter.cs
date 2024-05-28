@@ -63,7 +63,7 @@ public class OpaqueMemberRewriter : IRewriter {
     rr.TypeApplication_AtEnclosingClass = typeApplication;
     rr.TypeApplication_JustMember = typeApplication_JustForMember;
     List<Type> args = new List<Type>();
-    for (int i = 0; i < f.Formals.Count; i++) {
+    for (int i = 0; i < f.Ins.Count; i++) {
       args.Add(new IntType());
     }
     rr.Type = new ArrowType(f.tok, args, new IntType());

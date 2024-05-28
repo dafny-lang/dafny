@@ -7,6 +7,7 @@ namespace Microsoft.Dafny;
 
 public abstract class MemberDecl : Declaration {
   public abstract string WhatKind { get; }
+  public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
   protected bool hasStaticKeyword;
   public bool HasStaticKeyword => hasStaticKeyword;

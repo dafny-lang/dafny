@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This example was listed in IronClad's notebook as one place were z3 picked

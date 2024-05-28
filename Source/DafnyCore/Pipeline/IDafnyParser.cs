@@ -1,4 +1,5 @@
 ﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -8,6 +9,6 @@ namespace Microsoft.Dafny {
   /// Any implementation has to guarantee thread-safety of its public members.
   /// </remarks>
   public interface IDafnyParser {
-    Program Parse(Compilation compilation, CancellationToken cancellationToken);
+    Task<Program> Parse(Compilation compilation, CancellationToken cancellationToken);
   }
 }

@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:4 /spillTargetCode:2 /compileTarget:py %S/ExternNestedModule.py "%s" > "%t"
+// RUN: %run --target py "%s" --input %S/ExternNestedModule.py > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main(){

@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-inference "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file shows how Dafny detects loops even for terms that are not literal

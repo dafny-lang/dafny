@@ -12,9 +12,9 @@ namespace Microsoft.Dafny {
   /// particular, the substituter does not copy parts of an expression that are used only for well-formedness checks.
   /// </summary>
   public class Substituter {
-    protected readonly Expression receiverReplacement;
-    protected readonly Dictionary<IVariable, Expression> substMap;
-    protected readonly Dictionary<TypeParameter, Type> typeMap;
+    protected Expression receiverReplacement { get; }
+    public Dictionary<IVariable, Expression> substMap { get; }
+    public Dictionary<TypeParameter, Type> typeMap { get; }
     protected readonly Label oldHeapLabel;
     [CanBeNull] protected readonly SystemModuleManager SystemModuleManager; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
@@ -595,8 +595,8 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newVars = new List<LocalVariable>();
       foreach (var v in vars) {
-        var tt = v.OptionalType.Subst(typeMap);
-        if (!forceSubstitutionOfVars && tt == v.OptionalType) {
+        var tt = v.SyntacticType.Subst(typeMap);
+        if (!forceSubstitutionOfVars && tt == v.SyntacticType) {
           newVars.Add(v);
         } else {
           anythingChanged = true;

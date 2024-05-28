@@ -27,7 +27,7 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-latest\", \"windows-2019\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-latest\", \"ubuntu-20.04\", \"macos-11\", \"windows-2019\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
@@ -35,7 +35,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-latest\": \"macos\", \"windows-2019\": \"windows\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-latest\": \"ubuntu\", \"ubuntu-20.04\": \"ubuntu\", \"macos-11\": \"macos\", \"windows-2019\": \"windows\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -91,12 +91,12 @@ jobs:
     - name: Set up oldest supported Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.15'
+        go-version: '1.21'
         cache: false
     - name: Set up goimports
       env:
         GO111MODULE: on
-      run: go get golang.org/x/tools/cmd/goimports@release-branch.go1.15
+      run: go install golang.org/x/tools/cmd/goimports@latest
     - name: Set up Python
       uses: actions/setup-python@v5
       with: 

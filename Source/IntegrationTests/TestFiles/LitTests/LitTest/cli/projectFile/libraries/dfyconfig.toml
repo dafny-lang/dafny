@@ -1,7 +1,0 @@
-
-excludes = ["wrappersLib.dfy"]
-
-[options]
-library = [
-  "wrappersLib.dfy"
-]

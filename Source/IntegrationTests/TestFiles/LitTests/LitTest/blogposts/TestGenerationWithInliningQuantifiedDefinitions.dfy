@@ -1,6 +1,6 @@
 // Generating and Running Path-Based Tests:
 // RUN: %baredafny generate-tests %args Path %S/TestGenerationWithInliningQuantifiedDefinitions.dfy > %t-tests.dfy
-// RUN: %baredafny test %args --unicode-char:false --target:cs "%t-tests.dfy" >> "%t"
+// RUN: %baredafny test %args --target:cs "%t-tests.dfy" >> "%t"
 
 // RUN: %OutputCheck --file-to-check "%t" "%s"
 // CHECK: .*Dafny program verifier finished with 5 verified, 0 errors*

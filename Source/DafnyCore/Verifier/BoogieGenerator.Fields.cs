@@ -34,9 +34,9 @@ namespace Microsoft.Dafny {
         //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.tok, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.tok, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.tok, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
-        Bpl.Expr cond = Bpl.Expr.And(fdim, declType);
+        Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.tok, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
-        cond = Bpl.Expr.And(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
+        cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.tok, cond);
         AddOtherDefinition(fc, ax);
       }
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
-            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok));
+            var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
             if (!IsOpaque(cf)) {
               sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
             }
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
       currentModule = decl.EnclosingModule;
       codeContext = decl;
       fuelContext = FuelSetting.NewFuelContext(decl);
-      var etran = new ExpressionTranslator(this, predef, decl.tok);
+      var etran = new ExpressionTranslator(this, predef, decl.tok, null);
 
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass), true);
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(VisibleInScope(receiverType));
 
         var th = new Bpl.IdentifierExpr(decl.tok, "this", TrReceiverType(decl));
-        var wh = Bpl.Expr.And(
+        var wh = BplAnd(
           ReceiverNotNull(th),
           etran.GoodRef(decl.tok, th, receiverType));
         // for class constructors, the receiver is encoded as an output parameter
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null, null));
+      req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of the RHS expression
       CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
       builder.Add(new Bpl.AssumeCmd(decl.Rhs.tok, etran.CanCallAssumption(decl.Rhs)));
-      CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, builder);
+      CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, decl.Rhs, builder);
 
       if (EmitImplementation(decl.Attributes)) {
         // emit the impl only when there are proof obligations.

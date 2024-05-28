@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 using Serilog.Events;
 
 namespace Microsoft.Dafny;
@@ -31,8 +32,8 @@ public class CommonOptionBag {
       IsHidden = true
     };
 
-  public static readonly Option<bool> ShowInference =
-    new("--show-inference", () => false, "Show information about things Dafny inferred from your code, for example triggers.") {
+  public static readonly Option<bool> ShowHints =
+    new("--show-hints", () => false, "Show hints that might help you better understand your code, such as what triggers Dafny generators for quantifiers") {
       IsHidden = true
     };
 
@@ -50,10 +51,6 @@ public class CommonOptionBag {
 
   public static readonly Option<bool> StdIn = new("--stdin", () => false,
     @"Read standard input and treat it as an input .dfy file.");
-
-  public static readonly Option<bool> Check = new("--check", () => false, @"
-Instead of formatting files, verify that all files are already
-formatted through and return a non-zero exit code if it is not the case".TrimStart());
 
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
@@ -184,7 +181,7 @@ go - Compile to Go.
 js - Compile to JavaScript.
 java - Compile to Java.
 py - Compile to Python.
-cpp - Compile to C++.
+cpp - (experimental) Compile to C++.
 
 Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md). This includes lack of support for BigIntegers (aka int), most higher order functions, and advanced features like traits or co-inductive types.".TrimStart()
   ) {
@@ -195,6 +192,7 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
@@ -248,8 +246,17 @@ true - Print debug information for the new type system.".TrimStart()) {
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
   };
+  public static readonly Option<bool> EmitUncompilableCode = new("--emit-uncompilable-code",
+    "Rather than throwing an exception, allow compilers to emit uncompilable information including what is " +
+    "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
+    "compiler feature is missing") {
+  };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
+  };
+
+  public static readonly Option<bool> WarnAsErrors = new("--warn-as-errors", () => true, "(Deprecated). Please use --allow-warnings instead") {
+    IsHidden = true
   };
 
   public static readonly Option<bool> AllowWarnings = new("--allow-warnings",
@@ -310,14 +317,6 @@ May produce spurious warnings.") {
     IsHidden = true
   };
 
-  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
-    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
-  );
-
-  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
-    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
-  );
-
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -354,9 +353,23 @@ Not compatible with the --unicode-char:false option.
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
   };
 
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
+  };
+
   static CommonOptionBag() {
+    DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
+      if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
+        // If allow warnings is at the default value, and warn-as-errors is not, use the warn-as-errors value
+        options.Set(AllowWarnings, true);
+        options.FailOnWarnings = false;
+      }
+    });
+
     DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
-    DafnyOptions.RegisterLegacyBinding(ShowInference, (options, value) => {
+    DafnyOptions.RegisterLegacyBinding(ShowHints, (options, value) => {
       options.PrintTooltips = value;
     });
 
@@ -460,10 +473,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
 
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
       if (value) {
@@ -484,8 +493,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(InternalIncludeRuntimeOptionForExecution, (options, value) => { options.IncludeRuntime = value; });
     DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
-    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
-      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
@@ -505,16 +512,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
-      options.FormatCheck = value;
-    });
-
     DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
       options.UseStdin = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
-      options.DafnyPrintFile = value ? "-" : null;
     });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
@@ -558,75 +557,65 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
 
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
+
     DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, DooFile.OptionCheck>() {
-        { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
-        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
-        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
-            if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
-              return true;
-            }
-            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
-            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
-            return false;
-          }
-        }
+      new Dictionary<Option, OptionCompatibility.OptionCheck>() {
+        { UnicodeCharacters, OptionCompatibility.CheckOptionMatches },
+        { EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary },
+        { RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError },
+        { AllowAxioms, OptionCompatibility.OptionLibraryImpliesLocalError },
+        { AllowWarnings, OptionCompatibility.OptionLibraryImpliesLocalWarning },
+        { AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning },
+        { WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning },
+        { UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError },
       }
     );
-    DooFile.RegisterNoChecksNeeded(
-      ProgressOption,
-      LogLocation,
-      LogLevelOption,
-      ManualTriggerOption,
-      ShowInference,
-      Check,
-      Libraries,
-      Output,
-      PluginOption,
-      Prelude,
-      Target,
-      Verbose,
-      AllowDeprecation,
-      FormatPrint,
-      JsonDiagnostics,
-      QuantifierSyntax,
-      SpillTranslation,
-      StdIn,
-      TestAssumptions,
-      WarnShadowing,
-      ManualLemmaInduction,
-      TypeInferenceDebug,
-      GeneralTraits,
-      GeneralNewtypes,
-      TypeSystemRefresh,
-      VerificationLogFormat,
-      VerifyIncludedFiles,
-      DisableNonLinearArithmetic,
-      NewTypeInferenceDebug,
-      UseBaseFileName,
-      WarnMissingConstructorParenthesis,
-      UseJavadocLikeDocstringRewriterOption,
-      IncludeRuntimeOption,
-      InternalIncludeRuntimeOptionForExecution,
-      WarnContradictoryAssumptions,
-      WarnRedundantAssumptions,
-      VerificationCoverageReport,
-      NoTimeStampForCoverageReport,
-      DefaultFunctionOpacity,
-      UseStandardLibraries,
-      OptimizeErasableDatatypeWrapper,
-      AddCompileSuffix,
-      SystemModule,
-      ExecutionCoverageReport,
-      ExtractCounterexample
-      );
+    DooFile.RegisterNoChecksNeeded(WarnAsErrors, false);
+    DooFile.RegisterNoChecksNeeded(ProgressOption, false);
+    DooFile.RegisterNoChecksNeeded(LogLocation, false);
+    DooFile.RegisterNoChecksNeeded(LogLevelOption, false);
+    DooFile.RegisterNoChecksNeeded(ManualTriggerOption, true);
+    DooFile.RegisterNoChecksNeeded(ShowHints, false);
+    DooFile.RegisterNoChecksNeeded(Libraries, false);
+    DooFile.RegisterNoChecksNeeded(Output, false);
+    DooFile.RegisterNoChecksNeeded(PluginOption, false);
+    DooFile.RegisterNoChecksNeeded(Prelude, false);
+    DooFile.RegisterNoChecksNeeded(Target, false);
+    DooFile.RegisterNoChecksNeeded(Verbose, false);
+    DooFile.RegisterNoChecksNeeded(JsonDiagnostics, false);
+    DooFile.RegisterNoChecksNeeded(QuantifierSyntax, true);
+    DooFile.RegisterNoChecksNeeded(SpillTranslation, false);
+    DooFile.RegisterNoChecksNeeded(StdIn, false);
+    DooFile.RegisterNoChecksNeeded(TestAssumptions, false);
+    DooFile.RegisterNoChecksNeeded(ManualLemmaInduction, true);
+    DooFile.RegisterNoChecksNeeded(TypeInferenceDebug, false);
+    DooFile.RegisterNoChecksNeeded(GeneralTraits, false);
+    DooFile.RegisterNoChecksNeeded(GeneralNewtypes, false);
+    DooFile.RegisterNoChecksNeeded(TypeSystemRefresh, false);
+    DooFile.RegisterNoChecksNeeded(VerificationLogFormat, false);
+    DooFile.RegisterNoChecksNeeded(VerifyIncludedFiles, false);
+    DooFile.RegisterNoChecksNeeded(DisableNonLinearArithmetic, true);
+    DooFile.RegisterNoChecksNeeded(NewTypeInferenceDebug, false);
+    DooFile.RegisterNoChecksNeeded(UseBaseFileName, false);
+    DooFile.RegisterNoChecksNeeded(EmitUncompilableCode, false);
+    DooFile.RegisterNoChecksNeeded(WarnMissingConstructorParenthesis, true);
+    DooFile.RegisterNoChecksNeeded(IncludeRuntimeOption, false);
+    DooFile.RegisterNoChecksNeeded(InternalIncludeRuntimeOptionForExecution, false);
+    DooFile.RegisterNoChecksNeeded(WarnContradictoryAssumptions, true);
+    DooFile.RegisterNoChecksNeeded(WarnRedundantAssumptions, true);
+    DooFile.RegisterNoChecksNeeded(VerificationCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(NoTimeStampForCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(DefaultFunctionOpacity, true);
+    DooFile.RegisterNoChecksNeeded(OptimizeErasableDatatypeWrapper, false); // TODO needs translation record registration
+    DooFile.RegisterNoChecksNeeded(AddCompileSuffix, false);  // TODO needs translation record registration
+    DooFile.RegisterNoChecksNeeded(SystemModule, false);
+    DooFile.RegisterNoChecksNeeded(ExecutionCoverageReport, false);
+    DooFile.RegisterNoChecksNeeded(ExtractCounterexample, false);
+    DooFile.RegisterNoChecksNeeded(ShowProofObligationExpressions, false);
+    DooFile.RegisterNoChecksNeeded(GoBackend.GoModuleNameCliOption, false);
   }
-
-  public static readonly Option<bool> FormatPrint = new("--print",
-    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
-  };
 }
 

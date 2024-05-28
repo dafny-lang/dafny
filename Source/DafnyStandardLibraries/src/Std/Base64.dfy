@@ -69,11 +69,11 @@ module Std.Base64 {
     // Dafny 1.9.9 added support for char to int conversion
     // https://github.com/dafny-lang/dafny/releases/tag/v1.9.9
     // 0 - 9
-    else if 52 <= i <= 61 then (i - 4) as char
+    else if 52 <= i <= 61 then (i - 4) as int as char
     // a - z
-    else if 26 <= i <= 51 then i as char + 71 as char
+    else if 26 <= i <= 51 then i as int as char + 71 as char
     // A - Z
-    else i as char + 65 as char
+    else i as int as char + 65 as char
   }
 
   lemma IndexToCharIsBase64(i: index)
@@ -93,12 +93,12 @@ module Std.Base64 {
     // Perform the inverse operations of IndexToChar
     if c == '/' then 63
     else if c == '+' then 62
-    else if '0' <= c <= '9' then (c + 4 as char) as index
-    else if 'a' <= c <= 'z' then (c - 71 as char) as index
-    else (c - 65 as char) as index
+    else if '0' <= c <= '9' then (c + 4 as char) as int as index
+    else if 'a' <= c <= 'z' then (c - 71 as char) as int as index
+    else (c - 65 as char) as int as index
   }
 
-  lemma {:resource_limit 2000000} {:vcs_split_on_every_assert} CharToIndexToChar(c: char)
+  lemma {:resource_limit 2000000} {:isolate_assertions} CharToIndexToChar(c: char)
     requires IsBase64Char(c)
     ensures IndexToChar(CharToIndex(c)) == c
   {
@@ -122,7 +122,7 @@ module Std.Base64 {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} IndexToCharToIndex(i: index)
+  lemma {:isolate_assertions} IndexToCharToIndex(i: index)
     ensures (IndexToCharIsBase64(i); CharToIndex(IndexToChar(i)) == i)
   {
     // TODO: reduce resource use, brittleness
@@ -263,7 +263,7 @@ module Std.Base64 {
     IndexSeqToBV24ToIndexSeq(s);
   }
 
-  opaque function {:vcs_split_on_every_assert} DecodeRecursively(s: seq<index>): (b: seq<bv8>)
+  opaque function {:isolate_assertions} DecodeRecursively(s: seq<index>): (b: seq<bv8>)
     requires |s| % 4 == 0
     decreases |s|
   {
@@ -326,7 +326,7 @@ module Std.Base64 {
     }
   }
 
-  opaque function {:vcs_split_on_every_assert} EncodeRecursively(b: seq<bv8>): (s: seq<index>)
+  opaque function {:isolate_assertions} EncodeRecursively(b: seq<bv8>): (s: seq<index>)
     requires |b| % 3 == 0
   {
     if |b| == 0 then []
@@ -677,7 +677,7 @@ module Std.Base64 {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} DecodeEncode1Padding(s: seq<char>)
+  lemma {:isolate_assertions} DecodeEncode1Padding(s: seq<char>)
     requires Is1Padding(s)
     ensures Encode1Padding(Decode1Padding(s)) == s
   {
@@ -1449,7 +1449,7 @@ module Std.Base64 {
     seq(|b|, i requires 0 <= i < |b| => b[i] as uint8)
   }
 
-  lemma {:vcs_split_on_every_assert} {:resource_limit 1000000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
+  lemma {:isolate_assertions} {:resource_limit 1000000000} UInt8sToBVsToUInt8s(u: seq<uint8>)
     ensures BVsToUInt8s(UInt8sToBVs(u)) == u
   {
     // TODO: reduce resource use

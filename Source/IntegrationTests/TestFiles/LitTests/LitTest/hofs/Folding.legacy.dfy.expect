@@ -1,0 +1,9 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+
+Dafny program verifier finished with 21 verified, 0 errors
+xs = List.Cons(57, List.Cons(100, List.Cons(-34, List.Cons(1, List.Cons(8, List.Nil)))))
+foldr = 264
+foldl = 264
+length = 5
+foldr inc = 5
+foldl inc = 5

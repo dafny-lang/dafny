@@ -13,6 +13,8 @@ static class MeasureComplexityCommand {
   public static IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
+    VerifyCommand.FilterSymbol,
+    VerifyCommand.FilterPosition,
   }.Concat(DafnyCommands.VerificationOptions).
     Concat(DafnyCommands.ResolverOptions);
 
@@ -20,10 +22,8 @@ static class MeasureComplexityCommand {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
 
-    DooFile.RegisterNoChecksNeeded(
-      Iterations,
-      RandomSeed
-    );
+    DooFile.RegisterNoChecksNeeded(Iterations, false);
+    DooFile.RegisterNoChecksNeeded(RandomSeed, false);
   }
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
@@ -63,15 +63,16 @@ static class MeasureComplexityCommand {
       // Performance data of individual verification tasks (VCs) should be grouped by VcNum (the assertion batch).
       VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
       var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
-      VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
+      var proofDependenciesReported = VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
 
       await RunVerificationIterations(options, compilation, verificationResults);
       await summaryReported;
       await verificationResultsLogged;
+      await proofDependenciesReported;
     }
 
-    return compilation.ExitCode;
+    return await compilation.GetAndReportExitCode();
   }
 
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,

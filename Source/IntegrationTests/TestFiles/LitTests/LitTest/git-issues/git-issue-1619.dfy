@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" --relax-definite-assignment --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate {:opaque} P<W>(w: W) {

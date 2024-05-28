@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /printTooltips "%s" > "%t"
+// RUN: %exits-with 4 %build --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Issues(a: bool, s: set) {

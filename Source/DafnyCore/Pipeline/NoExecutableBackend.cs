@@ -22,7 +22,7 @@ public class NoExecutableBackend : IExecutableBackend {
   public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
   public override string ModuleSeparator => ".";
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
     throw new NotSupportedException();
   }
 

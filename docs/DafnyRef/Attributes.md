@@ -270,7 +270,7 @@ using integration with the target language environment.
 Currently, the only way to satisfy this requirement is to ensure that the specification
 of the function or method includes the equivalent of `reads {}` and `modifies {}`.
 This ensures that the code does not read or write any shared mutable state,
-although it is free to write and write newly allocated objects.
+although it is free to read and write newly allocated objects.
 
 ### 11.2.7. `{:extern <name>}` {#sec-extern-method}
 See [`{:extern <name>}`](#sec-extern).
@@ -398,7 +398,7 @@ in which methods or functions are verified (default: N = 1).
 `{:resource_limit N}` limits the verifier resource usage to verify the method or function to `N`.
 
 This is the per-method equivalent of the command-line flag `/rlimit:N` or `--resource-limit N`.
-If using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) as well, the limit will be set for each assertion.
+If using [`{:isolate_assertions}`](#sec-isolate_assertions) as well, the limit will be set for each assertion.
 
 The attribute `{:rlimit N}` is also available, and limits the verifier resource usage to verify the method or function to `N * 1000`. This version is deprecated, however.
 
@@ -422,10 +422,10 @@ To give orders of magnitude about resource usage, here is a list of examples ind
   }
   ```
 
-* 40K total resource usage using [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert)
+* 40K total resource usage using [`{:isolate_assertions}`](#sec-isolate_assertions)
 <!-- %check-verify -->
   ```dafny
-  method {:vcs_split_on_every_assert} f(a: bool, b: bool) {
+  method {:isolate_assertions} f(a: bool, b: bool) {
     assert a: (a ==> b) <==> (!b ==> !a);
     assert b: (a ==> b) <==> (!b ==> !a);
     assert c: (a ==> b) <==> (!b ==> !a);
@@ -608,7 +608,7 @@ The [assertion batch](#sec-assertion-batches) of a method
 will not be split unless the cost of an [assertion batch](#sec-assertion-batches) exceeds this
 number, defaults to 2000.0. In
 [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
-If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
 ### 11.2.23. `{:vcs_max_keep_going_splits N}` {#sec-vcs_max_keep_going_splits}
 
@@ -619,7 +619,7 @@ until we succeed proving them, or there is only one
 single assertion that it timeouts (in which
 case an error is reported for that assertion).
 Defaults to 1.
-If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
 ### 11.2.24. `{:vcs_max_splits N}` {#sec-vcs_max_splits}
 
@@ -627,10 +627,10 @@ Per-method version of the command-line option `/vcsMaxSplits`.
 Maximal number of [assertion batches](#sec-assertion-batches) generated for this method.
 In [keep-going mode](#sec-vcs_max_keep_going_splits), only applies to the first round.
 Defaults to 1.
-If [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) is set, then this parameter is useless.
+If [`{:isolate_assertions}`](#sec-isolate_assertions) is set, then this parameter is useless.
 
-### 11.2.25. `{:vcs_split_on_every_assert}` {#sec-vcs_split_on_every_assert}
-Per-method version of the command-line option `/vcsSplitOnEveryAssert`.
+### 11.2.25. `{:isolate_assertions}` {#sec-isolate_assertions}
+Per-method version of the command-line option<span id="sec-vcs_split_on_every_assert"></span> `/vcsSplitOnEveryAssert`
 
 In the first and only verification round, this option will split the original [assertion batch](#sec-assertion-batches)
 into one assertion batch per assertion.

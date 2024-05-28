@@ -1,4 +1,4 @@
-// RUN: %verify --warn-shadowing "%s" > "%t"
+// RUN: %verify --warn-shadowing --allow-warnings "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 lemma L(x:int)

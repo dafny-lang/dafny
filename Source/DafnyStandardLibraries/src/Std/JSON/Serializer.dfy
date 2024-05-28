@@ -64,7 +64,7 @@ module Std.JSON.Serializer {
       Failure(o.error)
   }
 
-  function {:vcs_split_on_every_assert} {:resource_limit 1000000} Number(dec: Values.Decimal): Result<jnumber> {
+  function {:isolate_assertions} {:resource_limit 1000000} Number(dec: Values.Decimal): Result<jnumber> {
     var minus: jminus := Sign(dec.n);
     var num: jnum :- Int(Math.Abs(dec.n));
     var frac: Maybe<jfrac> := Empty();

@@ -1,5 +1,6 @@
-// RUN: %dafny -compile:3 -compileTarget:cs "%s" > "%t"
-// RUN: %dafny -noVerify -compile:4 -compileTarget:js "%s" >> "%t"
+// NONUNIFORM: regression test
+// RUN: %run --target cs "%s" > "%t"
+// RUN: %run --no-verify --target js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Returns a function that computes the sum of n consecutive integers starting at pos

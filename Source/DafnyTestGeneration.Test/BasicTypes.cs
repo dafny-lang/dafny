@@ -37,7 +37,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
@@ -67,7 +67,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.checkIfTrue"));
@@ -103,7 +103,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(7 <= methods.Count);
       Assert.True(
@@ -138,7 +138,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(
@@ -171,7 +171,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
@@ -204,7 +204,7 @@ module SimpleTest {
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(2 <= methods.Count);
       Assert.True(methods.All(m => m.MethodName == "SimpleTest.compareToB"));
@@ -214,7 +214,7 @@ module SimpleTest {
       Assert.True(methods.All(m => m.ValueCreation.Count == 0));
       Assert.True(methods.Exists(m => m.ArgValues[0] == "'B'"));
       Assert.True(methods.Exists(m =>
-        Regex.IsMatch(m.ArgValues[0], "'[^B]'")));
+        Regex.IsMatch(m.ArgValues[0], "'[^B]+'")));
     }
 
   }

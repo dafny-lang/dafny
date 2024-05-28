@@ -223,7 +223,7 @@ Dafny
                                    string basePath = parsedFile.Scheme == "stdin" ? "" : Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
                                  }
-                                 var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)));
+                                 var oneInclude = new Include(t, parsedFile, new Uri(Path.GetFullPath(includedFile)), theOptions);
                                  oneInclude.RangeToken = new RangeToken(includeStartToken, t);
                                  theModule.Includes.Add(oneInclude);
                                }
@@ -371,7 +371,7 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
     |
       QualifiedModuleExport<out var namePath, out idExports>
           (. submodule = new AliasModuleDecl(theOptions, new RangeToken(startToken, t), new ModuleQualifiedId(namePath),
-                                         new Name(new RangeToken(startToken,startToken), namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
+                                         new Name(RangeToken.NoToken, namePath[^1].Value), parent, opened, idExports, Guid.NewGuid());
           .)
     )
     .
@@ -781,7 +781,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
   ]
   ( IF(IsIdentColonOrBar())
     LocalVarName<out bvId>
-    [ ":" Type<out baseType> ]       (. if (baseType == null) { baseType = new InferredTypeProxy(); } .)
+    [ ":" Type<out baseType> ]
     "|"
     Expression<out constraint, false, true>
     (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
@@ -796,9 +796,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     ]
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, 
-         new BoundVar(bvId, bvId.val, baseType){ 
-            IsTypeExplicit = true 
-         }, 
+         new BoundVar(bvId, bvId.val, baseType), 
          constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
@@ -841,7 +839,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   [ "="
     ( IF(IsIdentColonOrBar())
       LocalVarName<out bvId>
-      [ ":" Type<out ty> ]   (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+      [ ":" Type<out ty> ]
       "|"
       Expression<out constraint, false, true>
       (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
@@ -855,7 +853,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
         )
       ]
       (. td = new SubsetTypeDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, 
-            new BoundVar(bvId, bvId.val, ty){ IsTypeExplicit = !(ty is InferredTypeProxy) }, constraint, witnessKind, witness, attrs);
+            new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
          kind = "subset type";
       .)
     |
@@ -935,24 +933,22 @@ IdentType<out IToken/*!*/ id, out IToken originalId, out Type/*!*/ ty, bool allo
   .
 
 LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
-= (. IToken id;  Type ty;  Type optType = null;
+= (. IToken id;  Type ty = null;
      IToken startToken = null;
   .)
   WildIdent<out id, allowWild> (. startToken = t; .)
-  [ ":" Type<out ty>             (. optType = ty; .)
+  [ ":" Type<out ty>
   ]
-  (. var = new LocalVariable(new RangeToken(startToken, t), id.val, optType == null ? new InferredTypeProxy() : optType, isGhost) {
-       IsTypeExplicit = optType != null
-     };
+  (. var = new LocalVariable(new RangeToken(startToken, t), id.val, ty, isGhost);
   .)
   .
 
 IdentTypeOptional<out BoundVar var>
 = (. Contract.Ensures(Contract.ValueAtReturn(out var) != null);
-     Type ty;  Type optType = null;
+     Type ty = null;
   .)
   WildIdentN<out var name, true>
-  [ IF( la.kind == _colon) ":" Type<out ty>             (. optType = ty; .)
+  [ IF( la.kind == _colon) ":" Type<out ty>
      // CoCo warns about this optional ':', because it is ambiguous with a ':' that follows the IdentTypeOptional.
      // An IdentTypeOptional can be the last thing in an Expression (a SetComprehension)
      // Also, a ':' can follow an Expression in a slices-by-length construct. So a ':' here might be the start
@@ -960,8 +956,7 @@ IdentTypeOptional<out BoundVar var>
      // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
-  (. var = new BoundVar(name.Tok, name.Value, optType == null ? new InferredTypeProxy() : optType) {
-       IsTypeExplicit = optType != null,
+  (. var = new BoundVar(name.Tok, name.Value, ty) {
        RangeToken = new RangeToken(name.StartToken, t)
      }; .)
   .
@@ -1419,14 +1414,14 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
-                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
+                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
     { "," 
       { Attribute<ref attributes> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
                  (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
-                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range, IsTypeExplicit = ty != null }
+                        { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
     }
   ]
@@ -1457,12 +1452,12 @@ FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
   [
     TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
             (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly) 
-                    { RangeToken = range, IsTypeExplicit = ty != null}
+                    { RangeToken = range }
                ); 
             .)
     { "," TypeIdentOptional<out range, out name, out ty, out isGhost, out defaultValue, out isNameOnly, out attributes>
             (. formals.Add(new Formal(name.Tok, name.Value, ty, true, isGhost, defaultValue, attributes, false, isNameOnly)
-                    { RangeToken = range, IsTypeExplicit = ty != null}
+                    { RangeToken = range }
                ); 
             .)
     }
@@ -1752,7 +1747,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
            GIdentType<false, false, false, false, out var range2, out var resultName, out var ty, out var resultIsGhost, out var isOld, out var isNameOnly, out var isOlder>
            (. Contract.Assert(!resultIsGhost && !isOld && !isNameOnly && !isOlder);
               result = new Formal(resultName.Tok, resultName.Value, ty, false, false, null, null, false)
-                { RangeToken = range2, IsTypeExplicit = ty != null };
+                { RangeToken = range2 };
            .)
          ")"
          | Type<out returnType>
@@ -2057,7 +2052,7 @@ PredicateResult<string name, out Formal result>
             SemErr(ErrorId.p_predicate_return_type_must_be_bool, new RangeToken(ty.StartToken, t), $"{name} return type should be bool, got {ty}");
           }
           result = new Formal(nameId.Tok, nameId.Value, ty, false, false, null, attributes, false)
-            { RangeToken = range, IsTypeExplicit = ty != null };
+            { RangeToken = range };
        .)
      ")"
      | Type<out returnType> (. SemErr(ErrorId.p_no_return_type_for_predicate, new RangeToken(returnType.StartToken, t), $"{name}s do not have an explicitly declared return type; it is always bool. Unless you want to name the result: ': (result: bool)'"); .)

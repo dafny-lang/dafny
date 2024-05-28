@@ -2,14 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.IO;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 
@@ -18,8 +16,10 @@ namespace Microsoft.Dafny;
 public static class VerifyCommand {
 
   static VerifyCommand() {
-    DooFile.RegisterNoChecksNeeded(FilterSymbol);
-    DooFile.RegisterNoChecksNeeded(FilterPosition);
+    // Note these don't need checks because they are only "dafny verify" options;
+    // they can't be specified when building a doo file.
+    DooFile.RegisterNoChecksNeeded(FilterSymbol, false);
+    DooFile.RegisterNoChecksNeeded(FilterPosition, false);
   }
 
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
@@ -42,10 +42,10 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
+        DafnyFile.UnsafeDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
-
 
   public static async Task<int> HandleVerification(DafnyOptions options) {
     if (options.Get(CommonOptionBag.VerificationCoverageReport) != null) {
@@ -62,14 +62,15 @@ public static class VerifyCommand {
 
       ReportVerificationDiagnostics(compilation, verificationResults);
       var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
-      ReportProofDependencies(compilation, resolution, verificationResults);
+      var proofDependenciesReported = ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
       compilation.VerifyAllLazily(0).ToObservable().Subscribe(verificationResults);
       await verificationSummarized;
       await verificationResultsLogged;
+      await proofDependenciesReported;
     }
 
-    return compilation.ExitCode;
+    return await compilation.GetAndReportExitCode();
   }
   public static async Task ReportVerificationSummary(
     CliCompilation cliCompilation,
@@ -163,8 +164,8 @@ public static class VerifyCommand {
       // We use an intermediate reporter so we can sort the diagnostics from all parts by token
       var batchReporter = new BatchErrorReporter(compilation.Options);
       foreach (var completed in result.Results) {
-        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, result.CanVerify.NameToken,
-          (uint)completed.Result.RunTime.Seconds,
+        Compilation.ReportDiagnosticsInResult(compilation.Options, result.CanVerify.FullDafnyName, completed.Task.Token,
+          (uint)completed.Result.RunTime.TotalSeconds,
           completed.Result, batchReporter);
       }
 
@@ -196,7 +197,7 @@ public static class VerifyCommand {
     }
   }
 
-  public static void ReportProofDependencies(
+  public static async Task ReportProofDependencies(
     CliCompilation cliCompilation,
     ResolutionResult resolution,
     IObservable<CanVerifyResult> verificationResults) {
@@ -210,16 +211,14 @@ public static class VerifyCommand {
       foreach (var used in result.Results.SelectMany(part => part.Result.CoveredElements)) {
         usedDependencies.Add(used);
       }
-    },
-      e => { },
-      () => {
-        var coverageReportDir = cliCompilation.Options.Get(CommonOptionBag.VerificationCoverageReport);
-        if (coverageReportDir != null) {
-          new CoverageReporter(cliCompilation.Options).SerializeVerificationCoverageReport(
-            proofDependencyManager, resolution.ResolvedProgram,
-            usedDependencies,
-            coverageReportDir);
-        }
-      });
+    }, e => { }, () => { });
+    await verificationResults.WaitForComplete();
+    var coverageReportDir = cliCompilation.Options.Get(CommonOptionBag.VerificationCoverageReport);
+    if (coverageReportDir != null) {
+      await new CoverageReporter(cliCompilation.Options).SerializeVerificationCoverageReport(
+        proofDependencyManager, resolution.ResolvedProgram,
+        usedDependencies,
+        coverageReportDir);
+    }
   }
 }

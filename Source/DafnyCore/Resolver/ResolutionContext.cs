@@ -36,6 +36,6 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
     if (CodeContext.IsGhost == isGhost) {
       return this;
     }
-    return new ResolutionContext(new CodeContextWrapper(CodeContext, isGhost), IsTwoState, InOld, InReveal, InFunctionPostcondition, InFirstPhaseConstructor);
+    return this with { CodeContext = new CodeContextWrapper(CodeContext, isGhost) };
   }
 }

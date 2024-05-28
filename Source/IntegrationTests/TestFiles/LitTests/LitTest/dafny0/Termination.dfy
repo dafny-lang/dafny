@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --unicode-char=false
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --relax-definite-assignment --allow-deprecation --unicode-char=false
 
 
 class Termination {
@@ -487,7 +487,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
       }
   }
 
-  lemma {:induction this} {:vcs_split_on_every_assert} EvensSumToEven()  // explicitly use "this" as quantified over by induction hypothesis
+  lemma {:induction this} {:isolate_assertions} EvensSumToEven()  // explicitly use "this" as quantified over by induction hypothesis
     requires forall u :: u in Elements() ==> u % 2 == 0
     ensures Sum() % 2 == 0
     // auto: decreases this
@@ -500,7 +500,7 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
       right.EvensSumToEven();
   }
 
-  lemma {:vcs_split_on_every_assert} EvensSumToEvenAutoInduction()  // {:induction this} is the default
+  lemma {:isolate_assertions} EvensSumToEvenAutoInduction()  // {:induction this} is the default
     requires forall u :: u in Elements() ==> u % 2 == 0
     ensures Sum() % 2 == 0
     // auto: decreases this

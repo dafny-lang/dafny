@@ -49,19 +49,20 @@ ghost function inImage(i: int): bool { true }  // this function is used to trigg
 method Main()
 {
   var a := new int[] [9, 3, 8, 2, 7, 4, 0, 1, 5, 6];
-  assert a[0] == 9;
-  assert a[1] == 3;
-  assert a[2] == 8;
-  assert a[3] == 2;
-  assert a[4] == 7;
-  assert a[5] == 4;
-  assert a[6] == 0;
-  assert a[7] == 1;
-  assert a[8] == 5;
-  assert a[9] == 6;
-
   var b := new int[10];
 
+  assert forall m :: 0 <= m < 10 && inImage(m) ==> exists k :: 0 <= k < 10 && a[k] == m by {
+    assert a[0] == 9;
+    assert a[1] == 3;
+    assert a[2] == 8;
+    assert a[3] == 2;
+    assert a[4] == 7;
+    assert a[5] == 4;
+    assert a[6] == 0;
+    assert a[7] == 1;
+    assert a[8] == 5;
+    assert a[9] == 6;
+  }
   M(10, a, b);
   print "a: ", a[..], "\n";
   print "b: ", b[..], "\n";

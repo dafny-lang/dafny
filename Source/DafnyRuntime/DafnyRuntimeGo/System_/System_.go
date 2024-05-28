@@ -8,8 +8,8 @@ import (
 	os "os"
 )
 
-var _ _dafny.Dummy__
 var _ = os.Args
+var _ _dafny.Dummy__
 
 type Dummy__ struct{}
 

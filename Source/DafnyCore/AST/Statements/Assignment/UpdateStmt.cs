@@ -24,6 +24,9 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
+  public override IEnumerable<Expression> NonSpecificationSubExpressions =>
+    ResolvedStatements == null ? Rhss.SelectMany(r => r.NonSpecificationSubExpressions) : Enumerable.Empty<Expression>();
+
   public override IEnumerable<INode> Children => ResolvedStatements ?? Lhss.Concat<Node>(Rhss);
   public override IEnumerable<INode> PreResolveChildren => Lhss.Concat<Node>(Rhss);
 
@@ -63,6 +66,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     Rhss = rhss;
     CanMutateKnownState = mutate;
   }
+
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {
       foreach (var e in base.PreResolveSubExpressions) {

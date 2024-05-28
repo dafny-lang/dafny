@@ -17,7 +17,7 @@ public class ProjectFilesTest : ClientBasedLanguageServerTest {
 
   [Fact]
   public async Task ProducerLibrary() {
-    var libraryDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var libraryDirectory = GetFreshTempPath();
     var producerSource = @"
 module Producer {
   const x := 3
@@ -35,13 +35,15 @@ module Consumer {
 [options]
 library = [""{producerPath}""]".TrimStart();
 
-    var consumerDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var consumerDirectory = GetFreshTempPath();
     Directory.CreateDirectory(consumerDirectory);
     await File.WriteAllTextAsync(Path.Combine(consumerDirectory, "consumer.dfy"), consumerSource);
     var projectFile = await CreateOpenAndWaitForResolve(projectFileSource, Path.Combine(consumerDirectory, DafnyProject.FileName));
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
-    await AssertNoDiagnosticsAreComing(CancellationToken);
+    var diagnostics = await GetLastDiagnostics(projectFile);
+    Assert.Single(diagnostics);
+    Directory.Delete(libraryDirectory, true);
+    Directory.Delete(consumerDirectory, true);
   }
 
   /// <summary>
@@ -65,7 +67,6 @@ module Consumer {
     MarkupTestFile.GetPositionAndRanges(consumerSourceMarkup, out var consumerSource, out var gotoPosition, out _);
     var consumer = await CreateOpenAndWaitForResolve(consumerSource, Path.Combine(tempDirectory, "consumer.dfy"));
     await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
     // Let consumer.dfy realize it has a new project file 
     var definition1 = await RequestDefinition(consumer, gotoPosition);
     Assert.Empty(definition1);
@@ -81,14 +82,19 @@ module Consumer {
     var tempDirectory = Path.GetRandomFileName();
     var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(tempDirectory, DafnyProject.FileName));
     var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
-    Assert.Single(diagnostics);
-    Assert.Equal("no Dafny source files were specified as input", diagnostics.First().Message);
+    var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+    Assert.Single(errors);
+    Assert.Equal("no Dafny source files were specified as input", errors.First().Message);
   }
 
   [Fact]
   public async Task ProjectFileChangesArePickedUpAfterCacheExpiration() {
-    await SetUp(options => options.WarnShadowing = false);
-    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    const int cacheExpiry = 1000;
+    await SetUp(options => {
+      options.WarnShadowing = false;
+      options.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, cacheExpiry);
+    });
+    var tempDirectory = GetFreshTempPath();
     Directory.CreateDirectory(tempDirectory);
     var projectFilePath = Path.Combine(tempDirectory, DafnyProject.FileName);
     await File.WriteAllTextAsync(projectFilePath, "");
@@ -110,12 +116,15 @@ method Foo() {
 warn-shadowing = true";
 
     await FileTestExtensions.WriteWhenUnlocked(projectFilePath, warnShadowingOn);
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
+    ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
+    await AssertNoDiagnosticsAreComing(CancellationToken);
+    await Task.Delay(cacheExpiry);
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), "//touch comment\n");
     var diagnostics = await GetLastDiagnostics(documentItem);
 
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
+    Directory.Delete(tempDirectory, true);
   }
 
   [Fact]
@@ -159,7 +168,7 @@ warn-shadowing = false
 quantifier-syntax = 4
 function-syntax = 4";
 
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     Directory.CreateDirectory(directory);
 
     var noProjectFile = await CreateOpenAndWaitForResolve(source, "orphaned.dfy");
@@ -170,6 +179,7 @@ function-syntax = 4";
     var sourceFile = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "source.dfy"));
     var diagnostics2 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
+    Directory.Delete(directory, true);
   }
 
   [Fact]
@@ -180,7 +190,7 @@ function-syntax = 4";
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     var outerProjectFile = CreateTestDocument(outerSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(outerProjectFile, CancellationToken);
 
@@ -193,14 +203,15 @@ method Foo() {
   var x := 3;
   if (true) {
     var x := 4;
+    var y: int := true; 
   }
 }
 ";
     var documentItem = CreateTestDocument(source, Path.Combine(innerDirectory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
     var diagnostics = await GetLastDiagnostics(documentItem);
-    Assert.Single(diagnostics);
-    Assert.Contains("Shadowed", diagnostics[0].Message);
+    Assert.Equal(2, diagnostics.Length);
+    Assert.Contains(diagnostics, d => d.Message.Contains("Shadowed"));
   }
 
   [Fact]
@@ -211,7 +222,7 @@ method Foo() {
 [options]
 warn-shadowing = true
 ";
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     var projectFile = CreateTestDocument(projectFileSource, Path.Combine(directory, DafnyProject.FileName));
     await client.OpenDocumentAndWaitAsync(projectFile, CancellationToken);
 

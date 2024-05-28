@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Xunit;
 using Xunit.Abstractions;
@@ -22,7 +23,7 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
   /// </summary>
   [Fact]
   public async Task ProjectFileDoesNotOwnAllSourceFilesItUses() {
-    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var tempDirectory = GetFreshTempPath();
     var nestedDirectory = Path.Combine(tempDirectory, "nested");
     Directory.CreateDirectory(nestedDirectory);
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, "source.dfy"), "hasErrorInSyntax");
@@ -33,7 +34,8 @@ public class CompetingProjectFilesTest : ClientBasedLanguageServerTest {
     var diagnostics = await GetLastDiagnostics(project);
     var errors = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
     Assert.Single(errors);
-    Assert.Contains("the referenced file", errors[0].Message);
+    Assert.Contains("but is part of a different project", errors[0].Message);
+    Directory.Delete(tempDirectory, true);
   }
 
   public readonly string hasShadowingSource = @"
@@ -50,7 +52,7 @@ method Foo() {
   /// </summary>
   [Fact]
   public async Task NewProjectFileGrabsSourceFileOwnership() {
-    var tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var tempDirectory = GetFreshTempPath();
     var nestedDirectory = Path.Combine(tempDirectory, "nested");
     Directory.CreateDirectory(nestedDirectory);
     var sourceFilePath = Path.Combine(nestedDirectory, "source.dfy");
@@ -70,13 +72,13 @@ warn-shadowing = true
     Assert.Contains("Shadowed", diagnostics0[0].Message);
 
     await File.WriteAllTextAsync(Path.Combine(nestedDirectory, DafnyProject.FileName), "");
-    await Task.Delay(ProjectManagerDatabase.ProjectFileCacheExpiryTime);
 
     ApplyChange(ref sourceFile, new Range(0, 0, 0, 0), "//comment\n");
     var diagnostics1 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics1);
+    Directory.Delete(tempDirectory, true);
   }
 
-  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output) {
+  public CompetingProjectFilesTest(ITestOutputHelper output) : base(output, LogLevel.Debug) {
   }
 }

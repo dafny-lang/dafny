@@ -1,8 +1,8 @@
 // RUN: %exits-with 4 %verify "%s" > "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: ! %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: ! %run --no-verify --target cs "%s" >> "%t"
+// RUN: ! %run --no-verify --target js "%s" >> "%t"
+// RUN: ! %run --no-verify --target go "%s" >> "%t"
+// RUN: ! %run --no-verify --target java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 

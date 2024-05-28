@@ -1,4 +1,4 @@
-// RUN: %resolve "%s" > "%t"
+// RUN: %resolve "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method m() {

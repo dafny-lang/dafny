@@ -81,7 +81,7 @@ public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public SymbolKind Kind => SymbolKind.Namespace;
+  public virtual SymbolKind? Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

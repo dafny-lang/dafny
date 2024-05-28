@@ -369,7 +369,7 @@ namespace Microsoft.Dafny {
           } else {
             // If there are any type bounds, then the names of the type parameters matter
             var checkNames = d.TypeArgs.Concat(nw.TypeArgs).Any(typeParameter => typeParameter.TypeBounds.Count != 0);
-            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type",  checkNames);
+            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", checkNames);
           }
         }
       } else if (nw is AbstractTypeDecl) {
@@ -468,7 +468,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = previousFunction.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
-      var formals = previousFunction.Formals.ConvertAll(p => refinementCloner.CloneFormal(p, false));
+      var formals = previousFunction.Ins.ConvertAll(p => refinementCloner.CloneFormal(p, false));
       var req = previousFunction.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = refinementCloner.CloneSpecFrameExpr(previousFunction.Reads);
       var decreases = refinementCloner.CloneSpecExpr(previousFunction.Decreases);
@@ -738,11 +738,11 @@ namespace Microsoft.Dafny {
               }
               if (f.SignatureIsOmitted) {
                 Contract.Assert(f.TypeArgs.Count == 0);
-                Contract.Assert(f.Formals.Count == 0);
+                Contract.Assert(f.Ins.Count == 0);
                 Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(Reporter.Options, prevFunction));
               } else {
                 CheckAgreement_TypeParameters(f.tok, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
-                CheckAgreement_Parameters(f.tok, prevFunction.Formals, f.Formals, f.Name, "function", "parameter");
+                CheckAgreement_Parameters(f.tok, prevFunction.Ins, f.Ins, f.Name, "function", "parameter");
                 if (prevFunction.Result != null && f.Result != null && prevFunction.Result.Name != f.Result.Name) {
                   Error(ErrorId.ref_mismatched_function_return_name, f, "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})", f.Name, f.Result.Name, prevFunction.Result.Name);
                 }

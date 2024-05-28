@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This tests checks that quantifier splitting is resilient to the fact that

@@ -13,14 +13,16 @@ static class ResolveCommand {
       result.AddOption(option);
     }
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
+      options.Set(DafnyFile.UnsafeDependencies, true);
       var compilation = CliCompilation.Create(options);
       compilation.Start();
       await compilation.Resolution;
 
-      if (compilation.ExitValue == ExitValue.SUCCESS) {
+      var value = await compilation.GetAndReportExitValue();
+      if (value == ExitValue.SUCCESS) {
         await options.OutputWriter.WriteLineAsync("\nDafny program verifier did not attempt verification");
       }
-      return compilation.ExitCode;
+      return (int)value;
     });
     return result;
   }

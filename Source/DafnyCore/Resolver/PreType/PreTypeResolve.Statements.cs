@@ -249,8 +249,8 @@ namespace Microsoft.Dafny {
         var s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = ErrorCount;
-          resolver.ResolveType(local.Tok, local.OptionalType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = ErrorCount == prevErrorCount ? local.type = local.OptionalType : new InferredTypeProxy();
+          resolver.ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          local.type = ErrorCount == prevErrorCount ? local.type = local.SyntacticType : new InferredTypeProxy();
           local.PreType = Type2PreType(local.type);
         }
         ResolveExpression(s.RHS, resolutionContext);
@@ -544,7 +544,9 @@ namespace Microsoft.Dafny {
 #if SOON
           // reuse the error object if we're on the dummy line; this prevents a duplicate error message
 #endif
-          AddSubtypeConstraint(linePreType, e1.PreType, e1.tok, "all lines in a calculation must have the same type (got {1} after {0})");
+          if (i < s.Lines.Count - 1) {
+            AddSubtypeConstraint(linePreType, e1.PreType, e1.tok, "all lines in a calculation must have the same type (got {1} after {0})");
+          }
           var step = (s.StepOps[i - 1] ?? s.Op).StepExpr(e0, e1); // Use custom line operator
           ResolveExpression(step, resolutionContext);
           s.Steps.Add(step);
@@ -614,8 +616,8 @@ namespace Microsoft.Dafny {
         // Add the locals to the scope
         foreach (var local in locals) {
           int prevErrorCount = ErrorCount;
-          resolver.ResolveType(local.Tok, local.OptionalType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = ErrorCount == prevErrorCount ? local.OptionalType : new InferredTypeProxy();
+          resolver.ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          local.type = ErrorCount == prevErrorCount ? local.SyntacticType : new InferredTypeProxy();
           ScopePushAndReport(local, "local-variable", true);
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals
@@ -1291,7 +1293,7 @@ namespace Microsoft.Dafny {
         var arrayType = resolver.ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), resolutionContext, true);
         AddSubtypeConstraint(Type2PreType(arrayType), ll.Seq.PreType, ll.Seq.tok, "LHS of array assignment must denote an array element (found {1})");
         if (!ll.SelectOne) {
-          ReportError(ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
+          ReportError(ll, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
       } else if (lhs is MultiSelectExpr) {
         // nothing to check; this can only denote an array element

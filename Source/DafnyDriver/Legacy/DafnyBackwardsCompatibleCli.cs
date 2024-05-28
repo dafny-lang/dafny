@@ -88,6 +88,11 @@ public static class DafnyBackwardsCompatibleCli {
               return new ExitImmediately(ExitValue.SUCCESS);
             }
 
+            if (oldOptions.DeprecationNoise != 0) {
+              oldOptions.OutputWriter.WriteLine(
+                "Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format");
+            }
+
             return new ParsedOptions(oldOptions);
           }
 

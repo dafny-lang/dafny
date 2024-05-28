@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:full "%s" > "%t"
+// RUN: %exits-with 2 %build --type-system-refresh --general-traits full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
@@ -156,12 +156,12 @@ module NewtypeBuiltinMembers0 {
 
   newtype SmallReal extends MyTrait = r | -4.0 <= r < 300.0 {
     function G(): int { 2 }
-    const Floor: string // error: this ought not be allowed
+    const Floor: string // error: "Floor" is already inherited from base type "real"
   }
 
   newtype AnotherReal = s: SmallReal | s.K() == 8 {
     function H(): int { 3 }
-    const Floor: string // error: this ought not be allowed
+    const Floor: string // error: "Floor" is already inherited from base type "SmallReal"
   }
 }
 
@@ -187,7 +187,7 @@ module NewtypeBuiltinMembers1 {
     x := small.K();
 
     x := ano.Floor;
-    x := ano.G(); // error: G is not a member of AnotherReal
+    x := ano.G();
     x := ano.H();
   }
 }

@@ -35,11 +35,12 @@ module SimpleTest {
     } else if (|tseq| > 0 && tseq[0].1.1 == 'R') {
         return 2;
     }
+    return 3;
   }
 }
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>
@@ -83,7 +84,7 @@ module C {
 
 ".TrimStart();
       var options = GetDafnyOptions(optionSettings, output);
-      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
       var methods = await TestGenerator.GetTestMethodsForProgram(program).ToListAsync();
       Assert.True(3 <= methods.Count);
       Assert.True(methods.All(m =>

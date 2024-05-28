@@ -45,7 +45,7 @@ class DafnyDoc {
   public static async Task<ExitValue> DoDocumenting(DafnyOptions options) {
 
     var dafnyFolders = options.SourceFolders;
-    var code = SynchronousCliCompilation.GetDafnyFiles(options, out var dafnyFiles, out _);
+    var (code, dafnyFiles, _) = await SynchronousCliCompilation.GetDafnyFiles(options);
     if (code != 0) {
       return code;
     }
@@ -59,8 +59,9 @@ class DafnyDoc {
 
     // Collect all the dafny files; dafnyFiles already includes files from a .toml project file
     var exitValue = ExitValue.SUCCESS;
-    dafnyFiles = dafnyFiles.Concat(dafnyFolders.SelectMany(folderPath =>
-      FormatCommand.GetFilesForFolder(options, folderPath))).ToList();
+    var folderFiles = dafnyFolders.Select(folderPath =>
+      FormatCommand.GetFilesForFolder(options, folderPath)).SelectMany(x => x);
+    dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
     await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
     if (dafnyFiles.Count == 0) {
       return exitValue;
@@ -70,7 +71,7 @@ class DafnyDoc {
     string err = null;
     Program dafnyProgram = null;
     try {
-      err = DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options, out dafnyProgram);
+      (dafnyProgram, err) = await DafnyMain.ParseCheck(options.Input, dafnyFiles, programName, options);
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
@@ -755,7 +756,7 @@ class DafnyDoc {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
       var allowNew = m is TwoStateFunction;
-      var formals = String.Join(", ", f.Formals.Select(ff => FormalAsString(ff, allowNew)));
+      var formals = String.Join(", ", f.Ins.Select(ff => FormalAsString(ff, allowNew)));
       return (Bold(m.Name) + typeparams) + "(" + formals + "): " + TypeLink(f.ResultType);
     } else {
       return "";
