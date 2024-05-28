@@ -1,4 +1,5 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %verify %s > %t
+// RUN: %diff "%s.expect" "%t"
 
 module A {
   function foo(x: int): int {
