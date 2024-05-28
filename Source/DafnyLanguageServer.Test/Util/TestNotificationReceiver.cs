@@ -45,7 +45,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     public TNotification? GetLatestAndClearQueue(Func<TNotification, bool> predicate) {
       lock (this) {
         while (notifications.Size > 0) {
-          _ = notifications.Dequeue(CancellationToken.None);
+          _ = notifications.Dequeue();
         }
 
         return History.LastOrDefault(predicate);
@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util {
     public async Task<TNotification> AwaitNextNotificationAsync(CancellationToken cancellationToken) {
       var start = DateTime.Now;
       try {
-        return await notifications.Dequeue(cancellationToken);
+        return await notifications.Dequeue().WaitAsync(cancellationToken);
       } catch (OperationCanceledException) {
         var last = History.Any() ? History[^1].Stringify() : "none";
         logger.LogInformation($"Waited for {(DateTime.Now - start).Seconds} seconds for new notification.\n" +

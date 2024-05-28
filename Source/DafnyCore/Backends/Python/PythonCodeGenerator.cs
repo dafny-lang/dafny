@@ -1224,7 +1224,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     }
 
-    protected override void EmitThis(ConcreteSyntaxTree wr, bool callToInheritedMember) {
+    protected override void EmitThis(ConcreteSyntaxTree wr, bool _ = false) {
       var isTailRecursive = enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true };
       wr.Write(isTailRecursive ? "_this" : "self");
     }
