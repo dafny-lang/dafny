@@ -11,6 +11,8 @@ public class TypeParameter : TopLevelDecl {
 
   public override string WhatKind => "type parameter";
 
+  public bool IsAutoCompleted => Name.StartsWith("_");
+
   ParentType parent;
   public ParentType Parent {
     get {

@@ -107,7 +107,9 @@ namespace Microsoft.Dafny {
         } else if (d is ClassLikeDecl or DefaultClassDecl) {
           var cl = (TopLevelDeclWithMembers)d;
           foreach (var member in cl.Members.Where(member => !member.IsGhost)) {
+            List<TypeParameter> memberTypeArguments = null;
             if (member is Function function) {
+              memberTypeArguments = function.TypeArgs;
               foreach (var tp in function.TypeArgs) {
                 if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
@@ -123,6 +125,7 @@ namespace Microsoft.Dafny {
                 }
               }
             } else if (member is Method method) {
+              memberTypeArguments = method.TypeArgs;
               bool done = false;
               foreach (var tp in method.TypeArgs) {
                 if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
@@ -145,6 +148,14 @@ namespace Microsoft.Dafny {
                 }
               }
             }
+
+            // Now that type characteristics have been inferred for any method/function type parameters, generate a tool tip
+            // if the type parameters were added as part of type-parameter completion.
+            if (memberTypeArguments != null && memberTypeArguments.Count != 0 && memberTypeArguments[0].IsAutoCompleted) {
+              var toolTip = $"<{memberTypeArguments.Comma(Printer.TypeParameterToString)}>";
+              reporter.Info(MessageSource.Resolver, member.tok, toolTip);
+            }
+
           }
         }
       }
@@ -154,7 +165,8 @@ namespace Microsoft.Dafny {
       var requiresEqualitySupport = InferRequiredEqualitySupport(tp, type);
       if (requiresEqualitySupport) {
         tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-        if (reporter is not ErrorReporterWrapper) {
+        // Note, auto-completed type parameters already get a tool tip for the enclosing method/function
+        if (reporter is not ErrorReporterWrapper && !tp.IsAutoCompleted) {
           reporter.Info(MessageSource.Resolver, tp.tok, "(==)");
         }
       }

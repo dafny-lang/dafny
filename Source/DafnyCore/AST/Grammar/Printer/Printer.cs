@@ -766,38 +766,39 @@ NoGhost - disable printing of functions, ghost methods, and proof
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(
-        typeArgs.All(tp => tp.Name.StartsWith("_")) ||
-        typeArgs.All(tp => !tp.Name.StartsWith("_")));
+        typeArgs.All(tp => tp.IsAutoCompleted) ||
+        typeArgs.All(tp => !tp.IsAutoCompleted));
 
-      if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
+      if (typeArgs.Count != 0 && !typeArgs[0].IsAutoCompleted) {
         wr.Write("<{0}>", Util.Comma(typeArgs, TypeParamString));
       }
     }
 
+    public static string TypeParameterToString(TypeParameter tp) {
+      return TypeParamVariance(tp) + tp.Name + TPCharacteristicsSuffix(tp.Characteristics, true);
+    }
+
     public string TypeParamString(TypeParameter tp) {
       Contract.Requires(tp != null);
-      string variance;
+      return TypeParamVariance(tp) + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+    }
+
+    public static string TypeParamVariance(TypeParameter tp) {
       switch (tp.VarianceSyntax) {
         case TypeParameter.TPVarianceSyntax.Covariant_Permissive:
-          variance = "*";
-          break;
+          return "*";
         case TypeParameter.TPVarianceSyntax.Covariant_Strict:
-          variance = "+";
-          break;
+          return "+";
         case TypeParameter.TPVarianceSyntax.NonVariant_Permissive:
-          variance = "!";
-          break;
+          return "!";
         case TypeParameter.TPVarianceSyntax.NonVariant_Strict:
-          variance = "";
-          break;
+          return "";
         case TypeParameter.TPVarianceSyntax.Contravariance:
-          variance = "-";
-          break;
+          return "-";
         default:
           Contract.Assert(false);  // unexpected VarianceSyntax
           throw new cce.UnreachableException();
       }
-      return variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
     }
 
     private void PrintArrowType(string arrow, string internalName, List<TypeParameter> typeArgs) {
@@ -1181,9 +1182,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+      return TPCharacteristicsSuffix(characteristics, options.DafnyPrintResolvedFile != null);
+    }
+
+    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
-        (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && options.DafnyPrintResolvedFile != null)) {
+          (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && printInferredTypeCharacteristics)) {
         s = "==";
       }
       if (characteristics.HasCompiledValue) {
