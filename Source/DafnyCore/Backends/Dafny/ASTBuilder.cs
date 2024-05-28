@@ -201,9 +201,9 @@ namespace Microsoft.Dafny.Compilers {
     void AddNewtype(Newtype item);
 
     public NewtypeBuilder Newtype(string name, List<DAST.TypeArgDecl> typeParams,
-      DAST.Type baseType, NewtypeRange newtypeRange, List<DAST.Statement> witnessStmts, DAST.Expression witness,
+      DAST.Type baseType, NewtypeRange newtypeRange, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> witnessStmts, DAST.Expression witness,
       ISequence<_IAttribute> attributes) {
-      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, witnessStmts, witness, attributes);
+      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, constraint, witnessStmts, witness, attributes);
     }
   }
 
@@ -212,19 +212,22 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly List<DAST.TypeArgDecl> typeParams;
     readonly DAST.Type baseType;
+    private readonly Option<DAST.NewtypeConstraint> constraint;
     private readonly DAST.NewtypeRange newtypeRange;
     readonly List<DAST.Statement> witnessStmts;
     readonly DAST.Expression witness;
     private ISequence<_IAttribute> attributes;
 
-    public NewtypeBuilder(NewtypeContainer parent, string name, List<DAST.TypeArgDecl> typeParams,
-      DAST.NewtypeRange newtypeRange, DAST.Type baseType, List<DAST.Statement> statements, DAST.Expression witness,
+    public NewtypeBuilder(NewtypeContainer parent, string name, List<TypeArgDecl> typeParams,
+      NewtypeRange newtypeRange, DAST.Type baseType, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> statements,
+      DAST.Expression witness,
       ISequence<_IAttribute> attributes) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.newtypeRange = newtypeRange;
       this.baseType = baseType;
+      this.constraint = constraint;
       this.witnessStmts = statements;
       this.witness = witness;
       this.attributes = attributes;
@@ -244,6 +247,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(this.typeParams.ToArray()),
         this.baseType,
         newtypeRange,
+        constraint,
         Sequence<DAST.Statement>.FromArray(this.witnessStmts.ToArray()),
         this.witness == null
           ? Option<DAST._IExpression>.create_None()
@@ -1110,7 +1114,7 @@ namespace Microsoft.Dafny.Compilers {
     public Func<DAST.Expression, DAST.Expression> InternalWrapper;
     [CanBeNull] public object Expr;
 
-    public ExprWrapper(Func<DAST.Expression, DAST.Expression> internalWrapper) {
+    public ExprWrapper(Func<DAST.Expression, DAST.Expression> internalWrapper = null) {
       this.InternalWrapper = internalWrapper;
     }
 
@@ -1147,7 +1151,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public DAST.Expression Build() {
-      return InternalWrapper(Finish());
+      if (InternalWrapper == null) {
+        return Finish();
+      } else {
+        return InternalWrapper(Finish());
+      }
     }
   }
 
