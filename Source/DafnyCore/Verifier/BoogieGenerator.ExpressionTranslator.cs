@@ -832,6 +832,26 @@ namespace Microsoft.Dafny {
                   // both the $IsAllocBox and $IsAlloc forms, because the axioms that connects these two is triggered
                   // by $IsAllocBox.
                   return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
+                case UnaryOpExpr.ResolvedOpcode.Assigned:
+                  var ns = e.E as NameSegment;
+                  Contract.Assert(ns != null);
+                  string name = null;
+                  switch (ns.Resolved) {
+                    case IdentifierExpr ie:
+                      name = ie.Var.UniqueName;
+                      break;
+                    case MemberSelectExpr mse:
+                      if (BoogieGenerator.inBodyInitContext && Expression.AsThis(mse.Obj) != null) {
+                        name = BoogieGenerator.SurrogateName(mse.Member as Field);
+                      }
+                      break;
+                  }
+
+                  if (name == null) {
+                    return Expr.True;
+                  }
+                  BoogieGenerator.definiteAssignmentTrackers.TryGetValue(name, out var defass);
+                  return defass;
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
               }

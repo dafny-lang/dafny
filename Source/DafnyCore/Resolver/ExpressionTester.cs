@@ -557,7 +557,7 @@ public class ExpressionTester {
       return true;
     } else if (expr is UnaryExpr) {
       var e = (UnaryExpr)expr;
-      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
+      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated or UnaryOpExpr.Opcode.Assigned }) {
         return true;
       }
       if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {
