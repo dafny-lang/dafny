@@ -2485,6 +2485,7 @@ namespace DAST {
     Dafny.ISequence<DAST._ITypeArgDecl> dtor_typeParams { get; }
     DAST._IType dtor_base { get; }
     DAST._INewtypeRange dtor_range { get; }
+    Std.Wrappers._IOption<DAST._INewtypeConstraint> dtor_constraint { get; }
     Dafny.ISequence<DAST._IStatement> dtor_witnessStmts { get; }
     Std.Wrappers._IOption<DAST._IExpression> dtor_witnessExpr { get; }
     Dafny.ISequence<DAST._IAttribute> dtor_attributes { get; }
@@ -2495,25 +2496,27 @@ namespace DAST {
     public readonly Dafny.ISequence<DAST._ITypeArgDecl> _typeParams;
     public readonly DAST._IType _base;
     public readonly DAST._INewtypeRange _range;
+    public readonly Std.Wrappers._IOption<DAST._INewtypeConstraint> _constraint;
     public readonly Dafny.ISequence<DAST._IStatement> _witnessStmts;
     public readonly Std.Wrappers._IOption<DAST._IExpression> _witnessExpr;
     public readonly Dafny.ISequence<DAST._IAttribute> _attributes;
-    public Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+    public Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
       this._name = name;
       this._typeParams = typeParams;
       this._base = @base;
       this._range = range;
+      this._constraint = constraint;
       this._witnessStmts = witnessStmts;
       this._witnessExpr = witnessExpr;
       this._attributes = attributes;
     }
     public _INewtype DowncastClone() {
       if (this is _INewtype dt) { return dt; }
-      return new Newtype(_name, _typeParams, _base, _range, _witnessStmts, _witnessExpr, _attributes);
+      return new Newtype(_name, _typeParams, _base, _range, _constraint, _witnessStmts, _witnessExpr, _attributes);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Newtype;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._base, oth._base) && object.Equals(this._range, oth._range) && object.Equals(this._witnessStmts, oth._witnessStmts) && object.Equals(this._witnessExpr, oth._witnessExpr) && object.Equals(this._attributes, oth._attributes);
+      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._base, oth._base) && object.Equals(this._range, oth._range) && object.Equals(this._constraint, oth._constraint) && object.Equals(this._witnessStmts, oth._witnessStmts) && object.Equals(this._witnessExpr, oth._witnessExpr) && object.Equals(this._attributes, oth._attributes);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -2522,6 +2525,7 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._base));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._range));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._constraint));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._witnessStmts));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._witnessExpr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
@@ -2538,6 +2542,8 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._range);
       s += ", ";
+      s += Dafny.Helpers.ToString(this._constraint);
+      s += ", ";
       s += Dafny.Helpers.ToString(this._witnessStmts);
       s += ", ";
       s += Dafny.Helpers.ToString(this._witnessExpr);
@@ -2546,7 +2552,7 @@ namespace DAST {
       s += ")";
       return s;
     }
-    private static readonly DAST._INewtype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, DAST.Type.Default(), DAST.NewtypeRange.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default(), Dafny.Sequence<DAST._IAttribute>.Empty);
+    private static readonly DAST._INewtype theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgDecl>.Empty, DAST.Type.Default(), DAST.NewtypeRange.Default(), Std.Wrappers.Option<DAST._INewtypeConstraint>.Default(), Dafny.Sequence<DAST._IStatement>.Empty, Std.Wrappers.Option<DAST._IExpression>.Default(), Dafny.Sequence<DAST._IAttribute>.Empty);
     public static DAST._INewtype Default() {
       return theDefault;
     }
@@ -2554,11 +2560,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._INewtype> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _INewtype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
-      return new Newtype(name, typeParams, @base, range, witnessStmts, witnessExpr, attributes);
+    public static _INewtype create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return new Newtype(name, typeParams, @base, range, constraint, witnessStmts, witnessExpr, attributes);
     }
-    public static _INewtype create_Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
-      return create(name, typeParams, @base, range, witnessStmts, witnessExpr, attributes);
+    public static _INewtype create_Newtype(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgDecl> typeParams, DAST._IType @base, DAST._INewtypeRange range, Std.Wrappers._IOption<DAST._INewtypeConstraint> constraint, Dafny.ISequence<DAST._IStatement> witnessStmts, Std.Wrappers._IOption<DAST._IExpression> witnessExpr, Dafny.ISequence<DAST._IAttribute> attributes) {
+      return create(name, typeParams, @base, range, constraint, witnessStmts, witnessExpr, attributes);
     }
     public bool is_Newtype { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -2581,6 +2587,11 @@ namespace DAST {
         return this._range;
       }
     }
+    public Std.Wrappers._IOption<DAST._INewtypeConstraint> dtor_constraint {
+      get {
+        return this._constraint;
+      }
+    }
     public Dafny.ISequence<DAST._IStatement> dtor_witnessStmts {
       get {
         return this._witnessStmts;
@@ -2594,6 +2605,70 @@ namespace DAST {
     public Dafny.ISequence<DAST._IAttribute> dtor_attributes {
       get {
         return this._attributes;
+      }
+    }
+  }
+
+  public interface _INewtypeConstraint {
+    bool is_NewtypeConstraint { get; }
+    DAST._IFormal dtor_variable { get; }
+    Dafny.ISequence<DAST._IStatement> dtor_constraintStmts { get; }
+    _INewtypeConstraint DowncastClone();
+  }
+  public class NewtypeConstraint : _INewtypeConstraint {
+    public readonly DAST._IFormal _variable;
+    public readonly Dafny.ISequence<DAST._IStatement> _constraintStmts;
+    public NewtypeConstraint(DAST._IFormal variable, Dafny.ISequence<DAST._IStatement> constraintStmts) {
+      this._variable = variable;
+      this._constraintStmts = constraintStmts;
+    }
+    public _INewtypeConstraint DowncastClone() {
+      if (this is _INewtypeConstraint dt) { return dt; }
+      return new NewtypeConstraint(_variable, _constraintStmts);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.NewtypeConstraint;
+      return oth != null && object.Equals(this._variable, oth._variable) && object.Equals(this._constraintStmts, oth._constraintStmts);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variable));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._constraintStmts));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.NewtypeConstraint.NewtypeConstraint";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._variable);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._constraintStmts);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._INewtypeConstraint theDefault = create(DAST.Formal.Default(), Dafny.Sequence<DAST._IStatement>.Empty);
+    public static DAST._INewtypeConstraint Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._INewtypeConstraint> _TYPE = new Dafny.TypeDescriptor<DAST._INewtypeConstraint>(DAST.NewtypeConstraint.Default());
+    public static Dafny.TypeDescriptor<DAST._INewtypeConstraint> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _INewtypeConstraint create(DAST._IFormal variable, Dafny.ISequence<DAST._IStatement> constraintStmts) {
+      return new NewtypeConstraint(variable, constraintStmts);
+    }
+    public static _INewtypeConstraint create_NewtypeConstraint(DAST._IFormal variable, Dafny.ISequence<DAST._IStatement> constraintStmts) {
+      return create(variable, constraintStmts);
+    }
+    public bool is_NewtypeConstraint { get { return true; } }
+    public DAST._IFormal dtor_variable {
+      get {
+        return this._variable;
+      }
+    }
+    public Dafny.ISequence<DAST._IStatement> dtor_constraintStmts {
+      get {
+        return this._constraintStmts;
       }
     }
   }
@@ -5288,6 +5363,7 @@ namespace DAST {
     bool is_InitializationValue { get; }
     bool is_BoolBoundedPool { get; }
     bool is_SetBoundedPool { get; }
+    bool is_MapBoundedPool { get; }
     bool is_SeqBoundedPool { get; }
     bool is_IntRange { get; }
     bool is_UnboundedIntRange { get; }
@@ -5495,6 +5571,9 @@ namespace DAST {
     public static _IExpression create_SetBoundedPool(DAST._IExpression of) {
       return new Expression_SetBoundedPool(of);
     }
+    public static _IExpression create_MapBoundedPool(DAST._IExpression of) {
+      return new Expression_MapBoundedPool(of);
+    }
     public static _IExpression create_SeqBoundedPool(DAST._IExpression of, bool includeDuplicates) {
       return new Expression_SeqBoundedPool(of, includeDuplicates);
     }
@@ -5548,6 +5627,7 @@ namespace DAST {
     public bool is_InitializationValue { get { return this is Expression_InitializationValue; } }
     public bool is_BoolBoundedPool { get { return this is Expression_BoolBoundedPool; } }
     public bool is_SetBoundedPool { get { return this is Expression_SetBoundedPool; } }
+    public bool is_MapBoundedPool { get { return this is Expression_MapBoundedPool; } }
     public bool is_SeqBoundedPool { get { return this is Expression_SeqBoundedPool; } }
     public bool is_IntRange { get { return this is Expression_IntRange; } }
     public bool is_UnboundedIntRange { get { return this is Expression_UnboundedIntRange; } }
@@ -5940,6 +6020,7 @@ namespace DAST {
       get {
         var d = this;
         if (d is Expression_SetBoundedPool) { return ((Expression_SetBoundedPool)d)._of; }
+        if (d is Expression_MapBoundedPool) { return ((Expression_MapBoundedPool)d)._of; }
         return ((Expression_SeqBoundedPool)d)._of;
       }
     }
@@ -7364,6 +7445,33 @@ namespace DAST {
       return s;
     }
   }
+  public class Expression_MapBoundedPool : Expression {
+    public readonly DAST._IExpression _of;
+    public Expression_MapBoundedPool(DAST._IExpression of) : base() {
+      this._of = of;
+    }
+    public override _IExpression DowncastClone() {
+      if (this is _IExpression dt) { return dt; }
+      return new Expression_MapBoundedPool(_of);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Expression_MapBoundedPool;
+      return oth != null && object.Equals(this._of, oth._of);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 41;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Expression.MapBoundedPool";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._of);
+      s += ")";
+      return s;
+    }
+  }
   public class Expression_SeqBoundedPool : Expression {
     public readonly DAST._IExpression _of;
     public readonly bool _includeDuplicates;
@@ -7381,7 +7489,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 41;
+      hash = ((hash << 5) + hash) + 42;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._includeDuplicates));
       return (int) hash;
@@ -7415,7 +7523,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 42;
+      hash = ((hash << 5) + hash) + 43;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hi));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
@@ -7450,7 +7558,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 43;
+      hash = ((hash << 5) + hash) + 44;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
       return (int) hash;
@@ -7486,7 +7594,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 44;
+      hash = ((hash << 5) + hash) + 45;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collection));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._is__forall));
