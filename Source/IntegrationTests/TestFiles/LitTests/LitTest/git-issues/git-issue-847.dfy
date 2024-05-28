@@ -1,7 +1,7 @@
 // RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-trait O {
+trait O extends object {
   var rep:set<O>
   ghost function union<T>(s:set<set<T>>):set<T> {
     set o,o1 | o in s && o1 in o :: o1
