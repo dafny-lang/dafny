@@ -220,10 +220,10 @@ x, y :| 0 < x+y < 10;
 ```
 This is read as assign values to `x` and `y` such that `0 < x+y < 10` is true.
 
-Every Assign-such-that operator `x :| P(x)` yields an assertion that `exists x :: P(x)`. Dafny will report an error if it cannot prove that values
+Every assign-such-that operator `x :| P(x)` yields an assertion that `exists x :: P(x)`. Dafny will report an error if it cannot prove that values
 exist that satisfy the condition.
 
-An assign-such-that operator can occur in both ghost contexts and compiled contexts. In a ghost context, there is nothing more to say. In a compiled context, it matters whether the operator appears in a statement or in an expressions. A statement can mutate the program state and can be nondeterministic. Expressions are deterministic and do not mutate the state.
+An assign-such-that operator can occur in both ghost contexts and compiled contexts. In a ghost context, there is nothing more to say. In a compiled context, it matters whether the operator appears in a statement or in an expression. A statement can mutate the program state and can be nondeterministic. Expressions are deterministic and do not mutate the state.
 
 An assign-such-that *statement* is *nondeterministic* in that the given boolean expression does not need to constrain the LHS values uniquely and Dafny makes no guarantee about which value will get picked. In fact, the value assigned to may be different each time the statement is executed, even if the program state is otherwise the same. For example, in the following we non-deterministically choose an element in a set:
 
@@ -249,8 +249,7 @@ In this variation, with an `assume` keyword
 ```
 Dafny assumes without proof that an appropriate value exists.
 
-
-An assign-such-that *expression* is *deterministic* in that the value of a let-such-that expression must be uniquely determined. In case `x :| P(x); Body(x)` appears in an expression and `x` is non-ghost, Dafny adds as a proof obligation, `forall x, y | P(x) && P(y) :: Body(x) == Body(y)`. For example, removing the `ghost` keyword in the following functional variation of the `Sum` function leads to a failure in verification, since uniqueness is not guaranteed a priori:
+An assign-such-that *expression* is *deterministic* in that the LHS values must be uniquely determined. In case `x :| P(x); Body(x)` appears in an expression and `x` is non-ghost, Dafny adds as a proof obligation, `forall x, y | P(x) && P(y) :: Body(x) == Body(y)`. For example, removing the `ghost` keyword in the following functional variation of the `Sum` method leads to a failure in verification, since uniqueness is not guaranteed a priori:
 
 <!-- %check-verify -->
 ```dafny
