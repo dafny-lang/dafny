@@ -7,7 +7,6 @@
 //-----------------------------------------------------------------------------
 
 using System.Linq;
-using System.Security.AccessControl;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.RewriterErrors;
 
