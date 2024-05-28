@@ -1,0 +1,6 @@
+Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/git-issue-4364.dfy(12,13): Error: type test for type 'int' must be from an expression assignable to it (got 'T')
+   |
+12 |     assert x is int;
+   |              ^^
+
+1 resolution/type errors detected in git-issue-4364.dfy
