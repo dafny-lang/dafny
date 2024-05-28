@@ -92,7 +92,13 @@ module {:extern "DAST"} DAST {
 
   datatype DatatypeCtor = DatatypeCtor(name: Name, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
 
-  datatype Newtype = Newtype(name: Name, typeParams: seq<TypeArgDecl>, base: Type, range: NewtypeRange, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+  datatype Newtype =
+    Newtype(
+      name: Name, typeParams: seq<TypeArgDecl>, base: Type,
+      range: NewtypeRange, constraint: Option<NewtypeConstraint>,
+      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
+
+  datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
 
   // At this point, constraints have been entirely removed,
   // but synonym types might have different witnesses to use for by the compiler
@@ -211,6 +217,7 @@ module {:extern "DAST"} DAST {
     InitializationValue(typ: Type) |
     BoolBoundedPool() |
     SetBoundedPool(of: Expression) |
+    MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
     IntRange(lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |

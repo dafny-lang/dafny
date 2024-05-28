@@ -4965,8 +4965,8 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(sep);
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
-            var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var w = EmitCoercionIfNecessary(fromType, instantiatedToType, s.Tok, wr, toType);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
             EmitExpr(s.Args[i], false, w, wStmts);
             sep = ", ";
@@ -5903,7 +5903,7 @@ namespace Microsoft.Dafny.Compilers {
           toUdt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
         var declWithConstraints = (RedirectingTypeDecl)toUdt.ResolvedClass;
         // check the constraints, by calling the _Is method
-        var wrArgument = EmitCallToIsMethod(declWithConstraints, toUdt.TypeArgs, wr);
+        var wrArgument = MaybeEmitCallToIsMethod(declWithConstraints, toUdt.TypeArgs, wr);
         var targetRepresentationOfFrom = new ConversionExpr(from.tok, from, toType) { Type = toType };
         EmitExpr(targetRepresentationOfFrom, false, wrArgument, wStmts);
       } else {
@@ -6002,7 +6002,9 @@ namespace Microsoft.Dafny.Compilers {
 
         var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-        EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+        var argumentWriter = MaybeEmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter);
+
+        EmitIdentifier(IdName(boundVar), argumentWriter);
 
         if (isReturning) {
           var elseBranch = wr;
@@ -6068,7 +6070,7 @@ namespace Microsoft.Dafny.Compilers {
         var thenWriter = EmitIf(out var guardWriter, hasElse: false, wr);
         ReturnBoolLiteral(wr, false);
 
-        var wrArgument = EmitCallToIsMethod((RedirectingTypeDecl)baseTypeUdt.ResolvedClass, baseTypeUdt.TypeArgs, guardWriter);
+        var wrArgument = MaybeEmitCallToIsMethod((RedirectingTypeDecl)baseTypeUdt.ResolvedClass, baseTypeUdt.TypeArgs, guardWriter);
         EmitExpr(baseTypeVar, false, wrArgument, wStmts);
 
         wr = thenWriter;
@@ -6083,7 +6085,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected ConcreteSyntaxTree EmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree EmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, Type type, ConcreteSyntaxTree wr) {
+      EmitTypeName_Companion(type, wr, wr, declWithConstraints.tok, null);
+      wr.Write(StaticClassAccessor);
+      wr.Write(IsMethodName);
+      var wrArguments = wr.ForkInParens();
+      var sep = "";
+      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass((TopLevelDecl)declWithConstraints, type.TypeArgs),
+        declWithConstraints.tok, wrArguments, ref sep);
+      wrArguments.Write(sep);
+      return wrArguments;
+    }
+
+    protected ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
       Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
       Contract.Requires(declWithConstraints.ConstraintIsCompilable);
@@ -6101,15 +6115,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // in mind that type parameters are not accessible in static methods in some target languages).
       var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints, typeArguments);
-      EmitTypeName_Companion(type, wr, wr, declWithConstraints.tok, null);
-      wr.Write(StaticClassAccessor);
-      wr.Write(IsMethodName);
-      var wrArguments = wr.ForkInParens();
-      var sep = "";
-      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass((TopLevelDecl)declWithConstraints, type.TypeArgs),
-        declWithConstraints.tok, wrArguments, ref sep);
-      wrArguments.Write(sep);
-      return wrArguments;
+      return EmitCallToIsMethod(declWithConstraints, type, wr);
     }
 
     protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage,
@@ -6305,8 +6311,8 @@ namespace Microsoft.Dafny.Compilers {
         if (!e.Function.Ins[i].IsGhost) {
           wr.Write(sep);
           var fromType = e.Args[i].Type;
-          var w = EmitCoercionIfNecessary(fromType, e.Function.Ins[i].Type, tok: e.tok, wr: wr);
           var instantiatedToType = e.Function.Ins[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
+          var w = EmitCoercionIfNecessary(fromType, instantiatedToType, tok: e.tok, wr: wr, e.Function.Ins[i].Type);
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";
