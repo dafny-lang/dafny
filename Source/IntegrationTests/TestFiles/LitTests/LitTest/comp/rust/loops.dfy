@@ -26,9 +26,7 @@ method Main() {
   var IntToU8 := map k <- u8toInt :: u8toInt[k] := k;
   var helloWorldAgain := map k <- u8toInt :: x[u8toInt[k]] := Success(k);
 
-  /*
-  var s = map[1 := Success("hello"), 2 := Success("world")];
-  var is_result := forall k, k' | k in s && k' in s:: k != k' ==> s[k].value != s[k'].value
+  var s := map[1 := Success("hello"), 2 := Success("world")];
+  var is_result := forall k, k' | k in s && k' in s:: k != k' ==> s[k].value != s[k'].value;
   expect is_result;
-   */
 }
