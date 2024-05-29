@@ -1505,6 +1505,31 @@ namespace Microsoft.Dafny {
               UnboxingCastExpr e = castExpr;
               return BoogieGenerator.CondApplyUnbox(GetToken(e), TrExpr(e.E), e.FromType, e.ToType);
             }
+          case DecreasesToExpr decreasesToExpr:
+            var oldArray = decreasesToExpr.OldExpressions.ToArray();
+            var newArray = decreasesToExpr.NewExpressions.ToArray();
+            List<Type> newTypes = new();
+            List<Type> oldTypes = new();
+            List<Expr> newExprs = new();
+            List<Expr> oldExprs = new();
+            int N = Math.Min(oldArray.Length, newArray.Length);
+            for (int i = 0; i < N; i++) {
+              if (!CompatibleDecreasesTypes(oldArray[i].Type, newArray[i].Type)) {
+                N = i;
+                break;
+              }
+              oldTypes.Add(oldArray[i].Type);
+              oldExprs.Add(TrExpr(oldArray[i]));
+              newTypes.Add(newArray[i].Type);
+              newExprs.Add(TrExpr(newArray[i]));
+            }
+
+            bool endsWithWinningTopComparison = N == oldArray.Length && N < newArray.Length;
+            var allowNoChange = decreasesToExpr.AllowNoChange || endsWithWinningTopComparison;
+            List<IToken> toks = oldExprs.Zip(newExprs, (_, _) => (IToken)decreasesToExpr.RangeToken).ToList();
+            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, newTypes, oldTypes, newExprs, oldExprs, null,
+              null, allowNoChange, false);
+            return decreasesExpr;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
@@ -2427,6 +2452,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         } else if (expr is UnboxingCastExpr) {
           var e = (UnboxingCastExpr)expr;
           return CanCallAssumption(e.E);
+        } else if (expr is DecreasesToExpr decreasesToExpr) {
+          var oldCanCall = CanCallAssumption(decreasesToExpr.OldExpressions.ToList());
+          var newCanCall = CanCallAssumption(decreasesToExpr.NewExpressions.ToList());
+          return BplAnd(oldCanCall, newCanCall);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }

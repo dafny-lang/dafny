@@ -676,6 +676,13 @@ namespace Microsoft.Dafny {
         var e = (NestedMatchExpr)expr;
         ResolveNestedMatchExpr(e, resolutionContext);
 
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        foreach (var e in decreasesToExpr.SubExpressions) {
+          ResolveExpression(e, resolutionContext);
+        }
+
+        decreasesToExpr.PreType = ConstrainResultToBoolFamilyOperator(decreasesToExpr.tok, "decreasesto");
+
       } else if (expr is MatchExpr) {
         Contract.Assert(false); // this case is always handled via NestedMatchExpr
 

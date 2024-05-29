@@ -144,6 +144,7 @@ TOKENS
   by = "by".
   in = "in".
   decreases = "decreases".
+  nonincreases = "nonincreases".
   invariant = "invariant".
   function = "function".
   predicate = "predicate".
@@ -2970,7 +2971,7 @@ AssumeStmt<out Statement/*!*/ s>
   .)
   "assume"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
-  ( Expression<out e, false, true>
+  ( Expression<out e, false, false>
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
@@ -3201,6 +3202,47 @@ NegOp = "!".
 Forall = "forall".
 Exists = "exists".
 QSep = "::".
+
+MaybeDecreasesToExpression<out Expression e, IToken lp>
+= (. List<ActualBinding> args = new();
+     List<Expression> newExprs = new();
+     Expression tmp = null;
+     IToken x = null;
+     bool allowNoChange = false;
+  .)
+  TupleArgs<args>
+  [ ( "decreases"                                                 (. allowNoChange = false; .)
+    | "nonincreases"                                              (. allowNoChange = true; .)
+    ) (. x = t; .)
+    ident
+    (. if (t.val != "to") {
+         SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
+       }
+    .)
+    Expression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
+    { ","
+      Expression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
+    }
+  ]
+  (.
+      if (newExprs.Count() == 0) {
+        e = ProcessTupleArgs(args, lp);
+      } else if (args.Count() > 0 && newExprs.Count() > 0) {
+        var formals = args.Where(arg => arg.FormalParameterName != null).ToList();
+        if (formals.Any()) {
+          SemErr(ErrorId.p_binding_in_decreases_to,
+                 formals[0].FormalParameterName,
+                 "bindings are not allowed in `decreases to` expressions.");
+        }
+        var oldExprs = args.Select(arg => arg.Actual).ToList();
+        e = new DecreasesToExpr(x, oldExprs, newExprs, allowNoChange);
+        e.RangeToken = new RangeToken(oldExprs[0].tok, newExprs[newExprs.Count() - 1].tok);
+      } else {
+        // Unreachable
+        e = null;
+      }
+  .)
+  .
 
 /* The "allowLemma" argument says whether or not the expression
  * to be parsed is allowed to have the form S;E where S is a call to a lemma.
@@ -3720,43 +3762,23 @@ LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expr
 
 /*------------------------------------------------------------------------*/
 ParensExpression<out Expression e>
-= (. IToken lp; IToken rp;
+= (. IToken lp = null; IToken rp = null;
      var args = new List<ActualBinding>();
+     e = dummyExpr;
   .)
-  "("                                        (. lp = t; .)
-  [ TupleArgs<args> ]
-  ")"                                        (. rp = t; .)
-  (. if (args.Count == 1 && !args[0].IsGhost) {
-       if (args[0].FormalParameterName != null) {
-         SemErr(ErrorId.p_no_parenthesized_binding, new RangeToken(lp,rp), "binding not allowed in parenthesized expression");
-       }
-       e = new ParensExpression(lp, args[0].Actual);
-     } else {
-       // Compute the actual position of ghost arguments
-       var ghostness = new bool[args.Count];
-       for (var i = 0; i < args.Count; i++) {
-         ghostness[i] = false;
-       }
-       for (var i = 0; i < args.Count; i++) {
-         var arg = args[i];
-         if (arg.IsGhost) {
-           if (arg.FormalParameterName == null) {
-             ghostness[i] = true;
-           } else {
-             var success = int.TryParse(arg.FormalParameterName.val, out var index);
-             if (success && 0 <= index && index < args.Count) {
-               ghostness[index] = true;
-             }
-           }
-         }
-       }
-       var argumentGhostness = ghostness.ToList();
-       // make sure the corresponding tuple type exists
-       SystemModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
-       e = new DatatypeValue(lp, SystemModuleManager.TupleTypeName(argumentGhostness), SystemModuleManager.TupleTypeCtorName(args.Count), args);
-     }
-     e.RangeToken = new RangeToken(lp, rp);
-  .)
+ "("                                        (. lp = t; .)
+  (
+    MaybeDecreasesToExpression<out e, lp>
+    ")"                                     (. rp = t;
+                                               if (e is not DatatypeValue) {
+                                                 e = new ParensExpression(lp, e);
+                                               }
+                                            .)
+  |
+    ")"                                     (. rp = t;
+                                               e = ProcessTupleArgs(new List<ActualBinding>(), lp);
+                                            .)
+  )                                         (. e.RangeToken = new RangeToken(lp, rp); .)
   .
 
 /*------------------------------------------------------------------------*/
