@@ -5923,7 +5923,10 @@ namespace Microsoft.Dafny.Compilers {
 
         var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-        EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+        if (declWithConstraints is not NewtypeDecl) {
+          // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
+          EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+        }
 
         if (isReturning) {
           var elseBranch = wr;
