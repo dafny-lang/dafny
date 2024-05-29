@@ -13,6 +13,15 @@ method ToSet<T>(s: seq<T>) returns (r: set<T>) {
 
 datatype Result<T> = Success(value: T)
 
+const CONST1: string := "1"
+const CONST3: string := "3"
+const CONST5: string := "5"
+const PREFIX: string := "p_"
+
+function PrependPrefix(p: string): string {
+  PREFIX + p
+}
+
 method Main() {
   var x := map[1 := "hello", 2 := "world"];
   expect forall k <- x :: |x[k]| == 5;
@@ -29,4 +38,21 @@ method Main() {
   var s := map[1 := Success("hello"), 2 := Success("world")];
   var is_result := forall k, k' | k in s && k' in s:: k != k' ==> s[k].value != s[k'].value;
   expect is_result;
+
+  var zBefore := map["3" := "5", "5" := "7"];
+  assert {:split_here} true;
+
+  forall k <- zBefore, k' <- zBefore ensures k != k' ==> PrependPrefix(k) != PrependPrefix(k') {
+    if PrependPrefix(k) == PrependPrefix(k') {
+      assert k == PrependPrefix(k)[2..];
+      assert k' == PrependPrefix(k')[2..];
+      assert k == k';
+    }
+  }
+  var zAfter := map[
+      CONST1 := "b",
+      CONST3 := CONST1 + "c",
+      CONST5 := "1"
+    ] + map k <- zBefore :: PrependPrefix(k) := zBefore[k];
+  expect "p_3" in zAfter && zAfter["p_3"] == "5";
 }
