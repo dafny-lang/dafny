@@ -1,4 +1,4 @@
-// RUN: %resolve --rprint:%t.rprint "%s" > "%t"
+// RUN: %translate cs --rprint:%t.rprint "%s" --output=%t.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Type =

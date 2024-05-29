@@ -3609,7 +3609,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       } else if (stmt is NestedMatchStmt nestedMatchStmt) {
-        TrStmt(nestedMatchStmt.Flattened, wr, wStmts);
+        EmitNestedMatchStmt(nestedMatchStmt);
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
