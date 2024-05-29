@@ -1165,6 +1165,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        foreach (var subexpr in decreasesToExpr.SubExpressions) {
+          ResolveExpression(subexpr, resolutionContext);
+        }
+
+        decreasesToExpr.Type = Type.Bool;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
