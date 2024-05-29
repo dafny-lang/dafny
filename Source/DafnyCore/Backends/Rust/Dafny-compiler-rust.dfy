@@ -614,30 +614,30 @@ module RAST
               == BinaryOp("<", left, right, BinaryOpFormat.ReverseFormat()).Height();
           BinaryOp("<=", right, left, BinaryOpFormat.NoFormat())
 
+        case ConversionNum(tpe, expr) =>
+          if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
+             || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? then
+            match expr {
+              case Call(MemberSelect(
+                MemberSelect(MemberSelect(
+                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), tpe, args) =>
+                if |tpe| == 0 && |args| == 1 then
+                  match args[0] {
+                    case LiteralInt(number) => LiteralInt("/*optimized*/"+number)
+                    case LiteralString(number, _) => LiteralInt("/*optimized*/"+number)
+                    case _ => this
+                  }
+                else this
+              case _ => this
+            }
+          else
+            this
         // Temporarily disabling these because the Dafny->C# code generator
         // creates an explicit branch for every other data constructor at every nested level,
         // so this function explodes into over 400 lines of C# and we get
         // "error CS8078: An expression is too long or complex to compile"
         // on newer Mac OS'.
         //
-        // case ConversionNum(tpe, expr) =>
-        //   if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
-        //      || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? then
-        //     match expr {
-        //       case Call(MemberSelect(
-        //         MemberSelect(MemberSelect(
-        //         Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), tpe, args) =>
-        //         if |tpe| == 0 && |args| == 1 then
-        //           match args[0] {
-        //             case LiteralInt(number) => LiteralInt("/*optimized*/"+number)
-        //             case LiteralString(number, _) => LiteralInt("/*optimized*/"+number)
-        //             case _ => this
-        //           }
-        //         else this
-        //       case _ => this
-        //     }
-        //   else
-        //     this
         // case StmtExpr(DeclareVar(mod, name, Some(tpe), None), StmtExpr(AssignVar(name2, rhs), last)) =>
         //   if name == name2 then
         //     var rewriting := StmtExpr(DeclareVar(mod, name, Some(tpe), Some(rhs)), last);

@@ -95,6 +95,7 @@ public class RustBackend : DafnyExecutableBackend {
       await cargoTomlWriter.WriteLineAsync();
       await cargoTomlWriter.WriteLineAsync("[dependencies]");
       await cargoTomlWriter.WriteLineAsync("dafny_runtime = { path = \"runtime\" }");
+      await cargoTomlWriter.WriteLineAsync("num = \"0.4\"");
       await cargoTomlWriter.WriteLineAsync();
 
       if (callToMain == null) {
