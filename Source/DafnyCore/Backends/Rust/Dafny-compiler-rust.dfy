@@ -453,14 +453,18 @@ module RAST
     }
   }
 
-  predicate IsImmutableConversion(fromTpe: Type, toTpe: Type) {
+  predicate IsUpcastConversion(fromTpe: Type, toTpe: Type) {
     match (fromTpe, toTpe) {
+      case (TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), "Object"), objectType1),
+                  TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), "Object"), objectType2)) =>
+        |objectType2| == 1 && objectType2[0].DynType?
       case (TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), tpe1), elems1),
         TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), tpe2), elems2))
         =>
         tpe1 == tpe2 && (
           tpe1 == "Set" || tpe1 == "Sequence" || tpe1 == "Multiset" || tpe1 == "Map" || tpe1 == "Object"
-        )
+        ) && |elems1| == 1 && |elems2| == 1 &&
+          IsUpcastConversion(elems1[0], elems2[0])
       case _ =>
         false
     }
@@ -1624,7 +1628,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
       var resultingType :=
         Path([], [], ResolvedType.Newtype(c.base, c.range, false, c.attributes));
-      var datatypeName := escapeName(c.name);
+      var newtypeName := escapeName(c.name);
       s := [
         R.StructDecl(
           R.Struct(
@@ -1632,12 +1636,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.RawAttribute("#[derive(Clone, PartialEq)]"),
               R.RawAttribute("#[repr(transparent)]")
             ],
-            datatypeName,
+            newtypeName,
             rTypeParamsDecls,
             R.NamelessFields([R.NamelessField(R.PUB, underlyingType)])
           ))];
 
-      var fnBody := R.Identifier(datatypeName);
+      var fnBody := R.Identifier(newtypeName);
 
       match c.witnessExpr {
         case Some(e) => {
@@ -1659,12 +1663,35 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             "",
             Some(fnBody)
           ));
+      match c.constraint {
+        case None =>
+        case Some(NewtypeConstraint(formal, constraintStmts)) =>
+          var rStmts, _, newEnv := GenStmts(constraintStmts, None, Environment.Empty(), false, R.RawExpr(""));
+          var rFormals := GenParams([formal]);
+          s := s + [
+          R.ImplDecl(
+            R.Impl(
+              rTypeParamsDecls,
+              R.TypeApp(R.TIdentifier(newtypeName), rTypeParams),
+              whereConstraints,
+              [
+                R.FnDecl(
+                  R.PUB,
+                  R.Fn(
+                    "is", [], rFormals, Some(R.Bool()),
+                    "",
+                    Some(rStmts)
+                  ))
+              ]
+            )
+          )];
+      }
       s := s + [
         R.ImplDecl(
           R.ImplFor(
             rTypeParamsDecls,
             R.DefaultTrait,
-            R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
+            R.TypeApp(R.TIdentifier(newtypeName), rTypeParams),
             whereConstraints,
             [body]))];
       s := s + [
@@ -1672,7 +1699,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           R.ImplFor(
             rTypeParamsDecls,
             R.DafnyPrint,
-            R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
+            R.TypeApp(R.TIdentifier(newtypeName), rTypeParams),
             "",
             [R.FnDecl(
                R.PRIV,
@@ -1687,7 +1714,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           R.ImplFor(
             rTypeParamsDecls,
             R.RawType("::std::ops::Deref"),
-            R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
+            R.TypeApp(R.TIdentifier(newtypeName), rTypeParams),
             "",
             [R.RawImplMember("type Target = " + underlyingType.ToString(IND) + ";"),
              R.FnDecl(
@@ -2636,8 +2663,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := readIdents + bodyIdents;
           generated := R.Loop(Some(cond), bodyExpr);
         }
-        case Foreach(boundName, boundType, over, body) => {
-          var over, _, recIdents := GenExpr(over, selfIdent, env, OwnershipOwned);
+        case Foreach(boundName, boundType, overExpr, body) => {
+          // Variables are usually owned, so we request OwnershipOwned here although it's for each variable.
+          var over, _, recIdents := GenExpr(overExpr, selfIdent, env, OwnershipOwned);
+          if(overExpr.MapBoundedPool? || overExpr.SetBoundedPool? || overExpr.SeqBoundedPool?) {
+            over := over.Sel("cloned").Apply([]);
+          }
 
           var boundTpe := GenType(boundType, false, false);
 
@@ -3262,12 +3293,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var Path(_, _, Newtype(b, range, erase, attributes)) := fromTpe;
       var nativeFromType := NewtypeToRustType(b, range);
       if b == toTpe {
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
         match nativeFromType {
           case Some(v) =>
             var toTpeRust := GenType(toTpe, false, false);
-            r := recursiveGen.Sel("into").ApplyType([toTpeRust]).Apply([]);
+            r := R.Identifier("Into").ApplyType([toTpeRust]).MSel("into").Apply([recursiveGen]) ;
             r, resultingOwnership := FromOwned(r, expectedOwnership);
           case None =>
             if erase {
@@ -3311,7 +3342,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var toTpeGen := GenType(toTpe, true, false);
       var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
       readIdents := recIdents;
-      if R.IsImmutableConversion(fromTpeGen, toTpeGen) {
+      if R.IsUpcastConversion(fromTpeGen, toTpeGen) {
         // Only tolerated immutable conversions are covariants
         r, resultingOwnership := FromOwnership(recursiveGen, recOwned, OwnershipOwned);
         r := R.dafny_runtime.MSel("UpcastTo").ApplyType([toTpeGen]).MSel("upcast_to").Apply([recursiveGen]);
@@ -4211,7 +4242,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case SetBoundedPool(of) => {
           var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipBorrowed);
-          r := exprGen.Sel("iter").Apply([]).Sel("cloned").Apply([]);
+          r := exprGen.Sel("iter").Apply([]);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
           return;
@@ -4225,6 +4256,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
           return;
+        }
+        case MapBoundedPool(of) => {
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipBorrowed);
+          r := exprGen.Sel("keys").Apply([]).Sel("iter").Apply([]);
+          readIdents := recIdents;
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
         case IntRange(lo, hi, up) => {
           var lo, _, recIdentsLo := GenExpr(lo, selfIdent, env, OwnershipOwned);
@@ -4266,14 +4303,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case Quantifier(elemType, collection, is_forall, lambda) => {
           var tpe := GenType(elemType, false, false);
+          // Borrowed in this context means that the elements are iterated as borrowed,
+          // because lambda expression takes them borrowed by default.
           var collectionGen, _, recIdents := GenExpr(collection, selfIdent, env, OwnershipOwned);
           if lambda.Lambda? {
-            // The lambda is supposed to be a raw lambda, and parameters must not be borrowed.
-            // So we update the annotations of the formals.
+            // The lambda is supposed to be a raw lambda, arguments are borrowed
             var formals := lambda.params;
             var newFormals := [];
             for i := 0 to |formals| {
-              newFormals := newFormals + [formals[i].(attributes := [AttributeOwned] + formals[i].attributes)];
+              newFormals := newFormals + [formals[i].(attributes := formals[i].attributes)];
             }
             var newLambda := lambda.(params := newFormals);
             // TODO: We only add one attribute to each parameter.
