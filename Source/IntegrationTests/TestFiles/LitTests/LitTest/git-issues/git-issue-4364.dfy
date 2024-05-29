@@ -10,7 +10,7 @@ module A {
 
   method M() {
     var x := foo(100);
-    assert x is int;
+    assert x is T;
   }
 }
 
