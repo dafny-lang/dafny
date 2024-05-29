@@ -1394,19 +1394,25 @@ public class ElementInDomain : ProofObligationDescription {
 
 public class DefiniteAssignment : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{what}, which is subject to definite-assignment rules, is always initialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{what}, which is subject to definite-assignment rules, might be uninitialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, might be uninitialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
-  private readonly string what;
+  private readonly string kind;
+  private readonly string name;
   private readonly string where;
 
-  public DefiniteAssignment(string what, string where) {
-    this.what = what;
+  public DefiniteAssignment(string kind, string name, string where) {
+    this.kind = kind;
+    this.name = name;
     this.where = where;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Assigned, new IdentifierExpr(Token.NoToken, name));
   }
 }
 
