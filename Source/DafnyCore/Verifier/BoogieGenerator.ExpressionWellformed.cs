@@ -924,7 +924,7 @@ namespace Microsoft.Dafny {
             } else {
               CheckWellformed(e.E, wfOptions, locals, builder, etran);
             }
-            
+
             if (e is ConversionExpr ee) {
               CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }

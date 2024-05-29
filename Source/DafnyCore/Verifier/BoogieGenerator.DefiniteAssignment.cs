@@ -163,7 +163,7 @@ namespace Microsoft.Dafny {
 
       Bpl.IdentifierExpr ie;
       if (definiteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
-        builder.Add(Assert(GetToken(expr), ie, 
+        builder.Add(Assert(GetToken(expr), ie,
           new PODesc.DefiniteAssignment("variable", expr.Var.Name, "here")));
       }
     }
