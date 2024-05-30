@@ -3525,7 +3525,7 @@ namespace DafnyProfiling {
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
-      
+
       // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
       //   if (source.is_Ctor0) {
       //     FormalType f0 = ((Dt_Ctor0)source._D).a0;
@@ -3547,10 +3547,10 @@ namespace DafnyProfiling {
         // the verifier would have proved we never get here; still, we need some code that will compile
         EmitAbsurd(null, bodyWriter);
       } else {
-        
+
         string unmatched = ProtectedFreshId("unmatched");
         DeclareLocalVar(unmatched, Type.Bool, match.Source.tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, bodyWriter);
-        
+
         var sourceType = match.Source.Type.NormalizeExpand();
         foreach (var myCase in match.Cases) {
           var result = EmitIf(out var guardWriter, false, bodyWriter);
@@ -3558,14 +3558,14 @@ namespace DafnyProfiling {
           var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result);
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
           EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
-          
+
           TrExprOpt(myCase.Body, myCase.Body.Type, innerWriter, wStmts, inLetExprBody: true, accumulatorVar: null);
         }
       }
-      
+
       // We end with applying the source expression to the delegate we just built
       EmitExpr(match.Source, inLetExprBody, wArg, wStmts);
-      
+
     }
 
     /// <summary>
@@ -3598,13 +3598,13 @@ namespace DafnyProfiling {
     /// </summary>
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
       if (match.Cases.Any()) {
-        
+
         string sourceName = ProtectedFreshId("_source");
-        
+
         DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, writer);
         string unmatched = ProtectedFreshId("unmatched");
         DeclareLocalVar(unmatched, Type.Bool, match.Source.tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, writer);
-        
+
         var sourceType = match.Source.Type.NormalizeExpand();
         foreach (var myCase in match.Cases) {
           var result = EmitIf(out var guardWriter, false, writer);
@@ -3617,17 +3617,17 @@ namespace DafnyProfiling {
       }
     }
 
-    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName, 
-      Type sourceType, 
+    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName,
+      Type sourceType,
       ExtendedPattern pattern, ConcreteSyntaxTree writer) {
 
       var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
       if (litExpression != null) {
-        
+
         var thenWriter = EmitIf(out var guardWriter, false, writer);
         guardWriter.Write(sourceName);
         CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, sourceType, pattern.Tok, Type.Bool,
-          out var opString, out var _, out var _, out var _, out var _, 
+          out var opString, out var _, out var _, out var _, out var _,
           out var _, out var _, out var _, out var _,
           writer);
         guardWriter.Write($" {opString} ");
@@ -3650,10 +3650,9 @@ namespace DafnyProfiling {
 
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
       IdPattern idPattern,
-      ConcreteSyntaxTree result)
-    {   
+      ConcreteSyntaxTree result) {
       result = EmitIf(out var guardWriter, false, result);
-      
+
       var ctor = idPattern.Ctor;
       EmitConstructorCheck(sourceName, ctor, guardWriter);
 

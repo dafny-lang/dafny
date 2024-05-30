@@ -17,8 +17,8 @@ using Microsoft.BaseTypes;
 using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
-  public  abstract partial class SinglePassCodeGenerator {
-    
+  public abstract partial class SinglePassCodeGenerator {
+
     public virtual void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -574,8 +574,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts)
-    {
+    protected virtual void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
       //   if (source.is_Ctor0) {
       //     FormalType f0 = ((Dt_Ctor0)source._D).a0;
@@ -599,8 +598,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
     }
 
-    protected virtual void EmitMatchLambdaBody(MatchExpr match, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree bodyWriter, string source)
-    {
+    protected virtual void EmitMatchLambdaBody(MatchExpr match, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree bodyWriter, string source) {
       if (match.Cases.Count == 0) {
         // the verifier would have proved we never get here; still, we need some code that will compile
         EmitAbsurd(null, bodyWriter);

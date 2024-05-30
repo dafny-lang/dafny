@@ -19,7 +19,7 @@ public static class RewriterCollection {
     result.Add(new TimeLimitRewriter(reporter));
     result.Add(new ForallStmtRewriter(reporter));
     result.Add(new ProvideRevealAllRewriter(reporter));
-      result.Add(new MatchFlattener(reporter, program.Compilation.IdGenerator));
+    result.Add(new MatchFlattener(reporter, program.Compilation.IdGenerator));
 
     if (reporter.Options.AutoTriggers) {
       result.Add(new QuantifierSplittingRewriter(reporter));

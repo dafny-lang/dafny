@@ -1256,8 +1256,8 @@ namespace Microsoft.Dafny.Compilers {
     /// However, EmitDestructor may also need to perform a cast on "source".
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
-    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source, 
-      Formal dtor, int formalNonGhostIndex, 
+    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source,
+      Formal dtor, int formalNonGhostIndex,
       DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
