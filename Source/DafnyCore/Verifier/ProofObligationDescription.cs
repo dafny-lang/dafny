@@ -944,12 +944,37 @@ public class DecreasesBoundedBelow : ProofObligationDescription {
   private readonly string zeroStr;
   private readonly string suffix;
   private readonly int N, k;
+  private readonly Expression bound;
+  private readonly List<VarDeclStmt> prevGhostLocals;
 
-  public DecreasesBoundedBelow(int N, int k, string zeroStr, string suffix) {
+  public override Expression GetAssertedExpr(DafnyOptions _) {
+    return bound;
+  }
+
+  public override string GetExtraExplanation() {
+    var builder = new StringBuilder();
+    if (prevGhostLocals is not null) {
+      builder.Append("\n  with the label `LoopEntry` applied to the loop");
+      if (prevGhostLocals.Count > 0) {
+        builder.Append("\n  and with the following declarations at the beginning of the loop body:");
+        foreach (var decl in prevGhostLocals) {
+          builder.Append($"\n    {decl}");
+        }
+      }
+
+      return builder.ToString();
+    }
+
+    return null;
+  }
+
+  public DecreasesBoundedBelow(int N, int k, string zeroStr, List<VarDeclStmt> prevGhostLocals, Expression bound, string suffix) {
     this.N = N;
     this.k = k;
     this.zeroStr = zeroStr;
     this.suffix = suffix;
+    this.prevGhostLocals = prevGhostLocals;
+    this.bound = bound;
   }
 }
 
