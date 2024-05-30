@@ -534,8 +534,19 @@ public class Compilation : IDisposable {
 
     if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
       var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
+      string? msg = null;
       if (expr != null) {
-        errorInformation.AddAuxInfo(errorInformation.Tok, expr.ToString(), ErrorReporterExtensions.AssertedExprCategory);
+        msg = expr.ToString();
+      }
+
+      var extra = dafnyProofObligationDesc.GetExtraExplanation();
+      if (extra != null) {
+        msg = (msg ?? "") + extra;
+      }
+
+      if (msg != null) {
+        errorInformation.AddAuxInfo(errorInformation.Tok, msg,
+          ErrorReporterExtensions.AssertedExprCategory);
       }
     }
   }

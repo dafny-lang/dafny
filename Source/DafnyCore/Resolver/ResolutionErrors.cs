@@ -84,7 +84,8 @@ public class ResolutionErrors {
     r_failure_methods_deprecated,
     r_member_only_assumes_other,
     r_member_only_has_no_before_after,
-    r_empty_cyclic_datatype
+    r_empty_cyclic_datatype,
+    r_decreases_to_only_in_specification
   }
 
   static ResolutionErrors() {
