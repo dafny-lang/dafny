@@ -18,9 +18,6 @@ PrecedenceLinter.dfy(313,28): Warning: unusual indentation in left-hand operand 
 PrecedenceLinter.dfy(334,19): Warning: unusual indentation in right-hand operand of <==> (which ends at line 335, column 8); do you perhaps need parentheses?
 PrecedenceLinter.dfy(349,2): Warning: unusual indentation in else branch of if-then-else (which ends at line 353, column 5); do you perhaps need parentheses?
 PrecedenceLinter.dfy(365,2): Warning: unusual indentation in else branch of if-then-else (which ends at line 369, column 5); do you perhaps need parentheses?
-PrecedenceLinter.dfy(401,43): Warning: unusual indentation in right-hand operand of ==> (which ends at line 402, column 11); do you perhaps need parentheses?
-PrecedenceLinter.dfy(403,43): Warning: unusual indentation in right-hand operand of ==> (which ends at line 404, column 11); do you perhaps need parentheses?
-PrecedenceLinter.dfy(431,11): Warning: unusual indentation in else branch of if-then-else (which ends at line 434, column 6); do you perhaps need parentheses?
 PrecedenceLinter.dfy(463,11): Warning: unusual indentation in else branch of if-then-else (which ends at line 464, column 20); do you perhaps need parentheses?
 PrecedenceLinter.dfy(478,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 479, column 9); do you perhaps need parentheses?
 PrecedenceLinter.dfy(480,17): Warning: unusual indentation in else branch of if-then-else (which ends at line 481, column 13); do you perhaps need parentheses?
