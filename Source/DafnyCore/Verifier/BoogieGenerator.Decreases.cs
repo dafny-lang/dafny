@@ -130,7 +130,10 @@ public partial class BoogieGenerator {
       Eq.Add(eq);
       EqDafny.Add(Expression.CreateEq(dafny0[i], dafny1[i], dafny0[i].Type.NormalizeExpand()));
       Less.Add(allowNoChange ? atmost : less);
-      LessDafny.Add(Expression.CreateLess(dafny0[i], dafny1[i]));
+      LessDafny.Add(
+        allowNoChange
+          ? Expression.CreateAtMost(dafny0[i], dafny1[i])
+          : Expression.CreateLess(dafny0[i], dafny1[i]));
     }
     if (builder != null) {
       // check: 0 <= ee1
@@ -157,7 +160,7 @@ public partial class BoogieGenerator {
         }
         if (zero != null) {
           Bpl.Expr bounded = Bpl.Expr.Le(zero, ee1[k]);
-          Expression boundedDafny = Expression.CreateLess(dafnyZero, dafny1[k]);
+          Expression boundedDafny = Expression.CreateAtMost(dafnyZero, dafny1[k]);
           for (int i = 0; i < k; i++) {
             bounded = BplOr(bounded, Less[i]);
             boundedDafny = Expression.CreateOr(boundedDafny, LessDafny[i]);
