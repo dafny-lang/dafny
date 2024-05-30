@@ -5911,6 +5911,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected virtual bool RequiresAllVariablesToBeUsed => false;
+
     /// <summary>
     /// If needed, emit an if-statement wrapper that checks that the value stored in "boundVar" satisfies any (subset-type or newtype) constraints
     /// of "boundVarType".
@@ -5921,7 +5923,7 @@ namespace Microsoft.Dafny.Compilers {
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-        if (declWithConstraints is not NewtypeDecl) {
+        if (declWithConstraints is not NewtypeDecl || RequiresAllVariablesToBeUsed) {
           var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
           // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
