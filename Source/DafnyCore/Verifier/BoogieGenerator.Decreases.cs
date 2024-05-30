@@ -117,7 +117,6 @@ public partial class BoogieGenerator {
 
     int N = dafny0.Count;
 
-    // TODO: NormalizeExpandKeepConstraints below?
     // compute eq and less for each component of the lexicographic tuple
     List<Bpl.Expr> Eq = new List<Bpl.Expr>(N);
     List<Bpl.Expr> Less = new List<Bpl.Expr>(N);
