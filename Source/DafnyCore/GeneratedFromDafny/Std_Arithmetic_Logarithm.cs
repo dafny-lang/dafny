@@ -14,12 +14,12 @@ namespace Std.Arithmetic.Logarithm {
   public partial class __default {
     public static BigInteger Log(BigInteger @base, BigInteger pow)
     {
-      BigInteger _152___accumulator = BigInteger.Zero;
+      BigInteger _138___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((pow) < (@base)) {
-        return (BigInteger.Zero) + (_152___accumulator);
+        return (BigInteger.Zero) + (_138___accumulator);
       } else {
-        _152___accumulator = (_152___accumulator) + (BigInteger.One);
+        _138___accumulator = (_138___accumulator) + (BigInteger.One);
         BigInteger _in44 = @base;
         BigInteger _in45 = Dafny.Helpers.EuclideanDivision(pow, @base);
         @base = _in44;
