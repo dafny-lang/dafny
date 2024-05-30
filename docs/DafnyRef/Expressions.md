@@ -632,6 +632,7 @@ old(x)
 allocated(x)
 unchanged(x)
 fresh(e)
+assigned(x)
 ```
 
 These expressions are never l-values. They include
@@ -644,6 +645,7 @@ These expressions are never l-values. They include
 - [unchanged expressions](#sec-unchanged-expression)
 - [old expressions](#sec-old-expression)
 - [cardinality expressions](#sec-cardinality-expression)
+- [assigned expressions](#sec-assigned-expression)
 
 ## 9.20. Literal Expressions ([grammar](#g-literal-expression)} {#sec-literal-expression}
 
@@ -1851,7 +1853,21 @@ value for each optional parameter, and must never name
 non-existent formals. Any optional parameter that is not given a value
 takes on the default value declared in the callee for that optional parameter.
 
-## 9.37. Termination Ordering Expressions {#sec-termination-ordering-expressions}
+## 9.37. Assigned Expressions {#sec-assigned-expression}
+
+Examples:
+<!-- %no-check -->
+```dafny
+assigned(x)
+```
+
+For any variable, constant, out-parameter, or object field `x`,
+the expression `assigned(x)` evaluates to `true` in a state
+if `x` is definitely assigned in that state.
+
+See [Section 12.6](#sec-definite-assignment) for more details on definite assignment.
+
+## 9.38. Termination Ordering Expressions {#sec-termination-ordering-expressions}
 
 When proving that a loop or recursive callable terminates, Dafny
 automatically generates a proof obligation that the sequence of
@@ -1883,7 +1899,7 @@ method M(x: int, y: int) {
 Currently, `decreases to` expressions must be written in parentheses to
 avoid parsing ambiguities.
 
-## 9.38. Compile-Time Constants {#sec-compile-time-constants}
+## 9.39. Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
@@ -1924,7 +1940,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in future versions of `dafny`.
 
-## 9.39. List of specification expressions {#sec-list-of-specification-expressions}
+## 9.40. List of specification expressions {#sec-list-of-specification-expressions}
 
 The following is a list of expressions that can only appear in specification contexts or in ghost blocks.
 
@@ -1932,6 +1948,7 @@ The following is a list of expressions that can only appear in specification con
 * [Allocated expressions](#sec-allocated-expression)
 * [Unchanged expressions](#sec-unchanged-expression)
 * [Old expressions](#sec-old-expression)
+- [Assigned expressions](#sec-assigned-expression)
 * [Assert and calc expressions](#sec-statement-in-an-expression)
 * [Hash Calls](#sec-hash-call)
 * [Termination ordering expression](#sec-termination-ordering-expressions)

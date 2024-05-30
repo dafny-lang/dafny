@@ -758,6 +758,10 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;
+          case UnaryOpExpr.Opcode.Assigned:
+            // the argument is allowed to have any type
+            expr.Type = Type.Bool;
+            break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }

@@ -419,6 +419,10 @@ namespace Microsoft.Dafny {
               ReportError(expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;
+          case UnaryOpExpr.Opcode.Assigned:
+            // the argument is allowed to have any type at all
+            expr.PreType = ConstrainResultToBoolFamily(expr.tok, "assigned", "boolean literal used as if it had type {0}");
+            break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }

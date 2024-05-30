@@ -3682,6 +3682,8 @@ ConstAtomExpression<out Expression e>
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
+  | "assigned"                                 (. x = t; .)
+    "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
   | ParensExpression<out e>
   ) (. if(x!= null) { e.RangeToken = new RangeToken(x, t); } .)
   .
