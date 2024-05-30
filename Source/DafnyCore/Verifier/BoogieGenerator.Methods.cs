@@ -635,15 +635,20 @@ namespace Microsoft.Dafny {
             var decrTypes = new List<Type>();
             var decrCallee = new List<Expr>();
             var decrCaller = new List<Expr>();
+            var decrCalleeDafny = new List<Expression>();
+            var decrCallerDafny = new List<Expression>();
             foreach (var ee in m.Decreases.Expressions) {
               decrToks.Add(ee.tok);
               decrTypes.Add(ee.Type.NormalizeExpand());
+              decrCallerDafny.Add(ee);
               decrCaller.Add(exprTran.TrExpr(ee));
               Expression es = Substitute(ee, receiverSubst, substMap);
               es = Substitute(es, null, decrSubstMap);
+              decrCalleeDafny.Add(es);
               decrCallee.Add(exprTran.TrExpr(es));
             }
-            return DecreasesCheck(decrToks, decrTypes, decrTypes, decrCallee, decrCaller, null, null, false, true);
+            return DecreasesCheck(decrToks, null, decrCalleeDafny, decrCallerDafny, decrCallee, decrCaller,
+              null, null, false, true);
           };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
@@ -1508,10 +1513,10 @@ namespace Microsoft.Dafny {
 
       int N = Math.Min(contextDecreases.Count, calleeDecreases.Count);
       var toks = new List<IToken>();
-      var types0 = new List<Type>();
-      var types1 = new List<Type>();
       var callee = new List<Expr>();
       var caller = new List<Expr>();
+      var calleeDafny = new List<Expression>();
+      var callerDafny = new List<Expression>();
       FunctionCallSubstituter sub = null;
 
       for (int i = 0; i < N; i++) {
@@ -1523,8 +1528,8 @@ namespace Microsoft.Dafny {
           break;
         }
         toks.Add(new NestedToken(original.RangeToken.StartToken, e1.tok));
-        types0.Add(e0.Type.NormalizeExpand());
-        types1.Add(e1.Type.NormalizeExpand());
+        calleeDafny.Add(e0);
+        callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
         caller.Add(etran.TrExpr(e1));
         var canCall = etran.CanCallAssumption(e1);
@@ -1558,7 +1563,8 @@ namespace Microsoft.Dafny {
       //   So we perform our desired check by calling DecreasesCheck to strictly compare x and x', so we pass in "allowNoChange"
       //   as "false".
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
-      var decrChk = DecreasesCheck(toks, types0, types1, callee, caller, null, null, allowNoChange, false);
+      var decrChk = DecreasesCheck(toks, null, calleeDafny, callerDafny, callee, caller, null,
+        null, allowNoChange, false);
       builder.Add(Assert(original.RangeToken, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
     }
 
