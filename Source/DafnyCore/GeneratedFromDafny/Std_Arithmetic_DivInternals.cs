@@ -14,19 +14,19 @@ namespace Std.Arithmetic.DivInternals {
   public partial class __default {
     public static BigInteger DivPos(BigInteger x, BigInteger d)
     {
-      BigInteger _136___accumulator = BigInteger.Zero;
+      BigInteger _150___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((x).Sign == -1) {
-        _136___accumulator = (_136___accumulator) + (new BigInteger(-1));
+        _150___accumulator = (_150___accumulator) + (new BigInteger(-1));
         BigInteger _in38 = (x) + (d);
         BigInteger _in39 = d;
         x = _in38;
         d = _in39;
         goto TAIL_CALL_START;
       } else if ((x) < (d)) {
-        return (BigInteger.Zero) + (_136___accumulator);
+        return (BigInteger.Zero) + (_150___accumulator);
       } else {
-        _136___accumulator = (_136___accumulator) + (BigInteger.One);
+        _150___accumulator = (_150___accumulator) + (BigInteger.One);
         BigInteger _in40 = (x) - (d);
         BigInteger _in41 = d;
         x = _in40;
