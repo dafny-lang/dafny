@@ -2869,7 +2869,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Other than the syntactic differences in the target code, the idea is that "TrExprOpt(...)" and "Expr(...)" generate code with the
     /// same semantics.
     /// </summary>
-    void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
+    protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(resultType != null);

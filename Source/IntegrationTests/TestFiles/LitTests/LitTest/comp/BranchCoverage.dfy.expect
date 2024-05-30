@@ -39,8 +39,8 @@ Dafny program verifier finished with 6 verified, 0 errors
 35: BranchCoverage.dfy(157,12): then branch
 36: BranchCoverage.dfy(157,12): else branch
 37: BranchCoverage.dfy(163,0): entry to method _module._default.ComputeFactorial
-38: BranchCoverage.dfy(166,2): then branch
-39: BranchCoverage.dfy(168,2): else branch
+38: BranchCoverage.dfy(166,2): case body
+39: BranchCoverage.dfy(168,2): case body
 40: BranchCoverage.dfy(174,14): entry to method _module._default.Main
 41: BranchCoverage.dfy(14,17): entry to method _module.MyClass._ctor
 0: 0

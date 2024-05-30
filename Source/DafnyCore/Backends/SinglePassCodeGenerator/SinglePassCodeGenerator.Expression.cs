@@ -574,7 +574,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts)
+    protected virtual void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts)
     {
       // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
       //   if (source.is_Ctor0) {
@@ -594,24 +594,29 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree w;
       w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wLambda, wStmts);
 
-      if (e.Cases.Count == 0) {
-        // the verifier would have proved we never get here; still, we need some code that will compile
-        EmitAbsurd(null, w);
-      } else {
-        int i = 0;
-        var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
-        foreach (MatchCaseExpr mc in e.Cases) {
-          var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null);
-          i++;
-        }
-      }
+      EmitMatchLambdaBody(e, wStmts, w, source);
       // We end with applying the source expression to the delegate we just built
       EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
     }
 
-    private void EmitNestedMatchExpr(NestedMatchExpr nestedMatchExpr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitExpr(nestedMatchExpr.Flattened, inLetExprBody, wr, wStmts);
+    protected virtual void EmitMatchLambdaBody(MatchExpr match, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree bodyWriter, string source)
+    {
+      if (match.Cases.Count == 0) {
+        // the verifier would have proved we never get here; still, we need some code that will compile
+        EmitAbsurd(null, bodyWriter);
+      } else {
+        int i = 0;
+        var sourceType = (UserDefinedType)match.Source.Type.NormalizeExpand();
+        foreach (MatchCaseExpr mc in match.Cases) {
+          var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, match.Cases.Count, bodyWriter);
+          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null);
+          i++;
+        }
+      }
+    }
+
+    protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      EmitExpr(match.Flattened, inLetExprBody, wr, wStmts);
     }
   }
 }

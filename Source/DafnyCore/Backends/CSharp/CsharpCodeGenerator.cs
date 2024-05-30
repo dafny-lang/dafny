@@ -3522,7 +3522,52 @@ namespace DafnyProfiling {
   }
 }");
     }
-    
+
+    protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts) {
+      
+      // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
+      //   if (source.is_Ctor0) {
+      //     FormalType f0 = ((Dt_Ctor0)source._D).a0;
+      //     ...
+      //     return Body0;
+      //   } else if (...) {
+      //     ...
+      //   } else if (true) {
+      //     ...
+      //   }
+      // }))(src)
+
+      EmitLambdaApply(wr, out var wLambda, out var wArg);
+
+      string sourceName = ProtectedFreshId("_source");
+      var bodyWriter = CreateLambda(new List<Type>() { match.Source.Type }, match.tok, new List<string>() { sourceName }, match.Type, wLambda, wStmts);
+
+      if (match.Cases.Count == 0) {
+        // the verifier would have proved we never get here; still, we need some code that will compile
+        EmitAbsurd(null, bodyWriter);
+      } else {
+        
+        string unmatched = ProtectedFreshId("unmatched");
+        DeclareLocalVar(unmatched, Type.Bool, match.Source.tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, bodyWriter);
+        
+        var sourceType = match.Source.Type.NormalizeExpand();
+        foreach (var myCase in match.Cases) {
+          var result = EmitIf(out var guardWriter, false, bodyWriter);
+          guardWriter.Write(unmatched);
+          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result);
+          Coverage.Instrument(myCase.Tok, "case body", innerWriter);
+          EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
+          
+          TrExprOpt(myCase.Body, myCase.Body.Type, innerWriter, wStmts, inLetExprBody: true, accumulatorVar: null);
+        }
+      }
+      
+      // We end with applying the source expression to the delegate we just built
+      EmitExpr(match.Source, inLetExprBody, wArg, wStmts);
+      
+    }
+
     /// <summary>
     ///
     /// match a
@@ -3564,14 +3609,15 @@ namespace DafnyProfiling {
         foreach (var myCase in match.Cases) {
           var result = EmitIf(out var guardWriter, false, writer);
           guardWriter.Write(unmatched);
-          var innerWriter = EmitNestedMatchStmtCase(sourceName, sourceType, myCase.Pat, result);
+          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result);
+          Coverage.Instrument(myCase.Tok, "case body", innerWriter);
           EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
           TrStmtList(myCase.Body, innerWriter);
         }
       }
     }
 
-    private ConcreteSyntaxTree EmitNestedMatchStmtCase(string sourceName, 
+    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName, 
       Type sourceType, 
       ExtendedPattern pattern, ConcreteSyntaxTree writer) {
 
@@ -3634,7 +3680,7 @@ namespace DafnyProfiling {
             newSourceName = ProtectedFreshId(arg.CompileName);
             var valueWriter = DeclareLocalVar(newSourceName, arg.Type, idPattern.Tok, result);
             valueWriter.Append(destructor);
-            result = EmitNestedMatchStmtCase(newSourceName, type, idPattern.Arguments[m], result);
+            result = EmitNestedMatchCaseConditions(newSourceName, type, idPattern.Arguments[m], result);
           }
           k++;
         }
