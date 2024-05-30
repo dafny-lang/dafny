@@ -261,7 +261,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write(negated ? " != " : " == ");
           wr.Write(sign.ToString());
         } else {
-          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type.GetRuntimeType(),
+          CompileBinOp(e.ResolvedOp, e.E0.Type, e.E1.Type, e.tok, expr.Type.GetRuntimeType(),
             out var opString,
             out var preOpString,
             out var postOpString,

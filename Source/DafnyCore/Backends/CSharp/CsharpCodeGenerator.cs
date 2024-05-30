@@ -3041,7 +3041,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -3065,7 +3065,7 @@ namespace Microsoft.Dafny.Compilers {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
             if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
@@ -3079,7 +3079,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
             if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
@@ -3170,14 +3170,14 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSubsetOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, tok, e1Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSubsetOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, tok, e1Type) + ".IsSubsetOf"; break;
 
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsDisjointFrom"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, tok, e1Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
@@ -3200,14 +3200,14 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Subtract"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsProperPrefixOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, e0Type.tok) + ".IsProperPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Prefix:
-          staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsPrefixOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, e0Type.tok) + ".IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".Concat"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, e0Type.tok) + ".Concat"; break;
 
         default:
-          base.CompileBinOp(op, e0, e1, tok, resultType,
+          base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;
@@ -3521,6 +3521,126 @@ namespace DafnyProfiling {
     }
   }
 }");
+    }
+    
+    /// <summary>
+    ///
+    /// match a
+    ///   case X(Y(b),Z(W(c)) => body1
+    ///   case r => body2
+    ///
+    /// var unmatched = true;
+    /// if (unmatched && a is X) {
+    ///   var x1 = ((X)a).1;
+    ///   if (x1 is Y) {
+    ///     var b = ((Y)x1).1;
+    /// 
+    ///     var x2 = ((X)a).2; 
+    ///     if (x2 is Z) {
+    ///       var x4 = ((Z)x2).1;
+    ///       if (x4 is W) {
+    ///         var c = ((W)x4).1;
+    ///         body1;
+    ///       }
+    ///     } 
+    ///   }
+    /// }
+    /// if (unmatched) {
+    ///   var r = a;
+    ///   body2;
+    /// }
+    /// 
+    /// </summary>
+    protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
+      if (match.Cases.Any()) {
+        
+        string sourceName = ProtectedFreshId("_source");
+        
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, writer);
+        string unmatched = ProtectedFreshId("unmatched");
+        DeclareLocalVar(unmatched, Type.Bool, match.Source.tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, writer);
+        
+        var sourceType = match.Source.Type.NormalizeExpand();
+        foreach (var myCase in match.Cases) {
+          var result = EmitIf(out var guardWriter, false, writer);
+          guardWriter.Write(unmatched);
+          var innerWriter = EmitNestedMatchStmtCase(sourceName, sourceType, myCase.Pat, result);
+          EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
+          TrStmtList(myCase.Body, innerWriter);
+        }
+      }
+    }
+
+    private ConcreteSyntaxTree EmitNestedMatchStmtCase(string sourceName, 
+      Type sourceType, 
+      ExtendedPattern pattern, ConcreteSyntaxTree writer) {
+
+      var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
+      if (litExpression != null) {
+        
+        var thenWriter = EmitIf(out var guardWriter, false, writer);
+        guardWriter.Write(sourceName);
+        CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, sourceType, pattern.Tok, Type.Bool,
+          out var opString, out var _, out var _, out var _, out var _, 
+          out var _, out var _, out var _, out var _,
+          writer);
+        guardWriter.Write($" {opString} ");
+        EmitExpr(litExpression, false, guardWriter, writer);
+        writer = thenWriter;
+      } else if (pattern is IdPattern idPattern) {
+        if (idPattern.Ctor == null) {
+          var boundVar = idPattern.BoundVar;
+          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
+          valueWriter.Write(sourceName);
+          return writer;
+        } else {
+          writer = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer);
+        }
+
+      }
+
+      return writer;
+    }
+
+    private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
+      IdPattern idPattern,
+      ConcreteSyntaxTree result)
+    {   
+      result = EmitIf(out var guardWriter, false, result);
+      
+      var ctor = idPattern.Ctor;
+      EmitConstructorCheck(sourceName, ctor, guardWriter);
+
+      var userDefinedType = (UserDefinedType)sourceType;
+
+      int k = 0; // number of processed non-ghost arguments
+      for (int m = 0; m < ctor.Formals.Count; m++) {
+        Formal arg = ctor.Formals[m];
+        if (!arg.IsGhost) {
+          Type type = arg.Type;
+          // ((Dt_Ctor0)source._D).a0;
+          var destructor = new ConcreteSyntaxTree();
+          EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
+            SelectNonGhost(userDefinedType.ResolvedClass, sourceType.TypeArgs), type, destructor);
+
+          string newSourceName;
+          var childPattern = idPattern.Arguments[m];
+          if (childPattern is IdPattern childIdPattern && childIdPattern.Ctor == null) {
+            var boundVar = childIdPattern.BoundVar;
+            newSourceName = IdName(boundVar);
+            var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
+            valueWriter.Append(destructor);
+          } else {
+            newSourceName = ProtectedFreshId(arg.CompileName);
+            var valueWriter = DeclareLocalVar(newSourceName, arg.Type, idPattern.Tok, result);
+            valueWriter.Append(destructor);
+            result = EmitNestedMatchStmtCase(newSourceName, type, idPattern.Arguments[m], result);
+          }
+          k++;
+        }
+      }
+
+      return result;
     }
   }
 }

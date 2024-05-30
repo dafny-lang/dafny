@@ -2042,7 +2042,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -2096,9 +2096,9 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            if (IsDirectlyComparable(e0.Type)) {
+            if (IsDirectlyComparable(e0Type)) {
               opString = "==";
-            } else if (e0.Type.IsRefType) {
+            } else if (e0Type.IsRefType) {
               opString = "==";
             } else {
               //staticCallString = "==";
@@ -2107,9 +2107,9 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            if (IsDirectlyComparable(e0.Type)) {
+            if (IsDirectlyComparable(e0Type)) {
               opString = "!=";
-            } else if (e0.Type.IsRefType) {
+            } else if (e0Type.IsRefType) {
               opString = "!=";
             } else {
               opString = "!=";
@@ -2147,7 +2147,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.RightShift:
           if (AsNativeType(resultType) != null) {
             opString = ">>";
-            if (AsNativeType(e1.Type) == null) {
+            if (AsNativeType(e1Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
