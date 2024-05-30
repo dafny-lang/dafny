@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -58,6 +59,10 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   }
 
   public virtual bool ProvedOutsideUserCode => false;
+
+  public virtual string GetExtraExplanation() {
+    return null;
+  }
 }
 
 //// Arithmetic and logical operators, conversions
@@ -886,13 +891,40 @@ public class Terminates : ProofObligationDescription {
   private readonly List<Expression> oldExpressions;
   private readonly List<Expression> newExpressions;
   private readonly List<VarDeclStmt> prevGhostLocals;
+  private bool allowNoChange;
 
-  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    Expression expr = new DecreasesToExpr(Token.NoToken, oldExpressions, newExpressions, allowNoChange);
+    if (allowance is not null) {
+      expr = Expression.CreateOr(allowance, expr);
+    }
+    return expr;
+  }
+
+  public override string GetExtraExplanation() {
+    var builder = new StringBuilder();
+    if (prevGhostLocals is not null) {
+      builder.Append("\n  with the label `LoopEntry` applied to the loop");
+      if (prevGhostLocals.Count > 0) {
+        builder.Append("\n  and with the following declarations at the beginning of the loop body:");
+        foreach (var decl in prevGhostLocals) {
+          builder.Append($"\n    {decl}");
+        }
+      }
+
+      return builder.ToString();
+    }
+
+    return null;
+  }
+
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, bool allowNoChange, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;
     this.allowance = allowance;
     this.oldExpressions = oldExpressions;
     this.newExpressions = newExpressions;
+    this.allowNoChange = allowNoChange;
     this.hint = hint;
   }
 }
@@ -989,7 +1021,7 @@ public class MatchIsComplete : ProofObligationDescription {
   }
 
   // ReSharper disable once UnusedMember.Global
-  public string GetExtraExplanation() {
+  public override string GetExtraExplanation() {
     return (
       "\n  in an added catch-all case:"
       + "\n    case _ => ..."
@@ -1013,7 +1045,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
   }
 
   // ReSharper disable once UnusedMember.Global
-  public string GetExtraExplanation() {
+  public override string GetExtraExplanation() {
     return (
       "\n  in an added catch-all case:"
       + "\n    case true => ..."
@@ -1394,19 +1426,25 @@ public class ElementInDomain : ProofObligationDescription {
 
 public class DefiniteAssignment : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{what}, which is subject to definite-assignment rules, is always initialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{what}, which is subject to definite-assignment rules, might be uninitialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, might be uninitialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
-  private readonly string what;
+  private readonly string kind;
+  private readonly string name;
   private readonly string where;
 
-  public DefiniteAssignment(string what, string where) {
-    this.what = what;
+  public DefiniteAssignment(string kind, string name, string where) {
+    this.kind = kind;
+    this.name = name;
     this.where = where;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Assigned, new IdentifierExpr(Token.NoToken, name));
   }
 }
 
