@@ -1,4 +1,4 @@
-﻿witness-check.dfy(4,8): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+witness-check.dfy(4,8): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
  Asserted expression: 0 > 0
 
 Dafny program verifier finished with 0 verified, 1 error

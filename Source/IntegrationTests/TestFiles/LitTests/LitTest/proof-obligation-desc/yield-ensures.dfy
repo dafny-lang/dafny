@@ -1,4 +1,4 @@
-﻿// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 iterator Repeat0(val: int, count: nat) yields (out: int, index: int)

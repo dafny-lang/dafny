@@ -1,4 +1,4 @@
-﻿// RUN: %verify --relax-definite-assignment "%s" > "%t"
+// RUN: %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C<G>

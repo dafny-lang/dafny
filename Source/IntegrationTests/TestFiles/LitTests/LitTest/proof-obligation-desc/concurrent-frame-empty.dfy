@@ -1,4 +1,4 @@
-﻿// RUN: %exits-with 4 %verify --show-proof-obligation-expressions --reads-clauses-on-methods "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-proof-obligation-expressions --reads-clauses-on-methods "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C<T> {}

@@ -1,4 +1,4 @@
-﻿// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
+// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype D = ghost G0 | ghost G1 | C0 | C1
