@@ -40,7 +40,6 @@ public class PythonBackend : ExecutableBackend {
     TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
       { PythonModuleNameCliOption, OptionCompatibility.NoOpOptionCheck }
     });
-    
   }
 
   public override IReadOnlySet<string> SupportedNativeTypes =>

@@ -17,7 +17,6 @@ namespace Microsoft.Dafny.Compilers {
     public PythonCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       var pythonModuleName = Options.Get(PythonBackend.PythonModuleNameCliOption);
       PythonModuleMode = pythonModuleName != null;
-      
       if (PythonModuleMode) {
         PythonModuleName = pythonModuleName.ToString();
       }
@@ -115,8 +114,8 @@ namespace Microsoft.Dafny.Compilers {
       translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
       object dependencyModuleName = null;
       moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out dependencyModuleName);
-      if (dependencyModuleName is string && !string.IsNullOrEmpty((string) dependencyModuleName)) {
-        dependencyPythonModuleName = dependencyModuleName is string name ? (string) dependencyModuleName + ".": "";
+      if (dependencyModuleName is string && !string.IsNullOrEmpty((string)dependencyModuleName)) {
+        dependencyPythonModuleName = dependencyModuleName is string name ? (string)dependencyModuleName + "." : "";
         if (String.IsNullOrEmpty(dependencyPythonModuleName)) {
           Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
             $"Python Module Name not found for the module {module.GetCompileName(Options)}");
@@ -132,7 +131,6 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
-      
       wr.WriteLine();
       // Don't emit `import module_` for generated modules in the DafnyRuntimePython.
       // The DafnyRuntimePython doesn't have a module.py file, so the import isn't valid.
