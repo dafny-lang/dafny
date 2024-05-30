@@ -22,11 +22,13 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       if (Options?.CoverageLegendFile != null) {
-        Imports.Add("DafnyProfiling");
+        Imports.Add("DafnyProfiling", "DafnyProfiling");
       }
     }
 
-    private readonly List<string> Imports = new() { };
+    // private readonly List<string> Imports = new() { };
+    private readonly Dictionary<string, string> Imports =  new Dictionary<string, string>();
+
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
@@ -68,8 +70,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitRuntimeSource("DafnyStandardLibraries_py", wr);
       }
 
-      Imports.Add(DafnyRuntimeModule);
-      EmitImports(null, wr);
+      Imports.Add(DafnyRuntimeModule, DafnyRuntimeModule);
+      EmitImports(null, null, wr);
       wr.WriteLine();
     }
 
@@ -98,8 +100,8 @@ namespace Microsoft.Dafny.Compilers {
       var pythonModuleName = PythonModuleMode ? PythonModuleName + "." : "";
 
       moduleName = PublicModuleIdProtect(moduleName);
-      var file = wr.NewFile($"{moduleName}.py");
-      EmitImports(pythonModuleName + moduleName, file);
+      var file = wr.NewFile($"{moduleName.Replace(".", "/")}.py");
+      EmitImports(moduleName, pythonModuleName, file);
       return file;
     }
 
@@ -123,10 +125,10 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var dependencyCompileName = IdProtect(module.GetCompileName(Options));
-      Imports.Add(dependencyPythonModuleName + dependencyCompileName);
+      Imports.Add(dependencyPythonModuleName + dependencyCompileName, dependencyCompileName);
     }
 
-    private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
+    private void EmitImports(string moduleName, string pythonModuleName, ConcreteSyntaxTree wr) {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
@@ -139,13 +141,26 @@ namespace Microsoft.Dafny.Compilers {
       }
       // Alias nested imports to the final segment of the import string
       // ex. `import a.b.c as c`
-      Imports.ForEach(module => wr.WriteLine($"import {module} as {module.Split('.').Last()}"));
+      foreach (var module in Imports)
+      {
+        if (module.Value.Contains(".")) {
+          wr.WriteLine($"import {module.Key} as {module.Value.Split(".")[0]}");
+        } else {
+          wr.WriteLine($"import {module.Key} as {module.Value}");
+        }
+      }
+      // Imports.ForEach(module => {
+      // });
+      // Imports.ForEach(module => );
       if (moduleName != null) {
         wr.WriteLine();
         wr.WriteLine($"# Module: {moduleName}");
-        Imports.Add(moduleName);
+        Imports.Add(pythonModuleName + moduleName, moduleName);
       }
     }
+
+          // Imports.ForEach(module => wr.WriteLine($"import {module} as {module.Split('.').Last()}"));
+
 
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
