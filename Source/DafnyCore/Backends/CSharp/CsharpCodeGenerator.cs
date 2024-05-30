@@ -3547,6 +3547,7 @@ namespace DafnyProfiling {
     
           TrExprOpt(myCase.Body, myCase.Body.Type, innerWriter, wStmts, inLetExprBody: true, accumulatorVar: null);
         }
+        EmitAbsurd(null, bodyWriter);
       }
       // We end with applying the source expression to the delegate we just built
       EmitExpr(match.Source, inLetExprBody, wArg, wStmts);
@@ -3674,9 +3675,15 @@ namespace DafnyProfiling {
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
       IdPattern idPattern,
       ConcreteSyntaxTree result) {
+      var ctor = idPattern.Ctor;
+      
+      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out _)) {
+        result = EmitNestedMatchCaseConditions(sourceName, sourceType, idPattern.Arguments[0], result);
+        return result;
+      }
+
       result = EmitIf(out var guardWriter, false, result);
 
-      var ctor = idPattern.Ctor;
       EmitConstructorCheck(sourceName, ctor, guardWriter);
 
       var userDefinedType = (UserDefinedType)sourceType;
