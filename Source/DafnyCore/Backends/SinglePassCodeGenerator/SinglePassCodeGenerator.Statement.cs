@@ -499,17 +499,20 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     private void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
       if (match.Cases.Any()) {
+        
         string sourceName = ProtectedFreshId("_source");
         
         DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, writer);
+        var source = new ConcreteSyntaxTree();
+        EmitIdentifier(sourceName, source);
         string unmatched = ProtectedFreshId("unmatched");
         DeclareLocalVar(unmatched, Type.Bool, match.Source.tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, writer);
         
         var sourceType = (UserDefinedType)match.Source.Type.NormalizeExpand();
         foreach (var myCase in match.Cases) {
-          var pattern = (IdPattern)myCase.Pat;
-          var thenWriter = EmitIf(out var guardWriter, false, writer);
-          var innerWriter = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, unmatched, pattern, guardWriter, thenWriter);
+          var innerWriter = EmitNestedMatchStmtCase("bla", source, sourceType, unmatched, myCase.Pat, writer);
+          // var thenWriter = EmitIf(out var guardWriter, false, writer);
+          // var innerWriter = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, unmatched, pattern, guardWriter, thenWriter);
           TrStmtList(myCase.Body, innerWriter);
         }
       }
@@ -528,12 +531,7 @@ namespace Microsoft.Dafny.Compilers {
           valueWriter.Append(source);
           return result;
         } else {
-          var freshName = ProtectedFreshId(nameSuggestion);
-          var valueWriter = DeclareLocalVar(freshName, sourceType, idPattern.Tok, result);
-          valueWriter.Append(source);
-        
-          guardWriter.Write($" {Conj} ");
-          result = EmitNestedMatchStmtCaseConstructor(freshName, sourceType, unmatched, idPattern, guardWriter, result);
+          result = EmitNestedMatchStmtCaseConstructor(nameSuggestion, source, sourceType, unmatched, idPattern, guardWriter, result);
         }
 
       }
@@ -541,12 +539,18 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType, string unmatched,
+    private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string nameSuggestion, ConcreteSyntaxTree source, Type sourceType, string unmatched,
       IdPattern idPattern,
       ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree result)
     {
+      var freshName = ProtectedFreshId(nameSuggestion);
+      var valueWriter = DeclareLocalVar(freshName, sourceType, idPattern.Tok, result);
+      valueWriter.Append(source);
+        
+      guardWriter.Write($" {Conj} ");
+      
       var ctor = idPattern.Ctor;
-      EmitConstructorCheck(sourceName, ctor, guardWriter);
+      EmitConstructorCheck(freshName, ctor, guardWriter);
 
       var userDefinedType = (UserDefinedType)sourceType;
 
@@ -557,9 +561,9 @@ namespace Microsoft.Dafny.Compilers {
           Type type = arg.Type;
           // ((Dt_Ctor0)source._D).a0;
           var destructor = new ConcreteSyntaxTree();
-          EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
+          EmitDestructor(wr => EmitIdentifier(freshName, wr), arg, k, ctor,
             SelectNonGhost(userDefinedType.ResolvedClass, sourceType.TypeArgs), type, destructor);
-          result = EmitNestedMatchStmtCase(arg.CompileName, destructor, type, unmatched, idPattern.Arguments[k], result);
+          result = EmitNestedMatchStmtCase(arg.CompileName, destructor, type, unmatched, idPattern.Arguments[m], result);
           k++;
         }
       }
