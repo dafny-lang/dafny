@@ -1,4 +1,4 @@
-// RUN: %translate cs --rprint:%t.rprint "%s" --output=%t.cs > "%t"
+// RUN: %run "%s" --spill-translation --build=%t.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Type =
@@ -131,4 +131,10 @@ datatype Option<+T> = None | Some(value: T) {
   {
     value
   }
+}
+
+method Main() {
+  var raw: Expr := RawExpr("hello");
+  var optimized := raw.Optimize();
+  print "hello";
 }
