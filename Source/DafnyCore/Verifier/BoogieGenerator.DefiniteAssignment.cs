@@ -163,7 +163,8 @@ namespace Microsoft.Dafny {
 
       Bpl.IdentifierExpr ie;
       if (definiteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
-        builder.Add(Assert(GetToken(expr), ie, new PODesc.DefiniteAssignment($"variable '{expr.Var.Name}'", "here")));
+        builder.Add(Assert(GetToken(expr), ie,
+          new PODesc.DefiniteAssignment("variable", expr.Var.Name, "here")));
       }
     }
 
@@ -187,8 +188,8 @@ namespace Microsoft.Dafny {
       var nm = SurrogateName(field);
       Bpl.IdentifierExpr ie;
       if (definiteAssignmentTrackers.TryGetValue(nm, out ie)) {
-        var desc = new PODesc.DefiniteAssignment($"field '{field.Name}'",
-          atNew ? "at this point in the constructor body" : "here");
+        var desc = new PODesc.DefiniteAssignment(
+          "field", field.Name, atNew ? "at this point in the constructor body" : "here");
         builder.Add(Assert(tok, ie, desc));
       }
     }
@@ -230,7 +231,7 @@ namespace Microsoft.Dafny {
 
       Bpl.IdentifierExpr ie;
       if (definiteAssignmentTrackers.TryGetValue(p.UniqueName, out ie)) {
-        var desc = new PODesc.DefiniteAssignment($"out-parameter '{p.Name}'", "at this return point");
+        var desc = new PODesc.DefiniteAssignment("out-parameter", p.Name, "at this return point");
         builder.Add(Assert(tok, ie, desc));
       }
     }

@@ -56,6 +56,10 @@ namespace Microsoft.Dafny.LanguageServer {
       try {
         var proverOptions = new SMTLibSolverOptions(options);
         proverOptions.Parse(options.ProverOptions);
+        if (proverOptions.ProverName == "noop") {
+          telemetryPublisher.PublishSolverPath("noop solver");
+          return;
+        }
         solverPath = proverOptions.ExecutablePath();
         HandleZ3Version(telemetryPublisher, solverPath);
       } catch (Exception e) {

@@ -9,6 +9,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Fresh, // fresh also has a(n optional) second argument, namely the @-label
     Allocated,
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
+    Assigned,
   }
   public readonly Opcode Op;
 
@@ -22,7 +23,8 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     MapCard,
     Fresh,
     Allocated,
-    Lit
+    Lit,
+    Assigned,
   }
 
   private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
@@ -42,6 +44,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
         (Opcode.Fresh, _) => ResolvedOpcode.Fresh,
         (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
         (Opcode.Lit, _) => ResolvedOpcode.Lit,
+        (Opcode.Assigned, _) => ResolvedOpcode.Assigned,
         _ => ResolvedOpcode.YetUndetermined // Unreachable
       };
       Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);

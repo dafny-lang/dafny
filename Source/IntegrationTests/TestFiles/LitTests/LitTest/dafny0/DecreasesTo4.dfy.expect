@@ -1,0 +1,2 @@
+DecreasesTo4.dfy(5,10): Error: bindings are not allowed in `decreases to` expressions.
+1 parse errors detected in DecreasesTo4.dfy

@@ -139,6 +139,8 @@ public class ParseErrors {
     p_file_has_no_code,
     p_general_traits_datatype,
     p_general_traits_full,
+    p_decreases_without_to,
+    p_binding_in_decreases_to,
   }
 
   static ParseErrors() {
