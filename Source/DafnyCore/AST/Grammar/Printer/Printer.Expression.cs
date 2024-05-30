@@ -767,6 +767,10 @@ namespace Microsoft.Dafny {
           wr.Write("Lit(");
           PrintExpression(e.E, false);
           wr.Write(")");
+        } else if (e.Op == UnaryOpExpr.Opcode.Assigned) {
+          wr.Write("assigned(");
+          PrintExpression(e.E, false);
+          wr.Write(")");
         } else {
           Contract.Assert(e.Op != UnaryOpExpr.Opcode.Fresh); // this is handled is "is FreshExpr" case above
           // Prefix operator.
