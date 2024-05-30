@@ -36,6 +36,55 @@ datatype Expr =
   | Select(obj: Expr, name: string)
   | MemberSelect(obj: Expr, name: string)
 {
+  opaque function Optimize2(): (r: Expr)
+    {
+      match this {
+        case UnaryOp("&", Call(Select(underlying, "clone"), typeArgs, args), format) =>
+          if typeArgs == [] && args == [] then
+            UnaryOp("&", underlying, format)
+          else
+            this
+
+        case UnaryOp("!", BinaryOp("==", left, right, format),
+          CombineFormat()) =>
+          BinaryOp("!=", left, right, BinaryOpFormat.NoFormat())
+
+        case UnaryOp("!", BinaryOp("<", left, right, NoFormat()),
+          CombineFormat()) =>
+          BinaryOp(">=", left, right, BinaryOpFormat.NoFormat())
+
+        case UnaryOp("!", BinaryOp("<", left, right, ReverseFormat()),
+          CombineFormat()) =>
+          BinaryOp("<=", right, left, BinaryOpFormat.NoFormat())
+
+        case ConversionNum(tpe, expr) =>
+          if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
+             || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? then
+            match expr {
+              case Call(MemberSelect(
+                MemberSelect(MemberSelect(
+                Identifier(""), "dafny_runtime"), "DafnyInt"), "from"), tpe, args) =>
+                if |tpe| == 0 && |args| == 1 then
+                  match args[0] {
+                    case LiteralInt(number) => LiteralInt("/*optimized*/"+number)
+                    case LiteralString(number, _) => LiteralInt("/*optimized*/"+number)
+                    case _ => this
+                  }
+                else this
+              case _ => this
+            }
+          else
+            this
+        case StmtExpr(DeclareVar(mod, name, Some(tpe), None), StmtExpr(AssignVar(name2, rhs), last)) =>
+          if name == name2 then
+            var rewriting := StmtExpr(DeclareVar(mod, name, Some(tpe), Some(rhs)), last);
+            rewriting
+          else
+            this
+        case _ => this
+      }
+    }
+
     method Optimize() returns (e: Expr)
     {
       match this {

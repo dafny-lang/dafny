@@ -616,5 +616,9 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       EmitExpr(match.Flattened, inLetExprBody, wr, wStmts);
     }
+
+    protected virtual void TrOptNestedMatchExpr(NestedMatchExpr nestedMatchExpr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
+      TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+    }
   }
 }
