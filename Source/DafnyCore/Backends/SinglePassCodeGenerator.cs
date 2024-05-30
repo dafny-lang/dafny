@@ -5921,21 +5921,21 @@ namespace Microsoft.Dafny.Compilers {
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
-
         if (declWithConstraints is not NewtypeDecl) {
+          var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
+
           // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
           EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
-        }
 
-        if (isReturning) {
-          var elseBranch = wr;
-          elseBranch = EmitBlock(elseBranch);
-          elseBranch = EmitReturnExpr(elseBranch);
-          var wStmts = elseBranch.Fork();
-          EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          if (isReturning) {
+            var elseBranch = wr;
+            elseBranch = EmitBlock(elseBranch);
+            elseBranch = EmitReturnExpr(elseBranch);
+            var wStmts = elseBranch.Fork();
+            EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          }
+          wr = thenWriter;
         }
-        wr = thenWriter;
       }
 
       if (isReturning) {
