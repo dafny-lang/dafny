@@ -107,6 +107,15 @@ namespace Microsoft.Dafny {
       // operator (e.g., ==>). As a guide, we look at how the user formatted the code,
       // that is, we inspect line and column information.
 
+      if (expr is ApplySuffix applySuffix) {
+        Visit(applySuffix.Lhs, st);
+        foreach (var argument in applySuffix.Bindings.ArgumentBindings.Select(b => b.Actual)) {
+          VisitIndependentComponent(argument);
+        }
+
+        return false;
+      }
+
       if (expr is BinaryExpr bin && (bin.Op == BinaryExpr.Opcode.Imp || bin.Op == BinaryExpr.Opcode.Exp || bin.Op == BinaryExpr.Opcode.Iff)) {
         // For
         //   a)  LHS ==> RHS
@@ -156,15 +165,11 @@ namespace Microsoft.Dafny {
         VisitRhsComponent(expr.tok, letExpr.Body, "body of let-expression");
         return false; // indicate that we've already processed expr's subexpressions
 
-      } else if (expr is OldExpr or FreshExpr or UnchangedExpr or DatatypeValue or DisplayExpression or MapDisplayExpr) {
+      } else if (expr is OldExpr or FreshExpr or UnchangedExpr or DisplayExpression or MapDisplayExpr) {
         // In these expressions, all subexpressions are contained in parentheses, so there's no risk of precedence confusion
         expr.SubExpressions.ForEach(VisitIndependentComponent);
         return false; // indicate that we've already processed expr's subexpressions
 
-      } else if (expr is FunctionCallExpr functionCallExpr) {
-        return VisitComponentsAsIndependentExceptOne(expr, functionCallExpr.Receiver, st);
-      } else if (expr is ApplyExpr applyExpr) {
-        return VisitComponentsAsIndependentExceptOne(expr, applyExpr.Function, st);
       } else if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
         return VisitComponentsAsIndependentExceptOne(expr, datatypeUpdateExpr.Root, st);
       } else if (expr is SeqSelectExpr selectExpr) {
@@ -234,12 +239,7 @@ namespace Microsoft.Dafny {
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, string what) {
-      if (expr.StartToken == null) {
-        // Might be a resolved expression.
-        VisitIndependentComponent(expr);
-      } else {
-        VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
-      }
+      VisitRhsComponent(errorToken, expr, expr.StartToken.col, what);
     }
 
     void VisitRhsComponent(IToken errorToken, Expression expr, int rightMargin, string what) {
