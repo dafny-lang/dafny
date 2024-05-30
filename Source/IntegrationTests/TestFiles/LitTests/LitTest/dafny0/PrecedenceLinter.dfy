@@ -581,3 +581,12 @@ module MatchAcrossMultipleLines {
     }
   }
 }
+
+datatype Result = Success | Failure(s: string)
+  
+function ValidateAction(b: bool): Result
+{
+  if b then Success
+  else Failure(
+      "hello")
+}
