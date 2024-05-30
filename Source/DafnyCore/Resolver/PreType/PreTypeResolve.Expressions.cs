@@ -419,6 +419,10 @@ namespace Microsoft.Dafny {
               ReportError(expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
             break;
+          case UnaryOpExpr.Opcode.Assigned:
+            // the argument is allowed to have any type at all
+            expr.PreType = ConstrainResultToBoolFamily(expr.tok, "assigned", "boolean literal used as if it had type {0}");
+            break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }
@@ -671,6 +675,13 @@ namespace Microsoft.Dafny {
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
         ResolveNestedMatchExpr(e, resolutionContext);
+
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        foreach (var e in decreasesToExpr.SubExpressions) {
+          ResolveExpression(e, resolutionContext);
+        }
+
+        decreasesToExpr.PreType = ConstrainResultToBoolFamilyOperator(decreasesToExpr.tok, "decreasesto");
 
       } else if (expr is MatchExpr) {
         Contract.Assert(false); // this case is always handled via NestedMatchExpr

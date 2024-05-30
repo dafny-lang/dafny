@@ -35,6 +35,7 @@ public partial class BoogieGenerator {
   void CheckCallTermination(IToken tok, List<Expression> contextDecreases, List<Expression> calleeDecreases,
                             Expression allowance,
                             Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
+                            Dictionary<IVariable, Expression> directSubstMap,
                             Dictionary<TypeParameter, Type> typeMap,
                             ExpressionTranslator etranCurrent, bool oldCaller, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
     Contract.Requires(tok != null);
@@ -69,6 +70,7 @@ public partial class BoogieGenerator {
     }
     for (int i = 0; i < N; i++) {
       Expression e0 = Substitute(calleeDecreases[i], receiverReplacement, substMap, typeMap);
+      Expression e0direct = Substitute(calleeDecreases[i], receiverReplacement, directSubstMap, typeMap);
       Expression e1 = contextDecreases[i];
       if (oldCaller) {
         e1 = new OldExpr(e1.tok, e1) {
@@ -80,7 +82,7 @@ public partial class BoogieGenerator {
         break;
       }
       oldExpressions.Add(e1);
-      newExpressions.Add(e0);
+      newExpressions.Add(e0direct);
       toks.Add(new NestedToken(tok, e1.tok));
       types0.Add(e0.Type.NormalizeExpand());
       types1.Add(e1.Type.NormalizeExpand());
@@ -94,7 +96,7 @@ public partial class BoogieGenerator {
     }
     builder.Add(Assert(tok, decrExpr, new
       PODesc.Terminates(inferredDecreases, null, allowance,
-                        oldExpressions, newExpressions, hint)));
+                        oldExpressions, newExpressions, endsWithWinningTopComparison, hint)));
   }
 
   /// <summary>
@@ -173,7 +175,7 @@ public partial class BoogieGenerator {
     return decrCheck;
   }
 
-  bool CompatibleDecreasesTypes(Type t, Type u) {
+  static bool CompatibleDecreasesTypes(Type t, Type u) {
     Contract.Requires(t != null);
     Contract.Requires(u != null);
     t = t.NormalizeToAncestorType();
@@ -356,5 +358,8 @@ public partial class BoogieGenerator {
       less = BplAnd(Bpl.Expr.Not(b0), b1);
       atmost = BplImp(b0, b1);
     }
+
+    less.tok = tok;
+    atmost.tok = tok;
   }
 }
