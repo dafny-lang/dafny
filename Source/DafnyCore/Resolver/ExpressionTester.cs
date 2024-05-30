@@ -351,6 +351,11 @@ public class ExpressionTester {
       // other conditions are checked below
       subexpressionsAreInsideBranchesOnlyExcept = matchExpr.Source;
 
+    } else if (expr is DecreasesToExpr _) {
+      ReportError(ErrorId.r_decreases_to_only_in_specification,
+                  expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
+      return false;
+
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
       return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
     }
@@ -557,7 +562,7 @@ public class ExpressionTester {
       return true;
     } else if (expr is UnaryExpr) {
       var e = (UnaryExpr)expr;
-      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
+      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated or UnaryOpExpr.Opcode.Assigned }) {
         return true;
       }
       if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {
