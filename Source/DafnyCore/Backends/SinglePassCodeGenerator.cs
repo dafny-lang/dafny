@@ -683,7 +683,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = MaybeInjectSubtypeConstraintWrtTraits(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr);
+      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr, true);
       return wr;
     }
 
@@ -5543,8 +5543,10 @@ namespace Microsoft.Dafny.Compilers {
             inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
           EmitDowncastVariableAssignment(
             IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
+          var newtypeConversionsWereExplicit =
+            bound is SetBoundedPool or MapBoundedPool or SeqBoundedPool or MultiSetBoundedPool;
           newWBody = MaybeInjectSubsetConstraint(
-            bv, bv.Type, inLetExprBody, e.tok, newWBody, isReturning: true, elseReturnValue: e is ForallExpr);
+            bv, bv.Type, inLetExprBody, e.tok, newWBody, newtypeConversionsWereExplicit, isReturning: true, elseReturnValue: e is ForallExpr);
           wBody = newWBody;
         }
         EmitExpr(logicalBody, inLetExprBody, wBody, wStmts);
@@ -5918,12 +5920,12 @@ namespace Microsoft.Dafny.Compilers {
     /// of "boundVarType".
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
-      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false) {
+      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool newtypeConversionsWereExplicit, bool isReturning = false, bool elseReturnValue = false) {
 
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-        if (declWithConstraints is not NewtypeDecl || RequiresAllVariablesToBeUsed) {
+        if (!newtypeConversionsWereExplicit || declWithConstraints is not NewtypeDecl || RequiresAllVariablesToBeUsed) {
           var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
           // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
