@@ -663,7 +663,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(c != null);
 
       Indent(indent);
-      PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
+      PrintClassMethodHelper(c is TraitDecl ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       if (c.IsRefining) {
         wr.Write(" ...");
       } else {
