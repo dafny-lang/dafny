@@ -4088,31 +4088,41 @@ namespace RAST {
           _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs46 = ((System.Func<Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>>, _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>>)((_source35) => {
             bool unmatched35 = true;
             if (unmatched35) {
+              bool disjunctiveMatch0 = false;
               if (_source35.is_Some) {
                 Dafny.ISequence<Dafny.Rune> value0 = _source35.dtor_value;
                 if (object.Equals(value0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("seq!"))) {
-                  if (_source35.is_Some) {
-                    Dafny.ISequence<Dafny.Rune> value1 = _source35.dtor_value;
-                    if (object.Equals(value1, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("map!"))) {
-                      unmatched35 = false;
-                      return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("["), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("]"));
-                    }
-                  }
+                  disjunctiveMatch0 = true;
                 }
+              }
+              if (_source35.is_Some) {
+                Dafny.ISequence<Dafny.Rune> value1 = _source35.dtor_value;
+                if (object.Equals(value1, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("map!"))) {
+                  disjunctiveMatch0 = true;
+                }
+              }
+              if (disjunctiveMatch0) {
+                unmatched35 = false;
+                return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("["), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("]"));
               }
             }
             if (unmatched35) {
+              bool disjunctiveMatch1 = false;
               if (_source35.is_Some) {
                 Dafny.ISequence<Dafny.Rune> value2 = _source35.dtor_value;
                 if (object.Equals(value2, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("set!"))) {
-                  if (_source35.is_Some) {
-                    Dafny.ISequence<Dafny.Rune> value3 = _source35.dtor_value;
-                    if (object.Equals(value3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("multiset!"))) {
-                      unmatched35 = false;
-                      return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
-                    }
-                  }
+                  disjunctiveMatch1 = true;
                 }
+              }
+              if (_source35.is_Some) {
+                Dafny.ISequence<Dafny.Rune> value3 = _source35.dtor_value;
+                if (object.Equals(value3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("multiset!"))) {
+                  disjunctiveMatch1 = true;
+                }
+              }
+              if (disjunctiveMatch1) {
+                unmatched35 = false;
+                return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
               }
             }
             if (unmatched35) {
@@ -4227,17 +4237,25 @@ namespace RAST {
             }
           }
           if (unmatched37) {
+            bool disjunctiveMatch2 = false;
             if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
-              if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
-                if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
-                  if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
-                    if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) {
-                      unmatched37 = false;
-                      return RAST.PrintingInfo.create_Precedence(new BigInteger(6));
-                    }
-                  }
-                }
-              }
+              disjunctiveMatch2 = true;
+            }
+            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
+              disjunctiveMatch2 = true;
+            }
+            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
+              disjunctiveMatch2 = true;
+            }
+            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
+              disjunctiveMatch2 = true;
+            }
+            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) {
+              disjunctiveMatch2 = true;
+            }
+            if (disjunctiveMatch2) {
+              unmatched37 = false;
+              return RAST.PrintingInfo.create_Precedence(new BigInteger(6));
             }
           }
           if (unmatched37) {
@@ -4291,29 +4309,45 @@ namespace RAST {
           Dafny.ISequence<Dafny.Rune> _source38 = _951_op2;
           bool unmatched38 = true;
           if (unmatched38) {
+            bool disjunctiveMatch3 = false;
             if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
-              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/"))) {
-                if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%"))) {
-                  unmatched38 = false;
-                  return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(20), RAST.Associativity.create_LeftToRight());
-                }
-              }
+              disjunctiveMatch3 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/"))) {
+              disjunctiveMatch3 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%"))) {
+              disjunctiveMatch3 = true;
+            }
+            if (disjunctiveMatch3) {
+              unmatched38 = false;
+              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(20), RAST.Associativity.create_LeftToRight());
             }
           }
           if (unmatched38) {
+            bool disjunctiveMatch4 = false;
             if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+"))) {
-              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
-                unmatched38 = false;
-                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(30), RAST.Associativity.create_LeftToRight());
-              }
+              disjunctiveMatch4 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
+              disjunctiveMatch4 = true;
+            }
+            if (disjunctiveMatch4) {
+              unmatched38 = false;
+              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(30), RAST.Associativity.create_LeftToRight());
             }
           }
           if (unmatched38) {
+            bool disjunctiveMatch5 = false;
             if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) {
-              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>"))) {
-                unmatched38 = false;
-                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
-              }
+              disjunctiveMatch5 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>"))) {
+              disjunctiveMatch5 = true;
+            }
+            if (disjunctiveMatch5) {
+              unmatched38 = false;
+              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
             }
           }
           if (unmatched38) {
@@ -4335,19 +4369,28 @@ namespace RAST {
             }
           }
           if (unmatched38) {
+            bool disjunctiveMatch6 = false;
             if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
-              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!="))) {
-                if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) {
-                  if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"))) {
-                    if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<="))) {
-                      if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">="))) {
-                        unmatched38 = false;
-                        return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());
-                      }
-                    }
-                  }
-                }
-              }
+              disjunctiveMatch6 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!="))) {
+              disjunctiveMatch6 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) {
+              disjunctiveMatch6 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"))) {
+              disjunctiveMatch6 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<="))) {
+              disjunctiveMatch6 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">="))) {
+              disjunctiveMatch6 = true;
+            }
+            if (disjunctiveMatch6) {
+              unmatched38 = false;
+              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());
             }
           }
           if (unmatched38) {
@@ -4363,37 +4406,56 @@ namespace RAST {
             }
           }
           if (unmatched38) {
+            bool disjunctiveMatch7 = false;
             if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".."))) {
-              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("..="))) {
-                unmatched38 = false;
-                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RequiresParentheses());
-              }
+              disjunctiveMatch7 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("..="))) {
+              disjunctiveMatch7 = true;
+            }
+            if (disjunctiveMatch7) {
+              unmatched38 = false;
+              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RequiresParentheses());
             }
           }
           if (unmatched38) {
+            bool disjunctiveMatch8 = false;
             if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("="))) {
-              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+="))) {
-                if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-="))) {
-                  if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*="))) {
-                    if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/="))) {
-                      if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%="))) {
-                        if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&="))) {
-                          if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("|="))) {
-                            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^="))) {
-                              if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<="))) {
-                                if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>="))) {
-                                  unmatched38 = false;
-                                  return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RightToLeft());
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("|="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>="))) {
+              disjunctiveMatch8 = true;
+            }
+            if (disjunctiveMatch8) {
+              unmatched38 = false;
+              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RightToLeft());
             }
           }
           if (unmatched38) {

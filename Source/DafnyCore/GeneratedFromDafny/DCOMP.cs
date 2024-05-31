@@ -1865,16 +1865,26 @@ namespace DCOMP {
                 }
               }
               if (unmatched59) {
+                bool disjunctiveMatch9 = false;
                 if (_source59.is_MapBuilderAdd) {
-                  if (_source59.is_SetBuilderAdd) {
-                    unmatched59 = false;
-                    return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
-                  }
+                  disjunctiveMatch9 = true;
+                }
+                if (_source59.is_SetBuilderAdd) {
+                  disjunctiveMatch9 = true;
+                }
+                if (disjunctiveMatch9) {
+                  unmatched59 = false;
+                  return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
                 }
               }
               if (unmatched59) {
-                unmatched59 = false;
-                return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("build");
+                bool disjunctiveMatch10 = false;
+                disjunctiveMatch10 = true;
+                disjunctiveMatch10 = true;
+                if (disjunctiveMatch10) {
+                  unmatched59 = false;
+                  return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("build");
+                }
               }
               throw new System.Exception("unexpected control point");
             }))(_1280_name);
@@ -2285,29 +2295,43 @@ namespace DCOMP {
       _1333_becomesLeftCallsRight = ((System.Func<DAST._IBinOp, bool>)((_source64) => {
         bool unmatched64 = true;
         if (unmatched64) {
+          bool disjunctiveMatch11 = false;
           if (_source64.is_SetMerge) {
-            if (_source64.is_SetSubtraction) {
-              if (_source64.is_SetIntersection) {
-                if (_source64.is_SetDisjoint) {
-                  if (_source64.is_MapMerge) {
-                    if (_source64.is_MapSubtraction) {
-                      if (_source64.is_MultisetMerge) {
-                        if (_source64.is_MultisetSubtraction) {
-                          if (_source64.is_MultisetIntersection) {
-                            if (_source64.is_MultisetDisjoint) {
-                              if (_source64.is_Concat) {
-                                unmatched64 = false;
-                                return true;
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_SetSubtraction) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_SetIntersection) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_SetDisjoint) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_MapMerge) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_MapSubtraction) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_MultisetMerge) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_MultisetSubtraction) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_MultisetIntersection) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_MultisetDisjoint) {
+            disjunctiveMatch11 = true;
+          }
+          if (_source64.is_Concat) {
+            disjunctiveMatch11 = true;
+          }
+          if (disjunctiveMatch11) {
+            unmatched64 = false;
+            return true;
           }
         }
         if (unmatched64) {
@@ -4516,16 +4540,26 @@ namespace DCOMP {
                 }
               }
               if (unmatched75) {
+                bool disjunctiveMatch12 = false;
                 if (_source75.is_MapBuilderAdd) {
-                  if (_source75.is_SetBuilderAdd) {
-                    unmatched75 = false;
-                    return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
-                  }
+                  disjunctiveMatch12 = true;
+                }
+                if (_source75.is_SetBuilderAdd) {
+                  disjunctiveMatch12 = true;
+                }
+                if (disjunctiveMatch12) {
+                  unmatched75 = false;
+                  return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
                 }
               }
               if (unmatched75) {
-                unmatched75 = false;
-                return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("build");
+                bool disjunctiveMatch13 = false;
+                disjunctiveMatch13 = true;
+                disjunctiveMatch13 = true;
+                if (disjunctiveMatch13) {
+                  unmatched75 = false;
+                  return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("build");
+                }
               }
               throw new System.Exception("unexpected control point");
             }))(_1686_name);

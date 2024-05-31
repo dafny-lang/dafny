@@ -3675,9 +3675,14 @@ namespace DafnyProfiling {
         }
 
       } else if (pattern is DisjunctivePattern disjunctivePattern) {
+        string disjunctiveMatch = ProtectedFreshId("disjunctiveMatch");
+        DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), false, writer);
         foreach (var alternative in disjunctivePattern.Alternatives) {
-          writer = EmitNestedMatchCaseConditions(sourceName, sourceType, alternative, writer, lastCase);
+          var alternativeWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, alternative, writer, lastCase);
+          EmitAssignment(disjunctiveMatch, Type.Bool, True, Type.Bool, alternativeWriter);
         }
+        writer = EmitIf(out var guardWriter, false, writer);
+        guardWriter.Write(disjunctiveMatch);
       } else {
         throw new Exception();
       }
@@ -3689,11 +3694,6 @@ namespace DafnyProfiling {
       IdPattern idPattern,
       ConcreteSyntaxTree result, bool lastCase) {
       var ctor = idPattern.Ctor;
-
-      // if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out _)) {
-      //   result = EmitNestedMatchCaseConditions(sourceName, sourceType, idPattern.Arguments[0], result, lastCase);
-      //   return result;
-      // }
 
       if (!lastCase && ctor.EnclosingDatatype.Ctors.Count != 1) {
         result = EmitIf(out var guardWriter, false, result);
