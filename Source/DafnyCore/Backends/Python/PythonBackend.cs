@@ -121,7 +121,6 @@ public class PythonBackend : ExecutableBackend {
         return (false, null);
       }
     }
-
     if (!runAfterCompile) {
       var psi = PrepareProcessStartInfo(DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
