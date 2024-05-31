@@ -3690,10 +3690,10 @@ namespace DafnyProfiling {
       ConcreteSyntaxTree result, bool lastCase) {
       var ctor = idPattern.Ctor;
 
-      if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out _)) {
-        result = EmitNestedMatchCaseConditions(sourceName, sourceType, idPattern.Arguments[0], result, lastCase);
-        return result;
-      }
+      // if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out _)) {
+      //   result = EmitNestedMatchCaseConditions(sourceName, sourceType, idPattern.Arguments[0], result, lastCase);
+      //   return result;
+      // }
 
       if (!lastCase && ctor.EnclosingDatatype.Ctors.Count != 1) {
         result = EmitIf(out var guardWriter, false, result);
@@ -3727,7 +3727,7 @@ namespace DafnyProfiling {
               newSourceName = ProtectedFreshId(arg.CompileName);
               var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
               valueWriter.Append(destructor);
-              result = EmitNestedMatchCaseConditions(newSourceName, type, idPattern.Arguments[m], result, lastCase);
+              result = EmitNestedMatchCaseConditions(newSourceName, type, childPattern, result, lastCase);
             }
           }
           k++;
