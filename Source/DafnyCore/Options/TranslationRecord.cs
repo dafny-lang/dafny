@@ -26,15 +26,8 @@ public class TranslationRecord {
 
     OptionsByModule = new();
 
-    foreach (var module in program.CompileModules) {
+    foreach (var module in program.RawModules()) {
       if (module is DefaultModuleDefinition || !module.ShouldCompile(program.Compilation)) {
-        continue;
-      }
-
-      // This is primarily here to exclude prefix modules
-      // (e.g. something like A.B that only appears in a module A.B.C { ... } declaration)
-      // since those can appear in multiple separately-compiled projects. 
-      if (ModuleEmptyForCompilation(module)) {
         continue;
       }
 
@@ -46,11 +39,6 @@ public class TranslationRecord {
         recordedOptions.Add(option.Name, optionValue);
       }
     }
-  }
-
-  private static bool ModuleEmptyForCompilation(ModuleDefinition module) {
-    return !(module.DefaultClass?.Members.Any() ?? false)   // DefaultClass is null for _System
-           && module.TopLevelDecls.All(d => d is DefaultClassDecl or ModuleDecl);
   }
 
   public static TranslationRecord Empty(Program program) {
