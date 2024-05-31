@@ -16,6 +16,8 @@ namespace Microsoft.Dafny.Compilers {
     ProgramBuilder items;
     public object currentBuilder;
     public bool emitUncompilableCode;
+    protected override string InternalFieldPrefix => internalFieldPrefix;
+    public string internalFieldPrefix;
     public bool preventShadowing;
 
     public void Start() {
@@ -34,12 +36,13 @@ namespace Microsoft.Dafny.Compilers {
       return res;
     }
 
-    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, bool preventShadowing, bool canEmitUncompilableCode) : base(options, reporter) {
+    public DafnyCodeGenerator(DafnyOptions options, ErrorReporter reporter, string internalFieldPrefix, bool preventShadowing, bool canEmitUncompilableCode) : base(options, reporter) {
       options.SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Include;
       if (Options?.CoverageLegendFile != null) {
         Imports.Add("DafnyProfiling");
       }
 
+      this.internalFieldPrefix = internalFieldPrefix;
       emitUncompilableCode = options.Get(CommonOptionBag.EmitUncompilableCode) && canEmitUncompilableCode;
       this.preventShadowing = preventShadowing;
     }
@@ -735,7 +738,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok, ConcreteSyntaxTree wr) {
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok,
+     Expression replacementReceiver, bool receiverAsArgument, ConcreteSyntaxTree wr) {
       if (GetExprBuilder(wr, out var st) && st.Builder is CallExprBuilder callExpr) {
         callExpr.SetName((DAST.CallName)DAST.CallName.create_Name(Sequence<Rune>.UnicodeFromString(protectedName)));
       } else if (GetExprBuilder(wr, out var st2) && st2.Builder is CallStmtBuilder callStmt) {
@@ -748,7 +752,7 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      base.EmitNameAndActualTypeArgs(protectedName, typeArgs, tok, wr);
+      base.EmitNameAndActualTypeArgs(protectedName, typeArgs, tok, replacementReceiver, receiverAsArgument, wr);
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
@@ -1671,12 +1675,12 @@ namespace Microsoft.Dafny.Compilers {
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString("_" + member.GetCompileName(Options)),
+            Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
             false,
             member.EnclosingClass is DatatypeDecl
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString("_" + member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options))
           ), this);
         } else {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(

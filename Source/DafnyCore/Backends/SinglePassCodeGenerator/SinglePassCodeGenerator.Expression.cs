@@ -19,7 +19,8 @@ using static Microsoft.Dafny.GeneratorErrors;
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
 
-    public virtual void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    public virtual void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
         EmitLiteralExpr(wr, e);
@@ -34,6 +35,7 @@ namespace Microsoft.Dafny.Compilers {
 
           wr = EmitCoercionIfNecessary(contextType, instantiatedType, expr.tok, wr);
         }
+
         EmitThis(wr);
 
       } else if (expr is IdentifierExpr) {
@@ -54,7 +56,8 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is MultiSetDisplayExpr) {
         var e = (MultiSetDisplayExpr)expr;
-        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsMultiSetType, e.tok, e.Elements, inLetExprBody, wr, wStmts);
+        EmitCollectionDisplay(e.Type.NormalizeToAncestorType().AsMultiSetType, e.tok, e.Elements, inLetExprBody, wr,
+          wStmts);
 
       } else if (expr is SeqDisplayExpr) {
         var e = (SeqDisplayExpr)expr;
@@ -68,32 +71,37 @@ namespace Microsoft.Dafny.Compilers {
         MemberSelectExpr e = (MemberSelectExpr)expr;
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
-          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, e.Obj.Type, out var compiledName, out var preStr, out var postStr);
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, e.Obj.Type, out var compiledName, out var preStr,
+            out var postStr);
           wr.Write(preStr);
 
           if (sf.IsStatic && !SupportsStaticsInGenericClasses && sf.EnclosingClass.TypeArgs.Count != 0) {
             var typeArgs = e.TypeApplication_AtEnclosingClass;
             Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
             wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-            EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
+            EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, null, false, wr);
             var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
             EmitTypeDescriptorsActuals(tas, e.tok, wr.ForkInParens());
           } else {
             void writeObj(ConcreteSyntaxTree w) {
               //Contract.Assert(!sf.IsStatic);
-              w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member), e.tok, w);
+              w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
+                e.tok, w);
               TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
             }
 
-            var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-            EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(), expr.Type).EmitRead(wr);
+            var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass,
+              e.TypeApplication_JustMember);
+            EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
+              expr.Type).EmitRead(wr);
           }
 
           wr.Write(postStr);
         } else {
-          var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
+          var typeArgs =
+            CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
-          var customReceiver = NeedsCustomReceiver(e.Member) && !(e.Member.EnclosingClass is TraitDecl);
+          var customReceiver = NeedsCustomReceiverNotTrait(e.Member);
           if (!customReceiver && !e.Member.IsStatic) {
             Action<ConcreteSyntaxTree> obj;
             // The eta conversion here is to avoid capture of the receiver, because the call to EmitMemberSelect below may generate
@@ -101,19 +109,23 @@ namespace Microsoft.Dafny.Compilers {
             if (e.Member is Function && typeArgs.Count != 0) {
               // need to eta-expand wrap the receiver
               var etaReceiver = ProtectedFreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
+              wr = CreateIIFE_ExprBody(etaReceiver, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap),
+                e.tok, wr, ref wStmts);
               obj = w => EmitIdentifier(etaReceiver, w);
             } else {
               obj = w => EmitExpr(e.Obj, inLetExprBody, w, wStmts);
             }
+
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
           } else {
             string customReceiverName = null;
             if (customReceiver && e.Member is Function) {
               // need to eta-expand wrap the receiver
               customReceiverName = ProtectedFreshId("_eta_this");
-              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
+              wr = CreateIIFE_ExprBody(customReceiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody,
+                e.Type.Subst(typeMap), e.tok, wr, ref wStmts);
             }
+
             Action<ConcreteSyntaxTree> obj = w => EmitTypeName_Companion(e.Obj.Type, w, wr, e.tok, e.Member);
             EmitMemberSelect(obj, e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, customReceiverName).EmitRead(wr);
           }
@@ -127,7 +139,9 @@ namespace Microsoft.Dafny.Compilers {
             var w = EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr, wStmts);
             w = EmitCoercionIfNecessary(
               e.Seq.Type,
-              e.Seq.Type.IsNonNullRefType || !e.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)e.Seq.Type.NormalizeExpand()),
+              e.Seq.Type.IsNonNullRefType || !e.Seq.Type.IsRefType
+                ? null
+                : UserDefinedType.CreateNonNullType((UserDefinedType)e.Seq.Type.NormalizeExpand()),
               e.tok,
               w
             );
@@ -165,6 +179,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(e.Root, inLetExprBody, wr, wStmts);
           return;
         }
+
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, e.Root.Type.AsDatatype, out var dtor)) {
           var i = e.Members.IndexOf(dtor);
           if (0 <= i) {
@@ -177,6 +192,7 @@ namespace Microsoft.Dafny.Compilers {
             return;
           }
         }
+
         // the optimized cases don't apply, so proceed according to the desugaring
         EmitExpr(e.ResolvedExpression, inLetExprBody, wr, wStmts);
       } else if (expr is FunctionCallExpr) {
@@ -198,7 +214,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
-        Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
+        Contract.Assert(dtv.Ctor != null); // since dtv has been successfully resolved
 
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dtv.Ctor.EnclosingDatatype, out var dtor)) {
           var i = dtv.Ctor.Destructors.IndexOf(dtor);
@@ -218,27 +234,33 @@ namespace Microsoft.Dafny.Compilers {
           var formal = dtv.Ctor.Formals[i];
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
-            var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst), toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
+            var w = EmitCoercionIfNecessary(@from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst),
+              toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.tok, wr: wrArgumentList);
             EmitExpr(dtv.Arguments[i], inLetExprBody, w, wStmts);
             sep = ", ";
           }
         }
+
         EmitDatatypeValue(dtv, wTypeDescriptorArguments.ToString(), wrArgumentList.ToString(), wr);
 
       } else if (expr is OldExpr) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost
+        Contract.Assert(false);
+        throw new cce.UnreachableException(); // 'old' is always a ghost
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
-          wr = EmitBitvectorTruncation(e.Type.NormalizeToAncestorType().AsBitVectorType, e.Type.AsNativeType(), true, wr);
+          wr = EmitBitvectorTruncation(e.Type.NormalizeToAncestorType().AsBitVectorType, e.Type.AsNativeType(), true,
+            wr);
         }
+
         EmitUnaryExpr(UnaryOpCodeMap[e.ResolvedOp], e.E, inLetExprBody, wr, wStmts);
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
         var fromType = e.E.Type.GetRuntimeType();
         var toType = e.ToType.GetRuntimeType();
-        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || toType.IsRefType == fromType.IsRefType);
+        Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
+                        toType.IsRefType == fromType.IsRefType);
         if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
@@ -276,6 +298,7 @@ namespace Microsoft.Dafny.Compilers {
           if (truncateResult && e.Type.NormalizeToAncestorType().AsBitVectorType is { } bitvectorType) {
             wr = EmitBitvectorTruncation(bitvectorType, e.Type.AsNativeType(), true, wr);
           }
+
           var e0 = reverseArguments ? e.E1 : e.E0;
           var e1 = reverseArguments ? e.E0 : e.E1;
 
@@ -310,10 +333,11 @@ namespace Microsoft.Dafny.Compilers {
           } else if (staticCallString != null) {
             wr.Format($"{staticCallString}({left}, {right})");
           }
+
           wr.Write(postOpString);
         }
       } else if (expr is TernaryExpr) {
-        Contract.Assume(false);  // currently, none of the ternary expressions is compilable
+        Contract.Assume(false); // currently, none of the ternary expressions is compilable
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
@@ -324,16 +348,18 @@ namespace Microsoft.Dafny.Compilers {
           //    LamLet(G, tmp =>
           //      LamLet(dtorX(tmp), x =>
           //      LamLet(dtorY(tmp), y => E)))
-          Contract.Assert(e.LHSs.Count == e.RHSs.Count);  // checked by resolution
+          Contract.Assert(e.LHSs.Count == e.RHSs.Count); // checked by resolution
           var w = wr;
           for (int i = 0; i < e.LHSs.Count; i++) {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = $"_pat_let{GetUniqueAstNumber(e)}_{i}";
-              w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w, ref wStmts);
+              w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type,
+                e.Body.tok, w, ref wStmts);
               w = TrCasePattern(lhs, wr => EmitIdentifier(rhsName, wr), e.RHSs[i].Type, e.Body.Type, w, ref wStmts);
             }
           }
+
           EmitExpr(e.Body, true, w, wStmts);
         } else if (e.BoundVars.All(bv => bv.IsGhost)) {
           // The Dafny "let" expression
@@ -352,18 +378,23 @@ namespace Microsoft.Dafny.Compilers {
           //        // not a source of nondeterminancy.
           //        return E;
           //      })
-          Contract.Assert(e.RHSs.Count == 1);  // checked by resolution
-          var missingBounds = BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, BoundedPool.PoolVirtues.Enumerable);
+          Contract.Assert(e.RHSs.Count == 1); // checked by resolution
+          var missingBounds = BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds,
+            BoundedPool.PoolVirtues.Enumerable);
           if (missingBounds.Count != 0) {
             foreach (var bv in missingBounds) {
-              Error(ErrorId.c_let_such_that_is_too_complex, e.tok, "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
+              Error(ErrorId.c_let_such_that_is_too_complex, e.tok,
+                "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'",
+                wr, bv.Name);
             }
           } else {
             var w = CreateIIFE1(0, e.Body.Type, e.Body.tok, "_let_dummy_" + GetUniqueAstNumber(e), wr, wStmts);
             foreach (var bv in e.BoundVars) {
               DeclareLocalVar(IdName(bv), bv.Type, bv.tok, false, ForcePlaceboValue(bv.Type, wr, bv.tok, true), w);
             }
-            TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
+
+            TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0],
+              e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
             EmitReturnExpr(e.Body, e.Body.Type, true, w);
           }
         }
@@ -379,7 +410,8 @@ namespace Microsoft.Dafny.Compilers {
         wr = CaptureFreeVariables(expr, true, out var su, inLetExprBody, wr, ref wStmts);
         var logicalBody = su.Substitute(e.LogicalBody(true));
 
-        Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
+        Contract.Assert(e.Bounds !=
+                        null); // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         var wBody = wr;
@@ -387,11 +419,13 @@ namespace Microsoft.Dafny.Compilers {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
 
-          var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, wStmts, e.Bounds, e.BoundVars, i);
+          var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, wStmts,
+            e.Bounds, e.BoundVars, i);
           wBody = EmitQuantifierExpr(collection, expr is ForallExpr, collectionElementType, bv, wBody);
           var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
-          ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok, new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
+          ConcreteSyntaxTree newWBody = CreateLambda(new List<Type> { collectionElementType }, e.tok,
+            new List<string> { tmpVarName }, Type.Bool, wBody, wStmts, untyped: true);
           wStmts = newWBody.Fork();
           newWBody = MaybeInjectSubtypeConstraintWrtTraits(
             tmpVarName, collectionElementType, bv.Type,
@@ -402,6 +436,7 @@ namespace Microsoft.Dafny.Compilers {
             bv, bv.Type, inLetExprBody, e.tok, newWBody, isReturning: true, elseReturnValue: e is ForallExpr);
           wBody = newWBody;
         }
+
         EmitExpr(logicalBody, inLetExprBody, wBody, wStmts);
 
       } else if (expr is SetComprehension) {
@@ -426,7 +461,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr, ref wStmts);
         e = (SetComprehension)su.Substitute(e);
 
-        Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
+        Contract.Assert(e.Bounds != null); // the resolver would have insisted on finding bounds
         var collectionName = ProtectedFreshId("_coll");
         var setType = e.Type.NormalizeToAncestorType().AsSetType;
         var bwr = CreateIIFE0(setType, e.tok, wr, wStmts);
@@ -436,7 +471,8 @@ namespace Microsoft.Dafny.Compilers {
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         var processedBounds = new HashSet<IVariable>();
-        List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts = Expression.Conjuncts(e.Range).Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
+        List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts = Expression.Conjuncts(e.Range)
+          .Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
         unusedConjuncts.ForEach(entry => entry.frees.IntersectWith(e.BoundVars));
         wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         for (var i = 0; i < n; i++) {
@@ -476,7 +512,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = CaptureFreeVariables(e, true, out var su, inLetExprBody, wr, ref wStmts);
         e = (MapComprehension)su.Substitute(e);
 
-        Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
+        Contract.Assert(e.Bounds != null); // the resolver would have insisted on finding bounds
         var mapType = e.Type.NormalizeToAncestorType().AsMapType;
         var domtypeName = TypeName(mapType.Domain, wr, e.tok);
         var rantypeName = TypeName(mapType.Range, wr, e.tok);
@@ -488,7 +524,8 @@ namespace Microsoft.Dafny.Compilers {
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         var processedBounds = new HashSet<IVariable>();
-        List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts = Expression.Conjuncts(e.Range).Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
+        List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts = Expression.Conjuncts(e.Range)
+          .Select(conj => (conj, ModuleResolver.FreeVariables(conj))).ToList();
         unusedConjuncts.ForEach(entry => entry.frees.IntersectWith(e.BoundVars));
         wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         for (var i = 0; i < n; i++) {
@@ -524,7 +561,8 @@ namespace Microsoft.Dafny.Compilers {
             type = ty
           };
           var _this = new ThisExpr(thisContext);
-          wr = EmitBetaRedex(new List<string>() { IdName(receiver) }, new List<Expression>() { _this }, new List<Type>() { _this.Type }, expr.Type, expr.tok, inLetExprBody, wr, ref wStmts);
+          wr = EmitBetaRedex(new List<string>() { IdName(receiver) }, new List<Expression>() { _this },
+            new List<Type>() { _this.Type }, expr.Type, expr.tok, inLetExprBody, wr, ref wStmts);
         }
 
         wr = CaptureFreeVariables(e, false, out var su, inLetExprBody, wr, ref wStmts);
@@ -532,7 +570,8 @@ namespace Microsoft.Dafny.Compilers {
           su = new Substituter(new IdentifierExpr(e.tok, receiver), su.substMap, su.typeMap);
         }
 
-        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr, wStmts);
+        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Token.NoToken, e.BoundVars.ConvertAll(IdName),
+          e.Body.Type, wr, wStmts);
         wStmts = wr.Fork();
         wr = EmitReturnExpr(wr);
         // May need an upcast or boxing conversion to coerce to the generic arrow result type
@@ -555,9 +594,12 @@ namespace Microsoft.Dafny.Compilers {
         EmitExpr(e.ResolvedExpression, inLetExprBody, wr, wStmts);
 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+        Contract.Assert(false);
+        throw new cce.UnreachableException(); // unexpected expression
       }
-      ConcreteSyntaxTree EmitGuardFragment(List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts, HashSet<IVariable> processedBounds, ConcreteSyntaxTree wr) {
+
+      ConcreteSyntaxTree EmitGuardFragment(List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts,
+        HashSet<IVariable> processedBounds, ConcreteSyntaxTree wr) {
         Expression localGuard = Expression.CreateBoolLiteral(expr.tok, true);
 
         foreach (var entry in unusedConjuncts.ToList().Where(entry => entry.frees.IsSubsetOf(processedBounds))) {
@@ -574,7 +616,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    private void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
       //   if (source.is_Ctor0) {
       //     FormalType f0 = ((Dt_Ctor0)source._D).a0;
@@ -591,32 +633,29 @@ namespace Microsoft.Dafny.Compilers {
 
       string source = ProtectedFreshId("_source");
       ConcreteSyntaxTree w;
-      w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wLambda, wStmts);
+      w = CreateLambda(new List<Type>() { e.Source.Type }, e.tok, new List<string>() { source }, e.Type, wLambda,
+        wStmts);
 
-      EmitMatchLambdaBody(e, wStmts, w, source);
-      // We end with applying the source expression to the delegate we just built
-      EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
-    }
-
-    protected virtual void EmitMatchLambdaBody(MatchExpr match, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree bodyWriter, string source) {
-      if (match.Cases.Count == 0) {
+      if (e.Cases.Count == 0) {
         // the verifier would have proved we never get here; still, we need some code that will compile
-        EmitAbsurd(null, bodyWriter);
+        EmitAbsurd(null, w);
       } else {
         int i = 0;
-        var sourceType = (UserDefinedType)match.Source.Type.NormalizeExpand();
-        foreach (MatchCaseExpr mc in match.Cases) {
-          var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, match.Cases.Count, bodyWriter);
+        var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
+        foreach (MatchCaseExpr mc in e.Cases) {
+          var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
           TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null);
           i++;
         }
       }
-    }
 
+      // We end with applying the source expression to the delegate we just built
+      EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
+    }
+    
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       EmitExpr(match.Flattened, inLetExprBody, wr, wStmts);
     }
-
     protected virtual void TrOptNestedMatchExpr(NestedMatchExpr nestedMatchExpr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
       TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
     }
