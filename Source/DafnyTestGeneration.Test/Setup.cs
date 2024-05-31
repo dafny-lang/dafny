@@ -54,8 +54,7 @@ namespace DafnyTestGeneration.Test {
       return Utils.Parse(reporter, source, resolve, uri, cancellationToken: CancellationToken);
     }
 
-    protected Task<List<TestMethod>> GetTestMethodsForProgram(Program program)
-    {
+    protected Task<List<TestMethod>> GetTestMethodsForProgram(Program program) {
       return TestGenerator.GetTestMethodsForProgram(program).ToListAsync(CancellationToken).AsTask().WaitAsync(CancellationToken);
     }
   }
