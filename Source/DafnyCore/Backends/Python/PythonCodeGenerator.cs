@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.Compilers {
     // Value: Dafny-generated Python module name without python-module-name/outer-module
     // This separation is used to identify nested extern modules,
     //   which currently cannot be used with python-module-name/outer-module.
-    private readonly Dictionary<string, string> Imports =  new Dictionary<string, string>();
+    private readonly Dictionary<string, string> Imports = new Dictionary<string, string>();
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
@@ -142,8 +142,7 @@ namespace Microsoft.Dafny.Compilers {
       if (!(DafnyRuntimeGeneratedModuleNames.Contains(moduleName))) {
         wr.WriteLine($"import {(PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule)} as {DafnyDefaultModule}");
       }
-      foreach (var module in Imports)
-      {
+      foreach (var module in Imports) {
         if (module.Value.Contains(".")) {
           // If module.Value has `.`s in it, it is a nested extern module. (ex. module {:extern "a.b.c"})
           // (Non-extern nested modules with `.`s in it will have their `.`s replaced with `_`,
@@ -165,7 +164,6 @@ namespace Microsoft.Dafny.Compilers {
           if (!module.Value.Equals(module.Key)) {
             throw new NotSupportedException("Nested extern modules cannot be used with python-module-name or outer-module");
           }
-          
           // Since module.Key contains the python-module-name/outer-module prefix,
           // and nested externs currently do not support these features,
           // import the nested extern module directly
