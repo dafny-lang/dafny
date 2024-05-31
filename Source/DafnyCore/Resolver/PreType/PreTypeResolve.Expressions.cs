@@ -452,9 +452,10 @@ namespace Microsoft.Dafny {
                 }
                 break;
               case UnaryOpExpr.Opcode.Assigned:
-            // the argument is allowed to have any type at all
-            expr.PreType = ConstrainResultToBoolFamily(expr.tok, "assigned", "boolean literal used as if it had type {0}");
-            break;default:
+                // the argument is allowed to have any type at all
+                expr.PreType = ConstrainResultToBoolFamily(expr.tok, "assigned", "boolean literal used as if it had type {0}");
+                break;
+              default:
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
             }
 
@@ -721,12 +722,13 @@ namespace Microsoft.Dafny {
             break;
           }
         case DecreasesToExpr decreasesToExpr: {
-          foreach (var e in decreasesToExpr.SubExpressions) {
-            ResolveExpression(e, resolutionContext);
-          }
+            foreach (var e in decreasesToExpr.SubExpressions) {
+              ResolveExpression(e, resolutionContext);
+            }
 
-          decreasesToExpr.PreType = ConstrainResultToBoolFamilyOperator(decreasesToExpr.tok, "decreasesto");
-        }
+            decreasesToExpr.PreType = ConstrainResultToBoolFamilyOperator(decreasesToExpr.tok, "decreasesto");
+            break;
+          }
 
         case NestedMatchExpr matchExpr: {
             var e = matchExpr;
