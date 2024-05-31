@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
+public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
   public readonly bool IsMutable;  // says whether or not the field can ever change values
   public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
@@ -96,9 +96,9 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring, ISymbol {
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual SymbolKind? Kind => SymbolKind.Field;
+  public override SymbolKind? Kind => SymbolKind.Field;
 
-  public string GetDescription(DafnyOptions options) {
+  public override string GetDescription(DafnyOptions options) {
     var prefix = IsMutable ? "var" : "const";
     return $"{prefix} {AstExtensions.GetMemberQualification(this)}{Name}: {Type}";
   }
