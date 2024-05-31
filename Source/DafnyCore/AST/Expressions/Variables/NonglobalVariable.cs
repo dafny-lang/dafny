@@ -138,7 +138,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     IsGhost = true;
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   public SymbolKind? Kind => SymbolKind.Variable;

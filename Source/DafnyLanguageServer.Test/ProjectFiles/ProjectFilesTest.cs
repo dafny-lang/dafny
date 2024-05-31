@@ -42,6 +42,8 @@ library = [""{producerPath}""]".TrimStart();
 
     var diagnostics = await GetLastDiagnostics(projectFile);
     Assert.Single(diagnostics);
+    Directory.Delete(libraryDirectory, true);
+    Directory.Delete(consumerDirectory, true);
   }
 
   /// <summary>
@@ -122,6 +124,7 @@ warn-shadowing = true";
 
     Assert.Single(diagnostics);
     Assert.Equal("Shadowed local-variable name: x", diagnostics[0].Message);
+    Directory.Delete(tempDirectory, true);
   }
 
   [Fact]
@@ -176,6 +179,7 @@ function-syntax = 4";
     var sourceFile = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "source.dfy"));
     var diagnostics2 = await GetLastDiagnostics(sourceFile);
     Assert.Empty(diagnostics2.Where(d => d.Severity == DiagnosticSeverity.Error));
+    Directory.Delete(directory, true);
   }
 
   [Fact]

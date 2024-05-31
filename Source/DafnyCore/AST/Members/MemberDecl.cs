@@ -2,10 +2,11 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class MemberDecl : Declaration {
+public abstract class MemberDecl : Declaration, ISymbol {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
@@ -96,7 +97,8 @@ public abstract class MemberDecl : Declaration {
   public override string SanitizedName =>
     (Name == EnclosingClass.Name ? "_" : "") + base.SanitizedName;
 
-  public override string GetCompileName(DafnyOptions options) => (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
+  public override string GetCompileName(DafnyOptions options) =>
+    (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
 
   public virtual string FullSanitizedName {
     get {

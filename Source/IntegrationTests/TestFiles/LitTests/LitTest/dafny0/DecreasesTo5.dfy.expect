@@ -1,0 +1,2 @@
+DecreasesTo5.dfy(5,16): Error: a `decreases to` expression is allowed only in specification and ghost contexts
+1 resolution/type errors detected in DecreasesTo5.dfy

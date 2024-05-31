@@ -23,7 +23,7 @@ using Location = OmniSharp.Extensions.LanguageServer.Protocol.Models.Location;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate ProjectManager CreateProjectManager(
-  CustomStackSizePoolTaskScheduler scheduler,
+  TaskScheduler scheduler,
   VerificationResultCache verificationCache,
   DafnyProject project);
 
@@ -61,7 +61,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly ILogger<ProjectManager> logger;
 
   private readonly VerificationResultCache cache;
-  private readonly CustomStackSizePoolTaskScheduler scheduler;
+  private readonly TaskScheduler scheduler;
 
   /// <summary>
   /// The version of this project.
@@ -98,7 +98,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     IProjectDatabase projectDatabase,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
-    CustomStackSizePoolTaskScheduler scheduler,
+    TaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
@@ -328,9 +328,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       .OrderByDescending(GetPriorityAttribute)
       .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
       .ThenBy(TopToBottomPriority).ToList();
-    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationToken.val))}");
 
-    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
     if (GutterIconTesting) {
       foreach (var canVerify in orderedVerifiableLocations) {
         await compilation.VerifyLocation(canVerify, true);
@@ -353,7 +353,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
           intervalTree.Add(
             canVerify.RangeToken.StartToken.GetLspPosition(),
             canVerify.RangeToken.EndToken.GetLspPosition(true),
-            canVerify.NameToken.GetLspPosition());
+            canVerify.NavigationToken.GetLspPosition());
         }
       }
       return intervalTree;

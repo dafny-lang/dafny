@@ -316,7 +316,7 @@ public class Compilation : IDisposable {
     ResolutionResult resolution, Func<IVerificationTask, bool> taskFilter, int? randomSeed) {
     try {
 
-      var ticket = verificationTickets.Dequeue(CancellationToken.None);
+      var ticket = verificationTickets.Dequeue();
       var containingModule = canVerify.ContainingModule;
 
       IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>> tasksForModule;
@@ -343,7 +343,7 @@ public class Compilation : IDisposable {
       var updated = false;
       var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
-          tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify.NavigationToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
 
         updated = true;
@@ -475,7 +475,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, task.ScopeToken,
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
@@ -534,8 +534,19 @@ public class Compilation : IDisposable {
 
     if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
       var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
+      string? msg = null;
       if (expr != null) {
-        errorInformation.AddAuxInfo(errorInformation.Tok, expr.ToString(), ErrorReporterExtensions.AssertedExprCategory);
+        msg = expr.ToString();
+      }
+
+      var extra = dafnyProofObligationDesc.GetExtraExplanation();
+      if (extra != null) {
+        msg = (msg ?? "") + extra;
+      }
+
+      if (msg != null) {
+        errorInformation.AddAuxInfo(errorInformation.Tok, msg,
+          ErrorReporterExtensions.AssertedExprCategory);
       }
     }
   }

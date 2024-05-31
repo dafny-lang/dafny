@@ -832,6 +832,26 @@ namespace Microsoft.Dafny {
                   // both the $IsAllocBox and $IsAlloc forms, because the axioms that connects these two is triggered
                   // by $IsAllocBox.
                   return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
+                case UnaryOpExpr.ResolvedOpcode.Assigned:
+                  var ns = e.E as NameSegment;
+                  Contract.Assert(ns != null);
+                  string name = null;
+                  switch (ns.Resolved) {
+                    case IdentifierExpr ie:
+                      name = ie.Var.UniqueName;
+                      break;
+                    case MemberSelectExpr mse:
+                      if (BoogieGenerator.inBodyInitContext && Expression.AsThis(mse.Obj) != null) {
+                        name = BoogieGenerator.SurrogateName(mse.Member as Field);
+                      }
+                      break;
+                  }
+
+                  if (name == null) {
+                    return Expr.True;
+                  }
+                  BoogieGenerator.definiteAssignmentTrackers.TryGetValue(name, out var defass);
+                  return defass;
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
               }
@@ -1485,6 +1505,32 @@ namespace Microsoft.Dafny {
               UnboxingCastExpr e = castExpr;
               return BoogieGenerator.CondApplyUnbox(GetToken(e), TrExpr(e.E), e.FromType, e.ToType);
             }
+          case DecreasesToExpr decreasesToExpr:
+            var oldArray = decreasesToExpr.OldExpressions.ToArray();
+            var newArray = decreasesToExpr.NewExpressions.ToArray();
+            List<Expr> newExprs = new();
+            List<Expr> oldExprs = new();
+            List<Expression> newExprsDafny = new();
+            List<Expression> oldExprsDafny = new();
+            int N = Math.Min(oldArray.Length, newArray.Length);
+            for (int i = 0; i < N; i++) {
+              if (!CompatibleDecreasesTypes(oldArray[i].Type, newArray[i].Type)) {
+                N = i;
+                break;
+              }
+              oldExprsDafny.Add(oldArray[i]);
+              oldExprs.Add(TrExpr(oldArray[i]));
+              newExprsDafny.Add(newArray[i]);
+              newExprs.Add(TrExpr(newArray[i]));
+            }
+
+            bool endsWithWinningTopComparison = N == oldArray.Length && N < newArray.Length;
+            var allowNoChange = decreasesToExpr.AllowNoChange || endsWithWinningTopComparison;
+            List<IToken> toks = oldExprs.Zip(newExprs, (_, _) => (IToken)decreasesToExpr.RangeToken).ToList();
+            var decreasesExpr = BoogieGenerator.DecreasesCheck(toks, null,
+              newExprsDafny, oldExprsDafny, newExprs, oldExprs, null,
+              null, allowNoChange, false);
+            return decreasesExpr;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
@@ -2407,6 +2453,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         } else if (expr is UnboxingCastExpr) {
           var e = (UnboxingCastExpr)expr;
           return CanCallAssumption(e.E);
+        } else if (expr is DecreasesToExpr decreasesToExpr) {
+          var oldCanCall = CanCallAssumption(decreasesToExpr.OldExpressions.ToList());
+          var newCanCall = CanCallAssumption(decreasesToExpr.NewExpressions.ToList());
+          return BplAnd(oldCanCall, newCanCall);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }

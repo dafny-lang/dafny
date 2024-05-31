@@ -12,9 +12,9 @@ namespace Microsoft.Dafny {
   /// particular, the substituter does not copy parts of an expression that are used only for well-formedness checks.
   /// </summary>
   public class Substituter {
-    protected readonly Expression receiverReplacement;
-    protected readonly Dictionary<IVariable, Expression> substMap;
-    protected readonly Dictionary<TypeParameter, Type> typeMap;
+    protected Expression receiverReplacement { get; }
+    public Dictionary<IVariable, Expression> substMap { get; }
+    public Dictionary<TypeParameter, Type> typeMap { get; }
     protected readonly Label oldHeapLabel;
     [CanBeNull] protected readonly SystemModuleManager SystemModuleManager; // if non-null, substitutions into FunctionCallExpr's will be wrapped
 
@@ -424,6 +424,13 @@ namespace Microsoft.Dafny {
         if (anythingChanged) {
           newExpr = new BoogieGenerator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
+
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        List<Expression> oldExpressionsSubst = SubstituteExprList(decreasesToExpr.OldExpressions.ToList());
+        List<Expression> newExpressionsSubst = SubstituteExprList(decreasesToExpr.NewExpressions.ToList());
+        newExpr = new DecreasesToExpr(decreasesToExpr.tok, oldExpressionsSubst, newExpressionsSubst, decreasesToExpr.AllowNoChange) {
+          Type = decreasesToExpr.Type
+        };
 
       } else {
         Contract.Assume(false); // unexpected Expression
