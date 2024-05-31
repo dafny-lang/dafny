@@ -97,7 +97,8 @@ public abstract class MemberDecl : Declaration, ISymbol {
   public override string SanitizedName =>
     (Name == EnclosingClass.Name ? "_" : "") + base.SanitizedName;
 
-  public override string GetCompileName(DafnyOptions options) => (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
+  public override string GetCompileName(DafnyOptions options) =>
+    (Name == EnclosingClass.Name ? "_" : "") + base.GetCompileName(options);
 
   public virtual string FullSanitizedName {
     get {

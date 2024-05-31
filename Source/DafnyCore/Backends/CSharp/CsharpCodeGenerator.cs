@@ -869,7 +869,7 @@ namespace Microsoft.Dafny.Compilers {
           if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost) {
-              var DtorM = arg.HasName ? "_" + arg.CompileName : FieldName(arg, index);
+              var DtorM = arg.HasName ? InternalFieldPrefix + arg.CompileName : FieldName(arg, index);
               //   TN dtor_QDtorM { get; }
               interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
@@ -947,9 +947,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public override bool NeedsCustomReceiver(MemberDecl member) {
-      //Dafny and C# have different ideas about variance, so not every datatype member can be in the interface.
-      if (!member.IsStatic && member.EnclosingClass is DatatypeDecl d) {
+    public override bool NeedsCustomReceiverInDatatype(MemberDecl member) {
+      Contract.Requires(!member.IsStatic && member.EnclosingClass is DatatypeDecl);
+      if (member.EnclosingClass is DatatypeDecl d) {
         foreach (var tp in d.TypeArgs) {
           bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
                                        || ty.TypeArgs.Exists(InvalidType);
@@ -975,9 +975,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      return base.NeedsCustomReceiver(member);
+      return base.NeedsCustomReceiverInDatatype(member);
     }
-
 
     private void CompileDatatypeConstructors(DatatypeDecl dt, ConcreteSyntaxTree wrx) {
       Contract.Requires(dt != null);
@@ -1181,7 +1180,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(formal != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return IdProtect("_" + (formal.HasName ? formal.CompileName : "a" + i));
+      return IdProtect(InternalFieldPrefix + (formal.HasName ? formal.CompileName : "a" + i));
     }
 
     /// <summary>
@@ -2634,7 +2633,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (member is Function fn) {
         var wr = new ConcreteSyntaxTree();
-        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)), member.tok, wr);
+        EmitNameAndActualTypeArgs(IdName(member), TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, member, false)),
+        member.tok, null, false, wr);
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $".{nameAndTypeArgs}");
@@ -2676,7 +2676,7 @@ namespace Microsoft.Dafny.Compilers {
               w.Write(")");
             }
           });
-        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+        } else if (NeedsCustomReceiverNotTrait(member)) {
           // instance const in a newtype or belongs to a datatype
           Contract.Assert(typeArgs.Count == 0 || member.EnclosingClass is DatatypeDecl);
           return SimpleLvalue(w => {
@@ -2685,7 +2685,7 @@ namespace Microsoft.Dafny.Compilers {
             w.Write(")");
           });
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
-          return SuffixLvalue(obj, $"._{member.GetCompileName(Options)}");
+          return SuffixLvalue(obj, $".{InternalFieldPrefix}{member.GetCompileName(Options)}");
         } else {
           return SimpleLvalue(w => {
             obj(w);

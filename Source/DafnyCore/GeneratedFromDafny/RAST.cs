@@ -212,14 +212,14 @@ namespace RAST {
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         var d = this;
-        if (d is Mod_Mod) { return ((Mod_Mod)d)._name; }
-        return ((Mod_ExternMod)d)._name;
+        if (d is Mod_Mod) { return ((Mod_Mod)d)._i_name; }
+        return ((Mod_ExternMod)d)._i_name;
       }
     }
     public Dafny.ISequence<RAST._IModDecl> dtor_body {
       get {
         var d = this;
-        return ((Mod_Mod)d)._body;
+        return ((Mod_Mod)d)._i_body;
       }
     }
     public abstract _IMod DowncastClone();
@@ -241,60 +241,60 @@ namespace RAST {
     }
   }
   public class Mod_Mod : Mod {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._IModDecl> _body;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<RAST._IModDecl> _i_body;
     public Mod_Mod(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IModDecl> body) : base() {
-      this._name = name;
-      this._body = body;
+      this._i_name = name;
+      this._i_body = body;
     }
     public override _IMod DowncastClone() {
       if (this is _IMod dt) { return dt; }
-      return new Mod_Mod(_name, _body);
+      return new Mod_Mod(_i_name, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Mod_Mod;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Mod.Mod";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._body);
+      s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
   }
   public class Mod_ExternMod : Mod {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public Mod_ExternMod(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
+      this._i_name = name;
     }
     public override _IMod DowncastClone() {
       if (this is _IMod dt) { return dt; }
-      return new Mod_ExternMod(_name);
+      return new Mod_ExternMod(_i_name);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Mod_ExternMod;
-      return oth != null && object.Equals(this._name, oth._name);
+      return oth != null && object.Equals(this._i_name, oth._i_name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Mod.ExternMod";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ")";
       return s;
     }
@@ -354,37 +354,37 @@ namespace RAST {
     public Dafny.ISequence<Dafny.Rune> dtor_body {
       get {
         var d = this;
-        return ((ModDecl_RawDecl)d)._body;
+        return ((ModDecl_RawDecl)d)._i_body;
       }
     }
     public RAST._IMod dtor_mod {
       get {
         var d = this;
-        return ((ModDecl_ModDecl)d)._mod;
+        return ((ModDecl_ModDecl)d)._i_mod;
       }
     }
     public RAST._IStruct dtor_struct {
       get {
         var d = this;
-        return ((ModDecl_StructDecl)d)._struct;
+        return ((ModDecl_StructDecl)d)._i_struct;
       }
     }
     public RAST._IEnum dtor_enum {
       get {
         var d = this;
-        return ((ModDecl_EnumDecl)d)._enum;
+        return ((ModDecl_EnumDecl)d)._i_enum;
       }
     }
     public RAST._IImpl dtor_impl {
       get {
         var d = this;
-        return ((ModDecl_ImplDecl)d)._impl;
+        return ((ModDecl_ImplDecl)d)._i_impl;
       }
     }
     public RAST._ITrait dtor_tr {
       get {
         var d = this;
-        return ((ModDecl_TraitDecl)d)._tr;
+        return ((ModDecl_TraitDecl)d)._i_tr;
       }
     }
     public abstract _IModDecl DowncastClone();
@@ -405,163 +405,163 @@ namespace RAST {
     }
   }
   public class ModDecl_RawDecl : ModDecl {
-    public readonly Dafny.ISequence<Dafny.Rune> _body;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_body;
     public ModDecl_RawDecl(Dafny.ISequence<Dafny.Rune> body) : base() {
-      this._body = body;
+      this._i_body = body;
     }
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
-      return new ModDecl_RawDecl(_body);
+      return new ModDecl_RawDecl(_i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ModDecl_RawDecl;
-      return oth != null && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ModDecl.RawDecl";
       s += "(";
-      s += this._body.ToVerbatimString(true);
+      s += this._i_body.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class ModDecl_ModDecl : ModDecl {
-    public readonly RAST._IMod _mod;
+    public readonly RAST._IMod _i_mod;
     public ModDecl_ModDecl(RAST._IMod mod) : base() {
-      this._mod = mod;
+      this._i_mod = mod;
     }
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
-      return new ModDecl_ModDecl(_mod);
+      return new ModDecl_ModDecl(_i_mod);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ModDecl_ModDecl;
-      return oth != null && object.Equals(this._mod, oth._mod);
+      return oth != null && object.Equals(this._i_mod, oth._i_mod);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._mod));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_mod));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ModDecl.ModDecl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._mod);
+      s += Dafny.Helpers.ToString(this._i_mod);
       s += ")";
       return s;
     }
   }
   public class ModDecl_StructDecl : ModDecl {
-    public readonly RAST._IStruct _struct;
+    public readonly RAST._IStruct _i_struct;
     public ModDecl_StructDecl(RAST._IStruct @struct) : base() {
-      this._struct = @struct;
+      this._i_struct = @struct;
     }
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
-      return new ModDecl_StructDecl(_struct);
+      return new ModDecl_StructDecl(_i_struct);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ModDecl_StructDecl;
-      return oth != null && object.Equals(this._struct, oth._struct);
+      return oth != null && object.Equals(this._i_struct, oth._i_struct);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._struct));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_struct));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ModDecl.StructDecl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._struct);
+      s += Dafny.Helpers.ToString(this._i_struct);
       s += ")";
       return s;
     }
   }
   public class ModDecl_EnumDecl : ModDecl {
-    public readonly RAST._IEnum _enum;
+    public readonly RAST._IEnum _i_enum;
     public ModDecl_EnumDecl(RAST._IEnum @enum) : base() {
-      this._enum = @enum;
+      this._i_enum = @enum;
     }
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
-      return new ModDecl_EnumDecl(_enum);
+      return new ModDecl_EnumDecl(_i_enum);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ModDecl_EnumDecl;
-      return oth != null && object.Equals(this._enum, oth._enum);
+      return oth != null && object.Equals(this._i_enum, oth._i_enum);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._enum));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_enum));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ModDecl.EnumDecl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._enum);
+      s += Dafny.Helpers.ToString(this._i_enum);
       s += ")";
       return s;
     }
   }
   public class ModDecl_ImplDecl : ModDecl {
-    public readonly RAST._IImpl _impl;
+    public readonly RAST._IImpl _i_impl;
     public ModDecl_ImplDecl(RAST._IImpl impl) : base() {
-      this._impl = impl;
+      this._i_impl = impl;
     }
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
-      return new ModDecl_ImplDecl(_impl);
+      return new ModDecl_ImplDecl(_i_impl);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ModDecl_ImplDecl;
-      return oth != null && object.Equals(this._impl, oth._impl);
+      return oth != null && object.Equals(this._i_impl, oth._i_impl);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._impl));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_impl));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ModDecl.ImplDecl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._impl);
+      s += Dafny.Helpers.ToString(this._i_impl);
       s += ")";
       return s;
     }
   }
   public class ModDecl_TraitDecl : ModDecl {
-    public readonly RAST._ITrait _tr;
+    public readonly RAST._ITrait _i_tr;
     public ModDecl_TraitDecl(RAST._ITrait tr) : base() {
-      this._tr = tr;
+      this._i_tr = tr;
     }
     public override _IModDecl DowncastClone() {
       if (this is _IModDecl dt) { return dt; }
-      return new ModDecl_TraitDecl(_tr);
+      return new ModDecl_TraitDecl(_i_tr);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ModDecl_TraitDecl;
-      return oth != null && object.Equals(this._tr, oth._tr);
+      return oth != null && object.Equals(this._i_tr, oth._i_tr);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tr));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tr));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ModDecl.TraitDecl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._tr);
+      s += Dafny.Helpers.ToString(this._i_tr);
       s += ")";
       return s;
     }
@@ -572,27 +572,27 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> dtor_content { get; }
   }
   public class Attribute : _IAttribute {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_content;
     public Attribute(Dafny.ISequence<Dafny.Rune> content) {
-      this._content = content;
+      this._i_content = content;
     }
     public static Dafny.ISequence<Dafny.Rune> DowncastClone(Dafny.ISequence<Dafny.Rune> _this) {
       return _this;
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Attribute;
-      return oth != null && object.Equals(this._content, oth._content);
+      return oth != null && object.Equals(this._i_content, oth._i_content);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._content));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_content));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Attribute.RawAttribute";
       s += "(";
-      s += this._content.ToVerbatimString(true);
+      s += this._i_content.ToVerbatimString(true);
       s += ")";
       return s;
     }
@@ -613,7 +613,7 @@ namespace RAST {
     public bool is_RawAttribute { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
-        return this._content;
+        return this._i_content;
       }
     }
     public static Dafny.ISequence<Dafny.Rune> ToStringMultiple(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> ind)
@@ -634,43 +634,43 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Struct : _IStruct {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly RAST._IFormals _fields;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<RAST._ITypeParam> _i_typeParams;
+    public readonly RAST._IFormals _i_fields;
     public Struct(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IFormals fields) {
-      this._attributes = attributes;
-      this._name = name;
-      this._typeParams = typeParams;
-      this._fields = fields;
+      this._i_attributes = attributes;
+      this._i_name = name;
+      this._i_typeParams = typeParams;
+      this._i_fields = fields;
     }
     public _IStruct DowncastClone() {
       if (this is _IStruct dt) { return dt; }
-      return new Struct(_attributes, _name, _typeParams, _fields);
+      return new Struct(_i_attributes, _i_name, _i_typeParams, _i_fields);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Struct;
-      return oth != null && object.Equals(this._attributes, oth._attributes) && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._fields, oth._fields);
+      return oth != null && object.Equals(this._i_attributes, oth._i_attributes) && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_fields, oth._i_fields);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fields));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Struct.Struct";
       s += "(";
-      s += Dafny.Helpers.ToString(this._attributes);
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ", ";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._typeParams);
+      s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._fields);
+      s += Dafny.Helpers.ToString(this._i_fields);
       s += ")";
       return s;
     }
@@ -691,22 +691,22 @@ namespace RAST {
     public bool is_Struct { get { return true; } }
     public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes {
       get {
-        return this._attributes;
+        return this._i_attributes;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
-        return this._name;
+        return this._i_name;
       }
     }
     public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
       get {
-        return this._typeParams;
+        return this._i_typeParams;
       }
     }
     public RAST._IFormals dtor_fields {
       get {
-        return this._fields;
+        return this._i_fields;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -722,33 +722,33 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class NamelessFormal : _INamelessFormal {
-    public readonly RAST._IVisibility _visibility;
-    public readonly RAST._IType _tpe;
+    public readonly RAST._IVisibility _i_visibility;
+    public readonly RAST._IType _i_tpe;
     public NamelessFormal(RAST._IVisibility visibility, RAST._IType tpe) {
-      this._visibility = visibility;
-      this._tpe = tpe;
+      this._i_visibility = visibility;
+      this._i_tpe = tpe;
     }
     public _INamelessFormal DowncastClone() {
       if (this is _INamelessFormal dt) { return dt; }
-      return new NamelessFormal(_visibility, _tpe);
+      return new NamelessFormal(_i_visibility, _i_tpe);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.NamelessFormal;
-      return oth != null && object.Equals(this._visibility, oth._visibility) && object.Equals(this._tpe, oth._tpe);
+      return oth != null && object.Equals(this._i_visibility, oth._i_visibility) && object.Equals(this._i_tpe, oth._i_tpe);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._visibility));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_visibility));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.NamelessFormal.NamelessFormal";
       s += "(";
-      s += Dafny.Helpers.ToString(this._visibility);
+      s += Dafny.Helpers.ToString(this._i_visibility);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ")";
       return s;
     }
@@ -769,12 +769,12 @@ namespace RAST {
     public bool is_NamelessFormal { get { return true; } }
     public RAST._IVisibility dtor_visibility {
       get {
-        return this._visibility;
+        return this._i_visibility;
       }
     }
     public RAST._IType dtor_tpe {
       get {
-        return this._tpe;
+        return this._i_tpe;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -812,13 +812,13 @@ namespace RAST {
     public Dafny.ISequence<RAST._IFormal> dtor_fields {
       get {
         var d = this;
-        return ((Formals_NamedFormals)d)._fields;
+        return ((Formals_NamedFormals)d)._i_fields;
       }
     }
     public Dafny.ISequence<RAST._INamelessFormal> dtor_types {
       get {
         var d = this;
-        return ((Formals_NamelessFormals)d)._types;
+        return ((Formals_NamelessFormals)d)._i_types;
       }
     }
     public abstract _IFormals DowncastClone();
@@ -841,55 +841,55 @@ namespace RAST {
     }
   }
   public class Formals_NamedFormals : Formals {
-    public readonly Dafny.ISequence<RAST._IFormal> _fields;
+    public readonly Dafny.ISequence<RAST._IFormal> _i_fields;
     public Formals_NamedFormals(Dafny.ISequence<RAST._IFormal> fields) : base() {
-      this._fields = fields;
+      this._i_fields = fields;
     }
     public override _IFormals DowncastClone() {
       if (this is _IFormals dt) { return dt; }
-      return new Formals_NamedFormals(_fields);
+      return new Formals_NamedFormals(_i_fields);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Formals_NamedFormals;
-      return oth != null && object.Equals(this._fields, oth._fields);
+      return oth != null && object.Equals(this._i_fields, oth._i_fields);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fields));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Formals.NamedFormals";
       s += "(";
-      s += Dafny.Helpers.ToString(this._fields);
+      s += Dafny.Helpers.ToString(this._i_fields);
       s += ")";
       return s;
     }
   }
   public class Formals_NamelessFormals : Formals {
-    public readonly Dafny.ISequence<RAST._INamelessFormal> _types;
+    public readonly Dafny.ISequence<RAST._INamelessFormal> _i_types;
     public Formals_NamelessFormals(Dafny.ISequence<RAST._INamelessFormal> types) : base() {
-      this._types = types;
+      this._i_types = types;
     }
     public override _IFormals DowncastClone() {
       if (this is _IFormals dt) { return dt; }
-      return new Formals_NamelessFormals(_types);
+      return new Formals_NamelessFormals(_i_types);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Formals_NamelessFormals;
-      return oth != null && object.Equals(this._types, oth._types);
+      return oth != null && object.Equals(this._i_types, oth._i_types);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._types));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_types));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Formals.NamelessFormals";
       s += "(";
-      s += Dafny.Helpers.ToString(this._types);
+      s += Dafny.Helpers.ToString(this._i_types);
       s += ")";
       return s;
     }
@@ -903,33 +903,33 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine);
   }
   public class EnumCase : _IEnumCase {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IFormals _fields;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly RAST._IFormals _i_fields;
     public EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFormals fields) {
-      this._name = name;
-      this._fields = fields;
+      this._i_name = name;
+      this._i_fields = fields;
     }
     public _IEnumCase DowncastClone() {
       if (this is _IEnumCase dt) { return dt; }
-      return new EnumCase(_name, _fields);
+      return new EnumCase(_i_name, _i_fields);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.EnumCase;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._fields, oth._fields);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_fields, oth._i_fields);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fields));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fields));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.EnumCase.EnumCase";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._fields);
+      s += Dafny.Helpers.ToString(this._i_fields);
       s += ")";
       return s;
     }
@@ -950,12 +950,12 @@ namespace RAST {
     public bool is_EnumCase { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
-        return this._name;
+        return this._i_name;
       }
     }
     public RAST._IFormals dtor_fields {
       get {
-        return this._fields;
+        return this._i_fields;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine)
@@ -974,43 +974,43 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Enum : _IEnum {
-    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly Dafny.ISequence<RAST._IEnumCase> _variants;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _i_attributes;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<RAST._ITypeParam> _i_typeParams;
+    public readonly Dafny.ISequence<RAST._IEnumCase> _i_variants;
     public Enum(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
-      this._attributes = attributes;
-      this._name = name;
-      this._typeParams = typeParams;
-      this._variants = variants;
+      this._i_attributes = attributes;
+      this._i_name = name;
+      this._i_typeParams = typeParams;
+      this._i_variants = variants;
     }
     public _IEnum DowncastClone() {
       if (this is _IEnum dt) { return dt; }
-      return new Enum(_attributes, _name, _typeParams, _variants);
+      return new Enum(_i_attributes, _i_name, _i_typeParams, _i_variants);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Enum;
-      return oth != null && object.Equals(this._attributes, oth._attributes) && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._variants, oth._variants);
+      return oth != null && object.Equals(this._i_attributes, oth._i_attributes) && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_variants, oth._i_variants);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variants));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_attributes));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_variants));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Enum.Enum";
       s += "(";
-      s += Dafny.Helpers.ToString(this._attributes);
+      s += Dafny.Helpers.ToString(this._i_attributes);
       s += ", ";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._typeParams);
+      s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._variants);
+      s += Dafny.Helpers.ToString(this._i_variants);
       s += ")";
       return s;
     }
@@ -1031,22 +1031,22 @@ namespace RAST {
     public bool is_Enum { get { return true; } }
     public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes {
       get {
-        return this._attributes;
+        return this._i_attributes;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
-        return this._name;
+        return this._i_name;
       }
     }
     public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
       get {
-        return this._typeParams;
+        return this._i_typeParams;
       }
     }
     public Dafny.ISequence<RAST._IEnumCase> dtor_variants {
       get {
-        return this._variants;
+        return this._i_variants;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -1065,33 +1065,33 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class TypeParam : _ITypeParam {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
-    public readonly Dafny.ISequence<RAST._IType> _constraints;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_content;
+    public readonly Dafny.ISequence<RAST._IType> _i_constraints;
     public TypeParam(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
-      this._content = content;
-      this._constraints = constraints;
+      this._i_content = content;
+      this._i_constraints = constraints;
     }
     public _ITypeParam DowncastClone() {
       if (this is _ITypeParam dt) { return dt; }
-      return new TypeParam(_content, _constraints);
+      return new TypeParam(_i_content, _i_constraints);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.TypeParam;
-      return oth != null && object.Equals(this._content, oth._content) && object.Equals(this._constraints, oth._constraints);
+      return oth != null && object.Equals(this._i_content, oth._i_content) && object.Equals(this._i_constraints, oth._i_constraints);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._content));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._constraints));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_content));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_constraints));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.TypeParam.RawTypeParam";
       s += "(";
-      s += this._content.ToVerbatimString(true);
+      s += this._i_content.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._constraints);
+      s += Dafny.Helpers.ToString(this._i_constraints);
       s += ")";
       return s;
     }
@@ -1112,12 +1112,12 @@ namespace RAST {
     public bool is_RawTypeParam { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
-        return this._content;
+        return this._i_content;
       }
     }
     public Dafny.ISequence<RAST._IType> dtor_constraints {
       get {
-        return this._constraints;
+        return this._i_constraints;
       }
     }
     public static Dafny.ISequence<Dafny.Rune> ToStringMultiple(Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<Dafny.Rune> ind)
@@ -1290,55 +1290,55 @@ namespace RAST {
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         var d = this;
-        if (d is Type_TIdentifier) { return ((Type_TIdentifier)d)._name; }
-        return ((Type_TMemberSelect)d)._name;
+        if (d is Type_TIdentifier) { return ((Type_TIdentifier)d)._i_name; }
+        return ((Type_TMemberSelect)d)._i_name;
       }
     }
     public RAST._IType dtor_base {
       get {
         var d = this;
-        return ((Type_TMemberSelect)d)._base;
+        return ((Type_TMemberSelect)d)._i_base;
       }
     }
     public RAST._IType dtor_baseName {
       get {
         var d = this;
-        return ((Type_TypeApp)d)._baseName;
+        return ((Type_TypeApp)d)._i_baseName;
       }
     }
     public Dafny.ISequence<RAST._IType> dtor_arguments {
       get {
         var d = this;
-        if (d is Type_TypeApp) { return ((Type_TypeApp)d)._arguments; }
-        if (d is Type_TupleType) { return ((Type_TupleType)d)._arguments; }
-        return ((Type_FnType)d)._arguments;
+        if (d is Type_TypeApp) { return ((Type_TypeApp)d)._i_arguments; }
+        if (d is Type_TupleType) { return ((Type_TupleType)d)._i_arguments; }
+        return ((Type_FnType)d)._i_arguments;
       }
     }
     public RAST._IType dtor_underlying {
       get {
         var d = this;
-        if (d is Type_Borrowed) { return ((Type_Borrowed)d)._underlying; }
-        if (d is Type_BorrowedMut) { return ((Type_BorrowedMut)d)._underlying; }
-        if (d is Type_ImplType) { return ((Type_ImplType)d)._underlying; }
-        return ((Type_DynType)d)._underlying;
+        if (d is Type_Borrowed) { return ((Type_Borrowed)d)._i_underlying; }
+        if (d is Type_BorrowedMut) { return ((Type_BorrowedMut)d)._i_underlying; }
+        if (d is Type_ImplType) { return ((Type_ImplType)d)._i_underlying; }
+        return ((Type_DynType)d)._i_underlying;
       }
     }
     public RAST._IType dtor_returnType {
       get {
         var d = this;
-        return ((Type_FnType)d)._returnType;
+        return ((Type_FnType)d)._i_returnType;
       }
     }
     public RAST._IType dtor_left {
       get {
         var d = this;
-        return ((Type_IntersectionType)d)._left;
+        return ((Type_IntersectionType)d)._i_left;
       }
     }
     public RAST._IType dtor_right {
       get {
         var d = this;
-        return ((Type_IntersectionType)d)._right;
+        return ((Type_IntersectionType)d)._i_right;
       }
     }
     public abstract _IType DowncastClone();
@@ -1665,291 +1665,291 @@ namespace RAST {
     }
   }
   public class Type_TIdentifier : Type {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public Type_TIdentifier(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
+      this._i_name = name;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_TIdentifier(_name);
+      return new Type_TIdentifier(_i_name);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_TIdentifier;
-      return oth != null && object.Equals(this._name, oth._name);
+      return oth != null && object.Equals(this._i_name, oth._i_name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 11;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.TIdentifier";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class Type_TMemberSelect : Type {
-    public readonly RAST._IType _base;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly RAST._IType _i_base;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public Type_TMemberSelect(RAST._IType @base, Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._base = @base;
-      this._name = name;
+      this._i_base = @base;
+      this._i_name = name;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_TMemberSelect(_base, _name);
+      return new Type_TMemberSelect(_i_base, _i_name);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_TMemberSelect;
-      return oth != null && object.Equals(this._base, oth._base) && object.Equals(this._name, oth._name);
+      return oth != null && object.Equals(this._i_base, oth._i_base) && object.Equals(this._i_name, oth._i_name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 12;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._base));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_base));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.TMemberSelect";
       s += "(";
-      s += Dafny.Helpers.ToString(this._base);
+      s += Dafny.Helpers.ToString(this._i_base);
       s += ", ";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class Type_TypeApp : Type {
-    public readonly RAST._IType _baseName;
-    public readonly Dafny.ISequence<RAST._IType> _arguments;
+    public readonly RAST._IType _i_baseName;
+    public readonly Dafny.ISequence<RAST._IType> _i_arguments;
     public Type_TypeApp(RAST._IType baseName, Dafny.ISequence<RAST._IType> arguments) : base() {
-      this._baseName = baseName;
-      this._arguments = arguments;
+      this._i_baseName = baseName;
+      this._i_arguments = arguments;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_TypeApp(_baseName, _arguments);
+      return new Type_TypeApp(_i_baseName, _i_arguments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_TypeApp;
-      return oth != null && object.Equals(this._baseName, oth._baseName) && object.Equals(this._arguments, oth._arguments);
+      return oth != null && object.Equals(this._i_baseName, oth._i_baseName) && object.Equals(this._i_arguments, oth._i_arguments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._baseName));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_baseName));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_arguments));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.TypeApp";
       s += "(";
-      s += Dafny.Helpers.ToString(this._baseName);
+      s += Dafny.Helpers.ToString(this._i_baseName);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._arguments);
+      s += Dafny.Helpers.ToString(this._i_arguments);
       s += ")";
       return s;
     }
   }
   public class Type_Borrowed : Type {
-    public readonly RAST._IType _underlying;
+    public readonly RAST._IType _i_underlying;
     public Type_Borrowed(RAST._IType underlying) : base() {
-      this._underlying = underlying;
+      this._i_underlying = underlying;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_Borrowed(_underlying);
+      return new Type_Borrowed(_i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_Borrowed;
-      return oth != null && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 14;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.Borrowed";
       s += "(";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Type_BorrowedMut : Type {
-    public readonly RAST._IType _underlying;
+    public readonly RAST._IType _i_underlying;
     public Type_BorrowedMut(RAST._IType underlying) : base() {
-      this._underlying = underlying;
+      this._i_underlying = underlying;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_BorrowedMut(_underlying);
+      return new Type_BorrowedMut(_i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_BorrowedMut;
-      return oth != null && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 15;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.BorrowedMut";
       s += "(";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Type_ImplType : Type {
-    public readonly RAST._IType _underlying;
+    public readonly RAST._IType _i_underlying;
     public Type_ImplType(RAST._IType underlying) : base() {
-      this._underlying = underlying;
+      this._i_underlying = underlying;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_ImplType(_underlying);
+      return new Type_ImplType(_i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_ImplType;
-      return oth != null && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 16;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.ImplType";
       s += "(";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Type_DynType : Type {
-    public readonly RAST._IType _underlying;
+    public readonly RAST._IType _i_underlying;
     public Type_DynType(RAST._IType underlying) : base() {
-      this._underlying = underlying;
+      this._i_underlying = underlying;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_DynType(_underlying);
+      return new Type_DynType(_i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_DynType;
-      return oth != null && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 17;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.DynType";
       s += "(";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Type_TupleType : Type {
-    public readonly Dafny.ISequence<RAST._IType> _arguments;
+    public readonly Dafny.ISequence<RAST._IType> _i_arguments;
     public Type_TupleType(Dafny.ISequence<RAST._IType> arguments) : base() {
-      this._arguments = arguments;
+      this._i_arguments = arguments;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_TupleType(_arguments);
+      return new Type_TupleType(_i_arguments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_TupleType;
-      return oth != null && object.Equals(this._arguments, oth._arguments);
+      return oth != null && object.Equals(this._i_arguments, oth._i_arguments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 18;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_arguments));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.TupleType";
       s += "(";
-      s += Dafny.Helpers.ToString(this._arguments);
+      s += Dafny.Helpers.ToString(this._i_arguments);
       s += ")";
       return s;
     }
   }
   public class Type_FnType : Type {
-    public readonly Dafny.ISequence<RAST._IType> _arguments;
-    public readonly RAST._IType _returnType;
+    public readonly Dafny.ISequence<RAST._IType> _i_arguments;
+    public readonly RAST._IType _i_returnType;
     public Type_FnType(Dafny.ISequence<RAST._IType> arguments, RAST._IType returnType) : base() {
-      this._arguments = arguments;
-      this._returnType = returnType;
+      this._i_arguments = arguments;
+      this._i_returnType = returnType;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_FnType(_arguments, _returnType);
+      return new Type_FnType(_i_arguments, _i_returnType);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_FnType;
-      return oth != null && object.Equals(this._arguments, oth._arguments) && object.Equals(this._returnType, oth._returnType);
+      return oth != null && object.Equals(this._i_arguments, oth._i_arguments) && object.Equals(this._i_returnType, oth._i_returnType);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 19;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._returnType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_arguments));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_returnType));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.FnType";
       s += "(";
-      s += Dafny.Helpers.ToString(this._arguments);
+      s += Dafny.Helpers.ToString(this._i_arguments);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._returnType);
+      s += Dafny.Helpers.ToString(this._i_returnType);
       s += ")";
       return s;
     }
   }
   public class Type_IntersectionType : Type {
-    public readonly RAST._IType _left;
-    public readonly RAST._IType _right;
+    public readonly RAST._IType _i_left;
+    public readonly RAST._IType _i_right;
     public Type_IntersectionType(RAST._IType left, RAST._IType right) : base() {
-      this._left = left;
-      this._right = right;
+      this._i_left = left;
+      this._i_right = right;
     }
     public override _IType DowncastClone() {
       if (this is _IType dt) { return dt; }
-      return new Type_IntersectionType(_left, _right);
+      return new Type_IntersectionType(_i_left, _i_right);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Type_IntersectionType;
-      return oth != null && object.Equals(this._left, oth._left) && object.Equals(this._right, oth._right);
+      return oth != null && object.Equals(this._i_left, oth._i_left) && object.Equals(this._i_right, oth._i_right);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 20;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._right));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_left));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_right));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Type.IntersectionType";
       s += "(";
-      s += Dafny.Helpers.ToString(this._left);
+      s += Dafny.Helpers.ToString(this._i_left);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._right);
+      s += Dafny.Helpers.ToString(this._i_right);
       s += ")";
       return s;
     }
@@ -1965,43 +1965,43 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Trait : _ITrait {
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly RAST._IType _tpe;
-    public readonly Dafny.ISequence<Dafny.Rune> _where;
-    public readonly Dafny.ISequence<RAST._IImplMember> _body;
+    public readonly Dafny.ISequence<RAST._ITypeParam> _i_typeParams;
+    public readonly RAST._IType _i_tpe;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_where;
+    public readonly Dafny.ISequence<RAST._IImplMember> _i_body;
     public Trait(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-      this._where = @where;
-      this._body = body;
+      this._i_typeParams = typeParams;
+      this._i_tpe = tpe;
+      this._i_where = @where;
+      this._i_body = body;
     }
     public _ITrait DowncastClone() {
       if (this is _ITrait dt) { return dt; }
-      return new Trait(_typeParams, _tpe, _where, _body);
+      return new Trait(_i_typeParams, _i_tpe, _i_where, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Trait;
-      return oth != null && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._tpe, oth._tpe) && object.Equals(this._where, oth._where) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_tpe, oth._i_tpe) && object.Equals(this._i_where, oth._i_where) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._where));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_where));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Trait.Trait";
       s += "(";
-      s += Dafny.Helpers.ToString(this._typeParams);
+      s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ", ";
-      s += this._where.ToVerbatimString(true);
+      s += this._i_where.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._body);
+      s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
@@ -2022,22 +2022,22 @@ namespace RAST {
     public bool is_Trait { get { return true; } }
     public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
       get {
-        return this._typeParams;
+        return this._i_typeParams;
       }
     }
     public RAST._IType dtor_tpe {
       get {
-        return this._tpe;
+        return this._i_tpe;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_where {
       get {
-        return this._where;
+        return this._i_where;
       }
     }
     public Dafny.ISequence<RAST._IImplMember> dtor_body {
       get {
-        return this._body;
+        return this._i_body;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -2080,35 +2080,35 @@ namespace RAST {
     public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
       get {
         var d = this;
-        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._typeParams; }
-        return ((Impl_Impl)d)._typeParams;
+        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._i_typeParams; }
+        return ((Impl_Impl)d)._i_typeParams;
       }
     }
     public RAST._IType dtor_tpe {
       get {
         var d = this;
-        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._tpe; }
-        return ((Impl_Impl)d)._tpe;
+        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._i_tpe; }
+        return ((Impl_Impl)d)._i_tpe;
       }
     }
     public RAST._IType dtor_forType {
       get {
         var d = this;
-        return ((Impl_ImplFor)d)._forType;
+        return ((Impl_ImplFor)d)._i_forType;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_where {
       get {
         var d = this;
-        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._where; }
-        return ((Impl_Impl)d)._where;
+        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._i_where; }
+        return ((Impl_Impl)d)._i_where;
       }
     }
     public Dafny.ISequence<RAST._IImplMember> dtor_body {
       get {
         var d = this;
-        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._body; }
-        return ((Impl_Impl)d)._body;
+        if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._i_body; }
+        return ((Impl_Impl)d)._i_body;
       }
     }
     public abstract _IImpl DowncastClone();
@@ -2119,90 +2119,90 @@ namespace RAST {
     }
   }
   public class Impl_ImplFor : Impl {
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly RAST._IType _tpe;
-    public readonly RAST._IType _forType;
-    public readonly Dafny.ISequence<Dafny.Rune> _where;
-    public readonly Dafny.ISequence<RAST._IImplMember> _body;
+    public readonly Dafny.ISequence<RAST._ITypeParam> _i_typeParams;
+    public readonly RAST._IType _i_tpe;
+    public readonly RAST._IType _i_forType;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_where;
+    public readonly Dafny.ISequence<RAST._IImplMember> _i_body;
     public Impl_ImplFor(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, RAST._IType forType, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) : base() {
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-      this._forType = forType;
-      this._where = @where;
-      this._body = body;
+      this._i_typeParams = typeParams;
+      this._i_tpe = tpe;
+      this._i_forType = forType;
+      this._i_where = @where;
+      this._i_body = body;
     }
     public override _IImpl DowncastClone() {
       if (this is _IImpl dt) { return dt; }
-      return new Impl_ImplFor(_typeParams, _tpe, _forType, _where, _body);
+      return new Impl_ImplFor(_i_typeParams, _i_tpe, _i_forType, _i_where, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Impl_ImplFor;
-      return oth != null && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._tpe, oth._tpe) && object.Equals(this._forType, oth._forType) && object.Equals(this._where, oth._where) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_tpe, oth._i_tpe) && object.Equals(this._i_forType, oth._i_forType) && object.Equals(this._i_where, oth._i_where) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._forType));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._where));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_forType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_where));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Impl.ImplFor";
       s += "(";
-      s += Dafny.Helpers.ToString(this._typeParams);
+      s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._forType);
+      s += Dafny.Helpers.ToString(this._i_forType);
       s += ", ";
-      s += this._where.ToVerbatimString(true);
+      s += this._i_where.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._body);
+      s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
   }
   public class Impl_Impl : Impl {
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly RAST._IType _tpe;
-    public readonly Dafny.ISequence<Dafny.Rune> _where;
-    public readonly Dafny.ISequence<RAST._IImplMember> _body;
+    public readonly Dafny.ISequence<RAST._ITypeParam> _i_typeParams;
+    public readonly RAST._IType _i_tpe;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_where;
+    public readonly Dafny.ISequence<RAST._IImplMember> _i_body;
     public Impl_Impl(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) : base() {
-      this._typeParams = typeParams;
-      this._tpe = tpe;
-      this._where = @where;
-      this._body = body;
+      this._i_typeParams = typeParams;
+      this._i_tpe = tpe;
+      this._i_where = @where;
+      this._i_body = body;
     }
     public override _IImpl DowncastClone() {
       if (this is _IImpl dt) { return dt; }
-      return new Impl_Impl(_typeParams, _tpe, _where, _body);
+      return new Impl_Impl(_i_typeParams, _i_tpe, _i_where, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Impl_Impl;
-      return oth != null && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._tpe, oth._tpe) && object.Equals(this._where, oth._where) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_tpe, oth._i_tpe) && object.Equals(this._i_where, oth._i_where) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._where));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_where));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Impl.Impl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._typeParams);
+      s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ", ";
-      s += this._where.ToVerbatimString(true);
+      s += this._i_where.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._body);
+      s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
@@ -2239,19 +2239,19 @@ namespace RAST {
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
         var d = this;
-        return ((ImplMember_RawImplMember)d)._content;
+        return ((ImplMember_RawImplMember)d)._i_content;
       }
     }
     public RAST._IVisibility dtor_pub {
       get {
         var d = this;
-        return ((ImplMember_FnDecl)d)._pub;
+        return ((ImplMember_FnDecl)d)._i_pub;
       }
     }
     public RAST._IFn dtor_fun {
       get {
         var d = this;
-        return ((ImplMember_FnDecl)d)._fun;
+        return ((ImplMember_FnDecl)d)._i_fun;
       }
     }
     public abstract _IImplMember DowncastClone();
@@ -2264,60 +2264,60 @@ namespace RAST {
     }
   }
   public class ImplMember_RawImplMember : ImplMember {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_content;
     public ImplMember_RawImplMember(Dafny.ISequence<Dafny.Rune> content) : base() {
-      this._content = content;
+      this._i_content = content;
     }
     public override _IImplMember DowncastClone() {
       if (this is _IImplMember dt) { return dt; }
-      return new ImplMember_RawImplMember(_content);
+      return new ImplMember_RawImplMember(_i_content);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ImplMember_RawImplMember;
-      return oth != null && object.Equals(this._content, oth._content);
+      return oth != null && object.Equals(this._i_content, oth._i_content);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._content));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_content));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ImplMember.RawImplMember";
       s += "(";
-      s += this._content.ToVerbatimString(true);
+      s += this._i_content.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class ImplMember_FnDecl : ImplMember {
-    public readonly RAST._IVisibility _pub;
-    public readonly RAST._IFn _fun;
+    public readonly RAST._IVisibility _i_pub;
+    public readonly RAST._IFn _i_fun;
     public ImplMember_FnDecl(RAST._IVisibility pub, RAST._IFn fun) : base() {
-      this._pub = pub;
-      this._fun = fun;
+      this._i_pub = pub;
+      this._i_fun = fun;
     }
     public override _IImplMember DowncastClone() {
       if (this is _IImplMember dt) { return dt; }
-      return new ImplMember_FnDecl(_pub, _fun);
+      return new ImplMember_FnDecl(_i_pub, _i_fun);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.ImplMember_FnDecl;
-      return oth != null && object.Equals(this._pub, oth._pub) && object.Equals(this._fun, oth._fun);
+      return oth != null && object.Equals(this._i_pub, oth._i_pub) && object.Equals(this._i_fun, oth._i_fun);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._pub));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fun));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_pub));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_fun));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.ImplMember.FnDecl";
       s += "(";
-      s += Dafny.Helpers.ToString(this._pub);
+      s += Dafny.Helpers.ToString(this._i_pub);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._fun);
+      s += Dafny.Helpers.ToString(this._i_fun);
       s += ")";
       return s;
     }
@@ -2406,33 +2406,33 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Formal : _IFormal {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IType _tpe;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly RAST._IType _i_tpe;
     public Formal(Dafny.ISequence<Dafny.Rune> name, RAST._IType tpe) {
-      this._name = name;
-      this._tpe = tpe;
+      this._i_name = name;
+      this._i_tpe = tpe;
     }
     public _IFormal DowncastClone() {
       if (this is _IFormal dt) { return dt; }
-      return new Formal(_name, _tpe);
+      return new Formal(_i_name, _i_tpe);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Formal;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._tpe, oth._tpe);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_tpe, oth._i_tpe);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Formal.Formal";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ")";
       return s;
     }
@@ -2453,12 +2453,12 @@ namespace RAST {
     public bool is_Formal { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
-        return this._name;
+        return this._i_name;
       }
     }
     public RAST._IType dtor_tpe {
       get {
-        return this._tpe;
+        return this._i_tpe;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -2488,27 +2488,27 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> dtor_content { get; }
   }
   public class Pattern : _IPattern {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_content;
     public Pattern(Dafny.ISequence<Dafny.Rune> content) {
-      this._content = content;
+      this._i_content = content;
     }
     public static Dafny.ISequence<Dafny.Rune> DowncastClone(Dafny.ISequence<Dafny.Rune> _this) {
       return _this;
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Pattern;
-      return oth != null && object.Equals(this._content, oth._content);
+      return oth != null && object.Equals(this._i_content, oth._i_content);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._content));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_content));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Pattern.RawPattern";
       s += "(";
-      s += this._content.ToVerbatimString(true);
+      s += this._i_content.ToVerbatimString(true);
       s += ")";
       return s;
     }
@@ -2529,7 +2529,7 @@ namespace RAST {
     public bool is_RawPattern { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
-        return this._content;
+        return this._i_content;
       }
     }
     public static Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> _this, Dafny.ISequence<Dafny.Rune> ind) {
@@ -2545,33 +2545,33 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class MatchCase : _IMatchCase {
-    public readonly Dafny.ISequence<Dafny.Rune> _pattern;
-    public readonly RAST._IExpr _rhs;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_pattern;
+    public readonly RAST._IExpr _i_rhs;
     public MatchCase(Dafny.ISequence<Dafny.Rune> pattern, RAST._IExpr rhs) {
-      this._pattern = pattern;
-      this._rhs = rhs;
+      this._i_pattern = pattern;
+      this._i_rhs = rhs;
     }
     public _IMatchCase DowncastClone() {
       if (this is _IMatchCase dt) { return dt; }
-      return new MatchCase(_pattern, _rhs);
+      return new MatchCase(_i_pattern, _i_rhs);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.MatchCase;
-      return oth != null && object.Equals(this._pattern, oth._pattern) && object.Equals(this._rhs, oth._rhs);
+      return oth != null && object.Equals(this._i_pattern, oth._i_pattern) && object.Equals(this._i_rhs, oth._i_rhs);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._pattern));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rhs));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_pattern));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_rhs));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.MatchCase.MatchCase";
       s += "(";
-      s += Dafny.Helpers.ToString(this._pattern);
+      s += Dafny.Helpers.ToString(this._i_pattern);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._rhs);
+      s += Dafny.Helpers.ToString(this._i_rhs);
       s += ")";
       return s;
     }
@@ -2592,12 +2592,12 @@ namespace RAST {
     public bool is_MatchCase { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_pattern {
       get {
-        return this._pattern;
+        return this._i_pattern;
       }
     }
     public RAST._IExpr dtor_rhs {
       get {
-        return this._rhs;
+        return this._i_rhs;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -2615,33 +2615,33 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class AssignIdentifier : _IAssignIdentifier {
-    public readonly Dafny.ISequence<Dafny.Rune> _identifier;
-    public readonly RAST._IExpr _rhs;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_identifier;
+    public readonly RAST._IExpr _i_rhs;
     public AssignIdentifier(Dafny.ISequence<Dafny.Rune> identifier, RAST._IExpr rhs) {
-      this._identifier = identifier;
-      this._rhs = rhs;
+      this._i_identifier = identifier;
+      this._i_rhs = rhs;
     }
     public _IAssignIdentifier DowncastClone() {
       if (this is _IAssignIdentifier dt) { return dt; }
-      return new AssignIdentifier(_identifier, _rhs);
+      return new AssignIdentifier(_i_identifier, _i_rhs);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.AssignIdentifier;
-      return oth != null && object.Equals(this._identifier, oth._identifier) && object.Equals(this._rhs, oth._rhs);
+      return oth != null && object.Equals(this._i_identifier, oth._i_identifier) && object.Equals(this._i_rhs, oth._i_rhs);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._identifier));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rhs));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_identifier));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_rhs));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.AssignIdentifier.AssignIdentifier";
       s += "(";
-      s += this._identifier.ToVerbatimString(true);
+      s += this._i_identifier.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._rhs);
+      s += Dafny.Helpers.ToString(this._i_rhs);
       s += ")";
       return s;
     }
@@ -2662,12 +2662,12 @@ namespace RAST {
     public bool is_AssignIdentifier { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_identifier {
       get {
-        return this._identifier;
+        return this._i_identifier;
       }
     }
     public RAST._IExpr dtor_rhs {
       get {
-        return this._rhs;
+        return this._i_rhs;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -2894,15 +2894,15 @@ namespace RAST {
     public BigInteger dtor_precedence {
       get {
         var d = this;
-        if (d is PrintingInfo_Precedence) { return ((PrintingInfo_Precedence)d)._precedence; }
-        if (d is PrintingInfo_SuffixPrecedence) { return ((PrintingInfo_SuffixPrecedence)d)._precedence; }
-        return ((PrintingInfo_PrecedenceAssociativity)d)._precedence;
+        if (d is PrintingInfo_Precedence) { return ((PrintingInfo_Precedence)d)._i_precedence; }
+        if (d is PrintingInfo_SuffixPrecedence) { return ((PrintingInfo_SuffixPrecedence)d)._i_precedence; }
+        return ((PrintingInfo_PrecedenceAssociativity)d)._i_precedence;
       }
     }
     public RAST._IAssociativity dtor_associativity {
       get {
         var d = this;
-        return ((PrintingInfo_PrecedenceAssociativity)d)._associativity;
+        return ((PrintingInfo_PrecedenceAssociativity)d)._i_associativity;
       }
     }
     public abstract _IPrintingInfo DowncastClone();
@@ -2962,87 +2962,87 @@ namespace RAST {
     }
   }
   public class PrintingInfo_Precedence : PrintingInfo {
-    public readonly BigInteger _precedence;
+    public readonly BigInteger _i_precedence;
     public PrintingInfo_Precedence(BigInteger precedence) : base() {
-      this._precedence = precedence;
+      this._i_precedence = precedence;
     }
     public override _IPrintingInfo DowncastClone() {
       if (this is _IPrintingInfo dt) { return dt; }
-      return new PrintingInfo_Precedence(_precedence);
+      return new PrintingInfo_Precedence(_i_precedence);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.PrintingInfo_Precedence;
-      return oth != null && this._precedence == oth._precedence;
+      return oth != null && this._i_precedence == oth._i_precedence;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._precedence));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_precedence));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.PrintingInfo.Precedence";
       s += "(";
-      s += Dafny.Helpers.ToString(this._precedence);
+      s += Dafny.Helpers.ToString(this._i_precedence);
       s += ")";
       return s;
     }
   }
   public class PrintingInfo_SuffixPrecedence : PrintingInfo {
-    public readonly BigInteger _precedence;
+    public readonly BigInteger _i_precedence;
     public PrintingInfo_SuffixPrecedence(BigInteger precedence) : base() {
-      this._precedence = precedence;
+      this._i_precedence = precedence;
     }
     public override _IPrintingInfo DowncastClone() {
       if (this is _IPrintingInfo dt) { return dt; }
-      return new PrintingInfo_SuffixPrecedence(_precedence);
+      return new PrintingInfo_SuffixPrecedence(_i_precedence);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.PrintingInfo_SuffixPrecedence;
-      return oth != null && this._precedence == oth._precedence;
+      return oth != null && this._i_precedence == oth._i_precedence;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._precedence));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_precedence));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.PrintingInfo.SuffixPrecedence";
       s += "(";
-      s += Dafny.Helpers.ToString(this._precedence);
+      s += Dafny.Helpers.ToString(this._i_precedence);
       s += ")";
       return s;
     }
   }
   public class PrintingInfo_PrecedenceAssociativity : PrintingInfo {
-    public readonly BigInteger _precedence;
-    public readonly RAST._IAssociativity _associativity;
+    public readonly BigInteger _i_precedence;
+    public readonly RAST._IAssociativity _i_associativity;
     public PrintingInfo_PrecedenceAssociativity(BigInteger precedence, RAST._IAssociativity associativity) : base() {
-      this._precedence = precedence;
-      this._associativity = associativity;
+      this._i_precedence = precedence;
+      this._i_associativity = associativity;
     }
     public override _IPrintingInfo DowncastClone() {
       if (this is _IPrintingInfo dt) { return dt; }
-      return new PrintingInfo_PrecedenceAssociativity(_precedence, _associativity);
+      return new PrintingInfo_PrecedenceAssociativity(_i_precedence, _i_associativity);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.PrintingInfo_PrecedenceAssociativity;
-      return oth != null && this._precedence == oth._precedence && object.Equals(this._associativity, oth._associativity);
+      return oth != null && this._i_precedence == oth._i_precedence && object.Equals(this._i_associativity, oth._i_associativity);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._precedence));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._associativity));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_precedence));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_associativity));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.PrintingInfo.PrecedenceAssociativity";
       s += "(";
-      s += Dafny.Helpers.ToString(this._precedence);
+      s += Dafny.Helpers.ToString(this._i_precedence);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._associativity);
+      s += Dafny.Helpers.ToString(this._i_associativity);
       s += ")";
       return s;
     }
@@ -3236,211 +3236,211 @@ namespace RAST {
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
         var d = this;
-        return ((Expr_RawExpr)d)._content;
+        return ((Expr_RawExpr)d)._i_content;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         var d = this;
-        if (d is Expr_Identifier) { return ((Expr_Identifier)d)._name; }
-        if (d is Expr_StructBuild) { return ((Expr_StructBuild)d)._name; }
-        if (d is Expr_DeclareVar) { return ((Expr_DeclareVar)d)._name; }
-        if (d is Expr_AssignVar) { return ((Expr_AssignVar)d)._name; }
-        if (d is Expr_For) { return ((Expr_For)d)._name; }
-        if (d is Expr_Select) { return ((Expr_Select)d)._name; }
-        return ((Expr_MemberSelect)d)._name;
+        if (d is Expr_Identifier) { return ((Expr_Identifier)d)._i_name; }
+        if (d is Expr_StructBuild) { return ((Expr_StructBuild)d)._i_name; }
+        if (d is Expr_DeclareVar) { return ((Expr_DeclareVar)d)._i_name; }
+        if (d is Expr_AssignVar) { return ((Expr_AssignVar)d)._i_name; }
+        if (d is Expr_For) { return ((Expr_For)d)._i_name; }
+        if (d is Expr_Select) { return ((Expr_Select)d)._i_name; }
+        return ((Expr_MemberSelect)d)._i_name;
       }
     }
     public RAST._IExpr dtor_matchee {
       get {
         var d = this;
-        return ((Expr_Match)d)._matchee;
+        return ((Expr_Match)d)._i_matchee;
       }
     }
     public Dafny.ISequence<RAST._IMatchCase> dtor_cases {
       get {
         var d = this;
-        return ((Expr_Match)d)._cases;
+        return ((Expr_Match)d)._i_cases;
       }
     }
     public RAST._IExpr dtor_stmt {
       get {
         var d = this;
-        return ((Expr_StmtExpr)d)._stmt;
+        return ((Expr_StmtExpr)d)._i_stmt;
       }
     }
     public RAST._IExpr dtor_rhs {
       get {
         var d = this;
-        if (d is Expr_StmtExpr) { return ((Expr_StmtExpr)d)._rhs; }
-        return ((Expr_AssignVar)d)._rhs;
+        if (d is Expr_StmtExpr) { return ((Expr_StmtExpr)d)._i_rhs; }
+        return ((Expr_AssignVar)d)._i_rhs;
       }
     }
     public RAST._IExpr dtor_underlying {
       get {
         var d = this;
-        if (d is Expr_Block) { return ((Expr_Block)d)._underlying; }
-        if (d is Expr_UnaryOp) { return ((Expr_UnaryOp)d)._underlying; }
-        if (d is Expr_ConversionNum) { return ((Expr_ConversionNum)d)._underlying; }
-        if (d is Expr_Loop) { return ((Expr_Loop)d)._underlying; }
-        return ((Expr_Labelled)d)._underlying;
+        if (d is Expr_Block) { return ((Expr_Block)d)._i_underlying; }
+        if (d is Expr_UnaryOp) { return ((Expr_UnaryOp)d)._i_underlying; }
+        if (d is Expr_ConversionNum) { return ((Expr_ConversionNum)d)._i_underlying; }
+        if (d is Expr_Loop) { return ((Expr_Loop)d)._i_underlying; }
+        return ((Expr_Labelled)d)._i_underlying;
       }
     }
     public Dafny.ISequence<RAST._IAssignIdentifier> dtor_assignments {
       get {
         var d = this;
-        return ((Expr_StructBuild)d)._assignments;
+        return ((Expr_StructBuild)d)._i_assignments;
       }
     }
     public Dafny.ISequence<RAST._IExpr> dtor_arguments {
       get {
         var d = this;
-        if (d is Expr_Tuple) { return ((Expr_Tuple)d)._arguments; }
-        return ((Expr_Call)d)._arguments;
+        if (d is Expr_Tuple) { return ((Expr_Tuple)d)._i_arguments; }
+        return ((Expr_Call)d)._i_arguments;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_op1 {
       get {
         var d = this;
-        return ((Expr_UnaryOp)d)._op1;
+        return ((Expr_UnaryOp)d)._i_op1;
       }
     }
     public DAST.Format._IUnaryOpFormat dtor_format {
       get {
         var d = this;
-        return ((Expr_UnaryOp)d)._format;
+        return ((Expr_UnaryOp)d)._i_format;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_op2 {
       get {
         var d = this;
-        return ((Expr_BinaryOp)d)._op2;
+        return ((Expr_BinaryOp)d)._i_op2;
       }
     }
     public RAST._IExpr dtor_left {
       get {
         var d = this;
-        if (d is Expr_BinaryOp) { return ((Expr_BinaryOp)d)._left; }
-        return ((Expr_TypeAscription)d)._left;
+        if (d is Expr_BinaryOp) { return ((Expr_BinaryOp)d)._i_left; }
+        return ((Expr_TypeAscription)d)._i_left;
       }
     }
     public RAST._IExpr dtor_right {
       get {
         var d = this;
-        return ((Expr_BinaryOp)d)._right;
+        return ((Expr_BinaryOp)d)._i_right;
       }
     }
     public DAST.Format._IBinaryOpFormat dtor_format2 {
       get {
         var d = this;
-        return ((Expr_BinaryOp)d)._format2;
+        return ((Expr_BinaryOp)d)._i_format2;
       }
     }
     public RAST._IType dtor_tpe {
       get {
         var d = this;
-        if (d is Expr_TypeAscription) { return ((Expr_TypeAscription)d)._tpe; }
-        return ((Expr_ConversionNum)d)._tpe;
+        if (d is Expr_TypeAscription) { return ((Expr_TypeAscription)d)._i_tpe; }
+        return ((Expr_ConversionNum)d)._i_tpe;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_value {
       get {
         var d = this;
-        if (d is Expr_LiteralInt) { return ((Expr_LiteralInt)d)._value; }
-        return ((Expr_LiteralString)d)._value;
+        if (d is Expr_LiteralInt) { return ((Expr_LiteralInt)d)._i_value; }
+        return ((Expr_LiteralString)d)._i_value;
       }
     }
     public bool dtor_binary {
       get {
         var d = this;
-        return ((Expr_LiteralString)d)._binary;
+        return ((Expr_LiteralString)d)._i_binary;
       }
     }
     public RAST._IDeclareType dtor_declareType {
       get {
         var d = this;
-        return ((Expr_DeclareVar)d)._declareType;
+        return ((Expr_DeclareVar)d)._i_declareType;
       }
     }
     public Std.Wrappers._IOption<RAST._IType> dtor_optType {
       get {
         var d = this;
-        return ((Expr_DeclareVar)d)._optType;
+        return ((Expr_DeclareVar)d)._i_optType;
       }
     }
     public Std.Wrappers._IOption<RAST._IExpr> dtor_optRhs {
       get {
         var d = this;
-        return ((Expr_DeclareVar)d)._optRhs;
+        return ((Expr_DeclareVar)d)._i_optRhs;
       }
     }
     public RAST._IExpr dtor_cond {
       get {
         var d = this;
-        return ((Expr_IfExpr)d)._cond;
+        return ((Expr_IfExpr)d)._i_cond;
       }
     }
     public RAST._IExpr dtor_thn {
       get {
         var d = this;
-        return ((Expr_IfExpr)d)._thn;
+        return ((Expr_IfExpr)d)._i_thn;
       }
     }
     public RAST._IExpr dtor_els {
       get {
         var d = this;
-        return ((Expr_IfExpr)d)._els;
+        return ((Expr_IfExpr)d)._i_els;
       }
     }
     public Std.Wrappers._IOption<RAST._IExpr> dtor_optCond {
       get {
         var d = this;
-        return ((Expr_Loop)d)._optCond;
+        return ((Expr_Loop)d)._i_optCond;
       }
     }
     public RAST._IExpr dtor_range {
       get {
         var d = this;
-        return ((Expr_For)d)._range;
+        return ((Expr_For)d)._i_range;
       }
     }
     public RAST._IExpr dtor_body {
       get {
         var d = this;
-        return ((Expr_For)d)._body;
+        return ((Expr_For)d)._i_body;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_lbl {
       get {
         var d = this;
-        return ((Expr_Labelled)d)._lbl;
+        return ((Expr_Labelled)d)._i_lbl;
       }
     }
     public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> dtor_optLbl {
       get {
         var d = this;
-        if (d is Expr_Break) { return ((Expr_Break)d)._optLbl; }
-        return ((Expr_Continue)d)._optLbl;
+        if (d is Expr_Break) { return ((Expr_Break)d)._i_optLbl; }
+        return ((Expr_Continue)d)._i_optLbl;
       }
     }
     public Std.Wrappers._IOption<RAST._IExpr> dtor_optExpr {
       get {
         var d = this;
-        return ((Expr_Return)d)._optExpr;
+        return ((Expr_Return)d)._i_optExpr;
       }
     }
     public RAST._IExpr dtor_obj {
       get {
         var d = this;
-        if (d is Expr_Call) { return ((Expr_Call)d)._obj; }
-        if (d is Expr_Select) { return ((Expr_Select)d)._obj; }
-        return ((Expr_MemberSelect)d)._obj;
+        if (d is Expr_Call) { return ((Expr_Call)d)._i_obj; }
+        if (d is Expr_Select) { return ((Expr_Select)d)._i_obj; }
+        return ((Expr_MemberSelect)d)._i_obj;
       }
     }
     public Dafny.ISequence<RAST._IType> dtor_typeParameters {
       get {
         var d = this;
-        return ((Expr_Call)d)._typeParameters;
+        return ((Expr_Call)d)._i_typeParameters;
       }
     }
     public abstract _IExpr DowncastClone();
@@ -5454,801 +5454,801 @@ namespace RAST {
     } }
   }
   public class Expr_RawExpr : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_content;
     public Expr_RawExpr(Dafny.ISequence<Dafny.Rune> content) : base() {
-      this._content = content;
+      this._i_content = content;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_RawExpr(_content);
+      return new Expr_RawExpr(_i_content);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_RawExpr;
-      return oth != null && object.Equals(this._content, oth._content);
+      return oth != null && object.Equals(this._i_content, oth._i_content);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._content));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_content));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.RawExpr";
       s += "(";
-      s += this._content.ToVerbatimString(true);
+      s += this._i_content.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class Expr_Identifier : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public Expr_Identifier(Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._name = name;
+      this._i_name = name;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Identifier(_name);
+      return new Expr_Identifier(_i_name);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Identifier;
-      return oth != null && object.Equals(this._name, oth._name);
+      return oth != null && object.Equals(this._i_name, oth._i_name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Identifier";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class Expr_Match : Expr {
-    public readonly RAST._IExpr _matchee;
-    public readonly Dafny.ISequence<RAST._IMatchCase> _cases;
+    public readonly RAST._IExpr _i_matchee;
+    public readonly Dafny.ISequence<RAST._IMatchCase> _i_cases;
     public Expr_Match(RAST._IExpr matchee, Dafny.ISequence<RAST._IMatchCase> cases) : base() {
-      this._matchee = matchee;
-      this._cases = cases;
+      this._i_matchee = matchee;
+      this._i_cases = cases;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Match(_matchee, _cases);
+      return new Expr_Match(_i_matchee, _i_cases);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Match;
-      return oth != null && object.Equals(this._matchee, oth._matchee) && object.Equals(this._cases, oth._cases);
+      return oth != null && object.Equals(this._i_matchee, oth._i_matchee) && object.Equals(this._i_cases, oth._i_cases);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 2;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._matchee));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cases));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_matchee));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_cases));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Match";
       s += "(";
-      s += Dafny.Helpers.ToString(this._matchee);
+      s += Dafny.Helpers.ToString(this._i_matchee);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._cases);
+      s += Dafny.Helpers.ToString(this._i_cases);
       s += ")";
       return s;
     }
   }
   public class Expr_StmtExpr : Expr {
-    public readonly RAST._IExpr _stmt;
-    public readonly RAST._IExpr _rhs;
+    public readonly RAST._IExpr _i_stmt;
+    public readonly RAST._IExpr _i_rhs;
     public Expr_StmtExpr(RAST._IExpr stmt, RAST._IExpr rhs) : base() {
-      this._stmt = stmt;
-      this._rhs = rhs;
+      this._i_stmt = stmt;
+      this._i_rhs = rhs;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_StmtExpr(_stmt, _rhs);
+      return new Expr_StmtExpr(_i_stmt, _i_rhs);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_StmtExpr;
-      return oth != null && object.Equals(this._stmt, oth._stmt) && object.Equals(this._rhs, oth._rhs);
+      return oth != null && object.Equals(this._i_stmt, oth._i_stmt) && object.Equals(this._i_rhs, oth._i_rhs);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._stmt));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rhs));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_stmt));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_rhs));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.StmtExpr";
       s += "(";
-      s += Dafny.Helpers.ToString(this._stmt);
+      s += Dafny.Helpers.ToString(this._i_stmt);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._rhs);
+      s += Dafny.Helpers.ToString(this._i_rhs);
       s += ")";
       return s;
     }
   }
   public class Expr_Block : Expr {
-    public readonly RAST._IExpr _underlying;
+    public readonly RAST._IExpr _i_underlying;
     public Expr_Block(RAST._IExpr underlying) : base() {
-      this._underlying = underlying;
+      this._i_underlying = underlying;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Block(_underlying);
+      return new Expr_Block(_i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Block;
-      return oth != null && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 4;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Block";
       s += "(";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Expr_StructBuild : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._IAssignIdentifier> _assignments;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<RAST._IAssignIdentifier> _i_assignments;
     public Expr_StructBuild(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IAssignIdentifier> assignments) : base() {
-      this._name = name;
-      this._assignments = assignments;
+      this._i_name = name;
+      this._i_assignments = assignments;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_StructBuild(_name, _assignments);
+      return new Expr_StructBuild(_i_name, _i_assignments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_StructBuild;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._assignments, oth._assignments);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_assignments, oth._i_assignments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 5;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._assignments));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_assignments));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.StructBuild";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._assignments);
+      s += Dafny.Helpers.ToString(this._i_assignments);
       s += ")";
       return s;
     }
   }
   public class Expr_Tuple : Expr {
-    public readonly Dafny.ISequence<RAST._IExpr> _arguments;
+    public readonly Dafny.ISequence<RAST._IExpr> _i_arguments;
     public Expr_Tuple(Dafny.ISequence<RAST._IExpr> arguments) : base() {
-      this._arguments = arguments;
+      this._i_arguments = arguments;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Tuple(_arguments);
+      return new Expr_Tuple(_i_arguments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Tuple;
-      return oth != null && object.Equals(this._arguments, oth._arguments);
+      return oth != null && object.Equals(this._i_arguments, oth._i_arguments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 6;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_arguments));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Tuple";
       s += "(";
-      s += Dafny.Helpers.ToString(this._arguments);
+      s += Dafny.Helpers.ToString(this._i_arguments);
       s += ")";
       return s;
     }
   }
   public class Expr_UnaryOp : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _op1;
-    public readonly RAST._IExpr _underlying;
-    public readonly DAST.Format._IUnaryOpFormat _format;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_op1;
+    public readonly RAST._IExpr _i_underlying;
+    public readonly DAST.Format._IUnaryOpFormat _i_format;
     public Expr_UnaryOp(Dafny.ISequence<Dafny.Rune> op1, RAST._IExpr underlying, DAST.Format._IUnaryOpFormat format) : base() {
-      this._op1 = op1;
-      this._underlying = underlying;
-      this._format = format;
+      this._i_op1 = op1;
+      this._i_underlying = underlying;
+      this._i_format = format;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_UnaryOp(_op1, _underlying, _format);
+      return new Expr_UnaryOp(_i_op1, _i_underlying, _i_format);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_UnaryOp;
-      return oth != null && object.Equals(this._op1, oth._op1) && object.Equals(this._underlying, oth._underlying) && object.Equals(this._format, oth._format);
+      return oth != null && object.Equals(this._i_op1, oth._i_op1) && object.Equals(this._i_underlying, oth._i_underlying) && object.Equals(this._i_format, oth._i_format);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 7;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._op1));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._format));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_op1));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_format));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.UnaryOp";
       s += "(";
-      s += this._op1.ToVerbatimString(true);
+      s += this._i_op1.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._format);
+      s += Dafny.Helpers.ToString(this._i_format);
       s += ")";
       return s;
     }
   }
   public class Expr_BinaryOp : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _op2;
-    public readonly RAST._IExpr _left;
-    public readonly RAST._IExpr _right;
-    public readonly DAST.Format._IBinaryOpFormat _format2;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_op2;
+    public readonly RAST._IExpr _i_left;
+    public readonly RAST._IExpr _i_right;
+    public readonly DAST.Format._IBinaryOpFormat _i_format2;
     public Expr_BinaryOp(Dafny.ISequence<Dafny.Rune> op2, RAST._IExpr left, RAST._IExpr right, DAST.Format._IBinaryOpFormat format2) : base() {
-      this._op2 = op2;
-      this._left = left;
-      this._right = right;
-      this._format2 = format2;
+      this._i_op2 = op2;
+      this._i_left = left;
+      this._i_right = right;
+      this._i_format2 = format2;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_BinaryOp(_op2, _left, _right, _format2);
+      return new Expr_BinaryOp(_i_op2, _i_left, _i_right, _i_format2);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_BinaryOp;
-      return oth != null && object.Equals(this._op2, oth._op2) && object.Equals(this._left, oth._left) && object.Equals(this._right, oth._right) && object.Equals(this._format2, oth._format2);
+      return oth != null && object.Equals(this._i_op2, oth._i_op2) && object.Equals(this._i_left, oth._i_left) && object.Equals(this._i_right, oth._i_right) && object.Equals(this._i_format2, oth._i_format2);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 8;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._op2));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._right));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._format2));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_op2));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_left));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_right));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_format2));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.BinaryOp";
       s += "(";
-      s += this._op2.ToVerbatimString(true);
+      s += this._i_op2.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._left);
+      s += Dafny.Helpers.ToString(this._i_left);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._right);
+      s += Dafny.Helpers.ToString(this._i_right);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._format2);
+      s += Dafny.Helpers.ToString(this._i_format2);
       s += ")";
       return s;
     }
   }
   public class Expr_TypeAscription : Expr {
-    public readonly RAST._IExpr _left;
-    public readonly RAST._IType _tpe;
+    public readonly RAST._IExpr _i_left;
+    public readonly RAST._IType _i_tpe;
     public Expr_TypeAscription(RAST._IExpr left, RAST._IType tpe) : base() {
-      this._left = left;
-      this._tpe = tpe;
+      this._i_left = left;
+      this._i_tpe = tpe;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_TypeAscription(_left, _tpe);
+      return new Expr_TypeAscription(_i_left, _i_tpe);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_TypeAscription;
-      return oth != null && object.Equals(this._left, oth._left) && object.Equals(this._tpe, oth._tpe);
+      return oth != null && object.Equals(this._i_left, oth._i_left) && object.Equals(this._i_tpe, oth._i_tpe);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 9;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_left));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.TypeAscription";
       s += "(";
-      s += Dafny.Helpers.ToString(this._left);
+      s += Dafny.Helpers.ToString(this._i_left);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ")";
       return s;
     }
   }
   public class Expr_LiteralInt : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _value;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_value;
     public Expr_LiteralInt(Dafny.ISequence<Dafny.Rune> @value) : base() {
-      this._value = @value;
+      this._i_value = @value;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_LiteralInt(_value);
+      return new Expr_LiteralInt(_i_value);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_LiteralInt;
-      return oth != null && object.Equals(this._value, oth._value);
+      return oth != null && object.Equals(this._i_value, oth._i_value);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 10;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_value));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.LiteralInt";
       s += "(";
-      s += this._value.ToVerbatimString(true);
+      s += this._i_value.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class Expr_LiteralString : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _value;
-    public readonly bool _binary;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_value;
+    public readonly bool _i_binary;
     public Expr_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary) : base() {
-      this._value = @value;
-      this._binary = binary;
+      this._i_value = @value;
+      this._i_binary = binary;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_LiteralString(_value, _binary);
+      return new Expr_LiteralString(_i_value, _i_binary);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_LiteralString;
-      return oth != null && object.Equals(this._value, oth._value) && this._binary == oth._binary;
+      return oth != null && object.Equals(this._i_value, oth._i_value) && this._i_binary == oth._i_binary;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 11;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._binary));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_value));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_binary));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.LiteralString";
       s += "(";
-      s += this._value.ToVerbatimString(true);
+      s += this._i_value.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._binary);
+      s += Dafny.Helpers.ToString(this._i_binary);
       s += ")";
       return s;
     }
   }
   public class Expr_ConversionNum : Expr {
-    public readonly RAST._IType _tpe;
-    public readonly RAST._IExpr _underlying;
+    public readonly RAST._IType _i_tpe;
+    public readonly RAST._IExpr _i_underlying;
     public Expr_ConversionNum(RAST._IType tpe, RAST._IExpr underlying) : base() {
-      this._tpe = tpe;
-      this._underlying = underlying;
+      this._i_tpe = tpe;
+      this._i_underlying = underlying;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_ConversionNum(_tpe, _underlying);
+      return new Expr_ConversionNum(_i_tpe, _i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_ConversionNum;
-      return oth != null && object.Equals(this._tpe, oth._tpe) && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_tpe, oth._i_tpe) && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 12;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_tpe));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.ConversionNum";
       s += "(";
-      s += Dafny.Helpers.ToString(this._tpe);
+      s += Dafny.Helpers.ToString(this._i_tpe);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Expr_DeclareVar : Expr {
-    public readonly RAST._IDeclareType _declareType;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Std.Wrappers._IOption<RAST._IType> _optType;
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _optRhs;
+    public readonly RAST._IDeclareType _i_declareType;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Std.Wrappers._IOption<RAST._IType> _i_optType;
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _i_optRhs;
     public Expr_DeclareVar(RAST._IDeclareType declareType, Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<RAST._IType> optType, Std.Wrappers._IOption<RAST._IExpr> optRhs) : base() {
-      this._declareType = declareType;
-      this._name = name;
-      this._optType = optType;
-      this._optRhs = optRhs;
+      this._i_declareType = declareType;
+      this._i_name = name;
+      this._i_optType = optType;
+      this._i_optRhs = optRhs;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_DeclareVar(_declareType, _name, _optType, _optRhs);
+      return new Expr_DeclareVar(_i_declareType, _i_name, _i_optType, _i_optRhs);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_DeclareVar;
-      return oth != null && object.Equals(this._declareType, oth._declareType) && object.Equals(this._name, oth._name) && object.Equals(this._optType, oth._optType) && object.Equals(this._optRhs, oth._optRhs);
+      return oth != null && object.Equals(this._i_declareType, oth._i_declareType) && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_optType, oth._i_optType) && object.Equals(this._i_optRhs, oth._i_optRhs);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 13;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._declareType));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optType));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optRhs));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_declareType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_optType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_optRhs));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.DeclareVar";
       s += "(";
-      s += Dafny.Helpers.ToString(this._declareType);
+      s += Dafny.Helpers.ToString(this._i_declareType);
       s += ", ";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._optType);
+      s += Dafny.Helpers.ToString(this._i_optType);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._optRhs);
+      s += Dafny.Helpers.ToString(this._i_optRhs);
       s += ")";
       return s;
     }
   }
   public class Expr_AssignVar : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IExpr _rhs;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly RAST._IExpr _i_rhs;
     public Expr_AssignVar(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr rhs) : base() {
-      this._name = name;
-      this._rhs = rhs;
+      this._i_name = name;
+      this._i_rhs = rhs;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_AssignVar(_name, _rhs);
+      return new Expr_AssignVar(_i_name, _i_rhs);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_AssignVar;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._rhs, oth._rhs);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_rhs, oth._i_rhs);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 14;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rhs));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_rhs));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.AssignVar";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._rhs);
+      s += Dafny.Helpers.ToString(this._i_rhs);
       s += ")";
       return s;
     }
   }
   public class Expr_IfExpr : Expr {
-    public readonly RAST._IExpr _cond;
-    public readonly RAST._IExpr _thn;
-    public readonly RAST._IExpr _els;
+    public readonly RAST._IExpr _i_cond;
+    public readonly RAST._IExpr _i_thn;
+    public readonly RAST._IExpr _i_els;
     public Expr_IfExpr(RAST._IExpr cond, RAST._IExpr thn, RAST._IExpr els) : base() {
-      this._cond = cond;
-      this._thn = thn;
-      this._els = els;
+      this._i_cond = cond;
+      this._i_thn = thn;
+      this._i_els = els;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_IfExpr(_cond, _thn, _els);
+      return new Expr_IfExpr(_i_cond, _i_thn, _i_els);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_IfExpr;
-      return oth != null && object.Equals(this._cond, oth._cond) && object.Equals(this._thn, oth._thn) && object.Equals(this._els, oth._els);
+      return oth != null && object.Equals(this._i_cond, oth._i_cond) && object.Equals(this._i_thn, oth._i_thn) && object.Equals(this._i_els, oth._i_els);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 15;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cond));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._thn));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._els));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_cond));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_thn));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_els));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.IfExpr";
       s += "(";
-      s += Dafny.Helpers.ToString(this._cond);
+      s += Dafny.Helpers.ToString(this._i_cond);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._thn);
+      s += Dafny.Helpers.ToString(this._i_thn);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._els);
+      s += Dafny.Helpers.ToString(this._i_els);
       s += ")";
       return s;
     }
   }
   public class Expr_Loop : Expr {
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _optCond;
-    public readonly RAST._IExpr _underlying;
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _i_optCond;
+    public readonly RAST._IExpr _i_underlying;
     public Expr_Loop(Std.Wrappers._IOption<RAST._IExpr> optCond, RAST._IExpr underlying) : base() {
-      this._optCond = optCond;
-      this._underlying = underlying;
+      this._i_optCond = optCond;
+      this._i_underlying = underlying;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Loop(_optCond, _underlying);
+      return new Expr_Loop(_i_optCond, _i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Loop;
-      return oth != null && object.Equals(this._optCond, oth._optCond) && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_optCond, oth._i_optCond) && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 16;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optCond));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_optCond));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Loop";
       s += "(";
-      s += Dafny.Helpers.ToString(this._optCond);
+      s += Dafny.Helpers.ToString(this._i_optCond);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Expr_For : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IExpr _range;
-    public readonly RAST._IExpr _body;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly RAST._IExpr _i_range;
+    public readonly RAST._IExpr _i_body;
     public Expr_For(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr range, RAST._IExpr body) : base() {
-      this._name = name;
-      this._range = range;
-      this._body = body;
+      this._i_name = name;
+      this._i_range = range;
+      this._i_body = body;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_For(_name, _range, _body);
+      return new Expr_For(_i_name, _i_range, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_For;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._range, oth._range) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_range, oth._i_range) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 17;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._range));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_range));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.For";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._range);
+      s += Dafny.Helpers.ToString(this._i_range);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._body);
+      s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
   }
   public class Expr_Labelled : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _lbl;
-    public readonly RAST._IExpr _underlying;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_lbl;
+    public readonly RAST._IExpr _i_underlying;
     public Expr_Labelled(Dafny.ISequence<Dafny.Rune> lbl, RAST._IExpr underlying) : base() {
-      this._lbl = lbl;
-      this._underlying = underlying;
+      this._i_lbl = lbl;
+      this._i_underlying = underlying;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Labelled(_lbl, _underlying);
+      return new Expr_Labelled(_i_lbl, _i_underlying);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Labelled;
-      return oth != null && object.Equals(this._lbl, oth._lbl) && object.Equals(this._underlying, oth._underlying);
+      return oth != null && object.Equals(this._i_lbl, oth._i_lbl) && object.Equals(this._i_underlying, oth._i_underlying);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 18;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lbl));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_lbl));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_underlying));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Labelled";
       s += "(";
-      s += this._lbl.ToVerbatimString(true);
+      s += this._i_lbl.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._i_underlying);
       s += ")";
       return s;
     }
   }
   public class Expr_Break : Expr {
-    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _optLbl;
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _i_optLbl;
     public Expr_Break(Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> optLbl) : base() {
-      this._optLbl = optLbl;
+      this._i_optLbl = optLbl;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Break(_optLbl);
+      return new Expr_Break(_i_optLbl);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Break;
-      return oth != null && object.Equals(this._optLbl, oth._optLbl);
+      return oth != null && object.Equals(this._i_optLbl, oth._i_optLbl);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 19;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optLbl));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_optLbl));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Break";
       s += "(";
-      s += Dafny.Helpers.ToString(this._optLbl);
+      s += Dafny.Helpers.ToString(this._i_optLbl);
       s += ")";
       return s;
     }
   }
   public class Expr_Continue : Expr {
-    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _optLbl;
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _i_optLbl;
     public Expr_Continue(Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> optLbl) : base() {
-      this._optLbl = optLbl;
+      this._i_optLbl = optLbl;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Continue(_optLbl);
+      return new Expr_Continue(_i_optLbl);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Continue;
-      return oth != null && object.Equals(this._optLbl, oth._optLbl);
+      return oth != null && object.Equals(this._i_optLbl, oth._i_optLbl);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 20;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optLbl));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_optLbl));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Continue";
       s += "(";
-      s += Dafny.Helpers.ToString(this._optLbl);
+      s += Dafny.Helpers.ToString(this._i_optLbl);
       s += ")";
       return s;
     }
   }
   public class Expr_Return : Expr {
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _optExpr;
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _i_optExpr;
     public Expr_Return(Std.Wrappers._IOption<RAST._IExpr> optExpr) : base() {
-      this._optExpr = optExpr;
+      this._i_optExpr = optExpr;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Return(_optExpr);
+      return new Expr_Return(_i_optExpr);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Return;
-      return oth != null && object.Equals(this._optExpr, oth._optExpr);
+      return oth != null && object.Equals(this._i_optExpr, oth._i_optExpr);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 21;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optExpr));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_optExpr));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Return";
       s += "(";
-      s += Dafny.Helpers.ToString(this._optExpr);
+      s += Dafny.Helpers.ToString(this._i_optExpr);
       s += ")";
       return s;
     }
   }
   public class Expr_Call : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<RAST._IType> _typeParameters;
-    public readonly Dafny.ISequence<RAST._IExpr> _arguments;
+    public readonly RAST._IExpr _i_obj;
+    public readonly Dafny.ISequence<RAST._IType> _i_typeParameters;
+    public readonly Dafny.ISequence<RAST._IExpr> _i_arguments;
     public Expr_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeParameters, Dafny.ISequence<RAST._IExpr> arguments) : base() {
-      this._obj = obj;
-      this._typeParameters = typeParameters;
-      this._arguments = arguments;
+      this._i_obj = obj;
+      this._i_typeParameters = typeParameters;
+      this._i_arguments = arguments;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Call(_obj, _typeParameters, _arguments);
+      return new Expr_Call(_i_obj, _i_typeParameters, _i_arguments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Call;
-      return oth != null && object.Equals(this._obj, oth._obj) && object.Equals(this._typeParameters, oth._typeParameters) && object.Equals(this._arguments, oth._arguments);
+      return oth != null && object.Equals(this._i_obj, oth._i_obj) && object.Equals(this._i_typeParameters, oth._i_typeParameters) && object.Equals(this._i_arguments, oth._i_arguments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 22;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParameters));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_obj));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParameters));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_arguments));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Call";
       s += "(";
-      s += Dafny.Helpers.ToString(this._obj);
+      s += Dafny.Helpers.ToString(this._i_obj);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._typeParameters);
+      s += Dafny.Helpers.ToString(this._i_typeParameters);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._arguments);
+      s += Dafny.Helpers.ToString(this._i_arguments);
       s += ")";
       return s;
     }
   }
   public class Expr_Select : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly RAST._IExpr _i_obj;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public Expr_Select(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._obj = obj;
-      this._name = name;
+      this._i_obj = obj;
+      this._i_name = name;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Select(_obj, _name);
+      return new Expr_Select(_i_obj, _i_name);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Select;
-      return oth != null && object.Equals(this._obj, oth._obj) && object.Equals(this._name, oth._name);
+      return oth != null && object.Equals(this._i_obj, oth._i_obj) && object.Equals(this._i_name, oth._i_name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 23;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_obj));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.Select";
       s += "(";
-      s += Dafny.Helpers.ToString(this._obj);
+      s += Dafny.Helpers.ToString(this._i_obj);
       s += ", ";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ")";
       return s;
     }
   }
   public class Expr_MemberSelect : Expr {
-    public readonly RAST._IExpr _obj;
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly RAST._IExpr _i_obj;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public Expr_MemberSelect(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) : base() {
-      this._obj = obj;
-      this._name = name;
+      this._i_obj = obj;
+      this._i_name = name;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_MemberSelect(_obj, _name);
+      return new Expr_MemberSelect(_i_obj, _i_name);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_MemberSelect;
-      return oth != null && object.Equals(this._obj, oth._obj) && object.Equals(this._name, oth._name);
+      return oth != null && object.Equals(this._i_obj, oth._i_obj) && object.Equals(this._i_name, oth._i_name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 24;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_obj));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.MemberSelect";
       s += "(";
-      s += Dafny.Helpers.ToString(this._obj);
+      s += Dafny.Helpers.ToString(this._i_obj);
       s += ", ";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ")";
       return s;
     }
@@ -6266,53 +6266,53 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Fn : _IFn {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly Dafny.ISequence<RAST._IFormal> _formals;
-    public readonly Std.Wrappers._IOption<RAST._IType> _returnType;
-    public readonly Dafny.ISequence<Dafny.Rune> _where;
-    public readonly Std.Wrappers._IOption<RAST._IExpr> _body;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_name;
+    public readonly Dafny.ISequence<RAST._ITypeParam> _i_typeParams;
+    public readonly Dafny.ISequence<RAST._IFormal> _i_formals;
+    public readonly Std.Wrappers._IOption<RAST._IType> _i_returnType;
+    public readonly Dafny.ISequence<Dafny.Rune> _i_where;
+    public readonly Std.Wrappers._IOption<RAST._IExpr> _i_body;
     public Fn(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
-      this._name = name;
-      this._typeParams = typeParams;
-      this._formals = formals;
-      this._returnType = returnType;
-      this._where = @where;
-      this._body = body;
+      this._i_name = name;
+      this._i_typeParams = typeParams;
+      this._i_formals = formals;
+      this._i_returnType = returnType;
+      this._i_where = @where;
+      this._i_body = body;
     }
     public _IFn DowncastClone() {
       if (this is _IFn dt) { return dt; }
-      return new Fn(_name, _typeParams, _formals, _returnType, _where, _body);
+      return new Fn(_i_name, _i_typeParams, _i_formals, _i_returnType, _i_where, _i_body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Fn;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._typeParams, oth._typeParams) && object.Equals(this._formals, oth._formals) && object.Equals(this._returnType, oth._returnType) && object.Equals(this._where, oth._where) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_typeParams, oth._i_typeParams) && object.Equals(this._i_formals, oth._i_formals) && object.Equals(this._i_returnType, oth._i_returnType) && object.Equals(this._i_where, oth._i_where) && object.Equals(this._i_body, oth._i_body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParams));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._formals));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._returnType));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._where));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_typeParams));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_formals));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_returnType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_where));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_body));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Fn.Fn";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += this._i_name.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._typeParams);
+      s += Dafny.Helpers.ToString(this._i_typeParams);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._formals);
+      s += Dafny.Helpers.ToString(this._i_formals);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._returnType);
+      s += Dafny.Helpers.ToString(this._i_returnType);
       s += ", ";
-      s += this._where.ToVerbatimString(true);
+      s += this._i_where.ToVerbatimString(true);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._body);
+      s += Dafny.Helpers.ToString(this._i_body);
       s += ")";
       return s;
     }
@@ -6333,32 +6333,32 @@ namespace RAST {
     public bool is_Fn { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
-        return this._name;
+        return this._i_name;
       }
     }
     public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
       get {
-        return this._typeParams;
+        return this._i_typeParams;
       }
     }
     public Dafny.ISequence<RAST._IFormal> dtor_formals {
       get {
-        return this._formals;
+        return this._i_formals;
       }
     }
     public Std.Wrappers._IOption<RAST._IType> dtor_returnType {
       get {
-        return this._returnType;
+        return this._i_returnType;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_where {
       get {
-        return this._where;
+        return this._i_where;
       }
     }
     public Std.Wrappers._IOption<RAST._IExpr> dtor_body {
       get {
-        return this._body;
+        return this._i_body;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
