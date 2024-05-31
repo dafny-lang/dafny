@@ -24,6 +24,16 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Completion {
     }
 
     [Fact]
+    public async Task CodeCompletionInIncompleteTypeArgumentList() {
+      var source = @"
+function Foo<T>(): seq<".TrimStart();
+      var documentItem = CreateAndOpenTestDocument(source, "CompleteOnThisReturnsClassMembers.dfy");
+
+      var completionList = await RequestCompletionAsync(documentItem, (0, 23));
+      Assert.Empty(completionList);
+    }
+
+    [Fact]
     public async Task CompleteOnThisReturnsClassMembers() {
       var source = @"
 class A {

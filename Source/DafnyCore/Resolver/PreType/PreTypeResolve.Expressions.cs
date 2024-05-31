@@ -451,7 +451,10 @@ namespace Microsoft.Dafny {
                   ReportError(opExpr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
                 }
                 break;
-              default:
+              case UnaryOpExpr.Opcode.Assigned:
+            // the argument is allowed to have any type at all
+            expr.PreType = ConstrainResultToBoolFamily(expr.tok, "assigned", "boolean literal used as if it had type {0}");
+            break;default:
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
             }
 
@@ -717,6 +720,14 @@ namespace Microsoft.Dafny {
             AddSubtypeConstraint(iteExpr.PreType, e.Els.PreType, iteExpr.tok, "the two branches of an if-then-else expression must have the same type (got {0} and {1})");
             break;
           }
+        case DecreasesToExpr decreasesToExpr: {
+          foreach (var e in decreasesToExpr.SubExpressions) {
+            ResolveExpression(e, resolutionContext);
+          }
+
+          decreasesToExpr.PreType = ConstrainResultToBoolFamilyOperator(decreasesToExpr.tok, "decreasesto");
+        }
+
         case NestedMatchExpr matchExpr: {
             var e = matchExpr;
             ResolveNestedMatchExpr(e, resolutionContext);

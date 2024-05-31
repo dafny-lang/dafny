@@ -767,6 +767,10 @@ namespace Microsoft.Dafny {
           wr.Write("Lit(");
           PrintExpression(e.E, false);
           wr.Write(")");
+        } else if (e.Op == UnaryOpExpr.Opcode.Assigned) {
+          wr.Write("assigned(");
+          PrintExpression(e.E, false);
+          wr.Write(")");
         } else {
           Contract.Assert(e.Op != UnaryOpExpr.Opcode.Fresh); // this is handled is "is FreshExpr" case above
           // Prefix operator.
@@ -1193,6 +1197,28 @@ namespace Microsoft.Dafny {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
       } else if (expr is Resolver_IdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        var comma = false;
+        foreach (var oldExpr in decreasesToExpr.OldExpressions) {
+          if (comma) {
+            wr.Write(", ");
+          }
+          PrintExpression(oldExpr, false);
+          comma = true;
+        }
+        if (decreasesToExpr.AllowNoChange) {
+          wr.Write(" nonincreases to ");
+        } else {
+          wr.Write(" decreases to ");
+        }
+        comma = false;
+        foreach (var newExpr in decreasesToExpr.NewExpressions) {
+          if (comma) {
+            wr.Write(", ");
+          }
+          PrintExpression(newExpr, false);
+          comma = true;
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
