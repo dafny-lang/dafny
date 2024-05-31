@@ -26,9 +26,11 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    // private readonly List<string> Imports = new() { };
+    // Key: Fully-qualified module name with python-module-name/outer-module
+    // Value: Dafny-generated Python module name without python-module-name/outer-module
+    // This separation is used to identify nested extern modules,
+    //   which currently cannot be used with python-module-name/outer-module.
     private readonly Dictionary<string, string> Imports =  new Dictionary<string, string>();
-
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
@@ -100,6 +102,7 @@ namespace Microsoft.Dafny.Compilers {
       var pythonModuleName = PythonModuleMode ? PythonModuleName + "." : "";
 
       moduleName = PublicModuleIdProtect(moduleName);
+      // Nested extern modules should be written inside a folder
       var file = wr.NewFile($"{moduleName.Replace(".", "/")}.py");
       EmitImports(moduleName, pythonModuleName, file);
       return file;

@@ -197,7 +197,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       return compileName;
     }
 
-
     if (Implements is { Kind: ImplementationKind.Replacement }) {
       return Implements.Target.Def.GetCompileName(options);
     }
