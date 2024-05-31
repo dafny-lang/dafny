@@ -15,6 +15,12 @@ namespace Microsoft.Dafny {
     NewlineBrace
   }
 
+  public static class CanRenderExtensions {
+    public static ConcreteSyntaxTree InParens(this ICanRender canRender) {
+      return ConcreteSyntaxTree.Create($"({canRender})");
+    }
+  }
+  
   public class ConcreteSyntaxTree : ICanRender {
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
@@ -150,10 +156,6 @@ namespace Microsoft.Dafny {
     public ConcreteSyntaxTree Write(char value) {
       Write(new string(value, 1));
       return this;
-    }
-
-    public ConcreteSyntaxTree InParens() {
-      return Create($"({this})");
     }
 
     // ----- Nested blocks ------------------------------

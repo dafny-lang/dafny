@@ -2081,7 +2081,7 @@ namespace DCOMP {
           DAST._ILiteral _h150 = _source61.dtor_Literal_i_a0;
           if (_h150.is_BoolLiteral) {
             bool _h200 = _h150.dtor_BoolLiteral_i_a0;
-            if (_h200 == false) {
+            if ((_h200) == (false)) {
               unmatched61 = false;
               {
                 RAST._IExpr _out140;
@@ -2101,7 +2101,7 @@ namespace DCOMP {
           DAST._ILiteral _h151 = _source61.dtor_Literal_i_a0;
           if (_h151.is_BoolLiteral) {
             bool _h201 = _h151.dtor_BoolLiteral_i_a0;
-            if (_h201 == true) {
+            if ((_h201) == (true)) {
               unmatched61 = false;
               {
                 RAST._IExpr _out142;
@@ -2339,9 +2339,9 @@ namespace DCOMP {
         if (unmatched66) {
           if (_source66.is_Eq) {
             bool referential0 = _source66.dtor_referential;
-            if (referential0 == true) {
+            if ((referential0) == (true)) {
               bool nullable0 = _source66.dtor_nullable;
-              if (nullable0 == false) {
+              if ((nullable0) == (false)) {
                 unmatched66 = false;
                 return true;
               }

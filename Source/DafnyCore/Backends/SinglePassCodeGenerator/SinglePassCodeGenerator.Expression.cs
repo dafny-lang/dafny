@@ -272,70 +272,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is TypeTestExpr typeTestExpr) {
         CompileTypeTest(typeTestExpr, inLetExprBody, wr, ref wStmts);
 
-      } else if (expr is BinaryExpr) {
-        var e = (BinaryExpr)expr;
-
-        if (IsComparisonToZero(e, out var arg, out var sign, out var negated) &&
-            CompareZeroUsingSign(arg.Type)) {
-          // Transform e.g. x < BigInteger.Zero into x.Sign == -1
-          var w = EmitSign(arg.Type, wr);
-          TrParenExpr(arg, w, inLetExprBody, wStmts);
-          wr.Write(negated ? " != " : " == ");
-          wr.Write(sign.ToString());
-        } else {
-          CompileBinOp(e.ResolvedOp, e.E0.Type, e.E1.Type, e.tok, expr.Type.GetRuntimeType(),
-            out var opString,
-            out var preOpString,
-            out var postOpString,
-            out var callString,
-            out var staticCallString,
-            out var reverseArguments,
-            out var truncateResult,
-            out var convertE1_to_int,
-            out var coerceE1,
-            wr);
-
-          if (truncateResult && e.Type.NormalizeToAncestorType().AsBitVectorType is { } bitvectorType) {
-            wr = EmitBitvectorTruncation(bitvectorType, e.Type.AsNativeType(), true, wr);
-          }
-
-          var e0 = reverseArguments ? e.E1 : e.E0;
-          var e1 = reverseArguments ? e.E0 : e.E1;
-
-          var left = Expr(e0, inLetExprBody, wStmts);
-          ConcreteSyntaxTree right;
-          if (convertE1_to_int) {
-            right = ExprAsNativeInt(e1, inLetExprBody, wStmts);
-          } else {
-            right = Expr(e1, inLetExprBody, wStmts);
-            if (coerceE1) {
-              right = CoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, right);
-            }
-          }
-
-          wr.Write(preOpString);
-          if (opString != null) {
-            var nativeType = AsNativeType(e.Type);
-            string nativeName = null;
-            bool needsCast = false;
-            if (nativeType != null) {
-              GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
-            }
-
-            var opResult = ConcreteSyntaxTree.Create($"{left.InParens()} {opString} {right.InParens()}");
-            if (needsCast) {
-              opResult = Cast(new LineSegment(nativeName), opResult);
-            }
-
-            wr.Append(opResult);
-          } else if (callString != null) {
-            wr.Format($"{left.InParens()}.{callString}({right})");
-          } else if (staticCallString != null) {
-            wr.Format($"{staticCallString}({left}, {right})");
-          }
-
-          wr.Write(postOpString);
-        }
+      } else if (expr is BinaryExpr binary) {
+        EmitBinaryExpr(inLetExprBody, wr, wStmts, binary);
       } else if (expr is TernaryExpr) {
         Contract.Assume(false); // currently, none of the ternary expressions is compilable
 
@@ -614,6 +552,79 @@ namespace Microsoft.Dafny.Compilers {
 
         return wr;
       }
+    }
+
+    private void EmitBinaryExpr(bool inLetExprBody, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts, BinaryExpr binary)
+    {
+      if (IsComparisonToZero(binary, out var arg, out var sign, out var negated) &&
+          CompareZeroUsingSign(arg.Type)) {
+        // Transform e.g. x < BigInteger.Zero into x.Sign == -1
+        var w = EmitSign(arg.Type, wr);
+        TrParenExpr(arg, w, inLetExprBody, wStmts);
+        wr.Write(negated ? " != " : " == ");
+        wr.Write(sign.ToString());
+      } else {
+        CompileBinOp(binary.ResolvedOp, binary.E0.Type, binary.E1.Type, binary.tok, binary.Type.GetRuntimeType(),
+          out var opString,
+          out var preOpString,
+          out var postOpString,
+          out var callString,
+          out var staticCallString,
+          out var reverseArguments,
+          out var truncateResult,
+          out var convertE1_to_int,
+          out var coerceE1,
+          wr);
+
+        if (truncateResult && binary.Type.NormalizeToAncestorType().AsBitVectorType is { } bitvectorType) {
+          wr = EmitBitvectorTruncation(bitvectorType, binary.Type.AsNativeType(), true, wr);
+        }
+
+        var e0 = reverseArguments ? binary.E1 : binary.E0;
+        var e1 = reverseArguments ? binary.E0 : binary.E1;
+
+        var left = Expr(e0, inLetExprBody, wStmts);
+        ConcreteSyntaxTree right;
+        if (convertE1_to_int) {
+          right = ExprAsNativeInt(e1, inLetExprBody, wStmts);
+        } else {
+          right = Expr(e1, inLetExprBody, wStmts);
+          if (coerceE1) {
+            right = CoercionIfNecessary(e1.Type, TypeForCoercion(e1.Type), e1.tok, right);
+          }
+        }
+
+        EmitBinaryExprUsingConcreteSyntax(wr, binary.Type, preOpString, opString, left, right, callString, staticCallString, postOpString);
+      }
+    }
+
+    protected void EmitBinaryExprUsingConcreteSyntax(ConcreteSyntaxTree wr, Type resultType, string preOpString,
+      string opString, ICanRender left, ICanRender right, string callString, string staticCallString,
+      string postOpString)
+    {
+      wr.Write(preOpString);
+      if (opString != null) {
+        var nativeType = AsNativeType(resultType);
+        string nativeName = null;
+        bool needsCast = false;
+        if (nativeType != null) {
+          GetNativeInfo(nativeType.Sel, out nativeName, out _, out needsCast);
+        }
+
+        var opResult = ConcreteSyntaxTree.Create($"{left.InParens()} {opString} {right.InParens()}");
+        if (needsCast) {
+          opResult = Cast(new LineSegment(nativeName), opResult);
+        }
+
+        wr.Append(opResult);
+      } else if (callString != null) {
+        wr.Format($"{left.InParens()}.{callString}({right})");
+      } else if (staticCallString != null) {
+        wr.Format($"{staticCallString}({left}, {right})");
+      }
+
+      wr.Write(postOpString);
     }
 
     private void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

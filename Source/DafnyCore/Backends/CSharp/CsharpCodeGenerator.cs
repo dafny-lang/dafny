@@ -3655,15 +3655,14 @@ namespace DafnyProfiling {
 
       var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
       if (litExpression != null) {
-
         var thenWriter = EmitIf(out var guardWriter, false, writer);
-        guardWriter.Write(sourceName);
-        // CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, sourceType, pattern.Tok, Type.Bool,
-        //   out var opString, out var _, out var _, out var _, out var _,
-        //   out var _, out var _, out var _, out var _,
-        //   writer);
-        guardWriter.Write(" == ");
-        EmitExpr(litExpression, false, guardWriter, writer);
+        CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, litExpression.Type, pattern.Tok, Type.Bool,
+          out var opString, out var preOpString, out var postOpString, out var callString, out var staticCallString,
+          out _, out _, out _, out _,
+          writer);
+        var right = new ConcreteSyntaxTree();
+        EmitExpr(litExpression, false, right, writer);
+        EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
         writer = thenWriter;
       } else if (pattern is IdPattern idPattern) {
         if (idPattern.Ctor == null) {
