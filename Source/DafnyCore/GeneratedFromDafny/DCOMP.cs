@@ -1865,8 +1865,12 @@ namespace DCOMP {
                 }
               }
               if (unmatched59) {
-                unmatched59 = false;
-                return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
+                if (_source59.is_MapBuilderAdd) {
+                  if (_source59.is_SetBuilderAdd) {
+                    unmatched59 = false;
+                    return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
+                  }
+                }
               }
               if (unmatched59) {
                 unmatched59 = false;
@@ -2281,8 +2285,30 @@ namespace DCOMP {
       _1333_becomesLeftCallsRight = ((System.Func<DAST._IBinOp, bool>)((_source64) => {
         bool unmatched64 = true;
         if (unmatched64) {
-          unmatched64 = false;
-          return true;
+          if (_source64.is_SetMerge) {
+            if (_source64.is_SetSubtraction) {
+              if (_source64.is_SetIntersection) {
+                if (_source64.is_SetDisjoint) {
+                  if (_source64.is_MapMerge) {
+                    if (_source64.is_MapSubtraction) {
+                      if (_source64.is_MultisetMerge) {
+                        if (_source64.is_MultisetSubtraction) {
+                          if (_source64.is_MultisetIntersection) {
+                            if (_source64.is_MultisetDisjoint) {
+                              if (_source64.is_Concat) {
+                                unmatched64 = false;
+                                return true;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
         if (unmatched64) {
           DAST._IBinOp _1334___v54 = _source64;
@@ -4490,8 +4516,12 @@ namespace DCOMP {
                 }
               }
               if (unmatched75) {
-                unmatched75 = false;
-                return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
+                if (_source75.is_MapBuilderAdd) {
+                  if (_source75.is_SetBuilderAdd) {
+                    unmatched75 = false;
+                    return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("add");
+                  }
+                }
               }
               if (unmatched75) {
                 unmatched75 = false;

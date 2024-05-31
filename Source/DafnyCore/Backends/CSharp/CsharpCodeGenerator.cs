@@ -3675,6 +3675,12 @@ namespace DafnyProfiling {
           writer = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
         }
 
+      } else if (pattern is DisjunctivePattern disjunctivePattern) {
+        foreach (var alternative in disjunctivePattern.Alternatives) {
+          writer = EmitNestedMatchCaseConditions(sourceName, sourceType, alternative, writer, lastCase);
+        }
+      } else {
+        throw new Exception();
       }
 
       return writer;
@@ -3710,18 +3716,20 @@ namespace DafnyProfiling {
           EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
             SelectNonGhost(userDefinedType.ResolvedClass, sourceType.TypeArgs), null, destructor);
 
-          string newSourceName;
-          var childPattern = idPattern.Arguments[m];
-          if (childPattern is IdPattern { Ctor: null } childIdPattern) {
-            var boundVar = childIdPattern.BoundVar;
-            newSourceName = IdName(boundVar);
-            var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
-            valueWriter.Append(destructor);
-          } else {
-            newSourceName = ProtectedFreshId(arg.CompileName);
-            var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
-            valueWriter.Append(destructor);
-            result = EmitNestedMatchCaseConditions(newSourceName, type, idPattern.Arguments[m], result, lastCase);
+          if (idPattern.Arguments != null) {
+            string newSourceName;
+            var childPattern = idPattern.Arguments[m];
+            if (childPattern is IdPattern { Ctor: null } childIdPattern) {
+              var boundVar = childIdPattern.BoundVar;
+              newSourceName = IdName(boundVar);
+              var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
+              valueWriter.Append(destructor);
+            } else {
+              newSourceName = ProtectedFreshId(arg.CompileName);
+              var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
+              valueWriter.Append(destructor);
+              result = EmitNestedMatchCaseConditions(newSourceName, type, idPattern.Arguments[m], result, lastCase);
+            }
           }
           k++;
         }
