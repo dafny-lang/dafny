@@ -194,7 +194,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public string GetCompileName(DafnyOptions options) {
     if (compileName != null) {
-      Console.WriteLine(compileName);
       return compileName;
     }
 
@@ -218,14 +217,11 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         // a flat list of modules.
         // Use an "underscore-escaped" character as a module name separator, since
         // underscores are already used as escape characters in SanitizeName()
-        Console.WriteLine("3");
         compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
       } else {
-        Console.WriteLine("4");
         compileName = NonglobalVariable.SanitizeName(Name);
       }
 
-      Console.WriteLine("5");
       compileName += nonExternSuffix;
     }
 

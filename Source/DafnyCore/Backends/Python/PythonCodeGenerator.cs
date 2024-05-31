@@ -139,28 +139,49 @@ namespace Microsoft.Dafny.Compilers {
       if (!(DafnyRuntimeGeneratedModuleNames.Contains(moduleName))) {
         wr.WriteLine($"import {(PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule)} as {DafnyDefaultModule}");
       }
-      // Alias nested imports to the final segment of the import string
-      // ex. `import a.b.c as c`
       foreach (var module in Imports)
       {
         if (module.Value.Contains(".")) {
-          wr.WriteLine($"import {module.Key} as {module.Value.Split(".")[0]}");
+          // If module.Value has `.`s in it, it is a nested extern module. (ex. module {:extern "a.b.c"})
+          // (Non-extern nested modules with `.`s in it will have their `.`s replaced with `_`,
+          //   so this code branch ONLY applies to nested extern modules.)
+          // 
+          // Nested externs currently CANNOT be used with python-module-name or outer-module:
+          //
+          // 1) (Dafny behavior; probably able to be changed)
+          // Dafny-generated Python references to nested externs do not contain the python-module-name/outer-module prefix.
+          // ex. If python-module-name=X.Y, and we have nested extern module "a.b.c",
+          //     code generation ignores the prefix and writes `a.b.c.D()`.
+          //     In contrast, a non-extern nested module `M.N` is prefixed and generated as `X.Y.M_N`.
+          //
+          // 2) (Python behavior, not able to be changed)
+          // Aliased Python modules cannot have `.`s in their name.
+          // ex. with `import X as Y`, `Y` cannot have `.`s.
+          // 
+          // 1) and 2) taken together prevent these features from working together.
+          if (!module.Value.Equals(module.Key)) {
+            throw new NotSupportedException("Nested extern modules cannot be used with python-module-name or outer-module");
+          }
+          
+          // Since module.Key contains the python-module-name/outer-module prefix,
+          // and nested externs currently do not support these features,
+          // import the nested extern module directly
+          // ex. nested extern module `a.b.c` ==> `import a.b.c`
+          wr.WriteLine($"import {module.Value}");
         } else {
+          // ex python-module-name `X.Y`:
+          // module `M` ==> `import X.Y.M as M`
+          // module `M.N` ==> `import X.Y.M_N as M_N`
+          // non-nested extern module `E` ==> `import X.Y.E as E`
           wr.WriteLine($"import {module.Key} as {module.Value}");
         }
       }
-      // Imports.ForEach(module => {
-      // });
-      // Imports.ForEach(module => );
       if (moduleName != null) {
         wr.WriteLine();
         wr.WriteLine($"# Module: {moduleName}");
         Imports.Add(pythonModuleName + moduleName, moduleName);
       }
     }
-
-          // Imports.ForEach(module => wr.WriteLine($"import {module} as {module.Split('.').Last()}"));
-
 
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
