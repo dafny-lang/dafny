@@ -579,8 +579,8 @@ namespace Microsoft.Dafny.Compilers {
       if (createBody) {
         return getterWriter;
       }
-      getterWriter.WriteLine($"return self._{name}");
-      setterWriter.WriteLine($"self._{name} = value");
+      getterWriter.WriteLine($"return self.{InternalFieldPrefix}{name}");
+      setterWriter.WriteLine($"self.{InternalFieldPrefix}{name} = value");
       setterWriter = null;
       return null;
     }
@@ -1234,7 +1234,10 @@ namespace Microsoft.Dafny.Compilers {
 
 
     private readonly HashSet<string> ReservedModuleNames = new() {
-      "itertools", "math", "typing", "sys"
+      "itertools",
+      "math",
+      "typing",
+      "sys"
     };
 
     private string PublicModuleIdProtect(string name) {
@@ -1361,14 +1364,14 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField sf: {
             GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
             return SimpleLvalue(w => {
-              var customReceiver = NeedsCustomReceiver(sf) && sf.EnclosingClass is not TraitDecl;
+              var customReceiver = NeedsCustomReceiverNotTrait(sf);
               if (sf.IsStatic || customReceiver) {
                 w.Write(TypeName_Companion(objType, w, member.tok, member));
               } else {
                 obj(w);
               }
               if (compiledName.Length > 0) {
-                w.Write($".{(sf is ConstantField && internalAccess ? "_" : "")}{compiledName}");
+                w.Write($".{(sf is ConstantField && internalAccess ? InternalFieldPrefix : "")}{compiledName}");
               }
               var sep = "(";
               EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.tok, w, ref sep);
