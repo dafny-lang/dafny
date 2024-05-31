@@ -145,35 +145,51 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var module in Imports) {
         if (module.Value.Contains(".")) {
           // If module.Value has `.`s in it, it is a nested extern module. (ex. module {:extern "a.b.c"})
-          // (Non-extern nested modules with `.`s in it will have their `.`s replaced with `_`,
-          //   so this code branch ONLY applies to nested extern modules.)
+          // (Non-extern nested modules with `.`s in their names
+          // will have their `.`s replaced with `_` before this code is executed,
+          // ex. module M.N --> "M_N",
+          // so this code branch ONLY applies to nested extern modules.)
           // 
-          // Nested externs currently CANNOT be used with python-module-name or outer-module:
+          // Nested externs currently CANNOT be used with python-module-name:
           //
-          // 1) (Dafny behavior; probably able to be changed)
-          // Dafny-generated Python references to nested externs do not contain the python-module-name/outer-module prefix.
+          // 1. (Dafny behavior; probably able to be changed)
+          // Dafny-generated Python references to extern modules do not contain the python-module-name prefix.
           // ex. If python-module-name=X.Y, and we have nested extern module "a.b.c",
-          //     code generation ignores the prefix and writes `a.b.c.D()`.
-          //     In contrast, a non-extern nested module `M.N` is prefixed and generated as `X.Y.M_N`.
+          //     code generation ignores the prefix and writes `a.b.c`.
+          //     In contrast, an extern non-nested module `E` is not prefixed and is generated as `E`,
+          //     and a non-extern nested module `M.N` is prefixed and generated as `X.Y.M_N`.
           //
-          // 2) (Python behavior, not able to be changed)
+          // 2. (Python behavior; not able to be changed)
           // Aliased Python modules cannot have `.`s in their name.
           // ex. with `import X as Y`, `Y` cannot have `.`s.
           // 
-          // 1) and 2) taken together prevent these features from working together.
+          // 1. and 2. taken together prevent nested extern modules from being used with python-module-name.
+          // The reference to the nested extern inside generated code MUST be `a.b.c` due to 1).
+          // However, the aliased import cannot have `.`s in it due to 2).
+          // So nested externs cannot be aliased.
+          // Nested non-externs can be aliased (since, in 2., any nested `.`s are replaced with `_`s).
+          // Non-nested externs can be aliased (since, in 2., `Y` does not have `.`s).
+          //
+          // There are several possible paths to supporting these features together:
+          // - Modify behavior in 1 to apply prefixes for externs.
+          //   This is out of scope for python-module-name, since the outer-module prefix also does not apply to externs.
+          //   These are both "prefixes", and I expect any solution for python-module-name should also apply to outer-module.
+          // - Modify nested extern behavior to replace `.`s with `_`s, similar to nested non-externs.
           if (!module.Value.Equals(module.Key)) {
-            throw new NotSupportedException("Nested extern modules cannot be used with python-module-name or outer-module");
+            throw new NotSupportedException($"Nested extern modules cannot be used with python-module-name. Nested extern: {module.Value}");
           }
-          // Since module.Key contains the python-module-name/outer-module prefix,
-          // and nested externs currently do not support these features,
           // import the nested extern module directly
           // ex. nested extern module `a.b.c` ==> `import a.b.c`
           wr.WriteLine($"import {module.Value}");
         } else {
-          // ex python-module-name `X.Y`:
+          // Here, module.Key contains python-module-name or outer-module.
+          // Alias the import so generated code can use the module.
+          //
+          // ex. python-module-name `X.Y`:
           // module `M` ==> `import X.Y.M as M`
           // module `M.N` ==> `import X.Y.M_N as M_N`
           // non-nested extern module `E` ==> `import X.Y.E as E`
+          // nested extern modules not supported with prefixes
           wr.WriteLine($"import {module.Key} as {module.Value}");
         }
       }
