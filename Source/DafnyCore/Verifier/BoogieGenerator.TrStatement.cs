@@ -1559,14 +1559,20 @@ namespace Microsoft.Dafny {
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
       if (initDecr != null) {
         var toks = new List<IToken>();
-        var types = new List<Type>();
         var decrs = new List<Expr>();
+        var decrsDafny = new List<Expression>();
+        var initDecrsDafny = new List<Expression>();
+        var prevGhostLocals = new List<VarDeclStmt>();
         foreach (Expression e in theDecreases) {
           toks.Add(e.tok);
-          types.Add(e.Type.NormalizeExpand());
+          decrsDafny.Add(e);
           decrs.Add(etran.TrExpr(e));
+          var (prevVars, eInit) = TranslateToLoopEntry(s, e, "LoopEntry");
+          prevGhostLocals.AddRange(prevVars);
+          initDecrsDafny.Add(eInit);
         }
-        Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, initDecr, null, null, true, false);
+        Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, initDecr,
+          null, null, true, false);
         invariants.Add(TrAssumeCmd(s.Tok, decrCheck));
       }
 
@@ -1608,25 +1614,26 @@ namespace Microsoft.Dafny {
           bodyTr(loopBodyBuilder, updatedFrameEtran);
           // check definedness of decreases expressions
           var toks = new List<IToken>();
-          var types = new List<Type>();
           var decrs = new List<Expr>();
-          var oldDecreases = new List<Expression>();
+          var decrsDafny = new List<Expression>();
+          var initDecrsDafny = new List<Expression>();
           var prevGhostLocals = new List<VarDeclStmt>();
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
-            types.Add(e.Type.NormalizeExpand());
             // Note: the label "LoopEntry" doesn't exist in the program, and is
             // useful only for explanatory purposes.
-            var (vars, olde) = TranslateToLoopEntry(s, e, "LoopEntry");
-            oldDecreases.Add(olde);
-            prevGhostLocals.AddRange(vars);
+            decrsDafny.Add(e);
+            var (prevVars, eInit) = TranslateToLoopEntry(s, e, "LoopEntry");
+            prevGhostLocals.AddRange(prevVars);
+            initDecrsDafny.Add(eInit);
             decrs.Add(etran.TrExpr(e));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
-            Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
+            Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, oldBfs,
+              loopBodyBuilder, " at end of loop iteration", false, false);
             loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new
-              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, oldDecreases, theDecreases, false)));
+              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false)));
           }
         }
       } else if (isBodyLessLoop) {
