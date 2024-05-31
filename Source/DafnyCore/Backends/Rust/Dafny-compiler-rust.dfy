@@ -982,6 +982,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   class COMP {
     const DafnyChar := if UnicodeChars then "DafnyChar" else "DafnyCharUTF16"
     const UnicodeChars: bool
+    const string_of := if UnicodeChars then "string_of" else "string_utf16_of"
 
     constructor(UnicodeChars: bool) {
       this.UnicodeChars := UnicodeChars;
@@ -1894,7 +1895,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
         case Select(on, field) => {
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, params, OwnershipBorrowed);
-          generated := "*(" + onExpr.ToString(IND) + "." + field + ".borrow_mut()) = " + rhs + ";";
+          generated := "*(" + onExpr.ToString(IND) + "." + escapeIdent(field) + ".borrow_mut()) = " + rhs + ";";
           readIdents := recIdents;
           needsIIFE := true;
         }
@@ -2288,7 +2289,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Literal(StringLiteral(l)) => {
-          r := R.dafny_runtime.MSel("string_of").Apply1(R.LiteralString(l, false));
+          r := R.dafny_runtime.MSel(string_of).Apply1(R.LiteralString(l, false));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := {};
           return;
@@ -2296,10 +2297,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case Literal(CharLiteral(c)) => {
           r := R.LiteralInt(Strings.OfNat(c as nat));
           if !UnicodeChars {
-            r :=
-              R.global.MSel("std").MSel("primitive")
-              .MSel("char").MSel("from_u16")
-              .Apply1(r).Sel("unwrap").Apply([], []);
+            r := R.TypeAscription(r, R.U16);
           } else {
             r :=
               R.global.MSel("std").MSel("primitive")
