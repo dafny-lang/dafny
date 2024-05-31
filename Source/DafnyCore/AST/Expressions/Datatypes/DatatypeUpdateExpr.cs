@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneable<DatatypeUpdateExpr> {
+public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, ICloneable<DatatypeUpdateExpr> {
   public readonly Expression Root;
   public readonly List<Tuple<IToken, string, Expression>> Updates;
   [FilledInDuringResolution] public List<MemberDecl> Members;
@@ -62,11 +62,11 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasUsages, ICloneab
     }
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return (IEnumerable<IDeclarationOrUsage>)LegalSourceConstructors ?? Array.Empty<IDeclarationOrUsage>();
+  public IEnumerable<IHasNavigationToken> GetReferences() {
+    return (IEnumerable<ISymbol>)LegalSourceConstructors ?? Array.Empty<ISymbol>();
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
     get {
