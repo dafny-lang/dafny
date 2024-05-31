@@ -555,8 +555,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private void EmitBinaryExpr(bool inLetExprBody, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts, BinaryExpr binary)
-    {
+      ConcreteSyntaxTree wStmts, BinaryExpr binary) {
       if (IsComparisonToZero(binary, out var arg, out var sign, out var negated) &&
           CompareZeroUsingSign(arg.Type)) {
         // Transform e.g. x < BigInteger.Zero into x.Sign == -1
@@ -601,8 +600,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void EmitBinaryExprUsingConcreteSyntax(ConcreteSyntaxTree wr, Type resultType, string preOpString,
       string opString, ICanRender left, ICanRender right, string callString, string staticCallString,
-      string postOpString)
-    {
+      string postOpString) {
       wr.Write(preOpString);
       if (opString != null) {
         var nativeType = AsNativeType(resultType);
@@ -663,7 +661,7 @@ namespace Microsoft.Dafny.Compilers {
       // We end with applying the source expression to the delegate we just built
       EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
     }
-    
+
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       EmitExpr(match.Flattened, inLetExprBody, wr, wStmts);
     }
