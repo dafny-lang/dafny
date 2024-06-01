@@ -1270,7 +1270,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source,
       Formal dtor, int formalNonGhostIndex,
-      DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
 
@@ -2897,7 +2897,9 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw => EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw =>
+              EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, () => dtv.InferredTypeArgs, arg.Expr.Type, sw),
+              targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -4688,7 +4690,8 @@ namespace Microsoft.Dafny.Compilers {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
-          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
+          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, () =>
+            SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
           k++;
         }
       }
@@ -5197,7 +5200,9 @@ namespace Microsoft.Dafny.Compilers {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            wr = TrCasePattern(arg, sw => EmitDestructor(rhs, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
+            wr = TrCasePattern(arg, sw =>
+              EmitDestructor(rhs, formal, k, ctor, () => ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw),
+              formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
             k++;
           }
         }

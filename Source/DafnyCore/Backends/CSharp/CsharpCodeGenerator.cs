@@ -2958,7 +2958,8 @@ namespace Microsoft.Dafny.Compilers {
       return result;
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
@@ -3712,12 +3713,8 @@ namespace DafnyProfiling {
           Type type = arg.Type.Subst(typeSubstMap);
           // ((Dt_Ctor0)source._D).a0;
           var destructor = new ConcreteSyntaxTree();
-          if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, userDefinedType.AsDatatype, out var x)) {
-            destructor.Write(sourceName);
-          } else {
-            EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
-              SelectNonGhost(userDefinedType.ResolvedClass, userDefinedType.TypeArgs), null, destructor);
-          }
+          EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
+            () => SelectNonGhost(userDefinedType.ResolvedClass, userDefinedType.TypeArgs), type, destructor);
 
           if (idPattern.Arguments != null) {
             string newSourceName;
