@@ -1691,6 +1691,12 @@ public abstract class Type : TokenNode {
       return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
     }
 
+    // There is a special case, namely when super is the non-null "object". Since "sub.ParentTypes()" only gives
+    // back the explicitly declared parent traits, the general case below may miss it.
+    if (super.IsObject) {
+      return sub.IsNonNullRefType;
+    }
+
     return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
   }
 

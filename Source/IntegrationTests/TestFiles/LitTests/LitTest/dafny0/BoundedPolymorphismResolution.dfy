@@ -288,14 +288,14 @@ module Overrides {
 
   type IntGenericBound = GenericBound<int>
 
-  codatatype AllGood extends Parent = More
+  codatatype SomeGood extends Parent = More
   {
     function F<X extends GenericBound<Y>, Y extends GenericBound<X>>(): int { 2 }
-    method M<X extends GenericBound<Y>, Y extends GenericBound<int>>() { }
+    method M<X extends GenericBound<Y>, Y extends GenericBound<int>>() { } // error: bound of Y is different
     greatest lemma L<X extends IntGenericBound, Y extends GenericBound<int>>() { }
   }
 
-  datatype CoAllGood extends Parent = More
+  datatype CoSomeGood extends Parent = More
   {
     function F<Y extends GenericBound<X>, X extends GenericBound<Y>>(): int { 2 } // error (x2): type parameters have been renamed
     method M<X extends IntGenericBound, Y extends GenericBound<X>>() { } // error: bound is different

@@ -97,6 +97,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   ///     class C<X> extends J<X, int>
   /// C.ParentTypes(real) = J<real, int>    // non-null types C and J
   /// C?.ParentTypes(real) = J?<real, int>  // possibly-null type C? and J?
+  /// For a type parameter, ParentTypes() returns the type bounds.
   /// </summary>
   public virtual List<Type> ParentTypes(List<Type> typeArgs) {
     Contract.Requires(typeArgs != null);

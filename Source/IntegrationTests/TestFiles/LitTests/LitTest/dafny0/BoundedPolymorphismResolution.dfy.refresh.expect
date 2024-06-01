@@ -40,6 +40,7 @@ BoundedPolymorphismResolution.dfy(209,9): Error: type bound for type parameter '
 BoundedPolymorphismResolution.dfy(214,13): Error: type bound for type parameter 'A' of datatype 'ToBeReplaced1' is different from the corresponding type bound of the corresponding type parameter of the corresponding datatype in the module it refines (expected 'Trait', found 'object')
 BoundedPolymorphismResolution.dfy(216,9): Error: type parameter 'A' of type 'ToBeReplaced3' is declared with a different number of type bounds than in the corresponding type in the module it refines (expected 1, found 0)
 BoundedPolymorphismResolution.dfy(218,10): Error: type bound for type parameter 'A' of class 'ToBeReplaced5' is different from the corresponding type bound of the corresponding type parameter of the corresponding class in the module it refines (expected 'Trait', found 'object')
+BoundedPolymorphismResolution.dfy(218,10): Error: type parameter ('A') passed to type 'ToBeReplaced5' must meet type bound 'object' (got 'A')
 BoundedPolymorphismResolution.dfy(251,12): Error: incorrect argument type for method in-parameter 'y0' (expected RandomClass?<string>, found RandomClass?<real>) (non-variant type parameter 'R' would require string = real)
 BoundedPolymorphismResolution.dfy(254,23): Error: incorrect argument type for function parameter 'y1' (expected RandomClass?<string>, found RandomClass?<char>) (non-variant type parameter 'R' would require string = char)
 BoundedPolymorphismResolution.dfy(257,14): Error: incorrect argument type for constructor in-parameter 'y2' (expected RandomClass?<string>, found RandomClass?<int>) (non-variant type parameter 'R' would require string = int)
@@ -52,4 +53,4 @@ BoundedPolymorphismResolution.dfy(300,42): Error: type parameters in this functi
 BoundedPolymorphismResolution.dfy(301,11): Error: type bound for type parameter 'X' of method 'M' is different from the corresponding type bound of the corresponding type parameter of the method it overrides (expected 'GenericBound<Y>', found 'GenericBound<int>')
 BoundedPolymorphismResolution.dfy(302,19): Error: type bound for type parameter 'X' of method 'L' is different from the corresponding type bound of the corresponding type parameter of the method it overrides (expected 'GenericBound<int>', found 'GenericBound<X>')
 BoundedPolymorphismResolution.dfy(306,19): Error: type bound for type parameter 'Y' of method 'L' is different from the corresponding type bound of the corresponding type parameter of the method it overrides (expected 'GenericBound<int>', found 'GenericBound<X>')
-54 resolution/type errors detected in BoundedPolymorphismResolution.dfy
+55 resolution/type errors detected in BoundedPolymorphismResolution.dfy
