@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK-L: error[E0277]: the type `[u32]` cannot be indexed by `&u32`

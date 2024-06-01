@@ -479,7 +479,7 @@ public class MultiBackendTest {
         checkOutput = "// CHECK: .*" + Regex.Escape(m2[0].Value.Trim()) + ".*";
       } else if (new Regex("^Unhandled exception.*$", RegexOptions.Multiline).Matches(contentCheck) is { Count: > 0 } m3) {
         checkOutput = "// CHECK-L: " + m3[0].Value.Trim();
-      } else if (new Regex("^(error:(?: \\w+)*).*$", RegexOptions.Multiline).Matches(contentCheck) is { Count: > 0 } m4) {
+      } else if (new Regex(@"^(error(?:\[\w+\])?:(?: \w+)*).*$", RegexOptions.Multiline).Matches(contentCheck) is { Count: > 0 } m4) {
         checkOutput = "// CHECK-L: " + m4[0].Value.Trim();
       } else {
         shouldSuffice = false;

@@ -1,1 +1,1 @@
-// CHECK-L: error: missing angle brackets in associated item path
+// CHECK-L: error[E0107]: method takes 0 generic arguments but 1 generic argument was supplied

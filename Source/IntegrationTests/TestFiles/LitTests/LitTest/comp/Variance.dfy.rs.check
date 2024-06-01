@@ -1,1 +1,1 @@
-// CHECK: .*<i>Cannot\ assign\ null\ value\ to\ variable</i>.*
+// CHECK-L: error[E0786]: found invalid metadata files for crate `object` which `std` depends on

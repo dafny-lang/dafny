@@ -1,1 +1,1 @@
-// CHECK: .*<i>Traits</i>.*
+// CHECK-L: error[E0786]: found invalid metadata files for crate `core`

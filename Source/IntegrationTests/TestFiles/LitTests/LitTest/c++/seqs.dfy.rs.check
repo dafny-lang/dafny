@@ -1,1 +1,1 @@
-// CHECK: .*use of undeclared crate or module `num`.*
+// CHECK-L: error[E0277]: the trait bound `C: Clone` is not satisfied

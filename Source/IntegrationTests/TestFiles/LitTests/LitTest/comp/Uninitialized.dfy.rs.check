@@ -1,1 +1,1 @@
-// CHECK: .*<i>QuantifierExpr</i>.*
+// CHECK-L: Unhandled exception: System.OutOfMemoryException: Exception of type 'System.OutOfMemoryException' was thrown.

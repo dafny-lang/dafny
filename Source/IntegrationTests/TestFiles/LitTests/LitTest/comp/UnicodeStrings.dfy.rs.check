@@ -1,1 +1,1 @@
-// CHECK: .*<i>ForLoops</i>.*
+// CHECK-L: error[E0786]: found invalid metadata files for crate `core` which `std` depends on

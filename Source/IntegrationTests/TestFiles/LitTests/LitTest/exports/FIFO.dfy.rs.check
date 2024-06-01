@@ -1,1 +1,1 @@
-// CHECK-L: error[E0277]: the trait bound `Sequence<DafnyInt>: Default` is not satisfied
+// CHECK-L: error: could not compile `num-rational` (lib)

@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK: .*<i>Coercion\ from\ super::_module::MyClass\ to\ _K</i>.*

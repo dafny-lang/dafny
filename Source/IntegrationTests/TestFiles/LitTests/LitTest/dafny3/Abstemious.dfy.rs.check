@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK: .*<i>Coercion\ from\ ::std::rc::Rc<dyn\ ::std::ops::Fn\(&::dafny_runtime::DafnyInt\)\ ->\ ::dafny_runtime::DafnyInt>\ to\ ::std::rc::Rc<dyn\ ::std::ops::Fn\(&_T\)\ ->\ _U></i>.*

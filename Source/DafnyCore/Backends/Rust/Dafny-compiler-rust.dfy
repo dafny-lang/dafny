@@ -11,6 +11,10 @@ module RAST
   import opened DAST.Format
   import Strings = Std.Strings
 
+  // Rust tuples support some traits like Default only till arity 12
+  // Past that, we use Dafny system tuples (see https://www.reddit.com/r/rust/comments/11gvkda/why_rust_std_only_provides_trait_implementation/)
+  const MAX_TUPLE_SIZE := 12
+
   // Default Indentation
   const IND := "  "
 
@@ -311,6 +315,10 @@ module RAST
     }
   }
 
+  function SystemTupleType(elements: seq<Type>): Type {
+    super_type.MSel("_System").MSel("Tuple" + Strings.OfNat(|elements|)).Apply(elements)
+  }
+
   const global_type := TIdentifier("")
   const std_type: Type := global_type.MSel("std")
   const super_type := TIdentifier("super")
@@ -325,6 +333,17 @@ module RAST
   const DafnyTypeEq := dafny_runtime_type.MSel("DafnyTypeEq")
   const Eq := TIdentifier("Eq")
   const DafnyInt := dafny_runtime_type.MSel("DafnyInt")
+
+  const super := Identifier("super")
+
+  function SystemTuple(elements: seq<Expr>): Expr {
+    var size := Strings.OfNat(|elements|);
+    StructBuild(super.MSel("_System").MSel("Tuple" + size).MSel("_T" + size),
+      seq(|elements|, i requires 0 <= i < |elements| =>
+        AssignIdentifier("_" + Strings.OfNat(i), elements[i])
+      )
+    )
+  }
 
   datatype Trait =
     | Trait(typeParams: seq<TypeParamDecl>, tpe: Type, where: string, body: seq<ImplMember>)
@@ -1660,8 +1679,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var ctorMatch := escapeName(ctor.name) + " { ";
 
         var modulePrefix := if c.enclosingModule.id.dafny_name == "_module" then "" else escapeName(c.enclosingModule.id) + ".";
+        var ctorName := modulePrefix + escapeName(c.name) + "." + escapeName(ctor.name);
+        if |ctorName| >= 13 && ctorName[0..13] == "_System.Tuple" {
+          ctorName := ""; 
+        }
         var printRhs :=
-          R.RawExpr("write!(_formatter, \"" + modulePrefix + escapeName(c.name) + "." + escapeName(ctor.name) + (if ctor.hasAnyArgs then "(\")?" else "\")?"));
+          R.RawExpr("write!(_formatter, \"" + ctorName + (if ctor.hasAnyArgs then "(\")?" else "\")?"));
 
         for j := 0 to |ctor.args| {
           var formal := ctor.args[j];
@@ -1855,7 +1878,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             args := args + [generated];
             i := i + 1;
           }
-          s := R.TupleType(args);
+          s := if |types| <= R.MAX_TUPLE_SIZE then R.TupleType(args) else R.SystemTupleType(args);
         }
         case Array(element, dims) => {
           var elem := GenType(element, inBinding, inFn);
@@ -2296,10 +2319,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
           var onExpr, _, enclosingIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
 
-          var typeExprs := [];
+          var typeArgsR := [];
           if (|typeArgs| >= 1) {
             var typeI := 0;
-            var typeArgsR := [];
             while typeI < |typeArgs| {
               var tpe := GenType(typeArgs[typeI], false, false);
               typeArgsR := typeArgsR + [tpe];
@@ -2337,8 +2359,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
           }
           generated := onExpr;
-          if |typeExprs| > 0 {
-            generated := generated.ApplyType(typeExprs);
+          if |typeArgsR| > 0 {
+            generated := generated.ApplyType(typeArgsR);
           }
           generated := generated.Apply(argExprs);
 
@@ -3067,7 +3089,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             exprs := exprs + [recursiveGen];
             readIdents := readIdents + recIdents;
           }
-          r := R.Tuple(exprs);
+          r := if |values| <= R.MAX_TUPLE_SIZE then R.Tuple(exprs) else R.SystemTuple(exprs);
 
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
@@ -3525,7 +3547,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case TupleSelect(on, idx, fieldType) => {
           var onExpr, onOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
-          r := onExpr.Sel(Strings.OfNat(idx));
+          var selName := Strings.OfNat(idx); // Rust tuples
+          match fieldType {
+            case Tuple(tps) =>
+              if fieldType.Tuple? && |tps| > R.MAX_TUPLE_SIZE {
+                selName := "_" + selName; // R.SystemTuple
+              }
+            case _ =>
+          }
+          r := onExpr.Sel(selName);
           r, resultingOwnership := FromOwnership(r, onOwnership, expectedOwnership);
           readIdents := recIdents;
           return;

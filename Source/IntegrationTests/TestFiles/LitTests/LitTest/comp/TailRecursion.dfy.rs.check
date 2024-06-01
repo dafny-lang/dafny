@@ -1,1 +1,1 @@
-// CHECK: .*<i>Type\ name\ for\ ORDINAL\ \(Microsoft_dDafny_dBigOrdinalType\)</i>.*
+// CHECK-L: error[E0786]: found invalid metadata files for crate `alloc` which `std` depends on

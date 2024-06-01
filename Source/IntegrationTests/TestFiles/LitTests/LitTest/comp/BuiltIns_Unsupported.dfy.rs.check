@@ -1,1 +1,1 @@
-// CHECK-L: error[E0308]: mismatched types
+// CHECK-L: error[E0277]: the trait bound `(bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool): Default` is not satisfied
