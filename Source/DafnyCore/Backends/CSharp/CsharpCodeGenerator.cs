@@ -3665,7 +3665,7 @@ namespace DafnyProfiling {
         EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
         writer = thenWriter;
       } else if (pattern is IdPattern idPattern) {
-        if (idPattern.Ctor == null) {
+        if (idPattern.BoundVar != null) {
           var boundVar = idPattern.BoundVar;
           var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
           valueWriter.Write(sourceName);
@@ -3712,13 +3712,17 @@ namespace DafnyProfiling {
           Type type = arg.Type.Subst(typeSubstMap);
           // ((Dt_Ctor0)source._D).a0;
           var destructor = new ConcreteSyntaxTree();
-          EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
-            SelectNonGhost(userDefinedType.ResolvedClass, sourceType.TypeArgs), null, destructor);
+          if (DatatypeWrapperEraser.GetInnerTypeOfErasableDatatypeWrapper(Options, userDefinedType.AsDatatype, out var x)) {
+            destructor.Write(sourceName);
+          } else {
+            EmitDestructor(wr => EmitIdentifier(sourceName, wr), arg, k, ctor,
+              SelectNonGhost(userDefinedType.ResolvedClass, userDefinedType.TypeArgs), null, destructor);
+          }
 
           if (idPattern.Arguments != null) {
             string newSourceName;
             var childPattern = idPattern.Arguments[m];
-            if (childPattern is IdPattern { Ctor: null } childIdPattern) {
+            if (childPattern is IdPattern { BoundVar: not null } childIdPattern) {
               var boundVar = childIdPattern.BoundVar;
               newSourceName = IdName(boundVar);
               var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
