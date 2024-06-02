@@ -115,7 +115,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     });
   }
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return RawTraitsWithArgument(typeArgs);
   }
 

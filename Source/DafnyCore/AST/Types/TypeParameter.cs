@@ -240,7 +240,7 @@ public class TypeParameter : TopLevelDecl {
     return subst;
   }
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
-    return TypeBounds;
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
+    return includeTypeBounds ? TypeBounds : new List<Type>();
   }
 }

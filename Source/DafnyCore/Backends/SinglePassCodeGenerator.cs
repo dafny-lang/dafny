@@ -927,7 +927,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsObjectQ) {
         return true;
       } else {
-        return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
+        return from.ParentTypes(false).Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
 

@@ -1664,7 +1664,7 @@ public abstract class Type : TokenNode {
     }
   }
 
-  public virtual List<Type> ParentTypes() {
+  public virtual List<Type> ParentTypes(bool includeTypeBounds) {
     return new List<Type>();
   }
 
@@ -1697,7 +1697,7 @@ public abstract class Type : TokenNode {
       return sub.IsNonNullRefType;
     }
 
-    return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+    return sub.ParentTypes(true).Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
   }
 
   public static bool CompatibleTypeArgs(Type super, Type sub) {

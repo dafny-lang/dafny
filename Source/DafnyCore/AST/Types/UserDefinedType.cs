@@ -502,8 +502,8 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     return true;
   }
 
-  public override List<Type> ParentTypes() {
-    return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
+  public override List<Type> ParentTypes(bool includeTypeBounds) {
+    return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs, includeTypeBounds) : base.ParentTypes(includeTypeBounds);
   }
 
   public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {

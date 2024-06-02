@@ -1667,7 +1667,7 @@ namespace Microsoft.Dafny {
         return polarities;
       }
 
-      foreach (var subParentType in sub.ParentTypes()) {
+      foreach (var subParentType in sub.ParentTypes(true)) {
         sub = subParentType;
         polarities = ConstrainTypeHead_Recursive(super, ref sub);
         if (polarities != null) {
