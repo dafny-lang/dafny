@@ -3661,11 +3661,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 recIdents := recIdents - {next};
               }
               var assigned: string := "::dafny_runtime::LazyFieldWrapper(::dafny_runtime::Lazy::new(::std::boxed::Box::new({\n" + allReadCloned + "move || (" + recursiveGen.ToString(IND) + ")})))";
-              assignments := assignments + [R.AssignIdentifier(name, R.RawExpr(assigned))];
+              assignments := assignments + [R.AssignIdentifier(escapeIdent(name), R.RawExpr(assigned))];
             } else {
               var recursiveGen, _, recIdents := GenExpr(value, selfIdent, env, OwnershipOwned);
 
-              assignments := assignments + [R.AssignIdentifier(name, recursiveGen)];
+              assignments := assignments + [R.AssignIdentifier(escapeIdent(name), recursiveGen)];
               readIdents := readIdents + recIdents;
             }
           }
