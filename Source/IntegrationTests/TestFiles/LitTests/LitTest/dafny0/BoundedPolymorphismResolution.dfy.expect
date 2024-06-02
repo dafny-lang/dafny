@@ -77,4 +77,8 @@ BoundedPolymorphismResolution.dfy(300,42): Error: type parameters in this functi
 BoundedPolymorphismResolution.dfy(301,11): Error: type bound for type parameter 'X' of method 'M' is different from the corresponding type bound of the corresponding type parameter of the method it overrides (expected 'GenericBound<Y>', found 'GenericBound<int>')
 BoundedPolymorphismResolution.dfy(302,19): Error: type bound for type parameter 'X' of method 'L' is different from the corresponding type bound of the corresponding type parameter of the method it overrides (expected 'GenericBound<int>', found 'GenericBound<X>')
 BoundedPolymorphismResolution.dfy(306,19): Error: type bound for type parameter 'Y' of method 'L' is different from the corresponding type bound of the corresponding type parameter of the method it overrides (expected 'GenericBound<int>', found 'GenericBound<X>')
-79 resolution/type errors detected in BoundedPolymorphismResolution.dfy
+BoundedPolymorphismResolution.dfy(319,13): Error: RHS (of type X) not assignable to LHS (of type Parent)
+BoundedPolymorphismResolution.dfy(320,20): Error: type test for type 'XTrait' must be from an expression assignable to it (got 'Parent')
+BoundedPolymorphismResolution.dfy(321,13): Error: RHS (of type Y) not assignable to LHS (of type Parent)
+BoundedPolymorphismResolution.dfy(322,20): Error: type test for type 'YTrait' must be from an expression assignable to it (got 'Parent')
+83 resolution/type errors detected in BoundedPolymorphismResolution.dfy

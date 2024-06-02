@@ -345,6 +345,9 @@ namespace Microsoft.Dafny {
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
         }
+        if (decl is TypeParameter typeParameter) {
+          typeParameter.TypeBoundHeads.ToList().ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
+        }
         if (decl is TraitDecl { IsObjectTrait: true }) {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {

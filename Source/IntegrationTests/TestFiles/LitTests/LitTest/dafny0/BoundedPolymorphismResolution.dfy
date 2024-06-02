@@ -307,3 +307,19 @@ module Overrides {
   }
 }
 
+module VariousBounds {
+  trait Parent { }
+  trait XTrait extends Parent { }
+  trait YTrait extends Parent { }
+
+  datatype Dt<X extends XTrait> = Dt(x: X)
+  {
+    method M<Y extends YTrait>(y: Y) {
+      var parent: Parent;
+      parent := x; // (legacy error)
+      assert parent is XTrait; // (legacy error)
+      parent := y; // (legacy error)
+      assert parent is YTrait; // (legacy error)
+    }
+  }
+}

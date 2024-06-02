@@ -172,6 +172,16 @@ public class TypeParameter : TopLevelDecl {
 
   public readonly List<Type> TypeBounds;
 
+  public IEnumerable<TopLevelDecl> TypeBoundHeads {
+    get {
+      foreach (var typeBound in TypeBounds) {
+        if (typeBound is UserDefinedType { ResolvedClass: { } parentDecl }) {
+          yield return parentDecl;
+        }
+      }
+    }
+  }
+
   public TypeParameter(RangeToken rangeToken, Name name, TPVarianceSyntax varianceS, TypeParameterCharacteristics characteristics,
     List<Type> typeBounds)
     : base(rangeToken, name, null, new List<TypeParameter>(), null, false) {
