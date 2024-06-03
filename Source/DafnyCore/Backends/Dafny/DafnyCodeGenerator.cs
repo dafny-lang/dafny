@@ -21,6 +21,8 @@ namespace Microsoft.Dafny.Compilers {
     protected override string InternalFieldPrefix => internalFieldPrefix;
     public string internalFieldPrefix;
     public bool preventShadowing;
+    
+    protected override  bool ClassMethodsAllowedToCallTraitMethods => false;
 
     public void Start() {
       if (items != null) {
@@ -152,7 +154,7 @@ namespace Microsoft.Dafny.Compilers {
         wr = new BuilderSyntaxTree<ExprContainer>(buf, this);
       }
 
-      if (from == null || to == null || from.Equals(to, true)) {
+      if (from == null || to == null || from.Equals(to, false)) {
         return wr;
       }
 
@@ -235,8 +237,17 @@ namespace Microsoft.Dafny.Compilers {
 
           typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options))), bounds));
         }
+        List<DAST.Type> parents = new();
+        if (trait.IsReferenceTypeDecl) {
+          parents.Add((DAST.Type)DAST.Type.create_Object());
+        }
+        foreach (var pt in trait.ParentTraits) {
+          var genType = GenType(pt);
 
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, ParseAttributes(trait.Attributes)));
+          parents.Add(genType);
+        }
+
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, parents, ParseAttributes(trait.Attributes)));
       } else {
         throw new InvalidOperationException();
       }
@@ -524,7 +535,12 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
 
-        var overridingTrait = m.OverriddenMethod?.EnclosingClass;
+        var overriddenMethod = m.OverriddenMethod;
+        while (overriddenMethod != null && overriddenMethod.OverriddenMethod != null) {
+          overriddenMethod = overriddenMethod.OverriddenMethod;
+        }
+
+        var overridingTrait = overriddenMethod?.EnclosingClass;
         if (m is Constructor { EnclosingClass: TopLevelDeclWithMembers cm }) {
           // Constructors need to assign all fields without RHS
           var membersToInitialize = cm.Members.Where((md =>
@@ -777,8 +793,6 @@ namespace Microsoft.Dafny.Compilers {
                 DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
               );
             }
-          } else if (type.IsArrowType) {
-            this.AddUnsupported("<i>Initializer for arrow type</i>");
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
@@ -809,16 +823,17 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitTypeName_Companion(Type type, ConcreteSyntaxTree wr, ConcreteSyntaxTree surrounding, IToken tok, MemberDecl member) {
       if (wr is BuilderSyntaxTree<ExprContainer> container) {
         type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
+        var typeArgs = Sequence<DAST.Type>.FromArray(type.TypeArgs.Select(GenType).ToArray());
 
         if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
             DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
-          container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass)));
+          container.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass), typeArgs));
         } else {
           if (type.AsTopLevelTypeWithMembers == null) { // git-issues/git-issue-697g.dfy while iterating over "nat"
             AddUnsupportedFeature(tok, Feature.SubtypeConstraintsInQuantifiers);
           } else {
             container.Builder.AddExpr(
-              (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers)));
+              (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(type.AsTopLevelTypeWithMembers), typeArgs));
           }
         }
       } else {
@@ -862,7 +877,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TypeArgDescriptorUse(bool isStatic, bool lookasideBody, TopLevelDeclWithMembers cl, out bool needsTypeParameter, out bool needsTypeDescriptor) {
-      needsTypeParameter = false;
+      needsTypeParameter = true;
       needsTypeDescriptor = false;
     }
 
@@ -1412,11 +1427,13 @@ namespace Microsoft.Dafny.Compilers {
             ));
             break;
           case StaticReceiverExpr:
+            var typeArgs = Sequence<DAST.Type>.FromArray(e.Type.TypeArgs.Select(GenType).ToArray());
+
             if (e.Type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
                 DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, dt, out _)) {
-              baseExpr = (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass));
+              baseExpr = (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(udt.ResolvedClass), typeArgs);
             } else {
-              baseExpr = (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(e.Type.AsTopLevelTypeWithMembers));
+              baseExpr = (DAST.Expression)DAST.Expression.create_Companion(PathFromTopLevel(e.Type.AsTopLevelTypeWithMembers), typeArgs);
             }
             break;
           default:
@@ -1528,13 +1545,7 @@ namespace Microsoft.Dafny.Compilers {
           GenType(arrow.Result)
         );
       } else if (udt.AsArrayType is var array && array != null) {
-        if (udt.IsNonNullRefType) {
-          return (DAST.Type)DAST.Type.create_Array(GenType(udt.TypeArgs[0]), array.Dims);
-        } else {
-          return (DAST.Type)DAST.Type.create_Nullable(
-            (DAST.Type)DAST.Type.create_Array(GenType(udt.TypeArgs[0]), array.Dims)
-          );
-        }
+        return (DAST.Type)DAST.Type.create_Array(GenType(udt.TypeArgs[0]), array.Dims);
       }
 
       var cl = udt.ResolvedClass;
@@ -1612,38 +1623,49 @@ namespace Microsoft.Dafny.Compilers {
         nonNull = false;
       }
 
-      ResolvedType resolvedType;
+      var properMethods = new List<Sequence<Rune>>();
+      var extendedTraits =  new List<DAST.Type>();
+      if(topLevel is TopLevelDeclWithMembers memberContainer) {
+        foreach(var member in memberContainer.Members)  {
+          if (member.OverriddenMember == null) {
+            properMethods.Add((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(member.Name));
+          }
+        }
+      }
+
+      foreach (var parentType in topLevel.ParentTypes(typeArgs)) {
+        extendedTraits.Add(GenType(parentType));
+      }
+
+      var seqProperMethods = Sequence<Sequence<Rune>>.FromArray(properMethods.ToArray());
+      var seqExtendTraits = Sequence<DAST.Type>.FromArray(extendedTraits.ToArray());
+      var seqTypeArgs = Sequence<DAST.Type>.FromArray(typeArgs.Select(m => GenType(m)).ToArray());
+
+      DAST.ResolvedTypeBase resolvedTypeBase;
+      
       if (topLevel is NewtypeDecl newType) {
         var range = NativeTypeToNewtypeRange(newType.NativeType);
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
-          GenType(EraseNewtypeLayers(topLevel)), range, true, ParseAttributes(newType.Attributes));
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
+          GenType(EraseNewtypeLayers(topLevel)), range, true);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
-          GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true, ParseAttributes(typeSynonym.Attributes));
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
+          GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true);
       } else if (topLevel is TraitDecl) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path, ParseAttributes(topLevel.Attributes));
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
       } else if (topLevel is DatatypeDecl) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(
-          (DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype();
       } else if (topLevel is ClassDecl) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_AllocatedDatatype(
-          (DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Class();
       } else {
         // SubsetTypeDecl are covered by TypeSynonymDecl
         throw new InvalidOperationException(topLevel.GetType().ToString());
       }
+      var resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_ResolvedType(
+        path, seqTypeArgs, resolvedTypeBase, ParseAttributes(topLevel.Attributes), seqProperMethods, seqExtendTraits);
 
-      DAST.Type baseType = (DAST.Type)DAST.Type.create_Path(
-        path,
-        Sequence<DAST.Type>.FromArray(typeArgs.Select(m => GenType(m)).ToArray()),
-        resolvedType
-      );
+      DAST.Type baseType = (DAST.Type)DAST.Type.create_UserDefined(resolvedType);
 
-      if (nonNull) {
-        return baseType;
-      } else {
-        return (DAST.Type)DAST.Type.create_Nullable(baseType);
-      }
+      return baseType;
     }
 
     private static Type EraseNewtypeLayers(TopLevelDecl topLevel) {
@@ -1742,8 +1764,13 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var dtPath = PathFromTopLevel(dtv.Ctor.EnclosingDatatype);
           var dtTypeArgs = Sequence<DAST.Type>.FromArray(dtv.InferredTypeArgs.Select(m => GenType(m)).ToArray());
+          var dType = GenType(dtv.Type);
+          if (!dType.is_UserDefined) {
+            throw new InvalidOperationException("Did not expected a non-user defined type for database values");
+          }
+          
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
-            (DatatypeType)DatatypeType.create_DatatypeType(dtPath, ParseAttributes(dtv.Ctor.EnclosingDatatype.Attributes)),
+            dType.dtor_resolved,
             dtTypeArgs,
             Sequence<Rune>.UnicodeFromString(dtv.Ctor.GetCompileName(Options)),
             dtv.Ctor.EnclosingDatatype is CoDatatypeDecl,
@@ -2460,25 +2487,23 @@ namespace Microsoft.Dafny.Compilers {
 
         var newBuilder = op switch {
           BinaryExpr.ResolvedOpcode.EqCommon => B((BinOp)BinOp.create_Eq(
-            e0.Type.IsRefType,
-            !e0.Type.IsNonNullRefType
+            e0.Type.IsRefType
           )),
-          BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false, false)),
-          BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false, false)),
-          BinaryExpr.ResolvedOpcode.SeqEq => B((BinOp)BinOp.create_Eq(false, false)),
-          BinaryExpr.ResolvedOpcode.MultiSetEq => B((BinOp)BinOp.create_Eq(false, false)),
+          BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false)),
+          BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false)),
+          BinaryExpr.ResolvedOpcode.SeqEq => B((BinOp)BinOp.create_Eq(false)),
+          BinaryExpr.ResolvedOpcode.MultiSetEq => B((BinOp)BinOp.create_Eq(false)),
           BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
             Not(BinaryOp(
               BinOp.create_Eq(
-                e0.Type.IsRefType,
-                !e0.Type.IsNonNullRefType
+                e0.Type.IsRefType
               ), left, right))),
           BinaryExpr.ResolvedOpcode.SetNeq => C((left, right) =>
-            Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
+            Not(BinaryOp(BinOp.create_Eq(false), left, right))),
           BinaryExpr.ResolvedOpcode.SeqNeq => C((left, right) =>
-            Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
+            Not(BinaryOp(BinOp.create_Eq(false), left, right))),
           BinaryExpr.ResolvedOpcode.MultiSetNeq => C((left, right) =>
-            Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
+            Not(BinaryOp(BinOp.create_Eq(false), left, right))),
 
           BinaryExpr.ResolvedOpcode.Div =>
             B(NeedsEuclideanDivision(resultType) ? BinOp.create_EuclidianDiv() : BinOp.create_Div()),
@@ -2493,7 +2518,7 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.Iff =>
             C((left, right) =>
               BinaryOp(
-                BinOp.create_Eq(false, false),
+                BinOp.create_Eq(false),
                 left, right, new BinaryOpFormat_EquivalenceFormat()
               )),
           BinaryExpr.ResolvedOpcode.InSet => B(DAST.BinOp.create_In()), // TODO: Differentiate?

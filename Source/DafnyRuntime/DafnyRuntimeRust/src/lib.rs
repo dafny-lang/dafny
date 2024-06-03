@@ -3097,8 +3097,9 @@ impl <T: ?Sized> DafnyPrint for Object<T> {
     }
 }
 
-impl <T: ?Sized> PartialEq for Object<T> {
-    fn eq(&self, other: &Self) -> bool {
+
+impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
+    fn eq(&self, other: &Object<U>) -> bool {
         if let Some(p) = &self.0 {
             if let Some(q) = &other.0 {
                 // To compare addresses, we need to ensure we only compare thin pointers
@@ -3120,6 +3121,27 @@ impl <T: ?Sized> std::hash::Hash for Object<T> {
         } else {
             0.hash(state);
         }
+    }
+}
+
+impl <T: ?Sized> AsMut<T> for Object<T> {
+    fn as_mut(&mut self) -> &mut T {
+        unsafe { &mut *(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
+    }
+}
+impl <T: ?Sized> AsRef<T> for Object<T> {
+    fn as_ref(&self) -> &T {
+        unsafe { &*(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
+    }
+}
+
+
+impl <T: ?Sized> Object<T> {
+    pub fn from_ref(r: &T) -> Object<T> {
+        let pt = r as *const T;
+        unsafe { ::std::rc::Rc::increment_strong_count(pt) }
+        let rebuilt = unsafe { Rc::from_raw(pt as *const UnsafeCell<T>) };
+        Object(Some(rebuilt))
     }
 }
 
@@ -3203,7 +3225,7 @@ macro_rules! update_field_uninit_rcmut {
 #[macro_export]
 macro_rules! md {
     ($x:expr) => {
-        unsafe { $crate::rcmut::borrow_mut(&mut $x.0.unwrap()) }
+        $x.clone().as_mut()
     };
 }
 
@@ -3211,7 +3233,7 @@ macro_rules! md {
 #[macro_export]
 macro_rules! rd {
     ($x:expr) => {
-        unsafe { $crate::rcmut::borrow(& $x.0.unwrap()) }
+        $x.as_ref()
     };
 }
 
@@ -3219,7 +3241,7 @@ macro_rules! rd {
 #[macro_export]
 macro_rules! refcount {
     ($x:expr) => {
-        Rc::strong_count(unsafe { rcmut::as_rc(& $x.0.unwrap()) })
+        Rc::strong_count(unsafe { rcmut::as_rc($x.0.as_ref().unwrap()) })
     };
 }
 

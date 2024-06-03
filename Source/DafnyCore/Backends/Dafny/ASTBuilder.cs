@@ -151,8 +151,8 @@ namespace Microsoft.Dafny.Compilers {
   interface TraitContainer : Container {
     void AddTrait(Trait item);
 
-    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, ISequence<_IAttribute> attributes) {
-      return new TraitBuilder(this, name, typeParams, attributes);
+    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes) {
+      return new TraitBuilder(this, name, typeParams, parents, attributes);
     }
   }
 
@@ -160,14 +160,16 @@ namespace Microsoft.Dafny.Compilers {
     readonly TraitContainer parent;
     readonly string name;
     readonly List<DAST.TypeArgDecl> typeParams;
+    private readonly List<DAST.Type> parents;
     readonly List<DAST.Method> body = new();
     private ISequence<_IAttribute> attributes;
 
-    public TraitBuilder(TraitContainer parent, string name, List<DAST.TypeArgDecl> typeParams, ISequence<_IAttribute> attributes) {
+    public TraitBuilder(TraitContainer parent, string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.attributes = attributes;
+      this.parents = parents;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -190,6 +192,7 @@ namespace Microsoft.Dafny.Compilers {
       parent.AddTrait((Trait)Trait.create(
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
+        Sequence<DAST.Type>.FromArray(parents.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
         attributes)
       );
@@ -1803,9 +1806,12 @@ namespace Microsoft.Dafny.Compilers {
         DAST.Literal.create_IntLiteral(Sequence<Rune>.UnicodeFromString($"{number}"),
           origType)
       );
-      return (DAST.Expression)DAST.Expression.create_Convert(numberExpr, origType, DAST.Type.create_Path(
-        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("u64")), Sequence<_IType>.Empty,
-        DAST.ResolvedType.create_Newtype(origType, DAST.NewtypeRange.create_U64(), true, Sequence<_IAttribute>.Empty)
+      return (DAST.Expression)DAST.Expression.create_Convert(numberExpr, origType, DAST.Type.create_UserDefined(
+        DAST.ResolvedType.create_ResolvedType(
+        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("u64")),
+        Sequence<_IType>.Empty,
+        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_U64(), true), Sequence<_IAttribute>.Empty,
+        Sequence<Sequence<Rune>>.Empty, Sequence<_IType>.Empty)
       ));
     }
 

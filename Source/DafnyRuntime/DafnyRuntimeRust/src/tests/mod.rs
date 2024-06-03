@@ -682,34 +682,42 @@ mod tests {
 
     #[test]
     fn test_rcmut() {
-        let x: Object<NodeRcMut> = allocate_rcmut::<NodeRcMut>();
+        let mut x: Object<NodeRcMut> = allocate_rcmut::<NodeRcMut>();
         NodeRcMut::_ctor(x.clone(), int!(42));
-        assert_eq!(refcount!(x.clone()), 2);
-        assert_eq!(rd!(x.clone()).val, int!(42));
-        md!(x.clone()).next = x.clone();
-        assert_eq!(refcount!(x.clone()), 3);
-        assert_eq!(rd!(rd!(x.clone()).next.clone()).val, int!(42));
-        md!(rd!(x.clone()).next.clone()).next = Object(None);
-        assert_eq!(refcount!(x.clone()), 2);
+        assert_eq!(refcount!(x), 1);
+        assert_eq!(x.as_ref().val, int!(42));
+        x.as_mut().next = x.clone();
+        assert_eq!(refcount!(x), 2);
+        assert_eq!(x.as_ref().next.as_ref().val, int!(42));
+        md!(rd!(x).next).next = Object(None);
+        assert_eq!(refcount!(x), 1);
         let y: Object<dyn Any> = x.clone().upcast_to();
-        assert_eq!(refcount!(x.clone()), 3);
+        assert_eq!(refcount!(x), 2);
         let z: Object<dyn NodeRcMutTrait> = x.clone().upcast_to();
-        assert_eq!(refcount!(x.clone()), 4);
+        assert_eq!(refcount!(x), 3);
         let a2: Object<NodeRcMut> = cast_object!(y.clone(), NodeRcMut);
-        assert_eq!(refcount!(x.clone()), 5);
-        assert_eq!(rd!(a2.clone()).val, int!(42));
+        assert_eq!(refcount!(x), 4);
+        assert_eq!(rd!(a2).val, int!(42));
         let a3: Object<NodeRcMut> = cast_object!(z.clone(), NodeRcMut);
-        assert_eq!(refcount!(x.clone()), 6);
-        assert_eq!(rd!(a3.clone()).val, int!(42));
+        assert_eq!(refcount!(x), 5);
+        assert_eq!(rd!(a3).val, int!(42));
         
         let a: Object<[i32]> = rcmut::array_object_from_rc(Rc::new([42, 43, 44]));
-        assert_eq!(rd!(a.clone()).len(), 3);
-        assert_eq!(rd!(a.clone())[0], 42);
-        assert_eq!(rd!(a.clone())[1], 43);
-        assert_eq!(rd!(a.clone())[2], 44);
-        let b = a.clone();
-        md!(b.clone())[0] = 45;
-        assert_eq!(rd!(a.clone())[0], 45);
+        assert_eq!(rd!(a).len(), 3);
+        assert_eq!(rd!(a)[0], 42);
+        assert_eq!(rd!(a)[1], 43);
+        assert_eq!(rd!(a)[2], 44);
+        let b: Object<[i32]> = a.clone();
+        md!(b)[0] = 45;
+        assert_eq!(rd!(a)[0], 45);
+
+        let previous_count = refcount!(x);
+        {
+            let z = Object::<NodeRcMut>::from_ref(x.as_ref());
+            assert_eq!(refcount!(z), previous_count + 1);
+            assert_eq!(refcount!(x), previous_count + 1);
+        }
+        assert_eq!(refcount!(x), previous_count);
     }
 
     pub struct NodeRawMut {
@@ -738,18 +746,14 @@ mod tests {
     fn test_rawmut() {
         let x: *mut NodeRawMut = allocate::<NodeRawMut>();
         NodeRawMut::_ctor(x.clone(), int!(42));
-        //assert_eq!(refcount!(x.clone()), 2);
         assert_eq!(read!(x.clone()).val, int!(42));
         modify!(x.clone()).next = x.clone();
-        //assert_eq!(refcount!(x.clone()), 3);
         assert_eq!(read!(read!(x.clone()).next.clone()).val, int!(42));
         modify!(read!(x.clone()).next.clone()).next = std::ptr::null_mut();
-        //assert_eq!(refcount!(x.clone()), 2);
         let y: *mut dyn Any = x.upcast_to();
         let z: *mut dyn NodeRcMutTrait = x.upcast_to();
         let a2: *mut NodeRawMut = cast!(y, NodeRawMut);
         let a3: *mut NodeRawMut = cast!(z, NodeRawMut);
-        //assert_eq!(refcount!(x.clone()), 3);
         deallocate(x);
 
         let a = array::from_native(Box::new([42, 43, 44]));
