@@ -28,6 +28,6 @@ jobs:
     uses: ./.github/workflows/nightly-build-reusable.yml
     with:
       ref: master
-      publish-prerelease: true
+      publish-prerelease: false
     secrets:
       nuget_api_key: ${{ secrets.NUGET_API_KEY }}
