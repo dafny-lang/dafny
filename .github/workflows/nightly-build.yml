@@ -24,7 +24,7 @@ on:
 
 jobs:
   nightly-build-for-master:
-    if: github.repository_owner == 'dafny-lang'
+    if: true
     uses: ./.github/workflows/nightly-build-reusable.yml
     with:
       ref: master
