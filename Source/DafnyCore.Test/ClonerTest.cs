@@ -1,6 +1,7 @@
 using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Tomlyn;
 
 namespace DafnyCore.Test;
@@ -12,6 +13,11 @@ public class ClonerTest {
 
     public DummyDecl(RangeToken rangeToken, Name name, Attributes attributes, bool isRefining) : base(rangeToken, name,
       attributes, isRefining) {
+    }
+
+    public override SymbolKind? Kind => null;
+    public override string GetDescription(DafnyOptions options) {
+      return "";
     }
   }
 
