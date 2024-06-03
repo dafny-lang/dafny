@@ -557,6 +557,12 @@ where T: DafnyType {
     }
 }
 
+impl<T: DafnyType> Default for Sequence<T> {
+    fn default() -> Self {
+        Sequence::from_array_owned(vec![])
+    }
+}
+
 impl <T: DafnyTypeEq> Sequence<T> {
     pub fn as_dafny_multiset(&self) -> Multiset<T> {
         Multiset::from_array(&self.to_array())
@@ -1609,6 +1615,14 @@ impl DafnyPrint for () {
 
 #[derive(Clone)]
 pub struct DafnyCharUTF16(pub u16);
+pub type DafnyStringUTF16 = Sequence<DafnyCharUTF16>;
+
+impl Default for DafnyCharUTF16 {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
 impl DafnyType for DafnyCharUTF16 {}
 impl DafnyTypeEq for DafnyCharUTF16 {}
 
@@ -1868,6 +1882,9 @@ pub fn string_of(s: &str) -> Sequence<DafnyChar> {
     s.chars().map(|v| DafnyChar(v)).collect::<Sequence<DafnyChar>>()
 }
 
+pub fn string_utf16_of(s: &str) -> DafnyStringUTF16 {
+    Sequence::from_array_owned(s.encode_utf16().map(|v| DafnyCharUTF16(v)).collect())
+}
 
 macro_rules! impl_tuple_print {
     ($($items:ident)*) => {

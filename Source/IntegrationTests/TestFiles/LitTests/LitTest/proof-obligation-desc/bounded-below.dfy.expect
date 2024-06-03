@@ -1,0 +1,5 @@
+bounded-below.dfy(6,26): Error: decreases expression must be bounded below by 0 at end of loop iteration
+ Asserted expression: 0 <= old@LoopEntry(i - start + 765) || i - start + 765 == old@LoopEntry(i - start + 765)
+   with the label `LoopEntry` applied to the loop
+
+Dafny program verifier finished with 0 verified, 1 error

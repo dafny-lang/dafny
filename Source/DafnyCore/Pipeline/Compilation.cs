@@ -343,7 +343,7 @@ public class Compilation : IDisposable {
       var updated = false;
       var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
-          tasksForModule.GetValueOrDefault(canVerify.NameToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify.NavigationToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
 
         updated = true;
@@ -475,7 +475,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = new();
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NameToken.val, task.ScopeToken,
+    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, task.ScopeToken,
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();

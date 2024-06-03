@@ -53,7 +53,7 @@ namespace Std.Wrappers {
     public T dtor_value {
       get {
         var d = this;
-        return ((Option_Some<T>)d)._value;
+        return ((Option_Some<T>)d)._i_value;
       }
     }
     public abstract _IOption<__T> DowncastClone<__T>(Func<T, __T> converter0);
@@ -122,28 +122,28 @@ namespace Std.Wrappers {
     }
   }
   public class Option_Some<T> : Option<T> {
-    public readonly T _value;
+    public readonly T _i_value;
     public Option_Some(T @value) : base() {
-      this._value = @value;
+      this._i_value = @value;
     }
     public override _IOption<__T> DowncastClone<__T>(Func<T, __T> converter0) {
       if (this is _IOption<__T> dt) { return dt; }
-      return new Option_Some<__T>(converter0(_value));
+      return new Option_Some<__T>(converter0(_i_value));
     }
     public override bool Equals(object other) {
       var oth = other as Std.Wrappers.Option_Some<T>;
-      return oth != null && object.Equals(this._value, oth._value);
+      return oth != null && object.Equals(this._i_value, oth._i_value);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_value));
       return (int) hash;
     }
     public override string ToString() {
       string s = "Wrappers.Option.Some";
       s += "(";
-      s += Dafny.Helpers.ToString(this._value);
+      s += Dafny.Helpers.ToString(this._i_value);
       s += ")";
       return s;
     }
@@ -181,13 +181,13 @@ namespace Std.Wrappers {
     public R dtor_value {
       get {
         var d = this;
-        return ((Result_Success<R, E>)d)._value;
+        return ((Result_Success<R, E>)d)._i_value;
       }
     }
     public E dtor_error {
       get {
         var d = this;
-        return ((Result_Failure<R, E>)d)._error;
+        return ((Result_Failure<R, E>)d)._i_error;
       }
     }
     public abstract _IResult<__R, __E> DowncastClone<__R, __E>(Func<R, __R> converter0, Func<E, __E> converter1);
@@ -253,55 +253,55 @@ namespace Std.Wrappers {
     }
   }
   public class Result_Success<R, E> : Result<R, E> {
-    public readonly R _value;
+    public readonly R _i_value;
     public Result_Success(R @value) : base() {
-      this._value = @value;
+      this._i_value = @value;
     }
     public override _IResult<__R, __E> DowncastClone<__R, __E>(Func<R, __R> converter0, Func<E, __E> converter1) {
       if (this is _IResult<__R, __E> dt) { return dt; }
-      return new Result_Success<__R, __E>(converter0(_value));
+      return new Result_Success<__R, __E>(converter0(_i_value));
     }
     public override bool Equals(object other) {
       var oth = other as Std.Wrappers.Result_Success<R, E>;
-      return oth != null && object.Equals(this._value, oth._value);
+      return oth != null && object.Equals(this._i_value, oth._i_value);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_value));
       return (int) hash;
     }
     public override string ToString() {
       string s = "Wrappers.Result.Success";
       s += "(";
-      s += Dafny.Helpers.ToString(this._value);
+      s += Dafny.Helpers.ToString(this._i_value);
       s += ")";
       return s;
     }
   }
   public class Result_Failure<R, E> : Result<R, E> {
-    public readonly E _error;
+    public readonly E _i_error;
     public Result_Failure(E error) : base() {
-      this._error = error;
+      this._i_error = error;
     }
     public override _IResult<__R, __E> DowncastClone<__R, __E>(Func<R, __R> converter0, Func<E, __E> converter1) {
       if (this is _IResult<__R, __E> dt) { return dt; }
-      return new Result_Failure<__R, __E>(converter1(_error));
+      return new Result_Failure<__R, __E>(converter1(_i_error));
     }
     public override bool Equals(object other) {
       var oth = other as Std.Wrappers.Result_Failure<R, E>;
-      return oth != null && object.Equals(this._error, oth._error);
+      return oth != null && object.Equals(this._i_error, oth._i_error);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._error));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_error));
       return (int) hash;
     }
     public override string ToString() {
       string s = "Wrappers.Result.Failure";
       s += "(";
-      s += Dafny.Helpers.ToString(this._error);
+      s += Dafny.Helpers.ToString(this._i_error);
       s += ")";
       return s;
     }
@@ -337,7 +337,7 @@ namespace Std.Wrappers {
     public E dtor_error {
       get {
         var d = this;
-        return ((Outcome_Fail<E>)d)._error;
+        return ((Outcome_Fail<E>)d)._i_error;
       }
     }
     public abstract _IOutcome<__E> DowncastClone<__E>(Func<E, __E> converter0);
@@ -412,28 +412,28 @@ namespace Std.Wrappers {
     }
   }
   public class Outcome_Fail<E> : Outcome<E> {
-    public readonly E _error;
+    public readonly E _i_error;
     public Outcome_Fail(E error) : base() {
-      this._error = error;
+      this._i_error = error;
     }
     public override _IOutcome<__E> DowncastClone<__E>(Func<E, __E> converter0) {
       if (this is _IOutcome<__E> dt) { return dt; }
-      return new Outcome_Fail<__E>(converter0(_error));
+      return new Outcome_Fail<__E>(converter0(_i_error));
     }
     public override bool Equals(object other) {
       var oth = other as Std.Wrappers.Outcome_Fail<E>;
-      return oth != null && object.Equals(this._error, oth._error);
+      return oth != null && object.Equals(this._i_error, oth._i_error);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._error));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_error));
       return (int) hash;
     }
     public override string ToString() {
       string s = "Wrappers.Outcome.Fail";
       s += "(";
-      s += Dafny.Helpers.ToString(this._error);
+      s += Dafny.Helpers.ToString(this._i_error);
       s += ")";
       return s;
     }
@@ -467,7 +467,7 @@ namespace Std.Wrappers {
     public E dtor_error {
       get {
         var d = this;
-        return ((OutcomeResult_Fail_k<E>)d)._error;
+        return ((OutcomeResult_Fail_k<E>)d)._i_error;
       }
     }
     public abstract _IOutcomeResult<__E> DowncastClone<__E>(Func<E, __E> converter0);
@@ -500,28 +500,28 @@ namespace Std.Wrappers {
     }
   }
   public class OutcomeResult_Fail_k<E> : OutcomeResult<E> {
-    public readonly E _error;
+    public readonly E _i_error;
     public OutcomeResult_Fail_k(E error) : base() {
-      this._error = error;
+      this._i_error = error;
     }
     public override _IOutcomeResult<__E> DowncastClone<__E>(Func<E, __E> converter0) {
       if (this is _IOutcomeResult<__E> dt) { return dt; }
-      return new OutcomeResult_Fail_k<__E>(converter0(_error));
+      return new OutcomeResult_Fail_k<__E>(converter0(_i_error));
     }
     public override bool Equals(object other) {
       var oth = other as Std.Wrappers.OutcomeResult_Fail_k<E>;
-      return oth != null && object.Equals(this._error, oth._error);
+      return oth != null && object.Equals(this._i_error, oth._i_error);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._error));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_error));
       return (int) hash;
     }
     public override string ToString() {
       string s = "Wrappers.OutcomeResult.Fail'";
       s += "(";
-      s += Dafny.Helpers.ToString(this._error);
+      s += Dafny.Helpers.ToString(this._i_error);
       s += ")";
       return s;
     }
