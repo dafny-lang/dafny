@@ -24,10 +24,10 @@ on:
 
 jobs:
   nightly-build-for-master:
-    if: true
+    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/nightly-build-reusable.yml
     with:
       ref: master
-      publish-prerelease: false
+      publish-prerelease: true
     secrets:
       nuget_api_key: ${{ secrets.NUGET_API_KEY }}

@@ -20,7 +20,7 @@ on:
 
 jobs:
   deep-integration-tests:
-    if: true
+    if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       ref: ${{ inputs.ref }}
