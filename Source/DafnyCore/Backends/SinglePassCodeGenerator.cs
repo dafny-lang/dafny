@@ -675,6 +675,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree CreateGuardedForeachLoop(
       string tmpVarName, Type collectionElementType,
       IVariable boundVar,
+      bool newtypeConversionsWereExplicit,
       bool introduceBoundVar, bool inLetExprBody,
       IToken tok, Action<ConcreteSyntaxTree> collection, ConcreteSyntaxTree wr
       ) {
@@ -683,7 +684,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = MaybeInjectSubtypeConstraintWrtTraits(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr, true);
+      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr, newtypeConversionsWereExplicit);
       return wr;
     }
 
@@ -3764,8 +3765,8 @@ namespace Microsoft.Dafny.Compilers {
         var bv = bvs[i];
         var tmpVar = ProtectedFreshId("_guard_loop_");
         var wStmtsLoop = wr.Fork();
-        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, wStmtsLoop, bounds, bvs, i);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, range.tok, collection, wr);
+        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop, bounds, bvs, i);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, range.tok, collection, wr);
       }
 
       // if (range) {
@@ -3795,7 +3796,8 @@ namespace Microsoft.Dafny.Compilers {
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
     Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
-        Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, ConcreteSyntaxTree wStmts,
+        Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, out bool newtypeConversionsWereExplicit,
+        ConcreteSyntaxTree wStmts,
         List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
@@ -3804,6 +3806,9 @@ namespace Microsoft.Dafny.Compilers {
 
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
+      
+      newtypeConversionsWereExplicit =
+        bound is SetBoundedPool or MapBoundedPool or SeqBoundedPool or MultiSetBoundedPool;
 
       if (bound is BoolBoundedPool) {
         collectionWriter = (wr) => EmitBoolBoundedPool(inLetExprBody, wr, wStmts);
@@ -4139,8 +4144,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         var tmpVar = ProtectedFreshId("_assign_such_that_");
         var wStmts = currentBlock.Fork();
-        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmts);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, false, inLetExprBody, bv.Tok, collection, wr);
+        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmts);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, false, inLetExprBody, bv.Tok, collection, wr);
         currentBlock = wr;
         if (needIterLimit) {
           var varName = $"{iterLimit}_{i}";
@@ -5532,7 +5537,7 @@ namespace Microsoft.Dafny.Compilers {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
 
-          var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, wStmts, e.Bounds, e.BoundVars, i);
+          var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, out var newtypeConversionsWereExplicit, wStmts, e.Bounds, e.BoundVars, i);
           wBody = EmitQuantifierExpr(collection, expr is ForallExpr, collectionElementType, bv, wBody);
           var native = AsNativeType(e.BoundVars[i].Type);
           var tmpVarName = ProtectedFreshId(e is ForallExpr ? "_forall_var_" : "_exists_var_");
@@ -5543,8 +5548,6 @@ namespace Microsoft.Dafny.Compilers {
             inLetExprBody, e.tok, newWBody, true, e is ForallExpr);
           EmitDowncastVariableAssignment(
             IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
-          var newtypeConversionsWereExplicit =
-            bound is SetBoundedPool or MapBoundedPool or SeqBoundedPool or MultiSetBoundedPool;
           newWBody = MaybeInjectSubsetConstraint(
             bv, bv.Type, inLetExprBody, e.tok, newWBody, newtypeConversionsWereExplicit, isReturning: true, elseReturnValue: e is ForallExpr);
           wBody = newWBody;
@@ -5592,8 +5595,8 @@ namespace Microsoft.Dafny.Compilers {
           processedBounds.Add(bv);
           var tmpVar = ProtectedFreshId("_compr_");
           var wStmtsLoop = wr.Fork();
-          var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
-          wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, inLetExprBody, e.tok, collection, wr);
+          var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop);
+          wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, inLetExprBody, e.tok, collection, wr);
           wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         }
 
@@ -5644,8 +5647,8 @@ namespace Microsoft.Dafny.Compilers {
           processedBounds.Add(bv);
           var tmpVar = ProtectedFreshId("_compr_");
           var wStmtsLoop = wr.Fork();
-          var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
-          wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, bv.tok, collection, wr);
+          var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop);
+          wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, bv.tok, collection, wr);
           wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
         }
 
@@ -5920,7 +5923,9 @@ namespace Microsoft.Dafny.Compilers {
     /// of "boundVarType".
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
-      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool newtypeConversionsWereExplicit, bool isReturning = false, bool elseReturnValue = false) {
+      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool newtypeConversionsWereExplicit,
+      bool isReturning = false, bool elseReturnValue = false)
+    {
 
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
