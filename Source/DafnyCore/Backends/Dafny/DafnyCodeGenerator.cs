@@ -828,7 +828,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok,
      Expression replacementReceiver, bool receiverAsArgument, ConcreteSyntaxTree wr) {
-      Sequence<_IFormal> receiverArgs = null;
+      Option<_IFormal> receiverArg;
       var receiverBeforeName = replacementReceiver != null && replacementReceiver is not StaticReceiverExpr;
       Option<DAST.Type> receiverType = receiverBeforeName && !receiverAsArgument
         ? (Option<DAST.Type>)Option<DAST.Type>.create_Some(GenType(replacementReceiver.Type))
@@ -837,24 +837,19 @@ namespace Microsoft.Dafny.Compilers {
         var name = replacementReceiver is IdentifierExpr { Var: { CompileName: var compileName } }
           ? compileName
           : "receiver";
-        receiverArgs = (Sequence<_IFormal>)Sequence<_IFormal>.FromArray(new _IFormal[] {
+        receiverArg = (Option<_IFormal>)Option<DAST._IFormal>.create_Some(
           DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(name),
-            GenType(replacementReceiver.Type), ParseAttributes(null))
-        });
+          GenType(replacementReceiver.Type), ParseAttributes(null)));
+      } else {
+        receiverArg = (Option<_IFormal>)Option<_IFormal>.create_None();
       }
 
       if (GetExprBuilder(wr, out var st) && st.Builder is CallExprBuilder callExpr) {
         var signature = callExpr.Signature;
-        if (receiverArgs != null) {
-          signature = Sequence<_IFormal>.FromArray(receiverArgs.Concat(signature).ToArray());
-        }
-        callExpr.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, signature));
+        callExpr.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, receiverArg, signature));
       } else if (GetExprBuilder(wr, out var st2) && st2.Builder is CallStmtBuilder callStmt) {
         var signature = callStmt.Signature;
-        if (receiverArgs != null) {
-          signature = Sequence<_IFormal>.FromArray(receiverArgs.Concat(signature).ToArray());
-        }
-        callStmt.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, signature));
+        callStmt.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, receiverArg, signature));
       } else {
         AddUnsupported("Builder issue: wr is as " + wr.GetType() +
                                 (GetExprBuilder(wr, out var st3) ?
@@ -2206,7 +2201,7 @@ namespace Microsoft.Dafny.Compilers {
       });
       var c = builder.Builder.Call(signature);
       c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("is"),
-        Option<_IType>.create_None(), signature));
+        Option<_IType>.create_None(), Option<_IFormal>.create_None(), signature));
       var wrc = new BuilderSyntaxTree<ExprContainer>(c, this);
       EmitTypeName_Companion(type, wrc,
         wr, declWithConstraints.tok, null);
