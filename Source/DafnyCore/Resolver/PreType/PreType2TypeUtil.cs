@@ -138,7 +138,7 @@ public static class PreType2TypeUtil {
         }
       } else {
         // The only way this can happen is if the user-supplied "type" is a type synonym, subset type, or newtype that expands to one of its
-        // type parameters. If so, expand "type" by step and recurse.
+        // type parameters. If so, expand "type" and recurse.
         var udt = (UserDefinedType)type;
         if (udt.ResolvedClass is TypeSynonymDecl typeSynonymDecl) {
           type = typeSynonymDecl.RhsWithArgumentIgnoringScope(udt.TypeArgs);
