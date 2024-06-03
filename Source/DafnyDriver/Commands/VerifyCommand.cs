@@ -7,6 +7,7 @@ using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 
@@ -17,8 +18,8 @@ public static class VerifyCommand {
   static VerifyCommand() {
     // Note these don't need checks because they are only "dafny verify" options;
     // they can't be specified when building a doo file.
-    DooFile.RegisterNoChecksNeeded(FilterSymbol);
-    DooFile.RegisterNoChecksNeeded(FilterPosition);
+    DooFile.RegisterNoChecksNeeded(FilterSymbol, false);
+    DooFile.RegisterNoChecksNeeded(FilterPosition, false);
   }
 
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
@@ -41,6 +42,7 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
+        DafnyFile.UnsafeDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);

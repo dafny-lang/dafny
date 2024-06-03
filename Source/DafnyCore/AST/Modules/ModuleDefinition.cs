@@ -381,7 +381,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
     Concat(DefaultClasses).
@@ -1049,7 +1049,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return Enumerable.Empty<ISymbol>();
   });
 
-  public SymbolKind Kind => SymbolKind.Namespace;
+  public SymbolKind? Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

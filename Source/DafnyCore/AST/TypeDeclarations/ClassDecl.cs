@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class ClassDecl : ClassLikeDecl, IHasDocstring {
+public class ClassDecl : ClassLikeDecl {
   public override string WhatKind => "class";
   public override bool IsReferenceTypeDecl => true;
   public override bool AcceptThis => true;

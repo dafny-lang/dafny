@@ -10,11 +10,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.AccessControl;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
+using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer;
 
 namespace Microsoft.Dafny;
@@ -29,7 +32,7 @@ public static class DafnyNewCli {
   }
 
   static DafnyNewCli() {
-    DafnyFile.RegisterExtensionHandler(DafnyProject.Extension, HandleDafnyProject);
+    DafnyFile.RegisterExtensionHandler(DafnyProject.Extension, (options, fileSystem, reporter, uri, uriOrigin, asLibrary) => HandleDafnyProject(fileSystem, options, reporter, uri, uriOrigin, asLibrary));
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
     AddCommand(BuildCommand.Create());
@@ -86,6 +89,7 @@ public static class DafnyNewCli {
       }
 
       ProcessOption(context, CommonOptionBag.UseBaseFileName, dafnyOptions);
+      dafnyOptions.ApplyBinding(CommonOptionBag.UseBaseFileName);
 
       var singleFile = context.ParseResult.GetValueForArgument(DafnyCommands.FileArgument);
       if (singleFile != null) {
@@ -107,7 +111,15 @@ public static class DafnyNewCli {
         if (option == CommonOptionBag.UseBaseFileName) {
           continue;
         }
-        if (!ProcessOption(context, option, dafnyOptions)) {
+        ProcessOption(context, option, dafnyOptions);
+      }
+      foreach (var option in command.Options) {
+        try {
+          dafnyOptions.ApplyBinding(option);
+        } catch (Exception e) {
+          context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
+          await dafnyOptions.OutputWriter.WriteLineAsync(
+            $"Invalid value for option {option.Name}: {e.Message}");
           return;
         }
       }
@@ -120,7 +132,7 @@ public static class DafnyNewCli {
     command.SetHandler(Handle);
   }
 
-  private static bool ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
+  private static void ProcessOption(InvocationContext context, Option option, DafnyOptions dafnyOptions) {
     var options = dafnyOptions.Options;
     var result = context.ParseResult.FindResultFor(option);
     object? projectFileValue = null;
@@ -150,19 +162,9 @@ public static class DafnyNewCli {
     }
 
     options.OptionArguments[option] = value;
-    try {
-      dafnyOptions.ApplyBinding(option);
-    } catch (Exception e) {
-      context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
-      dafnyOptions.OutputWriter.WriteLine(
-        $"Invalid value for option {option.Name}: {e.Message}");
-      return false;
-    }
-
-    return true;
   }
 
-  public static Task<int> Execute(IConsole console, string[] arguments) {
+  public static Task<int> Execute(IConsole console, IReadOnlyList<string> arguments) {
     bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
       if (!allowHidden) {
@@ -176,7 +178,7 @@ public static class DafnyNewCli {
       }
     }
 
-    return Parser.InvokeAsync(arguments, console);
+    return Parser.InvokeAsync(arguments.ToArray(), console);
   }
 
   private static readonly MethodInfo GetValueForOptionMethod;
@@ -216,7 +218,7 @@ public static class DafnyNewCli {
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file);
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file, Token.Cli);
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
@@ -258,30 +260,56 @@ public static class DafnyNewCli {
     return builder;
   }
 
-  private static async Task<DafnyFile?> HandleDafnyProject(DafnyOptions options,
-    IFileSystem fileSystem, ErrorReporter reporter,
+  private static async IAsyncEnumerable<DafnyFile> HandleDafnyProject(IFileSystem fileSystem, DafnyOptions options,
+    ErrorReporter reporter,
     Uri uri,
-    IToken origin,
+    IToken uriOrigin,
     bool asLibrary) {
     if (!asLibrary) {
-      reporter.Error(MessageSource.Project, origin, "Using a Dafny project file as a source file is not supported.");
-      return null;
+      reporter.Error(MessageSource.Project, uriOrigin, "Using a Dafny project file as a source file is not supported.");
+      yield break;
     }
 
-    var outputWriter = new StringWriter();
-    var errorWriter = new StringWriter();
-    var exitCode = await DafnyNewCli.Execute(new WritersConsole(TextReader.Null, outputWriter, errorWriter),
-      new[] { "build", "-t=lib", uri.LocalPath, "--verbose" });
-    if (exitCode != 0) {
-      var output = outputWriter + errorWriter.ToString();
-      reporter.Error(MessageSource.Project, origin,
-        $"Could not build a Dafny library from {uri.LocalPath} because:\n{output}");
-      return null;
+    var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
+    var dependencyOptions =
+      DooFile.CheckAndGetLibraryOptions(reporter, uri, options, uriOrigin, dependencyProject.Options,
+        new Dictionary<Option, OptionCompatibility.OptionCheck> {
+          { CommonOptionBag.Libraries, OptionCompatibility.NoOpOptionCheck }
+        });
+    if (dependencyOptions != null) {
+      if (options.Get(DafnyFile.UnsafeDependencies) || !options.Verify) {
+        foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
+          var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, dependencyOptions, libraryRootSetFile,
+            dependencyProject.StartingToken, true, false);
+          if (file != null) {
+            yield return file;
+          }
+        }
+      } else {
+        if (options.Verbose) {
+          await options.OutputWriter.WriteLineAsync($"Building dependency {options.GetPrintPath(uri.LocalPath)}");
+        }
+
+        dependencyOptions.Compile = true;
+        dependencyOptions.RunAfterCompile = false;
+        var libraryBackend = new LibraryBackend(dependencyOptions);
+        dependencyOptions.CompilerName = libraryBackend.TargetId;
+
+        dependencyOptions.DafnyProject = dependencyProject;
+        dependencyOptions.CliRootSourceUris.Clear();
+        dependencyOptions.Compile = true;
+        dependencyOptions.RunAfterCompile = false;
+        var exitCode = await SynchronousCliCompilation.Run(dependencyOptions);
+        if (exitCode == 0) {
+          var dooUri = new Uri(libraryBackend.DooPath);
+          await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
+            yield return dooResult;
+          }
+        } else {
+          reporter.Error(MessageSource.Project, uriOrigin, $"Failed to build dependency {options.GetPrintPath(uri.LocalPath)}");
+        }
+      }
     }
 
-    var regex = new Regex($"Wrote Dafny library to (.*)\n");
-    var path = regex.Match(outputWriter.ToString());
-    var dooUri = new Uri(path.Groups[1].Value);
-    return await DafnyFile.HandleDooFile(options, fileSystem, reporter, dooUri, origin, true);
   }
 }

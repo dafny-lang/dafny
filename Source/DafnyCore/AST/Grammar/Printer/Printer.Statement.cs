@@ -402,7 +402,7 @@ namespace Microsoft.Dafny {
             PrintAttributes(local.Attributes);
           }
           wr.Write(" {0}", local.DisplayName);
-          PrintType(": ", local.OptionalType);
+          PrintType(": ", local.SyntacticType);
           sep = ",";
         }
         if (s.Update != null) {

@@ -291,27 +291,30 @@ namespace Microsoft.Dafny {
                 var kvars = new List<BoundVar>();
                 var kk = new List<Bpl.Expr>();
                 var nn = new List<Bpl.Expr>();
+                var kkDafny = new List<Expression>();
+                var nnDafny = new List<Expression>();
                 var toks = new List<IToken>();
-                var types = new List<Type>();
                 var substMap = new Dictionary<IVariable, Expression>();
                 foreach (var n in inductionVariables) {
                   toks.Add(n.tok);
-                  types.Add(n.Type.NormalizeExpandKeepConstraints());
                   BoundVar k = new BoundVar(n.tok, CurrentIdGenerator.FreshId(n.Name + "$ih#"), n.Type);
                   kvars.Add(k);
 
                   IdentifierExpr ieK = new IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator));
                   ieK.Var = k; ieK.Type = ieK.Var.Type;  // resolve it here
+                  kkDafny.Add(ieK);
                   kk.Add(etran.TrExpr(ieK));
 
                   IdentifierExpr ieN = new IdentifierExpr(n.tok, n.AssignUniqueName(currentDeclaration.IdGenerator));
                   ieN.Var = n; ieN.Type = ieN.Var.Type;  // resolve it here
+                  nnDafny.Add(ieN);
                   nn.Add(etran.TrExpr(ieN));
 
                   substMap.Add(n, ieK);
                 }
                 Expression bodyK = Substitute(e.LogicalBody(), null, substMap);
-                Bpl.Expr less = DecreasesCheck(toks, types, types, kk, nn, null, null, false, true);
+                Bpl.Expr less = DecreasesCheck(toks, null, kkDafny, nnDafny, kk, nn,
+                  null, null, false, true);
 
                 Bpl.Expr ihBody = etran.TrExpr(bodyK);
                 if (!position) {

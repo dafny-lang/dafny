@@ -41,8 +41,8 @@ public class ProgramParser {
     var defaultModule = new DefaultModuleDefinition();
 
     var rootSourceUris = files.Select(f => f.Uri).ToList();
-    var verifiedRoots = files.Where(df => df.IsPreverified).Select(df => df.Uri).ToHashSet();
-    var compiledRoots = files.Where(df => df.IsPrecompiled).Select(df => df.Uri).ToHashSet();
+    var verifiedRoots = files.Where(df => df.ShouldNotVerify).Select(df => df.Uri).ToHashSet();
+    var compiledRoots = files.Where(df => df.ShouldNotCompile).Select(df => df.Uri).ToHashSet();
     var compilation = new CompilationData(errorReporter, defaultModule.Includes, rootSourceUris, verifiedRoots,
       compiledRoots);
     var program = new Program(
@@ -76,7 +76,7 @@ public class ProgramParser {
     }
 
     if (!(options.DisallowIncludes || options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
-      var includedModules = await TryParseIncludes(files, defaultModule.Includes.ToList(),
+      var includedModules = TryParseIncludes(files, defaultModule.Includes.ToList(),
         builtIns, errorReporter, cancellationToken);
 
       foreach (var module in includedModules) {
@@ -135,8 +135,7 @@ public class ProgramParser {
 
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
-        "[internal error] Parser exception: " + e.Message + (!options.Verbose ? "" :
-          "\n" + e.StackTrace));
+        "[internal error] Parser exception: " + e.Message + "\n" + e.StackTrace);
       return new DfyParseResult(reporter, new FileModuleDefinition(Token.NoToken), new Action<SystemModuleManager>[] { });
     }
   }
@@ -206,7 +205,7 @@ public class ProgramParser {
     }
   }
 
-  public async Task<IList<DfyParseResult>> TryParseIncludes(
+  public IList<DfyParseResult> TryParseIncludes(
     IReadOnlyList<DafnyFile> files,
     IEnumerable<Include> roots,
     SystemModuleManager systemModuleManager,
@@ -221,7 +220,7 @@ public class ProgramParser {
     }
 
     foreach (var root in roots) {
-      var dafnyFile = await IncludeToDafnyFile(errorReporter, root);
+      var dafnyFile = IncludeToDafnyFile(errorReporter, root);
       if (dafnyFile != null) {
         stack.Push(dafnyFile);
       }
@@ -243,7 +242,7 @@ public class ProgramParser {
       result.Add(parseIncludeResult);
 
       foreach (var include in parseIncludeResult.Module.Includes) {
-        var dafnyFile = await IncludeToDafnyFile(errorReporter, include);
+        var dafnyFile = IncludeToDafnyFile(errorReporter, include);
         if (dafnyFile != null) {
           stack.Push(dafnyFile);
         }
@@ -253,8 +252,8 @@ public class ProgramParser {
     return result;
   }
 
-  private async Task<DafnyFile> IncludeToDafnyFile(ErrorReporter errorReporter, Include include) {
-    return await DafnyFile.CreateAndValidate(errorReporter, fileSystem, include.ParseOptions, include.IncludedFilename, include.tok);
+  private DafnyFile IncludeToDafnyFile(ErrorReporter errorReporter, Include include) {
+    return DafnyFile.HandleDafnyFile(fileSystem, errorReporter, include.ParseOptions, include.IncludedFilename, include.tok, false);
   }
 
   ///<summary>
@@ -310,8 +309,8 @@ public class ProgramParser {
 
   public async Task<Program> Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
-    var file = await DafnyFile.CreateAndValidate(reporter, fs, reporter.Options, uri, Token.NoToken);
-    var files = file == null ? Array.Empty<DafnyFile>() : new[] { file };
+    var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
+    var files = new[] { file };
     return await ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

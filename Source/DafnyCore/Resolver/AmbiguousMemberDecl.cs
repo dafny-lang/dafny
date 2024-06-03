@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -23,20 +24,23 @@ class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used
   }
 
   public override string WhatKind {
-    get { return Pool.First().WhatKind; }
+    get { return pool.First().WhatKind; }
   }
 
-  readonly ISet<MemberDecl> Pool = new HashSet<MemberDecl>();
-
-  ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool {
-    get { return Pool; }
+  public override SymbolKind? Kind => null;
+  public override string GetDescription(DafnyOptions options) {
+    return null;
   }
+
+  readonly ISet<MemberDecl> pool;
+
+  ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool => pool;
 
   private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
     : base(pool.First().RangeToken, new Name(pool.First().RangeToken, name), true, pool.First().IsGhost, null, false) {
     Contract.Requires(name != null);
     Contract.Requires(pool != null && 2 <= pool.Count);
-    Pool = pool;
+    this.pool = pool;
   }
 
   public string ModuleNames() {

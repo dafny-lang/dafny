@@ -41,6 +41,13 @@ public abstract class IVariableContracts : TokenNode, IVariable {
       throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
     }
   }
+
+  public string SanitizedNameShadowable {
+    get {
+      Contract.Ensures(Contract.Result<string>() != null);
+      throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+    }
+  }
   public string CompileName {
     get {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -86,8 +93,8 @@ public abstract class IVariableContracts : TokenNode, IVariable {
     throw new NotImplementedException();
   }
 
-  public abstract IToken NameToken { get; }
-  public SymbolKind Kind => throw new NotImplementedException();
+  public abstract IToken NavigationToken { get; }
+  public SymbolKind? Kind => throw new NotImplementedException();
   public string GetDescription(DafnyOptions options) {
     throw new NotImplementedException();
   }

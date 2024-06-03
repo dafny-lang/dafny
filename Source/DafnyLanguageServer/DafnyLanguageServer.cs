@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, Action killLanguageServer) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, DafnyOptions dafnyOptions, Action killLanguageServer) {
       options.ServerInfo = new ServerInfo {
         Name = "Dafny",
         Version = DafnyVersion
@@ -31,7 +31,7 @@ namespace Microsoft.Dafny.LanguageServer {
       return options
         .WithDafnyLanguage()
         .WithDafnyWorkspace()
-        .WithDafnyHandlers()
+        .WithDafnyHandlers(dafnyOptions)
         .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
     }
@@ -56,6 +56,10 @@ namespace Microsoft.Dafny.LanguageServer {
       try {
         var proverOptions = new SMTLibSolverOptions(options);
         proverOptions.Parse(options.ProverOptions);
+        if (proverOptions.ProverName == "noop") {
+          telemetryPublisher.PublishSolverPath("noop solver");
+          return;
+        }
         solverPath = proverOptions.ExecutablePath();
         HandleZ3Version(telemetryPublisher, solverPath);
       } catch (Exception e) {

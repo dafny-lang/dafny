@@ -1,15 +1,19 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
+  protected override bool PreventShadowing => false;
+  protected override string InternalFieldPrefix => "_i_";
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
@@ -20,6 +24,9 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
+  public override IReadOnlySet<string> SupportedNativeTypes =>
+    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
+
   public override string TargetBasename(string dafnyProgramName) =>
     Regex.Replace(base.TargetBasename(dafnyProgramName), "[^_A-Za-z0-9]", "_");
 
@@ -27,7 +34,7 @@ public class RustBackend : DafnyExecutableBackend {
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
-    return new RustCodeGenerator();
+    return new RustCodeGenerator(Options);
   }
 
   private string ComputeExeName(string targetFilename) {
@@ -119,6 +126,7 @@ public class RustBackend : DafnyExecutableBackend {
     psi.WorkingDirectory = targetDirectory;
     return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
   }
+  public override Encoding OutputWriterEncoding => Encoding.UTF8;
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/

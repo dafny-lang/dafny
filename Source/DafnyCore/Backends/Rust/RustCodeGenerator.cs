@@ -7,9 +7,16 @@ using DCOMP;
 namespace Microsoft.Dafny.Compilers {
 
   class RustCodeGenerator : DafnyWrittenCodeGenerator {
+    public DafnyOptions Options { get; set; }
+
+    public RustCodeGenerator(DafnyOptions options) {
+      this.Options = options;
+    }
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
-      return COMP.Compile(program);
+      var c = new COMP();
+      c.__ctor(Options.Get(CommonOptionBag.UnicodeCharacters));
+      return c.Compile(program);
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {
@@ -17,7 +24,6 @@ namespace Microsoft.Dafny.Compilers {
       var convertedToUnicode = Sequence<Sequence<Rune>>.FromArray(splitByDot.Select(s => (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(s)).ToArray());
       return COMP.EmitCallToMain(convertedToUnicode);
     }
-
   }
 
 }

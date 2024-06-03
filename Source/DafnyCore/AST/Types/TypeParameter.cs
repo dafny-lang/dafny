@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -198,6 +199,11 @@ public class TypeParameter : TopLevelDecl {
       // when debugging, print it all:
       return /* Parent.FullName + "." + */ Name;
     }
+  }
+
+  public override SymbolKind? Kind => SymbolKind.TypeParameter;
+  public override string GetDescription(DafnyOptions options) {
+    return null; // TODO test the effect of this
   }
 
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {

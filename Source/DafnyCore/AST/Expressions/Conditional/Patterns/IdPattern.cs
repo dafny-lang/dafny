@@ -8,12 +8,14 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
-public class IdPattern : ExtendedPattern, IHasUsages {
+public class IdPattern : ExtendedPattern, IHasReferences {
   public bool HasParenthesis { get; }
   public String Id;
   public PreType PreType;
   public Type Type; // This is the syntactic type, ExtendedPatterns disappear during resolution.
-  public IVariable BoundVar { get; set; }
+
+  public IVariable BoundVar { get; set; } // Only set if there are no arguments
+
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
   [FilledInDuringResolution]
@@ -129,11 +131,11 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
+  public IEnumerable<IHasNavigationToken> GetReferences() {
+    return new ISymbol[] { Ctor }.Where(x => x != null);
   }
 
-  public IToken NameToken => Tok;
+  public IToken NavigationToken => Tok;
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (Arguments != null) {

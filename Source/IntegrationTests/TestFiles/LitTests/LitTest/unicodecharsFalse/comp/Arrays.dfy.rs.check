@@ -1,0 +1,1 @@
+// CHECK-L: Arrays.dfy(493,5): Error: Feature not supported for this compilation target: Multi-dimensional arrays
