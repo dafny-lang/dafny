@@ -129,7 +129,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     this.IsGhost = true;
   }
 
-  public IToken NameToken => RangeToken.StartToken;
+  public IToken NavigationToken => RangeToken.StartToken;
   public bool IsTypeExplicit { get; }
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(

@@ -425,6 +425,13 @@ namespace Microsoft.Dafny {
           newExpr = new BoogieGenerator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
 
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        List<Expression> oldExpressionsSubst = SubstituteExprList(decreasesToExpr.OldExpressions.ToList());
+        List<Expression> newExpressionsSubst = SubstituteExprList(decreasesToExpr.NewExpressions.ToList());
+        newExpr = new DecreasesToExpr(decreasesToExpr.tok, oldExpressionsSubst, newExpressionsSubst, decreasesToExpr.AllowNoChange) {
+          Type = decreasesToExpr.Type
+        };
+
       } else {
         Contract.Assume(false); // unexpected Expression
       }

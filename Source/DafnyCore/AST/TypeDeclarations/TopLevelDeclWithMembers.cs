@@ -267,8 +267,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
   public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
-  public virtual SymbolKind? Kind => SymbolKind.Class;
-  public virtual string GetDescription(DafnyOptions options) {
+  public override SymbolKind? Kind => SymbolKind.Class;
+  public override string GetDescription(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }
 }

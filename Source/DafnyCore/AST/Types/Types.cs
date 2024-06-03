@@ -1,6 +1,7 @@
 #define TI_DEBUG_PRINT
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
@@ -1952,19 +1953,21 @@ public abstract class CollectionType : NonProxyType {
   }
   public void SetTypeArg(Type arg) {
     Contract.Requires(arg != null);
-    Contract.Requires(1 <= this.TypeArgs.Count);  // this is actually an invariant of all collection types
     Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
     this.arg = arg;
-    this.TypeArgs[0] = arg;
+
+    Debug.Assert(TypeArgs.Count == 0);
+    TypeArgs.Add(arg);
   }
   public virtual void SetTypeArgs(Type arg, Type other) {
     Contract.Requires(arg != null);
     Contract.Requires(other != null);
-    Contract.Requires(this.TypeArgs.Count == 2);
     Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
     this.arg = arg;
-    this.TypeArgs[0] = arg;
-    this.TypeArgs[1] = other;
+
+    Debug.Assert(TypeArgs.Count == 0);
+    TypeArgs.Add(arg);
+    TypeArgs.Add(other);
   }
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -1977,14 +1980,23 @@ public abstract class CollectionType : NonProxyType {
   /// </summary>
   protected CollectionType(Type arg) {
     this.arg = arg;
-    this.TypeArgs = new List<Type> { arg };
+    TypeArgs = new List<Type>(1);
+    if (arg != null) {
+      TypeArgs.Add(arg);
+    }
   }
+
   /// <summary>
   /// This constructor is a collection types with 2 type arguments
   /// </summary>
   protected CollectionType(Type arg, Type other) {
     this.arg = arg;
-    this.TypeArgs = new List<Type> { arg, other };
+    TypeArgs = new List<Type>(2);
+    if (arg != null && other != null) {
+      TypeArgs.Add(arg);
+      TypeArgs.Add(other);
+    }
+    Debug.Assert(arg == null && other == null || arg != null && other != null);
   }
 
   protected CollectionType(Cloner cloner, CollectionType original) {
