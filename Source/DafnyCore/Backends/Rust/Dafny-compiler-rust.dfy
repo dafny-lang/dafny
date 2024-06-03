@@ -1259,7 +1259,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     "as","async","await","break","const","continue",
     "crate","dyn","else","enum","extern","false","fn","for","if","impl",
     "in","let","loop","match","mod","move","mut","pub","ref","return",
-    "Self","self","static","struct","super","trait","true","type","union",
+    "static","struct","super","trait","true","type","union",
     "unsafe","use","where","while","Keywords","The","abstract","become",
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
@@ -1339,6 +1339,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       i
     else if is_tuple_builder(i) then
       better_tuple_builder_name(i)
+    else if i == "self" || i == "Self" then
+      "r#_" + i
     else if i in reserved_rust then
       "r#" + i
     else if is_idiomatic_rust_id(i) then
@@ -3796,11 +3798,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 recIdents := recIdents - {next};
               }
               var wasAssigned: string := "::dafny_runtime::LazyFieldWrapper(::dafny_runtime::Lazy::new(::std::boxed::Box::new({\n" + allReadCloned + "move || (" + recursiveGen.ToString(IND) + ")})))";
-              assignments := assignments + [R.AssignIdentifier(name, R.RawExpr(wasAssigned))];
+              assignments := assignments + [R.AssignIdentifier(escapeIdent(name), R.RawExpr(wasAssigned))];
             } else {
               var recursiveGen, _, recIdents := GenExpr(value, selfIdent, env, OwnershipOwned);
 
-              assignments := assignments + [R.AssignIdentifier(name, recursiveGen)];
+              assignments := assignments + [R.AssignIdentifier(escapeIdent(name), recursiveGen)];
               readIdents := readIdents + recIdents;
             }
           }
