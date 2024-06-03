@@ -3129,13 +3129,14 @@ namespace DAST {
     bool is_SetBuilderBuild { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Std.Wrappers._IOption<DAST._IType> dtor_onType { get; }
+    Std.Wrappers._IOption<DAST._IFormal> dtor_receiverArgs { get; }
     Dafny.ISequence<DAST._IFormal> dtor_signature { get; }
     _ICallName DowncastClone();
   }
   public abstract class CallName : _ICallName {
     public CallName() {
     }
-    private static readonly DAST._ICallName theDefault = create_CallName(Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<DAST._IType>.Default(), Dafny.Sequence<DAST._IFormal>.Empty);
+    private static readonly DAST._ICallName theDefault = create_CallName(Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<DAST._IType>.Default(), Std.Wrappers.Option<DAST._IFormal>.Default(), Dafny.Sequence<DAST._IFormal>.Empty);
     public static DAST._ICallName Default() {
       return theDefault;
     }
@@ -3143,8 +3144,8 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._ICallName> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ICallName create_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Dafny.ISequence<DAST._IFormal> signature) {
-      return new CallName_CallName(name, onType, signature);
+    public static _ICallName create_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Std.Wrappers._IOption<DAST._IFormal> receiverArgs, Dafny.ISequence<DAST._IFormal> signature) {
+      return new CallName_CallName(name, onType, receiverArgs, signature);
     }
     public static _ICallName create_MapBuilderAdd() {
       return new CallName_MapBuilderAdd();
@@ -3175,6 +3176,12 @@ namespace DAST {
         return ((CallName_CallName)d)._i_onType;
       }
     }
+    public Std.Wrappers._IOption<DAST._IFormal> dtor_receiverArgs {
+      get {
+        var d = this;
+        return ((CallName_CallName)d)._i_receiverArgs;
+      }
+    }
     public Dafny.ISequence<DAST._IFormal> dtor_signature {
       get {
         var d = this;
@@ -3186,25 +3193,28 @@ namespace DAST {
   public class CallName_CallName : CallName {
     public readonly Dafny.ISequence<Dafny.Rune> _i_name;
     public readonly Std.Wrappers._IOption<DAST._IType> _i_onType;
+    public readonly Std.Wrappers._IOption<DAST._IFormal> _i_receiverArgs;
     public readonly Dafny.ISequence<DAST._IFormal> _i_signature;
-    public CallName_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Dafny.ISequence<DAST._IFormal> signature) : base() {
+    public CallName_CallName(Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<DAST._IType> onType, Std.Wrappers._IOption<DAST._IFormal> receiverArgs, Dafny.ISequence<DAST._IFormal> signature) : base() {
       this._i_name = name;
       this._i_onType = onType;
+      this._i_receiverArgs = receiverArgs;
       this._i_signature = signature;
     }
     public override _ICallName DowncastClone() {
       if (this is _ICallName dt) { return dt; }
-      return new CallName_CallName(_i_name, _i_onType, _i_signature);
+      return new CallName_CallName(_i_name, _i_onType, _i_receiverArgs, _i_signature);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.CallName_CallName;
-      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_onType, oth._i_onType) && object.Equals(this._i_signature, oth._i_signature);
+      return oth != null && object.Equals(this._i_name, oth._i_name) && object.Equals(this._i_onType, oth._i_onType) && object.Equals(this._i_receiverArgs, oth._i_receiverArgs) && object.Equals(this._i_signature, oth._i_signature);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_onType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_receiverArgs));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._i_signature));
       return (int) hash;
     }
@@ -3214,6 +3224,8 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._i_name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_onType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._i_receiverArgs);
       s += ", ";
       s += Dafny.Helpers.ToString(this._i_signature);
       s += ")";
