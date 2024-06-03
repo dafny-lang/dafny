@@ -4084,7 +4084,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case TupleSelect(on, idx, fieldType) => {
           var onExpr, onOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
           r := onExpr.Sel(Strings.OfNat(idx));
-          r, resultingOwnership := FromOwnership(r, onOwnership, expectedOwnership);
+          // even if "on" was borrowed, the field is always owned so we need to explicitly borrow it depending on the use case.
+          r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
           readIdents := recIdents;
           return;
         }

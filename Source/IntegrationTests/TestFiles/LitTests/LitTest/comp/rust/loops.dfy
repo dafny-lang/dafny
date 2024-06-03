@@ -11,6 +11,9 @@ method ToSet<T>(s: seq<T>) returns (r: set<T>) {
   return {s[0]};
 }
 
+newtype U8 = x: int | 0 <= x <= 255
+type ByteSequence = seq<U8>
+
 datatype Result<T> = Success(value: T) | Failure(msg: string)
 
 const CONST1: string := "1"
@@ -65,6 +68,18 @@ method Main() {
   expect forall i: int | 1 <= i <= 10 :: i % 11 != 0;
   var c := "abcdaa";
   expect forall ch <- c :: ch !in "e";
+
+  Remap();
+}
+
+method Remap() {
+  var sResults: map<ByteSequence, Result<(string, string)>> := map[
+    [2 as U8] := Success(("abc", "def")),
+    [3 as U8, 4 as U8] := Success(("abc2", "def2"))
+  ];
+  var remapped := map r | r in sResults.Values :: r.value.0 := r.value.1;
+  expect "abc" in remapped && remapped["abc"] == "def";
+  expect "abc2" in remapped && remapped["abc2"] == "def2";
 }
 
 class ZeroContainer {

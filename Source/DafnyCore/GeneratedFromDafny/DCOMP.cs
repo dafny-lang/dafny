@@ -2614,6 +2614,14 @@ namespace DCOMP {
             _3196_argExpr = _out167;
             _3197_ownership = _out168;
             _3198_argIdents = _out169;
+            if (object.Equals(_3183_name, DAST.CallName.create_MapBuilderAdd())) {
+              Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#DEBUG# Generating argument with ownership ")).ToVerbatimString(false));
+              Dafny.Helpers.Print((_3194_argOwnership));
+              Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")).ToVerbatimString(false));
+              Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#DEBUG# ")).ToVerbatimString(false));
+              Dafny.Helpers.Print(((_3196_argExpr)._ToString(RAST.__default.IND)).ToVerbatimString(false));
+              Dafny.Helpers.Print((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")).ToVerbatimString(false));
+            }
             _3192_argExprs = Dafny.Sequence<RAST._IExpr>.Concat(_3192_argExprs, Dafny.Sequence<RAST._IExpr>.FromElements(_3196_argExpr));
             readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _3198_argIdents);
           }
@@ -11507,7 +11515,7 @@ namespace DCOMP {
                     goto after__ASSIGN_SUCH_THAT_2;
                   }
                 }
-                throw new System.Exception("assign-such-that search produced no value (line 3686)");
+                throw new System.Exception("assign-such-that search produced no value (line 3690)");
               after__ASSIGN_SUCH_THAT_2: ;
                 _4847_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_4847_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), _4848_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _4848_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                 _4846_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_4846_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_4848_next));
@@ -23201,7 +23209,7 @@ namespace DCOMP {
           r = (_10635_onExpr).Sel(Std.Strings.__default.OfNat(_10633_idx));
           RAST._IExpr _out2182;
           DCOMP._IOwnership _out2183;
-          DCOMP.COMP.FromOwnership(r, _10636_onOwnership, expectedOwnership, out _out2182, out _out2183);
+          DCOMP.COMP.FromOwnership(r, DCOMP.Ownership.create_OwnershipOwned(), expectedOwnership, out _out2182, out _out2183);
           r = _out2182;
           resultingOwnership = _out2183;
           readIdents = _10637_recIdents;
@@ -24772,7 +24780,7 @@ namespace DCOMP {
                 goto after__ASSIGN_SUCH_THAT_3;
               }
             }
-            throw new System.Exception("assign-such-that search produced no value (line 4168)");
+            throw new System.Exception("assign-such-that search produced no value (line 4173)");
           after__ASSIGN_SUCH_THAT_3: ;
             if ((!object.Equals(selfIdent, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())) && ((_11058_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
               if (!object.Equals(selfIdent, Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())) {
