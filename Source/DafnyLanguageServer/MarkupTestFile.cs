@@ -198,7 +198,7 @@ namespace Microsoft.Dafny.LanguageServer {
   public record TextSpan(int Start, int Length) {
     public int End => Start + Length;
   }
-  
+
   public record AnnotatedSpan(string Annotation, TextSpan Span);
   public record AnnotatedRange(string Annotation, Range Range);
 }

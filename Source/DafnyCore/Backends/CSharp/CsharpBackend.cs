@@ -35,11 +35,11 @@ public class CsharpBackend : ExecutableBackend {
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter) {
 
-    var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+    var rootDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     var fileNames = Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName));
-    var sourcePath = Path.Join(outputDir, fileNames + ".cs");
-    var csprojPath = Path.Join(outputDir, fileNames + ".csproj");
-    Directory.CreateDirectory(outputDir);
+    var sourcePath = Path.Join(rootDir, fileNames + ".cs");
+    var csprojPath = Path.Join(rootDir, fileNames + ".csproj");
+    Directory.CreateDirectory(rootDir);
 
     var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
     await File.WriteAllTextAsync(sourcePath, source);
@@ -103,11 +103,16 @@ public class CsharpBackend : ExecutableBackend {
 
     await File.WriteAllTextAsync(csprojPath, projectFile);
 
-    var psi = PrepareProcessStartInfo("dotnet", new[] { "build", csprojPath });
-    var exitCode = await RunProcess(psi, outputWriter, outputWriter);
-
-    var outputPath = Path.Combine(outputDir, fileNames + ".dll");
-    return (exitCode == 0, outputPath);
+    var outputDir = Path.Combine(rootDir, "out");
+    var psi = PrepareProcessStartInfo("dotnet", new[] { "build", csprojPath, "-o", outputDir });
+    var dotnetOutputWriter = new StringWriter();
+    var dotnetErrorWriter = new StringWriter();
+    var exitCode = await RunProcess(psi, dotnetOutputWriter, dotnetErrorWriter);
+    var dllPath = Path.Combine(outputDir, fileNames + ".dll");
+    if (exitCode != 0) {
+      await outputWriter.WriteAsync(dotnetErrorWriter.ToString());
+    }
+    return (exitCode == 0, dllPath);
   }
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
