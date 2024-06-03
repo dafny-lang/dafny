@@ -81,3 +81,6 @@ Source/IntegrationTests/TestFiles/LitTests/LitTest/server/*.bvd
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/model
 Source/IntegrationTests/TestFiles/LitTests/LitTest/logger/*.html
 Source/IntegrationTests/TestFiles/LitTests/LitTest/comp/**/*.html
+Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.dtr
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/projectFile/libs/usesLibrary-lib
+/Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/projectFile/libs/usesLibrary.doo
