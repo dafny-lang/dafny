@@ -2858,7 +2858,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := readIdents + enclosingIdents;
 
           var renderedName := match name {
-            case CallName(name, _, _) => escapeName(name)
+            case CallName(name, _, _, _) => escapeName(name)
             case MapBuilderAdd() | SetBuilderAdd() => "add"
             case MapBuilderBuild() | SetBuilderBuild() => "build"
           };
@@ -2868,7 +2868,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             case _ => {
               match name {
-                case CallName(_, Some(tpe), _) =>
+                case CallName(_, Some(tpe), _, _) =>
                   var typ := GenType(tpe, false, false);
                   if typ.IsObjectOrPointer() {
                     if typ.IsObject() {
@@ -4235,7 +4235,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
           readIdents := readIdents + recIdents;
           var renderedName := match name {
-            case CallName(ident, _, _) => escapeName(ident)
+            case CallName(ident, _, _, _) => escapeName(ident)
             case MapBuilderAdd | SetBuilderAdd => "add"
             case MapBuilderBuild | SetBuilderBuild => "build"
           };
@@ -4247,7 +4247,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case _ => {
               if onExpr != R.self {
                 match name {
-                  case CallName(_, Some(tpe), _) =>
+                  case CallName(_, Some(tpe), _, _) =>
                     var typ := GenType(tpe, false, false);
                     if typ.IsObjectOrPointer() {
                       onExpr := read_macro.Apply1(onExpr);
