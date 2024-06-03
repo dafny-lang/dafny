@@ -714,7 +714,7 @@ namespace Microsoft.Dafny.Compilers {
         return t.NativeType != null ? GetNativeTypeName(t.NativeType, boxed) : "java.math.BigInteger";
       } else if (member == null && xType.AsNewtype != null) {
         var newtypeDecl = xType.AsNewtype;
-        if (newtypeDecl.NativeType is {} nativeType) {
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType, boxed);
         }
         return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok, boxed, erased);

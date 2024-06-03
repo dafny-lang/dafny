@@ -2060,7 +2060,7 @@ namespace Microsoft.Dafny {
       var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
         var sourcePreType = Constraints.ApproximateReceiverType(collectionPreType, null);
-        if (sourcePreType != null && AncestorPreType(sourcePreType) is {} ancestorPreType) {
+        if (sourcePreType != null && AncestorPreType(sourcePreType) is { } ancestorPreType) {
           var familyDeclName = ancestorPreType.Decl.Name;
           switch (familyDeclName) {
             case PreType.TypeNameArray:

@@ -934,7 +934,7 @@ namespace Microsoft.Dafny.Compilers {
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigNumber";
       } else if (xType.AsNewtype != null) {
         var newtypeDecl = xType.AsNewtype;
-        if (newtypeDecl.NativeType is {} nativeType) {
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType);
         }
         return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok, member);

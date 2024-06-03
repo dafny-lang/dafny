@@ -657,7 +657,7 @@ namespace Microsoft.Dafny.Compilers {
       if (xType.AsNewtype != null && member == null) {
         // when member is given, use UserDefinedType case below
         var newtypeDecl = xType.AsNewtype;
-        if (newtypeDecl.NativeType is {} nativeType) {
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType);
         }
         return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok);
