@@ -4,6 +4,7 @@ using Xunit;
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit;
 
 public class DafnyHoverHandlerTest {
+
   [Fact]
   public void FormatResourceUnitTest() {
     void OneTest(string expected, long input) {

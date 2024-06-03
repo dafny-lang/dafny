@@ -5,12 +5,15 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public interface IDeclarationOrUsage : INode {
-  IToken NameToken { get; }
+/// <summary>
+/// Node that has a token that is used to navigate to this node
+/// </summary>
+public interface IHasNavigationToken : INode {
+  IToken NavigationToken { get; }
 }
 
-public interface IHasUsages : IDeclarationOrUsage {
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations();
+public interface IHasReferences : IHasNavigationToken {
+  public IEnumerable<IHasNavigationToken> GetReferences();
 }
 
 /// <summary>
@@ -59,7 +62,7 @@ public static class AstExtensions {
   }
 }
 
-public interface ISymbol : IDeclarationOrUsage {
+public interface ISymbol : IHasNavigationToken {
   SymbolKind? Kind { get; }
 
   string GetDescription(DafnyOptions options);
