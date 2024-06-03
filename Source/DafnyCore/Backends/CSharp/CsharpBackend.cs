@@ -104,7 +104,7 @@ public class CsharpBackend : ExecutableBackend {
     await File.WriteAllTextAsync(csprojPath, projectFile);
 
     var psi = PrepareProcessStartInfo("dotnet", new[] { "build", csprojPath });
-    var exitCode = await RunProcess(psi, outputWriter, outputWriter);
+    var exitCode = await RunProcess(psi, TextWriter.Null, outputWriter);
 
     var outputPath = Path.Combine(outputDir, fileNames + ".dll");
     return (exitCode == 0, outputPath);
