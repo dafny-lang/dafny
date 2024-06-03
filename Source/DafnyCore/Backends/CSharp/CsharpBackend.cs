@@ -112,7 +112,8 @@ public class CsharpBackend : ExecutableBackend {
     var exitCode = await RunProcess(psi, dotnetOutputWriter, dotnetErrorWriter);
     var dllPath = Path.Combine(outputDir, fileNames + ".dll");
     if (exitCode != 0 || !File.Exists(dllPath)) {
-      await outputWriter.WriteLineAsync($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'");
+      await outputWriter.WriteLineAsync($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'. Command output was:");
+      await outputWriter.WriteAsync(dotnetOutputWriter.ToString());
       await outputWriter.WriteAsync(dotnetErrorWriter.ToString());
     }
     return (exitCode == 0, dllPath);
