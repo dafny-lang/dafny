@@ -104,12 +104,15 @@ public class CsharpBackend : ExecutableBackend {
     await File.WriteAllTextAsync(csprojPath, projectFile);
 
     var outputDir = Path.Combine(rootDir, "out");
-    var psi = PrepareProcessStartInfo("dotnet", new[] { "build", csprojPath, "-o", outputDir });
+    Directory.CreateDirectory(outputDir);
+    var arguments = new[] { "build", csprojPath, "-o", outputDir };
+    var psi = PrepareProcessStartInfo("dotnet", arguments);
     var dotnetOutputWriter = new StringWriter();
     var dotnetErrorWriter = new StringWriter();
     var exitCode = await RunProcess(psi, dotnetOutputWriter, dotnetErrorWriter);
     var dllPath = Path.Combine(outputDir, fileNames + ".dll");
-    if (exitCode != 0) {
+    if (exitCode != 0 || !File.Exists(dllPath)) {
+      await outputWriter.WriteLineAsync($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'");
       await outputWriter.WriteAsync(dotnetErrorWriter.ToString());
     }
     return (exitCode == 0, dllPath);
