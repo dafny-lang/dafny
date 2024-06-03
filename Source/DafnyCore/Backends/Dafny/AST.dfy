@@ -46,8 +46,7 @@ module {:extern "DAST"} DAST {
     | Datatype(Datatype)
 
   datatype Type =
-    Path(seq<Ident>, typeArgs: seq<Type>, resolved: ResolvedType) |
-    Nullable(Type) |
+    UserDefined(resolved: ResolvedType) |
     Tuple(seq<Type>) |
     Array(element: Type, dims: nat) |
     Seq(element: Type) |
@@ -58,7 +57,7 @@ module {:extern "DAST"} DAST {
     MapBuilder(key: Type, value: Type) |
     Arrow(args: seq<Type>, result: Type) |
     Primitive(Primitive) | Passthrough(string) |
-    TypeArg(Ident)
+    TypeArg(Ident) | Object()
 
   datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>)
 
@@ -74,19 +73,31 @@ module {:extern "DAST"} DAST {
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
 
-  datatype DatatypeType = DatatypeType(path: seq<Ident>, attributes: seq<Attribute>)
+  datatype DatatypeType = DatatypeType()
 
-  datatype ResolvedType =
-    | AllocatedDatatype(datatypeType: DatatypeType)
-    | Datatype(datatypeType: DatatypeType)
-    | Trait(path: seq<Ident>, attributes: seq<Attribute>)
-    | Newtype(baseType: Type, range: NewtypeRange, erase: bool, attributes: seq<Attribute>)
+  datatype TraitType = TraitType()
+
+  datatype NewtypeType = NewtypeType(baseType: Type, range: NewtypeRange, erase: bool)
+
+  datatype ResolvedTypeBase =
+    | Class()
+    | Datatype()
+    | Trait()
+    | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
+
+  datatype ResolvedType = ResolvedType(
+    path: seq<Ident>,
+    typeArgs: seq<Type>,
+    kind: ResolvedTypeBase,
+    attributes: seq<Attribute>,
+    properMethods: seq<Ident>,
+    extendedTypes: seq<Type>)
 
   datatype Ident = Ident(id: Name)
 
   datatype Class = Class(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, superClasses: seq<Type>, fields: seq<Field>, body: seq<ClassItem>, attributes: seq<Attribute>)
 
-  datatype Trait = Trait(name: Name, typeParams: seq<TypeArgDecl>, body: seq<ClassItem>, attributes: seq<Attribute>)
+  datatype Trait = Trait(name: Name, typeParams: seq<TypeArgDecl>, parents: seq<Type>, body: seq<ClassItem>, attributes: seq<Attribute>)
 
   datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>)
 
@@ -158,7 +169,7 @@ module {:extern "DAST"} DAST {
   datatype CollKind = Seq | Array | Map
 
   datatype BinOp =
-    Eq(referential: bool, nullable: bool) |
+    Eq(referential: bool) |
     Div() | EuclidianDiv() |
     Mod() | EuclidianMod() |
     Lt() | // a <= b is !(b < a)
@@ -180,13 +191,13 @@ module {:extern "DAST"} DAST {
   datatype Expression =
     Literal(Literal) |
     Ident(Name) |
-    Companion(seq<Ident>) |
+    Companion(seq<Ident>, typeArgs: seq<Type>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
     NewUninitArray(dims: seq<Expression>, typ: Type) |
     ArrayIndexToInt(value: Expression) |
     FinalizeNewArray(value: Expression, typ: Type) |
-    DatatypeValue(datatypeType: DatatypeType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(string, Expression)>) |
+    DatatypeValue(datatypeType: ResolvedType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(string, Expression)>) |
     Convert(value: Expression, from: Type, typ: Type) |
     SeqConstruct(length: Expression, elem: Expression) |
     SeqValue(elements: seq<Expression>, typ: Type) |

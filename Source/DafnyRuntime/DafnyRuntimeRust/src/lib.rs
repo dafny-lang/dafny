@@ -1709,23 +1709,8 @@ impl<V: DafnyTypeEq> Hash for Multiset<V> {
     }
 }
 
-// Define the AsAny trait
-pub trait AsAny {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-impl AsAny for dyn Any {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-pub fn is_instance_of<C: ?Sized + AsAny, U: 'static>(theobject: *const C) -> bool {
-    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    unsafe { &*theobject }
-        .as_any()
+pub fn is_instance_of<C: ?Sized + Upcast<dyn Any>, U: 'static>(theobject: *const C) -> bool {
+    read!(Upcast::<dyn Any>::upcast(read!(theobject)))
         .downcast_ref::<U>()
         .is_some()
 }
@@ -2527,7 +2512,7 @@ macro_rules! ARRAY_METHODS {
             unsafe { std::mem::transmute(p) }
         }
         // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct_rcmut(p: $crate::Object<$ArrayType<MaybeUninit<T>>>) -> Object<$ArrayType<T>> {
+        pub fn construct_object(p: $crate::Object<$ArrayType<MaybeUninit<T>>>) -> Object<$ArrayType<T>> {
             unsafe { std::mem::transmute(p) }
         }
     };
@@ -2849,14 +2834,14 @@ pub mod array {
     pub fn placebos_usize<T>(n: usize) -> *mut [MaybeUninit<T>] {
         Box::into_raw(placebos_box_usize(n))
     }
-    pub fn placebos_usize_rcmut<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
+    pub fn placebos_usize_object<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
         super::rcmut::array_object_from_box(placebos_box_usize(n))
     }
     // Once all the elements have been initialized, transform the signature of the pointer
     pub fn construct<T>(p: *mut [MaybeUninit<T>]) -> *mut [T] {
         unsafe { std::mem::transmute(p) }
     }
-    pub fn construct_rcmut<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
+    pub fn construct_object<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
         unsafe { std::mem::transmute(p) }
     }
 
@@ -2980,8 +2965,7 @@ pub fn exact_range<T: Clone>(value: T) -> ExactPool<T> {
 #[macro_export]
 macro_rules! cast {
     ($raw:expr, $id:ty) => {
-        $crate::modify!($raw)
-            .as_any_mut()
+        $crate::modify!(Upcast::<dyn Any>::upcast($crate::modify!($raw)))
             .downcast_mut::<$id>()
             .unwrap() as *mut $id
     };
@@ -2991,18 +2975,16 @@ macro_rules! cast {
 #[macro_export]
 macro_rules! is {
     ($raw:expr, $id:ty) => {
-        $crate::modify!($raw)
-            .as_any_mut()
+        $crate::modify!($crate::cast_any!($raw))
             .downcast_mut::<$id>()
             .is_some()
     };
 }
 
 #[macro_export]
-macro_rules! is_rcmut {
+macro_rules! is_object {
     ($raw:expr, $id:ty) => {
-        $crate::md!($raw)
-            .as_any_mut()
+        $crate::md!($crate::cast_any_object!($raw))
             .downcast_mut::<$id>()
             .is_some()
     };
@@ -3013,9 +2995,18 @@ macro_rules! is_rcmut {
 #[macro_export]
 macro_rules! cast_any {
     ($raw:expr) => {
-        $crate::modify!($raw).as_any_mut()
+        $crate::Upcast::<dyn Any>::upcast($crate::read!($raw))
     };
 }
+// cast_any_object is meant to be used on references only, to convert any references (classes or traits)*
+// to an Any reference trait
+#[macro_export]
+macro_rules! cast_any_object {
+    ($raw:expr) => {
+        $crate::UpcastObject::<dyn Any>::upcast($crate::rd!($raw))
+    };
+}
+
 
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
@@ -3045,7 +3036,11 @@ macro_rules! modify {
     ($ptr:expr) => {
         // safety: Dafny will only obtain a mutable borrowed address of a pointer if it can ensure the object
         // is still allocated
-        (unsafe { &mut *$ptr })
+        {
+            #[allow(unused_unsafe)]
+            let tmp = unsafe { &mut *$ptr };
+            tmp
+        }
     }
 }
 
@@ -3055,7 +3050,11 @@ macro_rules! read {
     ($ptr:expr) => {
         // safety: Dafny will only obtain a borrowed address of a pointer if it can ensure the object
         // is still allocated
-        (unsafe { &*$ptr })
+        {
+            #[allow(unused_unsafe)]
+            let tmp = unsafe { &*$ptr };
+            tmp
+        }
     }
 }
 
@@ -3116,8 +3115,9 @@ impl <T: ?Sized> DafnyPrint for Object<T> {
     }
 }
 
-impl <T: ?Sized> PartialEq for Object<T> {
-    fn eq(&self, other: &Self) -> bool {
+
+impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
+    fn eq(&self, other: &Object<U>) -> bool {
         if let Some(p) = &self.0 {
             if let Some(q) = &other.0 {
                 // To compare addresses, we need to ensure we only compare thin pointers
@@ -3126,8 +3126,10 @@ impl <T: ?Sized> PartialEq for Object<T> {
             } else {
                 false
             }
-        } else {
+        } else if let Some(_q) = &other.0 {
             false
+        } else {
+            true
         }
     }
 }
@@ -3135,10 +3137,31 @@ impl <T: ?Sized> PartialEq for Object<T> {
 impl <T: ?Sized> std::hash::Hash for Object<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if let Some(p) = &self.0 {
-            p.as_ref().get().hash(state);
+            (p.as_ref().get() as *const ()).hash(state);
         } else {
             0.hash(state);
         }
+    }
+}
+
+impl <T: ?Sized> AsMut<T> for Object<T> {
+    fn as_mut(&mut self) -> &mut T {
+        unsafe { &mut *(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
+    }
+}
+impl <T: ?Sized> AsRef<T> for Object<T> {
+    fn as_ref(&self) -> &T {
+        unsafe { &*(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
+    }
+}
+
+
+impl <T: ?Sized> Object<T> {
+    pub fn from_ref(r: &T) -> Object<T> {
+        let pt = r as *const T;
+        unsafe { ::std::rc::Rc::increment_strong_count(pt) }
+        let rebuilt = unsafe { Rc::from_raw(pt as *const UnsafeCell<T>) };
+        Object(Some(rebuilt))
     }
 }
 
@@ -3154,8 +3177,8 @@ macro_rules! cast_object {
     };
 }
 
-// Returns an object whose fields are yet initialized. Only use update_field_uninit_rcmut  and update_field_if_uninit_rcmut to initialize fields.
-pub fn allocate_rcmut<T>() -> Object<T> {
+// Returns an object whose fields are yet initialized. Only use update_field_uninit_object  and update_field_if_uninit_object to initialize fields.
+pub fn allocate_object<T>() -> Object<T> {
     unsafe { mem::transmute(object::new::<MaybeUninit<T>>(MaybeUninit::uninit())) }
 }
 
@@ -3163,42 +3186,40 @@ pub struct AllocationTracker {
     allocations: Vec<Weak<dyn Any>>
 }
 
-pub fn allocate_rcmut_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
-    let res = allocate_rcmut::<T>();
+pub fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
+    let res = allocate_object::<T>();
     allocation_tracker.allocations.push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
     res
 }
 
-pub fn is_instance_of_rcmut<T: ?Sized + AsAny + 'static, U: 'static>(theobject: Object<T>) -> bool {
+pub fn is_instance_of_object<T: ?Sized + 'static + UpcastObject<dyn Any>, U: 'static>(theobject: Object<T>) -> bool {
     // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    unsafe { 
-        rcmut::borrow(&theobject.0.unwrap()).as_any().downcast_ref::<U>().is_some()
-    }
+    rd!(UpcastObject::<dyn Any>::upcast(rd!(theobject))).downcast_ref::<U>().is_some()
 }
 
 // Equivalent of update_field_nodrop but for rcmut
 #[macro_export]
-macro_rules! update_field_nodrop_rcmut {
+macro_rules! update_field_nodrop_object {
     ($ptr:expr, $field: ident, $value:expr) => {
-        $crate::update_nodrop_rcmut!(($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field, $value)
+        $crate::update_nodrop_object!(($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field, $value)
     };
 }
 
 // Equivalent of update_nodrop but for rcmut
 #[macro_export]
-macro_rules! update_nodrop_rcmut {
+macro_rules! update_nodrop_object {
     ($ptr:expr, $value:expr) => {
-        unsafe { unsafe { ::std::ptr::addr_of_mut!($ptr).write($value) } }
+        unsafe { ::std::ptr::addr_of_mut!($ptr).write($value) }
     };
 }
 
 // Equivalent of update_field_if_uninit but for rcmut
 #[macro_export]
-macro_rules! update_field_if_uninit_rcmut {
+macro_rules! update_field_if_uninit_object {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
         let computed_value = $value;
         if !$field_assigned {
-            $crate::update_field_nodrop_rcmut!($t, $field, computed_value);
+            $crate::update_field_nodrop_object!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3206,13 +3227,13 @@ macro_rules! update_field_if_uninit_rcmut {
 
 // Equivalent of update_field_uninit but for rcmut
 #[macro_export]
-macro_rules! update_field_uninit_rcmut {
+macro_rules! update_field_uninit_object {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
         let computed_value = $value;
         if $field_assigned {
             $crate::md!($t).$field = computed_value;
         } else {
-            $crate::update_field_nodrop_rcmut!($t, $field, computed_value);
+            $crate::update_field_nodrop_object!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3222,7 +3243,7 @@ macro_rules! update_field_uninit_rcmut {
 #[macro_export]
 macro_rules! md {
     ($x:expr) => {
-        unsafe { $crate::rcmut::borrow_mut(&mut $x.0.unwrap()) }
+        $x.clone().as_mut()
     };
 }
 
@@ -3230,7 +3251,7 @@ macro_rules! md {
 #[macro_export]
 macro_rules! rd {
     ($x:expr) => {
-        unsafe { $crate::rcmut::borrow(& $x.0.unwrap()) }
+        $x.as_ref()
     };
 }
 
@@ -3238,13 +3259,12 @@ macro_rules! rd {
 #[macro_export]
 macro_rules! refcount {
     ($x:expr) => {
-        Rc::strong_count(unsafe { rcmut::as_rc(& $x.0.unwrap()) })
+        Rc::strong_count(unsafe { rcmut::as_rc($x.0.as_ref().unwrap()) })
     };
 }
 
 pub mod object {
     use std::any::Any;
-    use crate::AsAny;
 
     pub fn new<T>(val: T) -> crate::Object<T> {
         crate::Object(Some(crate::rcmut::new(val)))
@@ -3256,7 +3276,7 @@ pub mod object {
     }
     #[inline]
     pub fn is<T: 'static + ::std::any::Any>(_self: crate::Object<dyn Any>) -> bool {
-        is_rcmut!(_self, T)
+        is_object!(_self, T)
     }
 }
 
@@ -3434,18 +3454,16 @@ macro_rules! maybe_placebos_from {
 // Coercion
 ////////////////
 
-// For converting a datatype like Option<T> to an Option<Z> (still same type, arguments are changed)
-
-// For converting any value to a trait representation.
-pub trait UpcastTo<U>: Clone {
-    fn upcast_to(self) -> U;
+pub fn upcast_object<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Object<A>) -> Object<B>>
+  where A : UpcastObject<B>
+{
+    Rc::new(|x: Object<A>| rd!(x).upcast())
 }
 
-
-pub fn upcast<A, B>() -> Rc<impl Fn(A) -> B>
-  where A : UpcastTo<B>
+pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(*mut A) -> *mut B>
+  where A: Upcast<B>
 {
-    Rc::new(|x: A| x.upcast_to())
+    Rc::new(|x: *mut A| read!(x).upcast())
 }
 
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
@@ -3460,46 +3478,83 @@ pub fn box_coerce<T: Clone, U: Clone>(f: Box<impl Fn(T) -> U>) -> Box<impl Fn(Bo
     Box::new(move |x: Box<T>| Box::new(f.as_ref()(x.as_ref().clone())))
 }
 
-use nightly_crimes::nightly_crimes;
-nightly_crimes! {
-    #![feature(unsize)]
-    // To be used like UpcastTo::<Rc<dyn SomeType>>::upcast_to(x: Rc<StructType>)
-    //   if impl SomeType for StructType {} exists
-    // But also like  UpcastTo::<Rc<dyn SomeHyperType>>::upcast_to(x: Rc<dyn SomeType>)
-    //   if trait SomeType: SomeHyperType { ... } exists
-    impl<From, To> UpcastTo<::std::rc::Rc<To>> for ::std::rc::Rc<From>
-    where
-        From: ?Sized + core::marker::Unsize<To>,
-        To: ?Sized,
-    {
-        fn upcast_to(self) -> ::std::rc::Rc<To> {
-        self as ::std::rc::Rc<To>
-        }
+
+// For pointers
+pub trait Upcast<T: ?Sized> {
+    fn upcast(&self) -> *mut T;
+}
+pub trait UpcastObject<T: ?Sized> {
+    fn upcast(&self) -> Object<T>;
+}
+
+impl <T: ?Sized> Upcast<T> for T {
+    fn upcast(&self) -> *mut T {
+        self as *const T as *mut T
     }
-    // UpcastTo for pointers
-    impl<From, To> UpcastTo<*mut To> for *mut From
-    where
-        From: 'static + ?Sized + core::marker::Unsize<To>,
-        To: ?Sized,
-    {
-        fn upcast_to(self) -> *mut To {
-            self as *const To as *mut To
-        }
+}
+impl <T: ?Sized> UpcastObject<T> for T {
+    fn upcast(&self) -> Object<T> {
+        Object::from_ref(self)
     }
 }
 
-impl <From, To> UpcastTo<Object<To>> for Object<From>
-where
-    From: ?Sized,
-    To: ?Sized,
-    Rc<From>: UpcastTo<Rc<To>>,
-{
-    fn upcast_to(self) -> Object<To> {
-        Object(Some(unsafe { rcmut::from_rc(rcmut::to_rc(self.0.clone().unwrap()).upcast_to()) }))
+#[macro_export]
+macro_rules! Extends {
+    ($traitType: tt) => {
+        $traitType + ::dafny_runtime::Upcast<dyn $traitType>
     }
 }
 
-// UpcastTo for sets
+#[macro_export]
+macro_rules! UpcastFn {
+    ($B:ty) => {
+        fn upcast(&self) -> *mut $B {
+            self as *const Self as *mut Self as *mut $B
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! UpcastObjectFn {
+    ($B:ty) => {
+        fn upcast(&self) -> $crate::Object<$B> {
+            $crate::Object::from_ref($crate::read!(self as *const Self as *mut Self as *mut $B))
+        }
+    };
+}
+
+
+
+// IT works only when there is no type parameters for $A...
+#[macro_export]
+macro_rules! UpcastDef {
+    ($A:ty, $B:ty) => {
+        impl $crate::Upcast<$B> for $A {
+            $crate::UpcastFn!($B);
+        }
+    };
+    
+    ($A:ty, $B:ty, $($C: ty),*) => {
+        UpcastDef!($A, $B);
+        UpcastDef!($A, $($C),*);
+    }
+}
+
+#[macro_export]
+macro_rules! UpcastDefObject {
+    ($A:ty, $B:ty) => {
+        impl $crate::UpcastObject<$B> for $A {
+            $crate::UpcastObjectFn!($B);
+        }
+    };
+    
+    ($A:ty, $B:ty, $($C: ty),*) => {
+        UpcastDefObject!($A, $B);
+        UpcastDefObject!($A, $($C),*);
+    }
+}
+
+// Coercions for sets
 impl<U: DafnyTypeEq> Set<U>
 {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Set<U>) -> Set<V>> {
@@ -3515,7 +3570,7 @@ impl<U: DafnyTypeEq> Set<U>
     }
 }
 
-// UpcastTo for sequences
+// Coercions for sequences
 impl<U: DafnyType> Sequence<U>
 {
     pub fn coerce<V: DafnyType>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Sequence<U>) -> Sequence<V>> {
@@ -3531,7 +3586,7 @@ impl<U: DafnyType> Sequence<U>
     }
 }
 
-// Upcast for multisets
+// Coercions for multisets
 impl<U: DafnyTypeEq> Multiset<U>
 {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Multiset<U>) -> Multiset<V>> {
@@ -3548,7 +3603,7 @@ impl<U: DafnyTypeEq> Multiset<U>
     }
 }
 
-// Upcast for Maps
+// Coercions for Maps
 impl<K: DafnyTypeEq, U: DafnyTypeEq> Map<K, U>
 {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Map<K, U>) -> Map<K, V>> {
