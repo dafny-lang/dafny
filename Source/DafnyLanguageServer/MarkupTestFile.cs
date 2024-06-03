@@ -9,10 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis.Text;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -114,7 +112,7 @@ namespace Microsoft.Dafny.LanguageServer {
         int finalIndex) {
       var (matchIndex, name) = spanStartStack.Pop();
 
-      var span = TextSpan.FromBounds(matchIndex, finalIndex);
+      var span = new TextSpan(matchIndex, finalIndex - matchIndex);
       spans.Add(new AnnotatedSpan(name, span));
     }
 
@@ -197,6 +195,10 @@ namespace Microsoft.Dafny.LanguageServer {
     // }
   }
 
+  public record TextSpan(int Start, int Length) {
+    public int End => Start + Length;
+  }
+  
   public record AnnotatedSpan(string Annotation, TextSpan Span);
   public record AnnotatedRange(string Annotation, Range Range);
 }

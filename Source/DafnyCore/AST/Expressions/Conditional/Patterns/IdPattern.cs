@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
