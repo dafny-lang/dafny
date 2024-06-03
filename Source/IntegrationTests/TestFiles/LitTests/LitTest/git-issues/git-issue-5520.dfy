@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
 module SubsetTypeSubsetType {
   type Empty = x: int | false witness *
