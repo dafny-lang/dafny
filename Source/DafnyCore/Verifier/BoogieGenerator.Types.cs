@@ -1504,10 +1504,7 @@ public partial class BoogieGenerator {
       CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
       codeContext = ghostCodeContext;
       // check that the witness is assignable to the type of the given bound variable
-      if (decl is SubsetTypeDecl) {
-        // Note, for new-types, this has already been checked by CheckWellformed.
-        CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
-      }
+      CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
       // check that the witness expression checks out
       witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
     } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
