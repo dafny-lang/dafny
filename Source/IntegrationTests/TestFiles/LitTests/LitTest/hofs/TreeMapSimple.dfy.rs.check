@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK: .*<i>Coercion\ from\ ::std::rc::Rc<dyn\ ::std::ops::Fn\(&super::_module::Tree<_A>\)\ ->\ super::_module::Tree<_B>>\ to\ ::std::rc::Rc<dyn\ ::std::ops::Fn\(&_A\)\ ->\ _B></i>.*

@@ -1,1 +1,1 @@
-// CHECK-L: error[E0786]: found invalid metadata files for crate `core`
+// CHECK: .*<i>Type\ variance\ Co\ not\ supported</i>.*

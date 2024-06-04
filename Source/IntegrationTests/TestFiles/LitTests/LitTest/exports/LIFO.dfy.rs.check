@@ -1,1 +1,0 @@
-// CHECK-L: error[E0462]: found staticlib `std` instead of rlib or dylib

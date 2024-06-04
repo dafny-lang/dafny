@@ -1,1 +1,1 @@
-// CHECK-L: error[E0786]: found invalid metadata files for crate `object` which `std` depends on
+// CHECK: .*<i>Traits</i>.*

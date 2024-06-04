@@ -1,1 +1,1 @@
-// CHECK-L: error[E0369]: binary operation `<` cannot be applied to type `&nat`
+// CHECK-L: error[E0072]: recursive types `Contents` and `Element` have infinite size

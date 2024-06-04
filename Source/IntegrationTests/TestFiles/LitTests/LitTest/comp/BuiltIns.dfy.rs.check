@@ -1,1 +1,1 @@
-// CHECK-L: error[E0277]: the trait bound `(bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool, bool): Default` is not satisfied
+// CHECK-L: error[E0277]: the trait bound `dyn Fn() -> DafnyInt: Default` is not satisfied

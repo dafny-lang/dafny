@@ -1,1 +1,1 @@
-// CHECK-L: error[E0277]: can't compare `&DafnyInt` with `DafnyInt`
+// CHECK-L: error[E0072]: recursive type `List` has infinite size

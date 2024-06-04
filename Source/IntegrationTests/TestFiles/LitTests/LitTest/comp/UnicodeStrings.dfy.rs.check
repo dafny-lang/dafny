@@ -1,1 +1,1 @@
-// CHECK-L: error[E0786]: found invalid metadata files for crate `core` which `std` depends on
+// CHECK: .*<i>Unsupported:\ Cannot\ emit\ literal\ expression\ 0\ outside\ of\ expression\ context:\ Microsoft_dDafny_dCompilers_dBuilderSyntaxTree'1\[Microsoft_dDafny_dCompilers_dStatementContainer]</i>.*

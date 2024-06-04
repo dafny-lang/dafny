@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK: .*<i>Coercion\ from\ \(::dafny_runtime::DafnyInt,\ ::dafny_runtime::DafnyInt\)\ to\ \(super::_System::nat,\ super::_System::na\.\.\..*
