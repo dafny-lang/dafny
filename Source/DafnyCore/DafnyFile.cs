@@ -306,7 +306,7 @@ public class DafnyFile {
       foreach (DafnySourceAttribute attr in assembly.GetCustomAttributes(typeof(DafnySourceAttribute), true)) {
         return attr.dafnySourceText;
       }
-    } catch (Exception _) {
+    } catch (Exception) {
       // ignored
     }
 

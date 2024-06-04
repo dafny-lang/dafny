@@ -72,7 +72,7 @@ public class CsharpBackend : ExecutableBackend {
         }
       } else if (extension == ".dll") {
         sourceFiles.Append(@$"
-    <Reference Include=""DafnyRuntime"">
+    <Reference Include=""{Path.GetFileNameWithoutExtension(file)}"">
       <HintPath>{Path.GetFullPath(file)}</HintPath>
     </Reference>");
       }
@@ -114,6 +114,10 @@ public class CsharpBackend : ExecutableBackend {
       await outputWriter.WriteLineAsync($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'. Command output was:");
       await outputWriter.WriteAsync(dotnetOutputWriter.ToString());
       await outputWriter.WriteAsync(dotnetErrorWriter.ToString());
+    } else {
+      if (Options.Verbose) {
+        await outputWriter.WriteLineAsync($"Compiled assembly into {Path.GetFileName(dllPath)}");
+      }
     }
     return (exitCode == 0, dllPath);
   }
