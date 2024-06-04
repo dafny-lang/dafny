@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
   protected override bool PreventShadowing => false;
+  protected override string InternalFieldPrefix => "_i_";
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
@@ -33,7 +34,7 @@ public class RustBackend : DafnyExecutableBackend {
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
-    return new RustCodeGenerator();
+    return new RustCodeGenerator(Options);
   }
 
   private string ComputeExeName(string targetFilename) {

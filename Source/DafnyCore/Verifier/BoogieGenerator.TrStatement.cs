@@ -1559,14 +1559,20 @@ namespace Microsoft.Dafny {
       // include a free invariant that says that all completed iterations so far have only decreased the termination metric
       if (initDecr != null) {
         var toks = new List<IToken>();
-        var types = new List<Type>();
         var decrs = new List<Expr>();
+        var decrsDafny = new List<Expression>();
+        var initDecrsDafny = new List<Expression>();
+        var prevGhostLocals = new List<VarDeclStmt>();
         foreach (Expression e in theDecreases) {
           toks.Add(e.tok);
-          types.Add(e.Type.NormalizeExpand());
+          decrsDafny.Add(e);
           decrs.Add(etran.TrExpr(e));
+          var (prevVars, eInit) = TranslateToLoopEntry(s, e, "LoopEntry");
+          prevGhostLocals.AddRange(prevVars);
+          initDecrsDafny.Add(eInit);
         }
-        Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, initDecr, null, null, true, false);
+        Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, initDecr,
+          null, null, true, false);
         invariants.Add(TrAssumeCmd(s.Tok, decrCheck));
       }
 
@@ -1608,25 +1614,26 @@ namespace Microsoft.Dafny {
           bodyTr(loopBodyBuilder, updatedFrameEtran);
           // check definedness of decreases expressions
           var toks = new List<IToken>();
-          var types = new List<Type>();
           var decrs = new List<Expr>();
-          var oldDecreases = new List<Expression>();
+          var decrsDafny = new List<Expression>();
+          var initDecrsDafny = new List<Expression>();
           var prevGhostLocals = new List<VarDeclStmt>();
           foreach (Expression e in theDecreases) {
             toks.Add(e.tok);
-            types.Add(e.Type.NormalizeExpand());
             // Note: the label "LoopEntry" doesn't exist in the program, and is
             // useful only for explanatory purposes.
-            var (vars, olde) = TranslateToLoopEntry(s.Mod, e, "LoopEntry");
-            oldDecreases.Add(olde);
-            prevGhostLocals.AddRange(vars);
+            decrsDafny.Add(e);
+            var (prevVars, eInit) = TranslateToLoopEntry(s, e, "LoopEntry");
+            prevGhostLocals.AddRange(prevVars);
+            initDecrsDafny.Add(eInit);
             decrs.Add(etran.TrExpr(e));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
-            Bpl.Expr decrCheck = DecreasesCheck(toks, types, types, decrs, oldBfs, loopBodyBuilder, " at end of loop iteration", false, false);
+            Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, oldBfs,
+              loopBodyBuilder, " at end of loop iteration", false, false);
             loopBodyBuilder.Add(Assert(s.Tok, decrCheck, new
-              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, oldDecreases, theDecreases)));
+              PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false)));
           }
         }
       } else if (isBodyLessLoop) {
@@ -1656,29 +1663,35 @@ namespace Microsoft.Dafny {
     // Return the version of e that holds at the beginnging of the loop,
     // Along with the local variable assignments that need to happen at
     // the beginning of the loop for it to be valid.
-    private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(Specification<FrameExpression> mod, Expression e, string loopLabel) {
+    private (List<VarDeclStmt>, Expression) TranslateToLoopEntry(LoopStmt loop, Expression e, string loopLabel) {
       var prevGhostLocals = new List<VarDeclStmt>();
-      Expression olde = new OldExpr(e.tok, e, "LoopEntry") {
+      Expression olde = new OldExpr(e.tok, e, loopLabel) {
         Type = e.Type
       };
 
-      if (mod is null || mod.Expressions is null) {
-        return (prevGhostLocals, olde);
-      }
-
-      foreach (var x in mod.Expressions) {
-        if (x.E is IdentifierExpr { Var: LocalVariable v }) {
-          var prevName = $"prev_{v.Name}";
-          var prevVar = new LocalVariable(RangeToken.NoToken, prevName, v.Type, true);
-          var declStmt = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, x.E);
-          prevGhostLocals.Add(declStmt);
-          var prevExpr = new IdentifierExpr(x.E.tok, prevVar);
-          olde = Substitute(olde, v, prevExpr);
-        }
+      var subStmts = TransitiveSubstatements(loop);
+      var modifiedVars =
+        subStmts
+          .OfType<AssignStmt>()
+          .Select(s => s.Lhs)
+          .OfType<IdentifierExpr>();
+      foreach (var ie in modifiedVars) {
+        var prevName = $"prev_{ie.Name}";
+        var prevDecl = Statement.CreateLocalVariable(RangeToken.NoToken, prevName, ie);
+        var prevRef = Expression.CreateIdentExpr(prevDecl.Locals[0]);
+        olde = Substitute(olde, ie.Var, prevRef);
+        prevGhostLocals.Add(prevDecl);
       }
 
       return (prevGhostLocals, olde);
 
+    }
+
+    IEnumerable<Statement> TransitiveSubstatements(Statement s) {
+      yield return s;
+      foreach (var ss in s.SubStatements.SelectMany(TransitiveSubstatements)) {
+        yield return ss;
+      }
     }
 
     void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
@@ -1920,6 +1933,7 @@ namespace Microsoft.Dafny {
       // store the actual parameters.
       // Create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
       var substMap = new Dictionary<IVariable, Expression>();
+      var directSubstMap = new Dictionary<IVariable, Expression>();
       for (int i = 0; i < callee.Ins.Count; i++) {
         var formal = callee.Ins[i];
         var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
@@ -1931,10 +1945,12 @@ namespace Microsoft.Dafny {
 
         var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
         Bpl.Expr bActual;
+        Expression dActual;
         if (i == 0 && method is ExtremeLemma && isRecursiveCall) {
           // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
           var k = ((PrefixLemma)callee).K;
           var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), TrType(k.Type));
+          dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.tok, 1, k.Type));
           if (k.Type.IsBigOrdinalType) {
             bActual = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType,
               bplK,
@@ -1957,7 +1973,9 @@ namespace Microsoft.Dafny {
           var beforeBox = etran.TrExpr(actual);
           CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
           bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
+          dActual = actual;
         }
+        directSubstMap.Add(formal, dActual);
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
         ins.Add(CondApplyBox(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
@@ -2035,7 +2053,7 @@ namespace Microsoft.Dafny {
         } else {
           List<Expression> contextDecreases = codeContext.Decreases.Expressions;
           List<Expression> calleeDecreases = callee.Decreases.Expressions;
-          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, tySubst, etran, true, builder, codeContext.InferredDecreases, null);
+          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, directSubstMap, tySubst, etran, true, builder, codeContext.InferredDecreases, null);
         }
       }
 

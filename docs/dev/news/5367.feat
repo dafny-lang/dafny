@@ -1,0 +1,1 @@
+The new `decreases to` expression makes it possible to write an explict assertion equivalent to the internal check Dafny does to prove that a loop or recursive call terminates.
