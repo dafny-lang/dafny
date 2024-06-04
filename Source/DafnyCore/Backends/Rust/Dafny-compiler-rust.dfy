@@ -339,9 +339,9 @@ module RAST
   function SystemTuple(elements: seq<Expr>): Expr {
     var size := Strings.OfNat(|elements|);
     StructBuild(super.MSel("_System").MSel("Tuple" + size).MSel("_T" + size),
-      seq(|elements|, i requires 0 <= i < |elements| =>
-        AssignIdentifier("_" + Strings.OfNat(i), elements[i])
-      )
+                seq(|elements|, i requires 0 <= i < |elements| =>
+                  AssignIdentifier("_" + Strings.OfNat(i), elements[i])
+                  )
     )
   }
 
@@ -1681,7 +1681,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var modulePrefix := if c.enclosingModule.id.dafny_name == "_module" then "" else escapeName(c.enclosingModule.id) + ".";
         var ctorName := modulePrefix + escapeName(c.name) + "." + escapeName(ctor.name);
         if |ctorName| >= 13 && ctorName[0..13] == "_System.Tuple" {
-          ctorName := ""; 
+          ctorName := "";
         }
         var printRhs :=
           R.RawExpr("write!(_formatter, \"" + ctorName + (if ctor.hasAnyArgs then "(\")?" else "\")?"));
