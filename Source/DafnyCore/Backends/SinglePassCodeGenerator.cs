@@ -3852,7 +3852,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
-      
+
       newtypeConversionsWereExplicit =
         bound is SetBoundedPool or MapBoundedPool or SeqBoundedPool or MultiSetBoundedPool;
 
@@ -5995,8 +5995,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
       bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool newtypeConversionsWereExplicit,
-      bool isReturning = false, bool elseReturnValue = false)
-    {
+      bool isReturning = false, bool elseReturnValue = false) {
 
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
