@@ -1769,7 +1769,7 @@ namespace Microsoft.Dafny.Compilers {
               w.Write(")");
             }
           });
-        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+        } else if (NeedsCustomReceiverNotTrait(member)) {
           // instance const in a newtype
           return SimpleLvalue(w => {
             w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
@@ -1777,7 +1777,7 @@ namespace Microsoft.Dafny.Compilers {
             w.Write(")");
           });
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
-          return SuffixLvalue(obj, $"._{member.GetCompileName(Options)}");
+          return SuffixLvalue(obj, $".{InternalFieldPrefix}{member.GetCompileName(Options)}");
         } else {
           return SimpleLvalue(w => {
             obj(w);
@@ -1836,7 +1836,12 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) => $"new BigNumber({arrayIndex})";
+    protected override void EmitArrayIndexToInt(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wIndex) {
+      wIndex = new ConcreteSyntaxTree();
+      wr.Write($"new BigNumber(");
+      wr.Append(wIndex);
+      wr.Write(")");
+    }
 
     protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(expr, wr, inLetExprBody, wStmts);
