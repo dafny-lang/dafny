@@ -166,13 +166,13 @@ namespace Microsoft.Dafny {
         if (label == null) {
           return Old;
         }
-        Boogie.IdentifierExpr heapAt;
+        Boogie.Expr heapAt;
         if (label.Name == "yield_ensures") {
-          heapAt = new(Token.NoToken, "$_YieldEnsuresOldHeap", predef.HeapType);
-        } else if (label.Name == "yield_requires") {
-          heapAt = new(Token.NoToken, "$_YieldRequiresOldHeap", predef.HeapType);
+          heapAt = new Boogie.IdentifierExpr(Token.NoToken, "$_YieldEnsuresOldHeap", predef.HeapType);
+        } else if (label.Name.StartsWith("yield_requires_")) {
+          heapAt = BoogieGenerator.FunctionCall(Token.NoToken, "_YieldRequiresOldHeap_Global", predef.HeapType, new Boogie.IdentifierExpr(Token.NoToken, label.Name[15..] + "#0"), HeapExpr);
         } else {
-          heapAt = new(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), predef.HeapType);
+          heapAt = new Boogie.IdentifierExpr(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), predef.HeapType);
         }
         return new ExpressionTranslator(BoogieGenerator, predef, heapAt, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
       }

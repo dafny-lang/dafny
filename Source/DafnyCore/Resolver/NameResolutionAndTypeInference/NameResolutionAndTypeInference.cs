@@ -50,8 +50,8 @@ namespace Microsoft.Dafny {
         if (label == null) {
           if (labelName == "yield_ensures") {
             return new Label(tok, "yield_ensures");
-          } else if (labelName == "yield_requires") {
-            return new Label(tok, "yield_requires");
+          } else if (labelName.StartsWith("yield_requires_")) {
+            return new Label(tok, labelName);
           } else {
             reporter.Error(MessageSource.Resolver, tok, $"no label '{labelName}' in scope at this time");
           }
@@ -5949,8 +5949,8 @@ namespace Microsoft.Dafny {
         if (atLabel == null) {
           if (e.AtTok.val == "yield_ensures") {
             atLabel = new Label(e.AtTok, "yield_ensures");
-          } else if (e.AtTok.val == "yield_requires") {
-            atLabel = new Label(e.AtTok, "yield_requires");
+          } else if (e.AtTok.val.StartsWith("yield_requires_")) {
+            atLabel = new Label(e.AtTok, e.AtTok.val);
           } else {
             reporter.Error(MessageSource.Resolver, e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
           }
