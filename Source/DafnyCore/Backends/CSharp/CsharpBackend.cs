@@ -35,11 +35,11 @@ public class CsharpBackend : ExecutableBackend {
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter) {
 
-    var rootDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+    var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     var fileNames = Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName));
-    var sourcePath = Path.Join(rootDir, fileNames + ".cs");
-    var csprojPath = Path.Join(rootDir, fileNames + ".csproj");
-    Directory.CreateDirectory(rootDir);
+    var sourcePath = Path.Join(outputDir, fileNames + ".cs");
+    var csprojPath = Path.Join(outputDir, fileNames + ".csproj");
+    Directory.CreateDirectory(outputDir);
 
     var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
     await File.WriteAllTextAsync(sourcePath, source);
@@ -103,7 +103,6 @@ public class CsharpBackend : ExecutableBackend {
 
     await File.WriteAllTextAsync(csprojPath, projectFile);
 
-    var outputDir = Path.Combine(rootDir, "out");
     Directory.CreateDirectory(outputDir);
     var arguments = new[] { "build", csprojPath, "-o", outputDir };
     var psi = PrepareProcessStartInfo("dotnet", arguments);
