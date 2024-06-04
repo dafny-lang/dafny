@@ -404,7 +404,7 @@ namespace Microsoft.Dafny {
         // included in "ParentTraitHeads". Since the "Max" in the following line will return a number 0 or
         // higher, the "Max" would be the same whether or not "object" is in the "ParentTraitHeads" list.
         return topLevelDeclWithMembers.ParentTraitHeads.Max(Height) + 1;
-      } else if (decl is TypeParameter typeParameter) {
+      } else if (decl is TypeParameter { TypeBounds: { Count: > 0 } } typeParameter) {
         return typeParameter.TypeBoundHeads.Max(Height) + 1;
       } else {
         // Other other declarations have height 1.
