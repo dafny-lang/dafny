@@ -103,7 +103,6 @@ public class CsharpBackend : ExecutableBackend {
 
     await File.WriteAllTextAsync(csprojPath, projectFile);
 
-    Directory.CreateDirectory(outputDir);
     var arguments = new[] { "build", csprojPath, "-o", outputDir };
     var psi = PrepareProcessStartInfo("dotnet", arguments);
     var dotnetOutputWriter = new StringWriter();
