@@ -5738,7 +5738,7 @@ namespace Microsoft.Dafny.Compilers {
         var e = (LambdaExpr)expr;
 
         IVariable receiver = null;
-        if (enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true }) {
+        if (thisContext != null && (enclosingMethod is { IsTailRecursive: true } || enclosingFunction is { IsTailRecursive: true })) {
           var name = ProtectedFreshId("_this");
           var ty = ModuleResolver.GetThisType(e.tok, thisContext);
           receiver = new LocalVariable(RangeToken.NoToken, name, ty, false) {
