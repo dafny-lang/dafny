@@ -11,7 +11,7 @@ using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
-    
+
     public virtual void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -567,8 +567,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitMatchExpr(bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, MatchExpr e)
-    {
+    private void EmitMatchExpr(bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, MatchExpr e) {
       // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
       //   if (source.is_Ctor0) {
       //     FormalType f0 = ((Dt_Ctor0)source._D).a0;

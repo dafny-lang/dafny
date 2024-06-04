@@ -11,7 +11,7 @@ using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
-    
+
 
     protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
@@ -436,8 +436,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void EmitMatchStmt(ConcreteSyntaxTree wr, MatchStmt s)
-    {
+    private void EmitMatchStmt(ConcreteSyntaxTree wr, MatchStmt s) {
       // Type source = e;
       // if (source.is_Ctor0) {
       //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
