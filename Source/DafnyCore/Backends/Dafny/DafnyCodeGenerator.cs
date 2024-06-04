@@ -656,7 +656,7 @@ namespace Microsoft.Dafny.Compilers {
     _IOption<DAST._IExpression> bufferedInitializationValue = null;
 
     // And its statements here
-    _IOption<List<DAST.Statement>> bufferedInitializationStmts = null; 
+    _IOption<List<DAST.Statement>> bufferedInitializationStmts = null;
 
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
@@ -671,14 +671,14 @@ namespace Microsoft.Dafny.Compilers {
           if (type.AsNewtype != null && type.AsNewtype.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
             var buf = new ExprBuffer(null);
             var bufStmt = new StatementBuffer();
-            EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this), 
+            EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this),
               new BuilderSyntaxTree<StatementContainer>(bufStmt, this));
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
             bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
             var buf = new ExprBuffer(null);
             var bufStmt = new StatementBuffer();
-            EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this), 
+            EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this),
               new BuilderSyntaxTree<StatementContainer>(bufStmt, this));
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
             bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
