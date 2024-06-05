@@ -16,7 +16,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
   public string MatchTypeName => "expression";
   public List<NestedMatchCaseExpr> Cases { get; }
 
-  IEnumerable<NestedMatchCase> INestedMatch.Cases => Cases;
+  IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
 
   public readonly bool UsesOptionalBraces;
   public Attributes Attributes;

@@ -3525,52 +3525,35 @@ namespace DafnyProfiling {
     }
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
-      var matchSource = match.Source;
-      var resultType = match.Type;
-      var matchTok = match.tok;
-      
-      string sourceName = ProtectedFreshId("_source");
-      var bodyWriter = EmitAppliedLambda(inLetExprBody, output, wStmts, matchSource, matchTok, sourceName, resultType);
-
-      EmitNestedMatchGeneric(match, (caseIndex, innerWriter) => {
+      var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
+      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, innerWriter, wStmts, inLetExprBody: true, accumulatorVar: null);
-      }, bodyWriter, sourceName, true);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
+      }, lambdaBody, true);
     }
 
-    private ConcreteSyntaxTree EmitAppliedLambda(bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
-      Expression argument, IToken token, string sourceName, Type resultType)
+    private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
+      IToken token, Type resultType)
     {
-      EmitLambdaApply(output, out var lambdaApplyTarget, out var lambdaApplyArgument);
-      EmitExpr(argument, inLetExprBody, lambdaApplyArgument, wStmts);
-      var bodyWriter = CreateLambda(new List<Type>() { argument.Type }, token, new List<string>() { sourceName }, resultType, lambdaApplyTarget, wStmts);
-      return bodyWriter;
+      EmitLambdaApply(output, out var lambdaApplyTarget, out _);
+      return CreateLambda(new List<Type>(), token, new List<string>(), resultType, lambdaApplyTarget, wStmts);
     }
 
     protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
 
-      string sourceName = ProtectedFreshId("_source");
-      DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, wr);
       wStmts = wr.Fork();
       
-      EmitNestedMatchGeneric(match, (caseIndex, innerWriter) => {
+      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, innerWriter, wStmts, inLetExprBody: true, accumulatorVar: null);
-      }, wr, sourceName, true);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
+      }, wr, true);
     }
 
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      if (match.Cases.Any()) {
-
-        string sourceName = ProtectedFreshId("_source");
-
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, writer);
-        
-        EmitNestedMatchGeneric(match, (caseIndex, innerWriter) => {
-          TrStmtList(match.Cases[caseIndex].Body, innerWriter);
-        }, writer, sourceName, false);
-      }
+      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+        TrStmtList(match.Cases[caseIndex].Body, caseBody);
+      }, writer, false);
     }
     
     /// <summary>
@@ -3602,7 +3585,7 @@ namespace DafnyProfiling {
     /// 
     /// </summary>
     private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody, 
-      ConcreteSyntaxTree output, string sourceName, bool bodyExpected)
+      ConcreteSyntaxTree output, bool bodyExpected)
     {
       if (match.Cases.Count == 0) {
         if (bodyExpected) {
@@ -3610,6 +3593,8 @@ namespace DafnyProfiling {
           EmitAbsurd(null, output);
         }
       } else {
+        string sourceName = ProtectedFreshId("_source");
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, output);
 
         string unmatched = ProtectedFreshId("unmatched");
         DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, output);
