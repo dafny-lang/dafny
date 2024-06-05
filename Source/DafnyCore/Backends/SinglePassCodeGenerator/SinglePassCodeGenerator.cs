@@ -4759,7 +4759,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitExpr(expr, inLetExprBody, result, wStmts);
       return result;
     }
-
+    
     private void CompileTypeTest(TypeTestExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
       var fromType = expr.E.Type;
       if (fromType.IsSubtypeOf(expr.ToType, false, false)) {
