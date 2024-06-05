@@ -3897,7 +3897,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
-      } else if (from != null && IsTargetSupertype(to, from)) {
+      } else if (from != null && !from.IsTypeParameter && from.IsSubtypeOf(to, true, true)) {
         // upcast
         return wr;
       } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {

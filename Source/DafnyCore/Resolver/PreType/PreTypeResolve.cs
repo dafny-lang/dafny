@@ -344,10 +344,12 @@ namespace Microsoft.Dafny {
         ancestors.Add(decl);
         if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
           topLevelDeclWithMembers.ParentTraitHeads.ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
-        }
-        if (decl is TypeParameter typeParameter) {
+        } else if (decl is TypeParameter typeParameter) {
           typeParameter.TypeBoundHeads.ToList().ForEach(parent => ComputeAncestors(parent, ancestors, systemModuleManager));
+        } else if (decl is TypeSynonymDecl { Rhs: UserDefinedType { ResolvedClass: TopLevelDecl rhs } }) {
+          ComputeAncestors(rhs, ancestors, systemModuleManager);
         }
+
         if (decl is TraitDecl { IsObjectTrait: true }) {
           // we're done
         } else if (DPreType.IsReferenceTypeDecl(decl)) {
@@ -364,6 +366,9 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool IsSuperPreTypeOf(DPreType super, DPreType sub) {
       if (sub.Decl is TypeParameter typeParameter) {
+        if (PreType.Same(super, sub)) {
+          return true;
+        }
         foreach (var preTypeBound in TypeParameterBounds2PreTypes(typeParameter)) {
           if (IsSuperPreTypeOf(super, preTypeBound)) {
             return true;

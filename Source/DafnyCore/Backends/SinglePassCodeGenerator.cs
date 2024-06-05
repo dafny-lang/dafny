@@ -5426,6 +5426,9 @@ namespace Microsoft.Dafny.Compilers {
           var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
           EmitExpr(e.E, inLetExprBody, w, wStmts);
+        } else if (e.E.Type.IsSubtypeOf(e.ToType, false, false)) {
+          // conversion is a no-op
+          EmitExpr(e.E, inLetExprBody, wr, wStmts);
         } else {
           EmitConversionExpr(e.E, fromType, toType, inLetExprBody, wr, wStmts);
         }
