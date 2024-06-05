@@ -1855,7 +1855,8 @@ namespace DCOMP {
               unmatched58 = false;
             }
             Dafny.ISequence<Dafny.Rune> _1304_renderedName;
-            _1304_renderedName = ((System.Func<DAST._ICallName, Dafny.ISequence<Dafny.Rune>>)((_source59) => {
+            _1304_renderedName = ((System.Func<Dafny.ISequence<Dafny.Rune>>)(() => {
+              DAST._ICallName _source59 = _1280_name;
               bool unmatched59 = true;
               if (unmatched59) {
                 if (_source59.is_Name) {
@@ -1887,7 +1888,7 @@ namespace DCOMP {
                 }
               }
               throw new System.Exception("unexpected control point");
-            }))(_1280_name);
+            }))();
             generated = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(((!(_1300_receiver).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_1300_receiver, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = "))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), _1297_enclosingString), _1304_renderedName), _1284_typeArgString), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), _1288_argString), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(");")));
           }
         }
@@ -2292,7 +2293,8 @@ namespace DCOMP {
       DAST._IExpression _1331_rExpr = _let_tmp_rhs49.dtor_right;
       DAST.Format._IBinaryOpFormat _1332_format = _let_tmp_rhs49.dtor_format2;
       bool _1333_becomesLeftCallsRight;
-      _1333_becomesLeftCallsRight = ((System.Func<DAST._IBinOp, bool>)((_source64) => {
+      _1333_becomesLeftCallsRight = ((System.Func<bool>)(() => {
+        DAST._IBinOp _source64 = _1329_op;
         bool unmatched64 = true;
         if (unmatched64) {
           bool disjunctiveMatch11 = false;
@@ -2340,9 +2342,10 @@ namespace DCOMP {
           return false;
         }
         throw new System.Exception("unexpected control point");
-      }))(_1329_op);
+      }))();
       bool _1335_becomesRightCallsLeft;
-      _1335_becomesRightCallsLeft = ((System.Func<DAST._IBinOp, bool>)((_source65) => {
+      _1335_becomesRightCallsLeft = ((System.Func<bool>)(() => {
+        DAST._IBinOp _source65 = _1329_op;
         bool unmatched65 = true;
         if (unmatched65) {
           if (_source65.is_In) {
@@ -2356,9 +2359,10 @@ namespace DCOMP {
           return false;
         }
         throw new System.Exception("unexpected control point");
-      }))(_1329_op);
+      }))();
       bool _1337_becomesCallLeftRight;
-      _1337_becomesCallLeftRight = ((System.Func<DAST._IBinOp, bool>)((_source66) => {
+      _1337_becomesCallLeftRight = ((System.Func<bool>)(() => {
+        DAST._IBinOp _source66 = _1329_op;
         bool unmatched66 = true;
         if (unmatched66) {
           if (_source66.is_Eq) {
@@ -2378,7 +2382,7 @@ namespace DCOMP {
           return false;
         }
         throw new System.Exception("unexpected control point");
-      }))(_1329_op);
+      }))();
       DCOMP._IOwnership _1339_expectedLeftOwnership;
       _1339_expectedLeftOwnership = ((_1333_becomesLeftCallsRight) ? (DCOMP.Ownership.create_OwnershipAutoBorrowed()) : ((((_1335_becomesRightCallsLeft) || (_1337_becomesCallLeftRight)) ? (DCOMP.Ownership.create_OwnershipBorrowed()) : (DCOMP.Ownership.create_OwnershipOwned()))));
       DCOMP._IOwnership _1340_expectedRightOwnership;
@@ -4530,7 +4534,8 @@ namespace DCOMP {
             _1699_recIdents = _out454;
             readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _1699_recIdents);
             Dafny.ISequence<Dafny.Rune> _1700_renderedName;
-            _1700_renderedName = ((System.Func<DAST._ICallName, Dafny.ISequence<Dafny.Rune>>)((_source75) => {
+            _1700_renderedName = ((System.Func<Dafny.ISequence<Dafny.Rune>>)(() => {
+              DAST._ICallName _source75 = _1686_name;
               bool unmatched75 = true;
               if (unmatched75) {
                 if (_source75.is_Name) {
@@ -4562,7 +4567,7 @@ namespace DCOMP {
                 }
               }
               throw new System.Exception("unexpected control point");
-            }))(_1686_name);
+            }))();
             DAST._IExpression _source76 = _1685_on;
             bool unmatched76 = true;
             if (unmatched76) {
