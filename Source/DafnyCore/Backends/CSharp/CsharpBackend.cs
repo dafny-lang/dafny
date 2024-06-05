@@ -27,7 +27,7 @@ public class CsharpBackend : ExecutableBackend {
       : base.GetCompileName(isDefaultModule, moduleName, compileName);
   }
 
-  public override bool SupportsInMemoryCompilation => true;
+  public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
@@ -37,12 +37,8 @@ public class CsharpBackend : ExecutableBackend {
 
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     var fileNames = Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName));
-    var sourcePath = Path.Join(outputDir, fileNames + ".cs");
     var csprojPath = Path.Join(outputDir, fileNames + ".csproj");
     Directory.CreateDirectory(outputDir);
-
-    var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-    await File.WriteAllTextAsync(sourcePath, source);
 
     var outputType = callToMain == null ? "Library" : "Exe";
 
