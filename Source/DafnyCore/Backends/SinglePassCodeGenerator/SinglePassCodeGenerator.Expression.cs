@@ -707,11 +707,26 @@ namespace Microsoft.Dafny.Compilers {
       EmitExpr(e.Source, inLetExprBody, wArg, wStmts);
     }
 
-    protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitExpr(match.Flattened, inLetExprBody, wr, wStmts);
+    protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
+      var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
+      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null);
     }
-    protected virtual void TrOptNestedMatchExpr(NestedMatchExpr nestedMatchExpr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
-      TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+
+    protected virtual void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr,
+      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
+
+      wStmts = wr.Fork();
+
+      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+        var myCase = match.Cases[caseIndex];
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
+      }, wr, true);
+    }
+
+    private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
+      IToken token, Type resultType) {
+      EmitLambdaApply(output, out var lambdaApplyTarget, out _);
+      return CreateLambda(new List<Type>(), token, new List<string>(), resultType, lambdaApplyTarget, wStmts);
     }
   }
 }
