@@ -2024,8 +2024,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
-        List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor,
+      Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (GetExprBuilder(wr, out var builder)) {
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
           Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
@@ -2231,7 +2232,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -2314,8 +2315,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var newBuilder = op switch {
           BinaryExpr.ResolvedOpcode.EqCommon => B((BinOp)BinOp.create_Eq(
-            e0.Type.IsRefType,
-            !e0.Type.IsNonNullRefType
+            e0Type.IsRefType,
+            !e0Type.IsNonNullRefType
           )),
           BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false, false)),
           BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false, false)),
@@ -2324,8 +2325,8 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
             Not(BinaryOp(
               BinOp.create_Eq(
-                e0.Type.IsRefType,
-                !e0.Type.IsNonNullRefType
+                e0Type.IsRefType,
+                !e0Type.IsNonNullRefType
               ), left, right))),
           BinaryExpr.ResolvedOpcode.SetNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
@@ -2784,6 +2785,20 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree GetNullClassConcreteSyntaxTree() {
       return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this);
+    }
+
+    protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
+      ConcreteSyntaxTree wStmts) {
+      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+    }
+
+    protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
+      bool inLetExprBody, IVariable accumulatorVar) {
+      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+    }
+
+    protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
+      TrStmt(match.Flattened, writer);
     }
   }
 }
