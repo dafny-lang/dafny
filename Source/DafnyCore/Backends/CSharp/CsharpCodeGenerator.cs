@@ -3526,15 +3526,11 @@ namespace DafnyProfiling {
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
       var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
-        var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
-      }, lambdaBody, true);
+      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null);
     }
 
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,
-      IToken token, Type resultType)
-    {
+      IToken token, Type resultType) {
       EmitLambdaApply(output, out var lambdaApplyTarget, out _);
       return CreateLambda(new List<Type>(), token, new List<string>(), resultType, lambdaApplyTarget, wStmts);
     }
@@ -3543,7 +3539,7 @@ namespace DafnyProfiling {
       ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
 
       wStmts = wr.Fork();
-      
+
       EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
         TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
@@ -3555,7 +3551,7 @@ namespace DafnyProfiling {
         TrStmtList(match.Cases[caseIndex].Body, caseBody);
       }, writer, false);
     }
-    
+
     /// <summary>
     ///
     /// match a
@@ -3584,9 +3580,8 @@ namespace DafnyProfiling {
     /// }
     /// 
     /// </summary>
-    private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody, 
-      ConcreteSyntaxTree output, bool bodyExpected)
-    {
+    private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
+      ConcreteSyntaxTree output, bool bodyExpected) {
       if (match.Cases.Count == 0) {
         if (bodyExpected) {
           // the verifier would have proved we never get here; still, we need some code that will compile
