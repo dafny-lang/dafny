@@ -114,7 +114,7 @@ jobs:
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyPipeline.Test/coverlet.runsettings Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
       if: "!inputs.soak_test"
-      run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyTestGeneration.Test/coverlet.runsettings Source/DafnyTestGeneration.Test
+      run: dotnet test --no-restore --blame-hang-timeout 5m --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyTestGeneration.Test/coverlet.runsettings Source/DafnyTestGeneration.Test
     - name: Run AutoExtern Tests
       if: "!inputs.soak_test"
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/AutoExtern.Test/coverlet.runsettings Source/AutoExtern.Test
