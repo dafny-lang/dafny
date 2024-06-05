@@ -435,11 +435,9 @@ namespace Microsoft.Dafny.Compilers {
         case NestedMatchStmt nestedMatchStmt:
           EmitNestedMatchStmt(nestedMatchStmt, wr);
           break;
-        case MatchStmt matchStmt: {
-            MatchStmt s = matchStmt;
-            EmitMatchStmt(wr, s);
-            break;
-          }
+        case MatchStmt matchStmt: 
+          EmitMatchStmt(wr, matchStmt);
+          break;
         case VarDeclStmt declStmt: {
             var s = declStmt;
             var i = 0;
