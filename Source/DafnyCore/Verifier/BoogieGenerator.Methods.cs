@@ -972,6 +972,10 @@ namespace Microsoft.Dafny {
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
         req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       }
+      foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+        req.Add(Requires(f.tok, true, null, typeBoundAxiom, null, null, null));
+      }
+
       // modifies $Heap
       var mod = new List<Boogie.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
@@ -1704,6 +1708,10 @@ namespace Microsoft.Dafny {
           var a2 = FunctionCall(m.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
           req.Add(Requires(m.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
         }
+
+        foreach (var typeBoundAxiom in TypeBoundAxioms(m.tok, Concat(m.EnclosingClass.TypeArgs, m.TypeArgs))) {
+          req.Add(Requires(m.tok, true, null, typeBoundAxiom, null, null, null));
+        }
       }
       if (m is TwoStateLemma) {
         // Checked preconditions that old parameters really existed in previous state
@@ -1832,6 +1840,42 @@ namespace Microsoft.Dafny {
       }
 
       InsertChecksum(decl, data);
+    }
+
+    internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IToken tok, List<TypeParameter> typeParameters) {
+      foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
+        // (forall bx: Box ::
+        //   { $IsBox(bx, X) }
+        //   $IsBox(bx, X) ==>
+        //     $IsBox(bx, Bound0) && $IsBox(bx, Bound1) && ...);
+        var vars = new List<Bpl.Variable>();
+        var bx = BplBoundVar("bx", predef.BoxType, vars);
+        var isBox = MkIs(bx, new UserDefinedType(typeParameter));
+        Bpl.Expr bounds = Bpl.Expr.True;
+        foreach (var typeBound in typeParameter.TypeBounds) {
+          bounds = BplAnd(bounds, MkIs(bx, TypeToTy(typeBound), true));
+        }
+        var body = BplImp(isBox, bounds);
+        var q = new Bpl.ForallExpr(tok, vars, BplTrigger(isBox), body);
+        yield return q;
+
+        // (forall bx: Box, $Heap: Heap ::
+        //   { $IsAllocBox(bx, X, $h) }
+        //   $IsAllocBox(bx, X, $h) && $IsGoodHeap($h) ==>
+        //     $IsAllocBox(bx, Bound0, $h) && $IsAllocBox(bx, Bound1, $h) && ...);
+        vars = new List<Variable>();
+        bx = BplBoundVar("bx", predef.BoxType, vars);
+        var heap = BplBoundVar("$h", predef.HeapType, vars);
+        var isGoodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, heap);
+        var isAllocBox = MkIsAlloc(bx, new UserDefinedType(typeParameter), heap);
+        bounds = Bpl.Expr.True;
+        foreach (var typeBound in typeParameter.TypeBounds) {
+          bounds = BplAnd(bounds, MkIsAlloc(bx, TypeToTy(typeBound), heap, true));
+        }
+        body = BplImp(BplAnd(isAllocBox, isGoodHeap), bounds);
+        q = new Bpl.ForallExpr(tok, vars, BplTrigger(isAllocBox), body);
+        yield return q;
+      }
     }
   }
 }

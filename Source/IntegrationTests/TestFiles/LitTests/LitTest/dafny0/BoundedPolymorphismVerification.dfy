@@ -82,3 +82,232 @@ module Equality {
     assert b;
   }
 }
+
+module TypeBoundKnowledge {
+  trait Parent { }
+  trait XTrait extends Parent { }
+  trait YTrait extends Parent { }
+
+  datatype Dt<X extends XTrait> = Dt(x: X)
+  {
+    method M<Y extends YTrait>(y: Y) {
+      var parent: Parent;
+      parent := x;
+      assert parent is XTrait;
+      parent := y;
+      assert parent is YTrait;
+    }
+
+    function F<Y extends YTrait>(y: Y): int {
+      var parentX: Parent := x;
+      assert parentX is XTrait;
+      var parentY: Parent := y;
+      assert parentY is YTrait;
+      15
+    }
+
+    const K := (x: X) =>
+      var parentX: Parent := x;
+      assert parentX is XTrait;
+      17
+
+    method Negative(xtrait: XTrait) {
+      assert xtrait is X; // error
+    }
+  }
+
+  trait Base<X extends XTrait, W extends XTrait> {
+    method M<Y extends YTrait>(z: int, y: Y, x: X, w: W)
+      requires z == 5
+      requires x is Parent && w is XTrait // this is always true
+    twostate function F<Y extends YTrait>(z: int, y: Y, x: X, w: W): int
+      requires z == 5
+  }
+
+  class XClass extends XTrait { }
+
+  class Class<XX extends XTrait> extends Base<XX, XClass> {
+    method M<Y extends YTrait>(z: int, y: Y, x: XX, w: XClass)
+      requires z == if y is YTrait then 5 else 7
+      requires z == if x is XTrait then 5 else 7
+    {
+    }
+    twostate function F<Y extends YTrait>(z: int, y: Y, x: XX, w: XClass): int
+      requires z == if y is YTrait then 5 else 7
+      requires z == if x is XTrait then 5 else 7
+    {
+      17
+    }
+  }
+
+  class Nope<XX extends XTrait> extends Base<XX, XClass> {
+    method M<Y extends YTrait>(z: int, y: Y, x: XX, w: XClass) // error: precondition does not follow from parent trait
+      requires z == if y as Parent is YTrait then 100 else 700
+    {
+    }
+    twostate function F<Y extends YTrait>(z: int, y: Y, x: XX, w: XClass): int // error: precondition does not follow from parent trait
+      requires z == if y as Parent is XTrait then 100 else 700
+    {
+      17
+    }
+  }
+}
+
+module Boxing {
+  trait Trait extends object { }
+  
+  method P<Z extends Trait>(z: Z) {
+    var a := z as Trait?;
+    var b := z as Trait;
+    
+    var obj: object? := z;
+    assert obj is Trait?;
+    assert obj is Trait;
+  }
+
+  method O<Z extends Trait?>(z: Z) {
+    var a := z as Trait?;
+    if z as object? != null {
+      var b0 := z as Trait;
+    }
+    var b1 := z as Trait; // error: since z may be null
+  }
+}
+
+module MoreBoxing {
+  trait Trait extends object { }
+
+  method P0<Z extends Trait>(z: Z) returns (obj: object?) {
+    obj := z;
+    assert true;
+  }
+
+  class Cell { var obj: object? }
+
+  method P1<Z extends Trait>(z: Z) returns (c: Cell) {
+    c := new Cell;
+    c.obj := z;
+    assert true;
+  }
+
+  method P2<Z extends Trait>(z: Z) returns (obj: array<object?>) {
+    obj := new object?[1];
+    obj[0] := z as object?; // TODO: this cast should not be needed
+    assert true;
+  }
+
+  method P3<Z extends Trait>(z: Z) returns (obj: array2<object?>) {
+    obj := new object?[1, 1];
+    obj[0, 0] := z as object?; // TODO: this cast should not be needed
+    assert true;
+  }
+
+  datatype Record = Record(obj: object?)
+
+  method P4<Z extends Trait>(z: Z) returns (r: Record) {
+    r := Record(z);
+    r := r.(obj := z);
+    assert true;
+  }
+
+  method M<Z extends Trait>(obj: object?, z: Z) returns (r: object?) {
+    return z;
+  }
+
+  method P5<Z extends Trait>(z: Z) returns (obj: object?) {
+    obj := M(z, z);
+    assert true;
+  }
+
+  function F(obj: object?): int { 4 }
+
+  method P6<Z extends Trait>(z: Z) returns (u: int) {
+    u := F(z);
+    assert true;
+  }
+
+  method P7<Z extends Trait>(z: Z) returns (u: int) {
+    u := var obj: object? := z;
+      assert obj == null || obj != null;
+      14;
+    assert true;
+  }
+
+  method P8<Z extends Trait>(z: Z, t: Trait) returns (s: seq<Trait>) {
+    s := [z];
+    s := [z as Trait, t]; // TODO: this cast should not be needed
+    s := s[0 := z];
+    assert s[0] == z as Trait;
+    assert z in s;
+    assert !(z !in s);
+    assert true;
+  }
+
+  method P9<Z(==) extends Trait>(z: Z, t: Trait) returns (m: map<Trait, Trait>, mi: map<Trait, Trait>) {
+    m := map[z := z];
+    m := m[z := z];
+    mi := map[z := z];
+    mi := mi[z := z];
+
+    m := map[z as Trait := t];
+    m := m[z as Trait := t];
+    mi := map[z as Trait := t];
+    mi := mi[z as Trait := t];
+
+    m := map[t := z as Trait];
+    m := m[t := z as Trait];
+    mi := map[t := z as Trait];
+    mi := mi[t := z as Trait];
+
+    if t == z as Trait {
+      assert z in m;
+      assert !(z !in m);
+      assert z in mi;
+      assert !(z !in mi);
+    }
+  }
+
+  method P10<Z(==) extends Trait>(z: Z, t: Trait) returns (m: multiset<Trait>) {
+    m := multiset{z, z};
+    m := multiset{z as Trait, t}; // TODO: this cast should not be needed
+    m := m[z := 13];
+    assert z in m;
+    assert !(z !in m);
+  }
+
+  method P11<Z(==) extends Trait>(z: Z, t: Trait) returns (s: set<Trait>, si: iset<Trait>) {
+    s := {z};
+    s := {z as Trait, t}; // TODO: this cast should not be needed
+    assert z in s;
+    assert !(z !in s);
+
+    si := iset{z};
+    si := iset{z as Trait, t}; // TODO: this cast should not be needed
+    assert z in si;
+    assert !(z !in si);
+  }
+
+  method P12<Z(==) extends Trait>(z: Z, t: Trait) returns (s: set<Trait>, si: iset<Trait>) {
+    var A := {z};
+    var B := {z as Trait, t};
+    s := set u: Trait | u in A;
+    s := set u: Trait | u in B; // TODO: this cast should not be needed
+    si := iset u: Trait | u in A;
+    si := iset u: Trait | u in B; // TODO: this cast should not be needed
+  }
+
+  method P14<Z(==) extends Trait>(z: Z, t: Trait) {
+    assert allocated(z);
+  }
+
+  method P15<Z(==) extends Trait>(s: set<Z>)
+    modifies s as set<Trait>
+  {
+  }
+
+  function F16<Z(==) extends Trait>(s: set<Z>): int
+    reads s as set<Trait>
+  {
+    10
+  }
+}

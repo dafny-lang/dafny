@@ -80,6 +80,10 @@ public partial class BoogieGenerator {
       req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
     }
 
+    foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+      req.Add(Requires(f.tok, true, null, typeBoundAxiom, null, null, null));
+    }
+
     // modifies $Heap
     var mod = new List<Bpl.IdentifierExpr> {
       ordinaryEtran.HeapCastToIdentifierExpr,

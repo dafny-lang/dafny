@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
                 Type t = dtv.Ctor.Formals[i].Type;
                 var bArg = TrExpr(arg);
                 argsAreLit = argsAreLit && BoogieGenerator.IsLit(bArg);
-                args.Add(BoogieGenerator.CondApplyBox(GetToken(value), bArg, cce.NonNull(arg.Type), t));
+                args.Add(BoogieGenerator.AdaptBoxing(GetToken(value), bArg, cce.NonNull(arg.Type), t));
               }
               Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(GetToken(dtv), dtv.Ctor.FullName, predef.DatatypeType);
               Boogie.Expr ret = new Boogie.NAryExpr(GetToken(dtv), new Boogie.FunctionCall(id), args);
@@ -1616,7 +1616,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         for (int i = 0; i < let.LHSs.Count; i++) {
           var rhs = TrExpr(let.RHSs[i]);
           var toType = let.LHSs[i].Var?.Type ?? let.LHSs[i].Expr.Type;
-          rhs = BoogieGenerator.CondApplyBox(rhs.tok, rhs, let.RHSs[i].Type, toType);
+          rhs = BoogieGenerator.AdaptBoxing(rhs.tok, rhs, let.RHSs[i].Type, toType);
           BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], rhs, substMap);
         }
         lhss = new List<Boogie.Variable>();
@@ -1788,7 +1788,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           Type t = e.Function.Ins[i].Type;
           Expr tr_ee = TrExpr(ee);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
-          args.Add(BoogieGenerator.CondApplyBox(GetToken(e), tr_ee, cce.NonNull(ee.Type), t));
+          args.Add(BoogieGenerator.AdaptBoxing(GetToken(e), tr_ee, cce.NonNull(ee.Type), t));
         }
         return args;
       }

@@ -3231,6 +3231,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Bpl.Expr AdaptBoxing(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
+      if (fromType.IsTypeParameter) {
+        return CondApplyUnbox(tok, e, fromType, toType);
+      } else {
+        return CondApplyBox(tok, e, fromType, toType);
+      }
+    }
+
     public Bpl.Expr CondApplyBox(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
@@ -3855,11 +3863,6 @@ namespace Microsoft.Dafny {
         isAlloc = null;
       } else if (alloc == ISALLOC && etran.HeapExpr != null) {
         isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
-        if (normType.AsTypeParameter is { } typeParameter) {
-          foreach (var typeBound in typeParameter.TypeBounds) {
-            isAlloc = BplAnd(isAlloc, MkIsAllocBox(x, typeBound, etran.HeapExpr));
-          }
-        }
       } else {
         isAlloc = null;
       }
@@ -3886,11 +3889,6 @@ namespace Microsoft.Dafny {
       } else {
         // go for the symbolic name
         isPred = MkIs(x, normType);
-        if (normType.AsTypeParameter is { } typeParameter) {
-          foreach (var typeBound in typeParameter.TypeBounds) {
-            isPred = BplAnd(isPred, MkIsBox(x, typeBound));
-          }
-        }
       }
       return isAlloc == null ? isPred : isPred == null ? isAlloc : BplAnd(isPred, isAlloc);
     }

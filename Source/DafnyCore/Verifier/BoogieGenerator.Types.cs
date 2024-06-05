@@ -1154,6 +1154,11 @@ public partial class BoogieGenerator {
     } else if (fromType.IsTraitType) {
       // cast from a non-reference trait
       return UnboxUnlessInherentlyBoxed(r, toType);
+    } else if (fromType.IsSubtypeOf(toType, false, false)) {
+      return AdaptBoxing(r.tok, r, fromType, toType);
+    } else if (fromType is CollectionType && toType is CollectionType) {
+      // the Boogie representation of collection types is the same for all element types
+      return r;
     } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
       return r;
     } else {
