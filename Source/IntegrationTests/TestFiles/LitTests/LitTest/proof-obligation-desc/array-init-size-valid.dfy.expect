@@ -1,4 +1,4 @@
-﻿array-init-size-valid.dfy(5,21): Error: given array size must agree with the number of expressions in the initializing display (0)
+array-init-size-valid.dfy(5,21): Error: given array size must agree with the number of expressions in the initializing display (0)
  Asserted expression: 1 == |[]|
 
 Dafny program verifier finished with 0 verified, 1 error
