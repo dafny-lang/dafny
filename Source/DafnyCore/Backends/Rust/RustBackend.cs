@@ -82,8 +82,8 @@ public class RustBackend : DafnyExecutableBackend {
       stream.CopyTo(outFile);
     });
 
-    using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
-      using var cargoTomlWriter = new StreamWriter(cargoToml);
+    await using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
+      await using var cargoTomlWriter = new StreamWriter(cargoToml);
       await cargoTomlWriter.WriteLineAsync("[package]");
       var packageName = Path.GetFileNameWithoutExtension(targetFilename);
       // package name cannot start with a digit
