@@ -5,6 +5,7 @@ method Main() {
   Is.Test();
   Basic.Test();
   Bounds.Test();
+  BoundsAndCasts.Test();
 }
 
 module As {
@@ -154,5 +155,59 @@ module Bounds {
     var v := *; // inferred to be of type string (pretty cool, huh!)
     var i := new RandomClass(v);
     MyMethod(i);
+  }
+}
+
+module BoundsAndCasts {
+  method Test() {
+    var rx := Record("X thing");
+    var ry := Record("Y thing");
+    var rp := Record("P thing");
+    var d := Dt(rx);
+    d.M(ry, rp);
+    print d.F(ry, rp), "\n";
+    print d.K(rp), "\n";
+  }
+
+  trait Parent { }
+  trait XTrait extends Parent { }
+  trait YTrait extends Parent { }
+
+  datatype Record extends XTrait, YTrait = Record(s: string)
+
+  datatype Dt<X extends XTrait> = Dt(x: X)
+  {
+    method M<Y extends YTrait>(y: Y, p: X) {
+      var parent: Parent;
+
+      parent := x;
+      print parent, "\n";
+      assert parent is XTrait;
+
+      parent := p;
+      assert parent is XTrait;
+      print parent, "\n";
+
+      parent := y;
+      assert parent is YTrait;
+      print parent, "\n";
+    }
+
+    function F<Y extends YTrait>(y: Y, p: X): int {
+      var parentX: Parent := x;
+      assert parentX is XTrait;
+      var parentP: Parent := p;
+      assert parentP is XTrait;
+      var parentY: Parent := y;
+      assert parentY is YTrait;
+      15
+    }
+
+    const K := (p: X) =>
+      var parentX: Parent := x;
+      assert parentX is XTrait;
+      var parentP: Parent := p;
+      assert parentP is XTrait;
+      17
   }
 }

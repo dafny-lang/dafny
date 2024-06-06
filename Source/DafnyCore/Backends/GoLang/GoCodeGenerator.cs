@@ -3932,6 +3932,16 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
+      if (to.IsTraitType) {
+        wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      }
+      return base.EmitDowncast(from, to, tok, wr);
+    }
+
     protected override ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {
       var w = wr.Fork();
       wr.Write(".(int)");

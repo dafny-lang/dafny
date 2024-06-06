@@ -5,3 +5,8 @@ true true true
 (hello)
 (you don't say)
 ()
+BoundsAndCasts.Record.Record("X thing")
+BoundsAndCasts.Record.Record("P thing")
+BoundsAndCasts.Record.Record("Y thing")
+15
+17

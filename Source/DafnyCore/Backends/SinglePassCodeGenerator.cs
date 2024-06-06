@@ -2860,6 +2860,7 @@ namespace Microsoft.Dafny.Compilers {
           var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
+            w = EmitDowncastIfNecessary(rhs.Type, bv.Type, rhsTok, w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {
             emitRhs(w);
