@@ -100,7 +100,7 @@ jobs:
     - name: Run DafnyLanguageServer Tests (soak test - iteration ${{matrix.iteration}})
       if: inputs.soak_test
       run: |
-        dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyLanguageServer.Test/coverlet.runsettings Source/DafnyLanguageServer.Test
+        dotnet test --no-restore --blame-crash --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyLanguageServer.Test/coverlet.runsettings Source/DafnyLanguageServer.Test
     - name: Run DafnyLanguageServer Tests
       if: "!inputs.soak_test"
       run: |
