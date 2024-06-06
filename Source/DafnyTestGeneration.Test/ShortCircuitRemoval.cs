@@ -35,7 +35,7 @@ public class ShortCircuitRemoval : Setup {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
-    var program = await Utils.Parse(new BatchErrorReporter(options), source, false);
+    var program = await Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);
     var method = program.DefaultModuleDef.Children
