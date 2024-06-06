@@ -8,7 +8,10 @@ namespace Microsoft.Dafny;
 public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanFormat, INestedMatch, ICanResolve {
   public Expression Source { get; }
   public string MatchTypeName => "statement";
-  public readonly List<NestedMatchCaseStmt> Cases;
+  public List<NestedMatchCaseStmt> Cases { get; }
+
+  IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
+
   public readonly bool UsesOptionalBraces;
 
   [FilledInDuringResolution] public Statement Flattened { get; set; }
