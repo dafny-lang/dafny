@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           }
 
           // This matching could be improved by using the qualified name of the symbol here.
-          var name = symbol.NavigationToken.val;
+          var name = symbol.NavigationToken.val!;
           if (name.ToLower().Contains(queryText)) {
             // The fewer extra characters there are in the string, the
             // better the match.

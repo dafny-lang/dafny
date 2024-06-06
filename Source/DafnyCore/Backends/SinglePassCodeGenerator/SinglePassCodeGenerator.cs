@@ -30,12 +30,11 @@ namespace Microsoft.Dafny.Compilers {
     // However, for backends such as Rust which need special internal fields, we want to clearly
     // disambiguate between compiler-generated names and user-defined names, hence this prefix.
     protected virtual string InternalFieldPrefix => "_i_";
-
     public DafnyOptions Options { get; }
 
     /// <summary>
     /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
-    /// required in the target language.
+    /// required in the target language.<<
     /// </summary>
     public abstract void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree);
 
@@ -1270,7 +1269,9 @@ namespace Microsoft.Dafny.Compilers {
     /// However, EmitDestructor may also need to perform a cast on "source".
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
-    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
+    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source,
+      Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
 
@@ -1309,7 +1310,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     protected virtual void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -1402,13 +1403,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1, e0, tok, resultType.GetRuntimeType(),
+          e1Type, e0Type, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0, e1, tok, resultType.GetRuntimeType(),
+          e0Type, e1Type, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -2897,7 +2898,9 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw => EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw =>
+              EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, () => dtv.InferredTypeArgs, arg.Expr.Type, sw),
+              targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -2914,7 +2917,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Other than the syntactic differences in the target code, the idea is that "TrExprOpt(...)" and "Expr(...)" generate code with the
     /// same semantics.
     /// </summary>
-    void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
+    protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(resultType != null);
@@ -2960,7 +2963,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+        TrOptNestedMatchExpr(nestedMatchExpr, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -4692,7 +4695,8 @@ namespace Microsoft.Dafny.Compilers {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
-          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
+          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, () =>
+            SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
           k++;
         }
       }
@@ -5207,7 +5211,9 @@ namespace Microsoft.Dafny.Compilers {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            wr = TrCasePattern(arg, sw => EmitDestructor(rhs, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
+            wr = TrCasePattern(arg, sw =>
+              EmitDestructor(rhs, formal, k, ctor, () => ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw),
+              formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
             k++;
           }
         }
