@@ -1832,6 +1832,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
       }
     }
+
+    predicate IsRcWrapped(attributes: seq<Attribute>) {
+      (Attribute("auto-nongrowing-size", []) !in attributes &&
+       Attribute("rust_rc", ["false"]) !in attributes) ||
+      Attribute("rust_rc", ["true"]) in attributes
+    }
+
     method GenType(c: Type, inBinding: bool, inFn: bool) returns (s: R.Type) {
       match c {
         case Path(p, args, resolved) => {
@@ -1842,6 +1849,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           match resolved {
             case Datatype(DatatypeType(_, attributes)) => {
               // Any kind of default wrapping here if necessary
+              if IsRcWrapped(attributes) {
+                s := R.Rc(s);
+              }
             }
             case Trait(_, _) => {
               if p == [Ident.Ident(Name("_System")), Ident.Ident(Name("object"))] {

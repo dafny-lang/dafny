@@ -1,1 +1,0 @@
-// CHECK-L: (0,-1): Error: Feature not supported for this compilation target: Traits. To continue despite this issue, you can compile with the option --emit-uncompilable-code

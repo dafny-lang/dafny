@@ -1,1 +1,1 @@
-// CHECK-L: error[E0072]: recursive type `Node` has infinite size
+// CHECK-L: error[E0599]: no associated item named `_allocated` found for struct `Node` in the current scope

@@ -1,1 +1,1 @@
-// CHECK-L: error[E0072]: recursive type `PriorityQueue_extrinsic::T` has infinite size
+// CHECK-L: error[E0308]: mismatched types

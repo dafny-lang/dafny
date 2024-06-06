@@ -1,1 +1,1 @@
-// CHECK-L: error[E0072]: recursive type `List` has infinite size
+// CHECK-L: error[E0277]: the trait bound `_A: Default` is not satisfied
