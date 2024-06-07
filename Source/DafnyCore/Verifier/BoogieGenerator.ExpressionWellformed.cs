@@ -786,7 +786,15 @@ namespace Microsoft.Dafny {
                         break;
                       }
                     default:
-                      throw new cce.UnreachableException();
+                      var readsCall = new ApplyExpr(
+                        Token.NoToken,
+                        new ExprDotName(Token.NoToken, e.Receiver.Resolved, "reads", null),
+                        e.Args,
+                        Token.NoToken
+                      );
+                      readsCall.Type = objset;
+                      requiredFrames = new() { new FrameExpression(Token.NoToken, readsCall, null) };
+                      break;
                   }
                   var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrames, readFrames);
                   CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,

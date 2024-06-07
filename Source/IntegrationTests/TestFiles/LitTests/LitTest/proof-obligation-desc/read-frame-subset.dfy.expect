@@ -25,4 +25,4 @@ read-frame-subset.dfy(105,12): Error: insufficient reads clause to invoke the fu
 read-frame-subset.dfy(121,15): Error: insufficient reads clause to call
  Asserted expression: (s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}) && (forall obj: C | obj in {s[1]} :: obj == s[3] || obj in {s[4]}) && forall obj: C | obj in {s[2]} :: obj == s[3] || obj in {s[5]}
 
-Dafny program verifier finished with 5 verified, 13 errors
+Dafny program verifier finished with 6 verified, 13 errors
