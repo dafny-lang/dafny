@@ -2052,10 +2052,17 @@ namespace Microsoft.Dafny {
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,
       // but only if we're in a context that defines a modifies frame.
       if (codeContext is IMethodCodeContext methodCodeContext) {
-        var modifiesSubst = new Substituter(null, directSubstMap, tySubst);
-        var calleeFrame = callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr);
-        var desc = new PODesc.ModifyFrameSubset("call", calleeFrame, methodCodeContext.Modifies.Expressions);
-        CheckFrameSubset(tok, calleeFrame,
+        // substitute actual args for parameters in frames for the description expression...
+        var descSubst = new Substituter(null, directSubstMap, tySubst);
+        var desc = new PODesc.ModifyFrameSubset(
+          "call",
+          callee.Mod.Expressions.ConvertAll(descSubst.SubstFrameExpr),
+          methodCodeContext.Modifies.Expressions
+        );
+        // ... but no need to do so for frames passed to CheckFrameSubset
+        var modifiesSubst = new Substituter(null, new(), tySubst);
+        CheckFrameSubset(
+          tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
           receiver, substMap, etran, etran.ModifiesFrame(tok), builder, desc, null);
       }
 
