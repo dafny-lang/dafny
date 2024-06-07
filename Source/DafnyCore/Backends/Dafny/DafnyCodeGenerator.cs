@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.Compilers {
             to = toNonNull.RhsWithArgument(toUdt.TypeArgs);
           }
 
-          return EmitCoercionIfNecessary(from, to, tok, new BuilderSyntaxTree<ExprContainer>(nullConvert, this));
+          return base.EmitCoercionIfNecessary(from, to, tok, new BuilderSyntaxTree<ExprContainer>(nullConvert, this));
         } else {
           return base.EmitCoercionIfNecessary(from, to, tok, wr);
         }
