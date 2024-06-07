@@ -421,7 +421,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
 
-      var erasedType = EraseNewtypeLayers(sst);
+      var erasedType = sst.Rhs.NormalizeExpand();
 
       List<DAST.Statement> witnessStmts = new();
       DAST.Expression witness = null;
@@ -1654,11 +1654,8 @@ namespace Microsoft.Dafny.Compilers {
     private DAST.Type TypeNameASTFromTopLevel(TopLevelDecl topLevel, List<Type> typeArgs) {
       var path = PathFromTopLevel(topLevel);
 
-      bool nonNull = true;
       if (topLevel is NonNullTypeDecl non) {
         topLevel = non.Rhs.AsTopLevelTypeWithMembers;
-      } else if (topLevel is ClassLikeDecl) {
-        nonNull = false;
       }
 
       var properMethods = new List<Sequence<Rune>>();
@@ -1687,7 +1684,7 @@ namespace Microsoft.Dafny.Compilers {
           GenType(EraseNewtypeLayers(topLevel)), range, true);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
-          GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true);
+          GenType(typeSynonym.Rhs.NormalizeExpand()), NewtypeRange.create_NoRange(), true);
       } else if (topLevel is TraitDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
       } else if (topLevel is DatatypeDecl) {
@@ -2028,7 +2025,8 @@ namespace Microsoft.Dafny.Compilers {
       EmitExpr(source, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this), wStmts);
 
       var indexBuf = new ExprBuffer(null);
-      EmitExpr(index, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(indexBuf, this), wStmts);
+      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
+      EmitExpr(index, inLetExprBody, indexWr, wStmts);
 
       DAST._ICollKind collKind;
       if (source.Type.IsArrayType) {
@@ -2127,14 +2125,16 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression loExpr = null;
       if (lo != null) {
         var loBuf = new ExprBuffer(null);
-        EmitExpr(lo, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(loBuf, this), wStmts);
+        var loWr = EmitCoercionIfNecessary(lo.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(loBuf, this));
+        EmitExpr(lo, inLetExprBody, loWr, wStmts);
         loExpr = loBuf.Finish();
       }
 
       DAST.Expression hiExpr = null;
       if (hi != null) {
         var hiBuf = new ExprBuffer(null);
-        EmitExpr(hi, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(hiBuf, this), wStmts);
+        var loWr = EmitCoercionIfNecessary(hi.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(hiBuf, this));
+        EmitExpr(hi, inLetExprBody, loWr, wStmts);
         hiExpr = hiBuf.Finish();
       }
 

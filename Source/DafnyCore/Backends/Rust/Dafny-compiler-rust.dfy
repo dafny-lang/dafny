@@ -3505,7 +3505,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               ResolvedType(_, _, Newtype(b0, range0, erase0), attributes0, _, _)) => {
               var nativeFromType := NewtypeToRustType(b0, range0);
               if nativeFromType.Some? {
-                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
                 r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen, nativeToType.value), recOwned, expectedOwnership);
                 readIdents := recIdents;
                 return;
@@ -3514,7 +3514,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case _ =>
           }
           if fromTpe == Primitive(Char) {
-            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+            var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
             r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen.Sel("0"), nativeToType.value), recOwned, expectedOwnership);
             readIdents := recIdents;
             return;
@@ -3659,14 +3659,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case (Passthrough(_), Primitive(Int)) => {
             var rhsType := GenType(fromTpe, GenTypeContext.InBinding());
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.RawExpr("::dafny_runtime::DafnyInt{data: ::dafny_runtime::BigInt::from(" + recursiveGen.ToString(IND) + ")}");
+            r := R.RawExpr("::dafny_runtime::DafnyInt::new(::std::rc::Rc::new(::dafny_runtime::BigInt::from(" + recursiveGen.ToString(IND) + ")))");
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }
           case (Primitive(Int), Primitive(Char)) => {
             var rhsType := GenType(toTpe, GenTypeContext.InBinding());
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.RawExpr("char::from_u32(<u32 as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap()).unwrap()");
+            r := R.RawExpr("::dafny_runtime::" + DafnyChar + "(" + (if UnicodeChars then "char::from_u32(<u32" else "<u16") + " as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap())" + if UnicodeChars then ".unwrap())" else "");
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }
@@ -3936,7 +3936,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var dimExprs := [];
             for i := 0 to |dims| invariant |dimExprs| == i {
               var recursiveGen, _, recIdents := GenExpr(dims[i], selfIdent, env, OwnershipOwned);
-              dimExprs := dimExprs + [recursiveGen.Sel("as_usize").Apply([])];
+              dimExprs := dimExprs + [R.TypeAscription(recursiveGen, R.TIdentifier("usize"))];
               readIdents := readIdents + recIdents;
             }
             if |dims| > 1 {

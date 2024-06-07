@@ -3895,7 +3895,7 @@ namespace DCOMP {
                     RAST._IExpr _out234;
                     DCOMP._IOwnership _out235;
                     Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out236;
-                    (this).GenExpr(_1608_expr, selfIdent, env, expectedOwnership, out _out234, out _out235, out _out236);
+                    (this).GenExpr(_1608_expr, selfIdent, env, DCOMP.Ownership.create_OwnershipOwned(), out _out234, out _out235, out _out236);
                     _1634_recursiveGen = _out234;
                     _1635_recOwned = _out235;
                     _1636_recIdents = _out236;
@@ -3922,7 +3922,7 @@ namespace DCOMP {
             RAST._IExpr _out239;
             DCOMP._IOwnership _out240;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out241;
-            (this).GenExpr(_1608_expr, selfIdent, env, expectedOwnership, out _out239, out _out240, out _out241);
+            (this).GenExpr(_1608_expr, selfIdent, env, DCOMP.Ownership.create_OwnershipOwned(), out _out239, out _out240, out _out241);
             _1638_recursiveGen = _out239;
             _1639_recOwned = _out240;
             _1640_recIdents = _out241;
@@ -4315,7 +4315,7 @@ namespace DCOMP {
                   _1710_recursiveGen = _out303;
                   _1711___v133 = _out304;
                   _1712_recIdents = _out305;
-                  r = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::DafnyInt{data: ::dafny_runtime::BigInt::from("), (_1710_recursiveGen)._ToString(DCOMP.__default.IND)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")}")));
+                  r = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::DafnyInt::new(::std::rc::Rc::new(::dafny_runtime::BigInt::from("), (_1710_recursiveGen)._ToString(DCOMP.__default.IND)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")))")));
                   RAST._IExpr _out306;
                   DCOMP._IOwnership _out307;
                   (this).FromOwned(r, expectedOwnership, out _out306, out _out307);
@@ -4352,7 +4352,7 @@ namespace DCOMP {
                     _1714_recursiveGen = _out309;
                     _1715___v134 = _out310;
                     _1716_recIdents = _out311;
-                    r = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("char::from_u32(<u32 as ::dafny_runtime::NumCast>::from("), (_1714_recursiveGen)._ToString(DCOMP.__default.IND)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap()).unwrap()")));
+                    r = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::"), (this).DafnyChar), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (((this).UnicodeChars) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("char::from_u32(<u32")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<u16")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" as ::dafny_runtime::NumCast>::from(")), (_1714_recursiveGen)._ToString(DCOMP.__default.IND)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap())")), (((this).UnicodeChars) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".unwrap())")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))));
                     RAST._IExpr _out312;
                     DCOMP._IOwnership _out313;
                     (this).FromOwned(r, expectedOwnership, out _out312, out _out313);
@@ -4843,7 +4843,7 @@ namespace DCOMP {
                 _1790_recursiveGen = _out360;
                 _1791___v152 = _out361;
                 _1792_recIdents = _out362;
-                _1788_dimExprs = Dafny.Sequence<RAST._IExpr>.Concat(_1788_dimExprs, Dafny.Sequence<RAST._IExpr>.FromElements(((_1790_recursiveGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_usize"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements())));
+                _1788_dimExprs = Dafny.Sequence<RAST._IExpr>.Concat(_1788_dimExprs, Dafny.Sequence<RAST._IExpr>.FromElements(RAST.Expr.create_TypeAscription(_1790_recursiveGen, RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("usize")))));
                 readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _1792_recIdents);
               }
               if ((new BigInteger((_1784_dims).Count)) > (BigInteger.One)) {
