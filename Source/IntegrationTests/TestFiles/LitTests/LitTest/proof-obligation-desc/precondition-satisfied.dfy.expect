@@ -1,4 +1,4 @@
-﻿precondition-satisfied.dfy(12,4): Error: function precondition could not be proved
+precondition-satisfied.dfy(12,4): Error: function precondition could not be proved
  Asserted expression: b != 0
 precondition-satisfied.dfy(5,15): Related location: this proposition could not be proved
 precondition-satisfied.dfy(23,4): Error: divisor must be nonzero
