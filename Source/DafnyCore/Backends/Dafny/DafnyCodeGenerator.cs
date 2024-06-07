@@ -357,22 +357,6 @@ namespace Microsoft.Dafny.Compilers {
 
       if (xType is BoolType) {
         return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Bool());
-      } else if (xType is IntType) {
-        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Int());
-      } else if (xType is RealType) {
-        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Real());
-      } else if (xType.IsStringType) {
-        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_String());
-      } else if (xType.IsCharType) {
-        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Char());
-      } else if (xType is UserDefinedType udt) {
-        if (udt.ResolvedClass is TypeParameter tp) {
-          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
-            return GenType(instantiatedTypeParameter);
-          }
-        }
-
-        return FullTypeNameAST(udt, null);
       } else if (AsNativeType(typ) != null) {
         return (DAST.Type)(AsNativeType(typ).Sel switch {
           NativeType.Selection.Byte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u8")),
@@ -387,6 +371,21 @@ namespace Microsoft.Dafny.Compilers {
           NativeType.Selection.UDoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u128")),
           _ => throw new InvalidOperationException(),
         });
+      } else if (xType is IntType) {
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Int());
+      } else if (xType is RealType) {
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Real());
+      } else if (xType.IsStringType) {
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_String());
+      } else if (xType.IsCharType) {
+        return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Char());
+      } else if (xType is UserDefinedType udt) {
+        if (udt.ResolvedClass is TypeParameter tp) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
+            return GenType(instantiatedTypeParameter);
+          }
+        }
+        return FullTypeNameAST(udt, null);
       } else if (xType is SeqType seq) {
         var argType = seq.Arg;
         return (DAST.Type)DAST.Type.create_Seq(GenType(argType));
@@ -415,7 +414,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
 
-      var erasedType = EraseNewtypeLayers(sst);
+      var erasedType = UserDefinedType.FromTopLevelDecl(sst.tok, sst).NormalizeExpand();
 
       List<DAST.Statement> witnessStmts = new();
       DAST.Expression witness = null;
