@@ -1,4 +1,4 @@
-﻿is-allocated.dfy(11,19): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
+is-allocated.dfy(11,19): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
  Asserted expression: old(allocated(c))
 
 Dafny program verifier finished with 0 verified, 1 error
