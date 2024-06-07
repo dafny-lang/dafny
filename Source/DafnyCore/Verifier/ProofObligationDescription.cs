@@ -838,13 +838,27 @@ public class ReadFrameSubset : ProofObligationDescription {
   public override string ShortDescription => "read frame subset";
 
   private readonly string whatKind;
+  private readonly Expression assertedExpr;
   private readonly Expression readExpression;
   [CanBeNull] private readonly IFrameScope scope;
 
-  public ReadFrameSubset(string whatKind, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
+  public ReadFrameSubset(string whatKind, FrameExpression subsetFrame, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
+    : this(whatKind, new List<FrameExpression> {subsetFrame}, supersetFrames, readExpression, scope)
+  { }
+  
+  public ReadFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
+    : this(whatKind, Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames), readExpression, scope)
+  { }
+
+  public ReadFrameSubset(string whatKind, Expression assertedExpr, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
     this.whatKind = whatKind;
+    this.assertedExpr = assertedExpr;
     this.readExpression = readExpression;
     this.scope = scope;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return assertedExpr;
   }
 }
 
@@ -858,7 +872,6 @@ public class ModifyFrameSubset : ProofObligationDescription {
   public override string ShortDescription => "modify frame subset";
 
   private readonly string whatKind;
-  private readonly Expression expr;
   private readonly List<FrameExpression> subsetFrames;
   private readonly List<FrameExpression> supersetFrames;
 
@@ -1237,23 +1250,7 @@ public class IndicesInDomain : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var zero = new LiteralExpr(Token.NoToken, 0);
-    var indexVars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
-    var indexVarExprs = indexVars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
-    var indexRanges = dims.Select((dim, i) => new ChainingExpression(
-      Token.NoToken,
-      new() { zero, indexVarExprs[i], dim },
-      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
-      new() { Token.NoToken, Token.NoToken },
-      new() { null, null }
-    ) as Expression).ToList();
-    var indicesRange = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
-      Token.NoToken,
-      indexRanges,
-      Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
-      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
-      Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
-    );
+    Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
     var precond = new FunctionCallExpr(Token.NoToken, "requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
     return new ForallExpr(Token.NoToken, RangeToken.NoToken, indexVars, indicesRange, precond, null);
   }
@@ -1860,6 +1857,30 @@ internal class Utils {
     return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
   }
 
+  public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
+    var zero = new LiteralExpr(Token.NoToken, 0);
+    vars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
+    
+    // can't assign to out-param immediately, since it's accessed in the lambda below
+    var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
+    var indexRanges = dims.Select((dim, i) => new ChainingExpression(
+      Token.NoToken,
+      new() { zero, tempVarExprs[i], dim },
+      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
+      new() { Token.NoToken, Token.NoToken },
+      new() { null, null }
+    ) as Expression).ToList();
+    varExprs = tempVarExprs;
+    
+    range = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
+      Token.NoToken,
+      indexRanges,
+      Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
+      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
+      Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
+    );
+  }
+
   internal static Expression MakeIsOneCtorAssertion(Expression root, List<DatatypeCtor> ctors) {
     return ctors
       .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.Name + "?", null) as Expression)
@@ -1903,7 +1924,9 @@ internal class Utils {
     foreach (var frame in frames) {
       var isSetFrame = frame.E.Type is SetType;
       var frameObjType = isSetFrame ? frame.E.Type.AsSetType.Arg : frame.E.Type;
-      var isTypeRelated = objType.IsSubtypeOf(frameObjType, false, false);
+      var isTypeRelated =
+        objType.IsSubtypeOf(frameObjType, false, false)
+        || objType.IsObjectQ;
       var isFieldRelated = field == null || frame.Field == null || field.Name.Equals(frame.Field.Name);
       if (!(isTypeRelated && isFieldRelated)) {
         continue;
