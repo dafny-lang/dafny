@@ -747,10 +747,18 @@ public class TraitFrame : ProofObligationDescription {
 
   private readonly string whatKind;
   private bool isModify;
+  private readonly List<FrameExpression> subsetFrames;
+  private readonly List<FrameExpression> supersetFrames;
 
-  public TraitFrame(string whatKind, bool isModify) {
+  public TraitFrame(string whatKind, bool isModify, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames) {
     this.whatKind = whatKind;
     this.isModify = isModify;
+    this.subsetFrames = subsetFrames;
+    this.supersetFrames = supersetFrames;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames);
   }
 }
 
@@ -766,9 +774,15 @@ public class TraitDecreases : ProofObligationDescription {
   public override bool ProvedOutsideUserCode => true;
 
   private readonly string whatKind;
+  private readonly Expression expr;
 
-  public TraitDecreases(string whatKind) {
+  public TraitDecreases(string whatKind, Expression expr) {
     this.whatKind = whatKind;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -844,9 +858,18 @@ public class ModifyFrameSubset : ProofObligationDescription {
   public override string ShortDescription => "modify frame subset";
 
   private readonly string whatKind;
+  private readonly Expression expr;
+  private readonly List<FrameExpression> subsetFrames;
+  private readonly List<FrameExpression> supersetFrames;
 
-  public ModifyFrameSubset(string whatKind) {
+  public ModifyFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames) {
     this.whatKind = whatKind;
+    this.subsetFrames = subsetFrames;
+    this.supersetFrames = supersetFrames;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames);
   }
 }
 
@@ -988,9 +1011,19 @@ public class Modifiable : ProofObligationDescription {
   public override string ShortDescription => "modifiable";
 
   private readonly string description;
+  private readonly List<FrameExpression> frames;
+  private readonly Expression obj;
+  private readonly Field field;
 
-  public Modifiable(string description) {
+  public Modifiable(string description, List<FrameExpression> frames, Expression obj, Field field) {
     this.description = description;
+    this.frames = frames;
+    this.obj = obj;
+    this.field = field;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeDafnyFrameCheck(frames, obj, field);
   }
 }
 
@@ -1831,5 +1864,73 @@ internal class Utils {
     return ctors
       .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.Name + "?", null) as Expression)
       .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
+  }
+
+  /// <summary>
+  /// Builds an expression that represents whether (the relevant subset of) the given `supersetFrames`
+  /// permit read/modification access to all objects, arrays, and/or sets of objects/arrays in the `subsetFrames`.
+  /// </summary>
+  public static Expression MakeDafnyMultiFrameCheck(List<FrameExpression> supersetFrames, List<FrameExpression> subsetFrames) {
+    return subsetFrames
+      .Select(target => MakeDafnyFrameCheck(supersetFrames, target.E, target.Field))
+      .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
+  }
+
+  /// <summary>
+  /// Builds an expression that represents whether (the relevant subset of) the given frames
+  /// permit read/modification access to an object/array (or set of objects/arrays).
+  /// </summary>
+  public static Expression MakeDafnyFrameCheck(List<FrameExpression> frames, Expression objOrObjSet, Field field) {
+    if (frames.Any(frame => frame.E is WildcardExpr)) {
+      return new LiteralExpr(Token.NoToken, true);
+    }
+
+    Type objType;
+    BoundVar objVar;
+    Expression objOperand;
+    var isSetObj = objOrObjSet.Type is SetType;
+    if (isSetObj) {
+      objType = objOrObjSet.Type.AsSetType.Arg;
+      objVar = new BoundVar(Token.NoToken, "obj", objType);
+      objOperand = new IdentifierExpr(Token.NoToken, objVar);
+    } else {
+      objType = objOrObjSet.Type;
+      objVar = null;
+      objOperand = objOrObjSet;
+    }
+
+    var disjuncts = new List<Expression>();
+    foreach (var frame in frames) {
+      var isSetFrame = frame.E.Type is SetType;
+      var frameObjType = isSetFrame ? frame.E.Type.AsSetType.Arg : frame.E.Type;
+      var isTypeRelated = objType.IsSubtypeOf(frameObjType, false, false);
+      var isFieldRelated = field == null || frame.Field == null || field.Name.Equals(frame.Field.Name);
+      if (!(isTypeRelated && isFieldRelated)) {
+        continue;
+      }
+
+      var relationOp = isSetFrame ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.Eq;
+      disjuncts.Add(new BinaryExpr(Token.NoToken, relationOp, objOperand, frame.E));
+    }
+
+    if (disjuncts.Count == 0) {
+      var emptySet = new SetDisplayExpr(Token.NoToken, true, new());
+      disjuncts.Add(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, emptySet));
+    }
+
+    var check = disjuncts.Aggregate((e0, e1) =>
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
+    if (!isSetObj) {
+      return check;
+    }
+
+    return new ForallExpr(
+      Token.NoToken,
+      RangeToken.NoToken,
+      new() { objVar },
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, objOrObjSet),
+      check,
+      null
+    );
   }
 }
