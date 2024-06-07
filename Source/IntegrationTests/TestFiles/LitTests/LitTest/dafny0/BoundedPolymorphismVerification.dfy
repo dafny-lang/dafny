@@ -311,3 +311,43 @@ module MoreBoxing {
     10
   }
 }
+
+module TestThatOverrideCheckHasEnoughInformationAboutTypeBounds {
+  trait TrTrParent { }
+  trait TrTr extends TrTrParent { }
+
+  trait Parent extends object {
+    function F<W extends TrTr>(u: nat, w: W): W
+      requires u % 5 == 0
+      reads this
+      ensures w == w
+
+    method M<W extends TrTr>(u: nat, w: W) returns (wo: W)
+      requires u % 5 == 0
+      modifies this
+      ensures w == wo
+  }
+
+  class Cell extends Parent {
+    var data: int
+
+    function F<W extends TrTr>(u: nat, w: W): W
+      requires u % 5 == 0
+      requires w as TrTrParent is TrTr // the proof that this condition is "true" requires the type-bound axioms
+      reads this
+      ensures w == w
+    {
+      var m := u + data;
+      var o := 2 * if m < 0 then -m else m;
+      w
+    }
+
+    method M<W extends TrTr>(u: nat, w: W) returns (wo: W)
+      requires u % 5 == 0
+      modifies this
+      ensures wo as TrTrParent is TrTr ==> wo == w
+    {
+      return w;
+    }
+  }
+}
