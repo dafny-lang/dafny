@@ -278,7 +278,7 @@ namespace Microsoft.Dafny {
         wfOptions = wfOptions.WithLValueContext(false);
       }
 
-      var readFrames = (codeContext as MethodOrFunction)?.Reads?.Expressions ?? new();
+      var readFrames = GetContextReadsFrames();
 
       switch (expr) {
         case StaticReceiverExpr stexpr: {
@@ -782,11 +782,7 @@ namespace Microsoft.Dafny {
                         var receiverSubstMap = readsReceiver.Ins.Zip(e.Args)
                           .ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
                         var subst = new Substituter(receiverReplacement, receiverSubstMap, e.GetTypeArgumentSubstitutions());
-                        requiredFrames = (readsReceiver! switch {
-                          Method m => m.Reads,
-                          Function f => f.Reads,
-                          _ => throw new cce.UnreachableException()
-                        }).Expressions.ConvertAll(subst.SubstFrameExpr);
+                        requiredFrames = readsReceiver.Reads.Expressions.ConvertAll(subst.SubstFrameExpr);
                         break;
                       }
                     default:

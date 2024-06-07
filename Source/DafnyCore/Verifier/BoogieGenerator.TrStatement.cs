@@ -2046,8 +2046,7 @@ namespace Microsoft.Dafny {
       if (etran.readsFrame != null) {
         // substitute actual args for parameter in frames for the description expression...
         var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
-        var readFrames = (codeContext as MethodOrFunction)?.Reads?.Expressions ?? new();
-        var desc = new PODesc.ReadFrameSubset("call", requiredFrames, readFrames);
+        var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
 
         // ... but no need to do so for frames passed to CheckFrameSubset
         var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
