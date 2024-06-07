@@ -277,7 +277,7 @@ namespace Microsoft.Dafny {
         // Turn off LValueContext for any recursive call
         wfOptions = wfOptions.WithLValueContext(false);
       }
-      
+
       var readFrames = (codeContext as MethodOrFunction)?.Reads?.Expressions ?? new();
 
       switch (expr) {
@@ -602,7 +602,7 @@ namespace Microsoft.Dafny {
             if (unwrappedFunc is IdentifierExpr { tok: var tok, DafnyName: var name }) {
               unwrappedFunc = new IdentifierExpr(tok, name);
             }
-            
+
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
               var dPrecond = new ApplyExpr(
                 Token.NoToken,
@@ -632,7 +632,7 @@ namespace Microsoft.Dafny {
               readsCall.Type = objset;
               var requiredFrame = new FrameExpression(Token.NoToken, readsCall, null);
               var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrame, readFrames);
-              
+
               CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { wrappedReads }, null, null,
                 etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
             }
@@ -776,19 +776,19 @@ namespace Microsoft.Dafny {
                   List<FrameExpression> requiredFrames;
                   switch (e.Receiver.Resolved) {
                     case MemberSelectExpr { Member: MethodOrFunction readsReceiver }: {
-                      var receiverReplacement = readsReceiver.IsStatic
-                        ? null
-                        : new ImplicitThisExpr(Token.NoToken);
-                      var receiverSubstMap = readsReceiver.Ins.Zip(e.Args)
-                        .ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
-                      var subst = new Substituter(receiverReplacement, receiverSubstMap, e.GetTypeArgumentSubstitutions());
-                      requiredFrames = (readsReceiver! switch {
-                        Method m => m.Reads,
-                        Function f => f.Reads,
-                        _ => throw new cce.UnreachableException()
-                      }).Expressions.ConvertAll(subst.SubstFrameExpr);
-                      break;
-                    }
+                        var receiverReplacement = readsReceiver.IsStatic
+                          ? null
+                          : new ImplicitThisExpr(Token.NoToken);
+                        var receiverSubstMap = readsReceiver.Ins.Zip(e.Args)
+                          .ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
+                        var subst = new Substituter(receiverReplacement, receiverSubstMap, e.GetTypeArgumentSubstitutions());
+                        requiredFrames = (readsReceiver! switch {
+                          Method m => m.Reads,
+                          Function f => f.Reads,
+                          _ => throw new cce.UnreachableException()
+                        }).Expressions.ConvertAll(subst.SubstFrameExpr);
+                        break;
+                      }
                     default:
                       throw new cce.UnreachableException();
                   }
@@ -826,11 +826,11 @@ namespace Microsoft.Dafny {
                 }
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
-                  
+
                   // substitute actual args for parameter is frames for the description expression...
                   var requiredFrames = e.Function.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
                   var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrames, readFrames);
-                  
+
                   // ... but no need to do so for frames passed to CheckFrameSubset
                   var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,

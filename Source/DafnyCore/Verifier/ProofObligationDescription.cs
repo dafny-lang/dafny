@@ -843,12 +843,10 @@ public class ReadFrameSubset : ProofObligationDescription {
   [CanBeNull] private readonly IFrameScope scope;
 
   public ReadFrameSubset(string whatKind, FrameExpression subsetFrame, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
-    : this(whatKind, new List<FrameExpression> {subsetFrame}, supersetFrames, readExpression, scope)
-  { }
-  
+    : this(whatKind, new List<FrameExpression> { subsetFrame }, supersetFrames, readExpression, scope) { }
+
   public ReadFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
-    : this(whatKind, Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames), readExpression, scope)
-  { }
+    : this(whatKind, Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames), readExpression, scope) { }
 
   public ReadFrameSubset(string whatKind, Expression assertedExpr, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
     this.whatKind = whatKind;
@@ -1860,7 +1858,7 @@ internal class Utils {
   public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
     var zero = new LiteralExpr(Token.NoToken, 0);
     vars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
-    
+
     // can't assign to out-param immediately, since it's accessed in the lambda below
     var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
     var indexRanges = dims.Select((dim, i) => new ChainingExpression(
@@ -1871,7 +1869,7 @@ internal class Utils {
       new() { null, null }
     ) as Expression).ToList();
     varExprs = tempVarExprs;
-    
+
     range = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
       Token.NoToken,
       indexRanges,
