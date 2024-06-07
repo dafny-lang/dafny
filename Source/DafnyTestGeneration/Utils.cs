@@ -84,18 +84,18 @@ namespace DafnyTestGeneration {
     /// <summary>
     /// Parse a string read (from a certain file) to a Dafny Program
     /// </summary>
-    public static async Task<Program> /*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null) {
+    public static async Task<Program> /*?*/ Parse(ErrorReporter reporter, string source, bool resolve = true, Uri uri = null, CancellationToken cancellationToken = default) {
       uri ??= new Uri(Path.Combine(Path.GetTempPath(), "parseUtils.dfy"));
 
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var dafnyFile = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
       var program = await new ProgramParser().ParseFiles(uri.LocalPath,
-        new[] { dafnyFile }, reporter, CancellationToken.None);
+        new[] { dafnyFile }, reporter, cancellationToken);
 
       if (!resolve) {
         return program;
       }
-      await new ProgramResolver(program).Resolve(CancellationToken.None);
+      await new ProgramResolver(program).Resolve(cancellationToken);
       return program;
     }
 
