@@ -351,7 +351,8 @@ namespace Microsoft.Dafny {
         // check well-formedness of the modifies clauses
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.ModifyFrameSubset("modify statement"), null);
+        var desc = new PODesc.ModifyFrameSubset("modify statement", s.Mod.Expressions, GetContextModifiesFrames());
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, desc, null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
         string modifyFrameName = "$Frame$" + suffix;
@@ -1281,8 +1282,15 @@ namespace Microsoft.Dafny {
       var lhs = Substitute(s0.Lhs.Resolved, null, substMap);
       TrStmt_CheckWellformed(lhs, definedness, locals, etran, false);
       string description = GetObjFieldDetails(lhs, etran, out var obj, out var F);
+      var (lhsObj, lhsField) = lhs switch {
+        MemberSelectExpr e => (e.Obj, e.Member as Field),
+        SeqSelectExpr e => (e.Seq, null),
+        MultiSelectExpr e => (e.Array, null),
+        _ => throw new cce.UnreachableException()
+      };
+      var desc = new PODesc.Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
       definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.ModifiesFrame(lhs.tok), obj, F),
-        new PODesc.Modifiable(description)));
+        desc));
       if (s0.Rhs is ExprRhs) {
         var r = (ExprRhs)s0.Rhs;
         var rhs = Substitute(r.Expr, null, substMap);
@@ -1300,9 +1308,8 @@ namespace Microsoft.Dafny {
         CheckSubrange(r.Tok, translatedRhs, rhs.Type, lhsType, rhs, definedness);
         if (lhs is MemberSelectExpr) {
           var fse = (MemberSelectExpr)lhs;
-          var field = fse.Member as Field;
-          Contract.Assert(field != null);
-          Check_NewRestrictions(fse.tok, fse.Obj, obj, field, translatedRhs, definedness, etran);
+          Contract.Assert(lhsField != null);
+          Check_NewRestrictions(fse.tok, fse.Obj, obj, lhsField, translatedRhs, definedness, etran);
         }
       }
 
@@ -1325,12 +1332,13 @@ namespace Microsoft.Dafny {
         var Rhs = ((ExprRhs)s0.Rhs).Expr;
         var rhs = etran.TrExpr(Substitute(Rhs, null, substMap));
         var rhsPrime = etran.TrExpr(Substitute(Rhs, null, substMapPrime));
-        var lhsComponents = lhs switch {
-          SeqSelectExpr seq => new List<Expression> { seq.Seq, seq.E0 },
-          MultiSelectExpr multi => (new List<Expression> { multi.Array }).Concat(multi.Indices).ToList(),
-          MemberSelectExpr mse => new List<Expression> { mse.Obj },
-          _ => throw new cce.UnreachableException()
-        };
+        var lhsComponents = new List<Expression> { lhsObj };
+        if (lhs is SeqSelectExpr sse) {
+          lhsComponents.Add(sse.E0);
+        } else if (lhs is MultiSelectExpr multi) {
+          lhsComponents.AddRange(multi.Indices);
+        }
+
         definedness.Add(Assert(s0.Tok,
           BplOr(
             BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
@@ -1461,7 +1469,8 @@ namespace Microsoft.Dafny {
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
         CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, new PODesc.ModifyFrameSubset("loop modifies clause"), null);
+        var desc = new PODesc.ModifyFrameSubset("loop modifies clause", s.Mod.Expressions, GetContextModifiesFrames());
+        CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, desc, null);
         DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
       }
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
@@ -2030,19 +2039,34 @@ namespace Microsoft.Dafny {
         }
       }
 
+      var directSub = new Substituter(null, directSubstMap, tySubst);
+
       // Check that the reads clause of a subcall is a subset of the current reads frame,
       // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
       if (etran.readsFrame != null) {
+        // substitute actual args for parameters in description expression frames...
+        var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
+        var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
+
+        // ... but that substitution isn't needed for frames passed to CheckFrameSubset
         var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
-          receiver, substMap, etran, etran.ReadsFrame(tok), builder, new PODesc.ReadFrameSubset("call"), null);
+          receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
       }
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,
       // but only if we're in a context that defines a modifies frame.
-      if (codeContext is IMethodCodeContext) {
-        var modifiesSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-        CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
-          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, new PODesc.ModifyFrameSubset("call"), null);
+      if (codeContext is IMethodCodeContext methodCodeContext) {
+        // substitute actual args for parameters in description expression frames...
+        var desc = new PODesc.ModifyFrameSubset(
+          "call",
+          callee.Mod.Expressions.ConvertAll(directSub.SubstFrameExpr),
+          methodCodeContext.Modifies.Expressions
+        );
+        // ... but that substitution isn't needed for frames passed to CheckFrameSubset
+        var modifiesSubst = new Substituter(null, new(), tySubst);
+        CheckFrameSubset(
+          tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
+          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, desc, null);
       }
 
       // Check termination
@@ -2487,6 +2511,8 @@ namespace Microsoft.Dafny {
 
       var lhsNameSet = new Dictionary<string, object>();
 
+      var contextModFrames = GetContextModifiesFrames();
+
       // Note, the resolver does not check for duplicate IdentifierExpr's in LHSs, so do it here.
       foreach (var lhs in lhss) {
         Contract.Assume(!(lhs is ConcreteSyntaxExpression));
@@ -2536,7 +2562,8 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           if (!useSurrogateLocal) {
             // check that the enclosing modifies clause allows this object to be written:  assert $_ModifiesFrame[obj]);
-            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), new PODesc.Modifiable("an object")));
+            var desc = new PODesc.Modifiable("an object", contextModFrames, fse.Obj, field);
+            builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), desc));
           }
 
           if (useSurrogateLocal) {
@@ -2585,7 +2612,8 @@ namespace Microsoft.Dafny {
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
           // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), new PODesc.Modifiable("an array element")));
+          var desc = new PODesc.Modifiable("an array element", contextModFrames, sel.Seq, null);
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -2609,7 +2637,8 @@ namespace Microsoft.Dafny {
             "$index" + i, predef.FieldName(mse.tok), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), new PODesc.Modifiable("an array element")));
+          var desc = new PODesc.Modifiable("an array element", contextModFrames, mse.Array, null);
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc));
 
           bLhss.Add(null);
           lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -2935,5 +2964,12 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
 
+    List<FrameExpression> GetContextReadsFrames() {
+      return (codeContext as MethodOrFunction)?.Reads?.Expressions ?? new();
+    }
+
+    List<FrameExpression> GetContextModifiesFrames() {
+      return (codeContext as IMethodCodeContext)?.Modifies?.Expressions ?? new();
+    }
   }
 }
