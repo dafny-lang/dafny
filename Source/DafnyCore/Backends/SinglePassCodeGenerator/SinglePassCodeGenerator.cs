@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.Compilers {
     // we can prefix it with "_".
     // However, for backends such as Rust which need special internal fields, we want to clearly
     // disambiguate between compiler-generated names and user-defined names, hence this prefix.
-    protected virtual string InternalFieldPrefix => "_i_";
+    protected virtual string InternalFieldPrefix => "_";
     public DafnyOptions Options { get; }
 
     /// <summary>
