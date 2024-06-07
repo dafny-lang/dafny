@@ -6,6 +6,16 @@ module TraitDefinitions {
         case None => Some(t)
       }
     }
+    predicate IsFailure() {
+      None?
+    }
+    function PropagateFailure<U>(): Option<U> {
+      None
+    }
+    function Extract(): T
+      requires !IsFailure() {
+      value
+    }
   }
 
 
@@ -83,7 +93,15 @@ module All {
     }
   }
 
+  method Test(x: Option<int>) returns (r: Option<bool>) {
+    var y :- x;
+    r := Some(y == 2);
+  }
+
   method Main() {
+    var rts := Test(Some(2));
+    expect rts == Some(true);
+
     var y := new Y<int>(7);
     var z: SubTrait<int, int> := y as SubTrait<int, int>;
     var w: SuperTrait := z;

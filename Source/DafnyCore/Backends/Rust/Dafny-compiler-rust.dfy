@@ -1553,6 +1553,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    // If we build a resolved type from this compiler, we won't have access to all
+    // the extended traits, so the equality can be relaxed a bit
+    predicate IsSameResolvedType(r1: ResolvedType, r2: ResolvedType) {
+      r1.path == r2.path &&
+      r1.typeArgs == r2.typeArgs &&
+      r1.kind == r2.kind
+    }
+
     method GenClass(c: Class, path: seq<Ident>) returns (s: seq<R.ModDecl>)
       modifies this
     {
@@ -2882,14 +2890,21 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           };
           assert optResolvedType.Some? ==> name.CallName?;
 
+          // If we are in the same context as the trait on which we are making a method call,
+          // we don't need to know the type of self.
+          if optResolvedType.Some? && selfIdent.ThisTyped? && selfIdent.dafnyType.UserDefined?
+             && IsSameResolvedType(selfIdent.dafnyType.resolved, optResolvedType.value) {
+            optResolvedType := None;
+          }
+
           match optResolvedType {
             // Trait calls are fully specified as we can't guarantee traits will be in context
-            case Some(ResolvedType(path, typeArgs, _, _, properMethods, extendedTypes)) =>
+            case Some(ResolvedType(path, onTypeArgs, _, _, properMethods, extendedTypes)) =>
                 var r := GenPathExpr(path);
-                if |typeArgs| > 0 {
+                if |onTypeArgs| > 0 {
                   var typeExprs := [];
-                  for i := 0 to |typeArgs| {
-                    var typeExpr := GenType(typeArgs[i], GenTypeContext.default());
+                  for i := 0 to |onTypeArgs| {
+                    var typeExpr := GenType(onTypeArgs[i], GenTypeContext.default());
                     typeExprs := typeExprs + [typeExpr];
                   }
                   r := r.ApplyType(typeExprs);
