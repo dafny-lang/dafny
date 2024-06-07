@@ -778,7 +778,7 @@ namespace Microsoft.Dafny {
                     case MemberSelectExpr { Member: MethodOrFunction readsReceiver }: {
                         var receiverReplacement = readsReceiver.IsStatic
                           ? null
-                          : new ImplicitThisExpr(Token.NoToken);
+                          : new ThisExpr(readsReceiver);
                         var receiverSubstMap = readsReceiver.Ins.Zip(e.Args)
                           .ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
                         var subst = new Substituter(receiverReplacement, receiverSubstMap, e.GetTypeArgumentSubstitutions());
