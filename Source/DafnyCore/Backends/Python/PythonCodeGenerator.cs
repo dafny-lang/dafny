@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using DafnyCore.Backends.Python;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 
@@ -128,7 +129,11 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var dependencyCompileName = IdProtect(module.GetCompileName(Options));
-      Imports.Add(dependencyPythonModuleName + dependencyCompileName, dependencyCompileName);
+      // Don't import an empty module.
+      // Empty modules aren't generated, so their imports aren't valid.
+      if (!TranslationRecord.ModuleEmptyForCompilation(module)) {
+        Imports.Add(dependencyPythonModuleName + dependencyCompileName, dependencyCompileName);
+      }
     }
 
     private void EmitImports(string moduleName, string pythonModuleName, ConcreteSyntaxTree wr) {
