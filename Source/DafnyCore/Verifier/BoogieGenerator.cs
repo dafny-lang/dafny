@@ -803,14 +803,14 @@ namespace Microsoft.Dafny {
 
       filterOnlyMembers = false;
 
+      AddTraitParentAxioms();
+
       foreach (var c in tytagConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
-
-      AddTraitParentAxioms();
 
       if (InsertChecksums) {
         foreach (var impl in sink.Implementations) {
