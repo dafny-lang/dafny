@@ -4519,8 +4519,8 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(sep);
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
-            var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var w = EmitCoercionIfNecessary(fromType, instantiatedToType, s.Tok, wr, toType);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
             EmitExpr(s.Args[i], false, w, wStmts);
             sep = ", ";
@@ -5280,8 +5280,8 @@ namespace Microsoft.Dafny.Compilers {
         if (!e.Function.Ins[i].IsGhost) {
           wr.Write(sep);
           var fromType = e.Args[i].Type;
-          var w = EmitCoercionIfNecessary(fromType, e.Function.Ins[i].Type, tok: e.tok, wr: wr);
           var instantiatedToType = e.Function.Ins[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
+          var w = EmitCoercionIfNecessary(fromType, instantiatedToType, tok: e.tok, wr: wr, e.Function.Ins[i].Type);
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";

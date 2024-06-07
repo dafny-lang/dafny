@@ -1,4 +1,4 @@
-﻿definite-assignment.dfy(16,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+definite-assignment.dfy(16,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
  Asserted expression: assigned(x)
 definite-assignment.dfy(16,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
  Asserted expression: assigned(y)
