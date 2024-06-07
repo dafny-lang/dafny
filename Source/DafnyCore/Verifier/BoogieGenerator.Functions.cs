@@ -455,6 +455,11 @@ public partial class BoogieGenerator {
         anteIsAlloc = BplAnd(anteIsAlloc, f.ReadsHeap ? heapSucc : Bpl.Expr.True);
       }
     }
+    // ante:  conditions on bounded type parameters
+    foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+      ante = BplAnd(ante, typeBoundAxiom);
+      anteIsAlloc = BplAnd(anteIsAlloc, typeBoundAxiom);
+    }
 
     if (!f.IsStatic) {
       var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(f)));
@@ -724,6 +729,11 @@ public partial class BoogieGenerator {
 
     if (f is TwoStateFunction && f.ReadsHeap) {
       ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
+    }
+
+    // ante:  conditions on bounded type parameters
+    foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+      ante = BplAnd(ante, typeBoundAxiom);
     }
 
     Expression receiverReplacement = null;
