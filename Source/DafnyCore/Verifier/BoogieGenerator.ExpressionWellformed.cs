@@ -823,11 +823,11 @@ namespace Microsoft.Dafny {
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
 
-                  // substitute actual args for parameter is frames for the description expression...
+                  // substitute actual args for parameters in description expression frames...
                   var requiredFrames = e.Function.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
                   var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrames, readFrames);
 
-                  // ... but no need to do so for frames passed to CheckFrameSubset
+                  // ... but that substitution isn't needed for frames passed to CheckFrameSubset
                   var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,
                     e.Function.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),

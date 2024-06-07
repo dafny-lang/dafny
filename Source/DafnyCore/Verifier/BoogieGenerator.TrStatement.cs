@@ -2044,11 +2044,11 @@ namespace Microsoft.Dafny {
       // Check that the reads clause of a subcall is a subset of the current reads frame,
       // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
       if (etran.readsFrame != null) {
-        // substitute actual args for parameter in frames for the description expression...
+        // substitute actual args for parameters in description expression frames...
         var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
         var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
 
-        // ... but no need to do so for frames passed to CheckFrameSubset
+        // ... but that substitution isn't needed for frames passed to CheckFrameSubset
         var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
         CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
           receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
@@ -2056,13 +2056,13 @@ namespace Microsoft.Dafny {
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,
       // but only if we're in a context that defines a modifies frame.
       if (codeContext is IMethodCodeContext methodCodeContext) {
-        // substitute actual args for parameters in frames for the description expression...
+        // substitute actual args for parameters in description expression frames...
         var desc = new PODesc.ModifyFrameSubset(
           "call",
           callee.Mod.Expressions.ConvertAll(directSub.SubstFrameExpr),
           methodCodeContext.Modifies.Expressions
         );
-        // ... but no need to do so for frames passed to CheckFrameSubset
+        // ... but that substitution isn't needed for frames passed to CheckFrameSubset
         var modifiesSubst = new Substituter(null, new(), tySubst);
         CheckFrameSubset(
           tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
