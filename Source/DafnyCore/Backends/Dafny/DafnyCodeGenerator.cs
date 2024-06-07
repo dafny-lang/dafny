@@ -357,20 +357,6 @@ namespace Microsoft.Dafny.Compilers {
 
       if (xType is BoolType) {
         return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Bool());
-      } else if (AsNativeType(typ) != null) {
-        return (DAST.Type)(AsNativeType(typ).Sel switch {
-          NativeType.Selection.Byte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u8")),
-          NativeType.Selection.SByte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i8")),
-          NativeType.Selection.Short => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i16")),
-          NativeType.Selection.UShort => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u16")),
-          NativeType.Selection.Int => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32")),
-          NativeType.Selection.UInt => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u32")),
-          NativeType.Selection.Long => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i64")),
-          NativeType.Selection.ULong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u64")),
-          NativeType.Selection.DoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i128")),
-          NativeType.Selection.UDoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u128")),
-          _ => throw new InvalidOperationException(),
-        });
       } else if (xType is IntType) {
         return (DAST.Type)DAST.Type.create_Primitive(DAST.Primitive.create_Int());
       } else if (xType is RealType) {
@@ -385,7 +371,22 @@ namespace Microsoft.Dafny.Compilers {
             return GenType(instantiatedTypeParameter);
           }
         }
+
         return FullTypeNameAST(udt, null);
+      } else if (AsNativeType(typ) != null) {
+        return (DAST.Type)(AsNativeType(typ).Sel switch {
+          NativeType.Selection.Byte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u8")),
+          NativeType.Selection.SByte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i8")),
+          NativeType.Selection.Short => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i16")),
+          NativeType.Selection.UShort => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u16")),
+          NativeType.Selection.Int => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32")),
+          NativeType.Selection.UInt => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u32")),
+          NativeType.Selection.Long => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i64")),
+          NativeType.Selection.ULong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u64")),
+          NativeType.Selection.DoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i128")),
+          NativeType.Selection.UDoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u128")),
+          _ => throw new InvalidOperationException(),
+        });
       } else if (xType is SeqType seq) {
         var argType = seq.Arg;
         return (DAST.Type)DAST.Type.create_Seq(GenType(argType));
@@ -414,7 +415,7 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
 
-      var erasedType = UserDefinedType.FromTopLevelDecl(sst.tok, sst).NormalizeExpand();
+      var erasedType = sst.Rhs.NormalizeExpand();
 
       List<DAST.Statement> witnessStmts = new();
       DAST.Expression witness = null;
@@ -1648,7 +1649,7 @@ namespace Microsoft.Dafny.Compilers {
           GenType(EraseNewtypeLayers(topLevel)), range, true);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
-          GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true);
+          GenType(typeSynonym.Rhs.NormalizeExpand()), NewtypeRange.create_NoRange(), true);
       } else if (topLevel is TraitDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
       } else if (topLevel is DatatypeDecl) {
