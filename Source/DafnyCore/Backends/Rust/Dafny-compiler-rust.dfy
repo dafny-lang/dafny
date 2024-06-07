@@ -283,6 +283,10 @@ module RAST
       || (PointerMut? && underlying.SelfOwned?)
       || (PointerMut? && underlying.TypeApp? && |underlying.arguments| == 0 && underlying.baseName.SelfOwned?)
     }
+    predicate IsRcOrBorrowedRc() {
+      (TypeApp? && baseName == RcType) ||
+      (Borrowed? && underlying.IsRcOrBorrowedRc())
+    }
     function ExtractMaybePlacebo(): Option<Type> {
       match this {
         case TypeApp(wrapper, arguments) =>
@@ -1424,6 +1428,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       TraitTypeContainingMethodAux(extendedTypes, dafnyName)
   }
 
+  /* Which variable is representing the current "this" context and how it's represented
+  if NoSelf? then // static context
+  else if IsSelf() then For object: &Self or &mut Self, for datatypes &Rc<Self>
+  else // For objects: &Object<Self>, for datatypes &Rc<Self>
+  */
+  datatype SelfInfo =
+    | NoSelf
+    | ThisTyped(rSelfName: string, dafnyType: Type)
+  {
+    predicate IsSelf() {
+      ThisTyped? && rSelfName == "self"
+    }
+  }
+
   class COMP {
     const UnicodeChars: bool
     const DafnyChar := if UnicodeChars then "DafnyChar" else "DafnyCharUTF16"
@@ -1552,7 +1570,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         match field.defaultValue {
           case Some(e) => {
             // TODO(mikael): Fields must be initialized before the code of the constructor if possible
-            var expr, _, _ := GenExpr(e, None, Environment.Empty(), OwnershipOwned);
+            var expr, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
 
             fieldInits := fieldInits + [
               R.AssignIdentifier(
@@ -1732,7 +1750,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case Some(e) => {
           var e := if c.base == resultingType then e else Convert(e, c.base, resultingType);
           // TODO(Mikael): generate statements if any
-          var eStr, _, _ := GenExpr(e, None, Environment.Empty(), OwnershipOwned);
+          var eStr, _, _ := GenExpr(e, NoSelf, Environment.Empty(), OwnershipOwned);
           fnBody := fnBody.Apply1(eStr);
         }
         case None => {
@@ -1751,7 +1769,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       match c.constraint {
         case None =>
         case Some(NewtypeConstraint(formal, constraintStmts)) =>
-          var rStmts, _, newEnv := GenStmts(constraintStmts, None, Environment.Empty(), false, R.RawExpr(""));
+          var rStmts, _, newEnv := GenStmts(constraintStmts, NoSelf, Environment.Empty(), false, R.RawExpr(""));
           var rFormals := GenParams([formal]);
           s := s + [
             R.ImplDecl(
@@ -1827,8 +1845,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       match c.witnessExpr {
         case Some(e) => {
-          var rStmts, _, newEnv := GenStmts(c.witnessStmts, None, Environment.Empty(), false, R.RawExpr(""));
-          var rExpr, _, _ := GenExpr(e, None, newEnv, OwnershipOwned);
+          var rStmts, _, newEnv := GenStmts(c.witnessStmts, NoSelf, Environment.Empty(), false, R.RawExpr(""));
+          var rExpr, _, _ := GenExpr(e, NoSelf, newEnv, OwnershipOwned);
           var constantName := escapeName(Name("_init_" + c.name.dafny_name));
           s := s + [
             R.TopFnDecl(
@@ -1879,7 +1897,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           UserDefined(
             ResolvedType(
               selfPath,
-              [],
+              typeParamsSeq,
               ResolvedTypeBase.Datatype(),
               c.attributes, [], [])),
           typeParamsSeq);
@@ -2410,7 +2428,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
       var fnName := escapeName(m.name); 
 
-      var selfIdentifier: Option<string> := None;
+      var selfIdent := NoSelf;
 
       if (!m.isStatic) {
         var selfId := "self";
@@ -2418,30 +2436,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           // Constructors take a raw pointer, which is not accepted as a self type in Rust
           selfId := "this";
         }
+        var instanceType := match enclosingType {
+          case UserDefined(r) =>
+            UserDefined(r.(typeArgs := enclosingTypeParams))
+          case _ => enclosingType
+        };
         if (forTrait) {
           var selfFormal := if m.wasFunction then R.Formal.selfBorrowed else R.Formal.selfBorrowedMut;
           params := [selfFormal] + params;
         } else {
-          var instanceType := match enclosingType {
-            case UserDefined(r) =>
-              UserDefined(r.(typeArgs := enclosingTypeParams))
-            case _ => enclosingType
-          };
           var tpe := GenType(instanceType, GenTypeContext.default());
-          if selfId == "self" && tpe.IsObjectOrPointer() { // For classes.
-            if m.wasFunction {
-              tpe := R.SelfBorrowed;
-            } else {
-              tpe := R.SelfBorrowedMut;
-            }
-          } else {
-            if !tpe.CanReadWithoutClone() {
-              tpe := R.Borrowed(tpe);
+          if selfId == "this" {
+            tpe := R.Borrowed(tpe);
+          } else if selfId == "self" {
+            if tpe.IsObjectOrPointer() { // For classes.
+              if m.wasFunction {
+                tpe := R.SelfBorrowed;
+              } else {
+                tpe := R.SelfBorrowedMut;
+              }
+            } else { // For datatypes
+              tpe := R.Borrowed(R.Rc(R.SelfOwned));
             }
           }
           params := [R.Formal(selfId, tpe)] + params;
         }
-        selfIdentifier := Some(selfId);
+        selfIdent := ThisTyped(selfId, instanceType);
       }
 
       // TODO: Use mut instead of a tuple for the API of multiple output parameters
@@ -2508,7 +2528,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 var outMaybeType := if outType.CanReadWithoutClone() then outType else R.MaybePlaceboType(outType);
                 paramTypes := paramTypes[outName := outMaybeType];
 
-                var outVarReturn, _, _ := GenExpr(Expression.Ident(outVar.id), None,
+                var outVarReturn, _, _ := GenExpr(Expression.Ident(outVar.id), NoSelf,
                                                   Environment([outName], map[outName := outMaybeType]), OwnershipOwned);
                 tupleArgs := tupleArgs + [outVarReturn];
               }
@@ -2523,7 +2543,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         env := Environment(preAssignNames + paramNames, preAssignTypes + paramTypes);
 
-        var body, _, _ := GenStmts(m.body, selfIdentifier, env, true, earlyReturn);
+        var body, _, _ := GenStmts(m.body, selfIdent, env, true, earlyReturn);
 
         fBody := Some(preBody.Then(body));
       } else {
@@ -2543,7 +2563,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       );
     }
 
-    method GenStmts(stmts: seq<Statement>, selfIdent: Option<string>, env: Environment, isLast: bool, earlyReturn: R.Expr) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
+    method GenStmts(stmts: seq<Statement>, selfIdent: SelfInfo, env: Environment, isLast: bool, earlyReturn: R.Expr) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
       decreases stmts, 1, 0
       modifies this
     {
@@ -2592,7 +2612,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    method GenAssignLhs(lhs: AssignLhs, rhs: R.Expr, selfIdent: Option<string>, env: Environment) returns (generated: R.Expr, needsIIFE: bool, readIdents: set<string>, newEnv: Environment)
+    method GenAssignLhs(lhs: AssignLhs, rhs: R.Expr, selfIdent: SelfInfo, env: Environment) returns (generated: R.Expr, needsIIFE: bool, readIdents: set<string>, newEnv: Environment)
       decreases lhs, 1
       modifies this
     {
@@ -2680,7 +2700,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    method GenStmt(stmt: Statement, selfIdent: Option<string>, env: Environment, isLast: bool, earlyReturn: R.Expr) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
+    method GenStmt(stmt: Statement, selfIdent: SelfInfo, env: Environment, isLast: bool, earlyReturn: R.Expr) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
       decreases stmt, 1, 1
       modifies this
     {
@@ -2811,8 +2831,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           // clone the parameters to make them mutable
           generated := R.RawExpr("");
 
-          if selfIdent != None {
-            generated := generated.Then(R.DeclareVar(R.MUT, "_this", None, Some(R.self.Sel("clone").Apply([]))));
+          if selfIdent != NoSelf {
+            var selfClone, _, _ := GenIdent(selfIdent.rSelfName, selfIdent, Environment.Empty(), OwnershipOwned);
+            generated := generated.Then(R.DeclareVar(R.MUT, "_this", None, Some(selfClone)));
           }
           newEnv := env;
           for paramI := 0 to |env.names| {
@@ -2826,7 +2847,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               newEnv := newEnv.AddAssigned(param, declaredType);
             }
           }
-          var bodyExpr, bodyIdents, bodyEnv := GenStmts(body, if selfIdent != None then Some("_this") else None, newEnv, false, earlyReturn);
+          var bodyExpr, bodyIdents, bodyEnv := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, newEnv, false, earlyReturn);
           readIdents := bodyIdents;
           generated := generated.Then(
             R.Labelled("TAIL_CALL_START",
@@ -3069,7 +3090,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprLiteral(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3155,7 +3176,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprBinary(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3311,7 +3332,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprConvertToNewtype(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3371,7 +3392,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprConvertFromNewtype(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3423,7 +3444,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprConvertNotImplemented(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3453,7 +3474,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenExprConvert(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3536,7 +3557,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     method GenIdent(
       rName: string,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3569,7 +3590,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         resultingOwnership := OwnershipBorrowedMut;
       } else if expectedOwnership == OwnershipOwned {
-        if rName == "self" && ObjectType.RcMut? {
+        var needObjectFromRef :=
+          selfIdent.ThisTyped? && selfIdent.IsSelf() && selfIdent.rSelfName == rName &&
+          match selfIdent.dafnyType {
+            case UserDefined(ResolvedType(_, _, base, attributes, _, _)) =>
+              base.Class? || base.Trait?
+            case _ => false
+          };
+        if needObjectFromRef {
           r := R.dafny_runtime.MSel("Object").ApplyType([R.RawType("_")]).MSel("from_ref").Apply([r]);
         } else {
           if !noNeedOfClone {
@@ -3587,6 +3615,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         assert expectedOwnership == OwnershipBorrowed;
         resultingOwnership := OwnershipBorrowed;
       } else {
+        assert expectedOwnership == OwnershipBorrowed;
         if rName != "self" {
           // It's currently owned. If it's a pointer, we need to convert it to a borrow
           if tpe.Some? && tpe.value.IsPointer() {
@@ -3600,9 +3629,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       readIdents := {rName};
       return;
     }
+
     method GenExpr(
       e: Expression,
-      selfIdent: Option<string>,
+      selfIdent: SelfInfo,
       env: Environment,
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
@@ -3904,34 +3934,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case This() => {
           match selfIdent {
-            case Some(id) => {
-              r := R.Identifier(id);
-              if expectedOwnership == OwnershipOwned || expectedOwnership == OwnershipOwnedBox {
-                if ObjectType.RcMut? && id == "self" {
-                  r := R.dafny_runtime.MSel("Object").ApplyType([R.RawType("_")]).MSel("from_ref").Apply([r]);
-                } else {
-                  r := r.Clone();
-                }
-                if expectedOwnership == OwnershipOwnedBox {
-                  r := R.BoxNew(r);
-                  resultingOwnership := OwnershipOwnedBox;
-                } else {
-                  resultingOwnership := OwnershipOwned;
-                }
-              } else if expectedOwnership == OwnershipBorrowed || expectedOwnership == OwnershipAutoBorrowed {
-                if id != "self" {
-                  r := R.Borrow(r);
-                }
-                resultingOwnership := OwnershipBorrowed;
-              } else {
-                assert expectedOwnership == OwnershipBorrowedMut;
-                if id != "self" {
-                  r := R.BorrowMut(r);
-                }
-                resultingOwnership := OwnershipBorrowedMut;
-              }
-
-              readIdents := {id};
+            case ThisTyped(id, dafnyType) => {
+              r, resultingOwnership, readIdents := GenIdent(id, selfIdent, env, expectedOwnership);
             }
             case None => {
               r := R.RawExpr("panic!(\"this outside of a method\")");
@@ -4249,15 +4253,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           var subEnv := env.merge(Environment(paramNames, paramTypesMap));
 
-          var recursiveGen, recIdents, _ := GenStmts(body, if selfIdent != None then Some("_this") else None, subEnv, true, R.RawExpr(""));
+          var recursiveGen, recIdents, _ := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, subEnv, true, R.RawExpr(""));
           readIdents := {};
           recIdents := recIdents - (set name <- paramNames);
           var allReadCloned := R.RawExpr("");
           while recIdents != {} decreases recIdents {
             var next: string :| next in recIdents;
 
-            if selfIdent != None && next == "_this" {
-              var selfCloned, _, _ := GenIdent("self", None, Environment.Empty(), OwnershipOwned);
+            if selfIdent != NoSelf && next == "_this" {
+              var selfCloned, _, _ := GenIdent("self", selfIdent, Environment.Empty(), OwnershipOwned);
               allReadCloned := allReadCloned.Then(R.DeclareVar(R.MUT, "_this", None, Some(selfCloned)));
             } else if !(next in paramNames) {
               var copy := R.Identifier(next).Clone();

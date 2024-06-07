@@ -2570,6 +2570,7 @@ namespace RAST {
     _IType DowncastClone();
     bool CanReadWithoutClone();
     bool IsSelfPointer();
+    bool IsRcOrBorrowedRc();
     Std.Wrappers._IOption<RAST._IType> ExtractMaybePlacebo();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
     RAST._IType MSel(Dafny.ISequence<Dafny.Rune> name);
@@ -2767,6 +2768,9 @@ namespace RAST {
     }
     public bool IsSelfPointer() {
       return (((((this).is_Borrowed) && (((this).dtor_underlying).is_PointerMut)) && ((((this).dtor_underlying).dtor_underlying).is_SelfOwned)) || (((this).is_PointerMut) && (((this).dtor_underlying).is_SelfOwned))) || (((((this).is_PointerMut) && (((this).dtor_underlying).is_TypeApp)) && ((new BigInteger((((this).dtor_underlying).dtor_arguments).Count)).Sign == 0)) && ((((this).dtor_underlying).dtor_baseName).is_SelfOwned));
+    }
+    public bool IsRcOrBorrowedRc() {
+      return (((this).is_TypeApp) && (object.Equals((this).dtor_baseName, RAST.__default.RcType))) || (((this).is_Borrowed) && (((this).dtor_underlying).IsRcOrBorrowedRc()));
     }
     public Std.Wrappers._IOption<RAST._IType> ExtractMaybePlacebo() {
       RAST._IType _source39 = this;

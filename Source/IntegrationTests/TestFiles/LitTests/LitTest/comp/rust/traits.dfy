@@ -1,4 +1,14 @@
 module TraitDefinitions {
+  datatype Option<T> = Some(value: T) | None {
+    function Negate(t: T): Option<T> {
+      match this {
+        case Some(v) => None
+        case None => Some(t)
+      }
+    }
+  }
+
+
   trait NoMemberTrait {}
   
   trait NoMemberTrait2 {}

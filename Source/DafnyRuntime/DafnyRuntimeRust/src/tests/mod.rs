@@ -2,8 +2,6 @@ pub mod experimental;
 // Test module
 #[cfg(test)]
 mod tests {
-    use crate::rcmut::RcMut;
-
     use crate::*;
 
     #[test]
@@ -718,6 +716,9 @@ mod tests {
             assert_eq!(refcount!(x), previous_count + 1);
         }
         assert_eq!(refcount!(x), previous_count);
+
+        let mut objects: Set<Object<dyn ::std::any::Any>> = crate::set!{y.clone(), x.clone().upcast_to()};
+        assert_eq!(objects.cardinality_usize(), 1);
     }
 
     pub struct NodeRawMut {

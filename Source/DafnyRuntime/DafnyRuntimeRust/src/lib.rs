@@ -3191,7 +3191,7 @@ macro_rules! update_field_nodrop_rcmut {
 #[macro_export]
 macro_rules! update_nodrop_rcmut {
     ($ptr:expr, $value:expr) => {
-        unsafe { unsafe { ::std::ptr::addr_of_mut!($ptr).write($value) } }
+        unsafe { ::std::ptr::addr_of_mut!($ptr).write($value) }
     };
 }
 
