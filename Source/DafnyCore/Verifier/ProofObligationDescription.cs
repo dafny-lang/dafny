@@ -1890,6 +1890,9 @@ internal class Utils {
   /// permit read/modification access to all objects, arrays, and/or sets of objects/arrays in the `subsetFrames`.
   /// </summary>
   public static Expression MakeDafnyMultiFrameCheck(List<FrameExpression> supersetFrames, List<FrameExpression> subsetFrames) {
+    if (subsetFrames.Count == 0) {
+      return null;
+    }
     return subsetFrames
       .Select(target => MakeDafnyFrameCheck(supersetFrames, target.E, target.Field))
       .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
