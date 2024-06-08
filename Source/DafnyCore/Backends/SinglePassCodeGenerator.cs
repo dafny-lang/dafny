@@ -5428,8 +5428,9 @@ namespace Microsoft.Dafny.Compilers {
           w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);
           EmitExpr(e.E, inLetExprBody, w, wStmts);
         } else if (e.E.Type.IsSubtypeOf(e.ToType, false, false)) {
-          // conversion is a no-op
-          EmitExpr(e.E, inLetExprBody, wr, wStmts);
+          // conversion is a no-op -- almost, because it may need a cast to deal with bounded type parameters
+          var w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, wr);
+          EmitExpr(e.E, inLetExprBody, w, wStmts);
         } else {
           EmitConversionExpr(e.E, fromType, toType, inLetExprBody, wr, wStmts);
         }

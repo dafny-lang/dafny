@@ -6,6 +6,7 @@ method Main() {
   Basic.Test();
   Bounds.Test();
   BoundsAndCasts.Test();
+  Conversions.Test();
 }
 
 module As {
@@ -209,5 +210,33 @@ module BoundsAndCasts {
       var parentP: Parent := p;
       assert parentP is XTrait;
       17
+  }
+}
+
+module Conversions {
+  trait Trait {
+    function F(): int
+  }
+
+  datatype Dt extends Trait = Dt(u: int) {
+    function F(): int {
+      u
+    }
+  }
+
+  datatype Covariant<+X> = Make(value: X)
+
+  method TestCovarianceZ<Z extends Trait>(z: Z) {
+    var h: Covariant<Z> := Covariant<Z>.Make(z);
+
+    var g: Covariant<Trait>;
+    g := h;
+    g := h as Covariant<Trait>;
+    print (z as Trait).F(), " ", g, " ", h, "\n"; // 5 Dt.Dt(5) Dt.Dt(5)
+  }
+
+  method Test() {
+    var d := Dt(5);
+    TestCovarianceZ(d);
   }
 }
