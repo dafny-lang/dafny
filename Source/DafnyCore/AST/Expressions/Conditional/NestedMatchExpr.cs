@@ -8,12 +8,16 @@ namespace Microsoft.Dafny;
 interface INestedMatch : INode {
   Expression Source { get; }
   string MatchTypeName { get; }
+  IReadOnlyList<NestedMatchCase> Cases { get; }
 }
 
 public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanFormat, INestedMatch {
   public Expression Source { get; }
   public string MatchTypeName => "expression";
-  public readonly List<NestedMatchCaseExpr> Cases;
+  public List<NestedMatchCaseExpr> Cases { get; }
+
+  IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
+
   public readonly bool UsesOptionalBraces;
   public Attributes Attributes;
 

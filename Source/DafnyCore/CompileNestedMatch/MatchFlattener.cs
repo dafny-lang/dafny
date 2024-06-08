@@ -506,7 +506,7 @@ public class MatchFlattener : IRewriter {
     return CreateIfElseIfChain(mti, context, matchees.Head, ifBlocks, defaultBlock);
   }
 
-  private static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head) {
+  public static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head) {
     LiteralExpr lit = null;
     if (head is LitPattern litPattern) {
       lit = litPattern.OptimisticallyDesugaredLit;
