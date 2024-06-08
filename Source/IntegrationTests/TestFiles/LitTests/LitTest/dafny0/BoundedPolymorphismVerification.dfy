@@ -351,3 +351,42 @@ module TestThatOverrideCheckHasEnoughInformationAboutTypeBounds {
     }
   }
 }
+
+module Variance {
+  class Generic<X> { }
+  datatype Covariant<+X> = Make(value: X)
+
+  method TestAutoConversions()
+  {
+    var g: Generic<int> := new Generic<int>;
+    var h: Generic<nat> := new Generic<nat>;
+    if * {
+      g := h; // error: non-compatible types
+    } else {
+      h := g; // error: non-compatible types
+    }
+  }
+
+  method TestExplicitConversions()
+  {
+    var g: Generic<int> := new Generic<int>;
+    var h: Generic<nat> := new Generic<nat>;
+    if * {
+      g := h as Generic<int>; // error: non-compatible types
+    } else {
+      h := g as Generic<nat>; // error: non-compatible types
+    }
+  }
+
+  method TestCovariance() {
+    var g: Covariant<int> := Covariant<int>.Make(5);
+    var h: Covariant<nat> := Covariant<nat>.Make(5);
+    if * {
+      g := h;
+      g := h as Covariant<int>; // (legacy error)
+    } else {
+      h := g;
+      h := g as Covariant<nat>; // (legacy error)
+    }
+  }
+}

@@ -8,5 +8,9 @@ BoundedPolymorphismVerification.dfy(115,20): Error: assertion might not hold
 BoundedPolymorphismVerification.dfy(144,4): Error: the method must provide an equal or more permissive precondition than in its parent trait
 BoundedPolymorphismVerification.dfy(148,22): Error: the function must provide an equal or more permissive precondition than in its parent trait
 BoundedPolymorphismVerification.dfy(173,16): Error: value of expression (of type 'Z') is not known to be an instance of type 'Trait'
+BoundedPolymorphismVerification.dfy(364,11): Error: value of expression (of type 'Generic<nat>') is not known to be an instance of type 'Generic<int>'
+BoundedPolymorphismVerification.dfy(366,11): Error: value of expression (of type 'Generic<int>') is not known to be an instance of type 'Generic<nat>'
+BoundedPolymorphismVerification.dfy(375,13): Error: value of expression (of type 'Generic<nat>') is not known to be an instance of type 'Generic<int>'
+BoundedPolymorphismVerification.dfy(377,13): Error: value of expression (of type 'Generic<int>') is not known to be an instance of type 'Generic<nat>'
 
-Dafny program verifier finished with 31 verified, 10 errors
+Dafny program verifier finished with 32 verified, 14 errors
