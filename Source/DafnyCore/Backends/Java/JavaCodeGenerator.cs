@@ -1696,11 +1696,10 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
       if (source.Type.NormalizeToAncestorType().AsMultiSetType is { } multiSetType) {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: Type.Int, tok: source.tok, wr: wr);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(multiSetType.Arg, wr, Token.NoToken)}>multiplicity(");
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(JavaCoercedExpr(index, multiSetType.Arg, inLetExprBody, wStmts));
         wr.Write(")");
       } else if (source.Type.NormalizeToAncestorType().AsMapType is { } mapType) {
         wr = EmitCoercionIfNecessary(from: NativeObjectType, to: mapType.Range, tok: source.tok, wr: wr);
@@ -1730,21 +1729,31 @@ namespace Microsoft.Dafny.Compilers {
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
         TrExprAsInt(index, wr, inLetExprBody, wStmts);
+        wr.Write(", ");
+        wr.Append(JavaCoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+        wr.Write(")");
       } else if (resultCollectionType.AsMapType is { } mapType) {
         wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(JavaCoercedExpr(index, mapType.Domain, inLetExprBody, wStmts));
+        wr.Write(", ");
+        wr.Append(JavaCoercedExpr(value, mapType.Range, inLetExprBody, wStmts));
+        wr.Write(")");
       } else {
         Contract.Assert(resultCollectionType.AsMultiSetType != null);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(JavaCoercedExpr(index, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+        wr.Write(", ");
+        wr.Append(Expr(value, inLetExprBody, wStmts));
+        wr.Write(")");
       }
-      wr.Write(", ");
-      wr.Append(CoercedExpr(value, NativeObjectType, inLetExprBody, wStmts));
-      wr.Write(")");
+    }
+
+    private ConcreteSyntaxTree JavaCoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      return CoercedExpr(expr, expr.Type.IsTypeParameter ? toType : NativeObjectType, inLetExprBody, wStmts);
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,

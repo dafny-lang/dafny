@@ -7,6 +7,7 @@ method Main() {
   Bounds.Test();
   BoundsAndCasts.Test();
   Conversions.Test();
+  Operators.Test();
 }
 
 module As {
@@ -238,5 +239,56 @@ module Conversions {
   method Test() {
     var d := Dt(5);
     TestCovarianceZ(d);
+  }
+}
+
+module Operators {
+  trait Trait extends object { }
+
+  method P8<Z extends Trait>(z: Z, t: Trait) returns (s: seq<Trait>) {
+    s := [z];
+    s := [z as Trait, t];
+    s := s[0 := z];
+    s := s[0 := z as Trait];
+    var zt: Trait := s[0];
+  }
+
+  method P9<Z(==) extends Trait>(z: Z, t: Trait) returns (m: map<Trait, Trait>, mi: map<Trait, Trait>) {
+    m := map[z := z];
+    m := m[z := z];
+    mi := map[z := z];
+    mi := mi[z := z];
+
+    m := map[z as Trait := t];
+    m := m[z as Trait := t];
+    mi := map[z as Trait := t];
+    mi := mi[z as Trait := t];
+
+    m := map[t := z as Trait];
+    m := m[t := z as Trait];
+    mi := map[t := z as Trait];
+    mi := mi[t := z as Trait];
+
+    var zt: Trait := m[t];
+    zt := mi[t];
+  }
+
+  method P10<Z(==) extends Trait>(z: Z, t: Trait) returns (m: multiset<Trait>) {
+    m := multiset{z, z};
+    m := multiset{z as Trait, t}; // TODO: this cast should not be needed
+    m := m[z := 13];
+
+    var count := m[z];
+    count := m[t];
+  }
+
+  class CC extends Trait { }
+
+  method Test() {
+    var cc := new CC;
+    var _ := P8(cc, cc);
+    var _, _ := P9(cc, cc);
+    var _ := P10(cc, cc);
+    print "done\n";
   }
 }

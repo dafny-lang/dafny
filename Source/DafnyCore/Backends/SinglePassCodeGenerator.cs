@@ -5189,6 +5189,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
+      w = EmitDowncastIfNecessary(expr.Type, toType, expr.tok, w);
       EmitExpr(expr, inLetExprBody, w, wStmts);
       return result;
     }
