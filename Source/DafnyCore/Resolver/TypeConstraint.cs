@@ -47,7 +47,9 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, RemoveAmbiguity(err.MsgArgs));
         } else {
           var err = (ErrorMsgWithBase)this;
-          err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
+          if (!err.BaseMsg.reported) {
+            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
+          }
         }
         reported = true;
       }
