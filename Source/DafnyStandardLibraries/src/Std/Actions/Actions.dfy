@@ -7,14 +7,9 @@ module Std.Actions {
   import opened Math
   import opened GenericActions
   import opened Termination
+  import opened DynamicArray
 
-  // TODO: NOT a fully general-purpose handle on any arbitrary Dafny method,
-  // because gaps in Dafny expressiveness make that impossible for now
-  // (e.g. field references in framing clauses aren't expressions,
-  // decreases metrics aren't directly expressible in user code)
-  // Consider naming this something more specific, related to the assumptions:
-  //  1. Validatable (and doesn't modify anything not in Repr)
-  //  2. Behavior specified only by referring to consumed and produced.
+  // TODO: Documentation, especially overall design
   trait {:termination false} Action<T, R> extends GenericAction<T, R>, Validatable {
 
     ghost var history: seq<(T, R)>
@@ -153,11 +148,9 @@ module Std.Actions {
   type IAggregator<T> = Action<T, ()>
   type Aggregator<T(!new)> = a: Action<T, bool> | exists limit :: ProducesTerminatedBy(a, false, limit) witness *
 
-  // TODO: Refactor to use DynamicArray
-  class ArrayAggregator<T(0)> extends Action<T, ()> {
+  class ArrayAggregator<T(00)> extends Action<T, ()> {
 
-    var storage: array<T>
-    var index: nat
+    var storage: DynamicArray<T>
 
     ghost predicate Valid() 
       reads this, Repr 
@@ -168,9 +161,10 @@ module Std.Actions {
     {
       && this in Repr
       && storage in Repr
-      && 0 < storage.Length
-      && 0 <= index <= storage.Length
-      && Consumed() == storage[..index]
+      && this !in storage.Repr
+      && storage.Repr <= Repr
+      && storage.Valid?()
+      && Consumed() == storage.items
     }
 
     constructor() 
@@ -178,11 +172,12 @@ module Std.Actions {
       ensures fresh(Repr - {this})
       ensures history == []
     {
-      index := 0;
-      storage := new T[10];
+      var a := new DynamicArray();
 
       history := [];
-      Repr := {this, storage};
+      height := 1;
+      Repr := {this} + {a} + a.Repr;
+      this.storage := a;
     }
 
     ghost predicate CanConsume(history: seq<(T, ())>, next: T)
@@ -203,40 +198,23 @@ module Std.Actions {
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
-      if index == storage.Length {
-        var newStorage := new T[storage.Length * 2];
-        forall i | 0 <= i < index {
-          newStorage[i] := storage[i];
-        }
-        storage := newStorage;
-
-        Repr := {this, storage};
-      }
-      storage[index] := t;
-      index := index + 1;
+      storage.Push(t);
 
       r := ();
       Update(t, r);
+      Repr := {this} + {storage} + storage.Repr;
       assert Valid();
-    }
-
-    function Values(): seq<T>
-      requires Valid()
-      reads Repr
-      ensures Values() == Consumed()
-    {
-      storage[..index]
     }
   }
 
-  method AggregatorExample() {
+  method {:rlimit 0} AggregatorExample() {
     var a := new ArrayAggregator();
     var _ := a.Invoke(1);
     var _ := a.Invoke(2);
     var _ := a.Invoke(3);
     var _ := a.Invoke(4);
     var _ := a.Invoke(5);
-    assert a.Values() == [1, 2, 3, 4, 5];
+    assert a.storage.items == [1, 2, 3, 4, 5];
   }
 
   // Other primitives/examples todo:

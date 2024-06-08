@@ -77,6 +77,7 @@ module Std.DynamicArray {
     method Put(index: nat, element: A)
       requires index < size
       requires Valid?()
+      reads this, Repr
       modifies Repr, `items
       ensures Valid?()
       ensures fresh(Repr - old(Repr))
@@ -95,6 +96,7 @@ module Std.DynamicArray {
     method Ensure(reserved: nat, defaultValue: A)
       requires Valid?()
       ensures Valid?()
+      reads this, Repr
       modifies Repr
       ensures size == old(size)
       ensures items == old(items)
@@ -135,6 +137,7 @@ module Std.DynamicArray {
     method PushFast(element: A)
       requires Valid?()
       requires size < capacity
+      reads this, Repr
       modifies Repr
       ensures Valid?()
       ensures fresh(Repr - old(Repr))
@@ -155,6 +158,7 @@ module Std.DynamicArray {
      */
     method Push(element: A)
       requires Valid?()
+      reads this, Repr
       modifies Repr
       ensures Valid?()
       ensures fresh(Repr - old(Repr))
@@ -171,6 +175,7 @@ module Std.DynamicArray {
     method Realloc(defaultValue: A, newCapacity: nat)
       requires Valid?()
       requires newCapacity > capacity
+      reads this, Repr
       modifies `capacity, `data, `Repr, data
       ensures Valid?()
       ensures capacity == newCapacity
@@ -189,6 +194,7 @@ module Std.DynamicArray {
 
     method ReallocDefault(defaultValue: A)
       requires Valid?()
+      reads this, Repr
       modifies `capacity, `data, `Repr, data
       ensures Valid?()
       ensures fresh(data)
@@ -202,6 +208,7 @@ module Std.DynamicArray {
       requires count as int <= newData.Length
       requires count <= capacity
       requires data.Length == capacity as int
+      reads this, Repr, data, newData
       modifies data
       ensures data[..count] == newData[..count]
       ensures data[count..] == old(data[count..])
