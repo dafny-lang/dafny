@@ -684,6 +684,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree CreateGuardedForeachLoop(
       string tmpVarName, Type collectionElementType,
       IVariable boundVar,
+      bool newtypeConversionsWereExplicit,
       bool introduceBoundVar, bool inLetExprBody,
       IToken tok, Action<ConcreteSyntaxTree> collection, ConcreteSyntaxTree wr
       ) {
@@ -692,7 +693,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = MaybeInjectSubtypeConstraintWrtTraits(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr);
+      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr, newtypeConversionsWereExplicit);
       return wr;
     }
 
@@ -3367,8 +3368,8 @@ namespace Microsoft.Dafny.Compilers {
         var bv = bvs[i];
         var tmpVar = ProtectedFreshId("_guard_loop_");
         var wStmtsLoop = wr.Fork();
-        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, wStmtsLoop, bounds, bvs, i);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, range.tok, collection, wr);
+        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop, bounds, bvs, i);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, range.tok, collection, wr);
       }
 
       // if (range) {
@@ -3398,7 +3399,8 @@ namespace Microsoft.Dafny.Compilers {
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
     Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
-        Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, ConcreteSyntaxTree wStmts,
+        Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, out bool newtypeConversionsWereExplicit,
+        ConcreteSyntaxTree wStmts,
         List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
@@ -3407,6 +3409,9 @@ namespace Microsoft.Dafny.Compilers {
 
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
+
+      newtypeConversionsWereExplicit =
+        bound is SetBoundedPool or MapBoundedPool or SeqBoundedPool or MultiSetBoundedPool;
 
       if (bound is BoolBoundedPool) {
         collectionWriter = (wr) => EmitBoolBoundedPool(inLetExprBody, wr, wStmts);
@@ -3742,8 +3747,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         var tmpVar = ProtectedFreshId("_assign_such_that_");
         var wStmts = currentBlock.Fork();
-        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmts);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, false, inLetExprBody, bv.Tok, collection, wr);
+        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmts);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, false, inLetExprBody, bv.Tok, collection, wr);
         currentBlock = wr;
         if (needIterLimit) {
           var varName = $"{iterLimit}_{i}";
@@ -4952,28 +4957,34 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected virtual bool RequiresAllVariablesToBeUsed => false;
+
     /// <summary>
     /// If needed, emit an if-statement wrapper that checks that the value stored in "boundVar" satisfies any (subset-type or newtype) constraints
     /// of "boundVarType".
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
-      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false) {
+      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool newtypeConversionsWereExplicit,
+      bool isReturning = false, bool elseReturnValue = false) {
 
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
+        if (!newtypeConversionsWereExplicit || declWithConstraints is not NewtypeDecl || RequiresAllVariablesToBeUsed) {
+          var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-        EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+          // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
+          EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
 
-        if (isReturning) {
-          var elseBranch = wr;
-          elseBranch = EmitBlock(elseBranch);
-          elseBranch = EmitReturnExpr(elseBranch);
-          var wStmts = elseBranch.Fork();
-          EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          if (isReturning) {
+            var elseBranch = wr;
+            elseBranch = EmitBlock(elseBranch);
+            elseBranch = EmitReturnExpr(elseBranch);
+            var wStmts = elseBranch.Fork();
+            EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          }
+          wr = thenWriter;
         }
-        wr = thenWriter;
       }
 
       if (isReturning) {
