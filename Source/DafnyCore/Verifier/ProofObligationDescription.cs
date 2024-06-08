@@ -645,6 +645,39 @@ public class CalculationStep : ProofObligationDescription {
     "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
+
+  private readonly Expression expr;
+  private readonly BlockStmt hints;
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
+
+  public override string GetExtraExplanation() {
+    if (hints is null || hints.Body is null || hints.Body.Count == 0) {
+      return null;
+    }
+
+    StringBuilder builder = new();
+    builder.Append("\n  asserted after the following statements:");
+
+    // These can be deeply nested for some reason
+    List<Statement> stmts = hints.Body;
+    while (stmts.Count == 1 && stmts[0] is BlockStmt bs) {
+      stmts = bs.Body;
+    }
+
+    foreach (var stmt in stmts) {
+      builder.Append($"\n    {stmt}");
+    }
+
+    return builder.ToString();
+  }
+
+  public CalculationStep(Expression expr, BlockStmt hints) {
+    this.expr = expr;
+    this.hints = hints;
+  }
 }
 
 public class EnsuresStronger : ProofObligationDescription {

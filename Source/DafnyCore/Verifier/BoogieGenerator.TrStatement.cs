@@ -756,11 +756,11 @@ namespace Microsoft.Dafny {
             // assert step:
             AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
             if (!splitHappened) {
-              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new PODesc.CalculationStep()));
+              b.Add(AssertNS(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new PODesc.CalculationStep(stmt.Steps[i], stmt.Hints[i])));
             } else {
               foreach (var split in ss) {
                 if (split.IsChecked) {
-                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E, new PODesc.CalculationStep()));
+                  b.Add(AssertNS(stmt.Lines[i + 1].tok, split.E, new PODesc.CalculationStep(stmt.Steps[i], stmt.Hints[i])));
                 }
               }
             }
