@@ -147,7 +147,7 @@ module Std.Actions {
   type IAggregator<T> = Action<T, ()>
   type Aggregator<T(!new)> = a: Action<T, bool> | exists limit :: ProducesTerminatedBy(a, false, limit) witness *
 
-  class ArrayAggregator<T(00)> extends Action<T, ()> {
+  class ArrayAggregator<T> extends Action<T, ()> {
 
     var storage: DynamicArray<T>
 
