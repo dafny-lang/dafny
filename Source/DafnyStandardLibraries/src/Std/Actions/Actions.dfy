@@ -35,9 +35,7 @@ module Std.Actions {
     // CanConsume(history, nextIn) ==> exists nextOut :: CanProduce(history + [(nextIn, nextOut)])
     // Does that need to be explicitly part of the spec?
     ghost predicate CanConsume(history: seq<(T, R)>, next: T)
-      requires Valid()
       requires CanProduce(history)
-      reads Repr
       decreases height
 
     ghost predicate CanProduce(history: seq<(T, R)>)
@@ -111,7 +109,8 @@ module Std.Actions {
     i.CanProduce(history) <==> forall e <- history :: e.1 == c
   }
 
-  ghost predicate CanConsumeAll<T(!new), R(!new)>(a: Action<T, R>, input: seq<T>) {
+  ghost predicate CanConsumeAll<T(!new), R(!new)>(a: Action<T, R>, input: seq<T>) 
+  {
     forall i | 0 < i < |input| ::
       var consumed := input[..(i - 1)];
       var next := input[i];
