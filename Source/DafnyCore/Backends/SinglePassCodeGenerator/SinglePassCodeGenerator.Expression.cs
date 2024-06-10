@@ -395,7 +395,8 @@ namespace Microsoft.Dafny.Compilers {
               var bound = e.Bounds[i];
               var bv = e.BoundVars[i];
 
-              var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection, wStmts,
+              var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection,
+            out var newtypeConversionsWereExplicit, wStmts,
                 e.Bounds, e.BoundVars, i);
               wBody = EmitQuantifierExpr(collection, quantifierExpr is ForallExpr, collectionElementType, bv, wBody);
               var native = AsNativeType(e.BoundVars[i].Type);
@@ -409,7 +410,7 @@ namespace Microsoft.Dafny.Compilers {
               EmitDowncastVariableAssignment(
                 IdName(bv), bv.Type, tmpVarName, collectionElementType, true, e.tok, newWBody);
               newWBody = MaybeInjectSubsetConstraint(
-                bv, bv.Type, inLetExprBody, e.tok, newWBody, isReturning: true, elseReturnValue: e is ForallExpr);
+                bv, bv.Type, inLetExprBody, e.tok, newWBody, newtypeConversionsWereExplicit, isReturning: true, elseReturnValue: e is ForallExpr);
               wBody = newWBody;
             }
 
@@ -458,8 +459,8 @@ namespace Microsoft.Dafny.Compilers {
               processedBounds.Add(bv);
               var tmpVar = ProtectedFreshId("_compr_");
               var wStmtsLoop = wr.Fork();
-              var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
-              wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, inLetExprBody, e.tok, collection, wr);
+              var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop);
+              wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, inLetExprBody, e.tok, collection, wr);
               wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
             }
 
@@ -512,8 +513,8 @@ namespace Microsoft.Dafny.Compilers {
               processedBounds.Add(bv);
               var tmpVar = ProtectedFreshId("_compr_");
               var wStmtsLoop = wr.Fork();
-              var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmtsLoop);
-              wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, bv.tok, collection, wr);
+              var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop);
+              wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, bv.tok, collection, wr);
               wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
             }
 

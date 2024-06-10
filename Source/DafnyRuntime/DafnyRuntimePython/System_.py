@@ -3,8 +3,7 @@ from typing import Callable, Any, TypeVar, NamedTuple
 from math import floor
 from itertools import count
 
-import module_
-import _dafny
+import _dafny as _dafny
 
 # Module: System_
 
