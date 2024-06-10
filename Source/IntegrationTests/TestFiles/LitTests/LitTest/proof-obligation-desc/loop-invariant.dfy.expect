@@ -1,4 +1,4 @@
-﻿loop-invariant.dfy(7,16): Error: this invariant could not be proved to be maintained by the loop
+loop-invariant.dfy(7,16): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
  Asserted expression: 0 <= i <= 10
 

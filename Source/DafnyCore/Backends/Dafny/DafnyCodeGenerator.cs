@@ -691,6 +691,9 @@ namespace Microsoft.Dafny.Compilers {
     // so we buffer it here
     _IOption<DAST._IExpression> bufferedInitializationValue = null;
 
+    // And its statements here
+    _IOption<List<DAST.Statement>> bufferedInitializationStmts = null;
+
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       if (bufferedInitializationValue != null) {
@@ -699,17 +702,22 @@ namespace Microsoft.Dafny.Compilers {
         type = type.NormalizeExpandKeepConstraints();
         if (usePlaceboValue) {
           bufferedInitializationValue = Option<DAST._IExpression>.create_None();
+          bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
         } else {
           if (type.AsNewtype is { WitnessKind: SubsetTypeDecl.WKind.Compiled } newType) {
+            var bufStmt = new StatementBuffer();
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_Convert(
-              ConvertExpressionNoStatement(newType.Witness),
+              ConvertExpression(newType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)),
                   GenType(newType.BaseType),
               GenType(UserDefinedType.FromTopLevelDecl(newType.Witness.tok, newType))
               ));
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+            var bufStmt = new StatementBuffer();
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
-              ConvertExpressionNoStatement(type.AsSubsetType.Witness));
+              ConvertExpression(type.AsSubsetType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)));
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
             var elems = new List<DAST._IExpression>();
             for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
@@ -727,12 +735,14 @@ namespace Microsoft.Dafny.Compilers {
                 DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
               );
             }
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
           } else if (type.IsArrowType) {
             this.AddUnsupported("<i>Initializer for arrow type</i>");
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
             );
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
           }
         }
         return "BUFFERED"; // used by DeclareLocal(Out)Var
@@ -846,6 +856,14 @@ namespace Microsoft.Dafny.Compilers {
 
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
+
+          if (bufferedInitializationStmts.is_Some) {
+            foreach (var stmt in bufferedInitializationStmts.dtor_value) {
+              stmtContainer.Builder.AddStatement(stmt);
+            }
+
+            bufferedInitializationStmts = null;
+          }
 
           stmtContainer.Builder.AddStatement(
             (DAST.Statement)DAST.Statement.create_DeclareVar(

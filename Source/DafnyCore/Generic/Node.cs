@@ -56,6 +56,9 @@ public abstract class Node : INode {
   public IEnumerable<IToken> CoveredTokens {
     get {
       var token = StartToken;
+      if (token == Token.NoToken) {
+        yield break;
+      }
       while (token.Prev != EndToken) {
         yield return token;
         token = token.Next;
