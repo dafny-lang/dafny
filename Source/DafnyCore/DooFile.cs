@@ -58,6 +58,14 @@ public class DooFile {
 
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
+        if (option == CommonOptionBag.Libraries) {
+          // We don't want to serialize the FileInfo objects of this option
+          // For now we add an option specific exception here so we do not need to change
+          // the option registration system.
+          // When improve soundness through https://github.com/dafny-lang/dafny/issues/5335
+          // Then we'll get back to this
+          continue;
+        }
         var optionValue = options.Get((dynamic)option);
         if (option == CommonOptionBag.QuantifierSyntax) {
           switch (optionValue) {
