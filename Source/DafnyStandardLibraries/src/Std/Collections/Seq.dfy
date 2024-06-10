@@ -14,7 +14,7 @@
 /**
  This module defines useful properties and functions relating to the built-in `seq` type.
  */
-module Std.Collections.Seq {
+module {:options "--function-syntax:4"} Std.Collections.Seq {
 
   import opened Wrappers
   import opened Relations

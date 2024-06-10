@@ -1,5 +1,5 @@
 
-module Std.GenericActions {
+module {:options "--function-syntax:4"} Std.GenericActions {
 
   import opened Termination
 
