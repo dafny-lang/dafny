@@ -168,22 +168,18 @@ public class DooFile {
       return null;
     }
 
-    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options,
-      ImmutableDictionary<Option, OptionCompatibility.OptionCheck>.Empty);
+    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options);
   }
 
   public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
     Uri libraryFile,
     DafnyOptions options, IToken origin,
-    IDictionary<string, object> libraryOptions,
-    ImmutableDictionary<Option, OptionCompatibility.OptionCheck> additionalOptions) {
+    IDictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;
-    var totalOptions = additionalOptions.Merge(OptionChecks,
-      (_, _) => throw new InvalidOperationException());
 
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
-    foreach (var (option, check) in totalOptions) {
+    foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().

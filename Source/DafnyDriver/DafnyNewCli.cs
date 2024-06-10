@@ -273,10 +273,7 @@ public static class DafnyNewCli {
 
     var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
     var dependencyOptions =
-      DooFile.CheckAndGetLibraryOptions(reporter, uri, options, uriOrigin, dependencyProject.Options,
-        ImmutableDictionary<Option, OptionCompatibility.OptionCheck>.Empty.SetItem(
-          CommonOptionBag.Libraries, OptionCompatibility.NoOpOptionCheck)
-        );
+      DooFile.CheckAndGetLibraryOptions(reporter, uri, options, uriOrigin, dependencyProject.Options);
     if (dependencyOptions == null) {
       yield break;
     }
