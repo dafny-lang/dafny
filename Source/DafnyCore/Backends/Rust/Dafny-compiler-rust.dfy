@@ -3385,7 +3385,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               ResolvedType(_, _, Newtype(b0, range0, erase0), attributes0, _, _)) => {
               var nativeFromType := NewtypeToRustType(b0, range0);
               if nativeFromType.Some? {
-                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+                var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
                 r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen, nativeToType.value), recOwned, expectedOwnership);
                 readIdents := recIdents;
                 return;

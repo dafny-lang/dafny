@@ -6987,7 +6987,7 @@ namespace DCOMP {
                   RAST._IExpr _out305;
                   DCOMP._IOwnership _out306;
                   Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out307;
-                  (this).GenExpr(_3929_expr, selfIdent, env, expectedOwnership, out _out305, out _out306, out _out307);
+                  (this).GenExpr(_3929_expr, selfIdent, env, DCOMP.Ownership.create_OwnershipOwned(), out _out305, out _out306, out _out307);
                   _3962_recursiveGen = _out305;
                   _3963_recOwned = _out306;
                   _3964_recIdents = _out307;
