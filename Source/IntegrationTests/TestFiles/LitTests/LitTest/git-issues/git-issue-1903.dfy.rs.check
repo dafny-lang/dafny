@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK-L: error[E0277]: the trait bound `_T: DafnyType` is not satisfied
