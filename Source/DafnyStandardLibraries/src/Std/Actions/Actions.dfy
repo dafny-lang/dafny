@@ -1,5 +1,5 @@
 
-module Std.Actions {
+module {:options "--function-syntax:4"} Std.Actions {
 
   import opened Wrappers
   import opened Frames
