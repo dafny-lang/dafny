@@ -66,15 +66,15 @@ func (_static *CompanionStruct_Default___) AppendRecursive(builder *Vector, e Se
 		var _out0 interface{}
 		_ = _out0
 		_out0 = ((_1_lazy).Box()).Get()
-		_2_boxed = Companion_Sequence_.CastTo_(_out0)
+		_2_boxed = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out0))
 		Companion_Default___.AppendRecursive(builder, _2_boxed)
 	} else {
 		var _3_a ImmutableArray
 		_ = _3_a
 		var _out1 ImmutableArray
 		_ = _out1
-		_out1 = (e).ToArray()
-		_3_a = _out1
+		_out1 = Companion_ImmutableArray_.CastTo_((e).ToArray())
+		_3_a = Companion_ImmutableArray_.CastTo_(_out1)
 		(builder).Append(_3_a)
 	}
 }
@@ -116,7 +116,7 @@ TAIL_CALL_START:
 		var _out2 interface{}
 		_ = _out2
 		_out2 = ((_5_lazy).Box()).Get()
-		_6_boxed = Companion_Sequence_.CastTo_(_out2)
+		_6_boxed = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out2))
 		var _in3 *Vector = builder
 		_ = _in3
 		var _in4 Sequence = _6_boxed
@@ -140,7 +140,7 @@ TAIL_CALL_START:
 			var _out3 interface{}
 			_ = _out3
 			_out3 = (stack).RemoveLast()
-			_8_next = Companion_Sequence_.CastTo_(_out3)
+			_8_next = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out3))
 			{
 				var _in6 *Vector = builder
 				_ = _in6
@@ -263,8 +263,8 @@ func (_static *CompanionStruct_Sequence_) Subsequence(_this Sequence, lo uint32,
 		_ = _11_subarray
 		var _out8 ImmutableArray
 		_ = _out8
-		_out8 = (_10_a).Subarray(lo, hi)
-		_11_subarray = _out8
+		_out8 = Companion_ImmutableArray_.CastTo_((_10_a).Subarray(lo, hi))
+		_11_subarray = Companion_ImmutableArray_.CastTo_(_out8)
 		var _nw0 *ArraySequence = New_ArraySequence_()
 		_ = _nw0
 		_nw0.Ctor__(_11_subarray, false)
@@ -284,18 +284,18 @@ func (_static *CompanionStruct_Sequence_) Create(cardinality uint32, initFn func
 	_ = _12_a
 	var _out9 NativeArray
 	_ = _out9
-	_out9 = Companion_NativeArray_.MakeWithInit(cardinality, func(coer0 func(uint32) interface{}) func(uint32) interface{} {
+	_out9 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.MakeWithInit(cardinality, func(coer0 func(uint32) interface{}) func(uint32) interface{} {
 		return func(arg0 uint32) interface{} {
 			return coer0(arg0)
 		}
-	}(initFn))
-	_12_a = _out9
+	}(initFn)))
+	_12_a = Companion_NativeArray_.CastTo_(_out9)
 	var _13_frozen ImmutableArray
 	_ = _13_frozen
 	var _out10 ImmutableArray
 	_ = _out10
-	_out10 = (_12_a).Freeze(cardinality)
-	_13_frozen = _out10
+	_out10 = Companion_ImmutableArray_.CastTo_((_12_a).Freeze(cardinality))
+	_13_frozen = Companion_ImmutableArray_.CastTo_(_out10)
 	var _nw1 *ArraySequence = New_ArraySequence_()
 	_ = _nw1
 	_nw1.Ctor__(_13_frozen, false)
@@ -396,21 +396,21 @@ func (_static *CompanionStruct_Sequence_) Update(s Sequence, i uint32, t interfa
 	_ = _19_a
 	var _out17 ImmutableArray
 	_ = _out17
-	_out17 = (s).ToArray()
-	_19_a = _out17
+	_out17 = Companion_ImmutableArray_.CastTo_((s).ToArray())
+	_19_a = Companion_ImmutableArray_.CastTo_(_out17)
 	var _20_newValue NativeArray
 	_ = _20_newValue
 	var _out18 NativeArray
 	_ = _out18
-	_out18 = Companion_NativeArray_.Copy(_19_a)
-	_20_newValue = _out18
+	_out18 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.Copy(_19_a))
+	_20_newValue = Companion_NativeArray_.CastTo_(_out18)
 	(_20_newValue).Update(i, t)
 	var _21_newValueFrozen ImmutableArray
 	_ = _21_newValueFrozen
 	var _out19 ImmutableArray
 	_ = _out19
-	_out19 = (_20_newValue).Freeze((_20_newValue).Length())
-	_21_newValueFrozen = _out19
+	_out19 = Companion_ImmutableArray_.CastTo_((_20_newValue).Freeze((_20_newValue).Length()))
+	_21_newValueFrozen = Companion_ImmutableArray_.CastTo_(_out19)
 	var _nw2 *ArraySequence = New_ArraySequence_()
 	_ = _nw2
 	_nw2.Ctor__(_21_newValueFrozen, false)
@@ -435,7 +435,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 		var _out20 interface{}
 		_ = _out20
 		_out20 = ((_23_lazyLeft).Box()).Get()
-		_22_left_k = Companion_Sequence_.CastTo_(_out20)
+		_22_left_k = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out20))
 	}
 	var _24_right_k Sequence
 	_ = _24_right_k
@@ -449,7 +449,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 		var _out21 interface{}
 		_ = _out21
 		_out21 = ((_25_lazyRight).Box()).Get()
-		_24_right_k = Companion_Sequence_.CastTo_(_out21)
+		_24_right_k = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out21))
 	}
 	var _26_c *ConcatSequence
 	_ = _26_c
@@ -788,8 +788,8 @@ func (_this *Vector) Ctor__(length uint32) {
 		_ = _28_storage
 		var _out22 NativeArray
 		_ = _out22
-		_out22 = Companion_NativeArray_.Make(length)
-		_28_storage = _out22
+		_out22 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.Make(length))
+		_28_storage = Companion_NativeArray_.CastTo_(_out22)
 		(_this).Storage = _28_storage
 		(_this).Size = uint32(0)
 	}
@@ -835,14 +835,14 @@ func (_this *Vector) EnsureCapacity(newMinCapacity uint32) {
 		_ = _30_newStorage
 		var _out23 NativeArray
 		_ = _out23
-		_out23 = Companion_NativeArray_.Make(_29_newCapacity)
-		_30_newStorage = _out23
+		_out23 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.Make(_29_newCapacity))
+		_30_newStorage = Companion_NativeArray_.CastTo_(_out23)
 		var _31_values ImmutableArray
 		_ = _31_values
 		var _out24 ImmutableArray
 		_ = _out24
-		_out24 = (_this.Storage).Freeze(_this.Size)
-		_31_values = _out24
+		_out24 = Companion_ImmutableArray_.CastTo_((_this.Storage).Freeze(_this.Size))
+		_31_values = Companion_ImmutableArray_.CastTo_(_out24)
 		(_30_newStorage).UpdateSubarray(uint32(0), _31_values)
 		(_this).Storage = _30_newStorage
 	}
@@ -872,8 +872,8 @@ func (_this *Vector) Freeze() ImmutableArray {
 		_ = ret
 		var _out25 ImmutableArray
 		_ = _out25
-		_out25 = (_this.Storage).Freeze(_this.Size)
-		ret = _out25
+		_out25 = Companion_ImmutableArray_.CastTo_((_this.Storage).Freeze(_this.Size))
+		ret = Companion_ImmutableArray_.CastTo_(_out25)
 		return ret
 	}
 }
@@ -1126,8 +1126,8 @@ func (_this *ConcatSequence) ToArray() ImmutableArray {
 		Companion_Default___.AppendOptimized(_33_builder, _this, _34_stack)
 		var _out36 ImmutableArray
 		_ = _out36
-		_out36 = (_33_builder).Freeze()
-		ret = _out36
+		_out36 = Companion_ImmutableArray_.CastTo_((_33_builder).Freeze())
+		ret = Companion_ImmutableArray_.CastTo_(_out36)
 		return ret
 	}
 }
@@ -1237,8 +1237,8 @@ func (_this *LazySequence) Ctor__(wrapped Sequence) {
 		_ = _35_box
 		var _out42 AtomicBox
 		_ = _out42
-		_out42 = Companion_AtomicBox_.Make(wrapped)
-		_35_box = _out42
+		_out42 = Companion_AtomicBox_.CastTo_(Companion_AtomicBox_.Make(wrapped))
+		_35_box = Companion_AtomicBox_.CastTo_(_out42)
 		(_this)._i_box = _35_box
 		(_this)._i_length = (wrapped).Cardinality()
 		(_this)._i_isString = wrapped.IsString()
@@ -1258,11 +1258,11 @@ func (_this *LazySequence) ToArray() ImmutableArray {
 		var _out43 interface{}
 		_ = _out43
 		_out43 = ((_this).Box()).Get()
-		_36_expr = Companion_Sequence_.CastTo_(_out43)
+		_36_expr = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out43))
 		var _out44 ImmutableArray
 		_ = _out44
-		_out44 = (_36_expr).ToArray()
-		ret = _out44
+		_out44 = Companion_ImmutableArray_.CastTo_((_36_expr).ToArray())
+		ret = Companion_ImmutableArray_.CastTo_(_out44)
 		var _37_arraySeq *ArraySequence
 		_ = _37_arraySeq
 		var _nw7 *ArraySequence = New_ArraySequence_()
