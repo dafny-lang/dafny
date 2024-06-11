@@ -1,0 +1,7 @@
+# Reading from counterexample_none.transcript
+
+Verifying AbsCorrect (correctness) ...
+  [1 proof obligation]  verified
+COUNTEREXAMPLE_START {"States":[]} COUNTEREXAMPLE_END
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]

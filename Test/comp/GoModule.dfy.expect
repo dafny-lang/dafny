@@ -1,8 +1,0 @@
-
-Dafny program verifier finished with 2 verified, 0 errors
-The address http://localhost:8080/default.htm?year=1915&month=august&day=29
-has the following parts:
-host: localhost:8080
-pathname: /default.htm
-search: year=1915&month=august&day=29
-Parse error: parse "http://localhost:8080/default.htm%": invalid URL escape "%"

@@ -20,17 +20,17 @@ Some care must be taken to enable both modes of rendering.
 
 In addition, some textual search and replace operations are implemented
 (see the Makefile) to perform section numbering uniformly and to adjust a few
-pother aspects that are dissimilar between the pdf and online versions.
+other aspects that are dissimilar between the pdf and online versions.
 
 GitHub pages are rendered (converted from markdown to html) using Jekyll.
 The result is a single, long html page.
-There are a number of configuration files for Jekyll in the docs folder and
+There are a number of configuration files for Jekyll in the `docs` folder and
 subfolders. In order to render files locally you must
-* have ruby, bundler and jekyll installed on your machine
-* set the working directly (cd) to the docs folder
-* run the jekyll server: bundle exec jekyll server
+* have `ruby`, `bundler` and `jekyll` installed on your machine
+* set the working directly (`cd`) to the `docs` folder (Windows or Ruby 3.0 users, see below for some tweaks)
+* run the jekyll server: `bundle exec jekyll server`
 * open a browser on the page http://localhost:4000 or directly to http://localhost:4000/DafnyRef/DafnyRef
-* the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the saerver process, delete all the files in the _saite folder, and restart the server.
+* the server rerenders when files are changed -- but not always quite completely. Sometimes one must kill the server process, delete all the files in the _site folder, and restart the server.
 
 In order to convert markdown to pdf, you must be able to execute the Makefile, which requires installing pandoc and LaTeX, and being on a Linux-like platform.
 
@@ -38,26 +38,37 @@ The Makefile does some preprocessing of the markdown files: it removes some
 markdown lines that are not interpreted by pandoc and adds some additional
 directives, such as page breaks.
 
+To re-generate `Options.txt`, run `make options` in the `DafnyRef` folder.
+
+## Windows users or Ruby 3.0 users
+
+You might want to apply this diff to the file `../GemFile`
+```diff
+gem "kramdown", ">= 2.3.1"
++gem "webrick"
+```
+
+and then run `bundle install`
+
 # Syntax Coloring
 
 Tools providing syntax coloring for programming language source typically
 require a PL-specific regular-expression based definition of the language
 syntax. Unfortunately there are many such tools.
 
-In the RM maarkdown sources, text bracketed by '```dafny' and '```' will have
+In the RM markdown sources, text bracketed by ` ```dafny ` and ` ``` ` will have
 syntax coloring for dafny applied. Text bracketed by
-'````grammar` and '````' has syntax coloring applied per the grammar
+` ```grammar ` and ` ``` ` has syntax coloring applied per the grammar
 definition file.
 
 ## On-line RM through github
 Github uses rouge, via Jekyll. The syntax definition is a ruby-based file
 maintained in the rouge github repo.
-To modify the definition, follow the directions in
-[https://rouge-ruby.github.io/docs/file.LexerDevelopment.html]
-(https://rouge-ruby.github.io/docs/file.LexerDevelopment.html)
-after setting up a development environment according to
-[https://rouge-ruby.github.io/docs/file.DevEnvironment.html]
-(https://rouge-ruby.github.io/docs/file.DevEnvironment.html).
+To modify the definition, follow
+[these](https://rouge-ruby.github.io/docs/file.LexerDevelopment.html)
+directions after [setting
+up](https://rouge-ruby.github.io/docs/file.DevEnvironment.html) a
+development environment.
 The file itself, `dafny.rb` is in Ruby. Details of the Ruby Regular
 Expression language can be found many places online, such as
 [here](https://www.princeton.edu/~mlovett/reference/Regular-Expressions.pdf).
@@ -75,8 +86,8 @@ time lag) uses the file to render code snippets.
 very active.]
 
 The mapping from tokens to actual colors is specified separately from the
-syntax definition. The on-line rendering uses the Github default.
-(TODO: Can this be changed?)
+syntax definition. The on-line rendering uses the Github default
+(which, at last investigation, was not changeable).
 
 Although the RM sources also contain grammar blocks, there is at present no
 rouge definition for these blocks.

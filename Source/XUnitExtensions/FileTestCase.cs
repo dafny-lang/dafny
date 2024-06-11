@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using SkipException = Xunit.SkipException;
 
 namespace XUnitExtensions {
   public class FileTestCase : LongLivedMarshalByRefObject, IXunitTestCase {

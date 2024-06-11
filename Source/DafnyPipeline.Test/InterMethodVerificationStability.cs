@@ -8,12 +8,15 @@ using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
   public class InterMethodVerificationStability {
+    private readonly ITestOutputHelper output;
+
     [Fact]
     public void CreatingBoogieVariableNameCollisionsHasExpectedDiff() {
       var beforeChange = @"
@@ -128,8 +131,8 @@ method M(heap: object)
 +         assume k#0_0 < x#0;
 -         x#1_0 := LitInt(0);
 +         a#1_0 := LitInt(0);
--         assume !(exists eg$y#1: int :: eg$y#1 < x#0);
-+         assume !(exists eg$k#1: int :: eg$k#1 < x#0);
+-         assume {:id ""id2""} !(exists eg$y#1: int :: eg$y#1 < x#0);
++         assume {:id ""id2""} !(exists eg$k#1: int :: eg$k#1 < x#0);
 -         y#2_0 := LitInt(0);
 +         b#2_0 := LitInt(0);
 -         x#3_0 := LitInt(2);
@@ -149,7 +152,7 @@ method M(heap: object)
 -         y#7_0 := LitInt(0);
 +         j#7_0 := LitInt(0);
 ";
-      Assert.Equal(expectedDiff, diff);
+      Assert.Equal(expectedDiff.Replace("\r\n", "\n"), diff.Replace("\r\n", "\n"));
     }
 
     string GetDiff(string before, string after) {
@@ -178,13 +181,17 @@ method M(heap: object)
       var sourceIndex = Array.FindLastIndex(parts, e => e == "Source");
       dafnyDirectory = Path.Combine(Path.GetPathRoot(testAssemblyPath)!, Path.Combine(parts.Take(sourceIndex).ToArray()));
       Console.WriteLine("dafnyDirectory: " + dafnyDirectory);
-      Console.WriteLine("DafnyDriverProjectFile: " + DafnyDriverProjectFile);
+      Console.WriteLine("DafnyProjectFile: " + DafnyProjectFile);
     }
 
     private static readonly string dafnyDirectory;
 
-    private static string DafnyDriverProjectFile => Path.Combine(dafnyDirectory, "Source", "DafnyDriver", "DafnyDriver.csproj");
-    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyDriverProjectFile} -- -useBaseNameForFileName -countVerificationErrors:0 -compileVerbose:0 /errorTrace:0";
+    public InterMethodVerificationStability(ITestOutputHelper output) {
+      this.output = output;
+    }
+
+    private static string DafnyProjectFile => Path.Combine(dafnyDirectory, "Source", "Dafny", "Dafny.csproj");
+    private static string DefaultDafnyArgs => $"run --no-build --project {DafnyProjectFile} -- -useBaseNameForFileName -compileVerbose:0 /errorTrace:0";
 
     string GetBoogie(string dafnyProgram, string optionalFileName = null) {
       string fileName = optionalFileName ?? Path.GetTempFileName() + ".dfy";
@@ -201,13 +208,12 @@ method M(heap: object)
       dafnyProcess.WaitForExit();
 
       if (dafnyProcess.ExitCode != 0) {
-        Console.Out.WriteLine("Arguments:", processStartInfo.Arguments);
-        Console.Out.WriteLine("Result:");
-        Console.Out.WriteLine(result);
-        Console.Out.WriteLine(dafnyProcess.StandardError.ReadToEnd());
-        Console.Out.Flush();
+        output.WriteLine("Arguments:", processStartInfo.Arguments);
+        output.WriteLine("Result:");
+        output.WriteLine(result);
+        output.WriteLine(dafnyProcess.StandardError.ReadToEnd());
       }
-      Assert.Equal(0, dafnyProcess.ExitCode);
+      Assert.Equal(4, dafnyProcess.ExitCode);
       return result;
     }
   }

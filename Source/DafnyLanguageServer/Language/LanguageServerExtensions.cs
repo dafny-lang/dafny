@@ -5,6 +5,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Dafny.LanguageServer.Workspace;
+using Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
@@ -17,24 +21,39 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     /// <param name="options">The language server where the workspace services should be registered to.</param>
     /// <param name="configuration">The language server configuration.</param>
     /// <returns>The language server enriched with the dafny workspace services.</returns>
-    public static LanguageServerOptions WithDafnyLanguage(this LanguageServerOptions options, IConfiguration configuration) {
-      return options.WithServices(services => services.WithDafnyLanguage(configuration));
+    public static LanguageServerOptions WithDafnyLanguage(this LanguageServerOptions options) {
+      return options.WithServices(services => services.WithDafnyLanguage());
     }
 
-    private static IServiceCollection WithDafnyLanguage(this IServiceCollection services, IConfiguration configuration) {
+    private static IServiceCollection WithDafnyLanguage(this IServiceCollection services) {
       return services
-        .Configure<VerifierOptions>(configuration.GetSection(VerifierOptions.Section))
-        .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
+        .AddSingleton<IDafnyParser>(serviceProvider => new DafnyLangParser(
+          serviceProvider.GetRequiredService<DafnyOptions>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
+          serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
+          serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>(),
+          serviceProvider.GetRequiredService<ILogger<CachingParser>>()))
         .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
-        .AddSingleton<IProgramVerifier>(CreateVerifier)
+        .AddSingleton<CreateIdeStateObserver>(serviceProvider => compilation =>
+          new IdeStateObserver(serviceProvider.GetRequiredService<ILogger<IdeStateObserver>>(),
+            serviceProvider.GetRequiredService<TelemetryPublisherBase>(),
+            serviceProvider.GetRequiredService<INotificationPublisher>(),
+            compilation))
+        .AddSingleton(CreateVerifier)
+        .AddSingleton<CreateCompilation>(serviceProvider => (engine, compilation) => new Compilation(
+          serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          serviceProvider.GetRequiredService<IFileSystem>(),
+          serviceProvider.GetRequiredService<ITextDocumentLoader>(),
+          serviceProvider.GetRequiredService<IProgramVerifier>(),
+          engine, compilation
+          ))
         .AddSingleton<ISymbolTableFactory, SymbolTableFactory>()
-        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
+        .AddSingleton<IGhostStateDiagnosticCollector, GhostStateDiagnosticCollector>();
     }
 
-    private static DafnyProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
-      return DafnyProgramVerifier.Create(
-        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>(),
-        serviceProvider.GetRequiredService<IOptions<VerifierOptions>>()
+    private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
+      return new DafnyProgramVerifier(
+        serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
       );
     }
   }

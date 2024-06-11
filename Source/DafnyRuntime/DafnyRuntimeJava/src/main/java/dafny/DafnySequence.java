@@ -7,6 +7,8 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
+import dafny.TypeDescriptor;
+
 public abstract class DafnySequence<T> implements Iterable<T> {
     /*
     Invariant: forall 0<=i<length(). seq[i] == T || null
@@ -58,7 +60,11 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return DafnySequence.fromArray(TypeDescriptor.CHAR, Array.wrap(elements));
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnySequence<T> empty(TypeDescriptor<T> type) {
+        if (type == TypeDescriptor.CHAR) {
+            return (DafnySequence<T>) asString("");
+        }
         return ArrayDafnySequence.<T> empty(type);
     }
 
@@ -66,7 +72,11 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return fromRawArray(type, elements.unwrap());
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> DafnySequence<T> fromRawArray(TypeDescriptor<T> type, Object elements) {
+        if (type == TypeDescriptor.CHAR) {
+            return (DafnySequence<T>) asString(new String((char[]) elements));
+        }
         return new ArrayDafnySequence<>(Array.wrap(type, elements).copy());
     }
 
@@ -99,6 +109,27 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return new StringDafnySequence(s);
     }
 
+    public static DafnySequence<CodePoint> asUnicodeString(String s) {
+        int[] codePoints = new int[s.codePointCount(0, s.length())];
+        int charIndex = 0;
+        for (int codePointIndex = 0; codePointIndex < codePoints.length; codePointIndex++) {
+            char c1 = s.charAt(charIndex++);
+            if (Character.isHighSurrogate(c1)) {
+                if (charIndex >= s.length()) {
+                    throw new IllegalArgumentException();
+                }
+                char c2 = s.charAt(charIndex++);
+                if (!Character.isLowSurrogate(c2)) {
+                    throw new IllegalArgumentException();
+                }
+                codePoints[codePointIndex] = Character.toCodePoint(c1, c2);
+            } else {
+                codePoints[codePointIndex] = c1;
+            }
+        }
+        return new ArrayDafnySequence<>(Array.wrap(TypeDescriptor.UNICODE_CHAR, codePoints));
+    }
+
     public static DafnySequence<Byte> fromBytes(byte[] bytes) {
         return unsafeWrapBytes(bytes.clone());
     }
@@ -117,7 +148,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         for(int i = 0; i < len; i++) {
             values.set(i, init.apply(BigInteger.valueOf(i)));
         }
-        return new ArrayDafnySequence<>(values);
+        return fromArray(type, values);
     }
 
     @SuppressWarnings("unchecked")
@@ -137,6 +168,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
 
     public static byte[] toByteArray(DafnySequence<Byte> seq) {
         return Array.unwrapBytes(seq.toArray());
+    }
+
+    public static int[] toIntArray(DafnySequence<Integer> seq) {
+        return Array.unwrapInts(seq.toArray());
     }
 
     public abstract TypeDescriptor<T> elementType();
@@ -227,7 +262,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public T selectUnsigned(long i) {
-        return select(Helpers.unsignedLongToBigInteger(i));
+        return select(Helpers.unsignedToBigInteger(i));
     }
 
     public T select(BigInteger i) {
@@ -291,7 +326,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public DafnySequence<T> dropUnsigned(long lo) {
-        return drop(Helpers.unsignedLongToBigInteger(lo));
+        return drop(Helpers.unsignedToBigInteger(lo));
     }
 
     public DafnySequence<T> drop(BigInteger lo) {
@@ -322,7 +357,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public DafnySequence<T> takeUnsigned(long hi) {
-        return take(Helpers.unsignedLongToBigInteger(hi));
+        return take(Helpers.unsignedToBigInteger(hi));
     }
 
     public DafnySequence<T> take(BigInteger hi) {
@@ -387,15 +422,31 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     @SuppressWarnings("unchecked")
-    public String verbatimString(){
-        // This is slow, but the override in StringDafnySequence will almost
-        // always be used instead
-        StringBuilder builder = new StringBuilder(length());
-        for(Character ch: (List<Character>) asList())
-        {
-            builder.append(ch);
+    public String verbatimString() {
+        if (elementType() == TypeDescriptor.UNICODE_CHAR) {
+            // This is slow, but the override in ArrayDafnySequence will almost
+            // always be used instead
+            int[] codePoints = new int[length()];
+            int i = 0;
+            for(Integer ch: (List<Integer>) asList())
+            {
+                codePoints[i++] = ch;
+            }
+            return new String(codePoints, 0, codePoints.length);
+        } else {
+            // This is slow, but the override in StringDafnySequence will almost
+            // always be used instead
+            StringBuilder builder = new StringBuilder(length());
+            for(Character ch: (List<Character>) asList())
+            {
+                builder.append(ch);
+            }
+            return builder.toString();
         }
-        return builder.toString();
+    }
+
+    public Iterable<T> Elements() {
+        return this;
     }
 
     public HashSet<T> UniqueElements() {
@@ -544,7 +595,7 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     @Override
     protected boolean equalsNonLazy(NonLazyDafnySequence<T> other) {
         if (other instanceof ArrayDafnySequence<?>) {
-            return seq.deepEquals(((ArrayDafnySequence<T>) other).seq);
+            return seq.shallowEquals(((ArrayDafnySequence<T>) other).seq);
         } else {
             return super.equalsNonLazy(other);
         }
@@ -557,7 +608,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
 
     @Override
     public String verbatimString() {
-        return new String((char[]) seq.unwrap());
+        if (elementType() == TypeDescriptor.UNICODE_CHAR) {
+            return new String((int[]) seq.unwrap(), 0, seq.length());
+        } else {
+            return new String((char[]) seq.unwrap());
+        }
     }
 }
 
@@ -669,6 +724,11 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     public String verbatimString() {
         return string;
     }
+
+    @Override
+    public String toString() {
+        return string;
+    }
 }
 
 abstract class LazyDafnySequence<T> extends DafnySequence<T> {
@@ -741,7 +801,14 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
 final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     // INVARIANT: Either these are both non-null and ans is null or both are
     // null and ans is non-null.
-    private DafnySequence<T> left, right;
+    // Under concurrent access this is more complicated though:
+    // the only safe pattern is to read left and right into temporary variables first
+    // and judge based on their values whether ans is populated or not.
+    // The opposite order is subject to race conditions:
+    // if you observe ans as null first and then attempt to read left or right,
+    // another thread could complete force() in-between and clear left and right
+    // before you get to them!
+    private volatile DafnySequence<T> left, right;
     private NonLazyDafnySequence<T> ans = null;
     private final int length;
 
@@ -770,7 +837,7 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
 
     private NonLazyDafnySequence<T> computeElements() {
         // Somewhat arbitrarily, the copier will be created by the leftmost
-        // sequence.  This is fine unless native Java code is uncareful and has
+        // sequence.  This is fine unless native Java code is uncareful and
         // has created ArrayDafnySequences of boxed primitive types.
         Copier<T> copier;
 
@@ -782,12 +849,25 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
         // concatenated to exhaust the system stack.)
         Deque<DafnySequence<T>> toVisit = new ArrayDeque<>();
 
-        toVisit.push(right);
-        DafnySequence<T> first = left;
-        while (first instanceof ConcatDafnySequence<?> &&
-                ((ConcatDafnySequence<T>) first).ans == null) {
-            toVisit.push(((ConcatDafnySequence<T>) first).right);
-            first = ((ConcatDafnySequence<T>) first).left;
+        // Another thread may have already completed force() at this point.
+        DafnySequence<T> leftBuffer = left;
+        DafnySequence<T> rightBuffer = right;
+        if (leftBuffer == null || rightBuffer == null) {
+            return ans;
+        }
+
+        toVisit.push(rightBuffer);
+        DafnySequence<T> first = leftBuffer;
+        while (first instanceof ConcatDafnySequence<?>) {
+            ConcatDafnySequence<T> cfirst = (ConcatDafnySequence<T>) first;
+            leftBuffer = cfirst.left;
+            rightBuffer = cfirst.right;
+            if (leftBuffer == null || rightBuffer == null) {
+                break;
+            } else {
+                toVisit.push(rightBuffer);
+                first = leftBuffer;
+            }
         }
         toVisit.push(first);
 
@@ -799,11 +879,13 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
             if (seq instanceof ConcatDafnySequence<?>) {
                 ConcatDafnySequence<T> cseq = (ConcatDafnySequence<T>) seq;
 
-                if (cseq.ans != null) {
+                leftBuffer = cseq.left;
+                rightBuffer = cseq.right;
+                if (leftBuffer == null || rightBuffer == null) {
                     copier.copyFrom(cseq.ans);
                 } else {
-                    toVisit.push(cseq.right);
-                    toVisit.push(cseq.left);
+                    toVisit.push(rightBuffer);
+                    toVisit.push(leftBuffer);
                 }
             } else {
                 copier.copyFrom(seq);

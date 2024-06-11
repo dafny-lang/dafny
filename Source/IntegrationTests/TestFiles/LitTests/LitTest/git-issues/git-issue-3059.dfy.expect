@@ -1,0 +1,5 @@
+git-issue-3059.dfy(12,2): Error: value does not satisfy the subset constraints of 'seq0'
+git-issue-3059.dfy(28,3): Error: value does not satisfy the subset constraints of 'map0'
+git-issue-3059.dfy(43,8): Error: value does not satisfy the subset constraints of 'map0'
+
+Dafny program verifier finished with 3 verified, 3 errors

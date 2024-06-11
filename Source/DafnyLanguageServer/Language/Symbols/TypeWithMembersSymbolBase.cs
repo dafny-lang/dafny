@@ -3,26 +3,26 @@ using System.Threading;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   public abstract class TypeWithMembersSymbolBase : Symbol, ILocalizableSymbol {
-    public abstract object Node { get; }
+    public abstract INode Node { get; }
 
-    public IList<ISymbol> Members { get; } = new List<ISymbol>();
+    public IList<ILegacySymbol> Members { get; } = new List<ILegacySymbol>();
 
-    public override IEnumerable<ISymbol> Children => Members;
+    public override IEnumerable<ILegacySymbol> Children => Members;
 
-    protected TypeWithMembersSymbolBase(ISymbol? scope, string name) : base(scope, name) { }
+    protected TypeWithMembersSymbolBase(ILegacySymbol? scope, string name) : base(scope, name) { }
 
-    public abstract string GetDetailText(CancellationToken cancellationToken);
+    public abstract string GetDetailText(DafnyOptions options, CancellationToken cancellationToken);
   }
 
   public abstract class TypeWithMembersSymbolBase<TNode> : TypeWithMembersSymbolBase where TNode : TopLevelDeclWithMembers {
     public TNode Declaration { get; }
-    public override object Node => Declaration;
+    public override Node Node => Declaration;
 
-    protected TypeWithMembersSymbolBase(ISymbol? scope, TNode declaration) : base(scope, declaration.Name) {
+    protected TypeWithMembersSymbolBase(ILegacySymbol? scope, TNode declaration) : base(scope, declaration.Name) {
       Declaration = declaration;
     }
 
-    public override string GetDetailText(CancellationToken cancellationToken) {
+    public override string GetDetailText(DafnyOptions options, CancellationToken cancellationToken) {
       return $"{Declaration.WhatKind} {Declaration.Name}";
     }
   }

@@ -1,0 +1,21 @@
+// AssertBy.dfy
+
+method M0(x: int, y: int)
+{
+  assert x == 6;
+  assert y == 8;
+}
+
+method M1(x: int, y: int)
+{
+  assert x == 6 by {
+    assume x == 6;
+    assume y == 8;
+  }
+  assert y == 8;
+}
+AssertBy.dfy(6,11): Error: assertion might not hold
+AssertBy.dfy(7,11): Error: assertion might not hold
+AssertBy.dfy(16,11): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 3 errors

@@ -1,0 +1,86 @@
+RefinementErrors.dfy(30,17): Error: a refining method is not allowed to add preconditions
+RefinementErrors.dfy(31,15): Error: a refining method is not allowed to extend the modifies clause
+RefinementErrors.dfy(34,20): Error: a predicate declaration (abc) can only refine a predicate
+RefinementErrors.dfy(35,8): Error: a field re-declaration (xyz) must be to add 'ghost' to the field declaration
+RefinementErrors.dfy(37,19): Error: a compiled function cannot be changed into a ghost function in a refining module: F
+RefinementErrors.dfy(38,9): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'A', found 'C')
+RefinementErrors.dfy(38,11): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'B', found 'A')
+RefinementErrors.dfy(38,13): Error: type parameters are not allowed to be renamed from the names given in the function in the module being refined (expected 'C', found 'B')
+RefinementErrors.dfy(39,23): Error: the type of parameter 'z' is different from the type of the same parameter in the corresponding function in the module it refines ('seq<C>' instead of 'set<C>')
+RefinementErrors.dfy(40,9): Error: there is a difference in name of parameter 3 ('k' versus 'b') of function F compared to corresponding function in the module it refines
+RefinementErrors.dfy(57,13): Error: a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: G
+RefinementErrors.dfy(94,10): Error: refinement method cannot assign to a field defined in parent module ('a')
+RefinementErrors.dfy(114,7): Error: abstract type 'T' is declared with a different number of type parameters (3 instead of 2) than the corresponding abstract type in the module it refines
+RefinementErrors.dfy(121,11): Error: type parameter 'B' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,13): Error: type parameter 'C' is not allowed to change the requirement of being nonempty
+RefinementErrors.dfy(121,15): Error: type parameter 'D' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,25): Error: type parameter 'F' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(121,30): Error: type parameter 'G' is not allowed to change the requirement of being nonempty
+RefinementErrors.dfy(121,36): Error: type parameter 'H' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(128,9): Error: type parameter 'A' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(128,15): Error: type parameter 'B' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(135,10): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
+RefinementErrors.dfy(135,13): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(135,16): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '+')
+RefinementErrors.dfy(135,22): Error: type parameter 'E' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(135,25): Error: type parameter 'F' is not allowed to change variance (here, from '=' to '+')
+RefinementErrors.dfy(142,11): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
+RefinementErrors.dfy(142,14): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(142,17): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '+')
+RefinementErrors.dfy(142,23): Error: type parameter 'E' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(142,26): Error: type parameter 'F' is not allowed to change variance (here, from '=' to '+')
+RefinementErrors.dfy(142,28): Error: type parameter 'W' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(142,34): Error: type parameter 'X' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(142,36): Error: type parameter 'Y' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(142,41): Error: type parameter 'Z' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(142,14): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(142,17): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(142,23): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(142,26): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(148,11): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(148,17): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(153,11): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
+RefinementErrors.dfy(153,14): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(153,17): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '+')
+RefinementErrors.dfy(153,23): Error: type parameter 'E' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(153,26): Error: type parameter 'F' is not allowed to change variance (here, from '=' to '+')
+RefinementErrors.dfy(153,28): Error: type parameter 'W' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(153,34): Error: type parameter 'X' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(153,36): Error: type parameter 'Y' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(153,41): Error: type parameter 'Z' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(153,14): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(153,17): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(153,23): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(153,26): Error: class declarations only support non-variant type parameters
+RefinementErrors.dfy(162,14): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
+RefinementErrors.dfy(162,17): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(162,20): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '+')
+RefinementErrors.dfy(162,26): Error: type parameter 'E' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(162,29): Error: type parameter 'F' is not allowed to change variance (here, from '=' to '+')
+RefinementErrors.dfy(162,31): Error: type parameter 'W' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(162,37): Error: type parameter 'X' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(162,39): Error: type parameter 'Y' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(162,44): Error: type parameter 'Z' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(169,10): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
+RefinementErrors.dfy(169,13): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(169,16): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '+')
+RefinementErrors.dfy(169,22): Error: type parameter 'E' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(169,25): Error: type parameter 'F' is not allowed to change variance (here, from '=' to '+')
+RefinementErrors.dfy(169,27): Error: type parameter 'W' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(169,33): Error: type parameter 'X' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(169,35): Error: type parameter 'Y' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(169,40): Error: type parameter 'Z' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(176,10): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '=')
+RefinementErrors.dfy(176,13): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(176,16): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '+')
+RefinementErrors.dfy(176,22): Error: type parameter 'E' is not allowed to change variance (here, from '=' to '-')
+RefinementErrors.dfy(176,25): Error: type parameter 'F' is not allowed to change variance (here, from '=' to '+')
+RefinementErrors.dfy(176,27): Error: type parameter 'W' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(176,33): Error: type parameter 'X' is not allowed to change the requirement of supporting equality
+RefinementErrors.dfy(176,35): Error: type parameter 'Y' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(176,40): Error: type parameter 'Z' is not allowed to change the requirement of supporting auto-initialization
+RefinementErrors.dfy(181,14): Error: iterator declarations only support non-variant type parameters
+RefinementErrors.dfy(181,20): Error: iterator declarations only support non-variant type parameters
+RefinementErrors.dfy[TpJ](181,14): Error: iterator declarations only support non-variant type parameters
+RefinementErrors.dfy[TpJ](181,20): Error: iterator declarations only support non-variant type parameters
+85 resolution/type errors detected in RefinementErrors.dfy

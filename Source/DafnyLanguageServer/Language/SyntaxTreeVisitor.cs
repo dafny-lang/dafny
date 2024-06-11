@@ -1,19 +1,22 @@
-﻿namespace Microsoft.Dafny.LanguageServer.Language {
+﻿using Microsoft.Boogie;
+
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
-  /// Base syntax tree visitor implementation that visits all nodes.
+  /// Base syntax tree visitor implementation that visits all nodes,
+  /// except auto-generated expressions and attributes.
   /// </summary>
   public abstract class SyntaxTreeVisitor {
-    // Double-dispatching would be convenient here, but requirees adaptions to the AST.
+    // Double-dispatching would be convenient here, but requires adaptions to the AST.
     // TODO Is visiting Attributes necessary, i.e., does it belong to the AST?
 
     /// <summary>
     /// This method is invoked as soon as the visitor encounters an unknown syntax node.
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
-    /// <param name="token">The token asociated with the unknown node.</param>
-    public abstract void VisitUnknown(object node, Boogie.IToken token);
+    /// <param name="token">The token associated with the unknown node.</param>
+    public abstract void VisitUnknown(object node, IToken token);
 
-    public virtual void Visit(Dafny.Program program) {
+    public virtual void Visit(Program program) {
       foreach (var module in program.Modules()) {
         Visit(module);
       }
@@ -27,15 +30,21 @@
 
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch (topLevelDeclaration) {
-        case ClassDecl classDeclaration:
+        case ClassLikeDecl classDeclaration:
           Visit(classDeclaration);
+          break;
+        case DefaultClassDecl defaultClassDecl:
+          Visit(defaultClassDecl);
           break;
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
           break;
+        case AliasModuleDecl aliasModuleDeclaration:
+          Visit(aliasModuleDeclaration);
+          break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
-        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case AbstractTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
@@ -44,7 +53,7 @@
       }
     }
 
-    public virtual void Visit(ClassDecl classDeclaration) {
+    public virtual void Visit(TopLevelDeclWithMembers classDeclaration) {
       foreach (var member in classDeclaration.Members) {
         Visit(member);
       }
@@ -97,6 +106,7 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      Visit(method.Reads);
       Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }
@@ -112,12 +122,13 @@
       foreach (var typeArgument in function.TypeArgs) {
         Visit(typeArgument);
       }
-      foreach (var formal in function.Formals) {
+      foreach (var formal in function.Ins) {
         Visit(formal);
       }
-      foreach (var read in function.Reads) {
-        Visit(read);
+      if (function.Result != null) {
+        Visit(function.Result);
       }
+      Visit(function.Reads);
       foreach (var requirement in function.Req) {
         Visit(requirement);
       }
@@ -126,6 +137,7 @@
       }
       Visit(function.Decreases);
       VisitNullableExpression(function.Body);
+      VisitNullableBlock(function.ByMethodBody);
     }
 
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
@@ -145,9 +157,12 @@
     }
 
     public virtual void Visit(Attributes attributes) {
-      foreach (var argument in attributes.Args) {
-        Visit(argument);
+      if (attributes is UserSuppliedAttributes) {
+        foreach (var argument in attributes.Args) {
+          Visit(argument);
+        }
       }
+      VisitNullableAttributes(attributes.Prev);
     }
 
     public virtual void Visit(Statement statement) {
@@ -337,11 +352,11 @@
 
     public virtual void Visit(ReturnStmt returnStatement) {
       VisitNullableAttributes(returnStatement.Attributes);
-      if (returnStatement.rhss != null) {
+      if (returnStatement.Rhss != null) {
         // In integration test run on ubuntu showed that this might be null.
         // https://github.com/DafnyVSCode/language-server-csharp/runs/1390714082?check_suite_focus=true#step:9:907
         // At the time of this writing, there is no contract in dafny-lang enforcing non-null - so this should be true.
-        foreach (var rhs in returnStatement.rhss) {
+        foreach (var rhs in returnStatement.Rhss) {
           Visit(rhs);
         }
       }
@@ -380,6 +395,7 @@
 
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
+      forAllStatement.BoundVars.ForEach(Visit);
       VisitNullableStatement(forAllStatement.Body);
     }
 
@@ -398,7 +414,7 @@
       Visit(binding.Actual);
     }
 
-    public virtual void Visit(Expression expression) {
+    public virtual void Visit(Expression? expression) {
       switch (expression) {
         case LiteralExpr literalExpression:
           Visit(literalExpression);
@@ -424,6 +440,8 @@
         case NameSegment nameSegment:
           Visit(nameSegment);
           break;
+        case AutoGeneratedExpression autoGeneratedExpression:
+          break;
         case ParensExpression parenthesesExpression:
           Visit(parenthesesExpression);
           break;
@@ -445,8 +463,20 @@
         case ITEExpr ifThenElseExpression:
           Visit(ifThenElseExpression);
           break;
+        case LambdaExpr lambdaExpression:
+          Visit(lambdaExpression);
+          break;
         case ForallExpr forAllExpression:
           Visit(forAllExpression);
+          break;
+        case ExistsExpr existsExpression:
+          Visit(existsExpression);
+          break;
+        case SetComprehension setComprehension:
+          Visit(setComprehension);
+          break;
+        case MapComprehension mapComprehension:
+          Visit(mapComprehension);
           break;
         case NestedMatchExpr nestedMatchExpression:
           Visit(nestedMatchExpression);
@@ -463,8 +493,17 @@
         case StmtExpr statementExpression:
           Visit(statementExpression);
           break;
+        case LetExpr letExpression:
+          Visit(letExpression);
+          break;
+        case DecreasesToExpr decreasesToExpr:
+          Visit(decreasesToExpr);
+          break;
         default:
-          VisitUnknown(expression, expression.tok);
+          if (expression != null) {
+            VisitUnknown(expression, expression.tok);
+          }
+
           break;
       }
     }
@@ -505,8 +544,46 @@
     public virtual void Visit(DisplayExpression displayExpression) {
     }
 
-    public virtual void Visit(ComprehensionExpr comprehensionExpression) {
+    private void VisitBoundVars(IBoundVarsBearingExpression boundVariablesBearingExpression) {
+      foreach (var boundVariable in boundVariablesBearingExpression.AllBoundVars) {
+        Visit(boundVariable);
+      }
     }
+
+    private void VisitComprehensionBoundVarsAttributesRange(ComprehensionExpr comprehensionExpr) {
+      VisitBoundVars(comprehensionExpr);
+      VisitNullableAttributes(comprehensionExpr.Attributes);
+      VisitNullableExpression(comprehensionExpr.Range);
+    }
+
+    public virtual void Visit(LambdaExpr lambdaExpression) {
+      VisitComprehensionBoundVarsAttributesRange(lambdaExpression);
+      VisitNullableExpression(lambdaExpression.Term);
+    }
+
+    public virtual void Visit(ForallExpr forallExpression) {
+      VisitComprehensionBoundVarsAttributesRange(forallExpression);
+      VisitNullableExpression(forallExpression.Term);
+    }
+
+    public virtual void Visit(ExistsExpr existsExpression) {
+      VisitComprehensionBoundVarsAttributesRange(existsExpression);
+      VisitNullableExpression(existsExpression.Term);
+    }
+
+    public virtual void Visit(SetComprehension setComprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(setComprehensionExpression);
+      if (!setComprehensionExpression.TermIsImplicit) {
+        VisitNullableExpression(setComprehensionExpression.Term);
+      }
+    }
+
+    public virtual void Visit(MapComprehension mapComprehensionExpression) {
+      VisitComprehensionBoundVarsAttributesRange(mapComprehensionExpression);
+      VisitNullableExpression(mapComprehensionExpression.Term);
+      VisitNullableExpression(mapComprehensionExpression.TermLeft);
+    }
+
 
     public virtual void Visit(AttributedExpression attributedExpression) {
       VisitNullableAttributes(attributedExpression.Attributes);
@@ -559,12 +636,6 @@
       Visit(ifThenElseExpression.Test);
       Visit(ifThenElseExpression.Thn);
       Visit(ifThenElseExpression.Els);
-    }
-
-    public virtual void Visit(ForallExpr forAllExpression) {
-      VisitNullableAttributes(forAllExpression.Attributes);
-      VisitNullableExpression(forAllExpression.Range);
-      Visit(forAllExpression.Term);
     }
 
     public virtual void Visit(NestedMatchExpr nestedMatchExpression) {
@@ -625,6 +696,20 @@
     public virtual void Visit(StmtExpr statementExpression) {
       Visit(statementExpression.S);
       Visit(statementExpression.E);
+    }
+
+    public virtual void Visit(LetExpr letExpression) {
+      VisitBoundVars(letExpression);
+      foreach (var rhs in letExpression.RHSs) {
+        VisitNullableExpression(rhs);
+      }
+
+      VisitNullableAttributes(letExpression.Attributes);
+      Visit(letExpression.Body);
+    }
+
+    public virtual void Visit(DecreasesToExpr decreasesToExpr) {
+      decreasesToExpr.SubExpressions.ForEach(Visit);
     }
   }
 }

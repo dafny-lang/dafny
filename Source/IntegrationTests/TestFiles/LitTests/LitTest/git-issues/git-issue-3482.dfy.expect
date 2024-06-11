@@ -1,0 +1,4 @@
+git-issue-3482.dfy(7,21): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+git-issue-3482.dfy(8,4): Warning: this branch is redundant
+
+Dafny program verifier finished with 1 verified, 0 errors

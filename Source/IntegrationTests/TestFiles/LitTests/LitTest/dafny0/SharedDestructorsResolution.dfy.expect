@@ -1,0 +1,25 @@
+SharedDestructorsResolution.dfy(16,14): Error: candidate result constructor 'E' has an anonymous parameter (to use in datatype update expression, name all the parameters of the candidate result constructors)
+SharedDestructorsResolution.dfy(35,22): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, '3' does not belong to 'C0')
+SharedDestructorsResolution.dfy(36,21): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'c0' does not belong to 'C1', 'C2', or 'C3')
+SharedDestructorsResolution.dfy(37,29): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'c0' does not belong to 'C1' or 'C2')
+SharedDestructorsResolution.dfy(38,37): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'c0' does not belong to 'C1')
+SharedDestructorsResolution.dfy(41,21): Error: duplicate update member '0'
+SharedDestructorsResolution.dfy(43,13): Error: member 'C0?' is not a destructor in datatype 'Klef'
+SharedDestructorsResolution.dfy(44,13): Error: member 'C0?' is not a destructor in datatype 'Klef'
+SharedDestructorsResolution.dfy(45,22): Error: duplicate update member 'c0'
+SharedDestructorsResolution.dfy(45,31): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'c2' does not belong to 'C0')
+SharedDestructorsResolution.dfy(46,22): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'c1' does not belong to 'C0')
+SharedDestructorsResolution.dfy(46,31): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'c2' does not belong to 'C0')
+SharedDestructorsResolution.dfy(97,6): Error: Duplicate use of deconstructor name in the same constructor: x
+SharedDestructorsResolution.dfy(98,6): Error: Duplicate use of deconstructor name in the same constructor: y
+SharedDestructorsResolution.dfy(99,6): Error: Duplicate use of deconstructor name in the same constructor: z
+SharedDestructorsResolution.dfy(64,8): Error: shared destructors must have the same type, but 'x' has type 'int' in constructor 'Lt0' and type 'real' in constructor 'Lt1'
+SharedDestructorsResolution.dfy(69,8): Error: shared destructors must have the same type, but 'y' has type 'A' in constructor 'Mt0' and type 'B' in constructor 'Mt2'
+SharedDestructorsResolution.dfy(71,8): Error: shared destructors must have the same type, but 'arr' has type 'array<A>' in constructor 'Mt3' and type 'array<B>' in constructor 'Mt4'
+SharedDestructorsResolution.dfy(72,8): Error: shared destructors must have the same type, but 'arr' has type 'array<A>' in constructor 'Mt3' and type 'array<object>' in constructor 'Mt5'
+SharedDestructorsResolution.dfy(76,8): Error: shared destructors must have the same type, but 'op' has type 'Opaque<int>' in constructor 'Mt8' and type 'Opaque<bool>' in constructor 'Mt9'
+SharedDestructorsResolution.dfy(78,9): Error: shared destructors must have the same type, but 'oop' has type 'Opaque<Opaque<B>>' in constructor 'Mt10' and type 'Opaque<Opaque<A>>' in constructor 'Mt11'
+SharedDestructorsResolution.dfy(94,26): Error: shared destructors must have the same type, but 'u' has type 'int' in constructor 'Co2' and type 'real' in constructor 'Co3'
+SharedDestructorsResolution.dfy(105,14): Error: shared destructors must agree on whether or not they are ghost, but 'x' is non-ghost in constructor 'Kt0' and ghost in constructor 'Kt1'
+SharedDestructorsResolution.dfy(107,8): Error: shared destructors must agree on whether or not they are ghost, but 'g' is ghost in constructor 'Kt2' and non-ghost in constructor 'Kt3'
+24 resolution/type errors detected in SharedDestructorsResolution.dfy

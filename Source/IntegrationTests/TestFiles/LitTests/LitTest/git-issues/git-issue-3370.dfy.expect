@@ -1,0 +1,5 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+git-issue-3370.dfy(7,7): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
+
+Dafny program verifier finished with 0 verified, 1 error

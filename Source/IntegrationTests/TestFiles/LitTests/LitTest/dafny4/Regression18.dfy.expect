@@ -1,0 +1,3 @@
+Regression18.dfy(20,10): Error: value does not satisfy the subset constraints of 'NewT'
+
+Dafny program verifier finished with 4 verified, 1 error

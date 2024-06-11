@@ -1,0 +1,5 @@
+git-issue-3187d.dfy(6,15): Error: a mutable field may not have an initializer
+git-issue-3187d.dfy(9,8): Error: a mutable field must be declared with a type
+git-issue-3187d.dfy(12,8): Error: a mutable field must be declared with a type
+git-issue-3187d.dfy(12,10): Error: a mutable field may not have an initializer
+4 parse errors detected in git-issue-3187d.dfy

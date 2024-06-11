@@ -1,8 +1,0 @@
-
-Dafny program verifier did not attempt verification
-Wrote textual form of target program to TestAttribute.cs
-     _module.__default.FailingTest_CheckForFailureForXunit [FAIL]
-     _module.__default.FailingTestUsingExpectWithMessage [FAIL]
-     _module.__default.FailingTestUsingExpect [FAIL]
-     _module.__default.FailingTestUsingNoLHSAssignOrHalt [FAIL]
-     _module.__default.FailingTestUsingAssignOrHalt [FAIL]

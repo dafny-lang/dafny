@@ -1,0 +1,6 @@
+GeneralNewtypeExtends.dfy(33,6): Error: RHS (of type AnotherSet) not assignable to LHS (of type SupportsAdd)
+GeneralNewtypeExtends.dfy(34,11): Error: type cast to trait type 'SupportsAdd' must be from an expression of a compatible type (got 'AnotherSet')
+GeneralNewtypeExtends.dfy(35,18): Error: type test for type 'SupportsAdd' must be from an expression assignable to it (got 'AnotherSet')
+GeneralNewtypeExtends.dfy(68,10): Error: newtype 'D' inherits a member named 'G' from both newtype 'C' and trait 'HasG'
+GeneralNewtypeExtends.dfy(81,10): Error: newtype 'YesToAddButNotSubtract' does not implement trait function 'SupportsSubtract.Subtract'
+5 resolution/type errors detected in GeneralNewtypeExtends.dfy

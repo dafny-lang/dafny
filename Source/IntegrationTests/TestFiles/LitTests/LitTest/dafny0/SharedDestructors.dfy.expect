@@ -1,0 +1,15 @@
+SharedDestructors.dfy(16,11): Error: destructor 'x' can only be applied to datatype values constructed by 'A' or 'B'
+SharedDestructors.dfy(22,11): Error: destructor 'x' can only be applied to datatype values constructed by 'A' or 'B'
+SharedDestructors.dfy(24,11): Error: destructor 'y' can only be applied to datatype values constructed by 'A', 'C', or 'D'
+SharedDestructors.dfy(30,15): Error: destructor 'h' can only be applied to datatype values constructed by 'B'
+SharedDestructors.dfy(34,15): Error: source of datatype update must be constructed by 'A'
+SharedDestructors.dfy(51,14): Error: destructor 'a' can only be applied to datatype values constructed by 'AA'
+SharedDestructors.dfy(57,14): Error: source of datatype update must be constructed by 'AA'
+SharedDestructors.dfy(95,12): Error: source of datatype update must be constructed by 'PP'
+SharedDestructors.dfy(101,12): Error: source of datatype update must be constructed by 'RR'
+SharedDestructors.dfy(107,12): Error: source of datatype update must be constructed by 'RR'
+SharedDestructors.dfy(124,12): Error: source of datatype update must be constructed by 'C3'
+SharedDestructors.dfy(139,11): Error: source of datatype update must be constructed by 'Ma5' or 'Ma2'
+SharedDestructors.dfy(145,13): Error: assertion might not hold
+
+Dafny program verifier finished with 0 verified, 13 errors

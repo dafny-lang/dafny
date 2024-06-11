@@ -1,4 +1,0 @@
-Twice.dfy(26,21): Error: assertion violation
-Twice.dfy(34,31): Error: possible violation of function precondition
-
-Dafny program verifier finished with 2 verified, 2 errors

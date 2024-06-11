@@ -1,0 +1,10 @@
+ns = List.Cons(4, List.Cons(10, List.Nil))
+Sum(ns) = 14
+ns' = List.Cons(20, List.Nil)
+Append(ns, ns') = List.Cons(4, List.Cons(10, List.Cons(20, List.Nil)))
+Sum(Append(ns, ns')) = 34
+Sum(Negate(Negate(ns))) = 14
+negs = List.Cons(-3, List.Cons(0, List.Cons(-2, List.Nil)))
+Sum(Negate(negs)) = 5
+negs = List.Cons(-3, List.Cons(-12, List.Cons(-2, List.Nil)))
+Sum(Negate(negs)) = 17

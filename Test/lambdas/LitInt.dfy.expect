@@ -1,4 +1,0 @@
-LitInt.dfy(22,22): Error: assertion violation
-LitInt.dfy(32,26): Error: assertion violation
-
-Dafny program verifier finished with 2 verified, 2 errors

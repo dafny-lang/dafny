@@ -1,4 +1,0 @@
-OpaqueBug.dfy(13,13): Error: assertion violation
-OpaqueBug.dfy(23,13): Error: assertion violation
-
-Dafny program verifier finished with 2 verified, 2 errors

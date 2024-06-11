@@ -1,0 +1,2 @@
+text.dfy(8,28): Error: Reference to member 'a' is ambiguous: name 'Option' shadows an import-opened module of the same name, and both have a member 'a'. To solve this issue, give a different name to the imported module using `import opened XYZ = ...` instead of `import opened ...`.
+1 resolution/type errors detected in text.dfy

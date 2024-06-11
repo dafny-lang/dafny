@@ -8,20 +8,24 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   public class DafnyCompletionHandler : CompletionHandlerBase {
-    private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly ILogger<DafnyCompletionHandler> logger;
+    private readonly IProjectDatabase projects;
     private readonly ISymbolGuesser symbolGuesser;
+    private DafnyOptions options;
 
-    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
+    public DafnyCompletionHandler(ILogger<DafnyCompletionHandler> logger, IProjectDatabase projects,
+      ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.symbolGuesser = symbolGuesser;
+      this.options = options;
     }
 
     protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
@@ -38,53 +42,66 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return Task.FromException<CompletionItem>(new InvalidOperationException("method not implemented"));
     }
 
-    public async override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
+    public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken) {
+      logger.LogDebug("Completion params received");
+      var document = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
       if (document == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new CompletionList();
       }
-      return new CompletionProcessor(symbolGuesser, document, request, cancellationToken).Process();
+      return new CompletionProcessor(symbolGuesser, logger, document, request, cancellationToken, options).Process();
     }
 
     private class CompletionProcessor {
+      private DafnyOptions options;
+      private ILogger<DafnyCompletionHandler> logger;
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly DafnyDocument document;
+      private readonly IdeState state;
       private readonly CompletionParams request;
       private readonly CancellationToken cancellationToken;
 
-      public CompletionProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, CompletionParams request, CancellationToken cancellationToken) {
+      public CompletionProcessor(ISymbolGuesser symbolGuesser, ILogger<DafnyCompletionHandler> logger, IdeState state,
+        CompletionParams request, CancellationToken cancellationToken, DafnyOptions options) {
         this.symbolGuesser = symbolGuesser;
-        this.document = document;
+        this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
+        this.options = options;
+        this.logger = logger;
       }
 
       public CompletionList Process() {
-        if (GetTriggerCharacter() == ".") {
+        if (IsDotExpression()) {
           return CreateDotCompletionList();
         }
+
+        if (logger.IsEnabled(LogLevel.Trace)) {
+          var program = (Program)state.ResolvedProgram!;
+          var writer = new StringWriter();
+          var printer = new Printer(writer, state.Input.Options);
+          printer.PrintProgram(program, true);
+          logger.LogTrace($"Program:\n{writer}");
+        }
+        logger.LogDebug($"Completion not on a dot expression for {request.TextDocument.Uri}, version {state.Version}");
         return new CompletionList();
       }
 
-      private string GetTriggerCharacter() {
-        // Cannot use _request.Context.TriggerCharacter at this time, since _request.Context appears to be always null.
-        var documentText = document.Text.Text;
-        int absolutePosition = request.Position.ToAbsolutePosition(documentText, cancellationToken) - 1;
-        return documentText[absolutePosition].ToString();
+      private bool IsDotExpression() {
+        var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+        return node?.RangeToken.EndToken.val == ".";
       }
 
       private CompletionList CreateDotCompletionList() {
-        IEnumerable<ISymbol> members;
-        if (symbolGuesser.TryGetTypeBefore(document, GetDotPosition(), cancellationToken, out var typeSymbol)) {
+        IEnumerable<ILegacySymbol> members;
+        if (symbolGuesser.TryGetTypeBefore(state,
+              request.TextDocument.Uri.ToUri(), GetDotPosition(), cancellationToken, out var typeSymbol)) {
           if (typeSymbol is TypeWithMembersSymbolBase typeWithMembersSymbol) {
             members = typeWithMembersSymbol.Members;
           } else {
-            // TODO This should never happen at this time.
             throw new InvalidOperationException($"received a type symbol of type {typeSymbol.GetType()}, but expected a ClassSymbol");
           }
         } else {
-          members = Enumerable.Empty<ISymbol>();
+          members = Enumerable.Empty<ILegacySymbol>();
         }
         return CreateCompletionListFromSymbols(members);
       }
@@ -93,7 +110,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new Position(request.Position.Line, request.Position.Character - 1);
       }
 
-      private CompletionList CreateCompletionListFromSymbols(IEnumerable<ISymbol> symbols) {
+      private CompletionList CreateCompletionListFromSymbols(IEnumerable<ILegacySymbol> symbols) {
         var completionItems = symbols.WithCancellation(cancellationToken)
           .Where(symbol => !IsConstructor(symbol))
           .Select(CreateCompletionItem)
@@ -101,21 +118,20 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return new CompletionList(completionItems);
       }
 
-      private static bool IsConstructor(ISymbol symbol) {
-        return symbol is MethodSymbol method
-          && method.Name == "_ctor";
+      private static bool IsConstructor(ILegacySymbol symbol) {
+        return symbol is MethodSymbol method && method.Name == "_ctor";
       }
 
-      private CompletionItem CreateCompletionItem(ISymbol symbol) {
+      private CompletionItem CreateCompletionItem(ILegacySymbol symbol) {
         return new CompletionItem {
           Label = symbol.Name,
           Kind = GetCompletionKind(symbol),
           InsertText = GetCompletionText(symbol),
-          Detail = (symbol as ILocalizableSymbol)?.GetDetailText(cancellationToken)
+          Detail = (symbol as ILocalizableSymbol)?.GetDetailText(options, cancellationToken)
         };
       }
 
-      private static CompletionItemKind GetCompletionKind(ISymbol symbol) {
+      private static CompletionItemKind GetCompletionKind(ILegacySymbol symbol) {
         return symbol switch {
           TypeWithMembersSymbolBase _ => CompletionItemKind.Class,
           MethodSymbol _ => CompletionItemKind.Method,
@@ -126,7 +142,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         };
       }
 
-      private static string GetCompletionText(ISymbol symbol) {
+      private static string GetCompletionText(ILegacySymbol symbol) {
         return symbol.Name;
       }
     }

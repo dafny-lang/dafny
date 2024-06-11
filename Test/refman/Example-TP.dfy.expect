@@ -1,3 +1,0 @@
-Example-TP.dfy(10,10): Error: type parameter (T) passed to type ResultN must support no references (got C)
-Example-TP.dfy(12,10): Error: type parameter (T) passed to type ResultN must support no references (got array<int>)
-2 resolution/type errors detected in Example-TP.dfy

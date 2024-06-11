@@ -1,0 +1,23 @@
+ResolveError.dfy(7,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
+ResolveError.dfy(8,9): Error: the number of left-hand sides (1) and right-hand sides (2) must match for a multi-assignment
+ResolveError.dfy(21,6): Error: LHS of assignment must denote a mutable field
+ResolveError.dfy(32,12): Error: wrong number of arguments (got 2, but function type 'int ~> int' expects 1: (_#p0: int))
+ResolveError.dfy(36,21): Error: wrong number of arguments (got 2, but function 'requires' expects 1: (x0: T0))
+ResolveError.dfy(39,18): Error: wrong number of arguments (got 2, but function 'reads' expects 1: (x0: T0))
+ResolveError.dfy(31,16): Error: arguments must have comparable types (got int and bool)
+ResolveError.dfy(33,12): Error: incorrect argument type for function application parameter (expected int, found bool)
+ResolveError.dfy(34,21): Error: incorrect argument type for function parameter 'x0' (expected int, found bool)
+ResolveError.dfy(37,18): Error: incorrect argument type for function parameter 'x0' (expected int, found bool)
+ResolveError.dfy(35,25): Error: arguments must have comparable types (got bool and int)
+ResolveError.dfy(38,22): Error: arguments must have comparable types (got set<object?> and int)
+ResolveError.dfy(47,18): Error: Precondition must be boolean (got int)
+ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int)
+ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is () -> bool
+ResolveError.dfy(59,42): Error: type of 'null' is a reference type, but it is used as A -> B
+ResolveError.dfy(62,11): Error: arguments must have comparable types (got A -> B and object)
+ResolveError.dfy(68,24): Error: unresolved identifier: _
+ResolveError.dfy(86,6): Error: RHS (of type ((int, bool)) -> real) not assignable to LHS (of type (int, bool) -> real)
+ResolveError.dfy(101,6): Error: RHS (of type (()) -> real) not assignable to LHS (of type () -> real)
+ResolveError.dfy(102,6): Error: RHS (of type () -> real) not assignable to LHS (of type (()) -> real)
+ResolveError.dfy(91,15): Error: incorrect argument type at index 0 for method in-parameter 'r' (expected int -> ?, found (int, bool) -> real)
+22 resolution/type errors detected in ResolveError.dfy

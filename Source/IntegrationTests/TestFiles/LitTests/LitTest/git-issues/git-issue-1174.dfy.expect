@@ -1,0 +1,2 @@
+git-issue-1174.dfy(12,5): Error: ghost variables such as v are allowed only in specification contexts. v was inferred to be ghost based on its declaration or initialization.
+1 resolution/type errors detected in git-issue-1174.dfy

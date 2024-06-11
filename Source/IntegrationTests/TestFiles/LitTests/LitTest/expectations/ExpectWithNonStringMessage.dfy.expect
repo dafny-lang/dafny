@@ -1,0 +1,17 @@
+
+Dafny program verifier finished with 0 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(['w', 'h', 'e', 'r', 'e', ' ', 'o', 'v', 'e', 'r', ' ', 't', 'h', 'e', ' ', 'r', 'a', 'i', 'n', 'b', 'o', 'w'])
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(['w', 'h', 'e', 'r', 'e', ' ', 'o', 'v', 'e', 'r', ' ', 't', 'h', 'e', ' ', 'r', 'a', 'i', 'n', 'b', 'o', 'w'])
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(['w', 'h', 'e', 'r', 'e', ' ', 'o', 'v', 'e', 'r', ' ', 't', 'h', 'e', ' ', 'r', 'a', 'i', 'n', 'b', 'o', 'w'])
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(['w', 'h', 'e', 'r', 'e', ' ', 'o', 'v', 'e', 'r', ' ', 't', 'h', 'e', ' ', 'r', 'a', 'i', 'n', 'b', 'o', 'w'])
+
+Dafny program verifier did not attempt verification
+[Program halted] ExpectWithNonStringMessage.dfy(13,2): Option.Some(['w', 'h', 'e', 'r', 'e', ' ', 'o', 'v', 'e', 'r', ' ', 't', 'h', 'e', ' ', 'r', 'a', 'i', 'n', 'b', 'o', 'w'])

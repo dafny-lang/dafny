@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/4123
+// CHECK: _this.Get\(\) \(value of type dafny.Int\) is not an interface

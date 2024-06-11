@@ -1,0 +1,126 @@
+name: Test NuGet Packages
+
+on:
+  release:
+    # This triggers in response to a GitHub release being published,
+    # which happens to work well because we do that well after first publishing
+    # to NuGet. That gives at least 10 or 15 minutes for the newly published versions
+    # of these packages to be available for download here.
+    #
+    # Unfortunately that also means this doesn't trigger on the nightly build release,
+    # since that ends up updating an existing "nightly-..." release rather than creating a new one.
+    # For now that's a good thing since these jobs only test the latest actual released version,
+    # but ideally we'd fix both of those issues so that we test the fully NuGet publishing
+    # workflow in the nightly build.
+    types: [ published ]
+  # For manual testing through the Actions UI
+  workflow_dispatch:
+
+env:
+  dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
+  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-dafny-cli-tool:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
+        os: [ ubuntu-22.04, ubuntu-20.04, macos-11, windows-2019 ]
+
+    steps:
+    - name: OS
+      run: echo ${{ runner.os }} ${{ matrix.os }}
+    - name: Set up JDK 18
+      uses: actions/setup-java@v4
+      with:
+        java-version: 18
+        distribution: corretto
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{env.dotnet-version}}
+    - name: Load Z3
+      shell: pwsh
+      run: |
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-x64-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
+        Expand-Archive z3-4.12.1.zip .
+        Remove-Item z3-4.12.1.zip
+    - name: Set up Z3 (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        mkdir bin
+        mv z3-4.12.1.exe bin/z3.exe
+    - name: Set up Z3 (non-Windows)
+      if: runner.os != 'Windows'
+      run: |
+        mkdir bin
+        mv z3-4.12.1 bin/z3
+        chmod +x bin/z3
+    - name: Set Path
+      if: runner.os != 'Windows'
+      run: echo "${PWD}/bin" >> $GITHUB_PATH
+    - name: Set Path - Windows
+      if: runner.os == 'Windows'
+      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
+    - name: Download NuGet package
+      run: dotnet tool install --global Dafny
+    ## Record versions, checking that executables run
+    - name: Versions
+      run: |
+        z3 -version
+        dafny -version
+    - name: Fatch latest release version string
+      id: dafny
+      continue-on-error: true
+      uses: pozetroninc/github-action-get-latest-release@v0.5.0
+      with:
+        repository: ${{ github.repository }}
+        excludes: prerelease, draft
+    - name: Verify Dafny version
+      if: "${{ steps.dafny.outputs.release != '' }}"
+      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]{5}"
+      shell: bash
+    ## Check that a simple program compiles and runs on each supported platform
+    ## Now that the dotnet tool distribution doesn't include the Scripts,
+    ## so we need to clone the repository to get them.
+    - name: Checkout Dafny
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        path: dafny-repo
+    - name: run quicktests
+      run: |
+        npm install bignumber.js
+        dafny-repo/Scripts/quicktest.sh dafny > log.txt
+        diff log.txt dafny-repo/Scripts/quicktest.out
+
+  test-dafny-libraries:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Hopefully we can automatically populate this list in the future,
+        # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
+        library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
+        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
+        os: [ ubuntu-latest, ubuntu-20.04, macos-13, windows-2019 ]
+
+    steps:
+    # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
+    # are also published through NuGet.
+    # Ideally we would have a test project that actually uses part of the public API of each package.
+    # The default -DependencyVersion of "Lowest" seems to override the minimum version on transitive dependencies,
+    # which leads to a spurious circular dependency between DafnyServer and DafnyLanguageServer.
+    # We use "Highest" instead just to avoid this and still get some validation that all dependencies
+    # are at least published at all, but it would be great to understand this issue better.
+    - name: Check library dependencies
+      run: |
+        nuget install -Prerelease ${{ matrix.library-name }} -DependencyVersion Highest

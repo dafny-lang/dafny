@@ -1,0 +1,2 @@
+FAQNameConflict.dfy(6,23): Error: Wrong number of type arguments (1 instead of 0) passed to module: Result
+1 resolution/type errors detected in FAQNameConflict.dfy

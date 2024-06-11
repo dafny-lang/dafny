@@ -1,5 +1,0 @@
-These tests simply point to .dfy files that are part of the reference manual.
-Any substantial block of dafny code in the reference manual is pulled into a
-.dfy file that is both included in the RM and is included in tests here.
-This permits checking that the actual dafny text in the RM parses correctly and
-gives the errors that are described in the RM text.

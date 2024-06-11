@@ -1,0 +1,11 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+
+Dafny program verifier did not attempt verification
+Wrote textual form of target program to GroceryListPrinter.cs
+Additional output written to GroceryListPrinter-cs.dtr
+# Printing a grocery list
+   (2 items in the list)
+## Apple: 3 @ 1.00
+   (2 item(s) left)
+## Pear: 2 @ 1.50
+   (1 item(s) left)

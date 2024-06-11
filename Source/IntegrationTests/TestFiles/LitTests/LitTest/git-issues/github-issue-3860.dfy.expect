@@ -1,0 +1,2 @@
+github-issue-3860.dfy(7,16): Error: Duplicate use of deconstructor name in the same constructor: y
+1 resolution/type errors detected in github-issue-3860.dfy

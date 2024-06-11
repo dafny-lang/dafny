@@ -1,0 +1,2 @@
+git-issue-3377.dfy(4,25): Error: Methods with the :test attribute may not have input arguments
+1 resolution/type errors detected in git-issue-3377.dfy

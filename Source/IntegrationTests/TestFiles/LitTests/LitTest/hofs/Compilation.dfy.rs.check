@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the size for values of type `(dyn for<'a> Fn(&'a DafnyInt) -> DafnyInt + 'static)` cannot be known at compilation time

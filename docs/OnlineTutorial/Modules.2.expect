@@ -1,0 +1,2 @@
+text.dfy(9,11): Error: Function body type mismatch (expected A.T, got int)
+1 resolution/type errors detected in text.dfy

@@ -1,0 +1,15 @@
+Case A: 42
+Case B: true
+This is expected
+42
+true
+Got some:32
+Example1s are equal
+Example4s are equal
+Example1s are not equal
+Example4s are equal
+Example1s are not equal
+Example4s are not equal
+42
+330
+3

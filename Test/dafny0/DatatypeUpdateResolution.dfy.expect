@@ -1,6 +1,0 @@
-DatatypeUpdateResolution.dfy(12,22): Error: member 'non_destructor' does not exist in datatype 'MyDataType'
-DatatypeUpdateResolution.dfy(13,38): Error: member '40' does not exist in datatype 'MyDataType'
-DatatypeUpdateResolution.dfy(17,61): Error: duplicate update member 'otherbool'
-DatatypeUpdateResolution.dfy(19,23): Error: updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, 'otherbool' does not belong to 'MyNumericConstructor')
-DatatypeUpdateResolution.dfy(28,10): Error: member 'Make?' is not a destructor in datatype 'Dt'
-5 resolution/type errors detected in DatatypeUpdateResolution.dfy

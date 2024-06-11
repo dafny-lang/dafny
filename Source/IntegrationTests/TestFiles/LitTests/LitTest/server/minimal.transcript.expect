@@ -1,0 +1,7 @@
+# Reading from minimal.transcript
+
+Verifying A (correctness) ...
+  [1 proof obligation]  error
+transcript(3,9): Error: assertion might not hold
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]

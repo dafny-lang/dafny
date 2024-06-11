@@ -1,0 +1,24 @@
+// DisallowedGhost1.dfy
+
+method Test1()
+{
+  var first := 0;
+  var t := (ghost first := 123, 1 := 234);
+}
+
+method Test2()
+{
+  var t := (1 := 123, 2 := 234);
+}
+
+method Test3()
+{
+  var t := (1 := 123, 1 := 234);
+}
+DisallowedGhost1.dfy(7,18): Error: the binding named 'first' does not correspond to any formal parameter
+DisallowedGhost1.dfy(7,11): Error: datatype constructor parameter '0' at index 0 requires an argument of type T0
+DisallowedGhost1.dfy(12,20): Error: the binding named '2' does not correspond to any formal parameter
+DisallowedGhost1.dfy(12,11): Error: datatype constructor parameter '0' at index 0 requires an argument of type T0
+DisallowedGhost1.dfy(17,20): Error: duplicate binding for parameter name '1'
+DisallowedGhost1.dfy(17,11): Error: datatype constructor parameter '0' at index 0 requires an argument of type T0
+6 resolution/type errors detected in DisallowedGhost1.dfy

@@ -1,0 +1,66 @@
+18 0 10 11
+hello M, hello Class.P
+18 0 10 11
+hello M, hello Class.P
+-----
+18 0 10 12
+hello M, hello Dt.P
+18 0 10 12
+hello M, hello Dt.P
+-----
+18 0 10 13
+hello M, hello CoDatatype.P
+18 0 10 13
+hello M, hello CoDatatype.P
+-----
+18 0 10 15
+hello M, hello MyInt.P
+18 0 10 15
+hello M, hello MyInt.P
+-----
+18 0 10 16
+hello M, hello MyConstrainedInt.P
+18 0 10 16
+hello M, hello MyConstrainedInt.P
+-----
+18 0 10
+hello static-via-name M
+-----
+18 0 10
+hello static-via-name M
+18 0 10
+hello static-via-name M
+18 0 10
+hello static-via-name M
+18 0 10
+hello static-via-name M
+18 0 10
+hello static-via-name M
+=====
+18 0 10
+hello static-via-receiver M
+18 0 10
+hello static-via-receiver M
+-----
+18 0 10
+hello static-via-receiver M
+18 0 10
+hello static-via-receiver M
+-----
+18 0 10
+hello static-via-receiver M
+18 0 10
+hello static-via-receiver M
+-----
+18 0 10
+hello static-via-receiver M
+18 0 10
+hello static-via-receiver M
+-----
+18 0 10
+hello static-via-receiver M
+18 0 10
+hello static-via-receiver M
+-----
+23 23
+done

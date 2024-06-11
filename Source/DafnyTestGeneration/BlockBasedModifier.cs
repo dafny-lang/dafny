@@ -1,5 +1,14 @@
+// Copyright by the contributors to the Dafny Project
+// SPDX-License-Identifier: MIT
+
+#nullable disable
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
+using LiteralExpr = Microsoft.Boogie.LiteralExpr;
+using Program = Microsoft.Boogie.Program;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyTestGeneration {
 
@@ -8,62 +17,85 @@ namespace DafnyTestGeneration {
   /// that fail when a particular basic block is visited
   /// </summary>
   public class BlockBasedModifier : ProgramModifier {
+    private readonly Modifications modifications;
+    private Implementation/*?*/ implementation; // the implementation currently traversed
+    private Program/*?*/ program; // the original program
 
-    private string? implName; // name of the implementation currently traversed
-    private Program? program; // the original program
-    private List<ProgramModification> modifications = new();
+    public BlockBasedModifier(Modifications modifications) {
+      this.modifications = modifications;
+    }
 
     protected override IEnumerable<ProgramModification> GetModifications(Program p) {
-      modifications = new List<ProgramModification>();
-      VisitProgram(p);
-      return modifications;
-    }
-
-    public override Block VisitBlock(Block node) {
-      if (program == null || implName == null) {
-        return node;
-      }
-      base.VisitBlock(node);
-      if (node.cmds.Count == 0) { // ignore blocks with zero commands
-        return node;
-      }
-      node.cmds.Add(GetCmd("assert false;"));
-      var record = new BlockBasedModification(program,
-        ProcedureName ?? implName,
-        node.UniqueId, ExtractCapturedStates(node));
-      modifications.Add(record);
-      node.cmds.RemoveAt(node.cmds.Count - 1);
-      return node;
-    }
-
-    public override Implementation VisitImplementation(Implementation node) {
-      implName = node.Name;
-      if (ProcedureIsToBeTested(node.Name)) {
-        VisitBlockList(node.Blocks);
-      }
-      return node;
-    }
-
-    public override Program VisitProgram(Program node) {
-      program = node;
-      return base.VisitProgram(node);
+      return VisitProgram(p);
     }
 
     /// <summary>
-    /// Return the list of all states covered by the block.
-    /// A state is represented by the string recorded via :captureState
+    /// After inlining, several basic blocks might correspond to the same program state, i.e. location in the Dafny code
+    /// This method creates a mapping from such a state to all blocks that represent it
     /// </summary>
-    private static ISet<string> ExtractCapturedStates(Block node) {
-      HashSet<string> result = new();
-      foreach (var cmd in node.cmds) {
-        if (!(cmd is AssumeCmd assumeCmd)) {
+    private void PopulateStateToBlocksMap(Block block, Dictionary<string, HashSet<Block>> stateToBlocks) {
+      if (program == null || implementation == null) {
+        return;
+      }
+      var state = Utils.GetBlockId(block, DafnyInfo.Options);
+      if (state == null) {
+        return;
+      }
+      if (!stateToBlocks.ContainsKey(state)) {
+        stateToBlocks[state] = new();
+      }
+      stateToBlocks[state].Add(block);
+    }
+
+    private IEnumerable<ProgramModification> VisitImplementation(
+      Implementation node) {
+      implementation = node;
+      if (!ImplementationIsToBeTested(node) ||
+          !DafnyInfo.IsAccessible(node.VerboseName.Split(" ")[0])) {
+        yield break;
+      }
+      var testEntryNames = Utils.DeclarationHasAttribute(implementation, TestGenerationOptions.TestInlineAttribute)
+        ? TestEntries
+        : new() { implementation.VerboseName };
+      var blocks = node.Blocks.ToList();
+      blocks.Reverse();
+      var stateToBlocksMap = new Dictionary<string, HashSet<Block>>();
+      foreach (var block in node.Blocks) {
+        PopulateStateToBlocksMap(block, stateToBlocksMap);
+      }
+      foreach (var block in blocks) {
+        var state = Utils.GetBlockId(block, DafnyInfo.Options);
+        if (state == null) {
           continue;
         }
-        if (assumeCmd.Attributes?.Key == "captureState") {
-          result.Add(assumeCmd.Attributes?.Params?[0]?.ToString() ?? "");
+        foreach (var twinBlock in stateToBlocksMap[state]) {
+          twinBlock.cmds.Add(new AssertCmd(new Token(), new LiteralExpr(new Token(), false)));
+        }
+        var record = modifications.GetProgramModification(program, implementation,
+          Utils.AllBlockIds(block, DafnyInfo.Options).ToHashSet(),
+          testEntryNames, $"{implementation.VerboseName.Split(" ")[0]} ({state})");
+        if (record.IsCovered(modifications)) {
+          foreach (var twinBlock in stateToBlocksMap[state]) {
+            twinBlock.cmds.RemoveAt(twinBlock.cmds.Count - 1);
+          }
+          continue;
+        }
+        yield return record;
+        foreach (var twinBlock in stateToBlocksMap[state]) {
+          twinBlock.cmds.RemoveAt(twinBlock.cmds.Count - 1);
         }
       }
-      return result;
+
+    }
+
+    private IEnumerable<ProgramModification> VisitProgram(Program node) {
+      program = node;
+      var implementations = node.Implementations.ToList();
+      foreach (var implementation in implementations) {
+        foreach (var modification in VisitImplementation(implementation)) {
+          yield return modification;
+        }
+      }
     }
   }
 }

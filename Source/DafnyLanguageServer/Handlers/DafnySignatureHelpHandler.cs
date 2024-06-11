@@ -1,5 +1,4 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
+﻿using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
@@ -13,13 +12,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     // TODO this is a very basic implementation that only displays the signature when typing an opening parenthese.
     //      It should be enriched to show information about the actual parameter depending on the cursor's position.
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
     private readonly ISymbolGuesser symbolGuesser;
+    private DafnyOptions options;
 
-    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IDocumentDatabase documents, ISymbolGuesser symbolGuesser) {
+    public DafnySignatureHelpHandler(ILogger<DafnySignatureHelpHandler> logger, IProjectDatabase projects,
+      ISymbolGuesser symbolGuesser, DafnyOptions options) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.symbolGuesser = symbolGuesser;
+      this.options = options;
     }
 
     protected override SignatureHelpRegistrationOptions CreateRegistrationOptions(SignatureHelpCapability capability, ClientCapabilities clientCapabilities) {
@@ -29,40 +31,49 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public async override Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
-      if (document == null) {
+    public override async Task<SignatureHelp?> Handle(SignatureHelpParams request, CancellationToken cancellationToken) {
+      logger.LogDebug("received signature request for document {DocumentUri}", request.TextDocument.Uri);
+      var state = await projects.GetResolvedDocumentAsyncInternal(request.TextDocument);
+      if (state == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return null;
       }
-      return new SignatureHelpProcessor(symbolGuesser, document, request, cancellationToken).Process();
+      return new SignatureHelpProcessor(logger, symbolGuesser, state, request, cancellationToken, options).Process();
     }
 
     private class SignatureHelpProcessor {
+      private DafnyOptions options;
+      private readonly ILogger logger;
       private readonly ISymbolGuesser symbolGuesser;
-      private readonly DafnyDocument document;
+      private readonly IdeState state;
       private readonly SignatureHelpParams request;
       private readonly CancellationToken cancellationToken;
 
-      public SignatureHelpProcessor(ISymbolGuesser symbolGuesser, DafnyDocument document, SignatureHelpParams request, CancellationToken cancellationToken) {
+      public SignatureHelpProcessor(ILogger logger, ISymbolGuesser symbolGuesser, IdeState state,
+        SignatureHelpParams request,
+        CancellationToken cancellationToken, DafnyOptions options) {
+        this.logger = logger;
         this.symbolGuesser = symbolGuesser;
-        this.document = document;
+        this.state = state;
         this.request = request;
         this.cancellationToken = cancellationToken;
+        this.options = options;
       }
 
       public SignatureHelp? Process() {
-        if (!symbolGuesser.TryGetSymbolBefore(document, GetOpenParenthesePosition(), cancellationToken, out var symbol)) {
+        if (!symbolGuesser.TryGetSymbolBefore(state,
+              request.TextDocument.Uri.ToUri(), GetOpenParenthesisPosition(), cancellationToken, out var symbol)) {
+          logger.LogDebug($"Could not find signature help for {request.TextDocument.Uri}, version {state.Version}");
           return null;
         }
         return CreateSignatureHelp(symbol);
       }
 
-      private Position GetOpenParenthesePosition() {
+      private Position GetOpenParenthesisPosition() {
         return new Position(request.Position.Line, request.Position.Character - 1);
       }
 
-      private SignatureHelp? CreateSignatureHelp(ISymbol symbol) {
+      private SignatureHelp? CreateSignatureHelp(ILegacySymbol symbol) {
         var signatureInformation = symbol switch {
           MethodSymbol method => CreateSignatureInformation(method),
           FunctionSymbol function => CreateSignatureInformation(function),
@@ -81,7 +92,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           Label = symbol.Name,
           Documentation = new MarkupContent {
             Kind = MarkupKind.Markdown,
-            Value = $"```dafny\n{symbol.GetDetailText(cancellationToken)}\n```"
+            Value = $"```dafny\n{symbol.GetDetailText(options, cancellationToken)}\n```"
           },
         };
       }

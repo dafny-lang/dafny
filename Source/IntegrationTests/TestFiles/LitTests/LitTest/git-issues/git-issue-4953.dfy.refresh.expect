@@ -1,0 +1,6 @@
+git-issue-4953.dfy(6,17): Error: member 'NonExistingMember' does not exist in type 'seq'
+git-issue-4953.dfy(9,18): Error: member 'NonExistingMember' does not exist in type 'seq'
+git-issue-4953.dfy(14,13): Error: member 'NonExistingMember' does not exist in type 'seq'
+git-issue-4953.dfy(15,13): Error: member 'NonExistingMember' does not exist in type 'seq'
+git-issue-4953.dfy(16,17): Error: member 'NonExistingMember' does not exist in type 'seq'
+5 resolution/type errors detected in git-issue-4953.dfy

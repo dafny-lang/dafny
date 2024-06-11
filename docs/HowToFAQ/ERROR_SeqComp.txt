@@ -1,0 +1,4 @@
+ERROR_SeqComp.dfy(8,23): Error: function precondition might not hold
+ERROR_SeqComp.dfy(2,13): Related location
+
+Dafny program verifier finished with 0 verified, 1 error

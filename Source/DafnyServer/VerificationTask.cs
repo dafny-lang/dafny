@@ -6,10 +6,13 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   [Serializable]
   class VerificationTask {
+
     [DataMember]
     string[] args = null;
 
@@ -43,30 +46,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal static void SelfTest() {
+    internal static async Task SelfTest(DafnyOptions options, ExecutionEngine engine) {
       var task = new VerificationTask(new string[] { }, "<none>", "method selftest() { assert true; }", false);
       try {
-        task.Run();
-        Interaction.EOM(Interaction.SUCCESS, (string)null);
+        await task.Run(options, engine);
+        Interaction.Eom(options.OutputWriter, Interaction.SUCCESS, (string)null);
       } catch (Exception ex) {
-        Interaction.EOM(Interaction.FAILURE, ex);
+        Interaction.Eom(options.OutputWriter, Interaction.FAILURE, ex);
       }
     }
 
-    internal void Run() {
-      new DafnyHelper(args, filename, ProgramSource).Verify();
+    internal Task<bool> Run(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).Verify();
     }
 
-    internal void Symbols() {
-      new DafnyHelper(args, filename, ProgramSource).Symbols();
+    internal Task Symbols(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).Symbols();
     }
 
-    public void CounterExample() {
-      new DafnyHelper(args, filename, ProgramSource).CounterExample();
+    public Task CounterExample(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).CounterExample();
     }
 
-    public void DotGraph() {
-      new DafnyHelper(args, filename, ProgramSource).DotGraph();
+    public Task DotGraph(DafnyOptions options, ExecutionEngine engine) {
+      return new DafnyHelper(options, engine, args, filename, ProgramSource).DotGraph();
     }
 
     public string EncodeProgram(out string json) {
@@ -80,26 +83,26 @@ namespace Microsoft.Dafny {
       return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
     }
 
-    public void Marshal(string[] command) {
+    public void Marshal(TextWriter outputWriter, string[] command) {
       try {
         var b64Repr = EncodeProgram(out var json);
 
-        Console.WriteLine("# program source");
-        Console.Write(ProgramSource);
-        Console.WriteLine("# JSON encoding");
-        Console.WriteLine(json);
-        Console.WriteLine("# base64 encoding of JSON object");
-        Console.WriteLine(b64Repr);
+        outputWriter.WriteLine("# program source");
+        outputWriter.Write(ProgramSource);
+        outputWriter.WriteLine("# JSON encoding");
+        outputWriter.WriteLine(json);
+        outputWriter.WriteLine("# base64 encoding of JSON object");
+        outputWriter.WriteLine(b64Repr);
       } catch (Exception ex) {
         throw new ServerException("Serialization failed: {0}.", ex.Message);
       }
     }
 
-    public void Unmarshal(string[] command) {
-      Console.WriteLine($"# args: {Util.Comma(args)}");
-      Console.WriteLine($"# filename: {filename}");
-      Console.WriteLine($"# sourceIsFile: {sourceIsFile}");
-      Console.WriteLine(ProgramSource);
+    public void Unmarshal(TextWriter outputWriter, string[] command) {
+      outputWriter.WriteLine($"# args: {Util.Comma(args)}");
+      outputWriter.WriteLine($"# filename: {filename}");
+      outputWriter.WriteLine($"# sourceIsFile: {sourceIsFile}");
+      outputWriter.WriteLine(ProgramSource);
     }
   }
 }

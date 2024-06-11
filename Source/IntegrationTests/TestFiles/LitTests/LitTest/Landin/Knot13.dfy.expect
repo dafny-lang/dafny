@@ -1,0 +1,2 @@
+Knot13.dfy(19,11): Error: To prevent the creation of non-terminating functions, storing functions with read effects into memory is disallowed
+1 resolution/type errors detected in Knot13.dfy

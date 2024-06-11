@@ -1,0 +1,10 @@
+# Reading from unmarshal.transcript
+# args: /compile:0, /printTooltips, /timeLimit:20
+# filename: transcript
+# sourceIsFile: False
+method A(a:int) returns (b: int) {
+  b := a;
+  assert false;
+}
+
+[SUCCESS] [[DAFNY-SERVER: EOM]]

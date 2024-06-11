@@ -1,0 +1,2 @@
+ExternNegative2.dfy(24,24): Error: modules 'Mod1' and 'Mod2' both have CompileName 'Modx'
+1 resolution/type errors detected in ExternNegative2.dfy

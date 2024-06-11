@@ -1,0 +1,4 @@
+git-issue-3187a.dfy(5,10): Error: a const field should be initialized using ':=', not '='
+git-issue-3187a.dfy(7,10): Error: a local variable should be initialized using ':=', ':-', or ':|', not '='
+git-issue-3187a.dfy(8,20): Error: a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='
+3 parse errors detected in git-issue-3187a.dfy

@@ -1,29 +1,27 @@
-name: 'Test Report'
+name: "Integration Test Report"
+
 on:
   workflow_run:
-    workflows: ['Run XUnit tests', 'Build and Test']
+    workflows:
+      - Integration Tests (Reusable Workflow)
     types:
       - completed
+
 jobs:
   report:
-    name: "Download and Publish Test Results"
-    needs: build
+    name: Download and Publish Test Results
     runs-on: ubuntu-latest
     if: always()
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Download Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: artifacts
 
       - name: Publish Test Results
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results
-          path: 'artifacts/**/*.trx'
+          artifact: integration-test-results-ubuntu-20.04
+          name: Build and Test Results
+          path: "*.trx"
           reporter: dotnet-trx

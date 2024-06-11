@@ -1,11 +1,14 @@
 name: Test Release Downloads
 
-#### For a new release: Change 'ver' in the strategy
-
 on:
   release:
     types: [ published ]
-  workflow_dispatch: // For manual testing through the Actions UI
+  # For manual testing through the Actions UI
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -14,111 +17,56 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-18.04, macos-latest, windows-latest ]
+        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
+        os: [ ubuntu-latest, ubuntu-20.04, macos-13, windows-2019 ]
         include:
         - os:  'ubuntu-latest'
-          osn: 'ubuntu-16.04'
-        - os:  'ubuntu-18.04'
-          osn: 'ubuntu-16.04'
-        - os:  'macos-latest'
-          osn: 'osx'
-        - os:  'windows-latest'
-          osn: 'win'
-          ver: '3.3.0'
-    # There is no hosted environment for Unbuntu 14.04 or for debian
+          osn: 'ubuntu-20.04'
+        - os:  'ubuntu-20.04'
+          osn: 'ubuntu-20.04'
+        - os:  'macos-13'
+          osn: 'x64-macos-11'
+        - os:  'windows-2019'
+          osn: 'windows-2019'
+    # There is no hosted environment for Ubuntu 14.04 or for debian
 
-    # Java is installed by default, but we need to select 1.8
+    # Java is installed by default, but we need to select 18
 
     steps:
     - name: OS
       run: echo ${{ runner.os }} ${{ matrix.os }}
-    - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
+    - name: Set up JDK 18
+      uses: actions/setup-java@v4
       with:
-        java-version: 1.8
-
+        java-version: 18
+        distribution: corretto
     - name: Download ${{matrix.os}} releases
-      if: runner.os != 'Windows'
+      uses: dsaltares/fetch-gh-release-asset@master
+      with:
+        repo: dafny-lang/dafny
+        file: "dafny-.*-${{ matrix.osn }}\\.zip"
+        regex: true
+        target: "./"
+    - run: ls
+    - if: runner.os != 'Windows'
       run: |
-        curl --silent "https://api.github.com/repos/dafny-lang/dafny/releases/latest" \
-          --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
-          | grep 'browser_download_url' > tmp.curl.out
-        wget -q `grep "${{matrix.osn}}" tmp.curl.out | sed -e 's@"browser_download_url":@@' -e 's@"@@g'`
         unzip dafny*.zip && rm dafny*.zip
     - if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        echo $Env:URL1
-        Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Expand-Archive dafny*.zip
-        mv dafnyX/dafny dafny
-      env:
-        URL1: https://github.com/dafny-lang/dafny/releases/download/v${{matrix.ver}}/dafny-${{matrix.ver}}-x64-${{matrix.osn}}.zip
+        mv dafny*/dafny dafny
 
-    ## Create a simple smoke test program
-    - name: Make test program
-      run: |
-        echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
-        echo "method m() { assert false; }" > b.dfy
-        echo "42" > expect.txt
-    ## Check that dafny and z3 run and that a simple program verifies or fails
+    ## Record versions, checking that dafny runs
     - name: Versions
       run: |
-        dafny/z3/bin/z3 -version
+        dafny/z3/bin/z3-4.8.5 -version
+        dafny/z3/bin/z3-4.12.1 -version
         dafny/dafny -version
-    - name: Check
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check - non Windows
-      if: runner.os != 'Windows'
-      run: |
-        dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check - Windows
-      if: runner.os == 'Windows'
-      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
-    - name: Check bad - non Windows
-      if: runner.os != 'Windows'
-      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE"
-    - name: Check bad - Windows
-      if: runner.os == 'Windows'
-      run: (dafny/Dafny.exe /compile:0 b.dfy || echo "EXPECTED FAILURE") ; exit 0
+    
     ## Check that a simple program compiles and runs on each supported platform
-    - name: Check C# compile
-      run: |
-        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-    - name: Check Go compile
-      run: |
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-    - name: Running Go artifacts
-      if: runner.os != 'Windows'
-      run: |
-        GOPATH=$PWD/a-go go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Running Go artifacts - Windows
-      shell: pwsh
-      if: runner.os == 'Windows'
-      run: |
-        $Env:GOPATH="$PWD/a-go"
-        go run a-go/src/a.go > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Javascript compile
+    - name: run quicktests
       run: |
         npm install bignumber.js
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java compile
-      run: |
-        (ls dafny/DafnyRuntime.jar || echo NO DafnyRuntime.jar )
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy
-    - name: Check Java artifacts
-      if: runner.os != 'Windows'
-      run: |
-        java -cp a-java:dafny/DafnyRuntime.jar a > actual.txt
-        diff expect.txt actual.txt
-    - name: Check Java artifacts - Windows
-      if: runner.os == 'Windows'
-      run: |
-        java -cp "a-java;dafny/DafnyRuntime.jar" a > actual.txt
-        diff expect.txt actual.txt
+        dafny/quicktest.sh > log.txt
+        diff log.txt dafny/quicktest.out

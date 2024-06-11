@@ -1,0 +1,6 @@
+
+Dafny program verifier finished with 1 verified, 0 errors
+M: FAILED
+	git-issue-3839c.dfy(6,4): Expected equality
+[Program halted] git-issue-3839c.dfy(4,0): Test failures occurred: see above.
+

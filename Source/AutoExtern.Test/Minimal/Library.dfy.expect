@@ -1,0 +1,19 @@
+﻿
+  trait {:compile false} {:extern} Intf {
+    var {:extern "Prop"} Intf_Prop: System.String // interface property
+  }
+
+  trait {:compile false} {:extern} Impl extends Intf {
+    var Field: System.int32
+    var Prop: System.String // property
+  }
+
+  trait {:compile false} {:extern} ICanClone<T> {
+  }
+
+  trait {:compile false} {:extern} Base {
+  }
+
+  trait {:compile false} {:extern} Derived {
+  }
+

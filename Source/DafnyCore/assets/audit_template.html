@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>report</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto}
+    thead {
+      position: sticky;
+      top: 0px;
+      background: white;
+    }
+    table tr:nth-child(odd) td {
+      background-color: #EEEEEE;
+    }
+  </style>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<script src="https://code.jquery.com/jquery-3.6.1.min.js"></script>
+<script src="https://unpkg.com/sorttable@1.0.2/sorttable.js" crossorigin></script>
+<table>
+{{TABLE}}
+</table>
+<script>$( "table" ).last().addClass( "sortable" );</script>
+</body>
+</html>

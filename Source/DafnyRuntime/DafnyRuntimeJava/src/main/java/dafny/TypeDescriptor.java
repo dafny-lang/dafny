@@ -11,14 +11,20 @@ import java.util.Collection;
 import java.util.function.Function;
 
 public abstract class TypeDescriptor<T> {
-    final Class<T> javaClass;
+    final Class<?> boxedClass;
+    final Class<?> unboxedClass;
 
-    TypeDescriptor(Class<T> javaClass) {
-        this.javaClass = javaClass;
+    TypeDescriptor(Class<?> javaClass) {
+        this(javaClass, javaClass);
+    }
+
+    TypeDescriptor(Class<?> boxedClass, Class<?> unboxedClass) {
+        this.boxedClass = boxedClass;
+        this.unboxedClass = unboxedClass;
     }
 
     public final boolean isPrimitive() {
-        return javaClass.isPrimitive();
+        return unboxedClass.isPrimitive();
     }
 
     public abstract T defaultValue();
@@ -29,11 +35,11 @@ public abstract class TypeDescriptor<T> {
 
     public final Object newArray(int length) {
         // Unlike most others, this Array operation is fast
-        return java.lang.reflect.Array.newInstance(javaClass, length);
+        return java.lang.reflect.Array.newInstance(unboxedClass, length);
     }
 
     public final Object newArray(int ... dims) {
-        return java.lang.reflect.Array.newInstance(javaClass, dims);
+        return java.lang.reflect.Array.newInstance(unboxedClass, dims);
     }
 
     public abstract T getArrayElement(Object array, int index);
@@ -60,7 +66,7 @@ public abstract class TypeDescriptor<T> {
         System.arraycopy(src, srcPos, dest, destPos, length);
     }
 
-    public abstract boolean arrayDeepEquals(Object array1, Object array2);
+    public abstract boolean arrayShallowEquals(Object array1, Object array2);
 
     // TODO: Benchmark this to see if it's slow (better to copy and paste for
     // each class so that setArrayElement is inlined?)
@@ -75,7 +81,7 @@ public abstract class TypeDescriptor<T> {
 
     @Override
     public String toString() {
-        return javaClass.toString();
+        return boxedClass.toString();
     }
 
     public static <T> TypeDescriptor<T> reference(Class<T> javaClass) {
@@ -88,8 +94,13 @@ public abstract class TypeDescriptor<T> {
     }
 
     public static <T> TypeDescriptor<T> referenceWithInitializer(
-            Class<T> javaClass, Initializer<T> initializer) {
+            Class<?> javaClass, Initializer<T> initializer) {
         return new ReferenceType<T>(javaClass, initializer);
+    }
+
+    public static <T> TypeDescriptor<T> referenceWithInitializerAndTypeDescriptor(
+            TypeDescriptor<T> typeDescriptor, Initializer<T> initializer) {
+        return new ReferenceType<T>(typeDescriptor.boxedClass, initializer);
     }
 
     public static TypeDescriptor<Byte> byteWithDefault(byte d) {
@@ -116,6 +127,10 @@ public abstract class TypeDescriptor<T> {
         return new CharType(d);
     }
 
+    public static TypeDescriptor<CodePoint> unicodeCharWithDefault(int d) {
+        return new UnicodeCharType(CodePoint.valueOf(d));
+    }
+
     @FunctionalInterface
     public interface Initializer<T> {
         T defaultValue();
@@ -127,6 +142,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<Long> LONG = new LongType(0L);
     public static final TypeDescriptor<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
     public static final TypeDescriptor<Character> CHAR = new CharType('D');  // See CharType.DefaultValue in Dafny source code
+    public static final TypeDescriptor<CodePoint> UNICODE_CHAR = new UnicodeCharType(CodePoint.valueOf((int)'D'));
 
     public static final TypeDescriptor<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -141,6 +157,7 @@ public abstract class TypeDescriptor<T> {
     public static final TypeDescriptor<long[]> LONG_ARRAY = reference(long[].class);
     public static final TypeDescriptor<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
     public static final TypeDescriptor<char[]> CHAR_ARRAY = reference(char[].class);
+    public static final TypeDescriptor<int[]> UNICODE_CHAR_ARRAY = reference(int[].class);
 
     public static <A, R> TypeDescriptor<Function<A, R>> function(TypeDescriptor<A> argType, TypeDescriptor<R> returnType) {
         @SuppressWarnings("unchecked")
@@ -183,7 +200,7 @@ public abstract class TypeDescriptor<T> {
         private final Initializer<T> initializer;
         private TypeDescriptor<?> arrayType;
 
-        public ReferenceType(Class<T> javaClass, Initializer<T> initializer) {
+        public ReferenceType(Class<?> javaClass, Initializer<T> initializer) {
             super(javaClass);
 
             assert !javaClass.isPrimitive();
@@ -198,7 +215,7 @@ public abstract class TypeDescriptor<T> {
 
         @Override
         public boolean isInstance(Object object) {
-            return javaClass.isInstance(object);
+            return boxedClass.isInstance(object);
         }
 
         @Override
@@ -241,12 +258,12 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             @SuppressWarnings("unchecked")
             T[] castArray1 = (T[]) array1;
             @SuppressWarnings("unchecked")
             T[] castArray2 = (T[]) array2;
-            return Arrays.deepEquals(castArray1, castArray2);
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -294,7 +311,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             byte[] castArray1 = (byte[]) array1, castArray2 = (byte[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -344,7 +361,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             short[] castArray1 = (short[]) array1, castArray2 = (short[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -394,7 +411,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -444,7 +461,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             long[] castArray1 = (long[]) array1, castArray2 = (long[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -494,7 +511,7 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             boolean[] castArray1 = (boolean[]) array1, castArray2 = (boolean[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
@@ -544,8 +561,58 @@ public abstract class TypeDescriptor<T> {
         }
 
         @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
+        public boolean arrayShallowEquals(Object array1, Object array2) {
             char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
+            return Arrays.equals(castArray1, castArray2);
+        }
+    }
+
+    private static final class UnicodeCharType extends TypeDescriptor<CodePoint> {
+        private final CodePoint DEFAULT;
+
+        public UnicodeCharType(CodePoint d) {
+            super(CodePoint.class, Integer.TYPE);
+            DEFAULT = d;
+        }
+
+        @Override
+        public CodePoint defaultValue() {
+            return DEFAULT;
+        }
+
+        @Override
+        public boolean isInstance(Object object) {
+            return object instanceof CodePoint;
+        }
+
+        @Override
+        public TypeDescriptor<?> arrayType() {
+            return UNICODE_CHAR_ARRAY;
+        }
+
+        @Override
+        public CodePoint getArrayElement(Object array, int index) {
+            return CodePoint.valueOf(((int[]) array)[index]);
+        }
+
+        @Override
+        public void setArrayElement(Object array, int index, CodePoint value) {
+            ((int[]) array)[index] = value.value();
+        }
+
+        @Override
+        public Object cloneArray(Object array) {
+            return ((int[]) array).clone();
+        }
+
+        @Override
+        public void fillArray(Object array, CodePoint value) {
+            Arrays.fill((int[]) array, value.value());
+        }
+
+        @Override
+        public boolean arrayShallowEquals(Object array1, Object array2) {
+            int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
     }

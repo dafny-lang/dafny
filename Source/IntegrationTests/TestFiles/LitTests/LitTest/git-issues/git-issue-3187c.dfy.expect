@@ -1,0 +1,2 @@
+git-issue-3187c.dfy(6,15): Error: a mutable field may not have an initializer
+1 parse errors detected in git-issue-3187c.dfy

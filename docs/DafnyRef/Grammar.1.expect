@@ -1,0 +1,4 @@
+text.dfy(3,11): Error: missing semicolon at end of statement
+text.dfy(3,16): Error: missing semicolon at end of statement
+text.dfy(5,2): Error: rbrace expected
+3 parse errors detected in text.dfy

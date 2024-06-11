@@ -1,4 +1,5 @@
 using System.IO;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
@@ -11,12 +12,15 @@ namespace XUnitExtensions.Lit {
       this.rhs = rhs;
     }
 
-    public (int, string, string) Execute(ITestOutputHelper outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
-      var (exitCode, output, error) = lhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
-      if (exitCode == 0) {
-        return (exitCode, output, error);
+    public async Task<int> Execute(TextReader inputReader,
+      TextWriter outputWriter, TextWriter errorWriter) {
+      var leftExitCode = await lhs.Execute(inputReader, outputWriter, errorWriter);
+      if (leftExitCode == 0) {
+        return leftExitCode;
       }
-      return rhs.Execute(outputHelper, inputReader, outputWriter, errorWriter);
+
+      var rightExitCode = await rhs.Execute(inputReader, outputWriter, errorWriter);
+      return rightExitCode;
     }
 
     public override string ToString() {

@@ -1,4 +1,6 @@
-<p></p> <!-- avoids duplicate title -->
+---
+title: Automatic Initialization of Variables
+---
 
 Automatic Initialization of Variables
 =====================================
@@ -10,16 +12,14 @@ enforce that each value assigned to a variable is indeed a value of that variabl
 type. Since the type of a variable never changes, this ensures type safety, provided
 a variable is assigned before it is used. But what about any uses before then?
 
-If a variable is used before it has been assigned, Dafny still arranges for the
-variable to be initialized with _some_ value of the variable's type.[^fn-determinism]
+If a variable is used before it has been assigned, Dafny still--in certain situations,
+like for array elements or when a variable is explicitly assigned `*`--arranges for
+the variable to be initialized with _some_ value of the variable's type.
 To accomplish this, the compiler needs to have the ability to emit an expression that
 produces a value of a given type. This is possible for many, but not all, types.
 
 This document describes for which types the compiler can produce initializing
 expressions and the mechanism used for doing so.
-
-[^fn-determinism]: The command-line option `/definiteAssignment:3` tells Dafny to
-    instead generate an error if a variable is not assigned by the program.
 
 Types
 -----
@@ -38,7 +38,7 @@ Dafny supports the following kinds of types:
   subset is characterized by a constraint on `B`)
 
 In addition, there are _type synonyms_ (which are just that--synonyms for other types) and
-_opaque types_ (which cannot be compiled, so they don't play a role here).
+_abstract types_ (which cannot be compiled, so they don't play a role here).
 
 Notes:
 * `nat` is a built-in subset type of `int`
@@ -68,7 +68,7 @@ type                            | C# target type
 `int`                           | `BigInteger`
 `real`                          | `BigRational`
 `bool`                          | `bool`
-`char`                          | `char`
+`char`                          | `char` (for `/unicodeChar:0`)<br>`Rune` (for `/unicodeChar:1`)
 bitvectors                      | `byte`, `ushort`, `uint`, `ulong`, or `BigInteger`
 `ORDINAL`                       | `BigInteger`
 integer-based `newtype`         | bounded C# integer or `BigInteger`
@@ -125,13 +125,16 @@ Auto-init types
 ---------------
 
 A type is called an _auto-init type_ if it is legal for a program to use a variable of
-that type before the variable has been initialized.
+that type before the variable has been initialized (or, for local variables, if the
+variable has only been assigned `*`).
 
 For example, `char` is an auto-init type. Therefore, the following is a legal program
 snippet:
 
-    var ch: char;
-    print ch, "\n";  // this uses ch before ch has been explicitly assigned
+    var ch: char := *;
+    print ch, "\n";  // this uses ch at a time when ch has only been assigned *
+    var arr: array<char> := new char[100];
+    print arr[5], "\n";  // this uses arr[5] before ch has been explicitly assigned
 
 A compiler is permitted to assign _any_ value to `ch`, so long as that value is of
 type `char`. In fact, the compiler is free to emit code that chooses a different
@@ -157,14 +160,14 @@ type                                             | default-valued expression
 `int`                                            | `BigInteger.Zero`
 `real`                                           | `BigRational.ZERO`
 `bool`                                           | `false`
-`char`                                           | `D`
+`char`                                           | `D` (because `\0` is not visible when printed as part of a string, so `D` leads to fewer surprises)
 bitvectors                                       | `0` or `BigInteger.Zero`
 `ORDINAL`                                        | `BigInteger.Zero`
 integer-based `newtype` without `witness` clause | same as for base type, cast appropriately
 real-based `newtype` without `witness` clause    | same as for base type, cast appropriately
 `newtype` `NT` with `witness` clause             | `NT.Witness`
 possibly-null reference types                    | `null`
-non-null array types                             | empty array of the appropriate type
+non-null array types                             | array of the appropriate type with every dimension having length 0
 type parameter `T`                               | `td_T.Default()`
 collection type `C<TT>`                          | `C<TT>.Empty`
 datatype or co-datatype `D<TT>`                  | `D<TT>.Default(E, ...)`
@@ -221,7 +224,7 @@ public static readonly B Witness = W;
 Each datatype and co-datatype has a _grounding constructor_. For a `datatype`, the grounding
 constructor is selected when the resolver ascertains that the datatype is nonempty. For a
 `codatatype`, the selection of the grounding constructor lacks sophistication--it is just the
-first of the given constructors.
+first of the given constructors. (Note, the grounding constructor might be ghost.)
 
 If the datatype is not an auto-init type, then there's nothing more to say about its default
 value. If it is an auto-init type, then the following explanations apply.
@@ -241,7 +244,10 @@ public static DT<TT> Default(T e, ...) {
 ```
 
 The parameters to this `Default` method are the default values for each of the type parameters
-used by the grounding constructor.
+used by the grounding constructor. (If the datatype's type parameters include some auto-init
+type parameters, then type descriptors for them are also passed in to both `Default` and
+`create_GroundingCtor`, not illustrated in the example just shown. More about such type descriptors
+in a section below.)
 
 If the (co-)datatype has no type parameters (note: that is, no type parameters at all--the
 "used parameters" are not involved here), then the default value is pre-computed and reused:
@@ -375,8 +381,7 @@ public static Dafny.TypeDescriptor<D<TT>> _TypeDescriptor(Dafny.TypeDescriptor<T
 }
 ```
 
-where the list of type parameters denoted by `T, ...` are the auto-init type parameters from `TT`.
-
+where the list of type parameters denoted by `T, ...` are the "used" type parameters from `TT`.
 
 ## Subset types
 
@@ -448,6 +453,15 @@ class Cl<T> {
 }
 ```
 
+### Type parameter of a (co-)datatype
+
+If `T` is a type parameter of a (co-)datatype, then `td_T` is a field of the object
+representing each (co-)datatype value.
+
+### Type parameter of a `newtype`
+
+Newtypes don't take type parameters.
+
 ### Type parameters of a trait
 
 To obtain type descriptors in function and method implementations that are given
@@ -455,7 +469,7 @@ in a trait, the function or method definition compiled into the companion class
 takes additional parameters that represent type descriptors for the type parameters
 of the trait.
 
-### Type parameter of a class or trait used in a static method or function
+### Type parameter of a class, trait, (co-)datatype, or abstract type used in a static method or static function
 
 In C#, the type parameters of a class are available in static methods. However,
 any type descriptors of the class are stored in instance fields, since the target
@@ -479,12 +493,6 @@ class Class<A> {
   static method M(Dafny.TypeDescriptor<A> td_A, BigInteger x)
 }
 ```
-
-### Type parameter of a `newtype` or (co-)datatype
-
-If `T` is a type parameter of a (co-)datatype, then the target code for any function
-or method takes additional parameters that represent type descriptors for the type
-parameters of the enclosing type.
 
 Type parameters and type descriptors for each type
 --------------------------------------------------
@@ -514,7 +522,7 @@ TYPE                                | TP  | TD  | TP  | TD  | TP  | TD   | TP  |
   instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
   static member `<B(0)>`            | B   | B   | B   | B   |     | B    |     | B   |
 `datatype<A(0)>`
-  instance member `<B(0)>`          | B   | A,B | B   | A,B |     | A,B  |     | A,B |
+  instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
   static member `<B(0)>`            | B   | A,B | A,B | A,B |     | A,B  |     | A,B |
 `trait<A(0)>`
   instance member `<B(0)>`          | B   | B   | B   | B   |     | B    |     | B   |
@@ -527,7 +535,7 @@ TYPE                                | TP  | TD  | TP  | TD  | TP  | TD   | TP  |
 *) type descriptors for functions don't actually seem necessary (but if functions have them,
 then const's need them, too)
 
-If the type parameters `A` and `B` does not have the `(0)` characteristic, then it is dropped
+If a type parameter among `A` and `B` does not have the `(0)` characteristic, then it is dropped
 from the TD column.
 
 This table is implemented in the `TypeArgDescriptorUse` method in the compiler.

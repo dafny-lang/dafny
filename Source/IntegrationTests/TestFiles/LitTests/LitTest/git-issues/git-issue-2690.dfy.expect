@@ -1,0 +1,12 @@
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+
+Dafny program verifier finished with 3 verified, 0 errors
+2 in seq? true
+2 in seq? true
+All right
+Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
+
+Dafny program verifier did not attempt verification
+2 in seq? true
+2 in seq? true
+All right

@@ -22,7 +22,7 @@ class BigRationalTest {
 
   @Test
   void testValues() {
-    assertEquals("(10.0 / 2.0)", tt.toString());
+    assertEquals("5.0", tt.toString());
   }
 
   @Test
@@ -31,7 +31,7 @@ class BigRationalTest {
     assertEquals("(38.0 / 7.0)", tt.add(ts).reduce().toString());
     assertEquals("1.0", tt.add(ntf).toString());
     assertEquals("(-3.0 / 7.0)", ts.negate().toString());
-    assertEquals("(20.0 / 5.0)", ntf.negate().toString());
+    assertEquals("4.0", ntf.negate().toString());
     assertEquals("(-64.0 / 14.0)", ts.subtract(tt).toString());
     assertEquals("(155.0 / 35.0)", ts.subtract(ntf).toString());
     assertEquals("(30.0 / 14.0)", ts.multiply(tt).toString());

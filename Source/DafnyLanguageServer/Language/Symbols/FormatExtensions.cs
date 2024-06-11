@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
@@ -29,7 +30,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <returns>The text representation of the variable.</returns>
     public static string AsText(this IVariable variable) {
       var ghost = variable.IsGhost ? "ghost " : "";
-      return $"{ghost}{variable.Name}: {variable.Type}";
+      string type;
+      try {
+        type = variable.Type.ToString();
+      } catch (Exception e) {
+        type = $"<Internal error: {e.Message}>";
+      }
+      return $"{ghost}{variable.Name}: {type}";
     }
 
     /// <summary>
@@ -37,10 +44,10 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// </summary>
     /// <param name="type">The type to get a text representation of.</param>
     /// <returns>The text representation of the type.</returns>
-    public static string AsText(this Type type) {
+    public static string AsText(this Type type, DafnyOptions options) {
       // TODO Currently a copy of "ToString()".
       // TODO Use the module definition for the name resolution?
-      return type.TypeName(null, false);
+      return type.TypeName(options, null, false);
     }
   }
 }

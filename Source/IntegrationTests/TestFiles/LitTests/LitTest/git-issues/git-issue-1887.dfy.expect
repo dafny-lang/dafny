@@ -1,0 +1,3 @@
+git-issue-1887.dfy(6,9): Error: sequence has type seq<T> which is incompatible with expected type seq<char> (element type T is incompatible with char)
+git-issue-1887.dfy(11,8): Error: multi-selection has type seq<T> which is incompatible with expected type seq<char>
+2 resolution/type errors detected in git-issue-1887.dfy

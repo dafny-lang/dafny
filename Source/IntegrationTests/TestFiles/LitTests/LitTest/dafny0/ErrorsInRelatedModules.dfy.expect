@@ -1,0 +1,15 @@
+ErrorsInRelatedModules.dfy(9,29): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ErrorsInRelatedModules.dfy(23,31): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ErrorsInRelatedModules.dfy(22,11): Error: not resolving module 'OuterModule' because there were errors in resolving its nested module 'NestedModule'
+ErrorsInRelatedModules.dfy(34,29): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ErrorsInRelatedModules.dfy(34,29): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ErrorsInRelatedModules.dfy(59,21): Error: module I does not exist (position 1 in path Middle.I)
+ErrorsInRelatedModules.dfy(65,27): Error: Type or type parameter is not declared in this scope: UndeclaredType (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ErrorsInRelatedModules.dfy(129,17): Error: RHS (of type bool) not assignable to LHS (of type int)
+ErrorsInRelatedModules.dfy(138,17): Error: RHS (of type bool) not assignable to LHS (of type int)
+ErrorsInRelatedModules.dfy(151,8): Error: duplicate name of top-level declaration: EverythingHasTheSameName
+ErrorsInRelatedModules.dfy(150,8): Related location
+ErrorsInRelatedModules.dfy(152,11): Error: duplicate name of top-level declaration: EverythingHasTheSameName
+ErrorsInRelatedModules.dfy(150,8): Related location
+ErrorsInRelatedModules.dfy(151,8): Error: a module that already contains a top-level declaration 'EverythingHasTheSameName?' is not allowed to declare a reference type (class) 'EverythingHasTheSameName'
+12 resolution/type errors detected in ErrorsInRelatedModules.dfy

@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/4127
+// CHECK-L: SyntaxError: too many nested parentheses

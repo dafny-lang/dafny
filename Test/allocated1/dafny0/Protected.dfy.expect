@@ -1,7 +1,0 @@
-Protected.dfy(21,19): Error: assertion violation
-Protected.dfy(35,17): Error: assertion violation
-Protected.dfy(39,15): Error: assertion violation
-Protected.dfy(52,19): Error: assertion violation
-Protected.dfy(59,19): Error: assertion violation
-
-Dafny program verifier finished with 3 verified, 5 errors

@@ -6,24 +6,15 @@
       <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
-      <PackageVersion>1.1.0</PackageVersion>
-      <TargetFramework>net5.0</TargetFramework>
+      <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
       <OutputPath>..\..\Binaries\</OutputPath>
+      <LangVersion>7.3</LangVersion>
+      <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
     <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="DafnyRuntime.cs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
-    <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntimeJava\build\libs\DafnyRuntime.jar" Link="DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,14 +25,34 @@
   <ItemGroup>
     <Folder Include="DafnyRuntimeJava\build\libs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafny.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafny_test.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafnyFromDafny.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\System_\System_.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\go.mod">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <PropertyGroup>
-    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime.jar</DafnyRuntimeJar>
+    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.6.0.jar</DafnyRuntimeJar>
   </PropertyGroup>
   <Target Name="BuildDafnyRuntimeJar" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFile);@(DafnyRuntimeJavaInputFile)" Outputs="$(DafnyRuntimeJar)">
     
     <Message Text="Compiling DafnyRuntimeJava to $(DafnyRuntimeJar)..." Importance="high" />
-    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew -q clean build" />
-    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew.bat -q clean build" />
+    <!-- For some reason the DafnyRuntime.jar was often not (yet?) created after this Target was run, leading to build failures. 
+       We've removed the 'clean' step that was before 'build', so the DafnyRuntime.jar from a previous run can be used. -->
+    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="!$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew build" />
+    <Exec WorkingDirectory="DafnyRuntimeJava" Condition="$([MSBuild]::IsOSPlatform('Windows'))" Command="./gradlew.bat build" />
     <ItemGroup>
       <!-- Register the generated file to be deleted when cleaning -->
       <FileWrites Include="$(DafnyRuntimeJar)" />

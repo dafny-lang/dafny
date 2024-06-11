@@ -1,0 +1,2 @@
+RefreshResolverFails.dfy(8,15): Error: RHS (of type Trait) not assignable to LHS (of type Class)
+1 resolution/type errors detected in RefreshResolverFails.dfy

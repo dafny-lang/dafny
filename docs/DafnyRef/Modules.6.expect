@@ -1,0 +1,2 @@
+text.dfy(1,7): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): import A -> import B -> import A
+1 resolution/type errors detected in text.dfy

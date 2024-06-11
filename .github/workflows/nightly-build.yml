@@ -1,0 +1,33 @@
+
+# Scheduled nightly build
+#
+# Scheduled workflows only ever trigger for the default branch,
+# but we need to run nightly jobs on multiple branches.
+# This workflow therefore triggers a reusable workflow
+# on every branch that needs to be protected with the nightly deep-test mechanism,
+# and ensures which ever branch contains the next planned release
+# publishes the nightly prerelease.
+#
+# The if at the beginning of each job terminates the workflow immediately on any repo (like a fork) that is not the main
+# dafny-lang/dafny repo. This stops such forks from running this workflow and failing (for lack of a secret) the attempt to
+# publish a nightly build themselves.
+
+name: Nightly test and release workflow
+
+on:
+  schedule:
+    # Chosen to be hopefully outside of business hours for most contributors'
+    # time zones, and not on the hour to avoid heavy scheduled-job times:
+    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+    - cron: "30 14 * * *"
+  workflow_dispatch:
+
+jobs:
+  nightly-build-for-master:
+    if: github.repository_owner == 'dafny-lang'
+    uses: ./.github/workflows/nightly-build-reusable.yml
+    with:
+      ref: master
+      publish-prerelease: true
+    secrets:
+      nuget_api_key: ${{ secrets.NUGET_API_KEY }}

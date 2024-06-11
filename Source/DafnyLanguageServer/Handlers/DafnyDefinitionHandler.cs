@@ -14,11 +14,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// </summary>
   public class DafnyDefinitionHandler : DefinitionHandlerBase {
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
+    private readonly IProjectDatabase projects;
 
-    public DafnyDefinitionHandler(ILogger<DafnyDefinitionHandler> logger, IDocumentDatabase documents) {
+    public DafnyDefinitionHandler(ILogger<DafnyDefinitionHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
     }
     protected override DefinitionRegistrationOptions CreateRegistrationOptions(DefinitionCapability capability, ClientCapabilities clientCapabilities) {
       return new DefinitionRegistrationOptions {
@@ -26,33 +26,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       };
     }
 
-    public async override Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken) {
-      var document = await documents.GetDocumentAsync(request.TextDocument);
-      if (document == null) {
+    public override async Task<LocationOrLocationLinks> Handle(DefinitionParams request, CancellationToken cancellationToken) {
+      var state = await projects.GetResolvedDocumentAsyncNormalizeUri(request.TextDocument);
+      if (state == null) {
         logger.LogWarning("location requested for unloaded document {DocumentUri}", request.TextDocument.Uri);
         return new LocationOrLocationLinks();
       }
-      if (!document.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
+
+      var result = state.SymbolTable.GetDeclaration(request.TextDocument.Uri.ToUri(), request.Position);
+      if (result == null) {
         logger.LogDebug("no symbol was found at {Position} in {Document}", request.Position, request.TextDocument);
         return new LocationOrLocationLinks();
       }
-      var location = GetLspLocation(document, symbol);
-      if (location == null) {
-        logger.LogDebug("failed to resolve the location of the symbol {SymbolName} at {Position} in {Document}",
-          symbol.Name, request.Position, request.TextDocument);
-        return new LocationOrLocationLinks();
-      }
-      return new[] { location };
-    }
-
-    private static LocationOrLocationLink? GetLspLocation(DafnyDocument document, ISymbol symbol) {
-      if (document.SymbolTable.TryGetLocationOf(symbol, out var location)) {
-        return new Location {
-          Uri = location.Uri,
-          Range = location.Name
-        };
-      }
-      return null;
+      return new[] { new LocationOrLocationLink(result) };
     }
   }
 }

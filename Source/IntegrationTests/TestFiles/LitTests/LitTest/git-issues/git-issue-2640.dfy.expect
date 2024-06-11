@@ -1,0 +1,13 @@
+git-issue-2640.dfy(10,15): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(19,8): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(38,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(45,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(56,10): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(65,17): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(73,22): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(82,28): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(90,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(90,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+git-issue-2640.dfy(112,14): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
+
+Dafny program verifier finished with 3 verified, 11 errors

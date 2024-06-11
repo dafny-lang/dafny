@@ -1,0 +1,16 @@
+name: Documentation error or request
+description: Request change or addition to Dafny documentation
+labels: ["part: documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your suggested documentation improvement!
+  - type: textarea
+    id: what-do-you-want
+    attributes:
+      label: What change in documentation do you suggest?
+      description: Describe the incorrect or desired documentation here.
+      placeholder: I suggest X
+    validations:
+      required: true
