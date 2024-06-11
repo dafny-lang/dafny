@@ -25,6 +25,10 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
 
       // Should cancel the previous request.
       ApplyChange(ref documentItem, new Range((12, 9), (12, 23)), "true");
+
+      // Next line is only to gather more information for solving https://github.com/dafny-lang/dafny/issues/5436 
+      await WaitUntilResolutionFinished(documentItem);
+
       await AssertNothingIsQueued(documentItem);
     }
 
