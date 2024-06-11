@@ -21,7 +21,7 @@ namespace ConstInit {
   public partial class U {
     public U(bool b) {
       d = new C();
-      _i_e = new C();
+      _e = new C();
     }
   }
 
