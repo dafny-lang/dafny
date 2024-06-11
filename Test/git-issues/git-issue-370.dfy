@@ -10,38 +10,30 @@
 // to be good, so this test file is meant to alert us to any changes, in
 // case we then want to revisit this issue in some way.
 
-datatype T = T(x: int)
 datatype S = S(u: int, v: int, w: int, x: int, y: int, z: int)
 
-predicate a(t: T)
+predicate a(s: S)
 
-predicate WellFormed(t: T) {
-  && a(t)
-}
-
-function Func(t: T): S
-  requires WellFormed(t)  // Note, there should be NO complaint about this precondition in foo() below.
-{
-  S(t.x, t.x, t.x, t.x, t.x, t.x)
+predicate WellFormed(s: S) {
+  && a(s)
 }
 
 predicate Good(s: S) {
-  && s.u == 5
-  && s.v == 5
-  && s.w == 5
-  && s.x == 5
+  && s.u == 1
+  && s.v == 2
+  && s.w == 3
+  && s.x == 4
   && s.y == 5
-  && s.z == 5
+  && s.z == 6
 }
 
-function {:opaque} GetT(): T {
-  T(5)
+function {:opaque} GetS(): S {
+  S(1, 2, 3, 4, 5, 6)
 }
 
 lemma foo()
-  ensures var t := GetT();
-    && WellFormed(t)  // error (1x)
-    && Good(Func(t))  // error (5x, but only 4 of these are reported, due to the limit of 5 errors per method)
+  ensures var s := GetS();
+    WellFormed(s) && // error
+    Good(s)  // error (6x, but only 4 of these are reported, due to the limit of 5 errors per method)
 {
-  reveal GetT();
 }

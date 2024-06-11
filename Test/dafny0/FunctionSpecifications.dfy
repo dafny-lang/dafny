@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /timeLimit:10 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function Fib(n: int): int
@@ -36,9 +36,9 @@ function SumBad(a: List): int
 }
 
 function FibWithExtraPost(n: int): int
-  ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1); // This is fine, because the definition of the function is discovered via canCall
-  ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1); // Error: In the current implementation of Dafny, one needs to actually call the
-                                                 // function in order to benefit from canCall.  This may be improved in the future.
+  ensures 2 <= n ==> 0 <= FibWithExtraPost(n-1);
+  ensures 1 <= n ==> 0 <= FibWithExtraPost(n-1);
+
   ensures 0 <= FibWithExtraPost(n);
 {
   if n < 0 then 0 else

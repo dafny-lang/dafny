@@ -1,7 +1,5 @@
 FunctionSpecifications.dfy(29,9): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(31,12): Related location: This is the postcondition that might not hold.
-FunctionSpecifications.dfy(38,9): Error: A postcondition might not hold on this return path.
-FunctionSpecifications.dfy(40,23): Related location: This is the postcondition that might not hold.
 FunctionSpecifications.dfy(53,10): Error: cannot prove termination; try supplying a decreases clause
 FunctionSpecifications.dfy(59,9): Error: A postcondition might not hold on this return path.
 FunctionSpecifications.dfy(60,21): Related location: This is the postcondition that might not hold.
