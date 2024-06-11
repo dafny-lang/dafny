@@ -642,7 +642,10 @@ public partial class BoogieGenerator {
           typeConstraints = BplAnd(typeConstraints, MkIs(etran.TrExpr(be.Item2), be.Item1.Type));
         }
       }
+      var canCalls = etran.CanCallAssumption(tup.Item2);
+      body = BplImp(canCalls, body);
       body = BplAnd(typeConstraints, body);
+
       if (undetermined.Count != 0) {
         List<bool> freeOfAlloc = BoundedPool.HasBounds(bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
         var bvs = new List<Variable>();

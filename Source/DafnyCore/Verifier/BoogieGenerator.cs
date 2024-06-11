@@ -1429,6 +1429,11 @@ namespace Microsoft.Dafny {
       return new QKeyValue(tok, "inline", new List<object>(), next);
     }
 
+    public static Bpl.QKeyValue AlwaysAssumeAttribute(Bpl.IToken tok, Bpl.QKeyValue next = null) {
+      Contract.Requires(tok != null);
+      return new QKeyValue(tok, "always_assume", new List<object>(), next);
+    }
+
     class Specialization {
       public readonly List<Formal/*!*/> Formals;
       public readonly List<Expression/*!*/> ReplacementExprs;
@@ -1543,13 +1548,16 @@ namespace Microsoft.Dafny {
       return (olderParameterCount, olderCondition);
     }
 
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran) {
+    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool strict = false) {
       Contract.Requires(f != null);
       Contract.Requires(etran != null);
       Contract.Requires(VisibleInScope(f));
       if (InVerificationScope(f)) {
-        return
-          Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        if (strict) {
+          return Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        } else {
+          return Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
+        }
       } else {
         return Bpl.Expr.True;
       }
@@ -2238,6 +2246,7 @@ namespace Microsoft.Dafny {
         if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
         }
+        var canCallE = etran.CanCallAssumption(e);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeToAncestorType();
@@ -2278,7 +2287,7 @@ namespace Microsoft.Dafny {
           }
           disjunct = BplAnd(disjunct, q);
         }
-        disjunction = BplOr(disjunction, disjunct);
+        disjunction = BplOr(disjunction, BplAnd(canCallE, disjunct));
       }
       return disjunction;
     }
@@ -3435,13 +3444,13 @@ namespace Microsoft.Dafny {
       return ens;
     }
 
-    Bpl.Ensures Ensures(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment) {
+    Bpl.Ensures Ensures(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment, QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.Ensures>() != null);
 
       var unwrappedToken = ForceCheckToken.Unwrap(tok);
-      Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment);
+      Bpl.Ensures ens = new Bpl.Ensures(unwrappedToken, free, condition, comment, kv);
       var description = new PODesc.EnsuresDescription(dafnyCondition, errorMessage, successMessage);
       ens.Description = description;
       if (!free) {
@@ -3460,11 +3469,11 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.Requires Requires(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment) {
+    Bpl.Requires Requires(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment, QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(bCondition != null);
       Contract.Ensures(Contract.Result<Bpl.Requires>() != null);
-      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, bCondition, comment);
+      Bpl.Requires req = new Bpl.Requires(ForceCheckToken.Unwrap(tok), free, bCondition, comment, kv);
       req.Description = new PODesc.RequiresDescription(dafnyCondition, errorMessage, successMessage);
       return req;
     }

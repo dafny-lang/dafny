@@ -810,6 +810,7 @@ namespace Microsoft.Dafny {
                   var directPrecond = directSub.Substitute(p.E);
 
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
+                  builder.Add(TrAssumeCmd(precond.tok, etran.CanCallAssumption(precond)));
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
                     if (ss.IsChecked) {
@@ -851,19 +852,6 @@ namespace Microsoft.Dafny {
                   if (wfOptions.DoOnlyCoarseGrainedTerminationChecks) {
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new PODesc.IsNonRecursive()));
                   } else {
-                    List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-                    List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
-                    if (e.Function == wfOptions.SelfCallsAllowance) {
-                      allowance = Expression.CreateBoolLiteral(e.tok, true);
-                      if (!e.Function.IsStatic) {
-                        allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, new ThisExpr(e.Function), e.Receiver.Type));
-                      }
-                      for (int i = 0; i < e.Args.Count; i++) {
-                        Expression ee = e.Args[i];
-                        Formal ff = e.Function.Ins[i];
-                        allowance = Expression.CreateAnd(allowance, Expression.CreateEq(ee, Expression.CreateIdentExpr(ff), ff.Type));
-                      }
-                    }
                     string hint;
                     switch (e.CoCall) {
                       case FunctionCallExpr.CoCallResolution.NoBecauseFunctionHasSideEffects:
@@ -888,9 +876,15 @@ namespace Microsoft.Dafny {
                         Contract.Assert(false); // unexpected CoCallResolution
                         goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
                     }
+
+                    if (e.Function == options.SelfCallsAllowance) {
+                      allowance = etran.MakeAllowance(e);
+                    }
                     if (e.CoCallHint != null) {
                       hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
                     }
+                    List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+                    List<Expression> calleeDecreases = e.Function.Decreases.Expressions;
                     CheckCallTermination(callExpr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, directSubstMap, e.GetTypeArgumentSubstitutions(),
                       etran, false, builder, codeContext.InferredDecreases, hint);
                   }
@@ -1225,9 +1219,14 @@ namespace Microsoft.Dafny {
                     guardPrime = comprehensionEtran.TrExpr(rangePrime);
                   }
                   BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
+                    var canCalls = comprehensionEtran.CanCallAssumption(bodyLeft);
+                    canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(bodyLeftPrime));
+                    canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(body));
+                    canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(bodyPrime));
                     var different = BplOr(
                       Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
                       Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
+                    b.Add(new AssumeCmd(mc.TermLeft.tok, canCalls));
                     b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias(mc.BoundVars, mc.Range, mc.TermLeft, mc.Term)));
                   });
                 }
@@ -1336,15 +1335,16 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
-      if (result != null) {
+      if (result == null && expr is ComprehensionExpr) {
+        builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
+      } else if (result != null) {
         Contract.Assert(resultType != null);
+        builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, expr, builder);
         builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr,
           e => Bpl.Expr.Eq(result, CondApplyBox(expr.tok, e, expr.Type, resultType)),
           resultDescription));
-        builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
-        builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         builder.Add(TrAssumeCmd(expr.tok, MkIs(result, resultType)));
       }
     }
