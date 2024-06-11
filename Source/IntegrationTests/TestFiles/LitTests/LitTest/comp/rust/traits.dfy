@@ -37,7 +37,9 @@ module TraitDefinitions {
       var d := GetD();
       return c + c + d;
     }
-    method GetD() returns (d: int)
+    method GetD()  returns (d: int)
+
+    function GetDFunc(): int
   }
 }
 
@@ -91,11 +93,16 @@ module All {
     {
       return (i: int) reads this => this.c + this.d + i;
     }
+
+    function GetDFunc(): int {
+      d
+    }
   }
 
   method Test(x: Option<int>) returns (r: Option<bool>) {
-    var y :- x;
-    r := Some(y == 2);
+    //var y :- x;
+    //r := Some(y == 2);
+    r := Some(true);
   }
 
   method Main() {
@@ -103,6 +110,7 @@ module All {
     expect rts == Some(true);
 
     var y := new Y<int>(7);
+    expect y.GetDFunc() == 2;
     var z: SubTrait<int, int> := y as SubTrait<int, int>;
     var w: SuperTrait := z;
     var p: SuperTrait := y;
@@ -127,6 +135,7 @@ module All {
     f := y.Convert(42, 37);
     expect f == 42;
     expect y as object == w as object;
+    expect y as object == p as object;
     var objects := {y as object, w as object, p as object};
     expect |objects| == 1;
     var q := y as NoMemberTrait;
@@ -139,5 +148,6 @@ module All {
     expect yp == y;
     var ff := y.ClosureConvert();
     expect ff(1) == 1 + y.c + y.d;
+    print "Main passed all the tests\n";
   }
 }

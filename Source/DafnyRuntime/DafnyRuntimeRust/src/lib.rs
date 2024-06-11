@@ -3108,8 +3108,10 @@ impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
             } else {
                 false
             }
-        } else {
+        } else if let Some(_q) = &other.0 {
             false
+        } else {
+            true
         }
     }
 }
@@ -3117,7 +3119,7 @@ impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
 impl <T: ?Sized> std::hash::Hash for Object<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if let Some(p) = &self.0 {
-            p.as_ref().get().hash(state);
+            (p.as_ref().get() as *const ()).hash(state);
         } else {
             0.hash(state);
         }

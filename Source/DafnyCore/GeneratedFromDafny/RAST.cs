@@ -7841,7 +7841,11 @@ namespace RAST {
       return RAST.Expr.create_MemberSelect(this, name);
     }
     public RAST._IExpr ApplyType(Dafny.ISequence<RAST._IType> typeParameters) {
-      return RAST.Expr.create_CallType(this, typeParameters);
+      if ((new BigInteger((typeParameters).Count)).Sign == 0) {
+        return this;
+      } else {
+        return RAST.Expr.create_CallType(this, typeParameters);
+      }
     }
     public RAST._IExpr ApplyType1(RAST._IType typeParameter) {
       return RAST.Expr.create_CallType(this, Dafny.Sequence<RAST._IType>.FromElements(typeParameter));
