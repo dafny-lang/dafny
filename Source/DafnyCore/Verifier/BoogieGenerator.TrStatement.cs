@@ -1154,7 +1154,7 @@ namespace Microsoft.Dafny {
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
-          definedness.Add(TrAssumeCmd(ens.E.tok, CanCallAssumption(ens.E, etran)));
+          definedness.Add(TrAssumeCmd(ens.E.tok, etran.CanCallAssumption(ens.E)));
 
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {
@@ -1172,7 +1172,7 @@ namespace Microsoft.Dafny {
       var se = s.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(s.Body, etran);
       var substMap = new Dictionary<IVariable, Expression>();
       var p = Substitute(s.EffectiveEnsuresClauses[0], null, substMap);
-      exporter.Add(TrAssumeCmd(s.Tok, CanCallAssumption(p, etran)));
+      exporter.Add(TrAssumeCmd(s.Tok, etran.CanCallAssumption(p)));
       var qq = etran.TrExpr(p);
       if (s.BoundVars.Count != 0) {
         exporter.Add(TrAssumeCmd(s.Tok, BplAnd(se, qq)));
@@ -1444,8 +1444,8 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(tok, true, tt, tr);
         }
       }
-      var canCalls = BplAnd(CanCallAssumption(lhs, prevEtran), CanCallAssumption(rhs, prevEtran));
-      var canCallRange = CanCallAssumption(range, prevEtran);
+      var canCalls = BplAnd(prevEtran.CanCallAssumption(lhs), prevEtran.CanCallAssumption(rhs));
+      var canCallRange = prevEtran.CanCallAssumption(range);
       var body = BplAnd(canCalls, Bpl.Expr.Eq(xHeapOF, g));
       body = BplImp(xAnte, body);
       body = BplAnd(canCallRange, body);
@@ -1998,7 +1998,7 @@ namespace Microsoft.Dafny {
       }
       // check definedness of decreases clause
       foreach (Expression e in theDecreases) {
-        builder.Add(TrAssumeCmd(e.tok, Bpl.Expr.Imp(w, CanCallAssumption(e, etran))));
+        builder.Add(TrAssumeCmd(e.tok, Bpl.Expr.Imp(w, etran.CanCallAssumption(e))));
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
       if (codeContext is IMethodCodeContext) {
@@ -2091,7 +2091,7 @@ namespace Microsoft.Dafny {
           bodyTr(loopBodyBuilder, updatedFrameEtran);
         } else {
           foreach (Expression e in theDecreases) {
-            loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, CanCallAssumption(e, etran))));
+            loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, etran.CanCallAssumption(e))));
           }
           List<Bpl.Expr> oldBfs = RecordDecreasesValue(theDecreases, loopBodyBuilder, locals, etran, "$decr$" + suffix);
           // time for the actual loop body
@@ -2112,7 +2112,7 @@ namespace Microsoft.Dafny {
             initDecrsDafny.Add(eInit);
             decrs.Add(etran.TrExpr(e));
             // need to add can calls again because the actual loop body updates the variables
-            loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, CanCallAssumption(e, etran))));
+            loopBodyBuilder.Add(TrAssumeCmd(e.tok, BplImp(w, etran.CanCallAssumption(e))));
           }
           if (includeTerminationCheck) {
             AddComment(loopBodyBuilder, s, "loop termination check");
@@ -2727,13 +2727,13 @@ namespace Microsoft.Dafny {
           tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
 
           var p = Substitute(expr.Range, null, substMap);
-          anteCanCalls = CanCallAssumption(p, initEtran);
+          anteCanCalls = initEtran.CanCallAssumption(p);
           ante = BplAnd(ante, initEtran.TrExpr(p));
           if (additionalRange != null) {
             ante = BplAnd(ante, additionalRange(substMap, initEtran));
           }
           p = Substitute(expr.Term, null, substMap);
-          post = BplAnd(post, CanCallAssumption(p, callEtran));
+          post = BplAnd(post, callEtran.CanCallAssumption(p));
           post = BplAnd(post, callEtran.TrExpr(p));
 
         } else {
@@ -2744,7 +2744,7 @@ namespace Microsoft.Dafny {
           }
 
           var p = Substitute(range, null, substMap);
-          anteCanCalls = CanCallAssumption(p, initEtran);
+          anteCanCalls = initEtran.CanCallAssumption(p);
           ante = BplAnd(ante, initEtran.TrExpr(p));
           if (additionalRange != null) {
             // additionalRange produces something of the form canCallAssumptions ==> TrExpr
@@ -2753,7 +2753,7 @@ namespace Microsoft.Dafny {
           var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
           foreach (var ens in s0.Method.Ens) {
             p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
-            post = BplAnd(post, CanCallAssumption(p, callEtran));
+            post = BplAnd(post, callEtran.CanCallAssumption(p));
             post = BplAnd(post, callEtran.TrExpr(p));
           }
           tr = antitriggerBoundVarTypes;
