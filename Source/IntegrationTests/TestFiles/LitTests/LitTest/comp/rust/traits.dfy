@@ -1,5 +1,5 @@
 module TraitDefinitions {
-  datatype Option<T> = Some(value: T) | None {
+  datatype Option<+T> = Some(value: T) | None {
     function Negate(t: T): Option<T> {
       match this {
         case Some(v) => None
@@ -140,6 +140,8 @@ module All {
     expect y as NoMemberTrait == y;
     expect y as NoMemberTrait2 == y;
     expect y as NoMemberTrait as object == y as NoMemberTrait2;
+    var yn := (q as object as Y<int>);
+    expect yn.d == y.d;
     expect (q as object as Y<int>) == y;
     var yp: Y?<int> := null;
     expect yp == null;
@@ -147,6 +149,38 @@ module All {
     expect yp == y;
     var ff := y.ClosureConvert();
     expect ff(1) == 1 + y.c + y.d;
+
+    var seqY := [y];
+    var setY := {y};
+    var mulY := multiset{y};
+    var mapY := map[1 := y];
+
+    var seqYU: seq<SubTrait<int, int>> := seqY;
+    var setYU: set<SubTrait<int, int>> := setY;
+    var mulYU: multiset<SubTrait<int, int>> := mulY;
+    var mapYU: map<int, SubTrait<int, int>> := mapY;
+
+    var seqYS: seq<SuperTrait> := seqY;
+    var setYS: set<SuperTrait> := setY;
+    var mulYS: multiset<SuperTrait> := mulY;
+    var mapYS: map<int, SuperTrait> := mapY;
+
+    var seqYO: seq<object> := seqY;
+    var seaYO: set<object> := setY;
+    var mulYO: multiset<object> := mulY;
+    var mapYO: map<int, object> := mapY;
+
+    var seqYSO: seq<object> := seqYS;
+    var seaYSO: set<object> := setYS;
+    var mulYSO: multiset<object> := mulYS;
+    var mapYSO: map<int, object> := mapYS;
+
+    var optY := Some(y);
+    var optYU: Option<SubTrait<int, int>> := optY;
+    var optYS: Option<SuperTrait> := optY;
+    var optYO: Option<object> := optY;
+    var optYSO: Option<object> := optYS;
+
     print "Main passed all the tests\n";
   }
 }

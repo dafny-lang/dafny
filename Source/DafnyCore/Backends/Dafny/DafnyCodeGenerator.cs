@@ -158,34 +158,10 @@ namespace Microsoft.Dafny.Compilers {
         return wr;
       }
 
-      if (from.IsNonNullRefType != to.IsNonNullRefType) {
-        if (wr is BuilderSyntaxTree<ExprContainer> stmt) {
-          var nullConvert = stmt.Builder.Convert(GenType(from), GenType(to));
-
-          if (from is UserDefinedType fromUdt && fromUdt.ResolvedClass is NonNullTypeDecl fromNonNull) {
-            from = fromNonNull.RhsWithArgument(fromUdt.TypeArgs);
-          }
-
-          if (to is UserDefinedType toUdt && toUdt.ResolvedClass is NonNullTypeDecl toNonNull) {
-            to = toNonNull.RhsWithArgument(toUdt.TypeArgs);
-          }
-
-          return EmitCoercionIfNecessary(from, to, tok, new BuilderSyntaxTree<ExprContainer>(nullConvert, this));
-        } else {
-          return base.EmitCoercionIfNecessary(from, to, tok, wr);
-        }
-      } else if (from.AsSubsetType != null || to.AsSubsetType != null) {
-        if (wr is BuilderSyntaxTree<ExprContainer> stmt) {
-          return new BuilderSyntaxTree<ExprContainer>(stmt.Builder.Convert(GenType(from), GenType(to)), this);
-        } else {
-          return base.EmitCoercionIfNecessary(from, to, tok, wr);
-        }
+      if (wr is BuilderSyntaxTree<ExprContainer> builder) {
+        return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(GenType(from), GenType(to)), this);
       } else {
-        if (wr is BuilderSyntaxTree<ExprContainer> stmt) {
-          return new BuilderSyntaxTree<ExprContainer>(stmt.Builder.Convert(GenType(from), GenType(to)), this);
-        } else {
-          return base.EmitCoercionIfNecessary(from, to, tok, wr);
-        }
+        throw new UnsupportedInvalidOperationException("coercion not in the presence of an ExprContainer");
       }
     }
 
@@ -1361,7 +1337,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
-      return EmitCoercionIfNecessary(from, to, tok, wr);
+      return wr;
     }
 
     protected override void EmitDowncastVariableAssignment(string boundVarName, Type boundVarType, string tmpVarName,

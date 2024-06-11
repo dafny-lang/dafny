@@ -29,6 +29,7 @@ module {:extern "DAST.Format"} DAST.Format
 
 module {:extern "DAST"} DAST {
   import opened Std.Wrappers
+  import Std
 
   // Prevents Dafny names to being direclty integrated into Rust without explicit conversion
   // Make it a newtype once newtypes are compatible with standard library
@@ -58,6 +59,37 @@ module {:extern "DAST"} DAST {
     Arrow(args: seq<Type>, result: Type) |
     Primitive(Primitive) | Passthrough(string) |
     TypeArg(Ident) | Object()
+  {
+    function Replace(mapping: map<Type, Type>): Type {
+      if this in mapping then mapping[this] else
+      match this {
+        case UserDefined(resolved: ResolvedType) =>
+          Type.UserDefined(resolved.Replace(mapping))
+        case Tuple(arguments) =>
+          Type.Tuple(Std.Collections.Seq.Map(
+                       t requires t in arguments => t.Replace(mapping), arguments))
+        case Array(element, dims) =>
+          Type.Array(element.Replace(mapping), dims)
+        case Seq(element) =>
+          Type.Seq(element.Replace(mapping))
+        case Set(element) =>
+          Type.Set(element.Replace(mapping))
+        case Multiset(element) =>
+          Type.Multiset(element.Replace(mapping))
+        case Map(key, value) =>
+          Type.Map(key.Replace(mapping), value.Replace(mapping))
+        case SetBuilder(element) =>
+          Type.SetBuilder(element.Replace(mapping))
+        case MapBuilder(key, value) =>
+          Type.MapBuilder(key.Replace(mapping), value.Replace(mapping))
+        case Arrow(args: seq<Type>, result: Type) =>
+          Type.Arrow(Std.Collections.Seq.Map(
+                       t requires t in args => t.Replace(mapping), args), result.Replace(mapping))
+        case Primitive(_) | Passthrough(_) | Object() | TypeArg(_) =>
+          this
+      }
+    }
+  }
 
   datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>)
 
@@ -91,7 +123,24 @@ module {:extern "DAST"} DAST {
     kind: ResolvedTypeBase,
     attributes: seq<Attribute>,
     properMethods: seq<Ident>,
-    extendedTypes: seq<Type>)
+    extendedTypes: seq<Type>) {
+    function Replace(mapping: map<Type, Type>): ResolvedType {
+      ResolvedType(
+        path,
+        Std.Collections.Seq.Map(
+          t requires t in typeArgs => t.Replace(mapping), typeArgs),
+        match kind {
+          case Newtype(baseType, range, erase) =>
+            ResolvedTypeBase.Newtype(baseType.Replace(mapping), range, erase)
+          case _ => kind
+        },
+        attributes,
+        properMethods,
+        Std.Collections.Seq.Map(
+          t requires t in extendedTypes => t.Replace(mapping), extendedTypes)
+      )
+    }
+  }
 
   datatype Ident = Ident(id: Name)
 
