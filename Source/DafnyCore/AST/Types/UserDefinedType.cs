@@ -70,8 +70,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   public UserDefinedType(Cloner cloner, UserDefinedType original)
     : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
     if (cloner.CloneResolvedFields) {
-      TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
       ResolvedClass = cloner.GetCloneIfAvailable(original.ResolvedClass);
+      TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
     }
   }
 
