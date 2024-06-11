@@ -1690,23 +1690,8 @@ impl<V: DafnyTypeEq> Hash for Multiset<V> {
     }
 }
 
-// Define the AsAny trait
-pub trait AsAny {
-    fn as_any(&self) -> &dyn Any;
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-impl AsAny for dyn Any {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-pub fn is_instance_of<C: ?Sized + AsAny, U: 'static>(theobject: *const C) -> bool {
-    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    unsafe { &*theobject }
-        .as_any()
+pub fn is_instance_of<C: ?Sized + Upcast<dyn Any>, U: 'static>(theobject: *const C) -> bool {
+    read!(Upcast::<dyn Any>::upcast(read!(theobject)))
         .downcast_ref::<U>()
         .is_some()
 }
@@ -2961,8 +2946,7 @@ pub fn exact_range<T: Clone>(value: T) -> ExactPool<T> {
 #[macro_export]
 macro_rules! cast {
     ($raw:expr, $id:ty) => {
-        $crate::modify!($raw)
-            .as_any_mut()
+        $crate::modify!(Upcast::<dyn Any>::upcast($crate::modify!($raw)))
             .downcast_mut::<$id>()
             .unwrap() as *mut $id
     };
@@ -2972,8 +2956,7 @@ macro_rules! cast {
 #[macro_export]
 macro_rules! is {
     ($raw:expr, $id:ty) => {
-        $crate::modify!($raw)
-            .as_any_mut()
+        $crate::modify!($crate::cast_any!($raw))
             .downcast_mut::<$id>()
             .is_some()
     };
@@ -2982,8 +2965,7 @@ macro_rules! is {
 #[macro_export]
 macro_rules! is_rcmut {
     ($raw:expr, $id:ty) => {
-        $crate::md!($raw)
-            .as_any_mut()
+        $crate::md!($crate::cast_any_rcmut!($raw))
             .downcast_mut::<$id>()
             .is_some()
     };
@@ -2994,9 +2976,18 @@ macro_rules! is_rcmut {
 #[macro_export]
 macro_rules! cast_any {
     ($raw:expr) => {
-        $crate::modify!($raw).as_any_mut()
+        $crate::Upcast::<dyn Any>::upcast($crate::read!($raw))
     };
 }
+// cast_any_rcmut is meant to be used on references only, to convert any references (classes or traits)*
+// to an Any reference trait
+#[macro_export]
+macro_rules! cast_any_rcmut {
+    ($raw:expr) => {
+        $crate::UpcastObject::<dyn Any>::upcast($crate::rd!($raw))
+    };
+}
+
 
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
@@ -3174,11 +3165,9 @@ pub fn allocate_rcmut_track<T: 'static>(allocation_tracker: &mut AllocationTrack
     res
 }
 
-pub fn is_instance_of_rcmut<T: ?Sized + AsAny + 'static, U: 'static>(theobject: Object<T>) -> bool {
+pub fn is_instance_of_rcmut<T: ?Sized + 'static + UpcastObject<dyn Any>, U: 'static>(theobject: Object<T>) -> bool {
     // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    unsafe { 
-        rcmut::borrow(&theobject.0.unwrap()).as_any().downcast_ref::<U>().is_some()
-    }
+    rd!(UpcastObject::<dyn Any>::upcast(rd!(theobject))).downcast_ref::<U>().is_some()
 }
 
 // Equivalent of update_field_nodrop but for rcmut
@@ -3249,7 +3238,6 @@ macro_rules! refcount {
 
 pub mod object {
     use std::any::Any;
-    use crate::AsAny;
 
     pub fn new<T>(val: T) -> crate::Object<T> {
         crate::Object(Some(crate::rcmut::new(val)))
@@ -3439,18 +3427,16 @@ macro_rules! maybe_placebos_from {
 // Coercion
 ////////////////
 
-// For converting a datatype like Option<T> to an Option<Z> (still same type, arguments are changed)
-
-// For converting any value to a trait representation.
-pub trait UpcastTo<U>: Clone {
-    fn upcast_to(self) -> U;
+pub fn upcast_rc<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Object<A>) -> Object<B>>
+  where A : UpcastObject<B>
+{
+    Rc::new(|x: Object<A>| rd!(x).upcast())
 }
 
-
-pub fn upcast<A, B>() -> Rc<impl Fn(A) -> B>
-  where A : UpcastTo<B>
+pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(*mut A) -> *mut B>
+  where A: Upcast<B>
 {
-    Rc::new(|x: A| x.upcast_to())
+    Rc::new(|x: *mut A| read!(x).upcast())
 }
 
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
@@ -3465,46 +3451,27 @@ pub fn box_coerce<T: Clone, U: Clone>(f: Box<impl Fn(T) -> U>) -> Box<impl Fn(Bo
     Box::new(move |x: Box<T>| Box::new(f.as_ref()(x.as_ref().clone())))
 }
 
-use nightly_crimes::nightly_crimes;
-nightly_crimes! {
-    #![feature(unsize)]
-    // To be used like UpcastTo::<Rc<dyn SomeType>>::upcast_to(x: Rc<StructType>)
-    //   if impl SomeType for StructType {} exists
-    // But also like  UpcastTo::<Rc<dyn SomeHyperType>>::upcast_to(x: Rc<dyn SomeType>)
-    //   if trait SomeType: SomeHyperType { ... } exists
-    impl<From, To> UpcastTo<::std::rc::Rc<To>> for ::std::rc::Rc<From>
-    where
-        From: ?Sized + core::marker::Unsize<To>,
-        To: ?Sized,
-    {
-        fn upcast_to(self) -> ::std::rc::Rc<To> {
-        self as ::std::rc::Rc<To>
-        }
+
+// For pointers
+pub trait Upcast<T: ?Sized> {
+    fn upcast(&self) -> *mut T;
+}
+pub trait UpcastObject<T: ?Sized> {
+    fn upcast(&self) -> Object<T>;
+}
+
+impl Upcast<dyn Any> for dyn Any {
+    fn upcast(&self) -> *mut dyn Any {
+        self as *const dyn Any as *mut dyn Any
     }
-    // UpcastTo for pointers
-    impl<From, To> UpcastTo<*mut To> for *mut From
-    where
-        From: 'static + ?Sized + core::marker::Unsize<To>,
-        To: ?Sized,
-    {
-        fn upcast_to(self) -> *mut To {
-            self as *const To as *mut To
-        }
+}
+impl UpcastObject<dyn Any> for dyn Any {
+    fn upcast(&self) -> Object<dyn Any> {
+        Object::from_ref(read!(self as &dyn Any as *const dyn Any as *mut dyn Any))
     }
 }
 
-impl <From, To> UpcastTo<Object<To>> for Object<From>
-where
-    From: ?Sized,
-    To: ?Sized,
-    Rc<From>: UpcastTo<Rc<To>>,
-{
-    fn upcast_to(self) -> Object<To> {
-        Object(Some(unsafe { rcmut::from_rc(rcmut::to_rc(self.0.clone().unwrap()).upcast_to()) }))
-    }
-}
-
-// UpcastTo for sets
+// Coercions for sets
 impl<U: DafnyTypeEq> Set<U>
 {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Set<U>) -> Set<V>> {
@@ -3520,7 +3487,7 @@ impl<U: DafnyTypeEq> Set<U>
     }
 }
 
-// UpcastTo for sequences
+// Coercions for sequences
 impl<U: DafnyType> Sequence<U>
 {
     pub fn coerce<V: DafnyType>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Sequence<U>) -> Sequence<V>> {
@@ -3536,7 +3503,7 @@ impl<U: DafnyType> Sequence<U>
     }
 }
 
-// Upcast for multisets
+// Coercions for multisets
 impl<U: DafnyTypeEq> Multiset<U>
 {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Multiset<U>) -> Multiset<V>> {
@@ -3553,7 +3520,7 @@ impl<U: DafnyTypeEq> Multiset<U>
     }
 }
 
-// Upcast for Maps
+// Coercions for Maps
 impl<K: DafnyTypeEq, U: DafnyTypeEq> Map<K, U>
 {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Map<K, U>) -> Map<K, V>> {

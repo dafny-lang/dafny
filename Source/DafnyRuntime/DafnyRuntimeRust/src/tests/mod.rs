@@ -1,3 +1,4 @@
+
 pub mod experimental;
 // Test module
 #[cfg(test)]
@@ -316,17 +317,6 @@ mod tests {
         /*const*/ next: *mut ClassWrapper<T>,
         /*const*/ constant: crate::DafnyInt,
     }
-    impl<T> AsAny for ClassWrapper<T>
-    where
-        T: 'static,
-    {
-        fn as_any(&self) -> &dyn Any {
-            self
-        }
-        fn as_any_mut(&mut self) -> &mut dyn Any {
-            self
-        }
-    }
     impl<T: Clone> ClassWrapper<T> {
         fn constant_plus_x(&self) -> crate::DafnyInt {
             self.constant.clone() + self.x.clone()
@@ -350,6 +340,17 @@ mod tests {
             modify!(this).x = int!(0);
             update_field_nodrop!(this, constant, int!(42));
             this
+        }
+    }
+
+    impl <T: 'static> Upcast<dyn Any> for ClassWrapper<T> {
+        fn upcast(&self) -> *mut dyn Any {
+            self as *const Self as *mut Self as *mut dyn Any
+        }
+    }
+    impl <T: 'static> UpcastObject<dyn Any> for ClassWrapper<T> {
+        fn upcast(&self) -> Object<dyn Any> {
+            Object::from_ref(self as &dyn Any)
         }
     }
 
@@ -464,19 +465,19 @@ mod tests {
     #[test]
     fn test_coercion_immutable() {
         let o = ClassWrapper::<i32>::constructor(1);
-        let a = UpcastTo::<*mut dyn Any>::upcast_to(o);
+        let a: *mut dyn Any = Upcast::<dyn Any>::upcast(read!(o));
         assert_eq!(cast!(a, ClassWrapper<i32>), o);
         let seq_o = seq![o];
-        let seq_a = Sequence::<*mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(seq_o);
+        let seq_a = Sequence::<*mut ClassWrapper<i32>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(seq_o);
         assert_eq!(cast!(seq_a.get_usize(0), ClassWrapper<i32>), o);
         let set_o = set! {o};
-        let set_a = Set::<*mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(set_o);
+        let set_a = Set::<*mut ClassWrapper<i32>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(set_o);
         assert_eq!(cast!(set_a.peek(), ClassWrapper<i32>), o);
         let multiset_o = multiset! {o, o};
-        let multiset_a = Multiset::<*mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(multiset_o);
+        let multiset_a = Multiset::<*mut ClassWrapper<i32>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(multiset_o);
         assert_eq!(cast!(multiset_a.peek(), ClassWrapper<i32>), o);
         let map_o = map![1 => o, 2 => o];
-        let map_a = Map::<i32, *mut ClassWrapper<i32>>::coerce(upcast::<*mut ClassWrapper<i32>, *mut dyn Any>())(map_o);
+        let map_a = Map::<i32, *mut ClassWrapper<i32>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(map_o);
         assert_eq!(cast!(map_a.get(&1), ClassWrapper<i32>), o);
     }
 
@@ -654,19 +655,15 @@ mod tests {
         assert_eq!(sum, 55);
     }
 
-    trait NodeRcMutTrait: AsAny {}
+    trait SuperTrait: Upcast<dyn Any> + UpcastObject<dyn Any> {
+    }
+
+    trait NodeRcMutTrait: SuperTrait + Upcast<dyn SuperTrait> + UpcastObject<dyn SuperTrait>{
+    }
 
     pub struct NodeRcMut {
         val: DafnyInt,
         next: Object<NodeRcMut>,
-    }
-    impl AsAny for NodeRcMut {
-        fn as_any(&self) -> &dyn Any {
-            self
-        }
-        fn as_any_mut(&mut self) -> &mut dyn Any {
-            self
-        }
     }
     impl NodeRcMut {
         fn _ctor(this: Object<NodeRcMut>, val: DafnyInt) {
@@ -674,6 +671,37 @@ mod tests {
             let mut next_assign = false;
             update_field_uninit_rcmut!(this.clone(), val, val_assign, val);
             update_field_if_uninit_rcmut!(this.clone(), next, next_assign, Object(None));
+        }
+    }
+    impl SuperTrait for NodeRcMut {}
+    impl UpcastObject<dyn Any> for NodeRcMut {
+        fn upcast(&self) -> Object<dyn Any> {
+            Object::from_ref(read!(self as *const Self as *mut Self as *mut dyn Any))
+        }
+    }
+    impl Upcast<dyn Any> for NodeRcMut {
+        fn upcast(&self) -> *mut dyn Any {
+            self as *const Self as *mut Self as *mut dyn Any
+        }
+    }
+    impl UpcastObject<dyn NodeRcMutTrait> for NodeRcMut {
+        fn upcast(&self) -> Object<dyn NodeRcMutTrait> {
+            Object::from_ref(read!(self as *const Self as *mut Self as *mut dyn NodeRcMutTrait))
+        }
+    }
+    impl Upcast<dyn NodeRcMutTrait> for NodeRcMut {
+        fn upcast(&self) -> *mut dyn NodeRcMutTrait {
+            self as *const Self as *mut Self as *mut dyn NodeRcMutTrait
+        }
+    }
+    impl UpcastObject<dyn SuperTrait> for NodeRcMut {
+        fn upcast(&self) -> Object<dyn SuperTrait> {
+            Object::from_ref(read!(self as *const Self as *mut Self as *mut dyn SuperTrait))
+        }
+    }
+    impl Upcast<dyn SuperTrait> for NodeRcMut {
+        fn upcast(&self) -> *mut dyn SuperTrait {
+            self as *const Self as *mut Self as *mut dyn SuperTrait
         }
     }
     impl NodeRcMutTrait for NodeRcMut {}
@@ -689,9 +717,9 @@ mod tests {
         assert_eq!(x.as_ref().next.as_ref().val, int!(42));
         md!(rd!(x).next).next = Object(None);
         assert_eq!(refcount!(x), 1);
-        let y: Object<dyn Any> = x.clone().upcast_to();
+        let y: Object<dyn Any> = UpcastObject::upcast(rd!(x.clone()));
         assert_eq!(refcount!(x), 2);
-        let z: Object<dyn NodeRcMutTrait> = x.clone().upcast_to();
+        let z: Object<dyn NodeRcMutTrait> = UpcastObject::upcast(rd!(x.clone()));
         assert_eq!(refcount!(x), 3);
         let a2: Object<NodeRcMut> = cast_object!(y.clone(), NodeRcMut);
         assert_eq!(refcount!(x), 4);
@@ -717,7 +745,7 @@ mod tests {
         }
         assert_eq!(refcount!(x), previous_count);
 
-        let mut objects: Set<Object<dyn ::std::any::Any>> = crate::set!{y.clone(), x.clone().upcast_to()};
+        let mut objects: Set<Object<dyn ::std::any::Any>> = crate::set!{y.clone(), cast_any_rcmut!(x.clone())};
         assert_eq!(objects.cardinality_usize(), 1);
     }
 
@@ -731,17 +759,38 @@ mod tests {
             update_field_uninit!(this, val, val_assign, val);
         }
     }
-    impl AsAny for NodeRawMut {
-        fn as_any(&self) -> &dyn Any {
-            self
-        }
-        fn as_any_mut(&mut self) -> &mut dyn Any {
-            self
+    impl NodeRcMutTrait for NodeRawMut {}
+    impl UpcastObject<dyn Any> for NodeRawMut {
+        fn upcast(&self) -> Object<dyn Any> {
+            Object::from_ref(read!(self as *const Self as *mut Self as *mut dyn Any))
         }
     }
-    impl NodeRcMutTrait for NodeRawMut {}
-    
-    //UpcastTo!(NodeRawMut, dyn NodeRcMutTrait);
+    impl Upcast<dyn Any> for NodeRawMut {
+        fn upcast(&self) -> *mut dyn Any {
+            self as *const Self as *mut Self as *mut dyn Any
+        }
+    }
+    impl UpcastObject<dyn NodeRcMutTrait> for NodeRawMut {
+        fn upcast(&self) -> Object<dyn NodeRcMutTrait> {
+            Object::from_ref(read!(self as *const Self as *mut Self as *mut dyn NodeRcMutTrait))
+        }
+    }
+    impl Upcast<dyn NodeRcMutTrait> for NodeRawMut {
+        fn upcast(&self) -> *mut dyn NodeRcMutTrait {
+            self as *const Self as *mut Self as *mut dyn NodeRcMutTrait
+        }
+    }
+    impl UpcastObject<dyn SuperTrait> for NodeRawMut {
+        fn upcast(&self) -> Object<dyn SuperTrait> {
+            Object::from_ref(read!(self as *const Self as *mut Self  as *mut dyn SuperTrait))
+        }
+    }
+    impl Upcast<dyn SuperTrait> for NodeRawMut {
+        fn upcast(&self) -> *mut dyn SuperTrait {
+            self as *const Self as *mut Self as *mut dyn SuperTrait
+        }
+    }
+    impl SuperTrait for NodeRawMut {}
 
     #[test]
     fn test_rawmut() {
@@ -751,8 +800,8 @@ mod tests {
         modify!(x.clone()).next = x.clone();
         assert_eq!(read!(read!(x.clone()).next.clone()).val, int!(42));
         modify!(read!(x.clone()).next.clone()).next = std::ptr::null_mut();
-        let y: *mut dyn Any = x.upcast_to();
-        let z: *mut dyn NodeRcMutTrait = x.upcast_to();
+        let y: *mut dyn Any = Upcast::<dyn Any>::upcast(read!(x));
+        let z: *mut dyn NodeRcMutTrait = Upcast::<dyn NodeRcMutTrait>::upcast(read!(x));
         let a2: *mut NodeRawMut = cast!(y, NodeRawMut);
         let a3: *mut NodeRawMut = cast!(z, NodeRawMut);
         deallocate(x);
