@@ -27,9 +27,8 @@ namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
     // Dafny names cannot start with "_". Hence, if an internal Dafny name is problematic in the target language,
     // we can prefix it with "_".
-    // However, for backends such as Rust which need special internal fields, we want to clearly
-    // disambiguate between compiler-generated names and user-defined names, hence this prefix.
-    protected virtual string InternalFieldPrefix => "_i_";
+    // This prefix can be overridden as necessary by backends.
+    protected virtual string InternalFieldPrefix => "_";
     public DafnyOptions Options { get; }
 
     /// <summary>
