@@ -1275,6 +1275,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     "unsafe","use","where","while","Keywords","The","abstract","become",
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
+
+  const reserved_fields := { "None" }
+
   const reserved_rust_need_prefix := {"u8", "u16", "u32", "u64", "u128","i8", "i16", "i32", "i64", "i128"}
 
   predicate is_tuple_numeric(i: string) {
@@ -1362,6 +1365,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     else
       var r := replaceDots(i);
       "r#_" + r
+  }
+
+  function escapeField(f: Name): string {
+    var r := f.dafny_name;
+    if r in reserved_fields then
+      "r#_" + r
+    else escapeName(f)
+  }
+
+  function escapeDtor(f: Name): string {
+    var r := f.dafny_name;
+    if r in reserved_fields then
+      r + ": r#_" + r
+    else escapeName(f)
   }
 
   datatype Ownership =
@@ -1959,6 +1976,30 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    predicate TypeIsEq(t: Type)
+      decreases t
+    {
+      match t
+      case UserDefined(_) => true // ResolvedTypes are assumed to support equality
+      case Tuple(ts) => forall t <- ts :: TypeIsEq(t)
+      case Array(t, _) => TypeIsEq(t)
+      case Seq(t) => TypeIsEq(t)
+      case Set(t) => TypeIsEq(t)
+      case Multiset(t) => TypeIsEq(t)
+      case Map(k, v) => TypeIsEq(k) && TypeIsEq(v)
+      case SetBuilder(t) => TypeIsEq(t)
+      case MapBuilder(k, v) => TypeIsEq(k) && TypeIsEq(v)
+      case Arrow(_, _) => false
+      case Primitive(_) => true
+      case Passthrough(_) => true // should be Rust primitive types
+      case TypeArg(i) => true // i(==) is asserted at the point of use by the verifier
+      case Object() => true
+    }
+
+    predicate DatatypeIsEq(c: Datatype) {
+      !c.isCo && forall ctor <- c.ctors, arg <- ctor.args :: TypeIsEq(arg.formal.typ)
+    }
+
     method GenDatatype(c: Datatype) returns (s: seq<R.ModDecl>)
       modifies this
     {
@@ -2034,7 +2075,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               var isNumeric := false;
               for l := 0 to |ctor2.args| {
                 var dtor2 := ctor2.args[l];
-                var patternName := escapeName(dtor2.formal.name);
+                var patternName := escapeDtor(dtor2.formal.name);
                 if l == 0 && patternName == "0" {
                   isNumeric := true;
                 }
@@ -2104,10 +2145,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 tpe => R.NamelessField(R.PRIV, tpe), types))
           )];
       }
-      var enumBody :=
+
+      var cIsEq := DatatypeIsEq(c);
+
+      // Derive PartialEq when c supports equality / derive Clone in all cases
+      s :=
         [R.EnumDecl(
            R.Enum(
-             [R.RawAttribute("#[derive(PartialEq, Clone)]")],
+             if cIsEq then
+               [R.RawAttribute("#[derive(PartialEq, Clone)]")]
+             else
+               [R.RawAttribute("#[derive(Clone)]")],
              datatypeName,
              rTypeParamsDecls,
              ctors
@@ -2139,7 +2187,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var ctorMatchInner := "";
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
-          var patternName := escapeName(dtor.formal.name);
+          var patternName := escapeField(dtor.formal.name);
+          var formalType := dtor.formal.typ;
           if j == 0 && patternName == "0" {
             isNumeric := true;
           }
@@ -2153,7 +2202,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if (j > 0) {
             printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \", \")?"));
           }
-          printRhs := printRhs.Then(R.RawExpr("::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"));
+
+          printRhs := printRhs.Then(R.RawExpr(
+                                      if formalType.Arrow? then
+                                        "write!(_formatter, \"<function>\")?"
+                                      else
+                                        "::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"
+                                    ));
         }
 
         if isNumeric {
@@ -2202,7 +2257,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         R.self,
         hashImplBodyCases
       );
-      var printImpl := [
+
+      // Implementation of Debug and Print traits
+      s := s + [
         R.ImplDecl(
           R.ImplFor(rTypeParamsDecls,
                     R.std_type.MSel("fmt").MSel("Debug"),
@@ -2244,36 +2301,41 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                  Some(R.RawType("std::fmt::Result")),
                  "",
                  Some(printImplBody)))]
-          )),
-        R.ImplDecl(
-          R.ImplFor(
-            rTypeParamsDeclsWithEq,
-            R.Eq,
-            R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-            "",
-            []
-          )
-        ),
-        R.ImplDecl(
-          R.ImplFor(
-            rTypeParamsDeclsWithHash,
-            R.Hash,
-            R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-            "",
-            [R.FnDecl(
-               R.PRIV,
-               R.Fn(
-                 "hash", [R.TypeParamDecl("_H", [R.std_type.MSel("hash").MSel("Hasher")])],
-                 [R.Formal.selfBorrowed,
-                  R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
-                 None,
-                 "",
-                 Some(hashImplBody)))]
-          )
-        )];
+          ))
+      ];
 
-      var defaultImpl := [];
-      var asRefImpl := [];
+      // Implementation of Eq when c supports equality
+      if cIsEq {
+        s := s + [R.ImplDecl(
+                    R.ImplFor(
+                      rTypeParamsDeclsWithEq,
+                      R.Eq,
+                      R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
+                      "",
+                      []
+                    )
+                  )];
+      }
+
+      // Implementation of Hash trait
+      s := s + [R.ImplDecl(
+                  R.ImplFor(
+                    rTypeParamsDeclsWithHash,
+                    R.Hash,
+                    R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
+                    "",
+                    [R.FnDecl(
+                       R.PRIV,
+                       R.Fn(
+                         "hash", [R.TypeParamDecl("_H", [R.std_type.MSel("hash").MSel("Hasher")])],
+                         [R.Formal.selfBorrowed,
+                          R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
+                         None,
+                         "",
+                         Some(hashImplBody)))]
+                  )
+                )];
+
       if |c.ctors| > 0 {
         var structName := R.Identifier(datatypeName).MSel(escapeName(c.ctors[0].name));
         var structAssignments: seq<R.AssignIdentifier> := [];
@@ -2287,26 +2349,32 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           rTypeParamsDecls, [R.DefaultTrait]
         );
         var fullType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
-        defaultImpl := [
-          R.ImplDecl(
-            R.ImplFor(
-              defaultConstrainedTypeParams,
-              R.DefaultTrait,
-              fullType,
-              "",
-              [R.FnDecl(
-                 R.PRIV,
-                 R.Fn(
-                   "default", [], [], Some(fullType),
-                   "",
-                   Some(
-                     R.StructBuild(
-                       structName,
-                       structAssignments
-                     )))
-               )]
-            ))];
-        asRefImpl := [
+
+        // Implementation of Default trait when c supports equality
+        if cIsEq {
+          s := s +
+          [R.ImplDecl(
+             R.ImplFor(
+               defaultConstrainedTypeParams,
+               R.DefaultTrait,
+               fullType,
+               "",
+               [R.FnDecl(
+                  R.PRIV,
+                  R.Fn(
+                    "default", [], [], Some(fullType),
+                    "",
+                    Some(
+                      R.StructBuild(
+                        structName,
+                        structAssignments
+                      )))
+                )]
+             ))];
+        }
+
+        // Implementation of AsRef trait
+        s := s + [
           R.ImplDecl(
             R.ImplFor(
               rTypeParamsDecls,
@@ -2321,7 +2389,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                )]
             ))];
       }
-      s := enumBody + printImpl + defaultImpl + asRefImpl;
     }
 
     static method GenPath(p: seq<Ident>) returns (r: R.Type) {
