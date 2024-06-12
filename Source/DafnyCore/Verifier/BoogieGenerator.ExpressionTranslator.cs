@@ -2202,12 +2202,12 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             if (ModeledAsBoxType(arg.Type)) {
               return inner;
             } else {
-              return FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
+              return BoogieGenerator.FunctionCall(arg.tok, BuiltinFunction.Box, null, inner);
             }
           };
 
           var args = Concat(
-            Map(e.Function.Type.AsArrowType.TypeArgs, TypeToTy),
+            Map(e.Function.Type.AsArrowType.TypeArgs, BoogieGenerator.TypeToTy),
             Cons(HeapExpr,
               Cons(TrExpr(e.Function),
                 e.Args.ConvertAll(arg => TrArg(arg)))));
@@ -2228,7 +2228,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             List<Boogie.Expr> args = FunctionInvocationArguments(e, null, null);
             Boogie.Expr canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncID), args);
             bool makeAllowance = cco != null && (e.Function == cco.SelfCallsAllowance);
-            var add = makeAllowance ? Boogie.Expr.Or(MakeAllowance(e, cco), canCallFuncAppl) : canCallFuncAppl;
+            var add = makeAllowance ? Boogie.Expr.Or(TrExpr(MakeAllowance(e, cco)), canCallFuncAppl) : canCallFuncAppl;
             r = BplAnd(r, add);
           }
           return r;

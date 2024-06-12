@@ -877,7 +877,7 @@ namespace Microsoft.Dafny {
                         goto case FunctionCallExpr.CoCallResolution.No; // please the compiler
                     }
 
-                    if (e.Function == options.SelfCallsAllowance) {
+                    if (e.Function == wfOptions.SelfCallsAllowance) {
                       allowance = etran.MakeAllowance(e);
                     }
                     if (e.CoCallHint != null) {
