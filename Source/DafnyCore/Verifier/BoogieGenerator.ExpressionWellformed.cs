@@ -634,7 +634,7 @@ namespace Microsoft.Dafny {
               var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrame, readFrames);
 
               CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { wrappedReads }, null, null,
-                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
+                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
             }
 
             break;
@@ -798,7 +798,7 @@ namespace Microsoft.Dafny {
                   }
                   var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrames, readFrames);
                   CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
+                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
                 }
 
               } else {
@@ -840,7 +840,7 @@ namespace Microsoft.Dafny {
                   var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,
                     e.Function.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
-                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
+                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
                 }
               }
               Expression allowance = null;
@@ -959,6 +959,7 @@ namespace Microsoft.Dafny {
                 CheckFrameSubset(fe.E.tok,
                   new List<FrameExpression>() { fe },
                   null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.tok), wfOptions.AssertSink(this, builder),
+                  (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)),
                   desc, wfOptions.AssertKv);
               }
             }
@@ -1660,7 +1661,7 @@ namespace Microsoft.Dafny {
         );
         var readsDesc = new PODesc.ReadFrameSubset("invoke the function passed as an argument to the sequence constructor", readsDescExpr);
         CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
-          etran, etran.ReadsFrame(tok), maker, readsDesc, options.AssertKv);
+          etran, etran.ReadsFrame(tok), maker, (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), readsDesc, options.AssertKv);
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints
       var apply = UnboxUnlessInherentlyBoxed(FunctionCall(tok, Apply(dims.Count), TrType(elementType), args), elementType);

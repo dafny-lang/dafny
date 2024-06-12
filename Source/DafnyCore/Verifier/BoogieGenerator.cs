@@ -2086,13 +2086,16 @@ namespace Microsoft.Dafny {
                           PODesc.ProofObligationDescription desc,
                           Bpl.QKeyValue kv) {
       CheckFrameSubset(tok, calleeFrame, receiverReplacement, substMap, etran, enclosingFrame,
-        (t, e, d, q) => builder.Add(Assert(t, e, d, q)), desc, kv);
+        (t, e, d, q) => builder.Add(Assert(t, e, d, q)),
+        (t, e) => builder.Add(TrAssumeCmd(t, e)),
+        desc, kv);
     }
 
     void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
-                          Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
-                          ExpressionTranslator/*!*/ etran, Boogie.IdentifierExpr /*!*/ enclosingFrame,
+                          Expression receiverReplacement, Dictionary<IVariable, Expression> substMap,
+                          ExpressionTranslator etran, Boogie.IdentifierExpr enclosingFrame,
                           Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> MakeAssert,
+                          Action<IToken, Bpl.Expr> MakeAssume,
                           PODesc.ProofObligationDescription desc,
                           Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
@@ -2101,6 +2104,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(MakeAssert != null);
       Contract.Requires(predef != null);
+
+      foreach (var frameExpression in calleeFrame) {
+        var e = Substitute(frameExpression.E, receiverReplacement, substMap);
+        MakeAssume(frameExpression.tok, etran.CanCallAssumption(e));
+      }
 
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> enclosingFrame[o,f]);
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
