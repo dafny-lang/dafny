@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
-          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, AlwaysAssumeAttribute(p.E.tok)));
+          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           var canCalls = etran.CanCallAssumption(p.E);
-          AddEnsures(ens, FreeEnsures(p.E.tok, canCalls, comment, AlwaysAssumeAttribute(p.E.tok)));
+          AddEnsures(ens, FreeEnsures(p.E.tok, canCalls, comment, true));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it

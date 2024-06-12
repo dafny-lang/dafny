@@ -1781,7 +1781,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, FreeEnsures(p.E.tok, etran.CanCallAssumption(p.E), comment, AlwaysAssumeAttribute(p.E.tok)));
+          AddEnsures(ens, FreeEnsures(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
