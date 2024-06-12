@@ -1940,7 +1940,8 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
@@ -2063,7 +2064,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -2126,7 +2127,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, e0Type);
             if (IsDirectlyComparable(eqType)) {
               opString = "===";
             } else if (eqType.IsIntegerType || eqType.IsBitVectorType) {
@@ -2139,7 +2140,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, e0.Type);
+            var eqType = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, e0Type);
             if (IsDirectlyComparable(eqType)) {
               opString = "!==";
             } else if (eqType.IsIntegerType) {
@@ -2156,32 +2157,32 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-          if (AsNativeType(e0.Type) != null) {
+          if (AsNativeType(e0Type) != null) {
             opString = "<";
-          } else if (IsRepresentedAsBigNumber(e0.Type) || e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+          } else if (IsRepresentedAsBigNumber(e0Type) || e0Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-          if (AsNativeType(e0.Type) != null) {
+          if (AsNativeType(e0Type) != null) {
             opString = "<=";
-          } else if (IsRepresentedAsBigNumber(e0.Type)) {
+          } else if (IsRepresentedAsBigNumber(e0Type)) {
             callString = "isLessThanOrEqualTo";
-          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+          } else if (e0Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
           } else {
             Contract.Assert(false); throw new cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-          if (AsNativeType(e0.Type) != null) {
+          if (AsNativeType(e0Type) != null) {
             opString = ">=";
-          } else if (IsRepresentedAsBigNumber(e0.Type)) {
+          } else if (IsRepresentedAsBigNumber(e0Type)) {
             callString = "isLessThanOrEqualTo";
             reverseArguments = true;
-          } else if (e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+          } else if (e0Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
             reverseArguments = true;
           } else {
@@ -2189,9 +2190,9 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-          if (AsNativeType(e0.Type) != null) {
+          if (AsNativeType(e0Type) != null) {
             opString = ">";
-          } else if (IsRepresentedAsBigNumber(e0.Type) || e0.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+          } else if (IsRepresentedAsBigNumber(e0Type) || e0Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
             reverseArguments = true;
           } else {
@@ -2338,7 +2339,7 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = $"{DafnySeqClass}.contains"; reverseArguments = true; break;
 
         default:
-          base.CompileBinOp(op, e0, e1, tok, resultType,
+          base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;

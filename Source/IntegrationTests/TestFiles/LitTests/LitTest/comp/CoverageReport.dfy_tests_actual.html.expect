@@ -172,8 +172,8 @@ function {:tailrecursion} Factorial(n: nat): nat {
   // 11 times
 </span><span class="fc" id="156:1">  match n
   case 0 => 1  // 1 time
-</span><span class="na" id="158:1">  case _ => n * Factorial(n - 1)  // 10 times
-}
+  case _ => n * Factorial(n - 1)  // 10 times
+</span><span class="na" id="159:1">}
 
 method {:tailrecursion} ComputeFactorial(n: nat, acc: nat) returns (f: nat)
   ensures f == Factorial(n) * acc

@@ -1,4 +1,4 @@
-﻿match-is-complete.dfy(7,2): Error: missing case in match expression: D1
+match-is-complete.dfy(7,2): Error: missing case in match expression: D1
  Asserted expression: false
    in an added catch-all case:
      case _ => ...
