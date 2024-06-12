@@ -4,19 +4,34 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
 using DafnyCore.Backends.Python;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny.Compilers {
 
   class PythonCodeGenerator : SinglePassCodeGenerator {
+
+    private bool PythonModuleMode;
+    private string PythonModuleName;
+
     public PythonCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
+      var pythonModuleName = Options.Get(PythonBackend.PythonModuleNameCliOption);
+      PythonModuleMode = pythonModuleName != null;
+      if (PythonModuleMode) {
+        PythonModuleName = pythonModuleName.ToString();
+      }
+
       if (Options?.CoverageLegendFile != null) {
-        Imports.Add("DafnyProfiling");
+        Imports.Add("DafnyProfiling", "DafnyProfiling");
       }
     }
 
-    private readonly List<string> Imports = new() { DafnyDefaultModule };
+    // Key: Fully-qualified module name with python-module-name/outer-module
+    // Value: Dafny-generated Python module name without python-module-name/outer-module
+    // This separation is used to identify nested extern modules,
+    //   which currently cannot be used with python-module-name/outer-module.
+    private readonly Dictionary<string, string> Imports = new Dictionary<string, string>();
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
@@ -28,6 +43,8 @@ namespace Microsoft.Dafny.Compilers {
 
     private const string DafnyRuntimeModule = "_dafny";
     private const string DafnyDefaultModule = "module_";
+    private const string DafnySystemModule = "System_";
+    private static readonly ISet<string> DafnyRuntimeGeneratedModuleNames = new HashSet<string> { DafnySystemModule, };
     const string DafnySetClass = $"{DafnyRuntimeModule}.Set";
     const string DafnyMultiSetClass = $"{DafnyRuntimeModule}.MultiSet";
     const string DafnySeqClass = $"{DafnyRuntimeModule}.Seq";
@@ -56,8 +73,8 @@ namespace Microsoft.Dafny.Compilers {
         EmitRuntimeSource("DafnyStandardLibraries_py", wr);
       }
 
-      Imports.Add(DafnyRuntimeModule);
-      EmitImports(null, wr);
+      Imports.Add(DafnyRuntimeModule, DafnyRuntimeModule);
+      EmitImports(null, null, wr);
       wr.WriteLine();
     }
 
@@ -83,29 +100,111 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
+      var pythonModuleName = PythonModuleMode ? PythonModuleName + "." : "";
+
       moduleName = PublicModuleIdProtect(moduleName);
-      var file = wr.NewFile($"{moduleName}.py");
-      EmitImports(moduleName, file);
+      // Nested extern modules should be written inside a folder
+      var file = wr.NewFile($"{moduleName.Replace(".", "/")}.py");
+      EmitImports(moduleName, pythonModuleName, file);
       return file;
     }
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
-      var moduleName = IdProtect(module.GetCompileName(Options));
-      Imports.Add(moduleName);
+      var dependencyPythonModuleName = "";
+
+      // If the module being depended on was compiled using module mode,
+      // this module needs to rely on it using the dependency's translation record,
+      // even if this module is not using module mode
+      var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+      translatedRecord.OptionsByModule.TryGetValue(module.FullDafnyName, out var moduleOptions);
+      object dependencyModuleName = null;
+      moduleOptions?.TryGetValue(PythonBackend.PythonModuleNameCliOption.Name, out dependencyModuleName);
+      if (dependencyModuleName is string && !string.IsNullOrEmpty((string)dependencyModuleName)) {
+        dependencyPythonModuleName = dependencyModuleName is string name ? (string)dependencyModuleName + "." : "";
+        if (String.IsNullOrEmpty(dependencyPythonModuleName)) {
+          Reporter.Warning(MessageSource.Compiler, ResolutionErrors.ErrorId.none, Token.Cli,
+            $"Python Module Name not found for the module {module.GetCompileName(Options)}");
+        }
+      }
+
+      var dependencyCompileName = IdProtect(module.GetCompileName(Options));
+      // Don't import an empty module.
+      // Empty modules aren't generated, so their imports aren't valid.
+      if (!TranslationRecord.ModuleEmptyForCompilation(module)) {
+        Imports.Add(dependencyPythonModuleName + dependencyCompileName, dependencyCompileName);
+      }
     }
 
-    private void EmitImports(string moduleName, ConcreteSyntaxTree wr) {
+    private void EmitImports(string moduleName, string pythonModuleName, ConcreteSyntaxTree wr) {
       wr.WriteLine("import sys");
       wr.WriteLine("from typing import Callable, Any, TypeVar, NamedTuple");
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
       wr.WriteLine();
-      Imports.ForEach(module => wr.WriteLine($"import {module}"));
+      // Don't emit `import module_` for generated modules in the DafnyRuntimePython.
+      // The DafnyRuntimePython doesn't have a module.py file, so the import isn't valid.
+      if (!(DafnyRuntimeGeneratedModuleNames.Contains(moduleName))) {
+        wr.WriteLine($"import {(PythonModuleMode ? PythonModuleName + "." + DafnyDefaultModule : DafnyDefaultModule)} as {DafnyDefaultModule}");
+      }
+      foreach (var module in Imports) {
+        if (module.Value.Contains(".")) {
+          // This code branch only applies to extern modules. (ex. module {:extern "a.b.c"})
+          // If module.Value has `.`s in it, it is a nested extern module.
+          // (Non-extern nested modules with `.`s in their names
+          // will have their `.`s replaced with `_` before this code is executed,
+          // ex. module M.N --> "M_N", and will not hit this branch.)
+          // 
+          // Nested externs currently CANNOT be used with python-module-name:
+          //
+          // 1. (Python behavior; not able to be changed)
+          // Aliased Python modules cannot have `.`s in their name.
+          // ex. with `import X as Y`, `Y` cannot have `.`s.
+          //
+          // 2. (Dafny behavior; able to be changed, but don't need to change)
+          // Inside Dafny-generated Python modules,
+          // references to modules do not contain the python-module-name prefix.
+          // ex. If python-module-name=X.Y, and we have nested extern module "a.b.c",
+          //     code generation ignores the prefix and writes `a.b.c`.
+          //     Similarly, an extern non-nested module `E` is not prefixed and is generated as `E`,
+          //     and a non-extern nested module `M.N` is prefixed and generated as `X.Y.M_N`.
+          // (Similarly, extern modules do not contain the outer-module prefix).
+          // 
+          // 1. and 2. taken together prevent nested extern modules from being used with python-module-name.
+          // The reference to the nested extern inside generated code MUST be `a.b.c` due to 1).
+          // However, the aliased import cannot have `.`s in it due to 2).
+          // So nested externs cannot be aliased.
+          // Nested non-externs can be aliased (since, in 2., any nested `.`s are replaced with `_`s).
+          // Non-nested externs can be aliased (since, in 2., `Y` does not have `.`s).
+          //
+          // There are several possible paths to supporting these features together:
+          // - Modify behavior in 1 to apply prefixe (python-module-name/outer-module) to externs.
+          //   This is out of scope for python-module-name, since the outer-module prefix also does not apply to externs.
+          //   These are both "prefixes", and I expect any solution for python-module-name should also apply to outer-module.
+          // - Modify nested extern behavior to replace `.`s with `_`s, similar to nested non-externs.
+          if (!module.Value.Equals(module.Key)) {
+            throw new NotSupportedException($"Nested extern modules cannot be used with python-module-name. Nested extern: {module.Value}");
+          }
+          // Import the nested extern module directly.
+          // ex. module {:extern "a.b.c"} ==> `import a.b.c`
+          wr.WriteLine($"import {module.Value}");
+        } else {
+          // Here, module.Key == [python-module-name][outer-module][module.Value].
+          // However, in the body of the generated module, Dafny-generated code only references module.Value.
+          // Alias the import to module.Value so generated code can use the module.
+          //
+          // ex. python-module-name `X.Y`, outer-module=`A.B`:
+          // module `M` ==> `import X.Y.A_B_M as M`
+          // module `M.N` ==> `import X.Y.A_B_M_N as M_N`
+          // non-nested extern module `E` ==> `import X.Y.E as E` (outer-module prefix not applied to externs)
+          // nested extern modules not supported with python-module-name/outer-module prefixes.
+          wr.WriteLine($"import {module.Key} as {module.Value}");
+        }
+      }
       if (moduleName != null) {
         wr.WriteLine();
         wr.WriteLine($"# Module: {moduleName}");
-        Imports.Add(moduleName);
+        Imports.Add(pythonModuleName + moduleName, moduleName);
       }
     }
 
@@ -1442,8 +1541,9 @@ namespace Microsoft.Dafny.Compilers {
       return EmitReturnExpr(wrBody);
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
-        List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor,
+      Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       source(wr);
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
@@ -1523,7 +1623,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -1664,7 +1764,7 @@ namespace Microsoft.Dafny.Compilers {
 
 
         default:
-          base.CompileBinOp(op, e0, e1, tok, resultType,
+          base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments,
             out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);

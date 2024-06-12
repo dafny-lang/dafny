@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 

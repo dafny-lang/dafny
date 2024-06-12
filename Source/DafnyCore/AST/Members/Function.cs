@@ -96,7 +96,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public readonly Formal Result;
   public PreType ResultPreType;
   public readonly Type ResultType;
-  public readonly Specification<FrameExpression> Reads;
   public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
   public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
