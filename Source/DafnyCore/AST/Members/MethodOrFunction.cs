@@ -92,4 +92,6 @@ public abstract class MethodOrFunction : MemberDecl {
 
   protected MethodOrFunction(RangeToken tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
   }
+
+  public Specification<FrameExpression> Reads { get; set; }
 }

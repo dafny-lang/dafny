@@ -19,12 +19,12 @@ namespace Std.Strings.HexConversion {
       return (Std.Strings.HexConversion.__default.charToDigit).Contains(c);
     }
     public static Dafny.ISequence<Dafny.Rune> OfDigits(Dafny.ISequence<BigInteger> digits) {
-      Dafny.ISequence<Dafny.Rune> _153___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+      Dafny.ISequence<Dafny.Rune> _139___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
     TAIL_CALL_START: ;
       if ((digits).Equals(Dafny.Sequence<BigInteger>.FromElements())) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements(), _153___accumulator);
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements(), _139___accumulator);
       } else {
-        _153___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((Std.Strings.HexConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _153___accumulator);
+        _139___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((Std.Strings.HexConversion.__default.chars).Select((digits).Select(BigInteger.Zero))), _139___accumulator);
         Dafny.ISequence<BigInteger> _in46 = (digits).Drop(BigInteger.One);
         digits = _in46;
         goto TAIL_CALL_START;
@@ -39,9 +39,9 @@ namespace Std.Strings.HexConversion {
     }
     public static bool IsNumberStr(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
     {
-      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.HexConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_154_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_154_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_1) => {
-        Dafny.Rune _155_c = (Dafny.Rune)_forall_var_1;
-        return !(((_154_str).Drop(BigInteger.One)).Contains(_155_c)) || (Std.Strings.HexConversion.__default.IsDigitChar(_155_c));
+      return !(!(str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) || (((((str).Select(BigInteger.Zero)) == (minus)) || ((Std.Strings.HexConversion.__default.charToDigit).Contains((str).Select(BigInteger.Zero)))) && (Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, bool>>((_140_str) => Dafny.Helpers.Quantifier<Dafny.Rune>(((_140_str).Drop(BigInteger.One)).UniqueElements, true, (((_forall_var_1) => {
+        Dafny.Rune _141_c = (Dafny.Rune)_forall_var_1;
+        return !(((_140_str).Drop(BigInteger.One)).Contains(_141_c)) || (Std.Strings.HexConversion.__default.IsDigitChar(_141_c));
       }))))(str)));
     }
     public static Dafny.ISequence<Dafny.Rune> OfInt(BigInteger n, Dafny.Rune minus)
@@ -56,8 +56,8 @@ namespace Std.Strings.HexConversion {
       if ((str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) {
         return BigInteger.Zero;
       } else {
-        Dafny.Rune _156_c = (str).Select((new BigInteger((str).Count)) - (BigInteger.One));
-        return ((Std.Strings.HexConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.Strings.HexConversion.__default.@base)) + (Dafny.Map<Dafny.Rune, BigInteger>.Select(Std.Strings.HexConversion.__default.charToDigit,_156_c));
+        Dafny.Rune _142_c = (str).Select((new BigInteger((str).Count)) - (BigInteger.One));
+        return ((Std.Strings.HexConversion.__default.ToNat((str).Take((new BigInteger((str).Count)) - (BigInteger.One)))) * (Std.Strings.HexConversion.__default.@base)) + (Dafny.Map<Dafny.Rune, BigInteger>.Select(Std.Strings.HexConversion.__default.charToDigit,_142_c));
       }
     }
     public static BigInteger ToInt(Dafny.ISequence<Dafny.Rune> str, Dafny.Rune minus)
@@ -76,24 +76,24 @@ namespace Std.Strings.HexConversion {
       }
     }
     public static BigInteger ToNatLeft(Dafny.ISequence<BigInteger> xs) {
-      BigInteger _157___accumulator = BigInteger.Zero;
+      BigInteger _143___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((new BigInteger((xs).Count)).Sign == 0) {
-        return (BigInteger.Zero) + (_157___accumulator);
+        return (BigInteger.Zero) + (_143___accumulator);
       } else {
-        _157___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.Strings.HexConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_157___accumulator);
+        _143___accumulator = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) * (Std.Arithmetic.Power.__default.Pow(Std.Strings.HexConversion.__default.BASE(), (new BigInteger((xs).Count)) - (BigInteger.One)))) + (_143___accumulator);
         Dafny.ISequence<BigInteger> _in47 = Std.Collections.Seq.__default.DropLast<BigInteger>(xs);
         xs = _in47;
         goto TAIL_CALL_START;
       }
     }
     public static Dafny.ISequence<BigInteger> FromNat(BigInteger n) {
-      Dafny.ISequence<BigInteger> _158___accumulator = Dafny.Sequence<BigInteger>.FromElements();
+      Dafny.ISequence<BigInteger> _144___accumulator = Dafny.Sequence<BigInteger>.FromElements();
     TAIL_CALL_START: ;
       if ((n).Sign == 0) {
-        return Dafny.Sequence<BigInteger>.Concat(_158___accumulator, Dafny.Sequence<BigInteger>.FromElements());
+        return Dafny.Sequence<BigInteger>.Concat(_144___accumulator, Dafny.Sequence<BigInteger>.FromElements());
       } else {
-        _158___accumulator = Dafny.Sequence<BigInteger>.Concat(_158___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.Strings.HexConversion.__default.BASE())));
+        _144___accumulator = Dafny.Sequence<BigInteger>.Concat(_144___accumulator, Dafny.Sequence<BigInteger>.FromElements(Dafny.Helpers.EuclideanModulus(n, Std.Strings.HexConversion.__default.BASE())));
         BigInteger _in48 = Dafny.Helpers.EuclideanDivision(n, Std.Strings.HexConversion.__default.BASE());
         n = _in48;
         goto TAIL_CALL_START;
@@ -114,16 +114,16 @@ namespace Std.Strings.HexConversion {
     }
     public static Dafny.ISequence<BigInteger> SeqExtendMultiple(Dafny.ISequence<BigInteger> xs, BigInteger n)
     {
-      BigInteger _159_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
-      return Std.Strings.HexConversion.__default.SeqExtend(xs, _159_newLen);
+      BigInteger _145_newLen = ((new BigInteger((xs).Count)) + (n)) - (Dafny.Helpers.EuclideanModulus(new BigInteger((xs).Count), n));
+      return Std.Strings.HexConversion.__default.SeqExtend(xs, _145_newLen);
     }
     public static Dafny.ISequence<BigInteger> FromNatWithLen(BigInteger n, BigInteger len)
     {
       return Std.Strings.HexConversion.__default.SeqExtend(Std.Strings.HexConversion.__default.FromNat(n), len);
     }
     public static Dafny.ISequence<BigInteger> SeqZero(BigInteger len) {
-      Dafny.ISequence<BigInteger> _160_xs = Std.Strings.HexConversion.__default.FromNatWithLen(BigInteger.Zero, len);
-      return _160_xs;
+      Dafny.ISequence<BigInteger> _146_xs = Std.Strings.HexConversion.__default.FromNatWithLen(BigInteger.Zero, len);
+      return _146_xs;
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqAdd(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
     {
@@ -131,13 +131,13 @@ namespace Std.Strings.HexConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs1 = Std.Strings.HexConversion.__default.SeqAdd(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _161_zs_k = _let_tmp_rhs1.dtor__0;
-        BigInteger _162_cin = _let_tmp_rhs1.dtor__1;
-        BigInteger _163_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_162_cin);
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs2 = (((_163_sum) < (Std.Strings.HexConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_163_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_163_sum) - (Std.Strings.HexConversion.__default.BASE()), BigInteger.One)));
-        BigInteger _164_sum__out = _let_tmp_rhs2.dtor__0;
-        BigInteger _165_cout = _let_tmp_rhs2.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_161_zs_k, Dafny.Sequence<BigInteger>.FromElements(_164_sum__out)), _165_cout);
+        Dafny.ISequence<BigInteger> _147_zs_k = _let_tmp_rhs1.dtor__0;
+        BigInteger _148_cin = _let_tmp_rhs1.dtor__1;
+        BigInteger _149_sum = ((Std.Collections.Seq.__default.Last<BigInteger>(xs)) + (Std.Collections.Seq.__default.Last<BigInteger>(ys))) + (_148_cin);
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs2 = (((_149_sum) < (Std.Strings.HexConversion.__default.BASE())) ? (_System.Tuple2<BigInteger, BigInteger>.create(_149_sum, BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((_149_sum) - (Std.Strings.HexConversion.__default.BASE()), BigInteger.One)));
+        BigInteger _150_sum__out = _let_tmp_rhs2.dtor__0;
+        BigInteger _151_cout = _let_tmp_rhs2.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_147_zs_k, Dafny.Sequence<BigInteger>.FromElements(_150_sum__out)), _151_cout);
       }
     }
     public static _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> SeqSub(Dafny.ISequence<BigInteger> xs, Dafny.ISequence<BigInteger> ys)
@@ -146,12 +146,12 @@ namespace Std.Strings.HexConversion {
         return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.FromElements(), BigInteger.Zero);
       } else {
         _System._ITuple2<Dafny.ISequence<BigInteger>, BigInteger> _let_tmp_rhs3 = Std.Strings.HexConversion.__default.SeqSub(Std.Collections.Seq.__default.DropLast<BigInteger>(xs), Std.Collections.Seq.__default.DropLast<BigInteger>(ys));
-        Dafny.ISequence<BigInteger> _166_zs = _let_tmp_rhs3.dtor__0;
-        BigInteger _167_cin = _let_tmp_rhs3.dtor__1;
-        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs4 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_167_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_167_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.Strings.HexConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_167_cin), BigInteger.One)));
-        BigInteger _168_diff__out = _let_tmp_rhs4.dtor__0;
-        BigInteger _169_cout = _let_tmp_rhs4.dtor__1;
-        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_166_zs, Dafny.Sequence<BigInteger>.FromElements(_168_diff__out)), _169_cout);
+        Dafny.ISequence<BigInteger> _152_zs = _let_tmp_rhs3.dtor__0;
+        BigInteger _153_cin = _let_tmp_rhs3.dtor__1;
+        _System._ITuple2<BigInteger, BigInteger> _let_tmp_rhs4 = (((Std.Collections.Seq.__default.Last<BigInteger>(xs)) >= ((Std.Collections.Seq.__default.Last<BigInteger>(ys)) + (_153_cin))) ? (_System.Tuple2<BigInteger, BigInteger>.create(((Std.Collections.Seq.__default.Last<BigInteger>(xs)) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_153_cin), BigInteger.Zero)) : (_System.Tuple2<BigInteger, BigInteger>.create((((Std.Strings.HexConversion.__default.BASE()) + (Std.Collections.Seq.__default.Last<BigInteger>(xs))) - (Std.Collections.Seq.__default.Last<BigInteger>(ys))) - (_153_cin), BigInteger.One)));
+        BigInteger _154_diff__out = _let_tmp_rhs4.dtor__0;
+        BigInteger _155_cout = _let_tmp_rhs4.dtor__1;
+        return _System.Tuple2<Dafny.ISequence<BigInteger>, BigInteger>.create(Dafny.Sequence<BigInteger>.Concat(_152_zs, Dafny.Sequence<BigInteger>.FromElements(_154_diff__out)), _155_cout);
       }
     }
     public static Dafny.ISequence<Dafny.Rune> HEX__DIGITS { get {
@@ -174,8 +174,8 @@ namespace Std.Strings.HexConversion {
       return _TYPE;
     }
     public static bool _Is(Dafny.ISequence<Dafny.Rune> __source) {
-      Dafny.ISequence<Dafny.Rune> _170_chars = __source;
-      return (new BigInteger((_170_chars).Count)) > (BigInteger.One);
+      Dafny.ISequence<Dafny.Rune> _156_chars = __source;
+      return (new BigInteger((_156_chars).Count)) > (BigInteger.One);
     }
   }
 
@@ -185,9 +185,9 @@ namespace Std.Strings.HexConversion {
       return _TYPE;
     }
     public static bool _Is(BigInteger __source) {
-      BigInteger _171_i = __source;
-      if (_System.nat._Is(_171_i)) {
-        return ((_171_i).Sign != -1) && ((_171_i) < (Std.Strings.HexConversion.__default.BASE()));
+      BigInteger _157_i = __source;
+      if (_System.nat._Is(_157_i)) {
+        return ((_157_i).Sign != -1) && ((_157_i) < (Std.Strings.HexConversion.__default.BASE()));
       }
       return false;
     }

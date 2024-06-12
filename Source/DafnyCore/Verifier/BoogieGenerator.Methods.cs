@@ -1182,7 +1182,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false), kv));
+      builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps), kv));
     }
 
     private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
@@ -1517,11 +1517,10 @@ namespace Microsoft.Dafny {
       var caller = new List<Expr>();
       var calleeDafny = new List<Expression>();
       var callerDafny = new List<Expression>();
-      FunctionCallSubstituter sub = null;
+      FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap, T, I);
 
       for (int i = 0; i < N; i++) {
         Expression e0 = calleeDecreases[i];
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, T, I);
         Expression e1 = sub.Substitute(contextDecreases[i]);
         if (!CompatibleDecreasesTypes(e0.Type, e1.Type)) {
           N = i;
@@ -1565,7 +1564,13 @@ namespace Microsoft.Dafny {
       bool allowNoChange = N == decrCountT && decrCountT <= decrCountC;
       var decrChk = DecreasesCheck(toks, null, calleeDafny, callerDafny, callee, caller, null,
         null, allowNoChange, false);
-      builder.Add(Assert(original.RangeToken, decrChk, new PODesc.TraitDecreases(original.WhatKind)));
+      var assertedExpr = new DecreasesToExpr(
+        Token.NoToken,
+        contextDecreases.Select(sub.Substitute).ToList(),
+        calleeDecreases,
+        true);
+      var desc = new PODesc.TraitDecreases(original.WhatKind, assertedExpr);
+      builder.Add(Assert(original.RangeToken, decrChk, desc));
     }
 
     private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
@@ -1610,7 +1615,7 @@ namespace Microsoft.Dafny {
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
         BplImp(BplAnd(ante, oInCallee), consequent2));
-      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies), kv));
+      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps), kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption

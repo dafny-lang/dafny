@@ -655,6 +655,9 @@ namespace Microsoft.Dafny.Compilers {
     // so we buffer it here
     _IOption<DAST._IExpression> bufferedInitializationValue = null;
 
+    // And its statements here
+    _IOption<List<DAST.Statement>> bufferedInitializationStmts = null;
+
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       if (bufferedInitializationValue != null) {
@@ -663,15 +666,22 @@ namespace Microsoft.Dafny.Compilers {
         type = type.NormalizeExpandKeepConstraints();
         if (usePlaceboValue) {
           bufferedInitializationValue = Option<DAST._IExpression>.create_None();
+          bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
         } else {
           if (type.AsNewtype != null && type.AsNewtype.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
             var buf = new ExprBuffer(null);
-            EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this), null);
+            var bufStmt = new StatementBuffer();
+            EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this),
+              new BuilderSyntaxTree<StatementContainer>(bufStmt, this));
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
             var buf = new ExprBuffer(null);
-            EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this), null);
+            var bufStmt = new StatementBuffer();
+            EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this),
+              new BuilderSyntaxTree<StatementContainer>(bufStmt, this));
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
             var elems = new List<DAST._IExpression>();
             for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
@@ -689,12 +699,14 @@ namespace Microsoft.Dafny.Compilers {
                 DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
               );
             }
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
           } else if (type.IsArrowType) {
             this.AddUnsupported("<i>Initializer for arrow type</i>");
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
             );
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
           }
         }
         return "BUFFERED"; // used by DeclareLocal(Out)Var
@@ -785,6 +797,14 @@ namespace Microsoft.Dafny.Compilers {
 
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
+
+          if (bufferedInitializationStmts.is_Some) {
+            foreach (var stmt in bufferedInitializationStmts.dtor_value) {
+              stmtContainer.Builder.AddStatement(stmt);
+            }
+
+            bufferedInitializationStmts = null;
+          }
 
           stmtContainer.Builder.AddStatement(
             (DAST.Statement)DAST.Statement.create_DeclareVar(
@@ -1923,8 +1943,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
-        List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor,
+      Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (GetExprBuilder(wr, out var builder)) {
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
           Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
@@ -2123,7 +2144,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -2206,8 +2227,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var newBuilder = op switch {
           BinaryExpr.ResolvedOpcode.EqCommon => B((BinOp)BinOp.create_Eq(
-            e0.Type.IsRefType,
-            !e0.Type.IsNonNullRefType
+            e0Type.IsRefType,
+            !e0Type.IsNonNullRefType
           )),
           BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false, false)),
           BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false, false)),
@@ -2216,8 +2237,8 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
             Not(BinaryOp(
               BinOp.create_Eq(
-                e0.Type.IsRefType,
-                !e0.Type.IsNonNullRefType
+                e0Type.IsRefType,
+                !e0Type.IsNonNullRefType
               ), left, right))),
           BinaryExpr.ResolvedOpcode.SetNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
@@ -2668,5 +2689,18 @@ namespace Microsoft.Dafny.Compilers {
       AddUnsupported("<i>EmitHaltRecoveryStmt</i>");
     }
 
+    protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
+      ConcreteSyntaxTree wStmts) {
+      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+    }
+
+    protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
+      bool inLetExprBody, IVariable accumulatorVar) {
+      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+    }
+
+    protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
+      TrStmt(match.Flattened, writer);
+    }
   }
 }

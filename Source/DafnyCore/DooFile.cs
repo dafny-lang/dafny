@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
@@ -57,6 +58,14 @@ public class DooFile {
 
       Options = new Dictionary<string, object>();
       foreach (var (option, _) in OptionChecks) {
+        if (option == CommonOptionBag.Libraries) {
+          // We don't want to serialize the FileInfo objects of this option
+          // For now we add an option specific exception here so we do not need to change
+          // the option registration system.
+          // When improve soundness through https://github.com/dafny-lang/dafny/issues/5335
+          // Then we'll get back to this
+          continue;
+        }
         var optionValue = options.Get((dynamic)option);
         if (option == CommonOptionBag.QuantifierSyntax) {
           switch (optionValue) {
@@ -167,17 +176,16 @@ public class DooFile {
       return null;
     }
 
-    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options,
-      new Dictionary<Option, OptionCompatibility.OptionCheck>());
+    return CheckAndGetLibraryOptions(reporter, file, options, origin, Manifest.Options);
   }
 
   public static DafnyOptions? CheckAndGetLibraryOptions(ErrorReporter reporter,
     Uri libraryFile,
     DafnyOptions options, IToken origin,
-    IDictionary<string, object> libraryOptions,
-    Dictionary<Option, OptionCompatibility.OptionCheck> additionalOptions) {
+    IDictionary<string, object> libraryOptions) {
     var result = new DafnyOptions(options);
     var success = true;
+
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
     foreach (var (option, check) in OptionChecks) {
       // It's important to only look at the options the current command uses,

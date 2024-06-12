@@ -1,4 +1,4 @@
-﻿conversion-positive.dfy(6,6): Error: a negative integer cannot be converted to an ORDINAL
+conversion-positive.dfy(6,6): Error: a negative integer cannot be converted to an ORDINAL
  Asserted expression: 0 <= i
 
 Dafny program verifier finished with 0 verified, 1 error
