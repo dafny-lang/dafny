@@ -1761,7 +1761,8 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, AlwaysAssumeAttribute(p.E.tok)));
+          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
+          comment = null;
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
@@ -1778,6 +1779,13 @@ namespace Microsoft.Dafny {
             }
           }
         }
+        // assume can-call conditions for the modifies clause
+        comment = "user-defined frame expressions";
+        foreach (var frameExpression in m.Mod.Expressions) {
+          req.Add(FreeRequires(frameExpression.tok, etran.CanCallAssumption(frameExpression.E), comment, true));
+          comment = null;
+        }
+
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);

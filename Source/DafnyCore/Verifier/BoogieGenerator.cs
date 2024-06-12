@@ -2246,7 +2246,6 @@ namespace Microsoft.Dafny {
         if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
         }
-        var canCallE = etran.CanCallAssumption(e);
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeToAncestorType();
@@ -2287,7 +2286,7 @@ namespace Microsoft.Dafny {
           }
           disjunct = BplAnd(disjunct, q);
         }
-        disjunction = BplOr(disjunction, BplAnd(canCallE, disjunct));
+        disjunction = BplOr(disjunction, disjunct);
       }
       return disjunction;
     }
