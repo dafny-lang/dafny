@@ -6,7 +6,7 @@ newtype NativeNotZero = x: int | 1 <= x < 255 witness 1
 
 // k0 is initialized using var_init!<T>
 // A tracker starts before the second if to determine if k needs to be cleaned up
-method TestResourceCleanup<T>(return_first: bool, update_value: bool, thn: T)
+method TestResourceCleanup<T(0)>(return_first: bool, update_value: bool, thn: T)
   requires return_first ==> !update_value
 {
   var k0: T;

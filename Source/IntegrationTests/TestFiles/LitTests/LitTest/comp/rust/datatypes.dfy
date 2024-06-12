@@ -148,7 +148,7 @@ module DatatypeTests {
 
     var r := Recursive(0, None);
     r := Recursive(1, Some(r));
-    print r, '\n'; // Recursive(1, Some(Recursive(0, None)))
+    print r, "\n"; // Recursive(1, Some(Recursive(0, None)))
     
     // Interfacing with native types
     var x := Some(3 as u8);

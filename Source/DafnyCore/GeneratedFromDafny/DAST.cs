@@ -2268,18 +2268,82 @@ namespace DAST {
     }
   }
 
+  public interface _IDatatypeDtor {
+    bool is_DatatypeDtor { get; }
+    DAST._IFormal dtor_formal { get; }
+    Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> dtor_callName { get; }
+    _IDatatypeDtor DowncastClone();
+  }
+  public class DatatypeDtor : _IDatatypeDtor {
+    public readonly DAST._IFormal _formal;
+    public readonly Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _callName;
+    public DatatypeDtor(DAST._IFormal formal, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> callName) {
+      this._formal = formal;
+      this._callName = callName;
+    }
+    public _IDatatypeDtor DowncastClone() {
+      if (this is _IDatatypeDtor dt) { return dt; }
+      return new DatatypeDtor(_formal, _callName);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.DatatypeDtor;
+      return oth != null && object.Equals(this._formal, oth._formal) && object.Equals(this._callName, oth._callName);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._formal));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._callName));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.DatatypeDtor.DatatypeDtor";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._formal);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._callName);
+      s += ")";
+      return s;
+    }
+    private static readonly DAST._IDatatypeDtor theDefault = create(DAST.Formal.Default(), Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.Default());
+    public static DAST._IDatatypeDtor Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._IDatatypeDtor> _TYPE = new Dafny.TypeDescriptor<DAST._IDatatypeDtor>(DAST.DatatypeDtor.Default());
+    public static Dafny.TypeDescriptor<DAST._IDatatypeDtor> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IDatatypeDtor create(DAST._IFormal formal, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> callName) {
+      return new DatatypeDtor(formal, callName);
+    }
+    public static _IDatatypeDtor create_DatatypeDtor(DAST._IFormal formal, Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> callName) {
+      return create(formal, callName);
+    }
+    public bool is_DatatypeDtor { get { return true; } }
+    public DAST._IFormal dtor_formal {
+      get {
+        return this._formal;
+      }
+    }
+    public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> dtor_callName {
+      get {
+        return this._callName;
+      }
+    }
+  }
+
   public interface _IDatatypeCtor {
     bool is_DatatypeCtor { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<DAST._IFormal> dtor_args { get; }
+    Dafny.ISequence<DAST._IDatatypeDtor> dtor_args { get; }
     bool dtor_hasAnyArgs { get; }
     _IDatatypeCtor DowncastClone();
   }
   public class DatatypeCtor : _IDatatypeCtor {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<DAST._IFormal> _args;
+    public readonly Dafny.ISequence<DAST._IDatatypeDtor> _args;
     public readonly bool _hasAnyArgs;
-    public DatatypeCtor(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IFormal> args, bool hasAnyArgs) {
+    public DatatypeCtor(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IDatatypeDtor> args, bool hasAnyArgs) {
       this._name = name;
       this._args = args;
       this._hasAnyArgs = hasAnyArgs;
@@ -2311,7 +2375,7 @@ namespace DAST {
       s += ")";
       return s;
     }
-    private static readonly DAST._IDatatypeCtor theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IFormal>.Empty, false);
+    private static readonly DAST._IDatatypeCtor theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._IDatatypeDtor>.Empty, false);
     public static DAST._IDatatypeCtor Default() {
       return theDefault;
     }
@@ -2319,10 +2383,10 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IDatatypeCtor> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IDatatypeCtor create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IFormal> args, bool hasAnyArgs) {
+    public static _IDatatypeCtor create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IDatatypeDtor> args, bool hasAnyArgs) {
       return new DatatypeCtor(name, args, hasAnyArgs);
     }
-    public static _IDatatypeCtor create_DatatypeCtor(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IFormal> args, bool hasAnyArgs) {
+    public static _IDatatypeCtor create_DatatypeCtor(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._IDatatypeDtor> args, bool hasAnyArgs) {
       return create(name, args, hasAnyArgs);
     }
     public bool is_DatatypeCtor { get { return true; } }
@@ -2331,7 +2395,7 @@ namespace DAST {
         return this._name;
       }
     }
-    public Dafny.ISequence<DAST._IFormal> dtor_args {
+    public Dafny.ISequence<DAST._IDatatypeDtor> dtor_args {
       get {
         return this._args;
       }

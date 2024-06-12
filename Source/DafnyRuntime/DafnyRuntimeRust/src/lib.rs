@@ -564,6 +564,25 @@ impl<'a, const N: usize> From<&'a [u8; N]> for DafnyInt {
     }
 }
 
+impl From<char> for DafnyInt {
+    fn from(c: char) -> Self {
+        let cu32: u32 = c.into();
+        int!(cu32)
+    }
+}
+
+impl From<DafnyChar> for DafnyInt {
+    fn from(c: DafnyChar) -> Self {
+        int!(c.0)
+    }
+}
+
+impl From<DafnyCharUTF16> for DafnyInt {
+    fn from(c: DafnyCharUTF16) -> Self {
+        int!(c.0)
+    }
+}
+
 // **************
 // Immutable sequences
 // **************
@@ -1984,6 +2003,12 @@ impl DafnyPrint for () {
 pub struct DafnyCharUTF16(pub u16);
 pub type DafnyStringUTF16 = Sequence<DafnyCharUTF16>;
 
+impl Default for DafnyCharUTF16 {
+    fn default() -> Self {
+        Self('a' as u16)
+    }
+}
+
 impl DafnyPrint for DafnyCharUTF16 {
     #[inline]
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
@@ -2037,6 +2062,12 @@ impl PartialOrd<DafnyCharUTF16> for DafnyCharUTF16 {
 #[derive(Clone)]
 pub struct DafnyChar(pub char);
 pub type DafnyString = Sequence<DafnyChar>;
+
+impl Default for DafnyChar {
+    fn default() -> Self {
+        Self('a')
+    }
+}
 
 impl DafnyPrint for DafnyChar {
     #[inline]

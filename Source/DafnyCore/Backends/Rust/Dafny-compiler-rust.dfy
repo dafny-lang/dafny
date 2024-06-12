@@ -98,12 +98,20 @@ module RAST
     function ToString(ind: string): string {
       visibility.ToString() + formal.ToString(ind)
     }
+    function ToNamelessField(): NamelessField {
+      NamelessField(visibility, formal.tpe)
+    }
   }
 
   datatype Fields =
     | NamedFields(fields: seq<Field>)
     | NamelessFields(types: seq<NamelessField>)
   {
+    function ToNamelessFields(): Fields
+      requires NamedFields?
+    {
+      NamelessFields(seq(|fields|, i requires 0 <= i < |fields| => fields[i].ToNamelessField()))
+    }
     function ToString(ind: string, newLine: bool): string {
       if NamedFields? then
         var separator := if newLine then ",\n" + ind + IND else ", ";
@@ -811,12 +819,21 @@ module RAST
           if els == RawExpr("") then "" else
           " else {\n" + ind + IND + els.ToString(ind + IND) + "\n" + ind + "}"
         case StructBuild(name, assignments) =>
-          name.ToString(ind) + " {" +
-          SeqToString(assignments, (assignment: AssignIdentifier)
-                      requires assignment.Height() < this.Height()
-                      =>
-                        "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
-          (if |assignments| > 0 then "\n" + ind else "") + "}"
+          if |assignments| > 0 && assignments[0].identifier == "0" then
+            // Numeric
+            name.ToString(ind) + " (" +
+            SeqToString(assignments, (assignment: AssignIdentifier)
+                        requires assignment.Height() < this.Height()
+                        =>
+                          "\n" + ind + IND + assignment.rhs.ToString(ind + IND), ",") +
+            (if |assignments| > 1 then "\n" + ind else "") + ")"
+          else
+            name.ToString(ind) + " {" +
+            SeqToString(assignments, (assignment: AssignIdentifier)
+                        requires assignment.Height() < this.Height()
+                        =>
+                          "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
+            (if |assignments| > 0 then "\n" + ind else "") + "}"
         case Tuple(arguments) =>
           "(" +
           SeqToString(arguments, (arg: Expr)
@@ -1556,60 +1573,86 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
         var ctorArgs: seq<R.Field> := [];
+        var isNumeric := false;
         for j := 0 to |ctor.args| {
-          var formal := ctor.args[j];
-          var formalType := GenType(formal.typ, false, false);
+          var dtor := ctor.args[j];
+          var formalType := GenType(dtor.formal.typ, false, false);
+          var formalName := escapeName(dtor.formal.name);
+          if j == 0 && "0" == formalName {
+            isNumeric := true;
+          }
+          if j != 0 && isNumeric && Strings.OfNat(j) != formalName {
+            error := Some("Formal extern names were supposed to be numeric but got " + formalName + " instead of " + Strings.OfNat(j));
+            isNumeric := false;
+          }
           if c.isCo {
             ctorArgs := ctorArgs + [
               R.Field(R.PRIV,
-                      R.Formal(escapeName(formal.name),
+                      R.Formal(formalName,
                                R.TypeApp(R.dafny_runtime_type.MSel("LazyFieldWrapper"), [formalType])))];
           } else {
             ctorArgs := ctorArgs + [
               R.Field(R.PRIV,
-                      R.Formal(escapeName(formal.name), formalType))];
+                      R.Formal(formalName, formalType))];
           }
         }
-        ctors := ctors + [R.EnumCase(escapeName(ctor.name), R.NamedFields(ctorArgs))];
+        var namedFields := R.NamedFields(ctorArgs);
+        if isNumeric {
+          namedFields := namedFields.ToNamelessFields();
+        }
+        ctors := ctors + [R.EnumCase(escapeName(ctor.name), namedFields)];
       }
 
       var selfPath := [Ident.Ident(c.name)];
       var implBodyRaw, traitBodies := GenClassImplBody(c.body, false, Type.Path([], [], ResolvedType.Datatype(DatatypeType(selfPath, c.attributes))), typeParamsSet);
       var implBody: seq<R.ImplMember> := implBodyRaw;
-      var emittedFields: set<Name> := {};
+      var emittedFields: set<string> := {};
       for i := 0 to |c.ctors| {
         // we know that across all ctors, each any fields with the same name have the same type
         // so we want to emit methods for each field that pull the appropriate value given
         // the current variant (and panic if we have a variant with no such field)
         var ctor := c.ctors[i];
         for j := 0 to |ctor.args| {
-          var formal := ctor.args[j];
-          if !(formal.name in emittedFields) {
-            emittedFields := emittedFields + {formal.name};
+          var dtor := ctor.args[j];
+          var callName := dtor.callName.GetOr(escapeName(dtor.formal.name));
+          if !(callName in emittedFields) {
+            emittedFields := emittedFields + {callName};
 
-            var formalType := GenType(formal.typ, false, false);
+            var formalType := GenType(dtor.formal.typ, false, false);
             var cases: seq<R.MatchCase> := [];
             for k := 0 to |c.ctors| {
               var ctor2 := c.ctors[k];
 
-              var pattern := datatypeName + "::" + escapeName(ctor2.name) + " { ";
+              var pattern := datatypeName + "::" + escapeName(ctor2.name);
               var rhs: string;
-              var hasMatchingField := false;
+              var hasMatchingField := None;
+              var patternInner := "";
+              var isNumeric := false;
               for l := 0 to |ctor2.args| {
-                var formal2 := ctor2.args[l];
-                if formal.name == formal2.name {
-                  hasMatchingField := true;
+                var dtor2 := ctor2.args[l];
+                var patternName := escapeName(dtor2.formal.name);
+                if l == 0 && patternName == "0" {
+                  isNumeric := true;
                 }
-                pattern := pattern + escapeName(formal2.name) + ", ";
+                if isNumeric {
+                  patternName := dtor2.callName.GetOr("v" + Strings.OfNat(l));
+                }
+                if dtor.formal.name == dtor2.formal.name {
+                  hasMatchingField := Some(patternName);
+                }
+                patternInner := patternInner + patternName + ", ";
+              }
+              if isNumeric {
+                pattern := pattern + "(" + patternInner + ")";
+              } else {
+                pattern := pattern + "{" + patternInner + "}";
               }
 
-              pattern := pattern + "}";
-
-              if hasMatchingField {
+              if hasMatchingField.Some? {
                 if c.isCo {
-                  rhs := "::std::ops::Deref::deref(&" + escapeName(formal.name) + ".0)";
+                  rhs := "::std::ops::Deref::deref(&" + hasMatchingField.value + ".0)";
                 } else {
-                  rhs := escapeName(formal.name) + "";
+                  rhs := hasMatchingField.value + "";
                 }
               } else {
                 rhs := "panic!(\"field does not exist on this variant\")";
@@ -1633,7 +1676,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.FnDecl(
                 R.PUB,
                 R.Fn(
-                  escapeName(formal.name),
+                  callName,
                   [], [R.Formal.selfBorrowed], Some(R.Borrowed(formalType)),
                   "",
                   Some(methodBody)
@@ -1676,28 +1719,41 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var printImplBodyCases: seq<R.MatchCase> := [];
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
-        var ctorMatch := escapeName(ctor.name) + " { ";
+        var ctorMatch := escapeName(ctor.name);
 
-        var modulePrefix := if c.enclosingModule.id.dafny_name == "_module" then "" else escapeName(c.enclosingModule.id) + ".";
-        var ctorName := modulePrefix + escapeName(c.name) + "." + escapeName(ctor.name);
+        var modulePrefix := if c.enclosingModule.id.dafny_name == "_module" then "" else c.enclosingModule.id.dafny_name + ".";
+        var ctorName := modulePrefix + c.name.dafny_name + "." + ctor.name.dafny_name;
         if |ctorName| >= 13 && ctorName[0..13] == "_System.Tuple" {
           ctorName := "";
         }
         var printRhs :=
           R.RawExpr("write!(_formatter, \"" + ctorName + (if ctor.hasAnyArgs then "(\")?" else "\")?"));
-
+        
+        var isNumeric := false;
+        var ctorMatchInner := "";
         for j := 0 to |ctor.args| {
-          var formal := ctor.args[j];
-          var formalName := escapeName(formal.name);
-          ctorMatch := ctorMatch + formalName + ", ";
+          var dtor := ctor.args[j];
+          var patternName := escapeName(dtor.formal.name);
+          if j == 0 && patternName == "0" {
+            isNumeric := true;
+          }
+          if isNumeric {
+            patternName := dtor.callName.GetOr("v" + Strings.OfNat(j));
+          }
+          
+          ctorMatchInner := ctorMatchInner + patternName + ", ";
 
           if (j > 0) {
             printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \", \")?"));
           }
-          printRhs := printRhs.Then(R.RawExpr("::dafny_runtime::DafnyPrint::fmt_print(" + escapeName(formal.name) + ", _formatter, false)?"));
+          printRhs := printRhs.Then(R.RawExpr("::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"));
         }
 
-        ctorMatch := ctorMatch + "}";
+        if isNumeric {
+          ctorMatch := ctorMatch + "(" + ctorMatchInner + ")";
+        } else {
+          ctorMatch := ctorMatch + "{" + ctorMatchInner + "}";
+        }
 
         if (ctor.hasAnyArgs) {
           printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \")\")?"));
@@ -1762,13 +1818,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           ))];
 
       var defaultImpl := [];
+      var asRefImpl := [];
       if |c.ctors| > 0 {
         var structName := R.Identifier(datatypeName).MSel(escapeName(c.ctors[0].name));
         var structAssignments: seq<R.AssignIdentifier> := [];
         for i := 0 to |c.ctors[0].args| {
-          var formal := c.ctors[0].args[i];
+          var dtor := c.ctors[0].args[i];
           structAssignments := structAssignments + [
-            R.AssignIdentifier(escapeName(formal.name), R.RawExpr("::std::default::Default::default()"))
+            R.AssignIdentifier(escapeName(dtor.formal.name), R.RawExpr("::std::default::Default::default()"))
           ];
         }
         var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
@@ -1794,8 +1851,22 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                      )))
                )]
             ))];
+        asRefImpl := [
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.std_type.MSel("convert").MSel("AsRef").Apply1(fullType),
+              R.Borrowed(fullType),
+              "",
+              [R.FnDecl(
+                 R.PRIV,
+                 R.Fn("as_ref", [], [R.Formal.selfBorrowed], Some(R.SelfOwned),
+                      "",
+                      Some(R.self))
+               )]
+            ))];
       }
-      s := enumBody + printImpl + defaultImpl;
+      s := enumBody + printImpl + defaultImpl + asRefImpl;
     }
 
     static method GenPath(p: seq<Ident>) returns (r: R.Type) {
@@ -2069,6 +2140,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if (|typeParamsFiltered| > 0) {
         for i := 0 to |typeParamsFiltered| {
           var typeArg, rTypeParamDecl := GenTypeParam(typeParamsFiltered[i]);
+          // TODO: Remove default once MaybePlacebos are implemented.
+          rTypeParamDecl := rTypeParamDecl.(constraints := rTypeParamDecl.constraints + [R.std_type.MSel("default").MSel("Default")]);
           typeParams := typeParams + [rTypeParamDecl];
         }
       }
@@ -2875,7 +2948,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         match nativeFromType {
           case Some(v) =>
             var toTpeRust := GenType(toTpe, false, false);
-            r := recursiveGen.Sel("into").ApplyType([toTpeRust]).Apply([]);
+            r := R.Identifier("Into").ApplyType([toTpeRust]).MSel("into").Apply([recursiveGen]);
             r, resultingOwnership := FromOwned(r, expectedOwnership);
           case None =>
             if erase {
@@ -3184,7 +3257,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
           }
           r := R.StructBuild(r, assignments);
-          r := R.RcNew(r);
+          if IsRcWrapped(datatypeType.attributes) {
+            r := R.RcNew(r);
+          }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
@@ -3472,12 +3547,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
             r := onExpr.Sel(escapeName(field)).Apply([]);
             var typ := GenType(fieldType, false, false);
-            if typ.CanReadWithoutClone() &&
-               (expectedOwnership == OwnershipOwned ||  expectedOwnership == OwnershipAutoBorrowed) {
-              resultingOwnership := OwnershipOwned;
-            } else {
-              r, resultingOwnership := FromOwnership(r, OwnershipBorrowed, expectedOwnership);
-            }
+            // All fields are returned as addresses for now until we have something more clever
+            r, resultingOwnership := FromOwnership(r, OwnershipBorrowed, expectedOwnership);
             readIdents := recIdents;
           } else {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);

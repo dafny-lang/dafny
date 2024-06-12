@@ -274,23 +274,29 @@ namespace Microsoft.Dafny.Compilers {
             Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
-        List<DAST.DatatypeCtor> ctors = new();
-        foreach (var ctor in dt.Ctors) {
-          List<DAST.Formal> args = new();
-          foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              args.Add((DAST.Formal)DAST.Formal.create_Formal(
-                Sequence<Rune>.UnicodeFromString(arg.CompileName), GenType(arg.Type), ParseAttributes(arg.Attributes)));
-            }
-          }
-          ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)), Sequence<DAST.Formal>.FromArray(args.ToArray()), ctor.Formals.Count > 0));
-        }
+        IEnumerable<DAST.DatatypeCtor> ctors = 
+          from ctor in dt.Ctors
+            let allDtors =
+              from arg in ctor.Formals
+              where !arg.IsGhost
+              let formalName = Sequence<Rune>.UnicodeFromString(GetDestructorFormalName(arg))
+              let formalType = GenType(arg.Type)
+              let formalCallName = GetExtractOverrideName(arg.Attributes, arg.CompileName)
+              let dtorName =
+                Option<Sequence<Rune>>.create_Some((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(formalCallName))
+              let formalAttributes = ParseAttributes(arg.Attributes)
+              select (DAST.DatatypeDtor)DAST.DatatypeDtor.create_DatatypeDtor((DAST.Formal)DAST.Formal.create_Formal(
+                formalName, formalType, formalAttributes), dtorName)
+          let args = Sequence<DAST.DatatypeDtor>.FromArray(allDtors.ToArray<DatatypeDtor>())
+          select (DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(
+            Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)),
+            args, ctor.Formals.Count > 0);
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
           dt.GetCompileName(Options),
           dt.EnclosingModuleDefinition.GetCompileName(Options),
           typeParams,
-          ctors,
+          ctors.ToList(),
           dt is CoDatatypeDecl,
           ParseAttributes(dt.Attributes)
         ));
@@ -1305,15 +1311,10 @@ namespace Microsoft.Dafny.Compilers {
 
         switch (e) {
           case CharLiteralExpr c:
-            if (UnicodeCharEnabled) {
-              var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
-              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
-                new Rune(codePoint)
-              ));
-            } else {
-              AddUnsupported("<i>Char literal without unicode char enabled</i>");
-              return;
-            }
+            var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
+            baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
+              new Rune(codePoint)
+            ));
             break;
           case StringLiteralExpr str:
             baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
@@ -1623,14 +1624,16 @@ namespace Microsoft.Dafny.Compilers {
 
         int argI = 0;
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
-          var formal = dtv.Ctor.Destructors[i];
-          if (formal.IsGhost) {
+          var destructor = dtv.Ctor.Destructors[i];
+          if (destructor.IsGhost) {
             continue;
           }
 
           var actual = contents[argI];
+          var formal = dtv.Ctor.Formals[i];
+          var destructorName = GetDestructorFormalName(formal);
           namedContents.Add(_System.Tuple2<ISequence<Rune>, DAST.Expression>.create(
-            Sequence<Rune>.UnicodeFromString(formal.GetCompileName(Options)),
+            Sequence<Rune>.UnicodeFromString(destructorName),
             actual
           ));
 
@@ -1671,6 +1674,18 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + wr.GetType() + ", " + currentBuilder);
       }
+    }
+
+    private static string GetDestructorFormalName(Formal formal)
+    {
+      var defaultName = formal.CompileName;
+      object externVal = null;
+      bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
+        ref externVal, new List<Attributes.MatchingValueOption> {
+          Attributes.MatchingValueOption.String
+        }, s => throw new UnsupportedInvalidOperationException("Non-string externs for destructors"));
+      var destructorName = externVal as string ?? defaultName;
+      return destructorName;
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
@@ -1716,7 +1731,9 @@ namespace Microsoft.Dafny.Compilers {
             int.Parse(dtor.CorrespondingFormals[0].NameForCompilation), GenType(expectedType)
           ), null, this);
         } else {
-          var compileName = GetExtractOverrideName(member.Attributes, member.GetCompileName(Options));
+          var attributes = member.Attributes ??
+                           (dtor.CorrespondingFormals.Count == 1 ? dtor.CorrespondingFormals[0].Attributes : null);
+          var compileName = GetExtractOverrideName(attributes, member.GetCompileName(Options));
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(compileName),

@@ -88,7 +88,9 @@ module {:extern "DAST"} DAST {
 
   datatype Datatype = Datatype(name: Name, enclosingModule: Ident, typeParams: seq<TypeArgDecl>, ctors: seq<DatatypeCtor>, body: seq<ClassItem>, isCo: bool, attributes: seq<Attribute>)
 
-  datatype DatatypeCtor = DatatypeCtor(name: Name, args: seq<Formal>, hasAnyArgs: bool /* includes ghost */)
+  datatype DatatypeDtor = DatatypeDtor(formal: Formal, callName: Option<string>)
+
+  datatype DatatypeCtor = DatatypeCtor(name: Name, args: seq<DatatypeDtor>, hasAnyArgs: bool /* includes ghost */)
 
   datatype Newtype = Newtype(name: Name, typeParams: seq<TypeArgDecl>, base: Type, range: NewtypeRange, witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>)
 
