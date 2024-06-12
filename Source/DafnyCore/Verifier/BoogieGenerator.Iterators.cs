@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh = FunctionContextHeight;
-        req.Add(Requires(iter.tok, true, null, etran.HeightContext(iter), null, null, null));
+        req.Add(FreeRequires(iter.tok, etran.HeightContext(iter), null));
       }
       mod.Add(etran.HeapCastToIdentifierExpr);
 
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
-          req.Add(Requires(p.E.tok, true, etran.CanCallAssumption(p.E), null, comment, AlwaysAssumeAttribute(p.E.tok)));
+          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, AlwaysAssumeAttribute(p.E.tok)));
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
           var canCalls = etran.CanCallAssumption(p.E);
-          AddEnsures(ens, Ensures(p.E.tok, true, canCalls, CustomErrorMessage(p.Attributes), comment, AlwaysAssumeAttribute(p.E.tok)));
+          AddEnsures(ens, FreeEnsures(p.E.tok, canCalls, comment, AlwaysAssumeAttribute(p.E.tok)));
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it

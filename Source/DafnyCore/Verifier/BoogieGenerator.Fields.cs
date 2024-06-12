@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
+      req.Add(FreeRequires(decl.tok, etran.HeightContext(decl), null));
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);

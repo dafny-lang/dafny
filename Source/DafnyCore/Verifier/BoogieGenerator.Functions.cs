@@ -71,13 +71,13 @@ public partial class BoogieGenerator {
     // the procedure itself
     var req = new List<Bpl.Requires>();
     // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-    req.Add(Requires(f.tok, true, null, etran.HeightContext(f), null, null, null));
+    req.Add(FreeRequires(f.tok, etran.HeightContext(f), null));
     if (f is TwoStateFunction) {
       // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
       var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
       var a1 = HeapSucc(prevHeap, currHeap);
       var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-      req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+      req.Add(FreeRequires(f.tok, BplAnd(a0, BplAnd(a1, a2)), null));
     }
 
     // modifies $Heap
@@ -92,7 +92,7 @@ public partial class BoogieGenerator {
       bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
       var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
       var canCalls = etran.CanCallAssumption(p.E, new CanCallOptions(f, true));
-      AddEnsures(ens, Ensures(p.E.tok, true, canCalls, errorMessage, null, AlwaysAssumeAttribute(p.E.tok)));
+      AddEnsures(ens, FreeEnsures(p.E.tok, canCalls, null, AlwaysAssumeAttribute(p.E.tok)));
       foreach (var s in splits) {
         if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
           AddEnsures(ens, EnsuresWithDependencies(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));

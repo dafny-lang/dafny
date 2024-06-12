@@ -968,13 +968,13 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Boogie.Requires>();
       // free requires fh == FunctionContextHeight;
-      req.Add(Requires(f.tok, true, null, etran.HeightContext(f), null, null, null));
+      req.Add(FreeRequires(f.tok, etran.HeightContext(f), null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = HeapSucc(prevHeap, currHeap);
         var a2 = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-        req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+        req.Add(FreeRequires(f.tok, BplAnd(a0, BplAnd(a1, a2)), null));
       }
       // modifies $Heap
       var mod = new List<Boogie.IdentifierExpr> {
@@ -1724,13 +1724,13 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(m.tok, true, null, etran.HeightContext(m), null, null, null));
+        req.Add(FreeRequires(m.tok, etran.HeightContext(m), null));
         if (m is TwoStateLemma) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
           var a1 = HeapSucc(prevHeap, currHeap);
           var a2 = FunctionCall(m.tok, BuiltinFunction.IsGoodHeap, null, currHeap);
-          req.Add(Requires(m.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
+          req.Add(FreeRequires(m.tok, BplAnd(a0, BplAnd(a1, a2)), null));
         }
       }
       if (m is TwoStateLemma) {
@@ -1761,7 +1761,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          req.Add(Requires(p.E.tok, true, etran.CanCallAssumption(p.E), null, comment, AlwaysAssumeAttribute(p.E.tok)));
+          req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, AlwaysAssumeAttribute(p.E.tok)));
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
@@ -1781,7 +1781,7 @@ namespace Microsoft.Dafny {
         comment = "user-defined postconditions";
         foreach (var p in m.Ens) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment, AlwaysAssumeAttribute(p.E.tok)));
+          AddEnsures(ens, FreeEnsures(p.E.tok, etran.CanCallAssumption(p.E), comment, AlwaysAssumeAttribute(p.E.tok)));
           comment = null;
           foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
             var post = s.E;
@@ -1816,7 +1816,7 @@ namespace Microsoft.Dafny {
             MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
             if (selectExpr != null) {
               Function f = selectExpr.Member as Function;
-              AddEnsures(ens, Ensures(m.tok, true, null, GetRevealConstant(f), null, null, null));
+              AddEnsures(ens, FreeEnsures(m.tok, GetRevealConstant(f), null));
             }
           }
         }

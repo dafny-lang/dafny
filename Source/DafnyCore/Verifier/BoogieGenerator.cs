@@ -2326,7 +2326,7 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(ctor.tok, true, null, etran.HeightContext(ctor.EnclosingDatatype), null, null, null));
+      req.Add(FreeRequires(ctor.tok, etran.HeightContext(ctor.EnclosingDatatype), null));
       var heapVar = new Bpl.IdentifierExpr(ctor.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var proc = new Bpl.Procedure(ctor.tok, "CheckWellformed" + NameSeparator + ctor.FullName, new List<Bpl.TypeVariable>(),
@@ -3444,6 +3444,10 @@ namespace Microsoft.Dafny {
       return ens;
     }
 
+    Bpl.Ensures FreeEnsures(IToken tok, Bpl.Expr condition, string comment, QKeyValue kv = null) {
+      return Ensures(tok, true, null, condition, null, null, comment, kv);
+    }
+
     Bpl.Ensures Ensures(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr condition, string errorMessage, string successMessage, string comment, QKeyValue kv = null) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
@@ -3467,6 +3471,10 @@ namespace Microsoft.Dafny {
       var req = Requires(tok, free, dafnyCondition, condition, errorMessage, successMessage, comment);
       proofDependencies?.AddProofDependencyId(req, tok, new RequiresDependency(tok, dafnyCondition));
       return req;
+    }
+
+    Bpl.Requires FreeRequires(IToken tok, Bpl.Expr bCondition, string comment, QKeyValue kv = null) {
+      return Requires(tok, true, null, bCondition, null, null, comment, kv);
     }
 
     Bpl.Requires Requires(IToken tok, bool free, Expression dafnyCondition, Bpl.Expr bCondition, string errorMessage, string successMessage, string comment, QKeyValue kv = null) {
