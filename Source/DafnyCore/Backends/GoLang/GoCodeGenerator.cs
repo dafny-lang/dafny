@@ -18,6 +18,7 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
+    protected override bool RequiresAllVariablesToBeUsed => true;
     //TODO: This is tentative, update this to point to public module once available.
     private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
 
@@ -3272,7 +3273,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("{0}.{1}()", source, FormatDatatypeConstructorCheckName(ctor.GetCompileName(Options)));
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
@@ -3281,7 +3283,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(tupleTypeDecl.NonGhostDims != 1); // such a tuple is an erasable-wrapper type, handled above
         wr.Write("(*(");
         source(wr);
-        wr.Write(").IndexInt({0})).({1})", formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Token.NoToken));
+        wr.Write(").IndexInt({0})).({1})", formalNonGhostIndex, TypeName(getTypeArgs()[formalNonGhostIndex], wr, Token.NoToken));
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         wr = EmitCoercionIfNecessary(from: dtor.Type, to: bvType, tok: dtor.tok, wr: wr);
@@ -3375,7 +3377,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -3421,8 +3423,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1Type))) {
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsOrderedByCmp(eqType)) {
               callString = "Cmp";
@@ -3437,8 +3439,8 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0.Type);
-            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1.Type))) {
+            var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
+            if (!EqualsUpToParameters(eqType, DatatypeWrapperEraser.SimplifyType(Options, e1Type))) {
               preOpString = "!";
               staticCallString = $"{HelperModulePrefix}AreEqual";
             } else if (IsDirectlyComparable(eqType)) {
@@ -3458,7 +3460,7 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " < 0";
           } else {
@@ -3466,7 +3468,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " <= 0";
           } else {
@@ -3474,7 +3476,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " >= 0";
           } else {
@@ -3482,7 +3484,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-          if (IsOrderedByCmp(e0.Type)) {
+          if (IsOrderedByCmp(e0Type)) {
             callString = "Cmp";
             postOpString = " > 0";
           } else {
@@ -3495,11 +3497,11 @@ namespace Microsoft.Dafny.Compilers {
           }
           if (AsNativeType(resultType) != null) {
             opString = "<<";
-            if (AsNativeType(e1.Type) == null) {
+            if (AsNativeType(e1Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
-            if (AsNativeType(e1.Type) != null) {
+            if (AsNativeType(e1Type) != null) {
               callString = "Lsh(_dafny.IntOfUint64(uint64";
               postOpString = "))";
             } else {
@@ -3510,11 +3512,11 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.RightShift:
           if (AsNativeType(resultType) != null) {
             opString = ">>";
-            if (AsNativeType(e1.Type) == null) {
+            if (AsNativeType(e1Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
-            if (AsNativeType(e1.Type) != null) {
+            if (AsNativeType(e1Type) != null) {
               callString = "Rsh(_dafny.IntOfUint64(uint64";
               postOpString = "))";
             } else {
@@ -3634,7 +3636,7 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = $"{DafnySequenceCompanion}.Contains"; reverseArguments = true; break;
 
         default:
-          base.CompileBinOp(op, e0, e1, tok, resultType,
+          base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
             out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
             errorWr);
           break;

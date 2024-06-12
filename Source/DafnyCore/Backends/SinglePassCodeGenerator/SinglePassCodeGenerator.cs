@@ -27,15 +27,13 @@ namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
     // Dafny names cannot start with "_". Hence, if an internal Dafny name is problematic in the target language,
     // we can prefix it with "_".
-    // However, for backends such as Rust which need special internal fields, we want to clearly
-    // disambiguate between compiler-generated names and user-defined names, hence this prefix.
-    protected virtual string InternalFieldPrefix => "_i_";
-
+    // This prefix can be overridden as necessary by backends.
+    protected virtual string InternalFieldPrefix => "_";
     public DafnyOptions Options { get; }
 
     /// <summary>
     /// Emits a call to <c>mainMethod</c> as the program's entry point, if such an explicit call is
-    /// required in the target language.
+    /// required in the target language.<<
     /// </summary>
     public abstract void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree);
 
@@ -685,6 +683,7 @@ namespace Microsoft.Dafny.Compilers {
     private ConcreteSyntaxTree CreateGuardedForeachLoop(
       string tmpVarName, Type collectionElementType,
       IVariable boundVar,
+      bool newtypeConversionsWereExplicit,
       bool introduceBoundVar, bool inLetExprBody,
       IToken tok, Action<ConcreteSyntaxTree> collection, ConcreteSyntaxTree wr
       ) {
@@ -693,7 +692,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = MaybeInjectSubtypeConstraintWrtTraits(tmpVarName, collectionElementType, boundVar.Type, inLetExprBody, tok, wr);
       EmitDowncastVariableAssignment(IdName(boundVar), boundVar.Type, tmpVarName, collectionElementType,
           introduceBoundVar, tok, wr);
-      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr);
+      wr = MaybeInjectSubsetConstraint(boundVar, boundVar.Type, inLetExprBody, tok, wr, newtypeConversionsWereExplicit);
       return wr;
     }
 
@@ -1269,7 +1268,9 @@ namespace Microsoft.Dafny.Compilers {
     /// However, EmitDestructor may also need to perform a cast on "source".
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
-    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr);
+    protected abstract void EmitDestructor(Action<ConcreteSyntaxTree> source,
+      Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
       Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool untyped = false);
 
@@ -1308,7 +1309,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     protected virtual void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -1401,13 +1402,13 @@ namespace Microsoft.Dafny.Compilers {
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
         Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
         CompileBinOp(dualOp,
-          e1, e0, tok, resultType.GetRuntimeType(),
+          e1Type, e0Type, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         reverseArguments = !reverseArguments;
       } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
         CompileBinOp(negatedOp,
-          e0, e1, tok, resultType.GetRuntimeType(),
+          e0Type, e1Type, tok, resultType.GetRuntimeType(),
           out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int, out coerceE1,
           errorWr);
         preOpString = "!" + preOpString;
@@ -2896,7 +2897,9 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw => EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, dtv.InferredTypeArgs, arg.Expr.Type, sw), targetType, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw =>
+              EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, () => dtv.InferredTypeArgs, arg.Expr.Type, sw),
+              targetType, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -2913,7 +2916,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Other than the syntactic differences in the target code, the idea is that "TrExprOpt(...)" and "Expr(...)" generate code with the
     /// same semantics.
     /// </summary>
-    void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
+    protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(resultType != null);
@@ -2959,7 +2962,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        TrExprOpt(nestedMatchExpr.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+        TrOptNestedMatchExpr(nestedMatchExpr, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -3364,8 +3367,8 @@ namespace Microsoft.Dafny.Compilers {
         var bv = bvs[i];
         var tmpVar = ProtectedFreshId("_guard_loop_");
         var wStmtsLoop = wr.Fork();
-        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, wStmtsLoop, bounds, bvs, i);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, true, false, range.tok, collection, wr);
+        var elementType = CompileCollection(bound, bv, false, false, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop, bounds, bvs, i);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, range.tok, collection, wr);
       }
 
       // if (range) {
@@ -3395,7 +3398,8 @@ namespace Microsoft.Dafny.Compilers {
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
     Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
-        Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, ConcreteSyntaxTree wStmts,
+        Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, out bool newtypeConversionsWereExplicit,
+        ConcreteSyntaxTree wStmts,
         List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
@@ -3404,6 +3408,9 @@ namespace Microsoft.Dafny.Compilers {
 
       var propertySuffix = SupportsProperties ? "" : "()";
       su = su ?? new Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
+
+      newtypeConversionsWereExplicit =
+        bound is SetBoundedPool or MapBoundedPool or SeqBoundedPool or MultiSetBoundedPool;
 
       if (bound is BoolBoundedPool) {
         collectionWriter = (wr) => EmitBoolBoundedPool(inLetExprBody, wr, wStmts);
@@ -3739,8 +3746,8 @@ namespace Microsoft.Dafny.Compilers {
         }
         var tmpVar = ProtectedFreshId("_assign_such_that_");
         var wStmts = currentBlock.Fork();
-        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, wStmts);
-        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, false, inLetExprBody, bv.Tok, collection, wr);
+        var elementType = CompileCollection(bound, bv, inLetExprBody, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmts);
+        wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, false, inLetExprBody, bv.Tok, collection, wr);
         currentBlock = wr;
         if (needIterLimit) {
           var varName = $"{iterLimit}_{i}";
@@ -4511,8 +4518,8 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(sep);
             var fromType = s.Args[i].Type;
             var toType = s.Method.Ins[i].Type;
-            var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
             var instantiatedToType = toType.Subst(s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            var w = EmitCoercionIfNecessary(fromType, instantiatedToType, s.Tok, wr, toType);
             w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
             EmitExpr(s.Args[i], false, w, wStmts);
             sep = ", ";
@@ -4687,7 +4694,8 @@ namespace Microsoft.Dafny.Compilers {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
-          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
+          EmitDestructor(wr => EmitIdentifier(source, wr), arg, k, ctor, () =>
+            SelectNonGhost(sourceType.ResolvedClass, sourceType.TypeArgs), bv.Type, sw);
           k++;
         }
       }
@@ -4948,28 +4956,34 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
+    protected virtual bool RequiresAllVariablesToBeUsed => false;
+
     /// <summary>
     /// If needed, emit an if-statement wrapper that checks that the value stored in "boundVar" satisfies any (subset-type or newtype) constraints
     /// of "boundVarType".
     /// </summary>
     private ConcreteSyntaxTree MaybeInjectSubsetConstraint(IVariable boundVar, Type boundVarType,
-      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool isReturning = false, bool elseReturnValue = false) {
+      bool inLetExprBody, IToken tok, ConcreteSyntaxTree wr, bool newtypeConversionsWereExplicit,
+      bool isReturning = false, bool elseReturnValue = false) {
 
       if (boundVarType.NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: (SubsetTypeDecl or NewtypeDecl) } udt) {
         var declWithConstraints = (RedirectingTypeDecl)udt.ResolvedClass;
 
-        var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
+        if (!newtypeConversionsWereExplicit || declWithConstraints is not NewtypeDecl || RequiresAllVariablesToBeUsed) {
+          var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-        EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+          // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
+          EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
 
-        if (isReturning) {
-          var elseBranch = wr;
-          elseBranch = EmitBlock(elseBranch);
-          elseBranch = EmitReturnExpr(elseBranch);
-          var wStmts = elseBranch.Fork();
-          EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          if (isReturning) {
+            var elseBranch = wr;
+            elseBranch = EmitBlock(elseBranch);
+            elseBranch = EmitReturnExpr(elseBranch);
+            var wStmts = elseBranch.Fork();
+            EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
+          }
+          wr = thenWriter;
         }
-        wr = thenWriter;
       }
 
       if (isReturning) {
@@ -5196,7 +5210,9 @@ namespace Microsoft.Dafny.Compilers {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            wr = TrCasePattern(arg, sw => EmitDestructor(rhs, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw), formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
+            wr = TrCasePattern(arg, sw =>
+              EmitDestructor(rhs, formal, k, ctor, () => ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw),
+              formal.Type.Subst(typeSubst), bodyType, wr, ref wStmts);
             k++;
           }
         }
@@ -5263,8 +5279,8 @@ namespace Microsoft.Dafny.Compilers {
         if (!e.Function.Ins[i].IsGhost) {
           wr.Write(sep);
           var fromType = e.Args[i].Type;
-          var w = EmitCoercionIfNecessary(fromType, e.Function.Ins[i].Type, tok: e.tok, wr: wr);
           var instantiatedToType = e.Function.Ins[i].Type.Subst(e.TypeArgumentSubstitutionsWithParents());
+          var w = EmitCoercionIfNecessary(fromType, instantiatedToType, tok: e.tok, wr: wr, e.Function.Ins[i].Type);
           w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody, wStmts);
           sep = ", ";

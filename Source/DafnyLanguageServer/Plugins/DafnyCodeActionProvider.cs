@@ -89,6 +89,12 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   public RangeToken? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
     var start = range.Start;
     var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
+    if (startNode == null) {
+      // A program should have FileModuleDefinition nodes whose ranges span the entire contents of files,
+      // But currently those nodes are missing
+      return null;
+    }
+
     var startToken = startNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == start.Line && t.col - 1 == start.Character);
     if (startToken == null) {
       logger.LogError($"Could not find starting token for position {start} in node {startNode}");

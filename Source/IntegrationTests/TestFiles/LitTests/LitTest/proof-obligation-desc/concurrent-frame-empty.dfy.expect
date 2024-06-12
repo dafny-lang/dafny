@@ -1,4 +1,4 @@
-﻿concurrent-frame-empty.dfy(6,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
+concurrent-frame-empty.dfy(6,23): Error: reads clause could not be proved to be empty ({:concurrent} restriction)
  Asserted expression: forall c: C<T> :: ReadsEmpty.reads(c) == {}
 concurrent-frame-empty.dfy(12,21): Error: modifies clause could not be proved to be empty ({:concurrent} restriction)
  Asserted expression: forall c: C<T> :: ModifiesEmpty.modifies(c) == {}

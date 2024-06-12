@@ -1,4 +1,4 @@
-﻿is-integer.dfy(6,6): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+is-integer.dfy(6,6): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
  Asserted expression: r == r.Floor as real
 
 Dafny program verifier finished with 0 verified, 1 error
