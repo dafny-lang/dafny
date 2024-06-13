@@ -1,1 +1,1 @@
-// CHECK-L: error[E0599]: no associated item named `_allocated` found for struct `UseFooHelper` in the current scope
+// CHECK-L: error[E0308]: mismatched types
