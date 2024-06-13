@@ -2488,7 +2488,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           newEnv := env;
         }
         case Print(e) => {
-          var printedExpr, recOwnership, recIdents := GenExpr(e, selfIdent, env, OwnershipBorrowed);
+          var printedExpr, recOwnership, recIdents := GenExpr(e, selfIdent, env, OwnershipOwned);
           generated := R.Identifier("print!").Apply([R.LiteralString("{}", false),
                                                      R.dafny_runtime.MSel("DafnyPrintWrapper").Apply1(printedExpr)]);
           readIdents := recIdents;
@@ -3188,7 +3188,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             r := r.ApplyType(typeExprs);
           }
-          r := r.MSel("_allocated");
+          r := r.MSel("new");
 
           readIdents := {};
           var arguments := [];
