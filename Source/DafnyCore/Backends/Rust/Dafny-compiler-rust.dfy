@@ -2488,7 +2488,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           newEnv := env;
         }
         case Print(e) => {
-          var printedExpr, recOwnership, recIdents := GenExpr(e, selfIdent, env, OwnershipOwned);
+          var printedExpr, recOwnership, recIdents := GenExpr(e, selfIdent, env, OwnershipBorrowed);
           generated := R.Identifier("print!").Apply([R.LiteralString("{}", false),
                                                      R.dafny_runtime.MSel("DafnyPrintWrapper").Apply1(printedExpr)]);
           readIdents := recIdents;
@@ -2943,7 +2943,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var Path(_, _, Newtype(b, range, erase, attributes)) := fromTpe;
       var nativeFromType := NewtypeToRustType(b, range);
       if b == toTpe {
-        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
+        var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
         match nativeFromType {
           case Some(v) =>

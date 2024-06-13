@@ -1,1 +1,1 @@
-// CHECK-L: Unhandled exception: System.IO.IOException: The process cannot access the file 'C:\vscode\settings.json' because it is being used by another process.
+// CHECK-L: error[E0308]: mismatched types
