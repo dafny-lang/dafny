@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
             // don't include this precondition here, but record it for later use
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
-            foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
               if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
-          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
@@ -145,7 +145,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
 
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
@@ -220,8 +220,8 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
       // check wellformedness of postconditions
-      var yeBuilder = new BoogieStmtListBuilder(this, options);
-      var endBuilder = new BoogieStmtListBuilder(this, options);
+      var yeBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
+      var endBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       // In the yield-ensures case:  assume this.Valid();
       yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, validCall, "iterator validity"));
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
@@ -278,7 +278,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
 
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().

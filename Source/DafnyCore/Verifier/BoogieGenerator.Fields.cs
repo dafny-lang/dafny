@@ -199,7 +199,7 @@ namespace Microsoft.Dafny {
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
       builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);

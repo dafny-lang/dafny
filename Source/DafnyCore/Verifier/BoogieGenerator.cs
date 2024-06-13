@@ -1391,7 +1391,7 @@ namespace Microsoft.Dafny {
     }
 
     private Implementation AddImplementationWithAttributes(IToken tok, Procedure proc, List<Variable> inParams,
-      List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv) {
+      List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv, bool isBlind = false) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
@@ -1404,6 +1404,7 @@ namespace Microsoft.Dafny {
         AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
       }
       sink.AddTopLevelDeclaration(impl);
+      impl.IsBlind = isBlind;
       return impl;
     }
 
@@ -2328,7 +2329,7 @@ namespace Microsoft.Dafny {
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
       builder.AddCaptureState(ctor.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
@@ -3469,7 +3470,8 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran) {
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, 
+      Statement block, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -4556,25 +4558,26 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool apply_induction, out bool splitHappened) {
+    List<SplitExprInfo> /*!*/ TrSplitExpr(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
+      out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, apply_induction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, true, applyInduction, etran);
       return splits;
     }
 
-    List<SplitExprInfo> TrSplitExprForMethodSpec(Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
+    List<SplitExprInfo> TrSplitExprForMethodSpec(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      var apply_induction = kind == MethodTranslationKind.Implementation;
+      var applyInduction = kind == MethodTranslationKind.Implementation;
       bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, applyInduction, etran);
       return splits;
     }
 

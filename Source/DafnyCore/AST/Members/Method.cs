@@ -29,6 +29,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
 
+  public bool IsBlind { get; set; }
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
   public readonly IToken SignatureEllipsis;
@@ -125,6 +126,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
 
+    this.IsBlind = original.IsBlind;
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
@@ -142,9 +144,11 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis, bool isByMethod = false)
+    Attributes attributes, IToken signatureEllipsis, 
+    bool isByMethod = false, bool isBlind = false)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {
+    this.IsBlind = isBlind;
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

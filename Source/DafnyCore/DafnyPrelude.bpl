@@ -99,7 +99,7 @@ function TagFamily(Ty): TyTagFamily;
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
-function {:identity} Lit<T>(x: T): T { x }
+revealed function {:identity} Lit<T>(x: T): T { x }
 axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
 
 // Specialize Lit to concrete types.

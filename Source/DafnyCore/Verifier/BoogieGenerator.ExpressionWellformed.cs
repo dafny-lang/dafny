@@ -34,6 +34,7 @@ namespace Microsoft.Dafny {
     /// some assignment.
     /// </summary>
     private class WFOptions {
+      public BodyTranslationContext Context { get; }
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
       public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
@@ -150,10 +151,10 @@ namespace Microsoft.Dafny {
               // } else {
               //   assume e0 ==> e1;
               // }
-              var bAnd = new BoogieStmtListBuilder(this, options);
+              var bAnd = new BoogieStmtListBuilder(this, options, builder.Context);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, bAnd, etran, comment);
               CheckWellformedAndAssume(e.E1, wfOptions, locals, bAnd, etran, comment);
-              var bImp = new BoogieStmtListBuilder(this, options);
+              var bImp = new BoogieStmtListBuilder(this, options, builder.Context);
               bImp.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr, comment));
               builder.Add(new Bpl.IfCmd(expr.tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
             }
@@ -165,9 +166,9 @@ namespace Microsoft.Dafny {
               //   assume !e0;
               //   WF[e1]; assume e1;
               // }
-              var b0 = new BoogieStmtListBuilder(this, options);
+              var b0 = new BoogieStmtListBuilder(this, options, builder.Context);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran, comment);
-              var b1 = new BoogieStmtListBuilder(this, options);
+              var b1 = new BoogieStmtListBuilder(this, options, builder.Context);
               b1.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, e.E0, Expr.Not, comment));
               CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran, comment);
               builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
@@ -185,10 +186,10 @@ namespace Microsoft.Dafny {
         //   assume !test;
         //   WF[els]; assume els;
         // }
-        var bThn = new BoogieStmtListBuilder(this, options);
+        var bThn = new BoogieStmtListBuilder(this, options, builder.Context);
         CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran, comment);
         CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran, comment);
-        var bEls = new BoogieStmtListBuilder(this, options);
+        var bEls = new BoogieStmtListBuilder(this, options, builder.Context);
         bEls.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, e.Test, Expr.Not, comment));
         CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran, comment);
         builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
@@ -811,7 +812,7 @@ namespace Microsoft.Dafny {
 
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-                  foreach (var ss in TrSplitExpr(precond, etran, true, out var splitHappened)) {
+                  foreach (var ss in TrSplitExpr(wfOptions.Context, precond, etran, true, out var splitHappened)) {
                     if (ss.IsChecked) {
                       var tok = new NestedToken(GetToken(expr), ss.Tok);
                       var desc = new PODesc.PreconditionSatisfied(directPrecond, errorMessage, successMessage);
@@ -992,13 +993,13 @@ namespace Microsoft.Dafny {
             switch (e.ResolvedOp) {
               case BinaryExpr.ResolvedOpcode.And:
               case BinaryExpr.ResolvedOpcode.Imp: {
-                  BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
+                  BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options, builder.Context);
                   CheckWellformed(e.E1, wfOptions, locals, b, etran);
                   builder.Add(new Bpl.IfCmd(binaryExpr.tok, etran.TrExpr(e.E0), b.Collect(binaryExpr.tok), null, null));
                 }
                 break;
               case BinaryExpr.ResolvedOpcode.Or: {
-                  BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
+                  BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options, builder.Context);
                   CheckWellformed(e.E1, wfOptions, locals, b, etran);
                   builder.Add(new Bpl.IfCmd(binaryExpr.tok, Bpl.Expr.Not(etran.TrExpr(e.E0)), b.Collect(binaryExpr.tok), null, null));
                 }
@@ -1268,8 +1269,8 @@ namespace Microsoft.Dafny {
         case ITEExpr iteExpr: {
             ITEExpr e = iteExpr;
             CheckWellformed(e.Test, wfOptions, locals, builder, etran);
-            var bThen = new BoogieStmtListBuilder(this, options);
-            var bElse = new BoogieStmtListBuilder(this, options);
+            var bThen = new BoogieStmtListBuilder(this, options, builder.Context);
+            var bElse = new BoogieStmtListBuilder(this, options, builder.Context);
             if (e.IsBindingGuard) {
               // if it is BindingGuard, e.Thn is a let-such-that created from the BindingGuard.
               // We don't need to do well-formedness check on the Rhs of the LetExpr since it
@@ -1356,12 +1357,12 @@ namespace Microsoft.Dafny {
       CheckWellformed(me.Source, wfOptions, locals, builder, etran);
       Bpl.Expr src = etran.TrExpr(me.Source);
       Bpl.IfCmd ifCmd = null;
-      BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(this, options);
+      BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(this, options, builder.Context);
       elsBldr.Add(TrAssumeCmd(me.tok, Bpl.Expr.False));
       StmtList els = elsBldr.Collect(me.tok);
       foreach (var missingCtor in me.MissingCases) {
         // havoc all bound variables
-        var b = new BoogieStmtListBuilder(this, options);
+        var b = new BoogieStmtListBuilder(this, options, builder.Context);
         List<Variable> newLocals = new List<Variable>();
         Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
         locals.AddRange(newLocals);
@@ -1385,7 +1386,7 @@ namespace Microsoft.Dafny {
 
       for (int i = me.Cases.Count; 0 <= --i;) {
         MatchCaseExpr mc = me.Cases[i];
-        BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
+        var b = new BoogieStmtListBuilder(this, options, builder.Context);
         Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
         // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
         CheckWellformedWithResult(mc.Body, wfOptions, result, resultType, locals, b, etran, "match expression branch result");
@@ -1519,7 +1520,7 @@ namespace Microsoft.Dafny {
         var substMap = SetupBoundVarsAsLocals(lhsVars, out var typeAntecedent, builder, locals, etran);
         var rhs = Substitute(e.RHSs[0], null, substMap);
         if (checkRhs) {
-          var wellFormednessBuilder = new BoogieStmtListBuilder(this, this.options);
+          var wellFormednessBuilder = new BoogieStmtListBuilder(this, this.options, builder.Context);
           CheckWellformed(rhs, wfOptions, locals, wellFormednessBuilder, etran);
           var ifCmd = new Bpl.IfCmd(e.tok, typeAntecedent, wellFormednessBuilder.Collect(e.tok), null, null);
           builder.Add(ifCmd);

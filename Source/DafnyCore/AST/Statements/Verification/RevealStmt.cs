@@ -8,8 +8,13 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public const string RevealLemmaPrefix = "reveal_";
 
   public readonly List<Expression> Exprs;
-  [FilledInDuringResolution] public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // to indicate that "Expr" denotes a labeled assertion
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
+  [FilledInDuringResolution] 
+  public readonly List<AssertLabel> LabeledAsserts = new();  // to indicate that "Expr" denotes a labeled assertion
+  [FilledInDuringResolution] 
+  public readonly List<Statement> ResolvedStatements = new();
+  [FilledInDuringResolution] public bool InBlindContext { get; private set; }
+  [FilledInDuringResolution] public List<MemberDecl> RevealedMembers = new();
+  
 
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
@@ -54,51 +59,71 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 
-  public void ResolveRevealStmt(PreTypeResolver preTypeResolver, ResolutionContext resolutionContext)
+  public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext)
   {
     foreach (var expr in Exprs) {
       var name = SingleName(expr);
-      var labeledAssert = name == null ? null : preTypeResolver.DominatingStatementLabels.Find(name) as AssertLabel;
+      var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;
       if (labeledAssert != null) {
         LabeledAsserts.Add(labeledAssert);
       } else {
-        var revealResolutionContext = resolutionContext with { InReveal = true };
-        if (expr is ApplySuffix applySuffix) {
-          var methodCallInfo = preTypeResolver.ResolveApplySuffix(applySuffix, revealResolutionContext, true);
-          if (methodCallInfo == null) {
-            // error has already been reported
-          } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-            preTypeResolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-          } else if (methodCallInfo.Callee.AtLabel != null) {
-            Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-            preTypeResolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
+        if (resolutionContext.InBlindMethod) {
+          InBlindContext = true;
+          if (expr is NameSegment or ExprDotName) {
+            if (expr is NameSegment) {
+              resolver.ResolveNameSegment((NameSegment)expr, true, null, resolutionContext, true);
+            } else {
+              resolver.ResolveDotSuffix((ExprDotName)expr, true, null, resolutionContext, true);
+            }
+            var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+            if (callee == null) {
+              // error from resolving child
+            } else {
+              RevealedMembers.Add(callee.Member);
+            }
           } else {
-            var call = new CallStmt(RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
-            ResolvedStatements.Add(call);
-          }
-        } else if (expr is NameSegment or ExprDotName) {
-          if (expr is NameSegment) {
-            preTypeResolver.ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
-          } else {
-            preTypeResolver.ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
-          }
-          var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
-          if (callee == null) {
-          } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
-            //The revealed member is a function
-            preTypeResolver.ReportError(callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
-          } else {
-            var call = new CallStmt(RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-            ResolvedStatements.Add(call);
+            resolver.Reporter.Error(MessageSource.Resolver, Tok, "can't use parenthesis when revealing");
           }
         } else {
-          preTypeResolver.ResolveExpression(expr, revealResolutionContext);
+          var revealResolutionContext = resolutionContext with { InReveal = true };
+          if (expr is ApplySuffix applySuffix) {
+            var methodCallInfo = resolver.ResolveApplySuffix(applySuffix, revealResolutionContext, true);
+            if (methodCallInfo == null) {
+              // error has already been reported
+            } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
+              resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
+            } else if (methodCallInfo.Callee.AtLabel != null) {
+              Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
+              resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
+            } else {
+              var call = new CallStmt(RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
+              ResolvedStatements.Add(call);
+            }
+          } else if (expr is NameSegment or ExprDotName) {
+            if (expr is NameSegment) {
+              resolver.ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
+            } else {
+              resolver.ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
+            }
+            var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+            if (callee == null) {
+            } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
+              //The revealed member is a function
+              resolver.ReportError(callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
+            } else {
+              // TODO what is this case about? Revealing a constant?
+              var call = new CallStmt(RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
+              ResolvedStatements.Add(call);
+            }
+          } else {
+            resolver.ResolveExpression(expr, revealResolutionContext);
+          } 
         }
       }
     }
 
     foreach (var a in ResolvedStatements) {
-      preTypeResolver.ResolveStatement(a, resolutionContext);
+      resolver.ResolveStatement(a, resolutionContext);
     }
   }
 }

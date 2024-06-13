@@ -1172,11 +1172,13 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      IToken tokenWithTrailingDocString = Token.NoToken;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
+     bool isBlind = false;
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
      string caption = "";
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   SYNC
+  [ "blind" ]                       (. isBlind = true; .)
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
                                        CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
@@ -1253,7 +1255,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
        m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
-                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
+                           req, new Specification<FrameExpression>(reads, readsAttrs), 
+                           new Specification<FrameExpression>(mod, modAttrs), ens, 
+                           new Specification<Expression>(dec, decAttrs), 
+                           (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1269,7 +1274,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                      req, new Specification<FrameExpression>(reads, readsAttrs), 
+                      new Specification<FrameExpression>(mod, modAttrs), ens, 
+                      new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis,
+                      isBlind: isBlind);
      }
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;

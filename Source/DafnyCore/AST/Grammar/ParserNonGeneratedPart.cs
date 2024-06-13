@@ -620,7 +620,6 @@ public partial class Parser {
     public bool IsOpaque;
     public IToken OpaqueToken;
     public IToken FirstToken;
-
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {

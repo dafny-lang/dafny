@@ -120,7 +120,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is RevealStmt)
       {
         var s = (RevealStmt)stmt;
-        s.ResolveRevealStmt(this, resolutionContext);
+        s.Resolve(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {

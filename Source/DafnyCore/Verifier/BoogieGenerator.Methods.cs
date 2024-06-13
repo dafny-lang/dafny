@@ -538,8 +538,8 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      var builder = new BoogieStmtListBuilder(this, options);
-      var builderInitializationArea = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(m.IsBlind));
+      var builderInitializationArea = new BoogieStmtListBuilder(this, options, builder.Context);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok,
         m.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
@@ -782,8 +782,8 @@ namespace Microsoft.Dafny {
       if (EmitImplementation(m.Attributes)) {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
-        Boogie.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc,
-           inParams, outParams, localVariables, stmts, kv);
+        Bpl.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc,
+           inParams, outParams, localVariables, stmts, kv, m.IsBlind);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);
@@ -813,7 +813,7 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var etran = new ExpressionTranslator(this, predef, m.tok, m);
       var localVariables = new List<Variable>();
       InitializeFuelConstant(m.tok, builder, etran);
@@ -991,7 +991,7 @@ namespace Microsoft.Dafny {
 
       //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
-      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options);
+      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       List<Variable> localVariables = new List<Variable>();
 
       InitializeFuelConstant(f.tok, builder, etran);
@@ -1106,7 +1106,7 @@ namespace Microsoft.Dafny {
       foreach (var en in f.OverriddenFunction.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         var subEn = sub.Substitute(en.E);
-        foreach (var s in TrSplitExpr(sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
+        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), sub.Substitute(en.E), etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
@@ -1205,7 +1205,7 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
       foreach (var req in f.Req) {
-        foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
+        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
@@ -1453,7 +1453,7 @@ namespace Microsoft.Dafny {
       foreach (var en in m.OverriddenMethod.Ens) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         var subEn = sub.Substitute(en.E);
-        foreach (var s in TrSplitExpr(subEn, etran, false, out _).Where(s => s.IsChecked)) {
+        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
@@ -1482,7 +1482,7 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
       foreach (var req in m.Req) {
-        foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
+        foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
@@ -1742,7 +1742,7 @@ namespace Microsoft.Dafny {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
           } else {
-            foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.IsBlind), p.E, etran, kind)) {
               if (s.IsOnlyChecked && bodyKind) {
                 // don't include in split
               } else if (s.IsOnlyFree && !bodyKind) {
@@ -1760,7 +1760,7 @@ namespace Microsoft.Dafny {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
           comment = null;
-          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.IsBlind), p.E, etran, kind)) {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"

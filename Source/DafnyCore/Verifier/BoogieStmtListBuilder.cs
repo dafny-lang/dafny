@@ -4,13 +4,15 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny {
   internal class BoogieStmtListBuilder {
     public DafnyOptions Options { get; }
+    public BodyTranslationContext Context { get; }
     public StmtListBuilder builder;
     public BoogieGenerator tran;
 
-    public BoogieStmtListBuilder(BoogieGenerator tran, DafnyOptions options) {
+    public BoogieStmtListBuilder(BoogieGenerator tran, DafnyOptions options, BodyTranslationContext context) {
       builder = new Boogie.StmtListBuilder();
       this.tran = tran;
       this.Options = options;
+      Context = context;
     }
 
     public void Add(Cmd cmd) {
