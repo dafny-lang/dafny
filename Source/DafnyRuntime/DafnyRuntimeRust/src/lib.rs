@@ -1155,7 +1155,7 @@ where
             f.write_str(" := ")?;
             v.fmt_print(f, in_seq)?;
         }
-        f.write_str("}")
+        f.write_str("]")
     }
 }
 
