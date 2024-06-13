@@ -1728,7 +1728,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         var printRhs :=
           R.RawExpr("write!(_formatter, \"" + ctorName + (if ctor.hasAnyArgs then "(\")?" else "\")?"));
-        
+
         var isNumeric := false;
         var ctorMatchInner := "";
         for j := 0 to |ctor.args| {
@@ -1740,7 +1740,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if isNumeric {
             patternName := dtor.callName.GetOr("v" + Strings.OfNat(j));
           }
-          
+
           ctorMatchInner := ctorMatchInner + patternName + ", ";
 
           if (j > 0) {

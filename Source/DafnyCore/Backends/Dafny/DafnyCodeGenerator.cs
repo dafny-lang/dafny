@@ -274,19 +274,19 @@ namespace Microsoft.Dafny.Compilers {
             Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
-        IEnumerable<DAST.DatatypeCtor> ctors = 
+        IEnumerable<DAST.DatatypeCtor> ctors =
           from ctor in dt.Ctors
-            let allDtors =
-              from arg in ctor.Formals
-              where !arg.IsGhost
-              let formalName = Sequence<Rune>.UnicodeFromString(GetDestructorFormalName(arg))
-              let formalType = GenType(arg.Type)
-              let formalCallName = GetExtractOverrideName(arg.Attributes, arg.CompileName)
-              let dtorName =
-                Option<Sequence<Rune>>.create_Some((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(formalCallName))
-              let formalAttributes = ParseAttributes(arg.Attributes)
-              select (DAST.DatatypeDtor)DAST.DatatypeDtor.create_DatatypeDtor((DAST.Formal)DAST.Formal.create_Formal(
-                formalName, formalType, formalAttributes), dtorName)
+          let allDtors =
+            from arg in ctor.Formals
+            where !arg.IsGhost
+            let formalName = Sequence<Rune>.UnicodeFromString(GetDestructorFormalName(arg))
+            let formalType = GenType(arg.Type)
+            let formalCallName = GetExtractOverrideName(arg.Attributes, arg.CompileName)
+            let dtorName =
+              Option<Sequence<Rune>>.create_Some((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(formalCallName))
+            let formalAttributes = ParseAttributes(arg.Attributes)
+            select (DAST.DatatypeDtor)DAST.DatatypeDtor.create_DatatypeDtor((DAST.Formal)DAST.Formal.create_Formal(
+              formalName, formalType, formalAttributes), dtorName)
           let args = Sequence<DAST.DatatypeDtor>.FromArray(allDtors.ToArray<DatatypeDtor>())
           select (DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(
             Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)),
@@ -1676,8 +1676,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private static string GetDestructorFormalName(Formal formal)
-    {
+    private static string GetDestructorFormalName(Formal formal) {
       var defaultName = formal.CompileName;
       object externVal = null;
       bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
@@ -2366,6 +2365,8 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.SetNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
           BinaryExpr.ResolvedOpcode.SeqNeq => C((left, right) =>
+            Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
+          BinaryExpr.ResolvedOpcode.MapNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
           BinaryExpr.ResolvedOpcode.MultiSetNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),

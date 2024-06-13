@@ -2301,7 +2301,7 @@ namespace DCOMP {
           RAST._IExpr _out163;
           DCOMP._IOwnership _out164;
           Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _out165;
-          (this).GenExpr(_1431_e, selfIdent, env, DCOMP.Ownership.create_OwnershipBorrowed(), out _out163, out _out164, out _out165);
+          (this).GenExpr(_1431_e, selfIdent, env, DCOMP.Ownership.create_OwnershipOwned(), out _out163, out _out164, out _out165);
           _1432_printedExpr = _out163;
           _1433_recOwnership = _out164;
           _1434_recIdents = _out165;
@@ -3843,7 +3843,7 @@ namespace DCOMP {
               }
               r = (r).ApplyType(_1598_typeExprs);
             }
-            r = (r).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_allocated"));
+            r = (r).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"));
             readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements();
             Dafny.ISequence<RAST._IExpr> _1601_arguments;
             _1601_arguments = Dafny.Sequence<RAST._IExpr>.FromElements();
