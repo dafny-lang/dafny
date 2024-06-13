@@ -72,4 +72,8 @@ module ConsumerModule {
   method MakeAResult() {
     var r: Result<nat, string> := Success(42);
   }
+
+  method MakeAPair() {
+    var p: Pair<nat, string> := Pair(1, "partridge in a pair tree");
+  }
 }

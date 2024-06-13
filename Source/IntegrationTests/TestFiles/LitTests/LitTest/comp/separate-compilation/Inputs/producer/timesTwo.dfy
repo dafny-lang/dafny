@@ -7,4 +7,7 @@ module {:options "--function-syntax:4"} LibraryModule {
 
   datatype Result<+T, +E> = Success(value: T) | Failure(error: E)
 
+  // Record type
+  datatype Pair<+T, +U> = Pair(first: T, second: U)
+
 }
