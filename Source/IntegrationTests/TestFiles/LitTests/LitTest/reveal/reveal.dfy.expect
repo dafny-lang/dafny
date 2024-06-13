@@ -1,3 +1,3 @@
-reveal.dfy(15,12): Error: assertion might not hold
+reveal.dfy(14,12): Error: assertion might not hold
 
 Dafny program verifier finished with 2 verified, 1 error
