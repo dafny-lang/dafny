@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -26,6 +29,17 @@ public class JavaBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
+  public static readonly Option<bool> LegacyDataConstructors = new("--legacy-data-constructors",
+    @"Generate deprecated data constructor methods".TrimStart())  {
+    IsHidden = true
+  };
+  static JavaBackend() {
+    DafnyOptions.RegisterLegacyUi(LegacyDataConstructors, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyDataConstructors", defaultValue: false);
+    DooFile.RegisterNoChecksNeeded(LegacyDataConstructors, false);
+  } 
+
+  public override IEnumerable<Option> SupportedOptions => new List<Option> { LegacyDataConstructors };
+  
   public override void CleanSourceDirectory(string sourceDirectory) {
     try {
       Directory.Delete(sourceDirectory, true);
