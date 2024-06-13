@@ -82,7 +82,7 @@ namespace Microsoft.Dafny {
               ComputeFreeTypeVariables(bv.Type, FTVs);
             }
             ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-            info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, FVsHeapAt, usesThis, currentDeclaration);
+            info = new LetSuchThatExprInfo(e.tok, $"{currentModule.SanitizedName}_{letSuchThatExprInfo.Count}", FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, FVsHeapAt, usesThis, currentDeclaration);
             letSuchThatExprInfo.Add(e, info);
           }
 
@@ -183,7 +183,7 @@ namespace Microsoft.Dafny {
 
     class LetSuchThatExprInfo {
       public readonly IToken Tok;
-      public readonly int LetId;
+      public readonly string LetId;
       public readonly List<IVariable> FVs;
       public readonly List<Expression> FV_Exprs;  // these are what initially were the free variables, but they may have undergone substitution so they are here Expression's.
       public readonly List<TypeParameter> FTVs;
@@ -192,7 +192,7 @@ namespace Microsoft.Dafny {
       public readonly bool UsesOldHeap;
       public readonly List<Label> UsesHeapAt;
       public readonly Type ThisType;  // null if 'this' is not used
-      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
+      public LetSuchThatExprInfo(IToken tok, string uniqueLetId,
       List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
       bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
         Tok = tok;

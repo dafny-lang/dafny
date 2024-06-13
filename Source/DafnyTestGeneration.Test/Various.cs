@@ -749,5 +749,28 @@ module M {
       Assert.Single(methods);
     }
 
+    [Theory]
+    [MemberData(nameof(OptionSettings))]
+    public async Task MultipleLetSuchThatExpressions(List<Action<DafnyOptions>> optionSettings) {
+      var source = @"
+module A {
+    function {:testEntry} a(n:int):int {
+        if n != 0 then
+            var x:int :| x == 1/n; x
+        else 0
+    }
+}
+module B {
+    function {:testEntry} b():int {
+        var x:int :| x == 1; x
+    }
+}
+".TrimStart();
+      var options = GetDafnyOptions(optionSettings, output);
+      var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+      var methods = await Main.GetTestMethodsForProgram(program).ToListAsync();
+      Assert.Equal(3, methods.Count);
+    }
+
   }
 }
