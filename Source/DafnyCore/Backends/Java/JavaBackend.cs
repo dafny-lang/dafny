@@ -30,16 +30,18 @@ public class JavaBackend : ExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
 
   public static readonly Option<bool> LegacyDataConstructors = new("--legacy-data-constructors",
-    @"Generate deprecated data constructor methods".TrimStart())  {
+    @"
+Generate unsafe, deprecated data constructor methods that do not take type descriptors, 
+for backwards compatibility with Java code generated with Dafny versions earlier than 4.3.".TrimStart()) {
     IsHidden = true
   };
   static JavaBackend() {
     DafnyOptions.RegisterLegacyUi(LegacyDataConstructors, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyDataConstructors", defaultValue: false);
     DooFile.RegisterNoChecksNeeded(LegacyDataConstructors, false);
-  } 
+  }
 
   public override IEnumerable<Option> SupportedOptions => new List<Option> { LegacyDataConstructors };
-  
+
   public override void CleanSourceDirectory(string sourceDirectory) {
     try {
       Directory.Delete(sourceDirectory, true);

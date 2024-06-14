@@ -278,7 +278,7 @@ public class Helpers {
     
     // Alias maintained only for backwards compatability
     public static BigInteger unsignedLongToBigInteger(long l) {
-        return unsignedToBigInteger(long);
+        return unsignedToBigInteger(l);
     }
 
     public static byte divideUnsignedByte(byte a, byte b) {
