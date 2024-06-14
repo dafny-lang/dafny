@@ -7153,6 +7153,7 @@ namespace DAST {
     bool is_DecLiteral { get; }
     bool is_StringLiteral { get; }
     bool is_CharLiteral { get; }
+    bool is_CharLiteralUTF16 { get; }
     bool is_Null { get; }
     bool dtor_BoolLiteral_a0 { get; }
     Dafny.ISequence<Dafny.Rune> dtor_IntLiteral_a0 { get; }
@@ -7161,7 +7162,9 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_DecLiteral_a1 { get; }
     DAST._IType dtor_DecLiteral_a2 { get; }
     Dafny.ISequence<Dafny.Rune> dtor_StringLiteral_a0 { get; }
+    bool dtor_verbatim { get; }
     Dafny.Rune dtor_CharLiteral_a0 { get; }
+    BigInteger dtor_CharLiteralUTF16_a0 { get; }
     DAST._IType dtor_Null_a0 { get; }
     _ILiteral DowncastClone();
   }
@@ -7185,11 +7188,14 @@ namespace DAST {
     public static _ILiteral create_DecLiteral(Dafny.ISequence<Dafny.Rune> _a0, Dafny.ISequence<Dafny.Rune> _a1, DAST._IType _a2) {
       return new Literal_DecLiteral(_a0, _a1, _a2);
     }
-    public static _ILiteral create_StringLiteral(Dafny.ISequence<Dafny.Rune> _a0) {
-      return new Literal_StringLiteral(_a0);
+    public static _ILiteral create_StringLiteral(Dafny.ISequence<Dafny.Rune> _a0, bool verbatim) {
+      return new Literal_StringLiteral(_a0, verbatim);
     }
     public static _ILiteral create_CharLiteral(Dafny.Rune _a0) {
       return new Literal_CharLiteral(_a0);
+    }
+    public static _ILiteral create_CharLiteralUTF16(BigInteger _a0) {
+      return new Literal_CharLiteralUTF16(_a0);
     }
     public static _ILiteral create_Null(DAST._IType _a0) {
       return new Literal_Null(_a0);
@@ -7199,6 +7205,7 @@ namespace DAST {
     public bool is_DecLiteral { get { return this is Literal_DecLiteral; } }
     public bool is_StringLiteral { get { return this is Literal_StringLiteral; } }
     public bool is_CharLiteral { get { return this is Literal_CharLiteral; } }
+    public bool is_CharLiteralUTF16 { get { return this is Literal_CharLiteralUTF16; } }
     public bool is_Null { get { return this is Literal_Null; } }
     public bool dtor_BoolLiteral_a0 {
       get {
@@ -7242,10 +7249,22 @@ namespace DAST {
         return ((Literal_StringLiteral)d)._a0;
       }
     }
+    public bool dtor_verbatim {
+      get {
+        var d = this;
+        return ((Literal_StringLiteral)d)._verbatim;
+      }
+    }
     public Dafny.Rune dtor_CharLiteral_a0 {
       get {
         var d = this;
         return ((Literal_CharLiteral)d)._a0;
+      }
+    }
+    public BigInteger dtor_CharLiteralUTF16_a0 {
+      get {
+        var d = this;
+        return ((Literal_CharLiteralUTF16)d)._a0;
       }
     }
     public DAST._IType dtor_Null_a0 {
@@ -7354,27 +7373,32 @@ namespace DAST {
   }
   public class Literal_StringLiteral : Literal {
     public readonly Dafny.ISequence<Dafny.Rune> _a0;
-    public Literal_StringLiteral(Dafny.ISequence<Dafny.Rune> _a0) : base() {
+    public readonly bool _verbatim;
+    public Literal_StringLiteral(Dafny.ISequence<Dafny.Rune> _a0, bool verbatim) : base() {
       this._a0 = _a0;
+      this._verbatim = verbatim;
     }
     public override _ILiteral DowncastClone() {
       if (this is _ILiteral dt) { return dt; }
-      return new Literal_StringLiteral(_a0);
+      return new Literal_StringLiteral(_a0, _verbatim);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Literal_StringLiteral;
-      return oth != null && object.Equals(this._a0, oth._a0);
+      return oth != null && object.Equals(this._a0, oth._a0) && this._verbatim == oth._verbatim;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._verbatim));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Literal.StringLiteral";
       s += "(";
       s += this._a0.ToVerbatimString(true);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._verbatim);
       s += ")";
       return s;
     }
@@ -7406,6 +7430,33 @@ namespace DAST {
       return s;
     }
   }
+  public class Literal_CharLiteralUTF16 : Literal {
+    public readonly BigInteger _a0;
+    public Literal_CharLiteralUTF16(BigInteger _a0) : base() {
+      this._a0 = _a0;
+    }
+    public override _ILiteral DowncastClone() {
+      if (this is _ILiteral dt) { return dt; }
+      return new Literal_CharLiteralUTF16(_a0);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Literal_CharLiteralUTF16;
+      return oth != null && this._a0 == oth._a0;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 5;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Literal.CharLiteralUTF16";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._a0);
+      s += ")";
+      return s;
+    }
+  }
   public class Literal_Null : Literal {
     public readonly DAST._IType _a0;
     public Literal_Null(DAST._IType _a0) : base() {
@@ -7421,7 +7472,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 5;
+      hash = ((hash << 5) + hash) + 6;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
       return (int) hash;
     }

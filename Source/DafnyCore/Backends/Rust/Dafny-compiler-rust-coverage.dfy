@@ -53,7 +53,8 @@ module DafnyToRustCompilerCoverage {
       TestNoOptimize(StmtExpr(BinaryOp("&&", x, x, BinaryOpFormat.NoFormat), x));
       TestNoOptimize(StmtExpr(TypeAscription(x, I128), x));
       TestNoOptimize(StmtExpr(LiteralInt("1"), x));
-      TestNoOptimize(StmtExpr(LiteralString("1", true), x));
+      TestNoOptimize(StmtExpr(LiteralString("2", true, false), x));
+      TestNoOptimize(StmtExpr(LiteralString("3", false, true), x));
       AssertCoverage(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))).Optimize()
                      == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
 
@@ -70,8 +71,8 @@ module DafnyToRustCompilerCoverage {
         BinaryOp("+", Identifier("x"), Identifier("y"), BinaryOpFormat.NoFormat),
         TypeAscription(Identifier("x"), I128),
         LiteralInt("322"),
-        LiteralString("abc", true),
-        LiteralString("abc", false),
+        LiteralString("abc", true, false),
+        LiteralString("abc", false, true),
         DeclareVar(MUT, "abc", Some(I128), None),
         DeclareVar(CONST, "abc", None, Some(Identifier("x"))),
         AssignVar("abc", Identifier("x")),
@@ -117,7 +118,7 @@ module DafnyToRustCompilerCoverage {
       AssertCoverage(RawExpr("x").printingInfo.UnknownPrecedence?);
       AssertCoverage(x.printingInfo == Precedence(1));
       AssertCoverage(LiteralInt("3").printingInfo == Precedence(1));
-      AssertCoverage(LiteralString("abc", true).printingInfo == Precedence(1));
+      AssertCoverage(LiteralString("abc", true, false).printingInfo == Precedence(1));
       AssertCoverage(UnaryOp("?", x, UnaryOpFormat.NoFormat).printingInfo == SuffixPrecedence(5));
       AssertCoverage(UnaryOp("-", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6));
       AssertCoverage(UnaryOp("*", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6));

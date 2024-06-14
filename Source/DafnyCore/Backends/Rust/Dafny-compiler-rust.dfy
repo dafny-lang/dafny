@@ -539,7 +539,7 @@ module RAST
     | TypeAscription(left: Expr, tpe: Type)          // underlying as tpe
     | LiteralInt(value: string)
     | LiteralBool(bvalue: bool)
-    | LiteralString(value: string, binary: bool)
+    | LiteralString(value: string, binary: bool, verbatim: bool)
     | DeclareVar(declareType: DeclareType, name: string, optType: Option<Type>, optRhs: Option<Expr>) // let mut name: optType = optRhs;
     | Assign(names: Option<AssignLhs>, rhs: Expr)           // name1, name2 = rhs;
     | IfExpr(cond: Expr, thn: Expr, els: Expr)       // if cond { thn } else { els }
@@ -567,7 +567,7 @@ module RAST
         case Identifier(_) => Precedence(1)
         case LiteralInt(_) => Precedence(1)
         case LiteralBool(_) => Precedence(1)
-        case LiteralString(_, _) => Precedence(1)
+        case LiteralString(_, _, _) => Precedence(1)
         // Paths => Precedence(1)
         // Method call => Precedence(2)
         // Field expression => PrecedenceAssociativity(3, LeftToRight)
@@ -610,7 +610,7 @@ module RAST
         case ExprFromType(_) => 1
         case LiteralInt(_) => 1
         case LiteralBool(_) => 1
-        case LiteralString(_, _) => 1
+        case LiteralString(_, _, _) => 1
         case Match(matchee, cases) =>
           1 + max(matchee.Height(),
                   SeqToHeight(cases, (oneCase: MatchCase)
@@ -732,7 +732,7 @@ module RAST
                   if |args| == 1 && (base == dafny_runtime || base == global) then
                     match args[0] {
                       case LiteralInt(number) => LiteralInt(number)
-                      case LiteralString(number, _) => LiteralInt(number)
+                      case LiteralString(number, _, _) => LiteralInt(number)
                       case _ => this
                     }
                   else this
@@ -790,6 +790,18 @@ module RAST
       }
     }
 
+    static function MaxHashes(s: string, currentHashes: string, mostHashes: string): string {
+      if |s| == 0 then if |currentHashes| < |mostHashes| then mostHashes else currentHashes else
+      if s[0..1] == "#" then MaxHashes(s[1..], currentHashes + "#", mostHashes)
+      else MaxHashes(s[1..], "", if |currentHashes| < |mostHashes| then mostHashes else currentHashes)
+    }
+
+    static function RemoveDoubleQuotes(s: string): string {
+      if |s| <= 1 then s else
+      if s[0..2] == @"""""" then @"""" + RemoveDoubleQuotes(s[2..]) else
+      s[0..1] + RemoveDoubleQuotes(s[1..])
+    }
+
     function ToString(ind: string): string
       decreases Height()
     {
@@ -798,9 +810,10 @@ module RAST
         case ExprFromType(t) => t.ToString(ind)
         case LiteralInt(number) => number
         case LiteralBool(b) => if b then "true" else "false"
-        case LiteralString(characters, binary) =>
-          (if binary then "b" else "") +
-          "\"" + characters + "\""
+        case LiteralString(characters, binary, verbatim) =>
+          var hashes := if verbatim then MaxHashes(characters, "", "") + "#" else "";
+          (if binary then "b" else "") + (if verbatim then "r" + hashes else "") +
+          "\"" + (if verbatim then RemoveDoubleQuotes(characters) else characters) + "\"" + hashes
         case Match(matchee, cases) =>
           "match " + matchee.ToString(ind + IND) + " {" +
           SeqToString(cases,
@@ -2483,13 +2496,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           newEnv := env;
         }
         case Halt() => {
-          generated := R.Identifier("panic!").Apply1(R.LiteralString("Halt", false));
+          generated := R.Identifier("panic!").Apply1(R.LiteralString("Halt", false, false));
           readIdents := {};
           newEnv := env;
         }
         case Print(e) => {
           var printedExpr, recOwnership, recIdents := GenExpr(e, selfIdent, env, OwnershipBorrowed);
-          generated := R.Identifier("print!").Apply([R.LiteralString("{}", false),
+          generated := R.Identifier("print!").Apply([R.LiteralString("{}", false, false),
                                                      R.dafny_runtime.MSel("DafnyPrintWrapper").Apply1(printedExpr)]);
           readIdents := recIdents;
           newEnv := env;
@@ -2609,6 +2622,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       expectedOwnership: Ownership
     ) returns (r: R.Expr, resultingOwnership: Ownership, readIdents: set<string>)
       requires e.Literal?
+      modifies this
       ensures OwnershipGuarantee(expectedOwnership, resultingOwnership)
       decreases e, 0
     {
@@ -2626,7 +2640,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 r := R.dafny_runtime.MSel("int!").Apply1(R.LiteralInt(i));
               } else {
                 r := R.dafny_runtime.MSel("int!").Apply1(
-                  R.LiteralString(i, binary := true));
+                  R.LiteralString(i, binary := true, verbatim := false));
               }
             }
             case o => {
@@ -2653,8 +2667,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := {};
           return;
         }
-        case Literal(StringLiteral(l)) => {
-          r := R.dafny_runtime.MSel(string_of).Apply1(R.LiteralString(l, false));
+        case Literal(StringLiteral(l, verbatim)) => {
+          if verbatim {
+            error := Some("Verbatim strings prefixed by @ not supported yet.");
+          }
+          r := R.dafny_runtime.MSel(string_of).Apply1(R.LiteralString(l, binary := false, verbatim := verbatim));
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          readIdents := {};
+          return;
+        }
+        case Literal(CharLiteralUTF16(c)) => {
+          r := R.LiteralInt(Strings.OfNat(c));
+          r := R.TypeAscription(r, R.U16);
+          r := R.dafny_runtime.MSel(DafnyChar).Apply1(r);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := {};
           return;

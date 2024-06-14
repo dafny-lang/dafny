@@ -205,5 +205,12 @@ module {:extern "DAST"} DAST {
 
   datatype UnaryOp = Not | BitwiseNot | Cardinality
 
-  datatype Literal = BoolLiteral(bool) | IntLiteral(string, Type) | DecLiteral(string, string, Type) | StringLiteral(string) | CharLiteral(char) | Null(Type)
+  datatype Literal =
+    | BoolLiteral(bool)
+    | IntLiteral(string, Type)
+    | DecLiteral(string, string, Type)
+    | StringLiteral(string, verbatim: bool)
+    | CharLiteral(char)
+    | CharLiteralUTF16(nat)
+    | Null(Type)
 }

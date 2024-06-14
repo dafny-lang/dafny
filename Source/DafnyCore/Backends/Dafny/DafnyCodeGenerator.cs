@@ -1312,14 +1312,29 @@ namespace Microsoft.Dafny.Compilers {
         switch (e) {
           case CharLiteralExpr c:
             var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
-            baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
-              new Rune(codePoint)
-            ));
+            if (Rune.IsRune(new BigInteger(codePoint))) { // More readable version in the generated code.
+              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
+                new Rune(codePoint)
+              ));
+            } else {
+              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteralUTF16(
+                codePoint
+              ));
+            }
+
             break;
           case StringLiteralExpr str:
-            baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
-              Sequence<Rune>.UnicodeFromString(str.AsStringLiteral())
-            ));
+            if (!UnicodeCharEnabled && Util.TokensWithEscapes(str.AsStringLiteral(), false) is var tokens && tokens.Any((string token) => Util.Utf16Escape.IsMatch(token))) {
+              var s = Util.UnescapedCharacters(UnicodeCharEnabled, str.AsStringLiteral(), true);
+              var chars = tokens.Select((string singleChar) =>
+                ConvertExpressionNoStatement(new CharLiteralExpr(Token.NoToken, singleChar) {Type = Type.Char})).ToArray();
+              baseExpr = (DAST.Expression)DAST.Expression.create_SeqValue(Sequence<DAST.Expression>.FromArray(chars), GenType(new CharType()));
+              // We need to emit a sequence of chars literal. We first 
+            } else {
+              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
+                Sequence<Rune>.UnicodeFromString(str.AsStringLiteral()), str.IsVerbatim
+              ));
+            }
             break;
           case StaticReceiverExpr:
             if (e.Type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
