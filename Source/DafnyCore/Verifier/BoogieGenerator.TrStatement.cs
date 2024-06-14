@@ -709,6 +709,7 @@ namespace Microsoft.Dafny {
             assert line<n-1> op line<n>;
             assume false;
         }
+        assume CanCallAssumptions for line<0> and line<n>;
         assume line<0> op line<n>;
         */
       Contract.Assert(stmt.Steps.Count == stmt.Hints.Count); // established by the resolver
@@ -779,6 +780,7 @@ namespace Microsoft.Dafny {
         builder.Add(ifCmd);
         // assume result:
         if (stmt.Steps.Count > 1) {
+          builder.Add(TrAssumeCmd(stmt.Tok, etran.CanCallAssumption(stmt.Result)));
           builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Result, "calc statement result"));
         }
       }
