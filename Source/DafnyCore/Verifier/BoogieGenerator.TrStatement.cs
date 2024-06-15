@@ -598,53 +598,37 @@ namespace Microsoft.Dafny {
       var stmtBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
       var b = defineFuel ? stmtBuilder : builder;
-      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       stmtContext = StmtType.ASSERT;
       AddComment(b, stmt, "assert statement");
       TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
-      IToken enclosingToken = null;
-      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
-        enclosingToken = stmt.Tok;
-      }
 
+      var hiddenProof = false;
       BoogieStmtListBuilder proofBuilder = null;
       var assertStmt = stmt as AssertStmt;
       if (assertStmt != null) {
         if (assertStmt.Proof != null) {
+          hiddenProof = true;
           proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
           AddComment(proofBuilder, stmt, "assert statement proof");
           CurrentIdGenerator.Push();
           TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
           CurrentIdGenerator.Pop();
         } else if (assertStmt.Label != null) {
+          hiddenProof = true;
           proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
           AddComment(proofBuilder, stmt, "assert statement proof");
         }
       }
+      proofBuilder ??= b;
 
-      var splits = TrSplitExpr(builder.Context, stmt.Expr, etran, true, out var splitHappened);
-      if (!splitHappened) {
-        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-        var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
-        (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
-          etran.TrAttributes(stmt.Attributes, null)));
-      } else {
-        foreach (var split in splits) {
-          if (split.IsChecked) {
-            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-            var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
-            (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
-              etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
-          }
-        }
-      }
+      var splitHappened = TrAssertCondition(stmt, builder, etran, proofBuilder);
 
-      if (proofBuilder != null) {
+      if (hiddenProof) {
         PathAsideBlock(stmt.Tok, proofBuilder, b);
       }
 
       stmtContext = StmtType.NONE; // done with translating assert stmt
-      if (splitHappened || proofBuilder != null) {
+      if (splitHappened || hiddenProof) {
         if (assertStmt != null && assertStmt.Label != null) {
           // make copies of the variables used in the assertion
           var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
@@ -696,6 +680,35 @@ namespace Microsoft.Dafny {
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.AddCaptureState(stmt);
       }
+    }
+
+    private bool TrAssertCondition(PredicateStmt stmt, BoogieStmtListBuilder builder, 
+      ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder)
+    {
+      IToken enclosingToken = null;
+      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
+        enclosingToken = stmt.Tok;
+      }
+      
+      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
+      var splits = TrSplitExpr(builder.Context, stmt.Expr, etran, true, out var splitHappened);
+      if (!splitHappened) {
+        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
+        var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
+        proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
+          etran.TrAttributes(stmt.Attributes, null)));
+      } else {
+        foreach (var split in splits) {
+          if (split.IsChecked) {
+            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
+            var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
+            proofBuilder.Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
+              etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
+          }
+        }
+      }
+
+      return splitHappened;
     }
 
     private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {

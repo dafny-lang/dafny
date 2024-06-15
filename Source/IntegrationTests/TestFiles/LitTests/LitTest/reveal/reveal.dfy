@@ -23,8 +23,8 @@ blind method Foo()
   // assert x;
 }
 
-//method Bar() returns (x: bool) 
-//  ensures x
+method Bar() returns (x: bool) 
+  ensures x
 
 blind function Zer(): int {
   Q() // requires error
