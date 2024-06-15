@@ -87,14 +87,14 @@ public partial class BoogieGenerator {
     // check that postconditions hold
     var ens = new List<Bpl.Ensures>();
     var context = new BodyTranslationContext(f.IsBlind);
-    foreach (AttributedExpression p in f.Ens) {
+    foreach (AttributedExpression ensures in f.Ens) {
       var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
       var splits = new List<SplitExprInfo>();
-      bool splitHappened /*we actually don't care*/ = TrSplitExpr(context, p.E, splits, true, functionHeight, true, true, etran);
-      var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
+      bool splitHappened /*we actually don't care*/ = TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, true, etran);
+      var (errorMessage, successMessage) = CustomErrorMessage(ensures.Attributes);
       foreach (var s in splits) {
         if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
-          AddEnsures(ens, EnsuresWithDependencies(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));
+          AddEnsures(ens, EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));
         }
       }
     }
@@ -288,7 +288,7 @@ public partial class BoogieGenerator {
       var impl = AddImplementationWithAttributes(GetToken(f), proc,
         Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
         implOutParams,
-        locals, implBody, kv);
+        locals, implBody, kv, f.IsBlind);
       if (InsertChecksums) {
         InsertChecksum(f, impl);
       }

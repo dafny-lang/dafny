@@ -1,3 +1,5 @@
 reveal.dfy(14,12): Error: assertion might not hold
+reveal.dfy(30,2): Error: function precondition could not be proved
+reveal.dfy(39,11): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 2 verified, 1 error
+Dafny program verifier finished with 5 verified, 2 errors

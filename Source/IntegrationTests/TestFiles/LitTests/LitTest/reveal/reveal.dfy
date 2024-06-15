@@ -41,3 +41,4 @@ function Q(): int
 }
 
 // TODO add test cases that see how blindness interops with contracts of the blind callable
+// TODO if a contract has reveals clauses, do they get copied to the caller?

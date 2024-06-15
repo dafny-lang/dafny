@@ -234,7 +234,7 @@ namespace Microsoft.Dafny {
 
       public void DoWithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
         var doReadsChecks = etran.readsFrame != null;
-        var options = new WFOptions(selfCallsAllowance, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
+        var options = new WFOptions(selfCallsAllowance, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
         action(options);
         if (doReadsChecks) {
           options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
@@ -245,14 +245,14 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
     /// </summary>
-    void CheckWellformed(Expression expr, WFOptions options, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    void CheckWellformed(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
-      Contract.Requires(options != null);
+      Contract.Requires(wfOptions != null);
       Contract.Requires(locals != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
-      CheckWellformedWithResult(expr, options, null, null, locals, builder, etran);
+      CheckWellformedWithResult(expr, wfOptions, null, null, locals, builder, etran);
     }
 
     /// <summary>
