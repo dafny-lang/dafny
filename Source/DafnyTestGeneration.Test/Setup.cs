@@ -15,6 +15,14 @@ using Xunit;
 using Program = Microsoft.Dafny.Program;
 using Token = Microsoft.Dafny.Token;
 
+// These tests are frequently hanging and timing out for reasons unknown.
+// It seems to be much harder to reproduce locally if tests are run sequentially
+// (as they are in debugging mode by default)
+// so as a stop gap we're trying disabling parallel execution
+// in the hopes it at least reduces the frequency of hanging.
+// See https://github.com/dafny-lang/dafny/issues/5488.
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace DafnyTestGeneration.Test {
 
   public class Setup {
