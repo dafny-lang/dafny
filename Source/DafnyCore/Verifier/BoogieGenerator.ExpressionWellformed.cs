@@ -34,7 +34,6 @@ namespace Microsoft.Dafny {
     /// some assignment.
     /// </summary>
     private class WFOptions {
-      public BodyTranslationContext Context { get; }
       public readonly Function SelfCallsAllowance;
       public readonly bool DoReadsChecks;
       public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
@@ -43,16 +42,14 @@ namespace Microsoft.Dafny {
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
 
-      public WFOptions(BodyTranslationContext context) {
-        Context = context;
+      public WFOptions() {
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, BodyTranslationContext context, 
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, 
         bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
-        Context = context;
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
@@ -61,7 +58,7 @@ namespace Microsoft.Dafny {
       }
 
       private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
-        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv, BodyTranslationContext context) {
+        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) {
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
@@ -69,12 +66,10 @@ namespace Microsoft.Dafny {
         Asserts = asserts;
         LValueContext = lValueContext;
         AssertKv = assertKv;
-        Context = context;
       }
 
-      public WFOptions(Bpl.QKeyValue kv, BodyTranslationContext context) {
+      public WFOptions(Bpl.QKeyValue kv) {
         AssertKv = kv;
-        Context = context;
       }
 
       /// <summary>
@@ -82,7 +77,7 @@ namespace Microsoft.Dafny {
       /// </summary>
       public WFOptions WithReadsChecks(bool doReadsChecks) {
         return new WFOptions(SelfCallsAllowance, doReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
-          Locals, Asserts, LValueContext, AssertKv, Context);
+          Locals, Asserts, LValueContext, AssertKv);
       }
 
       /// <summary>
@@ -90,7 +85,7 @@ namespace Microsoft.Dafny {
       /// </summary>
       public WFOptions WithLValueContext(bool lValueContext) {
         return new WFOptions(SelfCallsAllowance, DoReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
-          Locals, Asserts, lValueContext, AssertKv, Context);
+          Locals, Asserts, lValueContext, AssertKv);
       }
 
       public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
@@ -239,7 +234,7 @@ namespace Microsoft.Dafny {
 
       public void DoWithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
         var doReadsChecks = etran.readsFrame != null;
-        var options = new WFOptions(selfCallsAllowance, doReadsChecks, builder.Context, doOnlyCoarseGrainedTerminationChecks);
+        var options = new WFOptions(selfCallsAllowance, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
         action(options);
         if (doReadsChecks) {
           options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
@@ -1192,8 +1187,7 @@ namespace Microsoft.Dafny {
                   });
 
                   // continue doing reads checks, but don't delay them
-                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, 
-                    wfOptions.Context, false);
+                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
                 }
 
                 // check requires/range

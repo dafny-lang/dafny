@@ -156,13 +156,12 @@ namespace Microsoft.Dafny {
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, false, 
-          new BodyTranslationContext(false), false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
+        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
-      var wfOptions = new WFOptions(new BodyTranslationContext(false));
+      var wfOptions = new WFOptions();
       foreach (var p in iter.Requires) {
         CheckWellformedAndAssume(p.E, wfOptions, localVariables, builder, etran, "iterator requires clause");
       }
@@ -198,7 +197,7 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(builder.Context), localVariables, builder, etran, "iterator yield-requires clause");
+        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator yield-requires clause");
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;

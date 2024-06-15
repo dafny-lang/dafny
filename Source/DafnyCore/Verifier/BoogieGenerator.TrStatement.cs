@@ -343,7 +343,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "modify statement");
         var s = (ModifyStmt)stmt;
         // check well-formedness of the modifies clauses
-        var wfOptions = new WFOptions(builder.Context);
+        var wfOptions = new WFOptions();
         CheckFrameWellFormed(wfOptions, s.Mod.Expressions, locals, builder, etran);
         // check that the modifies is a subset
         var desc = new PODesc.ModifyFrameSubset("modify statement", s.Mod.Expressions, GetContextModifiesFrames());
@@ -511,7 +511,7 @@ namespace Microsoft.Dafny {
         var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
         locals.Add(r);
         var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-        CheckWellformedWithResult(rhs, new WFOptions(null, false, builder.Context, false), rIe, pat.Expr.Type, locals, builder, etran, "variable declaration RHS");
+        CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran, "variable declaration RHS");
         CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
         builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, s.tok, pat.Expr, e => Expr.Eq(e, rIe), "variable declaration"));
       } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
@@ -934,7 +934,7 @@ namespace Microsoft.Dafny {
         var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
         locals.Add(bLoVar);
         bLo = new Bpl.IdentifierExpr(lo.tok, name);
-        CheckWellformed(lo, new WFOptions(null, false, builder.Context), locals, builder, etran);
+        CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
         builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
         dLo = new BoogieWrapper(bLo, lo.Type);
       }
@@ -943,7 +943,7 @@ namespace Microsoft.Dafny {
         var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
         locals.Add(bHiVar);
         bHi = new Bpl.IdentifierExpr(hi.tok, name);
-        CheckWellformed(hi, new WFOptions(null, false, builder.Context), locals, builder, etran);
+        CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
         builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
         dHi = new BoogieWrapper(bHi, hi.Type);
       }
@@ -1482,7 +1482,7 @@ namespace Microsoft.Dafny {
       }
 
       if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
-        CheckFrameWellFormed(new WFOptions(builder.Context), s.Mod.Expressions, locals, builder, etran);
+        CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
         var desc = new PODesc.ModifyFrameSubset("loop modifies clause", s.Mod.Expressions, GetContextModifiesFrames());
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, desc, null);
         DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
@@ -2770,20 +2770,20 @@ namespace Microsoft.Dafny {
         } else {
           int i = 0;
           foreach (Expression dim in tRhs.ArrayDimensions) {
-            CheckWellformed(dim, new WFOptions(builder.Context), locals, builder, etran);
+            CheckWellformed(dim, new WFOptions(), locals, builder, etran);
             var desc = new PODesc.NonNegative(tRhs.ArrayDimensions.Count == 1
               ? "array size" : $"array size (dimension {i})", dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc));
             i++;
           }
           if (tRhs.ElementInit != null) {
-            CheckWellformed(tRhs.ElementInit, new WFOptions(builder.Context), locals, builder, etran);
+            CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
           } else if (tRhs.InitDisplay != null) {
             var dim = tRhs.ArrayDimensions[0];
             var desc = new PODesc.ArrayInitSizeValid(tRhs, dim);
             builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc));
             foreach (var v in tRhs.InitDisplay) {
-              CheckWellformed(v, new WFOptions(builder.Context), locals, builder, etran);
+              CheckWellformed(v, new WFOptions(), locals, builder, etran);
             }
           } else if (options.DefiniteAssignmentLevel == 0) {
             // cool
@@ -2812,7 +2812,7 @@ namespace Microsoft.Dafny {
               i++;
             }
             if (tRhs.ElementInit != null) {
-              CheckElementInit(tok, true, tRhs.ArrayDimensions, tRhs.EType, tRhs.ElementInit, nw, builder, etran, new WFOptions(builder.Context));
+              CheckElementInit(tok, true, tRhs.ArrayDimensions, tRhs.EType, tRhs.ElementInit, nw, builder, etran, new WFOptions());
             } else if (tRhs.InitDisplay != null) {
               int ii = 0;
               foreach (var v in tRhs.InitDisplay) {
@@ -2965,7 +2965,7 @@ namespace Microsoft.Dafny {
         args.Add(Bpl.Expr.Literal(0));
         kv = new Bpl.QKeyValue(expr.tok, "subsumption", args, null);
       }
-      var options = new WFOptions(kv, builder.Context);
+      var options = new WFOptions(kv);
       // Only do reads checks if reads clauses on methods are enabled and the reads clause is not *.
       // The latter is important to avoid any extra verification cost for backwards compatibility.
       if (etran.readsFrame != null) {

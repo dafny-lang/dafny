@@ -178,7 +178,7 @@ public partial class BoogieGenerator {
 
     // check well-formedness of the decreases clauses (including termination, but no reads checks)
     foreach (Expression p in f.Decreases.Expressions) {
-      CheckWellformed(p, new WFOptions(null, false, new BodyTranslationContext(false)), 
+      CheckWellformed(p, new WFOptions(null, false), 
         locals, builder, etran);
     }
     // Generate:
@@ -227,7 +227,7 @@ public partial class BoogieGenerator {
     // Now for the ensures clauses
     foreach (AttributedExpression p in f.Ens) {
       // assume the postcondition for the benefit of checking the remaining postconditions
-      CheckWellformedAndAssume(p.E, new WFOptions(f, false, new BodyTranslationContext(false)), locals, postCheckBuilder, etran, "ensures clause");
+      CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
     }
     // Here goes the body (and include both termination checks and reads checks)
     BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this, options, context);

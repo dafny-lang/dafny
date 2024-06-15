@@ -739,7 +739,7 @@ namespace Microsoft.Dafny {
         }
 
         // check well-formedness of the decreases clauses
-        var wfOptions = new WFOptions(new BodyTranslationContext(false));
+        var wfOptions = new WFOptions();
         foreach (Expression p in m.Decreases.Expressions) {
           CheckWellformed(p, wfOptions, localVariables, builder, etran);
         }
