@@ -1492,7 +1492,7 @@ public partial class BoogieGenerator {
       // check well-formedness of the witness expression (including termination, and reads checks)
       var ghostCodeContext = codeContext;
       codeContext = decl.WitnessKind == SubsetTypeDecl.WKind.Compiled ? new CallableWrapper(decl, false) : ghostCodeContext;
-      CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
+      CheckWellformed(decl.Witness, new WFOptions(null, true, witnessCheckBuilder.Context), locals, witnessCheckBuilder, etran);
       codeContext = ghostCodeContext;
       // check that the witness is assignable to the type of the given bound variable
       if (decl is SubsetTypeDecl) {

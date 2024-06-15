@@ -9,8 +9,8 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
 
   public bool IsGhost => CodeContext.IsGhost;
 
-  public ResolutionContext(ICodeContext codeContext, bool isTwoState)
-    : this(codeContext, isTwoState, false, false, false, false, false) {
+  public ResolutionContext(ICodeContext codeContext, bool isTwoState, bool isBlind = false)
+    : this(codeContext, isTwoState, false, false, false, false, isBlind) {
   }
 
   /// <summary>

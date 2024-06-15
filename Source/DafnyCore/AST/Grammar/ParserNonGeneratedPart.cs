@@ -156,7 +156,13 @@ public partial class Parser {
   }
 
   bool IsFunctionDecl() {
-    switch (la.kind) {
+    var kind = la.kind;
+    return IsFunctionDecl(kind);
+  }
+
+  private bool IsFunctionDecl(int kind)
+  {
+    switch (kind) {
       case _function:
       case _predicate:
       case _copredicate:
@@ -618,6 +624,8 @@ public partial class Parser {
     public bool IsStatic;
     public IToken StaticToken;
     public bool IsOpaque;
+    public bool IsBlind;
+    public IToken BlindToken;
     public IToken OpaqueToken;
     public IToken FirstToken;
   }

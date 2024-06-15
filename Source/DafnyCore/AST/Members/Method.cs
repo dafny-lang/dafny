@@ -28,8 +28,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Concat(Ins).Concat(Outs).Concat<Node>(TypeArgs).
     Concat(Req).Concat(Ens).Concat(Reads.Expressions).Concat(Mod.Expressions);
   public override IEnumerable<INode> PreResolveChildren => Children;
-
-  public bool IsBlind { get; set; }
   public override string WhatKind => "method";
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
   public readonly IToken SignatureEllipsis;
@@ -126,7 +124,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
     }
 
-    this.IsBlind = original.IsBlind;
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
@@ -145,10 +142,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IToken signatureEllipsis, 
-    bool isByMethod = false, bool isBlind = false)
+    bool isByMethod = false)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {
-    this.IsBlind = isBlind;
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -287,29 +283,31 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
         resolver.scope.Push(p.Name, p);
       }
 
-      resolver.ResolveParameterDefaultValues(Ins, new ResolutionContext(this, this is TwoStateLemma));
+      var resolutionContext = new ResolutionContext(this, this is TwoStateLemma, IsBlind);
+      resolver.ResolveParameterDefaultValues(Ins, resolutionContext);
 
       // Start resolving specification...
       foreach (AttributedExpression e in Req) {
-        resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateLemma));
-        resolver.ResolveExpression(e.E, new ResolutionContext(this, this is TwoStateLemma));
+        resolver.ResolveAttributes(e, resolutionContext);
+        resolver.ResolveExpression(e.E, resolutionContext);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
-      resolver.ResolveAttributes(Reads, new ResolutionContext(this, false));
+      var context = new ResolutionContext(this, false, IsBlind);
+      resolver.ResolveAttributes(Reads, context);
       foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);
       }
 
-      resolver.ResolveAttributes(Mod, new ResolutionContext(this, false));
+      resolver.ResolveAttributes(Mod, context);
       foreach (FrameExpression fe in Mod.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Modifies, this);
       }
 
-      resolver.ResolveAttributes(Decreases, new ResolutionContext(this, false));
+      resolver.ResolveAttributes(Decreases, context);
       foreach (Expression e in Decreases.Expressions) {
-        resolver.ResolveExpression(e, new ResolutionContext(this, this is TwoStateLemma));
+        resolver.ResolveExpression(e, resolutionContext);
         // any type is fine
       }
 
@@ -335,8 +333,9 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
       // ... continue resolving specification
       foreach (AttributedExpression e in Ens) {
-        resolver.ResolveAttributes(e, new ResolutionContext(this, true));
-        resolver.ResolveExpression(e.E, new ResolutionContext(this, true));
+        var ensuresContext = new ResolutionContext(this, true, false);
+        resolver.ResolveAttributes(e, ensuresContext);
+        resolver.ResolveExpression(e.E, ensuresContext);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         resolver.ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
       }
@@ -370,7 +369,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       }
 
       // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for greatest lemmas)
-      resolver.ResolveAttributes(this, new ResolutionContext(this, this is TwoStateLemma), true);
+      resolver.ResolveAttributes(this, resolutionContext, true);
 
       resolver.Options.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
       resolver.scope.PopMarker();  // for the out-parameters and outermost-level locals

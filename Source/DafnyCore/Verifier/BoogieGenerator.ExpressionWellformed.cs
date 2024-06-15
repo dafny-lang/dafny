@@ -43,13 +43,16 @@ namespace Microsoft.Dafny {
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
 
-      public WFOptions() {
+      public WFOptions(BodyTranslationContext context) {
+        Context = context;
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, BodyTranslationContext context, 
+        bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
+        Context = context;
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
@@ -58,7 +61,7 @@ namespace Microsoft.Dafny {
       }
 
       private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
-        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) {
+        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv, BodyTranslationContext context) {
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
@@ -66,10 +69,12 @@ namespace Microsoft.Dafny {
         Asserts = asserts;
         LValueContext = lValueContext;
         AssertKv = assertKv;
+        Context = context;
       }
 
-      public WFOptions(Bpl.QKeyValue kv) {
+      public WFOptions(Bpl.QKeyValue kv, BodyTranslationContext context) {
         AssertKv = kv;
+        Context = context;
       }
 
       /// <summary>
@@ -77,7 +82,7 @@ namespace Microsoft.Dafny {
       /// </summary>
       public WFOptions WithReadsChecks(bool doReadsChecks) {
         return new WFOptions(SelfCallsAllowance, doReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
-          Locals, Asserts, LValueContext, AssertKv);
+          Locals, Asserts, LValueContext, AssertKv, Context);
       }
 
       /// <summary>
@@ -85,7 +90,7 @@ namespace Microsoft.Dafny {
       /// </summary>
       public WFOptions WithLValueContext(bool lValueContext) {
         return new WFOptions(SelfCallsAllowance, DoReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
-          Locals, Asserts, lValueContext, AssertKv);
+          Locals, Asserts, lValueContext, AssertKv, Context);
       }
 
       public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
@@ -234,7 +239,7 @@ namespace Microsoft.Dafny {
 
       public void DoWithDelayedReadsChecks(bool doOnlyCoarseGrainedTerminationChecks, Action<WFOptions> action) {
         var doReadsChecks = etran.readsFrame != null;
-        var options = new WFOptions(selfCallsAllowance, doReadsChecks, doReadsChecks, doOnlyCoarseGrainedTerminationChecks);
+        var options = new WFOptions(selfCallsAllowance, doReadsChecks, builder.Context, doOnlyCoarseGrainedTerminationChecks);
         action(options);
         if (doReadsChecks) {
           options.ProcessSavedReadsChecks(localVariables, builderInitializationArea, builder);
@@ -812,7 +817,7 @@ namespace Microsoft.Dafny {
 
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-                  foreach (var ss in TrSplitExpr(wfOptions.Context, precond, etran, true, out var splitHappened)) {
+                  foreach (var ss in TrSplitExpr(builder.Context, precond, etran, true, out _)) {
                     if (ss.IsChecked) {
                       var tok = new NestedToken(GetToken(expr), ss.Tok);
                       var desc = new PODesc.PreconditionSatisfied(directPrecond, errorMessage, successMessage);
@@ -1187,7 +1192,8 @@ namespace Microsoft.Dafny {
                   });
 
                   // continue doing reads checks, but don't delay them
-                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
+                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, 
+                    wfOptions.Context, false);
                 }
 
                 // check requires/range

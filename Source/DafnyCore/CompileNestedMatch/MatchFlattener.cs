@@ -61,7 +61,8 @@ public class MatchFlattener : IRewriter {
       }
 
       if (node is ICallable callable) {
-        resolutionContext = new ResolutionContext(callable, false);
+        // TODO investigate why the match flattener needs a resolution context.
+        resolutionContext = new ResolutionContext(callable, false, false);
       }
 
       if (node is NestedMatchStmt nestedMatchStmt) {

@@ -23,5 +23,21 @@ blind method Foo()
   // assert x;
 }
 
-method Bar() returns (x: bool) 
-  ensures x
+//method Bar() returns (x: bool) 
+//  ensures x
+
+blind function Zer(): int {
+  Q() // requires error
+}
+
+blind function Zaz(): int {
+  reveal P; 
+  Q()
+}
+
+function Q(): int 
+  requires P() {
+  3
+}
+
+// TODO add test cases that see how blindness interops with contracts of the blind callable

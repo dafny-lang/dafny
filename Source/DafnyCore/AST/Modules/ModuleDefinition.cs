@@ -464,7 +464,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
     resolver.scope.PushMarker();
     resolver.scope.AllowInstance = false;
-    resolver.ResolveAttributes(this, new ResolutionContext(new NoContext(EnclosingModule), false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
+    resolver.ResolveAttributes(this, new ResolutionContext(new NoContext(EnclosingModule), false, false), true); // Must follow ResolveTopLevelDecls_Signatures, in case attributes refer to members
     resolver.scope.PopMarker();
 
     if (resolver.reporter.Count(ErrorLevel.Error) == prevErrorCount) {

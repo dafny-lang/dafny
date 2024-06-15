@@ -86,10 +86,11 @@ public partial class BoogieGenerator {
     };
     // check that postconditions hold
     var ens = new List<Bpl.Ensures>();
+    var context = new BodyTranslationContext(f.IsBlind);
     foreach (AttributedExpression p in f.Ens) {
       var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
       var splits = new List<SplitExprInfo>();
-      bool splitHappened /*we actually don't care*/ = TrSplitExpr(new BodyTranslationContext(false), p.E, splits, true, functionHeight, true, true, etran);
+      bool splitHappened /*we actually don't care*/ = TrSplitExpr(context, p.E, splits, true, functionHeight, true, true, etran);
       var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
       foreach (var s in splits) {
         if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
@@ -113,8 +114,8 @@ public partial class BoogieGenerator {
     var implInParams = Bpl.Formal.StripWhereClauses(inParams);
     var implOutParams = Bpl.Formal.StripWhereClauses(outParams);
     var locals = new List<Variable>();
-    var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
-    var builderInitializationArea = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
+    var builder = new BoogieStmtListBuilder(this, options, context);
+    var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
     builder.Add(new CommentCmd("AddWellformednessCheck for function " + f));
     if (f is TwoStateFunction) {
       // $Heap := current$Heap;
@@ -177,7 +178,8 @@ public partial class BoogieGenerator {
 
     // check well-formedness of the decreases clauses (including termination, but no reads checks)
     foreach (Expression p in f.Decreases.Expressions) {
-      CheckWellformed(p, new WFOptions(null, false), locals, builder, etran);
+      CheckWellformed(p, new WFOptions(null, false, new BodyTranslationContext(false)), 
+        locals, builder, etran);
     }
     // Generate:
     //   if (*) {
@@ -188,7 +190,7 @@ public partial class BoogieGenerator {
     //     // fall through to check the postconditions themselves
     //   }
     // Here go the postconditions (termination checks included, but no reads checks)
-    BoogieStmtListBuilder postCheckBuilder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
+    BoogieStmtListBuilder postCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
     {
       var args = new List<Bpl.Expr>();
@@ -225,10 +227,10 @@ public partial class BoogieGenerator {
     // Now for the ensures clauses
     foreach (AttributedExpression p in f.Ens) {
       // assume the postcondition for the benefit of checking the remaining postconditions
-      CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
+      CheckWellformedAndAssume(p.E, new WFOptions(f, false, new BodyTranslationContext(false)), locals, postCheckBuilder, etran, "ensures clause");
     }
     // Here goes the body (and include both termination checks and reads checks)
-    BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
+    BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     if (f.Body == null || !RevealedInScope(f)) {
       // don't fall through to postcondition checks
       bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.False));

@@ -207,7 +207,7 @@ namespace Microsoft.Dafny {
       DefineFrame(decl.tok, etran.ReadsFrame(decl.tok), new List<FrameExpression>(), builder, locals, null);
 
       // check well-formedness of the RHS expression
-      CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
+      CheckWellformed(decl.Rhs, new WFOptions(null,  true, new BodyTranslationContext(false)), locals, builder, etran);
       builder.Add(new Bpl.AssumeCmd(decl.Rhs.tok, etran.CanCallAssumption(decl.Rhs)));
       CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, decl.Rhs, builder);
 

@@ -739,8 +739,9 @@ namespace Microsoft.Dafny {
         }
 
         // check well-formedness of the decreases clauses
+        var wfOptions = new WFOptions(new BodyTranslationContext(false));
         foreach (Expression p in m.Decreases.Expressions) {
-          CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
+          CheckWellformed(p, wfOptions, localVariables, builder, etran);
         }
 
         if (!(m is TwoStateLemma)) {
@@ -771,7 +772,7 @@ namespace Microsoft.Dafny {
 
         // check wellformedness of postconditions
         foreach (AttributedExpression p in m.Ens) {
-          CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "method ensures clause");
+          CheckWellformedAndAssume(p.E, wfOptions, localVariables, builder, etran, "method ensures clause");
         }
 
         var s0 = builderInitializationArea.Collect(m.tok);

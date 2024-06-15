@@ -389,14 +389,15 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     resolver.ResolveParameterDefaultValues(Ins, ResolutionContext.FromCodeContext(this));
 
+    var contractContext = new ResolutionContext(this, this is TwoStateFunction, false);
     foreach (var req in Req) {
-      resolver.ResolveAttributes(req, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveAttributes(req, contractContext);
       Expression r = req.E;
-      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(r, contractContext);
       Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
       resolver.ConstrainTypeExprBool(r, "Precondition must be a boolean (got {0})");
     }
-    resolver.ResolveAttributes(Reads, new ResolutionContext(this, this is TwoStateFunction));
+    resolver.ResolveAttributes(Reads, contractContext);
     foreach (FrameExpression fr in Reads.Expressions) {
       resolver.ResolveFrameExpressionTopLevel(fr, FrameExpressionUse.Reads, this);
     }
@@ -407,16 +408,16 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     }
     foreach (AttributedExpression e in Ens) {
       Expression r = e.E;
-      resolver.ResolveAttributes(e, new ResolutionContext(this, this is TwoStateFunction));
-      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction) with { InFunctionPostcondition = true });
+      resolver.ResolveAttributes(e, contractContext);
+      resolver.ResolveExpression(r, contractContext with { InFunctionPostcondition = true });
       Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
       resolver.ConstrainTypeExprBool(r, "Postcondition must be a boolean (got {0})");
     }
     resolver.scope.PopMarker(); // function result name
 
-    resolver.ResolveAttributes(Decreases, new ResolutionContext(this, this is TwoStateFunction));
+    resolver.ResolveAttributes(Decreases, contractContext);
     foreach (Expression r in Decreases.Expressions) {
-      resolver.ResolveExpression(r, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(r, contractContext);
       // any type is fine
     }
     resolver.SolveAllTypeConstraints(); // solve type constraints in the specification
@@ -434,7 +435,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
           }
         }
       }
-      resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction));
+      resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction, IsBlind));
       Contract.Assert(Body.Type != null);  // follows from postcondition of ResolveExpression
       resolver.AddAssignableConstraint(tok, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
       resolver.SolveAllTypeConstraints();
@@ -445,7 +446,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     if (Result != null) {
       resolver.scope.Push(Result.Name, Result);  // function return only visible in post-conditions (and in function attributes)
     }
-    resolver.ResolveAttributes(this, new ResolutionContext(this, this is TwoStateFunction), true);
+    resolver.ResolveAttributes(this, contractContext, true);
     resolver.scope.PopMarker(); // function result name
 
     resolver.scope.PopMarker(); // formals

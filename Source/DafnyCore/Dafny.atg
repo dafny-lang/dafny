@@ -245,6 +245,7 @@ DeclModifier<ref DeclModifierData dmod>
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "blind"                                (. dmod.IsBlind = true; CheckAndSetToken(ref dmod.BlindToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   )
   .
 
@@ -1172,13 +1173,11 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      IToken tokenWithTrailingDocString = Token.NoToken;
      IToken bodyStart = Token.NoToken;
      IToken bodyEnd = Token.NoToken;
-     bool isBlind = false;
      AllowedDeclModifiers allowed = AllowedDeclModifiers.None;
      string caption = "";
      ExtremePredicate.KType kType = ExtremePredicate.KType.Unspecified;
   .)
   SYNC
-  [ "blind" ]                       (. isBlind = true; .)
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
                                        CheckAndSetTokenOnce(ref dmod.FirstToken);
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
@@ -1276,9 +1275,9 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
                       req, new Specification<FrameExpression>(reads, readsAttrs), 
                       new Specification<FrameExpression>(mod, modAttrs), ens, 
-                      new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis,
-                      isBlind: isBlind);
+                      new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
+     m.IsBlind = dmod.IsBlind;
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
@@ -1984,15 +1983,18 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
-                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                                 new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
-                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                                new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Predicate(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
-                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                         new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
@@ -2010,6 +2012,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                         byMethodTok, byMethodBody,
                         attrs, signatureEllipsis);
      }
+     f.IsBlind = dmod.IsBlind;
      f.BodyStartTok = bodyStart;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count));

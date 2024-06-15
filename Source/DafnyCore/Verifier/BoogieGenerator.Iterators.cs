@@ -156,20 +156,22 @@ namespace Microsoft.Dafny {
       // check well-formedness of any default-value expressions (before assuming preconditions)
       foreach (var formal in iter.Ins.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, false, false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
+        CheckWellformed(e, new WFOptions(null, false, 
+          new BodyTranslationContext(false), false, true), localVariables, builder, etran.WithReadsFrame(etran.readsFrame, null));
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
+      var wfOptions = new WFOptions(new BodyTranslationContext(false));
       foreach (var p in iter.Requires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator requires clause");
+        CheckWellformedAndAssume(p.E, wfOptions, localVariables, builder, etran, "iterator requires clause");
       }
       // check well-formedness of the modifies and reads clauses
-      CheckFrameWellFormed(new WFOptions(), iter.Modifies.Expressions, localVariables, builder, etran);
-      CheckFrameWellFormed(new WFOptions(), iter.Reads.Expressions, localVariables, builder, etran);
+      CheckFrameWellFormed(wfOptions, iter.Modifies.Expressions, localVariables, builder, etran);
+      CheckFrameWellFormed(wfOptions, iter.Reads.Expressions, localVariables, builder, etran);
       // check well-formedness of the decreases clauses
       foreach (var p in iter.Decreases.Expressions) {
-        CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
+        CheckWellformed(p, wfOptions, localVariables, builder, etran);
       }
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
@@ -196,7 +198,7 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the user-defined part of the yield-requires
       foreach (var p in iter.YieldRequires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator yield-requires clause");
+        CheckWellformedAndAssume(p.E, new WFOptions(builder.Context), localVariables, builder, etran, "iterator yield-requires clause");
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
@@ -244,10 +246,10 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var p in iter.YieldEnsures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
+        CheckWellformedAndAssume(p.E, wfOptions, localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
       }
       foreach (var p in iter.Ensures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran, "iterator ensures clause");
+        CheckWellformedAndAssume(p.E, wfOptions, localVariables, endBuilder, yeEtran, "iterator ensures clause");
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 

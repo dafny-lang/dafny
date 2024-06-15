@@ -13,7 +13,8 @@ public abstract class MethodOrFunction : MemberDecl {
   static MethodOrFunction() {
     DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
-
+  
+  public bool IsBlind { get; set; }
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
@@ -39,6 +40,7 @@ public abstract class MethodOrFunction : MemberDecl {
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    IsBlind = original.IsBlind;
   }
 
   protected abstract bool Bodyless { get; }
