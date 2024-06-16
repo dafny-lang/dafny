@@ -40,5 +40,17 @@ function Q(): int
   3
 }
 
+function EnsuresFuncFoo(): bool
+ ensures EnsuresFuncFoo()
+
+blind method UseEnsuresFuncFoo() {
+  if (*) {
+    reveal EnsuresFuncFoo;
+    assert EnsuresFuncFoo();
+  } else {
+    assert EnsuresFuncFoo(); // error
+  }
+}
+
 // TODO add test cases that see how blindness interops with contracts of the blind callable
 // TODO if a contract has reveals clauses, do they get copied to the caller?
