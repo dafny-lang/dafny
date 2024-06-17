@@ -12,6 +12,7 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
@@ -1912,6 +1913,7 @@ namespace Microsoft.Dafny.Compilers {
       var defaultMethodTypeDescriptorCount = 0;
       var usedTypeArgs = UsedTypeParameters(dt);
       ConcreteSyntaxTree wDefault;
+      ConcreteSyntaxTree wLegacyDefault = null;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
         wr.Write($"private static final {simplifiedTypeName} theDefault = ");
@@ -1929,6 +1931,14 @@ namespace Microsoft.Dafny.Compilers {
         w.Write("return ");
         wDefault = w.Fork();
         w.WriteLine(";");
+
+        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+          wr.WriteLine("@Deprecated()");
+          w = wr.NewBlock($"public static{justTypeArgs} {simplifiedTypeName} Default({typeParameters})");
+          w.Write("return ");
+          wLegacyDefault = w.Fork();
+          w.WriteLine(";");
+        }
       }
       var groundingCtor = dt.GetGroundingCtor();
       if (groundingCtor.IsGhost) {
@@ -1941,6 +1951,13 @@ namespace Microsoft.Dafny.Compilers {
         EmitDatatypeValue(dt, groundingCtor,
           dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
           dt is CoDatatypeDecl, $"{wDefaultTypeArguments}", args, wDefault);
+
+        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+          var nullTypeDescriptorArgs = Enumerable.Repeat("null", defaultMethodTypeDescriptorCount).Comma();
+          EmitDatatypeValue(dt, groundingCtor,
+            dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
+            dt is CoDatatypeDecl, nullTypeDescriptorArgs, args, wLegacyDefault);
+        }
       }
 
       // create methods
@@ -1954,6 +1971,15 @@ namespace Microsoft.Dafny.Compilers {
         var sep = typeDescriptorCount > 0 && formalCount > 0 ? ", " : "";
         wr.NewBlock(")")
           .WriteLine($"return new {DtCtorDeclarationName(ctor, dt.TypeArgs)}({wCallArguments}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+
+        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+          wr.WriteLine("@Deprecated()");
+          wr.Write($"public static{justTypeArgs} {DtT_protected} {DtCreateName(ctor)}(");
+          var nullTypeDescriptorArgs = Enumerable.Repeat("null", typeDescriptorCount).Comma();
+          WriteFormals("", ctor.Formals, wr);
+          wr.NewBlock(")")
+            .WriteLine($"return new {DtCtorDeclarationName(ctor, dt.TypeArgs)}({nullTypeDescriptorArgs}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+        }
       }
 
       if (dt.IsRecordType) {
@@ -1970,6 +1996,15 @@ namespace Microsoft.Dafny.Compilers {
         var sep = typeDescriptorCount > 0 && formalCount > 0 ? ", " : "";
         wr.NewBlock(")")
           .WriteLine($"return create({wCallArguments}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+
+        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+          wr.WriteLine("@Deprecated()");
+          wr.Write($"public static{justTypeArgs} {DtT_protected} create_{ctor.GetCompileName(Options)}(");
+          var nullTypeDescriptorArgs = Enumerable.Repeat("null", typeDescriptorCount).Comma();
+          WriteFormals("", ctor.Formals, wr);
+          wr.NewBlock(")")
+            .WriteLine($"return create({nullTypeDescriptorArgs}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+        }
       }
 
       // query properties
