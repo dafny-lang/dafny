@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
-using Dafny;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
+using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
@@ -2237,7 +2237,44 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           return CanCallAssumption(dtv.Arguments, cco);
         } else if (expr is SeqConstructionExpr) {
           var e = (SeqConstructionExpr)expr;
-          return BplAnd(CanCallAssumption(e.N, cco), CanCallAssumption(e.Initializer, cco));
+          // CanCallAssumption[[ seq(n, init) ]] =
+          //     CanCallAssumption[[ n ]] &&
+          //     CanCallAssumption[[ init ]] &&
+          //     var initF := init; // necessary, in order to use init(i) in trigger, since it may contain quantifiers
+          //     (forall i: int
+          //         { initF(i) }
+          //         0 <= i < n ==>
+          //             CanCallAssumption[[ init(i) ]])
+
+          var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("seqinit$");
+          var indexVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, varNameGen.FreshId("#i"), Bpl.Type.Int));
+          var index = new Bpl.IdentifierExpr(e.tok, indexVar);
+          var indexRange = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), index), Bpl.Expr.Lt(index, TrExpr(e.N)));
+          var initFVar = new Bpl.BoundVariable(e.tok, new Bpl.TypedIdent(e.tok, varNameGen.FreshId("#f"), predef.HandleType));
+
+          var initF = new Bpl.IdentifierExpr(e.tok, initFVar);
+
+          var dafnyInitApplication = new ApplyExpr(e.tok, e.Initializer,
+            new List<Expression>() { new BoogieWrapper(index, Type.Int) },
+            e.tok) {
+            Type = e.Initializer.Type.AsArrowType.Result
+          };
+          var canCall = CanCallAssumption(dafnyInitApplication);
+
+          dafnyInitApplication = new ApplyExpr(e.tok, new BoogieWrapper(initF, e.Initializer.Type),
+            new List<Expression>() { new BoogieWrapper(index, Type.Int) },
+            e.tok) {
+            Type = e.Initializer.Type.AsArrowType.Result
+          };
+          var apply = TrExpr(dafnyInitApplication);
+
+          var tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { apply });
+          var ccaInit = new Bpl.ForallExpr(e.tok, new List<Bpl.Variable>() { indexVar }, tr, BplImp(indexRange, canCall));
+          var rhsAppliedToIndex = new Bpl.LetExpr(e.tok, new List<Variable>() { initFVar },
+            new List<Expr>() { TrExpr(e.Initializer) }, null, ccaInit);
+
+          return BplAnd(BplAnd(CanCallAssumption(e.N, cco), CanCallAssumption(e.Initializer, cco)), rhsAppliedToIndex);
+
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
           return CanCallAssumption(e.E, cco);

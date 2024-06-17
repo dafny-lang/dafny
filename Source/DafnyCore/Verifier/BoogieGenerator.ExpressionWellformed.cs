@@ -1678,12 +1678,20 @@ namespace Microsoft.Dafny {
       if (forArray) {
         // Assume that array elements have initial values according to the given initialization function.  That is:
         // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
-        //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
+        //            0 <= i0 < ... && ... ==>
+        //                CanCallAssumptions[[ init(i0,i1,i2,...) ]] &&
+        //                nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
+        var dafnyInitApplication = new ApplyExpr(tok, init,
+          bvs.ConvertAll(indexBv => (Expression)new BoogieWrapper(new Bpl.IdentifierExpr(indexBv.tok, indexBv), Type.Int)).ToList(),
+          tok) {
+          Type = sourceType.Result
+        };
+        var canCall = etran.CanCallAssumption(dafnyInitApplication);
+
         var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
         var ai_prime = UnboxUnlessBoxType(tok, ai, elementType);
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
-        q = new Bpl.ForallExpr(tok, bvs, tr,
-          BplImp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
+        q = new Bpl.ForallExpr(tok, bvs, tr, BplImp(ante, BplAnd(canCall, Bpl.Expr.Eq(ai_prime, apply))));
         builder.Add(new Bpl.AssumeCmd(tok, q));
       }
     }
