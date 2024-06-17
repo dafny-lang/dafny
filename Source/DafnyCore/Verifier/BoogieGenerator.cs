@@ -4582,6 +4582,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Return the conjuncts of "attributedExpressions".
+    /// </summary>
+    public static IEnumerable<AttributedExpression> ConjunctsOf(List<AttributedExpression> attributedExpressions) {
+      foreach (var attrExpr in attributedExpressions) {
+        foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
+          yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+        }
+      }
+    }
+
     List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool apply_induction, out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);

@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
       }
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
-      foreach (var p in iter.Member_Init.Ens) {
+      foreach (var p in ConjunctsOf(iter.Member_Init.Ens)) {
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
       }
 
@@ -291,7 +291,7 @@ namespace Microsoft.Dafny {
 
       // add locals for the yield-history variables and the extra variables
       // Assume the precondition and postconditions of the iterator constructor method
-      foreach (var p in iter.Member_Init.Req) {
+      foreach (var p in ConjunctsOf(iter.Member_Init.Req)) {
         if (p.Label != null) {
           // don't include this precondition here
           Contract.Assert(p.Label.E != null);  // it should already have been recorded
@@ -299,7 +299,7 @@ namespace Microsoft.Dafny {
           builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor requires clause"));
         }
       }
-      foreach (var p in iter.Member_Init.Ens) {
+      foreach (var p in ConjunctsOf(iter.Member_Init.Ens)) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor ensures clause"));
       }

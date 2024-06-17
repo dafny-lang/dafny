@@ -1145,7 +1145,7 @@ namespace Microsoft.Dafny {
       definedness.Add(TrAssumeCmdWithDependencies(etran, s.Range.tok, s.Range, "forall statement range"));
 
       var ensuresDefinedness = new BoogieStmtListBuilder(this, options);
-      foreach (var ens in s.Ens) {
+      foreach (var ens in ConjunctsOf(s.Ens)) {
         TrStmt_CheckWellformed(ens.E, ensuresDefinedness, locals, etran, false);
         ensuresDefinedness.Add(TrAssumeCmdWithDependencies(etran, ens.E.tok, ens.E, "forall statement ensures clause"));
       }
@@ -1155,7 +1155,7 @@ namespace Microsoft.Dafny {
         TrStmt(s.Body, definedness, locals, etran);
 
         // check that postconditions hold
-        foreach (var ens in s.Ens) {
+        foreach (var ens in ConjunctsOf(s.Ens)) {
           definedness.Add(TrAssumeCmd(ens.E.tok, etran.CanCallAssumption(ens.E)));
 
           foreach (var split in TrSplitExpr(ens.E, etran, true, out var splitHappened)) {
@@ -2292,7 +2292,7 @@ namespace Microsoft.Dafny {
             ante = BplAnd(ante, additionalRange(substMap, initEtran));
           }
           var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
-          foreach (var ens in s0.Method.Ens) {
+          foreach (var ens in ConjunctsOf(s0.Method.Ens)) {
             p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
             post = BplAnd(post, callEtran.CanCallAssumption(p));
             post = BplAnd(post, callEtran.TrExpr(p));

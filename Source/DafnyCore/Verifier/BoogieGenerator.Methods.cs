@@ -707,7 +707,7 @@ namespace Microsoft.Dafny {
 
         // check well-formedness of the preconditions, and then assume each one of them
         readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          foreach (AttributedExpression p in m.Req) {
+          foreach (AttributedExpression p in ConjunctsOf(m.Req)) {
             CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran, "method requires clause");
           }
         });
@@ -774,7 +774,7 @@ namespace Microsoft.Dafny {
         }
 
         // check wellformedness of postconditions
-        foreach (AttributedExpression p in m.Ens) {
+        foreach (AttributedExpression p in ConjunctsOf(m.Ens)) {
           CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "method ensures clause");
         }
 
@@ -1066,7 +1066,7 @@ namespace Microsoft.Dafny {
 
       var cco = new CanCallOptions(f, true);
       //generating class post-conditions
-      foreach (var en in f.Ens) {
+      foreach (var en in ConjunctsOf(f.Ens)) {
         builder.Add(TrAssumeCmd(f.tok, etran.CanCallAssumption(en.E, cco)));
         builder.Add(TrAssumeCmdWithDependencies(etran, f.tok, en.E, "overridden function ensures clause"));
       }
@@ -1110,7 +1110,7 @@ namespace Microsoft.Dafny {
       //generating trait post-conditions with class variables
       cco = new CanCallOptions(f.OverriddenFunction, f, true);
       FunctionCallSubstituter sub = null;
-      foreach (var en in f.OverriddenFunction.Ens) {
+      foreach (var en in ConjunctsOf(f.OverriddenFunction.Ens)) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(subEn, etran, false, out _).Where(s => s.IsChecked)) {
@@ -1204,7 +1204,7 @@ namespace Microsoft.Dafny {
       var cco = new CanCallOptions(f.OverriddenFunction, f, true);
       FunctionCallSubstituter sub = null;
       var subReqs = new List<Expression>();
-      foreach (var req in f.OverriddenFunction.Req) {
+      foreach (var req in ConjunctsOf(f.OverriddenFunction.Req)) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         var subReq = sub.Substitute(req.E);
         builder.Add(TrAssumeCmd(f.tok, etran.CanCallAssumption(subReq, cco)));
@@ -1215,7 +1215,7 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
       cco = new CanCallOptions(f, true);
-      foreach (var req in f.Req) {
+      foreach (var req in ConjunctsOf(f.Req)) {
         foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(f.tok, etran.CanCallAssumption(req.E, cco)));
           var constraint = allTraitReqs == null
@@ -1460,7 +1460,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating class post-conditions
-      foreach (var en in m.Ens) {
+      foreach (var en in ConjunctsOf(m.Ens)) {
         builder.Add(TrAssumeCmd(m.tok, etran.CanCallAssumption(en.E)));
         builder.Add(TrAssumeCmdWithDependencies(etran, m.tok, en.E, "overridden ensures clause"));
       }
@@ -1470,7 +1470,7 @@ namespace Microsoft.Dafny {
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
       FunctionCallSubstituter sub = null;
-      foreach (var en in m.OverriddenMethod.Ens) {
+      foreach (var en in ConjunctsOf(m.OverriddenMethod.Ens)) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(subEn, etran, false, out _).Where(s => s.IsChecked)) {
@@ -1493,7 +1493,7 @@ namespace Microsoft.Dafny {
       //generating trait pre-conditions with class variables
       FunctionCallSubstituter sub = null;
       var subReqs = new List<Expression>();
-      foreach (var req in m.OverriddenMethod.Req) {
+      foreach (var req in ConjunctsOf(m.OverriddenMethod.Req)) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         var subReq = sub.Substitute(req.E);
         builder.Add(TrAssumeCmd(m.OverriddenMethod.tok, etran.CanCallAssumption(subReq)));
@@ -1503,7 +1503,7 @@ namespace Microsoft.Dafny {
       var allTraitReqs = subReqs.Count == 0 ? null : subReqs
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
-      foreach (var req in m.Req) {
+      foreach (var req in ConjunctsOf(m.Req)) {
         foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(m.tok, etran.CanCallAssumption(req.E)));
           var constraint = allTraitReqs == null
@@ -1759,7 +1759,7 @@ namespace Microsoft.Dafny {
       if (kind != MethodTranslationKind.SpecWellformedness && kind != MethodTranslationKind.OverrideCheck) {
         // USER-DEFINED SPECIFICATIONS
         var comment = "user-defined preconditions";
-        foreach (var p in m.Req) {
+        foreach (var p in ConjunctsOf(m.Req)) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           req.Add(FreeRequires(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
           comment = null;
@@ -1787,7 +1787,7 @@ namespace Microsoft.Dafny {
         }
 
         comment = "user-defined postconditions";
-        foreach (var p in m.Ens) {
+        foreach (var p in ConjunctsOf(m.Ens)) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           AddEnsures(ens, FreeEnsures(p.E.tok, etran.CanCallAssumption(p.E), comment, true));
           comment = null;

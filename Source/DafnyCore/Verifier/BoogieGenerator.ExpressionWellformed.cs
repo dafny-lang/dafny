@@ -806,7 +806,7 @@ namespace Microsoft.Dafny {
                 var argSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
                 var directSub = new Substituter(e.Receiver, argSubstMap, e.GetTypeArgumentSubstitutions());
 
-                foreach (AttributedExpression p in e.Function.Req) {
+                foreach (AttributedExpression p in ConjunctsOf(e.Function.Req)) {
                   var directPrecond = directSub.Substitute(p.E);
 
                   Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());

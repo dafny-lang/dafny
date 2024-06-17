@@ -86,7 +86,7 @@ public partial class BoogieGenerator {
     };
     // check that postconditions hold
     var ens = new List<Bpl.Ensures>();
-    foreach (AttributedExpression p in f.Ens) {
+    foreach (AttributedExpression p in ConjunctsOf(f.Ens)) {
       var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
       var splits = new List<SplitExprInfo>();
       bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
@@ -153,7 +153,7 @@ public partial class BoogieGenerator {
     // assume each one of them.  After all that (in particular, after assuming all
     // of them), do the postponed reads checks.
     delayer.DoWithDelayedReadsChecks(false, wfo => {
-      foreach (AttributedExpression p in f.Req) {
+      foreach (AttributedExpression p in ConjunctsOf(f.Req)) {
         if (p.Label != null) {
           p.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(p.E);
           CheckWellformed(p.E, wfo, locals, builder, etran);
@@ -225,7 +225,7 @@ public partial class BoogieGenerator {
       }
     }
     // Now for the ensures clauses
-    foreach (AttributedExpression p in f.Ens) {
+    foreach (AttributedExpression p in ConjunctsOf(f.Ens)) {
       // assume the postcondition for the benefit of checking the remaining postconditions
       CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
     }
@@ -511,7 +511,7 @@ public partial class BoogieGenerator {
     }
 
     Bpl.Expr pre = Bpl.Expr.True;
-    foreach (AttributedExpression req in f.Req) {
+    foreach (AttributedExpression req in ConjunctsOf(f.Req)) {
       pre = BplAnd(pre, etran.TrExpr(req.E));
     }
     // useViaContext: fh < FunctionContextHeight
@@ -786,7 +786,7 @@ public partial class BoogieGenerator {
     }
 
     Bpl.Expr pre = Bpl.Expr.True;
-    foreach (AttributedExpression req in f.Req) {
+    foreach (AttributedExpression req in ConjunctsOf(f.Req)) {
       pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, receiverReplacement, substMap)));
     }
 

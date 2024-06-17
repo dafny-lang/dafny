@@ -139,6 +139,18 @@ public abstract class Expression : TokenNode {
     get { return false; }
   }
 
+  public static IEnumerable<Expression> ConjunctsWithLetsOnOutside(Expression expr) {
+    foreach (var conjunct in Conjuncts(expr)) {
+      if (conjunct is LetExpr { Exact: true } letExpr) {
+        foreach (var letBodyConjunct in ConjunctsWithLetsOnOutside(letExpr.Body)) {
+          yield return new LetExpr(letExpr.tok, letExpr.LHSs, letExpr.RHSs, letBodyConjunct, letExpr.Exact, letExpr.Attributes);
+        }
+      } else {
+        yield return conjunct;
+      }
+    }
+  }
+
   public static IEnumerable<Expression> Conjuncts(Expression expr) {
     Contract.Requires(expr != null);
     Contract.Requires(expr.Type.IsBoolType);
