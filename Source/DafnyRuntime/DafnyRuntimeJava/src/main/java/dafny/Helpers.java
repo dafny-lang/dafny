@@ -275,6 +275,11 @@ public class Helpers {
     public static BigInteger unsignedToBigInteger(long l){
         return unsignedToBigInteger_h(BigInteger.valueOf(l), ULONG_LIMIT);
     }
+    
+    // Alias maintained only for backwards compatability
+    public static BigInteger unsignedLongToBigInteger(long l) {
+        return unsignedToBigInteger(l);
+    }
 
     public static byte divideUnsignedByte(byte a, byte b) {
         return (byte)Integer.divideUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
