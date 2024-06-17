@@ -12,7 +12,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
-    
+
   private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder,
     List<Variable> locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
@@ -65,7 +65,7 @@ public partial class BoogieGenerator {
     stmtContext = StmtType.NONE; // done with translating expect stmt.
   }
 
-  private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, 
+  private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
     ExpressionTranslator etran) {
     var stmtBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
     var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
@@ -154,14 +154,13 @@ public partial class BoogieGenerator {
     }
   }
 
-  private bool TrAssertCondition(PredicateStmt stmt, BoogieStmtListBuilder builder, 
-    ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder)
-  {
+  private bool TrAssertCondition(PredicateStmt stmt, BoogieStmtListBuilder builder,
+    ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
     IToken enclosingToken = null;
     if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
       enclosingToken = stmt.Tok;
     }
-      
+
     var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
     var splits = TrSplitExpr(builder.Context, stmt.Expr, etran, true, out var splitHappened);
     if (!splitHappened) {

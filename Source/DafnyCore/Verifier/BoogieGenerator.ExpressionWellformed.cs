@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
       public WFOptions() {
       }
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks, 
+      public WFOptions(Function selfCallsAllowance, bool doReadsChecks,
         bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
         Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
         SelfCallsAllowance = selfCallsAllowance;

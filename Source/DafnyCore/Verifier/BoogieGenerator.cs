@@ -3471,7 +3471,7 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, 
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder,
       Statement block, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);

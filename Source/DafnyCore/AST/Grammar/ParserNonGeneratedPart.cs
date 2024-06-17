@@ -160,8 +160,7 @@ public partial class Parser {
     return IsFunctionDecl(kind);
   }
 
-  private bool IsFunctionDecl(int kind)
-  {
+  private bool IsFunctionDecl(int kind) {
     switch (kind) {
       case _function:
       case _predicate:

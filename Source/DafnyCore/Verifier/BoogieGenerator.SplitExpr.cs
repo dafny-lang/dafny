@@ -31,7 +31,7 @@ using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
   public record BodyTranslationContext(bool IsBlind);
-  
+
   public partial class BoogieGenerator {
 
 
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private bool TrSplitFunctionCallExpr(BodyTranslationContext context, 
+    private bool TrSplitFunctionCallExpr(BodyTranslationContext context,
       Expression expr, List<SplitExprInfo> splits, int heightLimit, bool inlineProtectedFunctions,
       bool apply_induction, ExpressionTranslator etran, FunctionCallExpr fexp) {
       var f = fexp.Function;

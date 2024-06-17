@@ -141,7 +141,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     [Captured] List<AttributedExpression> ens,
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
-    Attributes attributes, IToken signatureEllipsis, 
+    Attributes attributes, IToken signatureEllipsis,
     bool isByMethod = false)
     : base(rangeToken, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null,
       typeArgs, ins, req, ens, decreases) {

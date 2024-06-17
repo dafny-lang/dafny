@@ -1,5 +1,7 @@
 reveal.dfy(14,12): Error: assertion might not hold
 reveal.dfy(30,2): Error: function precondition could not be proved
 reveal.dfy(39,11): Related location: this proposition could not be proved
+reveal.dfy(51,25): Error: assertion might not hold
+reveal.dfy(64,21): Error: assertion might not hold
 
-Dafny program verifier finished with 9 verified, 3 errors
+Dafny program verifier finished with 11 verified, 4 errors

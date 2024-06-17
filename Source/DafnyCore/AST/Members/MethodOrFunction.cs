@@ -13,7 +13,7 @@ public abstract class MethodOrFunction : MemberDecl {
   static MethodOrFunction() {
     DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
-  
+
   public bool IsBlind { get; set; }
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<AttributedExpression> Req;

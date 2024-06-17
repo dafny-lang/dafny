@@ -41,7 +41,7 @@ function Q(): int
 }
 
 function EnsuresFuncFoo(): bool
- ensures EnsuresFuncFoo()
+  ensures EnsuresFuncFoo()
 
 blind method UseEnsuresFuncFoo() {
   if (*) {
@@ -52,5 +52,22 @@ blind method UseEnsuresFuncFoo() {
   }
 }
 
+opaque predicate OpaqueFunc() {
+  true
+}
+
+blind method OpaqueUser() {
+  if (*) {
+    reveal OpaqueFunc;
+    assert OpaqueFunc();
+  } else {
+    assert OpaqueFunc(); // error
+  }
+}
+
+// Reveals in contracts are fine, but they never escape the contract.
+
+// Add an option 
+// TODO what to do with reveals in contracts?
 // TODO add test cases that see how blindness interops with contracts of the blind callable
 // TODO if a contract has reveals clauses, do they get copied to the caller?

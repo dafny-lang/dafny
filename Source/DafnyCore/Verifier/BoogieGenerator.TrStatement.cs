@@ -525,8 +525,7 @@ namespace Microsoft.Dafny {
     }
 
     private void TranslateRevealStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
-      RevealStmt revealStmt)
-    {
+      RevealStmt revealStmt) {
       AddComment(builder, revealStmt, "reveal statement");
       foreach (var la in revealStmt.LabeledAsserts) {
         Contract.Assert(la.E != null);  // this should have been filled in by now
@@ -538,8 +537,8 @@ namespace Microsoft.Dafny {
           builder.Add(new RevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName)));
         }
       } else {
-        TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
       }
+      TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
     }
 
 
@@ -1013,7 +1012,7 @@ namespace Microsoft.Dafny {
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
-          foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened )) {
+          foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened)) {
             if (split.IsChecked) {
               definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition(ens.E)));
             }

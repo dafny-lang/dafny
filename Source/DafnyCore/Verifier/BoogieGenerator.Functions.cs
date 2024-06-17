@@ -178,7 +178,7 @@ public partial class BoogieGenerator {
 
     // check well-formedness of the decreases clauses (including termination, but no reads checks)
     foreach (Expression p in f.Decreases.Expressions) {
-      CheckWellformed(p, new WFOptions(null, false), 
+      CheckWellformed(p, new WFOptions(null, false),
         locals, builder, etran);
     }
     // Generate:

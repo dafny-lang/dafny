@@ -8,13 +8,13 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
   public const string RevealLemmaPrefix = "reveal_";
 
   public readonly List<Expression> Exprs;
-  [FilledInDuringResolution] 
+  [FilledInDuringResolution]
   public readonly List<AssertLabel> LabeledAsserts = new();  // to indicate that "Expr" denotes a labeled assertion
-  [FilledInDuringResolution] 
+  [FilledInDuringResolution]
   public readonly List<Statement> ResolvedStatements = new();
   [FilledInDuringResolution] public bool InBlindContext { get; private set; }
   [FilledInDuringResolution] public List<MemberDecl> RevealedMembers = new();
-  
+
 
   public override IEnumerable<Statement> SubStatements {
     get { return ResolvedStatements; }
@@ -59,8 +59,7 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 
-  public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext)
-  {
+  public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
     foreach (var expr in Exprs) {
       var name = SingleName(expr);
       var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;
@@ -80,6 +79,19 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
               // error from resolving child
             } else {
               RevealedMembers.Add(callee.Member);
+              if (callee.Member.IsOpaque) {
+                var revealResolutionContext = resolutionContext with { InReveal = true };
+                var exprClone = new Cloner().CloneExpr(expr);
+                if (exprClone is NameSegment) {
+                  resolver.ResolveNameSegment((NameSegment)exprClone, true, null, revealResolutionContext, true);
+                } else {
+                  resolver.ResolveDotSuffix((ExprDotName)exprClone, true, null, revealResolutionContext, true);
+                }
+                var call = new CallStmt(RangeToken, new List<Expression>(),
+                  ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression),
+                  new List<ActualBinding>(), expr.tok);
+                ResolvedStatements.Add(call);
+              }
             }
           } else {
             resolver.Reporter.Error(MessageSource.Resolver, Tok, "can't use parenthesis when revealing");
@@ -117,7 +129,7 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
             }
           } else {
             resolver.ResolveExpression(expr, revealResolutionContext);
-          } 
+          }
         }
       }
     }
