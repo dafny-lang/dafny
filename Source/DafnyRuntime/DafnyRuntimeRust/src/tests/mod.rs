@@ -244,6 +244,7 @@ mod tests {
         array::update_usize(v2, 1, 10);
         assert_eq!(array::get_usize(v2, 1), 10);
 
+
         let v3 = array::initialize(&int!(3), Rc::new(|i| i.clone() + int!(1)));
         assert_eq!(array::length_usize(v3), 3);
         assert_eq!(array::get_usize(v3, 0), int!(1));
@@ -251,6 +252,10 @@ mod tests {
         assert_eq!(array::get_usize(v3, 2), int!(3));
         array::update(v3, &int!(1), int!(10));
         assert_eq!(array::get_usize(v3, 1), int!(10));
+
+        deallocate(a);
+        deallocate(v2);
+        deallocate(v3);
     }
 
     #[test]
@@ -478,6 +483,7 @@ mod tests {
         let map_o = map![1 => o, 2 => o];
         let map_a = Map::<i32, *mut ClassWrapper<i32>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(map_o);
         assert_eq!(cast!(map_a.get(&1), ClassWrapper<i32>), o);
+        deallocate(o);
     }
 
     #[test]
@@ -774,5 +780,7 @@ mod tests {
         let b = a.clone();
         modify!(b.clone())[0] = 45;
         assert_eq!(read!(a.clone())[0], 45);
+
+        deallocate(a);
     }
 }
