@@ -24,7 +24,7 @@ public class ForEachCompilerOptions {
 
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
-  
+
   [Option("compilers", HelpText = "Test on only the given compilers.")]
   public string? Compilers { get; set; } = null;
 }
@@ -109,13 +109,13 @@ public class MultiBackendTest {
     var plugins = DafnyOptions.ComputePlugins(new List<Plugin>(), pluginArguments ?? new List<string>());
 
     string rawCompilerFilter = options.Compilers ??
-                               Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS") 
+                               Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS")
                                ?? "";
     string[] CompilerFilter = rawCompilerFilter
       .Split(",")
       .Where(name => name.Trim() != "").ToArray();
 
-    
+
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
     // of verification conditions (i.e. the X in "Dafny program verifier finished with X verified, 0 errors"),
