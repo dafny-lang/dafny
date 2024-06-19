@@ -1066,32 +1066,138 @@ namespace DAST {
     }
   }
 
+  public interface _IVariance {
+    bool is_Nonvariant { get; }
+    bool is_Covariant { get; }
+    bool is_Contravariant { get; }
+    _IVariance DowncastClone();
+  }
+  public abstract class Variance : _IVariance {
+    public Variance() {
+    }
+    private static readonly DAST._IVariance theDefault = create_Nonvariant();
+    public static DAST._IVariance Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DAST._IVariance> _TYPE = new Dafny.TypeDescriptor<DAST._IVariance>(DAST.Variance.Default());
+    public static Dafny.TypeDescriptor<DAST._IVariance> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IVariance create_Nonvariant() {
+      return new Variance_Nonvariant();
+    }
+    public static _IVariance create_Covariant() {
+      return new Variance_Covariant();
+    }
+    public static _IVariance create_Contravariant() {
+      return new Variance_Contravariant();
+    }
+    public bool is_Nonvariant { get { return this is Variance_Nonvariant; } }
+    public bool is_Covariant { get { return this is Variance_Covariant; } }
+    public bool is_Contravariant { get { return this is Variance_Contravariant; } }
+    public static System.Collections.Generic.IEnumerable<_IVariance> AllSingletonConstructors {
+      get {
+        yield return Variance.create_Nonvariant();
+        yield return Variance.create_Covariant();
+        yield return Variance.create_Contravariant();
+      }
+    }
+    public abstract _IVariance DowncastClone();
+  }
+  public class Variance_Nonvariant : Variance {
+    public Variance_Nonvariant() : base() {
+    }
+    public override _IVariance DowncastClone() {
+      if (this is _IVariance dt) { return dt; }
+      return new Variance_Nonvariant();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Variance_Nonvariant;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Variance.Nonvariant";
+      return s;
+    }
+  }
+  public class Variance_Covariant : Variance {
+    public Variance_Covariant() : base() {
+    }
+    public override _IVariance DowncastClone() {
+      if (this is _IVariance dt) { return dt; }
+      return new Variance_Covariant();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Variance_Covariant;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Variance.Covariant";
+      return s;
+    }
+  }
+  public class Variance_Contravariant : Variance {
+    public Variance_Contravariant() : base() {
+    }
+    public override _IVariance DowncastClone() {
+      if (this is _IVariance dt) { return dt; }
+      return new Variance_Contravariant();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Variance_Contravariant;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 2;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Variance.Contravariant";
+      return s;
+    }
+  }
+
   public interface _ITypeArgDecl {
     bool is_TypeArgDecl { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Dafny.ISequence<DAST._ITypeArgBound> dtor_bounds { get; }
+    DAST._IVariance dtor_variance { get; }
     _ITypeArgDecl DowncastClone();
   }
   public class TypeArgDecl : _ITypeArgDecl {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
     public readonly Dafny.ISequence<DAST._ITypeArgBound> _bounds;
-    public TypeArgDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds) {
+    public readonly DAST._IVariance _variance;
+    public TypeArgDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds, DAST._IVariance variance) {
       this._name = name;
       this._bounds = bounds;
+      this._variance = variance;
     }
     public _ITypeArgDecl DowncastClone() {
       if (this is _ITypeArgDecl dt) { return dt; }
-      return new TypeArgDecl(_name, _bounds);
+      return new TypeArgDecl(_name, _bounds, _variance);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.TypeArgDecl;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._bounds, oth._bounds);
+      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._bounds, oth._bounds) && object.Equals(this._variance, oth._variance);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._bounds));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variance));
       return (int) hash;
     }
     public override string ToString() {
@@ -1100,10 +1206,12 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._name);
       s += ", ";
       s += Dafny.Helpers.ToString(this._bounds);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._variance);
       s += ")";
       return s;
     }
-    private static readonly DAST._ITypeArgDecl theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgBound>.Empty);
+    private static readonly DAST._ITypeArgDecl theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<DAST._ITypeArgBound>.Empty, DAST.Variance.Default());
     public static DAST._ITypeArgDecl Default() {
       return theDefault;
     }
@@ -1111,11 +1219,11 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._ITypeArgDecl> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ITypeArgDecl create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds) {
-      return new TypeArgDecl(name, bounds);
+    public static _ITypeArgDecl create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds, DAST._IVariance variance) {
+      return new TypeArgDecl(name, bounds, variance);
     }
-    public static _ITypeArgDecl create_TypeArgDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds) {
-      return create(name, bounds);
+    public static _ITypeArgDecl create_TypeArgDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<DAST._ITypeArgBound> bounds, DAST._IVariance variance) {
+      return create(name, bounds, variance);
     }
     public bool is_TypeArgDecl { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
@@ -1126,6 +1234,11 @@ namespace DAST {
     public Dafny.ISequence<DAST._ITypeArgBound> dtor_bounds {
       get {
         return this._bounds;
+      }
+    }
+    public DAST._IVariance dtor_variance {
+      get {
+        return this._variance;
       }
     }
   }
@@ -1942,6 +2055,7 @@ namespace DAST {
     bool is_Datatype { get; }
     bool is_Trait { get; }
     bool is_Newtype { get; }
+    Dafny.ISequence<DAST._IVariance> dtor_variances { get; }
     DAST._IType dtor_baseType { get; }
     DAST._INewtypeRange dtor_range { get; }
     bool dtor_erase { get; }
@@ -1961,8 +2075,8 @@ namespace DAST {
     public static _IResolvedTypeBase create_Class() {
       return new ResolvedTypeBase_Class();
     }
-    public static _IResolvedTypeBase create_Datatype() {
-      return new ResolvedTypeBase_Datatype();
+    public static _IResolvedTypeBase create_Datatype(Dafny.ISequence<DAST._IVariance> variances) {
+      return new ResolvedTypeBase_Datatype(variances);
     }
     public static _IResolvedTypeBase create_Trait() {
       return new ResolvedTypeBase_Trait();
@@ -1974,6 +2088,12 @@ namespace DAST {
     public bool is_Datatype { get { return this is ResolvedTypeBase_Datatype; } }
     public bool is_Trait { get { return this is ResolvedTypeBase_Trait; } }
     public bool is_Newtype { get { return this is ResolvedTypeBase_Newtype; } }
+    public Dafny.ISequence<DAST._IVariance> dtor_variances {
+      get {
+        var d = this;
+        return ((ResolvedTypeBase_Datatype)d)._variances;
+      }
+    }
     public DAST._IType dtor_baseType {
       get {
         var d = this;
@@ -2016,23 +2136,29 @@ namespace DAST {
     }
   }
   public class ResolvedTypeBase_Datatype : ResolvedTypeBase {
-    public ResolvedTypeBase_Datatype() : base() {
+    public readonly Dafny.ISequence<DAST._IVariance> _variances;
+    public ResolvedTypeBase_Datatype(Dafny.ISequence<DAST._IVariance> variances) : base() {
+      this._variances = variances;
     }
     public override _IResolvedTypeBase DowncastClone() {
       if (this is _IResolvedTypeBase dt) { return dt; }
-      return new ResolvedTypeBase_Datatype();
+      return new ResolvedTypeBase_Datatype(_variances);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.ResolvedTypeBase_Datatype;
-      return oth != null;
+      return oth != null && object.Equals(this._variances, oth._variances);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._variances));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.ResolvedTypeBase.Datatype";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._variances);
+      s += ")";
       return s;
     }
   }

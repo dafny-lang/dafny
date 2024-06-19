@@ -91,7 +91,12 @@ module {:extern "DAST"} DAST {
     }
   }
 
-  datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>)
+  datatype Variance =
+    | Nonvariant
+    | Covariant
+    | Contravariant
+
+  datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>, variance: Variance)
 
   datatype TypeArgBound =
     | SupportsEquality
@@ -113,7 +118,7 @@ module {:extern "DAST"} DAST {
 
   datatype ResolvedTypeBase =
     | Class()
-    | Datatype()
+    | Datatype(variances: seq<Variance>)
     | Trait()
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
 

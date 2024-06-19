@@ -168,17 +168,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       if (currentBuilder is ClassContainer builder) {
-        List<DAST.TypeArgDecl> typeParams = new();
-        foreach (var tp in typeParameters) {
-          var compileName = IdProtect(tp.GetCompileName(Options));
-          if (!isTpSupported(tp, out var why)) {
-            AddUnsupported(why);
-          }
-          var bounds = GenTypeBounds(tp);
-
-          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
-            Sequence<Rune>.UnicodeFromString(compileName), bounds));
-        }
+        List<DAST.TypeArgDecl> typeParams = typeParameters.Select(tp => GenTypeArgDecl(tp)).ToList();
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Class(
           name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
@@ -187,6 +177,17 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    private Variance GenTypeVariance(TypeParameter tp) {
+      if (tp.Variance is TypeParameter.TPVariance.Co) {
+        return (Variance)Variance.create_Covariant();
+      }
+
+      if (tp.Variance is TypeParameter.TPVariance.Contra) {
+        AddUnsupported("Contravariance");
+      }
+      return (Variance)Variance.create_Nonvariant();
     }
 
     private static ISequence<_ITypeArgBound> GenTypeBounds(TypeParameter tp) {
@@ -203,16 +204,22 @@ namespace Microsoft.Dafny.Compilers {
       return bounds;
     }
 
+    protected TypeArgDecl GenTypeArgDecl(TypeParameter tp, string name = null) {
+      var bounds = GenTypeBounds(tp);
+
+      var variance = GenTypeVariance(tp);
+
+      name ??= tp.GetCompileName(Options);
+
+      return (DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
+        Sequence<Rune>.UnicodeFromString(name), bounds, variance);
+    }
+
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TraitDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
 
       if (currentBuilder is TraitContainer builder) {
-        List<DAST.TypeArgDecl> typeParams = new();
-        foreach (var tp in trait.TypeArgs) {
-          var bounds = GenTypeBounds(tp);
-
-          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options))), bounds));
-        }
+        var typeParams = trait.TypeArgs.Select(tp => GenTypeArgDecl(tp)).ToList();
         List<DAST.Type> parents = new();
         if (trait.IsReferenceTypeDecl) {
           parents.Add((DAST.Type)DAST.Type.create_Object());
@@ -247,14 +254,7 @@ namespace Microsoft.Dafny.Compilers {
       if (currentBuilder is DatatypeContainer builder) {
         List<DAST.TypeArgDecl> typeParams = new();
         foreach (var tp in dt.TypeArgs) {
-          var compileName = IdProtect(tp.GetCompileName(Options));
-          if (!isTpSupported(tp, out var why) && !(dt is TupleTypeDecl)) {
-            AddUnsupported(why);
-          }
-          var bounds = GenTypeBounds(tp);
-
-          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
-            Sequence<Rune>.UnicodeFromString(compileName), bounds));
+          typeParams.Add(GenTypeArgDecl(tp));
         }
 
         IEnumerable<DAST.DatatypeCtor> ctors =
@@ -416,16 +416,7 @@ namespace Microsoft.Dafny.Compilers {
 
       List<DAST.TypeArgDecl> typeParams = new();
       foreach (var tp in sst.TypeArgs) {
-        var compileName = tp.Name;
-        if (!isTpSupported(tp, out var why)) {
-          AddUnsupported(why);
-
-        }
-
-        var bounds = GenTypeBounds(tp);
-
-        typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
-          Sequence<Rune>.UnicodeFromString(compileName), bounds));
+        typeParams.Add(GenTypeArgDecl(tp, tp.Name)); // TODO: Test if we can remove the second argument
       }
 
       builder.SynonymType(sst.GetCompileName(Options), typeParams,
@@ -495,16 +486,7 @@ namespace Microsoft.Dafny.Compilers {
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
-        List<DAST.TypeArgDecl> astTypeArgs = new();
-        foreach (var typeArg in typeArgs) {
-          var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
-          if (!isTpSupported(typeArg.Formal, out var why)) {
-            compiler.AddUnsupported(why);
-          }
-          var bounds = GenTypeBounds(typeArg.Formal);
-
-          astTypeArgs.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(compileName), bounds));
-        }
+        var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
 
         var params_ = compiler.GenFormals(m.Ins);
 
@@ -526,7 +508,7 @@ namespace Microsoft.Dafny.Compilers {
         if (m is Constructor { EnclosingClass: TopLevelDeclWithMembers cm }) {
           // Constructors need to assign all fields without RHS
           var membersToInitialize = cm.Members.Where((md =>
-            md is Field and not ConstantField { Rhs: { } }));
+            md is Field and not ConstantField { Rhs: { } } && !md.IsGhost));
           outVars = membersToInitialize.Select((MemberDecl md) =>
             Sequence<Rune>.UnicodeFromString(
               (md is ConstantField ? compiler.InternalFieldPrefix : "") +
@@ -566,16 +548,7 @@ namespace Microsoft.Dafny.Compilers {
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
-        List<DAST.TypeArgDecl> astTypeArgs = new();
-        foreach (var typeArg in typeArgs) {
-          var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
-          if (!isTpSupported(typeArg.Formal, out var why)) {
-            compiler.AddUnsupported(why);
-          }
-          var bounds = GenTypeBounds(typeArg.Formal);
-
-          astTypeArgs.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(compileName), bounds));
-        }
+        var astTypeArgs = typeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg.Formal)).ToList();
 
         var params_ = compiler.GenFormals(formals);
 
@@ -1663,8 +1636,9 @@ namespace Microsoft.Dafny.Compilers {
           GenType(typeSynonym.Rhs.NormalizeExpand()), NewtypeRange.create_NoRange(), true);
       } else if (topLevel is TraitDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
-      } else if (topLevel is DatatypeDecl) {
-        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype();
+      } else if (topLevel is DatatypeDecl dd) {
+        var variances = Sequence<Variance>.FromArray(dd.TypeArgs.Select(GenTypeVariance).ToArray());
+        resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Datatype(variances);
       } else if (topLevel is ClassDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Class();
       } else {

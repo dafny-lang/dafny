@@ -2067,6 +2067,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var typeParamsSeq, rTypeParams, rTypeParamsDecls, whereConstraints := GenTypeParameters(c.typeParams);
       var datatypeName := escapeName(c.name);
       var ctors: seq<R.EnumCase> := [];
+      var variances := Std.Collections.Seq.Map((typeParamDecl: TypeArgDecl) => typeParamDecl.variance, c.typeParams);
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
         var ctorArgs: seq<R.Field> := [];
@@ -2108,7 +2109,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             ResolvedType(
               selfPath,
               typeParamsSeq,
-              ResolvedTypeBase.Datatype(),
+              ResolvedTypeBase.Datatype(variances),
               c.attributes, [], [])),
           typeParamsSeq);
       var implBody: seq<R.ImplMember> := implBodyRaw;
@@ -2204,6 +2205,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var rTypeArg := GenType(typeArg, GenTypeContext.default());
           types := types + [R.TypeApp(R.std_type.MSel("marker").MSel("PhantomData"), [rTypeArg])];
           // Coercion arguments
+          if typeI < |variances| && variances[typeI].Nonvariant? {
+            coerceTypes := coerceTypes + [rTypeArg];
+            continue; // We ignore nonvariant arguments
+          }
           var coerceTypeParam := typeParam.(name := Ident.Ident(Name("_T" + Strings.OfNat(typeI))));
           var coerceTypeArg, rCoerceTypeParamDecl := GenTypeParam(coerceTypeParam);
           coerceMap := coerceMap + map[typeArg := coerceTypeArg];
@@ -2218,7 +2223,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           coerceArguments := coerceArguments + [
             R.Formal(
               coerceFormal,
-              R.Rc(R.ImplType(R.FnType([rTypeArg], rCoerceType))))
+              R.Rc(R.IntersectionType(R.ImplType(R.FnType([rTypeArg], rCoerceType)), R.StaticTrait)))
           ];
         }
         ctors := ctors + [
@@ -2312,7 +2317,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             coerceRhsArg := coercionFunction.Apply1(R.Identifier(patternName));
           } else {
             error := Some("Could not generate coercion function for contructor " + Strings.OfNat(j) + " of " + datatypeName);
-            coerceRhsArg := R.Identifier(error.value);
+            coerceRhsArg := R.Identifier("todo!").Apply1(R.LiteralString(error.value, false, false));
           }
 
           coerceRhsArgs := coerceRhsArgs + [R.AssignIdentifier(patternName, coerceRhsArg)];
@@ -2417,7 +2422,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                  Some(printImplBody)))]
           ))
       ];
-      if |c.typeParams| > 0 {
+      if |rCoerceTypeParams| > 0 {
         var coerceImplBody := R.Match(
           R.Identifier("this"),
           coerceImplBodyCases);
@@ -2594,7 +2599,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case Class() => {
               s := Object(s);
             }
-            case Datatype() => {
+            case Datatype(_) => {
               if IsRcWrapped(resolved.attributes) {
                 s := R.Rc(s);
               }
@@ -2783,7 +2788,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       if (!m.isStatic) {
         var selfId := "self";
-        if fnName == "_ctor" {
+        if m.outVarsAreUninitFieldsToAssign {
           // Constructors take a raw pointer, which is not accepted as a self type in Rust
           selfId := "this";
         }
@@ -3834,7 +3839,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         Success(typeParams[(fromTpe, toTpe)])
       else if fromTpe.IsRc() && toTpe.IsRc() then
         var lambda :- UpcastConversionLambda(fromType, fromTpe.RcUnderlying(), toType, toTpe.RcUnderlying(), typeParams);
-        Success(R.dafny_runtime.MSel("rc_coerce").Apply1(lambda))
+        if fromType.Arrow? then
+          Success(lambda)
+        else
+          Success(R.dafny_runtime.MSel("rc_coerce").Apply1(lambda))
       else if SameTypesButDifferentTypeParameters(fromType, fromTpe, toType, toTpe) then
         var lambdas :- SeqResultToResultSeq(seq(|fromTpe.arguments|, i requires 0 <= i < |fromTpe.arguments| =>
                                               UpcastConversionLambda(
@@ -3865,6 +3873,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           else
             collectionType.ApplyType([newFromTpe]);
         Success(baseType.MSel("coerce").Apply1(coerceArg))
+      else if && fromTpe.DynType? && fromTpe.underlying.FnType?
+              && toTpe.DynType? && toTpe.underlying.FnType?
+              && fromTpe.underlying.arguments == toTpe.underlying.arguments // TODO: Support contravariance
+              && fromType.Arrow? && toType.Arrow?
+              && |fromTpe.underlying.arguments| == 1
+              && fromTpe.underlying.arguments[0].Borrowed?
+      then
+        var lambda :- UpcastConversionLambda(fromType.result, fromTpe.underlying.returnType, toType.result, toTpe.underlying.returnType, typeParams);
+        Success(R.dafny_runtime.MSel("fn1_coerce").ApplyType([
+                                                               fromTpe.underlying.arguments[0].underlying,
+                                                               fromTpe.underlying.returnType,
+                                                               toTpe.underlying.returnType
+                                                             ]).Apply1(lambda))
       else
         Failure((fromType, fromTpe, toType, toTpe, typeParams))
     }
@@ -3906,9 +3927,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         .MSel(downcast).Apply([recursiveGen, R.ExprFromType(toTpeGen)]);
         r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
       } else {
-        print "Cast coercion failed because: ", upcastConverter, "\n";
         var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, expectedOwnership);
         readIdents := recIdents;
+        var Failure((fromType, fromTpeGen, toType, toTpeGen, m)) := upcastConverter;
         var msg := "/* <i>Coercion from " + fromTpeGen.ToString(IND) + " to " + toTpeGen.ToString(IND) + "</i> not yet implemented */";
         error := Some(msg);
         r := R.RawExpr(recursiveGen.ToString(IND) + msg);
@@ -4690,7 +4711,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               }
             case _ =>
           }
-          r := onExpr.Sel(selName);
+          r := onExpr.Sel(selName).Clone(); // If we don't clone, we would move out that field
           // even if "on" was borrowed, the field is always owned so we need to explicitly borrow it depending on the use case.
           r, resultingOwnership := FromOwnership(r, OwnershipOwned, expectedOwnership);
           readIdents := recIdents;
