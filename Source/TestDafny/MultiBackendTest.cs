@@ -24,6 +24,9 @@ public class ForEachCompilerOptions {
 
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
+
+  [Option("compilers", HelpText = "Test on only the given compilers.")]
+  public string? Compilers { get; set; } = null;
 }
 
 [Verb("features", HelpText = "Print the Markdown content documenting feature support for each compiler.")]
@@ -57,10 +60,6 @@ public class MultiBackendTest {
   private readonly TextWriter output;
   private readonly TextWriter errorWriter;
 
-  private static readonly string[] CompilerFilter =
-    (Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS") ?? "")
-    .Split(",")
-    .Where(name => name.Trim() != "").ToArray();
   private static readonly string? IntegrationTestsRootDir =
     Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ROOT_DIR");
   private static readonly bool UpdateTargetExpectFile = DiffCommand.UpdateExpectFile;
@@ -108,6 +107,14 @@ public class MultiBackendTest {
     var pluginParseResult = CommonOptionBag.PluginOption.Parse(options.OtherArgs.ToArray());
     var pluginArguments = pluginParseResult.GetValueForOption(CommonOptionBag.PluginOption);
     var plugins = DafnyOptions.ComputePlugins(new List<Plugin>(), pluginArguments ?? new List<string>());
+
+    string rawCompilerFilter = options.Compilers ??
+                               Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS")
+                               ?? "";
+    string[] CompilerFilter = rawCompilerFilter
+      .Split(",")
+      .Where(name => name.Trim() != "").ToArray();
+
 
     // First verify the file (and assume that verification should be successful).
     // Older versions of test files that now use %testDafnyForEachCompiler were sensitive to the number
