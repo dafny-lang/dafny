@@ -2931,7 +2931,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-      AddUnsupported("<i>EmitHaltRecoveryStmt</i>");
+      TrStmt(body, wr);
     }
 
     protected override ConcreteSyntaxTree GetNullClassConcreteSyntaxTree() {
