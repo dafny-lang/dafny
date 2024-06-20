@@ -660,11 +660,13 @@ namespace Microsoft.Dafny {
           var etr = new ExpressionTranslator(etran, h);
           assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
         } else if (!defineFuel) {
-          // Adding the assume stmt, resetting the stmtContext
-          stmtContext = StmtType.ASSUME;
-          adjustFuelForExists = true;
-          b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
-          stmtContext = StmtType.NONE;
+          if (splitHappened) {
+            foreach (var split in splits) {
+              AssumeAssertSplit(b, assertStmt, split);
+            }
+          } else {
+            AssumeAssertExpression(etran, builder, stmt);
+          }
         }
       }
 
@@ -672,16 +674,37 @@ namespace Microsoft.Dafny {
         var ifCmd = new Bpl.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), null,
           null); // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
         builder.Add(ifCmd);
-        // Adding the assume stmt, resetting the stmtContext
-        stmtContext = StmtType.ASSUME;
-        adjustFuelForExists = true;
-        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
-        stmtContext = StmtType.NONE;
+        if (splitHappened) {
+          foreach (var split in splits) {
+            AssumeAssertSplit(b, assertStmt, split);
+          }
+        } else {
+          AssumeAssertExpression(etran, builder, stmt);
+        }
       }
 
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.AddCaptureState(stmt);
       }
+    }
+
+    // Assume the full expression from an assert statement, for the case where splitting didn't happen.
+    private void AssumeAssertExpression(ExpressionTranslator etran, BoogieStmtListBuilder builder, PredicateStmt stmt) {
+      // Add the assume stmt, resetting the stmtContext
+      stmtContext = StmtType.ASSUME;
+      adjustFuelForExists = true;
+      builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
+      stmtContext = StmtType.NONE;
+    }
+
+    // Assume one of the split expressions from an assert statement, for the case where splitting did happen.
+    private void AssumeAssertSplit(BoogieStmtListBuilder builder, PredicateStmt stmt, SplitExprInfo split) {
+      var tok = split.E.tok;
+      var dafnyTok = ToDafnyToken(flags.ReportRanges, tok);
+      var dep = new AssumptionDependency(true, "assert statement split", dafnyTok, stmt.Expr);
+      AssumeCmd assumeCmd = new Bpl.AssumeCmd(tok, split.E);
+      proofDependencies?.AddProofDependencyId(assumeCmd, dafnyTok, dep);
+      builder.Add(assumeCmd);
     }
 
     private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {

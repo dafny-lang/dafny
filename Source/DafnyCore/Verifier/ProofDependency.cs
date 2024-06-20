@@ -3,7 +3,10 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
+
+using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Function = Microsoft.Dafny.Function;
 using IToken = Microsoft.Dafny.IToken;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
@@ -171,7 +174,7 @@ public class CallDependency : ProofDependency {
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
   public override RangeToken Range =>
-    Expr.RangeToken;
+    dafnyTok as RangeToken ?? Expr.RangeToken;
 
   public override string Description =>
     comment ?? OriginalString();
@@ -182,9 +185,12 @@ public class AssumptionDependency : ProofDependency {
 
   public Expression Expr { get; }
 
-  public AssumptionDependency(bool warnWhenUnused, string comment, Expression expr) {
+  private readonly IToken dafnyTok;
+
+  public AssumptionDependency(bool warnWhenUnused, string comment, IToken tok, Expression expr) {
     this.WarnWhenUnused = warnWhenUnused;
     this.comment = comment;
+    this.dafnyTok = tok;
     this.Expr = expr;
   }
 }
