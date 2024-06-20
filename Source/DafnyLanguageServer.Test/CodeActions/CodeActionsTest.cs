@@ -41,6 +41,42 @@ method><".TrimStart(), out var source, out var positions,
     }
 
     [Fact]
+    public async Task TypeTestCodeAction() {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(@"module M {
+  trait Object {
+   ghost function typeId() : (id: string)
+  }
+
+  type A extends Object {
+   ghost function typeId() : (id: string)  { ""A"" }
+  }
+
+  type B extends Object {
+   ghost function typeId() : (id: string)  { ""B"" }
+  }
+  type C extends Object {
+   ghost function typeId() : (id: string)  { ""C"" }
+  }
+
+  lemma test(x: Object)
+    ensures multiset{x is A, x is B, x is C}[true] == 1
+  {
+    var _ := x.typeId();
+    if (x is A) {
+      assert x !is B.><
+    }
+  }
+}".TrimStart(), out var source, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(source);
+      var position = positions[0];
+      var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+      Assert.Empty(completionList);
+    }
+
+    [Fact]
     public async Task GitIssue4401CorrectInsertionPlace() {
       await TestCodeAction(@"
 predicate P(i: int)
