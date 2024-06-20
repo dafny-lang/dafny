@@ -13,18 +13,7 @@ blind method Foo()
   } else {
     assert P(); // error
   }
-  // var x := Bar();
-  // if (*) {
-  //   reveal Bar();
-  //   assert x;
-  // } else {
-  //   assert x; // error
-  // }
-  // assert x;
 }
-
-method Bar() returns (x: bool) 
-  ensures x
 
 blind function Zer(): int {
   Q() // requires error
@@ -65,6 +54,31 @@ blind method OpaqueUser() {
   }
 }
 
+blind method RevealExpressionScope()
+{
+  reveal P;
+  reveal Q;
+  assert Q() == 3;
+  assert reveal P; reveal Q; Q() == 3;
+  assert P();
+}
+
+blind method MethodEnsuresAreHidden() {
+  // var x := Bar();
+  // if (*) {
+  //   reveal Bar();
+  //   assert x;
+  // } else {
+  //   assert x; // error
+  // }
+  // assert x;
+}
+
+method Bar() returns (x: bool) 
+  ensures x
+
+
+// Consequence axiom also contains information about subset types of the return types
 // Reveals in contracts are fine, but they never escape the contract.
 
 // Add an option 
