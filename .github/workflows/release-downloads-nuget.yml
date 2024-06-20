@@ -18,7 +18,7 @@ on:
 
 env:
   dotnet-version: 6.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
-  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02
+  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -49,19 +49,19 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-x64-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
-        Expand-Archive z3-4.12.1.zip .
-        Remove-Item z3-4.12.1.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.6-x64-${{matrix.os}}-bin.zip -OutFile z3-4.12.6.zip
+        Expand-Archive z3-4.12.6.zip .
+        Remove-Item z3-4.12.6.zip
     - name: Set up Z3 (Windows)
       if: runner.os == 'Windows'
       run: |
         mkdir bin
-        mv z3-4.12.1.exe bin/z3.exe
+        mv z3-4.12.6.exe bin/z3.exe
     - name: Set up Z3 (non-Windows)
       if: runner.os != 'Windows'
       run: |
         mkdir bin
-        mv z3-4.12.1 bin/z3
+        mv z3-4.12.6 bin/z3
         chmod +x bin/z3
     - name: Set Path
       if: runner.os != 'Windows'

@@ -166,7 +166,7 @@ After the compiler dependencies are installed, you can run a quick test of the i
 The .NET [NuGet](https://www.nuget.org/) repository collects .NET libraries and tools for easy installation. Dafny is available on NuGet, and can be installed as follows:
 
 * Install .NET 6.0 as described for your platform in one of the subsections above.
-* Install a binary version of Z3 4.12.1 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/Z3-4.12.1) and put the `z3` executable in your `PATH`.
+* Install a binary version of Z3 4.12.6 for your platform from its [GitHub releases page](https://github.com/Z3Prover/z3/releases/tag/Z3-4.12.6) and put the `z3` executable in your `PATH`.
 * Install Dafny using `dotnet tool install --global dafny` (or leave out the `--global` to use with `dotnet tool run` from the source directory of a .NET project).
 
 

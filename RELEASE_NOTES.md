@@ -523,7 +523,7 @@ See [docs/dev/news/](docs/dev/news/).
 
 - Remove deprecated countVerificationErrors option (https://github.com/dafny-lang/dafny/pull/3165)
 
-- The default version of Z3 Dafny uses for verification is now 4.12.1. (https://github.com/dafny-lang/dafny/pull/3400)
+- The default version of Z3 Dafny uses for verification is now 4.12.6. (https://github.com/dafny-lang/dafny/pull/3400)
 
 - The default values of several options has changed in Dafny 4.0. See `--help` for details.
      - `--function-syntax` changed from `3` to `4`

@@ -63,7 +63,7 @@ jobs:
             chmod: true
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v4
@@ -81,7 +81,7 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-x64-${{matrix.os}}-bin.zip -OutFile z3.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.6-x64-${{matrix.os}}-bin.zip -OutFile z3.zip
         Expand-Archive z3.zip .
         Remove-Item z3.zip
     - name: Move Z3

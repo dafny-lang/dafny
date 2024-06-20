@@ -5,7 +5,7 @@
 
 ## Running
 
-Place the [Z3 executable](https://github.com/Z3Prover/z3/releases/tag/Z3-4.8.5) in the language server's root directory or within the `z3/bin` subdirectory (already present in the [release](https://github.com/dafny-lang/dafny/releases) packages). If not on windows, ensure that the executable has execution permissions:
+Place the [Z3 executable](https://github.com/Z3Prover/z3/releases/tag/Z3-4.12.6) in the language server's root directory or within the `z3/bin` subdirectory (already present in the [release](https://github.com/dafny-lang/dafny/releases) packages). If not on windows, ensure that the executable has execution permissions:
 
 ```sh
 chmod u+x ./z3/bin/z3

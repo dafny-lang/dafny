@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %verify --extract-counterexample "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// NB: with recent Z3 versions (e.g., 4.12.1), this program no longer
+// NB: with recent Z3 versions (e.g., 4.12.6), this program no longer
 // results in the minimal counterexample that led to a crash in parsing,
 // and instead results in a more useful counterexample that looks more
 // like the parser would have originally expected. So this doesn't test
