@@ -2106,7 +2106,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
 
       foreach (var frameExpression in calleeFrame) {
-        var e = Substitute(frameExpression.E, receiverReplacement, substMap);
+        var e = substMap != null ? Substitute(frameExpression.E, receiverReplacement, substMap) : frameExpression.E;
         MakeAssume(frameExpression.tok, etran.CanCallAssumption(e));
       }
 
