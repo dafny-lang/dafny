@@ -3320,7 +3320,6 @@ namespace Microsoft.Dafny {
     /// <summary>
     ///   If the expression is boxed, but the type is not boxed, this unboxes it.
     ///   For lambda functions.
-    /// KRML: The name of this method is really confusing. It seems it should be named something like UnboxUnlessInherentlyBoxed.
     /// </summary>
     public Bpl.Expr UnboxUnlessInherentlyBoxed(Bpl.Expr e, Type t) {
       if (!ModeledAsBoxType(t)) {
