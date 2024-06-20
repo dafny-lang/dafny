@@ -12,10 +12,14 @@ on:
       ref:
         required: true
         type: string
+      compilers:
+        description: 'Compilers to use'
+        type: string
+        required: false
+        default: ""
 
 env:
   dotnet-version: 6.0.x # SDK Version for building Dafny
-
 
 jobs:
   # This job is used to dynamically calculate the matrix dimensions.
@@ -151,6 +155,7 @@ jobs:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
+        DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
       run: |
         cmd /c mklink D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1 D:\a\dafny\dafny\unzippedRelease\dafny\z3\bin\z3-4.12.1.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
@@ -167,6 +172,7 @@ jobs:
       env:
         XUNIT_SHARD: ${{ matrix.shard }}
         XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
+        DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
       run: |
         ${{ inputs.all_platforms }} && export DAFNY_RELEASE="${{ github.workspace }}/unzippedRelease/dafny"
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests
