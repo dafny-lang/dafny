@@ -1327,7 +1327,7 @@ namespace Microsoft.Dafny.Compilers {
             if (!UnicodeCharEnabled && Util.TokensWithEscapes(str.AsStringLiteral(), false) is var tokens && tokens.Any((string token) => Util.Utf16Escape.IsMatch(token))) {
               var s = Util.UnescapedCharacters(UnicodeCharEnabled, str.AsStringLiteral(), true);
               var chars = tokens.Select((string singleChar) =>
-                ConvertExpressionNoStatement(new CharLiteralExpr(Token.NoToken, singleChar) {Type = Type.Char})).ToArray();
+                ConvertExpressionNoStatement(new CharLiteralExpr(Token.NoToken, singleChar) { Type = Type.Char })).ToArray();
               baseExpr = (DAST.Expression)DAST.Expression.create_SeqValue(Sequence<DAST.Expression>.FromArray(chars), GenType(new CharType()));
               // We need to emit a sequence of chars literal. We first 
             } else {
