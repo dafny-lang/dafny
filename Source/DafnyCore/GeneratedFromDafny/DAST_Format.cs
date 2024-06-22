@@ -11,6 +11,22 @@ using System.Collections;
 
 namespace DAST.Format {
 
+  public partial class __default {
+    public static BigInteger SeqToHeight<__T>(Dafny.ISequence<__T> s, Func<__T, BigInteger> f)
+    {
+      if ((new BigInteger((s).Count)).Sign == 0) {
+        return BigInteger.Zero;
+      } else {
+        BigInteger _763_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
+        BigInteger _764_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
+        if ((_763_i) < (_764_j)) {
+          return _764_j;
+        } else {
+          return _763_i;
+        }
+      }
+    }
+  }
 
   public interface _IUnaryOpFormat {
     bool is_NoFormat { get; }
