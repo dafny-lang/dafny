@@ -113,7 +113,7 @@ public abstract class IExecutableBackend {
   protected ReadOnlyCollection<string>? OtherFileNames;
 
   // The following lists are the Options supported by the backend.
-  public virtual IEnumerable<Option<string>> SupportedOptions => new List<Option<string>>();
+  public virtual IEnumerable<Option> SupportedOptions => new List<Option>();
 
   protected IExecutableBackend(DafnyOptions options) {
     Options = options;

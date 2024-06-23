@@ -16,5 +16,7 @@ const someMap :=
 
 method Main() {
   print someSet, "\n";
-  print someMap, "\n";
+  // Avoid non-determinism in map printing
+  print someMap - {2}, "\n";
+  print someMap - {1}, "\n";
 }

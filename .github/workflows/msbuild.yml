@@ -67,7 +67,7 @@ jobs:
 
   integration-tests:
     needs: check-deep-tests
-    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.pull_request.labels.*.name, 'run-integration-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/integration-tests-reusable.yml
     with:
       ref: ${{ github.ref }}
@@ -76,6 +76,8 @@ jobs:
       # This is the best way to fix an issue in master that was only caught by the nightly build.
       all_platforms: ${{ contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')}}
       num_shards: 5
+      # Omit Rust in the nightly build (or rather simulating it here) because Rust is known to have random issues
+      compilers: ${{ (contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')) && 'cs,java,go,js,cpp,dfy,py' || '' }}
 
   test-coverage-analysis:
     runs-on: ubuntu-20.04

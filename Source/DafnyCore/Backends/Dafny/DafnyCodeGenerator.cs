@@ -8,6 +8,7 @@ using Microsoft.BaseTypes;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using DAST.Format;
+using Microsoft.Boogie;
 using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {
@@ -119,7 +120,11 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
-        currentBuilder = moduleBuilder.Module(moduleName, externModule != null);
+        var attributes = (Sequence<DAST.Attribute>)Sequence<DAST.Attribute>.Empty;
+        if (externModule != null) {
+          attributes = (Sequence<DAST.Attribute>)ParseAttributes(externModule.Attributes);
+        }
+        currentBuilder = moduleBuilder.Module(moduleName, attributes);
       } else {
         throw new InvalidOperationException();
       }
@@ -177,9 +182,11 @@ namespace Microsoft.Dafny.Compilers {
         if (from == null || to == null || from.Equals(to, true)) {
           return wr;
         } else {
-          AddUnsupported($"<i>Coercion</i> from {from} to {to}");
-          return new BuilderSyntaxTree<ExprContainer>(
-            new ExprBuffer(this), this);
+          if (wr is BuilderSyntaxTree<ExprContainer> stmt) {
+            return new BuilderSyntaxTree<ExprContainer>(stmt.Builder.Convert(GenType(from), GenType(to)), this);
+          } else {
+            return base.EmitCoercionIfNecessary(from, to, tok, wr);
+          }
         }
       }
     }
@@ -187,32 +194,53 @@ namespace Microsoft.Dafny.Compilers {
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
       if (currentBuilder is ClassContainer builder) {
-        List<DAST.Type> typeParams = new();
+        List<DAST.TypeArgDecl> typeParams = new();
         foreach (var tp in typeParameters) {
           var compileName = IdProtect(tp.GetCompileName(Options));
           if (!isTpSupported(tp, out var why)) {
             AddUnsupported(why);
           }
+          var bounds = GenTypeBounds(tp);
 
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
+          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
+            Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
-        return new ClassWriter(this, typeParams.Count > 0, builder.Class(name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList()));
+        return new ClassWriter(this, typeParams.Count > 0, builder.Class(
+          name, moduleName, typeParams, superClasses.Select(t => GenType(t)).ToList(),
+          ParseAttributes(cls.Attributes))
+          );
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    private static ISequence<_ITypeArgBound> GenTypeBounds(TypeParameter tp) {
+      var characteristics = new List<_ITypeArgBound>();
+      if (tp.Characteristics.AutoInit is Type.AutoInitInfo.CompilableValue) {
+        characteristics.Add(DAST.TypeArgBound.create_SupportsDefault());
+      }
+
+      if (tp.Characteristics.EqualitySupport is 0) {
+        characteristics.Add(DAST.TypeArgBound.create_SupportsEquality());
+      }
+
+      var bounds = Sequence<_ITypeArgBound>.FromArray(characteristics.ToArray());
+      return bounds;
     }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters,
       TraitDecl trait, List<Type> superClasses, IToken tok, ConcreteSyntaxTree wr) {
 
       if (currentBuilder is TraitContainer builder) {
-        List<DAST.Type> typeParams = new();
+        List<DAST.TypeArgDecl> typeParams = new();
         foreach (var tp in trait.TypeArgs) {
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options)))));
+          var bounds = GenTypeBounds(tp);
+
+          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(IdProtect(tp.GetCompileName(Options))), bounds));
         }
 
-        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams));
+        return new ClassWriter(this, typeParameters.Any(), builder.Trait(name, typeParams, ParseAttributes(trait.Attributes)));
       } else {
         throw new InvalidOperationException();
       }
@@ -228,45 +256,49 @@ namespace Microsoft.Dafny.Compilers {
         why = $"<b>Unsupported: <i>Type variance {tp.Variance} not supported</i></b>";
         return false;
       }
-
-      if (tp.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified) {
-        why = $"<b>Unsupported: <i>Type parameter Equality support {tp.Characteristics.EqualitySupport} not supported for type parameters</i></b>";
-        return false;
-      }
-
       why = null;
       return true;
     }
 
     protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
       if (currentBuilder is DatatypeContainer builder) {
-        List<DAST.Type> typeParams = new();
+        List<DAST.TypeArgDecl> typeParams = new();
         foreach (var tp in dt.TypeArgs) {
           var compileName = IdProtect(tp.GetCompileName(Options));
           if (!isTpSupported(tp, out var why) && !(dt is TupleTypeDecl)) {
             AddUnsupported(why);
           }
+          var bounds = GenTypeBounds(tp);
 
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
+          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
+            Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
-        List<DAST.DatatypeCtor> ctors = new();
-        foreach (var ctor in dt.Ctors) {
-          List<DAST.Formal> args = new();
-          foreach (var arg in ctor.Formals) {
-            if (!arg.IsGhost) {
-              args.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(arg.CompileName), GenType(arg.Type)));
-            }
-          }
-          ctors.Add((DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)), Sequence<DAST.Formal>.FromArray(args.ToArray()), ctor.Formals.Count > 0));
-        }
+        IEnumerable<DAST.DatatypeCtor> ctors =
+          from ctor in dt.Ctors
+          let allDtors =
+            from arg in ctor.Formals
+            where !arg.IsGhost
+            let formalName = Sequence<Rune>.UnicodeFromString(GetDestructorFormalName(arg))
+            let formalType = GenType(arg.Type)
+            let formalCallName = GetExtractOverrideName(arg.Attributes, arg.CompileName)
+            let dtorName =
+              Option<Sequence<Rune>>.create_Some((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(formalCallName))
+            let formalAttributes = ParseAttributes(arg.Attributes)
+            select (DAST.DatatypeDtor)DAST.DatatypeDtor.create_DatatypeDtor((DAST.Formal)DAST.Formal.create_Formal(
+              formalName, formalType, formalAttributes), dtorName)
+          let args = Sequence<DAST.DatatypeDtor>.FromArray(allDtors.ToArray<DatatypeDtor>())
+          select (DAST.DatatypeCtor)DAST.DatatypeCtor.create_DatatypeCtor(
+            Sequence<Rune>.UnicodeFromString(ctor.GetCompileName(Options)),
+            args, ctor.Formals.Count > 0);
 
         return new ClassWriter(this, typeParams.Count > 0, builder.Datatype(
           dt.GetCompileName(Options),
           dt.EnclosingModuleDefinition.GetCompileName(Options),
           typeParams,
-          ctors,
-          dt is CoDatatypeDecl
+          ctors.ToList(),
+          dt is CoDatatypeDecl,
+          ParseAttributes(dt.Attributes)
         ));
       } else {
         throw new InvalidOperationException("Cannot declare datatype outside of a module: " + currentBuilder);
@@ -294,7 +326,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return new ClassWriter(this, false, builder.Newtype(
           nt.GetCompileName(Options), new(),
-          GenType(erasedType), NativeTypeToNewtypeRange(nt.NativeType), witnessStmts, witness));
+          GenType(erasedType), NativeTypeToNewtypeRange(nt.NativeType), witnessStmts, witness, ParseAttributes(nt.Attributes)));
       } else {
         throw new InvalidOperationException();
       }
@@ -380,18 +412,22 @@ namespace Microsoft.Dafny.Compilers {
         DAST.Expression baseConstraint = buf.Finish();
         var baseConstraintStmts = statementBuf.PopAll(); // TODO: Integrate in AST.
 
-        List<DAST.Type> typeParams = new();
+        List<DAST.TypeArgDecl> typeParams = new();
         foreach (var tp in sst.TypeArgs) {
           var compileName = tp.Name;
           if (!isTpSupported(tp, out var why)) {
             AddUnsupported(why);
+
           }
 
-          typeParams.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
+          var bounds = GenTypeBounds(tp);
+
+          typeParams.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(
+            Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
         builder.Newtype(sst.GetCompileName(Options), typeParams,
-          GenType(erasedType), (NewtypeRange)NewtypeRange.create_NoRange(), witnessStmts, witness).Finish();
+          GenType(erasedType), (NewtypeRange)NewtypeRange.create_NoRange(), witnessStmts, witness, ParseAttributes(sst.Attributes)).Finish();
       } else {
         throw new InvalidOperationException();
       }
@@ -401,6 +437,19 @@ namespace Microsoft.Dafny.Compilers {
       name = null;
       literalSuffix = null;
       needsCastAfterArithmetic = false;
+    }
+
+    private Sequence<DAST.Formal> GenFormals(List<Formal> formals) {
+      List<DAST.Formal> paramsList = new();
+      foreach (var param in formals) {
+        if (param is not ImplicitFormal && !param.IsGhost) {
+          paramsList.Add((DAST.Formal)DAST.Formal.create_Formal(
+            Sequence<Rune>.UnicodeFromString(IdProtect(param.CompileName)), GenType(param.Type), ParseAttributes(param.Attributes)));
+        }
+      }
+
+      Sequence<DAST.Formal> params_ = (Sequence<DAST.Formal>)Sequence<DAST.Formal>.FromArray(paramsList.ToArray());
+      return params_;
     }
 
     private class ClassWriter : IClassWriter {
@@ -422,22 +471,18 @@ namespace Microsoft.Dafny.Compilers {
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
-        List<DAST.Type> astTypeArgs = new();
+        List<DAST.TypeArgDecl> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
           var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
           if (!isTpSupported(typeArg.Formal, out var why)) {
             compiler.AddUnsupported(why);
           }
+          var bounds = GenTypeBounds(typeArg.Formal);
 
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
+          astTypeArgs.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
-        List<DAST.Formal> params_ = new();
-        foreach (var param in m.Ins) {
-          if (param is not ImplicitFormal && !param.IsGhost) {
-            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
-          }
-        }
+        var params_ = compiler.GenFormals(m.Ins);
 
         List<ISequence<Rune>> outVars = new();
         List<DAST.Type> outTypes = new();
@@ -479,22 +524,18 @@ namespace Microsoft.Dafny.Compilers {
           return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this.compiler);
         }
 
-        List<DAST.Type> astTypeArgs = new();
+        List<DAST.TypeArgDecl> astTypeArgs = new();
         foreach (var typeArg in typeArgs) {
           var compileName = compiler.IdProtect(typeArg.Formal.GetCompileName(compiler.Options));
           if (!isTpSupported(typeArg.Formal, out var why)) {
             compiler.AddUnsupported(why);
           }
+          var bounds = GenTypeBounds(typeArg.Formal);
 
-          astTypeArgs.Add((DAST.Type)DAST.Type.create_TypeArg(Sequence<Rune>.UnicodeFromString(compileName)));
+          astTypeArgs.Add((DAST.TypeArgDecl)DAST.TypeArgDecl.create_TypeArgDecl(Sequence<Rune>.UnicodeFromString(compileName), bounds));
         }
 
-        List<DAST.Formal> params_ = new();
-        foreach (var param in formals) {
-          if (!param.IsGhost) {
-            params_.Add((DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(param.CompileName)), compiler.GenType(param.Type)));
-          }
-        }
+        var params_ = compiler.GenFormals(formals);
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
 
@@ -529,7 +570,7 @@ namespace Microsoft.Dafny.Compilers {
           isStatic, createBody,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
           name,
-          new(), new(),
+          new(), (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
           new() {
             compiler.GenType(resultType)
           }, null
@@ -571,7 +612,8 @@ namespace Microsoft.Dafny.Compilers {
 
         builder.AddField((DAST.Formal)DAST.Formal.create_Formal(
           Sequence<Rune>.UnicodeFromString(name),
-          compiler.GenType(type)
+          compiler.GenType(type),
+          compiler.ParseAttributes(field.Attributes)
         ), rhsExpr);
       }
 
@@ -655,6 +697,9 @@ namespace Microsoft.Dafny.Compilers {
     // so we buffer it here
     _IOption<DAST._IExpression> bufferedInitializationValue = null;
 
+    // And its statements here
+    _IOption<List<DAST.Statement>> bufferedInitializationStmts = null;
+
     protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IToken tok,
         bool usePlaceboValue, bool constructTypeParameterDefaultsFromTypeDescriptors) {
       if (bufferedInitializationValue != null) {
@@ -663,15 +708,22 @@ namespace Microsoft.Dafny.Compilers {
         type = type.NormalizeExpandKeepConstraints();
         if (usePlaceboValue) {
           bufferedInitializationValue = Option<DAST._IExpression>.create_None();
+          bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
         } else {
-          if (type.AsNewtype != null && type.AsNewtype.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-            var buf = new ExprBuffer(null);
-            EmitExpr(type.AsNewtype.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this), null);
-            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
+          if (type.AsNewtype is { WitnessKind: SubsetTypeDecl.WKind.Compiled } newType) {
+            var bufStmt = new StatementBuffer();
+            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
+              DAST.Expression.create_Convert(
+              ConvertExpression(newType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)),
+                  GenType(newType.BaseType),
+              GenType(UserDefinedType.FromTopLevelDecl(newType.Witness.tok, newType))
+              ));
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsSubsetType != null && type.AsSubsetType.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-            var buf = new ExprBuffer(null);
-            EmitExpr(type.AsSubsetType.Witness, false, new BuilderSyntaxTree<ExprContainer>(buf, this), null);
-            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(buf.Finish());
+            var bufStmt = new StatementBuffer();
+            bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
+              ConvertExpression(type.AsSubsetType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)));
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
           } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
             var elems = new List<DAST._IExpression>();
             for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
@@ -689,12 +741,14 @@ namespace Microsoft.Dafny.Compilers {
                 DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
               );
             }
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
           } else if (type.IsArrowType) {
             this.AddUnsupported("<i>Initializer for arrow type</i>");
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
             );
+            bufferedInitializationStmts = Option<List<DAST.Statement>>.create_None();
           }
         }
         return "BUFFERED"; // used by DeclareLocal(Out)Var
@@ -740,10 +794,33 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, IToken tok,
      Expression replacementReceiver, bool receiverAsArgument, ConcreteSyntaxTree wr) {
+      Sequence<_IFormal> receiverArgs = null;
+      var receiverBeforeName = replacementReceiver != null && replacementReceiver is not StaticReceiverExpr;
+      Option<DAST.Type> receiverType = receiverBeforeName && !receiverAsArgument
+        ? (Option<DAST.Type>)Option<DAST.Type>.create_Some(GenType(replacementReceiver.Type))
+        : (Option<DAST.Type>)Option<DAST.Type>.create_None();
+      if (receiverBeforeName) {
+        var name = replacementReceiver is IdentifierExpr { Var: { CompileName: var compileName } }
+          ? compileName
+          : "receiver";
+        receiverArgs = (Sequence<_IFormal>)Sequence<_IFormal>.FromArray(new _IFormal[] {
+          DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(name),
+            GenType(replacementReceiver.Type), ParseAttributes(null))
+        });
+      }
+
       if (GetExprBuilder(wr, out var st) && st.Builder is CallExprBuilder callExpr) {
-        callExpr.SetName((DAST.CallName)DAST.CallName.create_Name(Sequence<Rune>.UnicodeFromString(protectedName)));
+        var signature = callExpr.Signature;
+        if (receiverArgs != null) {
+          signature = Sequence<_IFormal>.FromArray(receiverArgs.Concat(signature).ToArray());
+        }
+        callExpr.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, signature));
       } else if (GetExprBuilder(wr, out var st2) && st2.Builder is CallStmtBuilder callStmt) {
-        callStmt.SetName((DAST.CallName)DAST.CallName.create_Name(Sequence<Rune>.UnicodeFromString(protectedName)));
+        var signature = callStmt.Signature;
+        if (receiverArgs != null) {
+          signature = Sequence<_IFormal>.FromArray(receiverArgs.Concat(signature).ToArray());
+        }
+        callStmt.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, signature));
       } else {
         AddUnsupported("Builder issue: wr is as " + wr.GetType() +
                                 (GetExprBuilder(wr, out var st3) ?
@@ -785,6 +862,14 @@ namespace Microsoft.Dafny.Compilers {
 
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
+
+          if (bufferedInitializationStmts.is_Some) {
+            foreach (var stmt in bufferedInitializationStmts.dtor_value) {
+              stmtContainer.Builder.AddStatement(stmt);
+            }
+
+            bufferedInitializationStmts = null;
+          }
 
           stmtContainer.Builder.AddStatement(
             (DAST.Statement)DAST.Statement.create_DeclareVar(
@@ -831,7 +916,8 @@ namespace Microsoft.Dafny.Compilers {
         if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
           base.TrCallStmt(s, receiverReplacement, wr, wrStmts, wrStmtsAfterCall);
         } else {
-          var callBuilder = stmtContainer.Builder.Call();
+          var parameters = GenFormals(s.Method.Ins);
+          var callBuilder = stmtContainer.Builder.Call(parameters);
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wrStmts, wrStmtsAfterCall);
         }
       } else {
@@ -841,7 +927,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
-        var callBuilder = stmtContainer.Builder.Call();
+        var callBuilder = stmtContainer.Builder.Call(GenFormals(method.Ins));
         base.EmitCallToInheritedMethod(method, heir, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wStmts, wStmtsAfterCall);
       } else {
         throw new InvalidOperationException("Cannot call statement in this context: " + currentBuilder);
@@ -858,7 +944,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitCoercionIfNecessary(e.Function.Original.ResultType, toType, e.tok, wr);
 
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
-        var callBuilder = builder.Builder.Call();
+        var callBuilder = builder.Builder.Call(GenFormals(e.Function.Ins));
         base.CompileFunctionCallExpr(e, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), inLetExprBody, wStmts, tr, true);
       } else {
         throw new InvalidOperationException("Cannot call function in this context: " + currentBuilder);
@@ -1225,20 +1311,30 @@ namespace Microsoft.Dafny.Compilers {
 
         switch (e) {
           case CharLiteralExpr c:
-            if (UnicodeCharEnabled) {
-              var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
+            var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
+            if (Rune.IsRune(new BigInteger(codePoint))) { // More readable version in the generated code.
               baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
                 new Rune(codePoint)
               ));
             } else {
-              AddUnsupported("<i>Char literal without unicode char enabled</i>");
-              return;
+              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteralUTF16(
+                codePoint
+              ));
             }
+
             break;
           case StringLiteralExpr str:
-            baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
-              Sequence<Rune>.UnicodeFromString(str.AsStringLiteral())
-            ));
+            if (!UnicodeCharEnabled && Util.TokensWithEscapes(str.AsStringLiteral(), false) is var tokens && tokens.Any((string token) => Util.Utf16Escape.IsMatch(token))) {
+              var s = Util.UnescapedCharacters(UnicodeCharEnabled, str.AsStringLiteral(), true);
+              var chars = tokens.Select((string singleChar) =>
+                ConvertExpressionNoStatement(new CharLiteralExpr(Token.NoToken, singleChar) { Type = Type.Char })).ToArray();
+              baseExpr = (DAST.Expression)DAST.Expression.create_SeqValue(Sequence<DAST.Expression>.FromArray(chars), GenType(new CharType()));
+              // We need to emit a sequence of chars literal. We first 
+            } else {
+              baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_StringLiteral(
+                Sequence<Rune>.UnicodeFromString(str.AsStringLiteral()), str.IsVerbatim
+              ));
+            }
             break;
           case StaticReceiverExpr:
             if (e.Type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt &&
@@ -1402,6 +1498,35 @@ namespace Microsoft.Dafny.Compilers {
       });
     }
 
+    private ISequence<DAST.Attribute> ParseAttributes(Attributes attributes) {
+      var a = attributes;
+      var result = new List<DAST.Attribute>() { };
+      while (a != null) {
+        var name = Sequence<Rune>.UnicodeFromString(a.Name);
+        var args = new List<Sequence<Rune>>();
+        foreach (var arg in a.Args) {
+          if (arg is Dafny.LiteralExpr { Value: var value }) {
+            var argToAdd = "";
+            if (value is string s) {
+              argToAdd = s;
+            } else if (value is bool b) {
+              argToAdd = b ? "true" : "false";
+            } else if (value is BigInteger big) {
+              argToAdd = big.ToString();
+            } else {
+              argToAdd = "unknown " + value.GetType();
+            }
+            args.Add((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(argToAdd));
+          }
+        }
+        result.Add((DAST.Attribute)DAST.Attribute.create_Attribute(name,
+          Sequence<Sequence<Rune>>.FromArray(args.ToArray())));
+        a = a.Prev;
+      }
+
+      return Sequence<DAST.Attribute>.FromArray(result.ToArray());
+    }
+
     private DAST.Type TypeNameASTFromTopLevel(TopLevelDecl topLevel, List<Type> typeArgs) {
       var path = PathFromTopLevel(topLevel);
 
@@ -1416,23 +1541,25 @@ namespace Microsoft.Dafny.Compilers {
       if (topLevel is NewtypeDecl newType) {
         var range = NativeTypeToNewtypeRange(newType.NativeType);
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
-          GenType(EraseNewtypeLayers(topLevel)), range, true);
+          GenType(EraseNewtypeLayers(topLevel)), range, true, ParseAttributes(newType.Attributes));
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true);
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
+          GenType(EraseNewtypeLayers(topLevel)), NewtypeRange.create_NoRange(), true, ParseAttributes(typeSynonym.Attributes));
       } else if (topLevel is TraitDecl) {
         AddUnsupportedFeature(Token.NoToken, Feature.Traits);
         resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Newtype(
           DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("<b>Unsupported: <i>Traits</i></b>")),
-          NewtypeRange.create_NoRange(), true
+          NewtypeRange.create_NoRange(), true, ParseAttributes(null)
         );
         // traits need a bit more work
 
         // resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Trait(path);
       } else if (topLevel is DatatypeDecl) {
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(path);
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(
+          (DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
       } else if (topLevel is ClassDecl) {
         // TODO(Mikael): have a separate type when we properly support classes
-        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype(path);
+        resolvedType = (DAST.ResolvedType)DAST.ResolvedType.create_Datatype((DatatypeType)DatatypeType.create_DatatypeType(path, ParseAttributes(topLevel.Attributes)));
       } else {
         // SubsetTypeDecl are covered by TypeSynonymDecl
         throw new InvalidOperationException(topLevel.GetType().ToString());
@@ -1512,14 +1639,16 @@ namespace Microsoft.Dafny.Compilers {
 
         int argI = 0;
         for (int i = 0; i < dtv.Ctor.Formals.Count; i++) {
-          var formal = dtv.Ctor.Formals[i];
-          if (formal.IsGhost) {
+          var destructor = dtv.Ctor.Destructors[i];
+          if (destructor.IsGhost) {
             continue;
           }
 
           var actual = contents[argI];
+          var formal = dtv.Ctor.Formals[i];
+          var destructorName = GetDestructorFormalName(formal);
           namedContents.Add(_System.Tuple2<ISequence<Rune>, DAST.Expression>.create(
-            Sequence<Rune>.UnicodeFromString(formal.CompileName),
+            Sequence<Rune>.UnicodeFromString(destructorName),
             actual
           ));
 
@@ -1550,7 +1679,7 @@ namespace Microsoft.Dafny.Compilers {
           var dtPath = PathFromTopLevel(dtv.Ctor.EnclosingDatatype);
           var dtTypeArgs = Sequence<DAST.Type>.FromArray(dtv.InferredTypeArgs.Select(m => GenType(m)).ToArray());
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_DatatypeValue(
-            dtPath,
+            (DatatypeType)DatatypeType.create_DatatypeType(dtPath, ParseAttributes(dtv.Ctor.EnclosingDatatype.Attributes)),
             dtTypeArgs,
             Sequence<Rune>.UnicodeFromString(dtv.Ctor.GetCompileName(Options)),
             dtv.Ctor.EnclosingDatatype is CoDatatypeDecl,
@@ -1560,6 +1689,17 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new InvalidOperationException("Cannot emit datatype value outside of expression context: " + wr.GetType() + ", " + currentBuilder);
       }
+    }
+
+    private static string GetDestructorFormalName(Formal formal) {
+      var defaultName = formal.CompileName;
+      object externVal = null;
+      bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
+        ref externVal, new List<Attributes.MatchingValueOption> {
+          Attributes.MatchingValueOption.String
+        }, s => throw new UnsupportedInvalidOperationException("Non-string externs for destructors"));
+      var destructorName = externVal as string ?? defaultName;
+      return destructorName;
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType,
@@ -1602,20 +1742,23 @@ namespace Microsoft.Dafny.Compilers {
         if (dtor.EnclosingClass is TupleTypeDecl) {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_TupleSelect(
             objExpr,
-            int.Parse(dtor.CorrespondingFormals[0].NameForCompilation)
+            int.Parse(dtor.CorrespondingFormals[0].NameForCompilation), GenType(expectedType)
           ), null, this);
         } else {
+          var attributes = member.Attributes ??
+                           (dtor.CorrespondingFormals.Count == 1 ? dtor.CorrespondingFormals[0].Attributes : null);
+          var compileName = GetExtractOverrideName(attributes, member.GetCompileName(Options));
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+            Sequence<Rune>.UnicodeFromString(compileName),
             member is ConstantField,
-            member.EnclosingClass is DatatypeDecl
+            member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
           ), this);
         }
-      } else if (member is SpecialField arraySpecial && arraySpecial.SpecialId == SpecialField.ID.ArrayLength) {
+      } else if (member is SpecialField { SpecialId: SpecialField.ID.ArrayLength } arraySpecial) {
         obj(EmitCoercionIfNecessary(
             objType,
             objType.IsNonNullRefType || !objType.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)objType.NormalizeExpand()),
@@ -1646,7 +1789,7 @@ namespace Microsoft.Dafny.Compilers {
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName),
           member is ConstantField,
-          member.EnclosingClass is DatatypeDecl
+          member.EnclosingClass is DatatypeDecl, GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
           Sequence<Rune>.UnicodeFromString(compiledName)
@@ -1677,7 +1820,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
             false,
-            member.EnclosingClass is DatatypeDecl
+            member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options))
@@ -1687,7 +1830,7 @@ namespace Microsoft.Dafny.Compilers {
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
             member is ConstantField,
-            member.EnclosingClass is DatatypeDecl
+            member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
@@ -1797,8 +1940,15 @@ namespace Microsoft.Dafny.Compilers {
       out BuilderSyntaxTree<ExprContainer> builder,
       out Func<Expression, DAST.Expression> converter) {
       if (wr is BuilderSyntaxTree<ExprContainer> b) {
-        converter = (Expression expr) => ConvertExpression(expr, wStmts);
         builder = b;
+        if (wStmts is BuilderSyntaxTree<StatementContainer> s) {
+          converter = (Expression expr) => ConvertExpression(expr, s);
+        } else {
+          var statementBuf = new NoStatementBuffer();
+          var sNoStmt = new BuilderSyntaxTree<StatementContainer>(statementBuf, this);
+          converter = (Expression expr) => ConvertExpression(expr, sNoStmt);
+        }
+
         return true;
       }
       converter = null;
@@ -1911,7 +2061,7 @@ namespace Microsoft.Dafny.Compilers {
           (_System.Tuple2<DAST.Formal, DAST.Expression>)
           _System.Tuple2<DAST.Formal, DAST.Expression>.create(
             (DAST.Formal)DAST.Formal.create_Formal(Sequence<Rune>.UnicodeFromString(boundVars[i]),
-              GenType(boundTypes[i])), convert(t))).ToList();
+              GenType(boundTypes[i]), ParseAttributes(null)), convert(t))).ToList();
 
         var retType = GenType(resultType);
 
@@ -1923,8 +2073,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
-        List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor,
+      Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (GetExprBuilder(wr, out var builder)) {
         if (DatatypeWrapperEraser.IsErasableDatatypeWrapper(Options, ctor.EnclosingDatatype, out var coreDtor)) {
           Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
@@ -1937,18 +2088,25 @@ namespace Microsoft.Dafny.Compilers {
           if (ctor.EnclosingDatatype is TupleTypeDecl) {
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_TupleSelect(
               sourceAST,
-              int.Parse(dtor.NameForCompilation)
+              int.Parse(dtor.NameForCompilation), GenType(dtor.Type)
             ));
           } else {
+            var compileName = GetExtractOverrideName(dtor.Attributes, dtor.CompileName);
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
               sourceAST,
-              Sequence<Rune>.UnicodeFromString(dtor.CompileName),
+              Sequence<Rune>.UnicodeFromString(compileName),
               false,
-              true
+              true, GenType(dtor.Type)
             ));
           }
         }
       }
+    }
+
+    private static string GetExtractOverrideName(Attributes attributes, string defaultValue) {
+      return ((Attributes.Find(attributes, "extern_extract") is { } extern_extract
+               && extern_extract.Args.Count() == 1 && extern_extract.Args[0] is LiteralExpr { Value: string overrideName }
+        ? overrideName : defaultValue));
     }
 
     protected override ConcreteSyntaxTree CreateLambda(List<Type> inTypes, IToken tok, List<string> inNames,
@@ -1958,7 +2116,7 @@ namespace Microsoft.Dafny.Compilers {
         for (int i = 0; i < inTypes.Count; ++i) {
           formals.Add((DAST.Formal)DAST.Formal.create_Formal(
             Sequence<Rune>.UnicodeFromString(inNames[i]),
-            GenType(inTypes[i])
+            GenType(inTypes[i]), ParseAttributes(null)
           ));
         }
 
@@ -2102,7 +2260,7 @@ namespace Microsoft.Dafny.Compilers {
             }
         }
       } else {
-        AddUnsupported("<i>UnaryExpr " + op + "</i>");
+        AddUnsupported("<i>UnaryExpr " + op + " without expr container</i>");
       }
     }
 
@@ -2123,7 +2281,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -2206,8 +2364,8 @@ namespace Microsoft.Dafny.Compilers {
 
         var newBuilder = op switch {
           BinaryExpr.ResolvedOpcode.EqCommon => B((BinOp)BinOp.create_Eq(
-            e0.Type.IsRefType,
-            !e0.Type.IsNonNullRefType
+            e0Type.IsRefType,
+            !e0Type.IsNonNullRefType
           )),
           BinaryExpr.ResolvedOpcode.SetEq => B((BinOp)BinOp.create_Eq(false, false)),
           BinaryExpr.ResolvedOpcode.MapEq => B((BinOp)BinOp.create_Eq(false, false)),
@@ -2216,12 +2374,14 @@ namespace Microsoft.Dafny.Compilers {
           BinaryExpr.ResolvedOpcode.NeqCommon => C((left, right) =>
             Not(BinaryOp(
               BinOp.create_Eq(
-                e0.Type.IsRefType,
-                !e0.Type.IsNonNullRefType
+                e0Type.IsRefType,
+                !e0Type.IsNonNullRefType
               ), left, right))),
           BinaryExpr.ResolvedOpcode.SetNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
           BinaryExpr.ResolvedOpcode.SeqNeq => C((left, right) =>
+            Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
+          BinaryExpr.ResolvedOpcode.MapNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
           BinaryExpr.ResolvedOpcode.MultiSetNeq => C((left, right) =>
             Not(BinaryOp(BinOp.create_Eq(false, false), left, right))),
@@ -2508,7 +2668,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
         ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var builder)) {
-        var stmtBuilder = new CallStmtBuilder();
+        var stmtBuilder = new CallStmtBuilder(Sequence<_IFormal>.Empty);
         stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_SetBuilderAdd());
         stmtBuilder.SetTypeArgs(new List<DAST.Type> { });
         stmtBuilder.SetOuts(new List<ISequence<Rune>> { }); ;
@@ -2528,6 +2688,12 @@ namespace Microsoft.Dafny.Compilers {
       return buffer0.Finish();
     }
 
+    private DAST.Expression ConvertExpressionNoStatement(Expression term) {
+      var statementBuf = new NoStatementBuffer();
+      var sNoStmt = new BuilderSyntaxTree<StatementContainer>(statementBuf, this);
+      return ConvertExpression(term, sNoStmt);
+    }
+
     private BuilderSyntaxTree<ExprContainer> CreateExprBuilder() {
       var exprBuffer = new ExprBuffer(null);
       var exprBuilder = new BuilderSyntaxTree<ExprContainer>(exprBuffer, this);
@@ -2537,7 +2703,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
         bool inLetExprBody, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var builder)) {
-        var stmtBuilder = new CallStmtBuilder();
+        var stmtBuilder = new CallStmtBuilder(Sequence<_IFormal>.Empty);
         stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_MapBuilderAdd());
         stmtBuilder.SetTypeArgs(new List<DAST.Type> { });
         stmtBuilder.SetOuts(new List<ISequence<Rune>> { }); ;
@@ -2613,7 +2779,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       if (GetExprBuilder(wr, out var builder)) {
-        var callExpr = new CallExprBuilder();
+        var callExpr = new CallExprBuilder(Sequence<_IFormal>.Empty);
         if (ct.IsMapType) {
           callExpr.SetName((DAST.CallName)DAST.CallName.create_MapBuilderBuild());
         } else {
@@ -2668,5 +2834,22 @@ namespace Microsoft.Dafny.Compilers {
       AddUnsupported("<i>EmitHaltRecoveryStmt</i>");
     }
 
+    protected override ConcreteSyntaxTree GetNullClassConcreteSyntaxTree() {
+      return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this);
+    }
+
+    protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
+      ConcreteSyntaxTree wStmts) {
+      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+    }
+
+    protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
+      bool inLetExprBody, IVariable accumulatorVar) {
+      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+    }
+
+    protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
+      TrStmt(match.Flattened, writer);
+    }
   }
 }
