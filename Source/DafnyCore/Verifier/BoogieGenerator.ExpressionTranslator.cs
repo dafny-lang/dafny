@@ -1482,8 +1482,8 @@ namespace Microsoft.Dafny {
           case ITEExpr iteExpr: {
               ITEExpr e = iteExpr;
               var g = BoogieGenerator.RemoveLit(TrExpr(e.Test));
-              var thn = BoogieGenerator.RemoveLit(TrExpr(e.Thn));
-              var els = BoogieGenerator.RemoveLit(TrExpr(e.Els));
+              var thn = BoogieGenerator.AdaptBoxing(e.Thn.tok, BoogieGenerator.RemoveLit(TrExpr(e.Thn)), e.Thn.Type, e.Type);
+              var els = BoogieGenerator.AdaptBoxing(e.Els.tok, BoogieGenerator.RemoveLit(TrExpr(e.Els)), e.Els.Type, e.Type);
               return new NAryExpr(GetToken(iteExpr), new IfThenElse(GetToken(iteExpr)), new List<Boogie.Expr> { g, thn, els });
             }
           case MatchExpr matchExpr: {
