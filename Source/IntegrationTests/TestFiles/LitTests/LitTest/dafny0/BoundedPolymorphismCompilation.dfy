@@ -306,7 +306,14 @@ module ReturnExpr {
     x as Trait
   }
 
-  class C extends Trait {
+  trait ReferenceTrait extends object {}
+
+  function H<X extends ReferenceTrait>(x: X): ReferenceTrait {
+    assert x is ReferenceTrait;
+    x
+  }
+
+  class C extends Trait, ReferenceTrait {
   }
 
   method Test() {
@@ -317,5 +324,8 @@ module ReturnExpr {
       var tc: C := t as C;
       expect c == tc;
     }
+
+    var h: ReferenceTrait := H(c);
+    expect c == h;
   }
 }
