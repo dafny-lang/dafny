@@ -38,6 +38,6 @@
 // RUN: ! %resolve "%S/dfyconfig.toml" "%S/src/excluded.dfy" &>> "%t"
 
 // A project file can be found from an input file
-// RUN: ! %resolve %S/src/input.dfy --find-project &>> "%t"
+// RUN: ! %resolve --find-project %S/src/input.dfy &>> "%t"
 
 // RUN: %diff "%s.expect" "%t"

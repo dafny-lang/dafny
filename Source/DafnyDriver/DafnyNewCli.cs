@@ -109,12 +109,23 @@ public static class DafnyNewCli {
           }
         }
       }
+
+      ProcessOption(context, DafnyProject.FindProjectOption, dafnyOptions);
+      var findProjectPath = dafnyOptions.Get(DafnyProject.FindProjectOption);
+      if (dafnyOptions.DafnyProject == null && findProjectPath != null) {
+        var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
+        var project = await opener.TryFindProject(new Uri(findProjectPath.FullName));
+        project?.Validate(dafnyOptions.OutputWriter, AllOptions);
+        dafnyOptions.DafnyProject = project;
+      }
+
       foreach (var option in command.Options) {
-        if (option == CommonOptionBag.UseBaseFileName) {
+        if (option == CommonOptionBag.UseBaseFileName || option == DafnyProject.FindProjectOption) {
           continue;
         }
         ProcessOption(context, option, dafnyOptions);
       }
+
       foreach (var option in command.Options) {
         try {
           dafnyOptions.ApplyBinding(option);
@@ -200,17 +211,11 @@ public static class DafnyNewCli {
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
-    var isProjectFile = singleFile.FullName.EndsWith(DafnyProject.FileName);
+    var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
     if (isProjectFile) {
       return await ProcessProjectFile(dafnyOptions, new Uri(singleFile.FullName));
     }
 
-    if (dafnyOptions.DafnyProject == null && dafnyOptions.Get(DafnyProject.FindProject)) {
-      var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
-      var project = await opener.TryFindProject(new Uri(singleFile.FullName));
-      project?.Validate(dafnyOptions.OutputWriter, AllOptions);
-      dafnyOptions.DafnyProject = project;
-    }
     dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     return true;
   }
