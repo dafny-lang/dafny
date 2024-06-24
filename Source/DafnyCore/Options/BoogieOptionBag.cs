@@ -110,6 +110,7 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(NoVerify, (options, value) => {
       var shouldVerify = !value && !options.Get(HiddenNoVerify);
       options.Verify = shouldVerify;
+      options.DafnyVerify = shouldVerify;
     });
     DafnyOptions.RegisterLegacyBinding(VerificationTimeLimit, (o, f) => o.TimeLimit = f);
 

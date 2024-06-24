@@ -290,7 +290,7 @@ public static class DafnyNewCli {
       yield break;
     }
 
-    if (options.Get(DafnyFile.UnsafeDependencies) || !options.Verify) {
+    if (options.Get(DafnyFile.DoNotVerifyDependencies) || !options.Verify) {
       foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
         var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, dependencyOptions, libraryRootSetFile,
           dependencyProject.StartingToken, true, false);
@@ -313,7 +313,7 @@ public static class DafnyNewCli {
       dependencyOptions.Compile = true;
       dependencyOptions.RunAfterCompile = false;
       var exitCode = await SynchronousCliCompilation.Run(dependencyOptions);
-      if (exitCode == 0) {
+      if (exitCode == 0 && libraryBackend.DooPath != null) {
         var dooUri = new Uri(libraryBackend.DooPath);
         await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
           yield return dooResult;
