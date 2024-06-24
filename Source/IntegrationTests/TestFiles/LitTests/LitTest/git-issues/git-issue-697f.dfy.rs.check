@@ -1,1 +1,1 @@
-// CHECK-L: error: missing angle brackets in associated item path
+// CHECK-L: error[E0277]: the trait bound `EvenCell: num_traits::sign::Signed` is not satisfied

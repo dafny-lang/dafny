@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*|.*error.*: mismatched types.*
+// CHECK-L: error[E0308]: mismatched types

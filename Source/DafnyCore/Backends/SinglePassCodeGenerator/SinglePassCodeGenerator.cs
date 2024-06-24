@@ -1650,7 +1650,7 @@ namespace Microsoft.Dafny.Compilers {
             cw.Finish();
           } else {
             // still check that given members satisfy compilation rules
-            var abyss = new NullClassWriter();
+            var abyss = new NullClassWriter(this);
             CompileClassMembers(program, defaultClassDecl, abyss);
           }
         } else if (d is ClassLikeDecl cl) {
@@ -1681,7 +1681,7 @@ namespace Microsoft.Dafny.Compilers {
             cw.Finish();
           } else {
             // still check that given members satisfy compilation rules
-            var abyss = new NullClassWriter();
+            var abyss = new NullClassWriter(this);
             CompileClassMembers(program, cl, abyss);
           }
         } else if (d is ValuetypeDecl) {
@@ -1719,11 +1719,16 @@ namespace Microsoft.Dafny.Compilers {
 
     public ISet<(ModuleDefinition, string)> DeclaredDatatypes { get; } = new HashSet<(ModuleDefinition, string)>();
 
+    protected virtual ConcreteSyntaxTree GetNullClassConcreteSyntaxTree() {
+      return new ConcreteSyntaxTree();
+    }
+
     protected class NullClassWriter : IClassWriter {
-      private readonly ConcreteSyntaxTree abyss = new ConcreteSyntaxTree();
+      private readonly ConcreteSyntaxTree abyss;
       private readonly ConcreteSyntaxTree block;
 
-      public NullClassWriter() {
+      public NullClassWriter(SinglePassCodeGenerator parent) {
+        abyss = parent.GetNullClassConcreteSyntaxTree();
         block = abyss.NewBlock("");
       }
 
@@ -2084,6 +2089,9 @@ namespace Microsoft.Dafny.Compilers {
 
     public virtual bool NeedsCustomReceiverNotTrait(MemberDecl member) {
       Contract.Requires(member != null);
+      if (member.EnclosingClass is TraitDecl) {
+        return false;
+      }
       // One of the limitations in many target language encodings are restrictions to instance members. If an
       // instance member can't be directly expressed in the target language, we make it a static member with an
       // additional first argument specifying the `this`, giving it a `CustomReceiver`.
@@ -4153,7 +4161,7 @@ namespace Microsoft.Dafny.Compilers {
           ii++;
         }
 
-      } else if (DeterminesArrayTypeFromExampleElement) {
+      } else if (DeterminesArrayTypeFromExampleElement) { // Not the case for the Rust compiler, for example
         // For a 3-dimensional array allocation
         //     m := new X[e0, e1, e2](InitFunction);
         // generate:

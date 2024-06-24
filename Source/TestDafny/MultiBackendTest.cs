@@ -394,7 +394,7 @@ public class MultiBackendTest {
 
     var diffMessage = exitCode == 0 ? AssertWithDiff.GetDiffMessage(expectedOutput, outputString) : null;
     if (checkFile == null && exitCode != 0) {
-      if (UpdateTargetExpectFile) {
+      if (UpdateTargetExpectFile && backend.TargetName != "dfy") {
         if (string.IsNullOrEmpty(IntegrationTestsRootDir)) {
           await output.WriteLineAsync(
             "DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE is true but DAFNY_INTEGRATION_TESTS_ROOT_DIR is not set");

@@ -20,20 +20,6 @@ namespace RAST {
         return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Helpers.Id<Func<__T, Dafny.ISequence<Dafny.Rune>>>(f)((s).Select(BigInteger.Zero)), (((new BigInteger((s).Count)) > (BigInteger.One)) ? (Dafny.Sequence<Dafny.Rune>.Concat(separator, RAST.__default.SeqToString<__T>((s).Drop(BigInteger.One), f, separator))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
       }
     }
-    public static BigInteger SeqToHeight<__T>(Dafny.ISequence<__T> s, Func<__T, BigInteger> f)
-    {
-      if ((new BigInteger((s).Count)).Sign == 0) {
-        return BigInteger.Zero;
-      } else {
-        BigInteger _763_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
-        BigInteger _764_j = RAST.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
-        if ((_763_i) < (_764_j)) {
-          return _764_j;
-        } else {
-          return _763_i;
-        }
-      }
-    }
     public static RAST._IType Rc(RAST._IType underlying) {
       return RAST.Type.create_TypeApp(((RAST.__default.std__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("rc"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Rc")), Dafny.Sequence<RAST._IType>.FromElements(underlying));
     }
@@ -44,10 +30,10 @@ namespace RAST {
       return RAST.Type.create_TypeApp(((RAST.__default.std__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("vec"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Vec")), Dafny.Sequence<RAST._IType>.FromElements(underlying));
     }
     public static RAST._IExpr NewVec(Dafny.ISequence<RAST._IExpr> elements) {
-      return RAST.Expr.create_Call(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("vec!")), Dafny.Sequence<RAST._IType>.FromElements(), elements);
+      return (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("vec!"))).Apply(elements);
     }
     public static RAST._IExpr Clone(RAST._IExpr underlying) {
-      return RAST.Expr.create_Call(RAST.Expr.create_Select(underlying, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone")), Dafny.Sequence<RAST._IType>.FromElements(), Dafny.Sequence<RAST._IExpr>.FromElements());
+      return (RAST.Expr.create_Select(underlying, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements());
     }
     public static RAST._IExpr Borrow(RAST._IExpr underlying) {
       return RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), underlying, DAST.Format.UnaryOpFormat.create_NoFormat());
@@ -58,35 +44,111 @@ namespace RAST {
     public static RAST._IType RawType(Dafny.ISequence<Dafny.Rune> content) {
       return RAST.Type.create_TIdentifier(content);
     }
+    public static RAST._IType Box(RAST._IType content) {
+      return RAST.Type.create_TypeApp(RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Box")), Dafny.Sequence<RAST._IType>.FromElements(content));
+    }
+    public static RAST._IExpr BoxNew(RAST._IExpr content) {
+      return ((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Box"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(content));
+    }
+    public static bool IsImmutableConversion(RAST._IType fromTpe, RAST._IType toTpe)
+    {
+      _System._ITuple2<RAST._IType, RAST._IType> _source25 = _System.Tuple2<RAST._IType, RAST._IType>.create(fromTpe, toTpe);
+      bool unmatched25 = true;
+      if (unmatched25) {
+        RAST._IType _00 = _source25.dtor__0;
+        if (_00.is_TypeApp) {
+          RAST._IType baseName0 = _00.dtor_baseName;
+          if (baseName0.is_TMemberSelect) {
+            RAST._IType base0 = baseName0.dtor_base;
+            if (base0.is_TMemberSelect) {
+              RAST._IType base1 = base0.dtor_base;
+              if (base1.is_TIdentifier) {
+                Dafny.ISequence<Dafny.Rune> name0 = base1.dtor_name;
+                if (object.Equals(name0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+                  Dafny.ISequence<Dafny.Rune> name1 = base0.dtor_name;
+                  if (object.Equals(name1, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dafny_runtime"))) {
+                    Dafny.ISequence<Dafny.Rune> _765_tpe1 = baseName0.dtor_name;
+                    Dafny.ISequence<RAST._IType> _766_elems1 = _00.dtor_arguments;
+                    RAST._IType _10 = _source25.dtor__1;
+                    if (_10.is_TypeApp) {
+                      RAST._IType baseName1 = _10.dtor_baseName;
+                      if (baseName1.is_TMemberSelect) {
+                        RAST._IType base2 = baseName1.dtor_base;
+                        if (base2.is_TMemberSelect) {
+                          RAST._IType base3 = base2.dtor_base;
+                          if (base3.is_TIdentifier) {
+                            Dafny.ISequence<Dafny.Rune> name2 = base3.dtor_name;
+                            if (object.Equals(name2, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+                              Dafny.ISequence<Dafny.Rune> name3 = base2.dtor_name;
+                              if (object.Equals(name3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dafny_runtime"))) {
+                                Dafny.ISequence<Dafny.Rune> _767_tpe2 = baseName1.dtor_name;
+                                Dafny.ISequence<RAST._IType> _768_elems2 = _10.dtor_arguments;
+                                unmatched25 = false;
+                                return ((_765_tpe1).Equals(_767_tpe2)) && (((((_765_tpe1).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Set"))) || ((_765_tpe1).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Sequence")))) || ((_765_tpe1).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Multiset")))) || ((_765_tpe1).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Map"))));
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (unmatched25) {
+        _System._ITuple2<RAST._IType, RAST._IType> _769___v0 = _source25;
+        unmatched25 = false;
+        return false;
+      }
+      throw new System.Exception("unexpected control point");
+    }
+    public static RAST._IType SystemTupleType(Dafny.ISequence<RAST._IType> elements) {
+      return (((RAST.__default.super__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Tuple"), Std.Strings.__default.OfNat(new BigInteger((elements).Count))))).Apply(elements);
+    }
+    public static RAST._IExpr SystemTuple(Dafny.ISequence<RAST._IExpr> elements) {
+      Dafny.ISequence<Dafny.Rune> _770_size = Std.Strings.__default.OfNat(new BigInteger((elements).Count));
+      return RAST.Expr.create_StructBuild((((RAST.__default.super).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Tuple"), _770_size))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_T"), _770_size)), ((System.Func<Dafny.ISequence<RAST._IAssignIdentifier>>) (() => {
+  BigInteger dim10 = new BigInteger((elements).Count);
+  var arr10 = new RAST._IAssignIdentifier[Dafny.Helpers.ToIntChecked(dim10, "array size exceeds memory limit")];
+  for (int i10 = 0; i10 < dim10; i10++) {
+    var _771_i = (BigInteger) i10;
+    arr10[(int)(_771_i)] = RAST.AssignIdentifier.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), Std.Strings.__default.OfNat(_771_i)), (elements).Select(_771_i));
+  }
+  return Dafny.Sequence<RAST._IAssignIdentifier>.FromArray(arr10);
+}))());
+    }
     public static Dafny.ISequence<Dafny.Rune> AddIndent(Dafny.ISequence<Dafny.Rune> raw, Dafny.ISequence<Dafny.Rune> ind)
     {
-      Dafny.ISequence<Dafny.Rune> _765___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+      Dafny.ISequence<Dafny.Rune> _772___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((raw).Count)).Sign == 0) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(_765___accumulator, raw);
+        return Dafny.Sequence<Dafny.Rune>.Concat(_772___accumulator, raw);
       } else if ((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("[({")).Contains((raw).Select(BigInteger.Zero))) {
-        _765___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_765___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
+        _772___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_772___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
         Dafny.ISequence<Dafny.Rune> _in103 = (raw).Drop(BigInteger.One);
         Dafny.ISequence<Dafny.Rune> _in104 = Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND);
         raw = _in103;
         ind = _in104;
         goto TAIL_CALL_START;
       } else if (((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("})]")).Contains((raw).Select(BigInteger.Zero))) && ((new BigInteger((ind).Count)) > (new BigInteger(2)))) {
-        _765___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_765___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
+        _772___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_772___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
         Dafny.ISequence<Dafny.Rune> _in105 = (raw).Drop(BigInteger.One);
         Dafny.ISequence<Dafny.Rune> _in106 = (ind).Take((new BigInteger((ind).Count)) - (new BigInteger(2)));
         raw = _in105;
         ind = _in106;
         goto TAIL_CALL_START;
       } else if (((raw).Select(BigInteger.Zero)) == (new Dafny.Rune('\n'))) {
-        _765___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_765___accumulator, Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)), ind));
+        _772___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_772___accumulator, Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)), ind));
         Dafny.ISequence<Dafny.Rune> _in107 = (raw).Drop(BigInteger.One);
         Dafny.ISequence<Dafny.Rune> _in108 = ind;
         raw = _in107;
         ind = _in108;
         goto TAIL_CALL_START;
       } else {
-        _765___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_765___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
+        _772___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_772___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
         Dafny.ISequence<Dafny.Rune> _in109 = (raw).Drop(BigInteger.One);
         Dafny.ISequence<Dafny.Rune> _in110 = ind;
         raw = _in109;
@@ -102,13 +164,24 @@ namespace RAST {
         return i;
       }
     }
-    public static RAST._IExpr RcNew(RAST._IExpr underlying) {
-      return RAST.Expr.create_Call(RAST.__default.std__rc__Rc__new, Dafny.Sequence<RAST._IType>.FromElements(), Dafny.Sequence<RAST._IExpr>.FromElements(underlying));
+    public static RAST._IExpr AssignVar(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr rhs)
+    {
+      return RAST.Expr.create_Assign(Std.Wrappers.Option<RAST._IAssignLhs>.create_Some(RAST.AssignLhs.create_LocalVar(name)), rhs);
     }
-    public static RAST._IType Self { get {
+    public static RAST._IExpr AssignMember(RAST._IExpr @on, Dafny.ISequence<Dafny.Rune> field, RAST._IExpr rhs)
+    {
+      return RAST.Expr.create_Assign(Std.Wrappers.Option<RAST._IAssignLhs>.create_Some(RAST.AssignLhs.create_SelectMember(@on, field)), rhs);
+    }
+    public static RAST._IExpr MaybePlacebo(RAST._IExpr underlying) {
+      return (((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("MaybePlacebo"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("from"))).Apply1(underlying);
+    }
+    public static RAST._IExpr RcNew(RAST._IExpr underlying) {
+      return RAST.Expr.create_Call(RAST.__default.std__rc__Rc__new, Dafny.Sequence<RAST._IExpr>.FromElements(underlying));
+    }
+    public static RAST._IType SelfBorrowed { get {
       return RAST.Type.create_Borrowed(RAST.Type.create_SelfOwned());
     } }
-    public static RAST._IType SelfMut { get {
+    public static RAST._IType SelfBorrowedMut { get {
       return RAST.Type.create_BorrowedMut(RAST.Type.create_SelfOwned());
     } }
     public static RAST._IType global__type { get {
@@ -117,17 +190,8 @@ namespace RAST {
     public static RAST._IType std__type { get {
       return (RAST.__default.global__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("std"));
     } }
-    public static RAST._IType CloneTrait { get {
-      return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Clone"));
-    } }
-    public static RAST._IType DafnyPrintTrait { get {
-      return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::DafnyPrint"));
-    } }
-    public static RAST._IType DefaultTrait { get {
-      return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::std::default::Default"));
-    } }
-    public static RAST._IType StaticTrait { get {
-      return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'static"));
+    public static RAST._IType super__type { get {
+      return RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("super"));
     } }
     public static RAST._IType cell__type { get {
       return (RAST.__default.std__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cell"));
@@ -138,8 +202,38 @@ namespace RAST {
     public static RAST._IType dafny__runtime__type { get {
       return (RAST.__default.global__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dafny_runtime"));
     } }
+    public static RAST._IType CloneTrait { get {
+      return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Clone"));
+    } }
+    public static RAST._IType DefaultTrait { get {
+      return ((RAST.__default.std__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Default"));
+    } }
+    public static RAST._IType StaticTrait { get {
+      return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'static"));
+    } }
+    public static RAST._IType DafnyType { get {
+      return (RAST.__default.dafny__runtime__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyType"));
+    } }
+    public static RAST._IType DafnyPrint { get {
+      return (RAST.__default.dafny__runtime__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyPrint"));
+    } }
+    public static RAST._IType DafnyTypeEq { get {
+      return (RAST.__default.dafny__runtime__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyTypeEq"));
+    } }
+    public static RAST._IType Eq { get {
+      return RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Eq"));
+    } }
+    public static RAST._IType DafnyInt { get {
+      return (RAST.__default.dafny__runtime__type).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyInt"));
+    } }
+    public static RAST._IExpr super { get {
+      return RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("super"));
+    } }
     public static Dafny.ISequence<Dafny.Rune> IND { get {
       return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("  ");
+    } }
+    public static RAST._IExpr self { get {
+      return RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"));
     } }
     public static RAST._IExpr @global { get {
       return RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
@@ -179,6 +273,15 @@ namespace RAST {
     } }
     public static RAST._IExpr std__rc__Rc__new { get {
       return (RAST.__default.std__rc__Rc).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("new"));
+    } }
+    public static RAST._IExpr std__Default__default { get {
+      return ((((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Default"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("default"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements());
+    } }
+    public static RAST._IExpr modify__macro { get {
+      return (RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("modify!"));
+    } }
+    public static BigInteger MAX__TUPLE__SIZE { get {
+      return new BigInteger(12);
     } }
   }
 
@@ -228,22 +331,22 @@ namespace RAST {
       var _pat_let_tv24 = ind;
       var _pat_let_tv25 = ind;
       var _pat_let_tv26 = ind;
-      RAST._IMod _source25 = this;
-      bool unmatched25 = true;
-      if (unmatched25) {
-        if (_source25.is_ExternMod) {
-          Dafny.ISequence<Dafny.Rune> _766_name = _source25.dtor_name;
-          unmatched25 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mod "), _766_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
+      RAST._IMod _source26 = this;
+      bool unmatched26 = true;
+      if (unmatched26) {
+        if (_source26.is_ExternMod) {
+          Dafny.ISequence<Dafny.Rune> _773_name = _source26.dtor_name;
+          unmatched26 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub mod "), _773_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
         }
       }
-      if (unmatched25) {
-        Dafny.ISequence<Dafny.Rune> _767_name = _source25.dtor_name;
-        Dafny.ISequence<RAST._IModDecl> _768_body = _source25.dtor_body;
-        unmatched25 = false;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mod "), _767_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv23), RAST.__default.IND), RAST.__default.SeqToString<RAST._IModDecl>(_768_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>>>((_769_ind) => ((System.Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>)((_770_modDecl) => {
-          return (_770_modDecl)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_769_ind, RAST.__default.IND));
-        })))(_pat_let_tv24), Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _pat_let_tv25), RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv26), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      if (unmatched26) {
+        Dafny.ISequence<Dafny.Rune> _774_name = _source26.dtor_name;
+        Dafny.ISequence<RAST._IModDecl> _775_body = _source26.dtor_body;
+        unmatched26 = false;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub mod "), _774_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv23), RAST.__default.IND), RAST.__default.SeqToString<RAST._IModDecl>(_775_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>>>((_776_ind) => ((System.Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>)((_777_modDecl) => {
+          return (_777_modDecl)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_776_ind, RAST.__default.IND));
+        })))(_pat_let_tv24), Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n\n"), _pat_let_tv25), RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv26), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
       }
       throw new System.Exception("unexpected control point");
     }
@@ -626,8 +729,8 @@ namespace RAST {
     }
     public static Dafny.ISequence<Dafny.Rune> ToStringMultiple(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> ind)
     {
-      return RAST.__default.SeqToString<Dafny.ISequence<Dafny.Rune>>(attributes, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>>>((_771_ind) => ((System.Func<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>)((_772_attribute) => {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_772_attribute), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _771_ind);
+      return RAST.__default.SeqToString<Dafny.ISequence<Dafny.Rune>>(attributes, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>>>((_778_ind) => ((System.Func<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>)((_779_attribute) => {
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_779_attribute), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _778_ind);
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""));
     }
   }
@@ -636,17 +739,17 @@ namespace RAST {
     bool is_Struct { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<RAST._ITypeParam> dtor_typeParams { get; }
-    RAST._IFormals dtor_fields { get; }
+    Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams { get; }
+    RAST._IFields dtor_fields { get; }
     _IStruct DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Struct : _IStruct {
     public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
     public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
-    public readonly RAST._IFormals _fields;
-    public Struct(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IFormals fields) {
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
+    public readonly RAST._IFields _fields;
+    public Struct(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IFields fields) {
       this._attributes = attributes;
       this._name = name;
       this._typeParams = typeParams;
@@ -682,7 +785,7 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._IStruct theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParam>.Empty, RAST.Formals.Default());
+    private static readonly RAST._IStruct theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParamDecl>.Empty, RAST.Fields.Default());
     public static RAST._IStruct Default() {
       return theDefault;
     }
@@ -690,10 +793,10 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IStruct> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IStruct create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IFormals fields) {
+    public static _IStruct create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IFields fields) {
       return new Struct(attributes, name, typeParams, fields);
     }
-    public static _IStruct create_Struct(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IFormals fields) {
+    public static _IStruct create_Struct(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IFields fields) {
       return create(attributes, name, typeParams, fields);
     }
     public bool is_Struct { get { return true; } }
@@ -707,41 +810,41 @@ namespace RAST {
         return this._name;
       }
     }
-    public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
+    public Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams {
       get {
         return this._typeParams;
       }
     }
-    public RAST._IFormals dtor_fields {
+    public RAST._IFields dtor_fields {
       get {
         return this._fields;
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub struct ")), (this).dtor_name), RAST.TypeParam.ToStringMultiple((this).dtor_typeParams, ind)), ((this).dtor_fields)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND), ((this).dtor_fields).is_NamedFormals)), ((((this).dtor_fields).is_NamelessFormals) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub struct ")), (this).dtor_name), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), ((this).dtor_fields)._ToString(ind, ((this).dtor_fields).is_NamedFields)), ((((this).dtor_fields).is_NamelessFields) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
     }
   }
 
-  public interface _INamelessFormal {
-    bool is_NamelessFormal { get; }
+  public interface _INamelessField {
+    bool is_NamelessField { get; }
     RAST._IVisibility dtor_visibility { get; }
     RAST._IType dtor_tpe { get; }
-    _INamelessFormal DowncastClone();
+    _INamelessField DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class NamelessFormal : _INamelessFormal {
+  public class NamelessField : _INamelessField {
     public readonly RAST._IVisibility _visibility;
     public readonly RAST._IType _tpe;
-    public NamelessFormal(RAST._IVisibility visibility, RAST._IType tpe) {
+    public NamelessField(RAST._IVisibility visibility, RAST._IType tpe) {
       this._visibility = visibility;
       this._tpe = tpe;
     }
-    public _INamelessFormal DowncastClone() {
-      if (this is _INamelessFormal dt) { return dt; }
-      return new NamelessFormal(_visibility, _tpe);
+    public _INamelessField DowncastClone() {
+      if (this is _INamelessField dt) { return dt; }
+      return new NamelessField(_visibility, _tpe);
     }
     public override bool Equals(object other) {
-      var oth = other as RAST.NamelessFormal;
+      var oth = other as RAST.NamelessField;
       return oth != null && object.Equals(this._visibility, oth._visibility) && object.Equals(this._tpe, oth._tpe);
     }
     public override int GetHashCode() {
@@ -752,7 +855,7 @@ namespace RAST {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "RAST.NamelessFormal.NamelessFormal";
+      string s = "RAST.NamelessField.NamelessField";
       s += "(";
       s += Dafny.Helpers.ToString(this._visibility);
       s += ", ";
@@ -760,21 +863,21 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._INamelessFormal theDefault = create(RAST.Visibility.Default(), RAST.Type.Default());
-    public static RAST._INamelessFormal Default() {
+    private static readonly RAST._INamelessField theDefault = create(RAST.Visibility.Default(), RAST.Type.Default());
+    public static RAST._INamelessField Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<RAST._INamelessFormal> _TYPE = new Dafny.TypeDescriptor<RAST._INamelessFormal>(RAST.NamelessFormal.Default());
-    public static Dafny.TypeDescriptor<RAST._INamelessFormal> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<RAST._INamelessField> _TYPE = new Dafny.TypeDescriptor<RAST._INamelessField>(RAST.NamelessField.Default());
+    public static Dafny.TypeDescriptor<RAST._INamelessField> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _INamelessFormal create(RAST._IVisibility visibility, RAST._IType tpe) {
-      return new NamelessFormal(visibility, tpe);
+    public static _INamelessField create(RAST._IVisibility visibility, RAST._IType tpe) {
+      return new NamelessField(visibility, tpe);
     }
-    public static _INamelessFormal create_NamelessFormal(RAST._IVisibility visibility, RAST._IType tpe) {
+    public static _INamelessField create_NamelessField(RAST._IVisibility visibility, RAST._IType tpe) {
       return create(visibility, tpe);
     }
-    public bool is_NamelessFormal { get { return true; } }
+    public bool is_NamelessField { get { return true; } }
     public RAST._IVisibility dtor_visibility {
       get {
         return this._visibility;
@@ -786,79 +889,163 @@ namespace RAST {
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat(((object.Equals((this).dtor_visibility, RAST.Visibility.create_PUB())) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub ")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), ((this).dtor_tpe)._ToString(ind));
+      return Dafny.Sequence<Dafny.Rune>.Concat(((this).dtor_visibility)._ToString(), ((this).dtor_tpe)._ToString(ind));
     }
   }
 
-  public interface _IFormals {
-    bool is_NamedFormals { get; }
-    bool is_NamelessFormals { get; }
-    Dafny.ISequence<RAST._IFormal> dtor_fields { get; }
-    Dafny.ISequence<RAST._INamelessFormal> dtor_types { get; }
-    _IFormals DowncastClone();
-    Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine);
+  public interface _IField {
+    bool is_Field { get; }
+    RAST._IVisibility dtor_visibility { get; }
+    RAST._IFormal dtor_formal { get; }
+    _IField DowncastClone();
+    Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
+    RAST._INamelessField ToNamelessField();
   }
-  public abstract class Formals : _IFormals {
-    public Formals() {
+  public class Field : _IField {
+    public readonly RAST._IVisibility _visibility;
+    public readonly RAST._IFormal _formal;
+    public Field(RAST._IVisibility visibility, RAST._IFormal formal) {
+      this._visibility = visibility;
+      this._formal = formal;
     }
-    private static readonly RAST._IFormals theDefault = create_NamedFormals(Dafny.Sequence<RAST._IFormal>.Empty);
-    public static RAST._IFormals Default() {
-      return theDefault;
-    }
-    private static readonly Dafny.TypeDescriptor<RAST._IFormals> _TYPE = new Dafny.TypeDescriptor<RAST._IFormals>(RAST.Formals.Default());
-    public static Dafny.TypeDescriptor<RAST._IFormals> _TypeDescriptor() {
-      return _TYPE;
-    }
-    public static _IFormals create_NamedFormals(Dafny.ISequence<RAST._IFormal> fields) {
-      return new Formals_NamedFormals(fields);
-    }
-    public static _IFormals create_NamelessFormals(Dafny.ISequence<RAST._INamelessFormal> types) {
-      return new Formals_NamelessFormals(types);
-    }
-    public bool is_NamedFormals { get { return this is Formals_NamedFormals; } }
-    public bool is_NamelessFormals { get { return this is Formals_NamelessFormals; } }
-    public Dafny.ISequence<RAST._IFormal> dtor_fields {
-      get {
-        var d = this;
-        return ((Formals_NamedFormals)d)._fields;
-      }
-    }
-    public Dafny.ISequence<RAST._INamelessFormal> dtor_types {
-      get {
-        var d = this;
-        return ((Formals_NamelessFormals)d)._types;
-      }
-    }
-    public abstract _IFormals DowncastClone();
-    public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine)
-    {
-      if ((this).is_NamedFormals) {
-        Dafny.ISequence<Dafny.Rune> _773_separator = ((newLine) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",\n"), ind), RAST.__default.IND)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", ")));
-        _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs40 = (((newLine) && ((new BigInteger(((this).dtor_fields).Count)).Sign == 1)) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind))) : ((((new BigInteger(((this).dtor_fields).Count)).Sign == 1) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "))) : (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))))));
-        Dafny.ISequence<Dafny.Rune> _774_beginSpace = _let_tmp_rhs40.dtor__0;
-        Dafny.ISequence<Dafny.Rune> _775_endSpace = _let_tmp_rhs40.dtor__1;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {"), _774_beginSpace), RAST.__default.SeqToString<RAST._IFormal>((this).dtor_fields, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>>>((_776_ind) => ((System.Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>)((_777_field) => {
-          return (_777_field)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_776_ind, RAST.__default.IND));
-        })))(ind), _773_separator)), _775_endSpace), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
-      } else {
-        Dafny.ISequence<Dafny.Rune> _778_separator = ((newLine) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",\n"), ind), RAST.__default.IND)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", ")));
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<RAST._INamelessFormal>((this).dtor_types, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._INamelessFormal, Dafny.ISequence<Dafny.Rune>>>>((_779_ind) => ((System.Func<RAST._INamelessFormal, Dafny.ISequence<Dafny.Rune>>)((_780_t) => {
-          return (_780_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_779_ind, RAST.__default.IND));
-        })))(ind), _778_separator)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
-      }
-    }
-  }
-  public class Formals_NamedFormals : Formals {
-    public readonly Dafny.ISequence<RAST._IFormal> _fields;
-    public Formals_NamedFormals(Dafny.ISequence<RAST._IFormal> fields) : base() {
-      this._fields = fields;
-    }
-    public override _IFormals DowncastClone() {
-      if (this is _IFormals dt) { return dt; }
-      return new Formals_NamedFormals(_fields);
+    public _IField DowncastClone() {
+      if (this is _IField dt) { return dt; }
+      return new Field(_visibility, _formal);
     }
     public override bool Equals(object other) {
-      var oth = other as RAST.Formals_NamedFormals;
+      var oth = other as RAST.Field;
+      return oth != null && object.Equals(this._visibility, oth._visibility) && object.Equals(this._formal, oth._formal);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._visibility));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._formal));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.Field.Field";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._visibility);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._formal);
+      s += ")";
+      return s;
+    }
+    private static readonly RAST._IField theDefault = create(RAST.Visibility.Default(), RAST.Formal.Default());
+    public static RAST._IField Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<RAST._IField> _TYPE = new Dafny.TypeDescriptor<RAST._IField>(RAST.Field.Default());
+    public static Dafny.TypeDescriptor<RAST._IField> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IField create(RAST._IVisibility visibility, RAST._IFormal formal) {
+      return new Field(visibility, formal);
+    }
+    public static _IField create_Field(RAST._IVisibility visibility, RAST._IFormal formal) {
+      return create(visibility, formal);
+    }
+    public bool is_Field { get { return true; } }
+    public RAST._IVisibility dtor_visibility {
+      get {
+        return this._visibility;
+      }
+    }
+    public RAST._IFormal dtor_formal {
+      get {
+        return this._formal;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
+      return Dafny.Sequence<Dafny.Rune>.Concat(((this).dtor_visibility)._ToString(), ((this).dtor_formal)._ToString(ind));
+    }
+    public RAST._INamelessField ToNamelessField() {
+      return RAST.NamelessField.create((this).dtor_visibility, ((this).dtor_formal).dtor_tpe);
+    }
+  }
+
+  public interface _IFields {
+    bool is_NamedFields { get; }
+    bool is_NamelessFields { get; }
+    Dafny.ISequence<RAST._IField> dtor_fields { get; }
+    Dafny.ISequence<RAST._INamelessField> dtor_types { get; }
+    _IFields DowncastClone();
+    RAST._IFields ToNamelessFields();
+    Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine);
+  }
+  public abstract class Fields : _IFields {
+    public Fields() {
+    }
+    private static readonly RAST._IFields theDefault = create_NamedFields(Dafny.Sequence<RAST._IField>.Empty);
+    public static RAST._IFields Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<RAST._IFields> _TYPE = new Dafny.TypeDescriptor<RAST._IFields>(RAST.Fields.Default());
+    public static Dafny.TypeDescriptor<RAST._IFields> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IFields create_NamedFields(Dafny.ISequence<RAST._IField> fields) {
+      return new Fields_NamedFields(fields);
+    }
+    public static _IFields create_NamelessFields(Dafny.ISequence<RAST._INamelessField> types) {
+      return new Fields_NamelessFields(types);
+    }
+    public bool is_NamedFields { get { return this is Fields_NamedFields; } }
+    public bool is_NamelessFields { get { return this is Fields_NamelessFields; } }
+    public Dafny.ISequence<RAST._IField> dtor_fields {
+      get {
+        var d = this;
+        return ((Fields_NamedFields)d)._fields;
+      }
+    }
+    public Dafny.ISequence<RAST._INamelessField> dtor_types {
+      get {
+        var d = this;
+        return ((Fields_NamelessFields)d)._types;
+      }
+    }
+    public abstract _IFields DowncastClone();
+    public RAST._IFields ToNamelessFields() {
+      return RAST.Fields.create_NamelessFields(((System.Func<Dafny.ISequence<RAST._INamelessField>>) (() => {
+  BigInteger dim11 = new BigInteger(((this).dtor_fields).Count);
+  var arr11 = new RAST._INamelessField[Dafny.Helpers.ToIntChecked(dim11, "array size exceeds memory limit")];
+  for (int i11 = 0; i11 < dim11; i11++) {
+    var _780_i = (BigInteger) i11;
+    arr11[(int)(_780_i)] = (((this).dtor_fields).Select(_780_i)).ToNamelessField();
+  }
+  return Dafny.Sequence<RAST._INamelessField>.FromArray(arr11);
+}))());
+    }
+    public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine)
+    {
+      if ((this).is_NamedFields) {
+        Dafny.ISequence<Dafny.Rune> _781_separator = ((newLine) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",\n"), ind), RAST.__default.IND)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", ")));
+        _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs40 = (((newLine) && ((new BigInteger(((this).dtor_fields).Count)).Sign == 1)) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind))) : ((((new BigInteger(((this).dtor_fields).Count)).Sign == 1) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "))) : (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))))));
+        Dafny.ISequence<Dafny.Rune> _782_beginSpace = _let_tmp_rhs40.dtor__0;
+        Dafny.ISequence<Dafny.Rune> _783_endSpace = _let_tmp_rhs40.dtor__1;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {"), _782_beginSpace), RAST.__default.SeqToString<RAST._IField>((this).dtor_fields, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IField, Dafny.ISequence<Dafny.Rune>>>>((_784_ind) => ((System.Func<RAST._IField, Dafny.ISequence<Dafny.Rune>>)((_785_field) => {
+          return (_785_field)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_784_ind, RAST.__default.IND));
+        })))(ind), _781_separator)), _783_endSpace), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      } else {
+        Dafny.ISequence<Dafny.Rune> _786_separator = ((newLine) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(",\n"), ind), RAST.__default.IND)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", ")));
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<RAST._INamelessField>((this).dtor_types, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._INamelessField, Dafny.ISequence<Dafny.Rune>>>>((_787_ind) => ((System.Func<RAST._INamelessField, Dafny.ISequence<Dafny.Rune>>)((_788_t) => {
+          return (_788_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_787_ind, RAST.__default.IND));
+        })))(ind), _786_separator)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+      }
+    }
+  }
+  public class Fields_NamedFields : Fields {
+    public readonly Dafny.ISequence<RAST._IField> _fields;
+    public Fields_NamedFields(Dafny.ISequence<RAST._IField> fields) : base() {
+      this._fields = fields;
+    }
+    public override _IFields DowncastClone() {
+      if (this is _IFields dt) { return dt; }
+      return new Fields_NamedFields(_fields);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.Fields_NamedFields;
       return oth != null && object.Equals(this._fields, oth._fields);
     }
     public override int GetHashCode() {
@@ -868,24 +1055,24 @@ namespace RAST {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "RAST.Formals.NamedFormals";
+      string s = "RAST.Fields.NamedFields";
       s += "(";
       s += Dafny.Helpers.ToString(this._fields);
       s += ")";
       return s;
     }
   }
-  public class Formals_NamelessFormals : Formals {
-    public readonly Dafny.ISequence<RAST._INamelessFormal> _types;
-    public Formals_NamelessFormals(Dafny.ISequence<RAST._INamelessFormal> types) : base() {
+  public class Fields_NamelessFields : Fields {
+    public readonly Dafny.ISequence<RAST._INamelessField> _types;
+    public Fields_NamelessFields(Dafny.ISequence<RAST._INamelessField> types) : base() {
       this._types = types;
     }
-    public override _IFormals DowncastClone() {
-      if (this is _IFormals dt) { return dt; }
-      return new Formals_NamelessFormals(_types);
+    public override _IFields DowncastClone() {
+      if (this is _IFields dt) { return dt; }
+      return new Fields_NamelessFields(_types);
     }
     public override bool Equals(object other) {
-      var oth = other as RAST.Formals_NamelessFormals;
+      var oth = other as RAST.Fields_NamelessFields;
       return oth != null && object.Equals(this._types, oth._types);
     }
     public override int GetHashCode() {
@@ -895,7 +1082,7 @@ namespace RAST {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "RAST.Formals.NamelessFormals";
+      string s = "RAST.Fields.NamelessFields";
       s += "(";
       s += Dafny.Helpers.ToString(this._types);
       s += ")";
@@ -906,14 +1093,14 @@ namespace RAST {
   public interface _IEnumCase {
     bool is_EnumCase { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    RAST._IFormals dtor_fields { get; }
+    RAST._IFields dtor_fields { get; }
     _IEnumCase DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine);
   }
   public class EnumCase : _IEnumCase {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly RAST._IFormals _fields;
-    public EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFormals fields) {
+    public readonly RAST._IFields _fields;
+    public EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
       this._name = name;
       this._fields = fields;
     }
@@ -941,7 +1128,7 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._IEnumCase theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, RAST.Formals.Default());
+    private static readonly RAST._IEnumCase theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, RAST.Fields.Default());
     public static RAST._IEnumCase Default() {
       return theDefault;
     }
@@ -949,10 +1136,10 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IEnumCase> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IEnumCase create(Dafny.ISequence<Dafny.Rune> name, RAST._IFormals fields) {
+    public static _IEnumCase create(Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
       return new EnumCase(name, fields);
     }
-    public static _IEnumCase create_EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFormals fields) {
+    public static _IEnumCase create_EnumCase(Dafny.ISequence<Dafny.Rune> name, RAST._IFields fields) {
       return create(name, fields);
     }
     public bool is_EnumCase { get { return true; } }
@@ -961,7 +1148,7 @@ namespace RAST {
         return this._name;
       }
     }
-    public RAST._IFormals dtor_fields {
+    public RAST._IFields dtor_fields {
       get {
         return this._fields;
       }
@@ -976,7 +1163,7 @@ namespace RAST {
     bool is_Enum { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<RAST._ITypeParam> dtor_typeParams { get; }
+    Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams { get; }
     Dafny.ISequence<RAST._IEnumCase> dtor_variants { get; }
     _IEnum DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
@@ -984,9 +1171,9 @@ namespace RAST {
   public class Enum : _IEnum {
     public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
     public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
     public readonly Dafny.ISequence<RAST._IEnumCase> _variants;
-    public Enum(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
+    public Enum(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
       this._attributes = attributes;
       this._name = name;
       this._typeParams = typeParams;
@@ -1022,7 +1209,7 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._IEnum theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParam>.Empty, Dafny.Sequence<RAST._IEnumCase>.Empty);
+    private static readonly RAST._IEnum theDefault = create(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParamDecl>.Empty, Dafny.Sequence<RAST._IEnumCase>.Empty);
     public static RAST._IEnum Default() {
       return theDefault;
     }
@@ -1030,10 +1217,10 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IEnum> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IEnum create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
+    public static _IEnum create(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
       return new Enum(attributes, name, typeParams, variants);
     }
-    public static _IEnum create_Enum(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
+    public static _IEnum create_Enum(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IEnumCase> variants) {
       return create(attributes, name, typeParams, variants);
     }
     public bool is_Enum { get { return true; } }
@@ -1047,7 +1234,7 @@ namespace RAST {
         return this._name;
       }
     }
-    public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
+    public Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams {
       get {
         return this._typeParams;
       }
@@ -1058,33 +1245,33 @@ namespace RAST {
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub enum ")), (this).dtor_name), RAST.TypeParam.ToStringMultiple((this).dtor_typeParams, ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IEnumCase>((this).dtor_variants, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IEnumCase, Dafny.ISequence<Dafny.Rune>>>>((_781_ind) => ((System.Func<RAST._IEnumCase, Dafny.ISequence<Dafny.Rune>>)((_782_variant) => {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _781_ind), RAST.__default.IND), (_782_variant)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_781_ind, RAST.__default.IND), false));
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple((this).dtor_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub enum ")), (this).dtor_name), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IEnumCase>((this).dtor_variants, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IEnumCase, Dafny.ISequence<Dafny.Rune>>>>((_789_ind) => ((System.Func<RAST._IEnumCase, Dafny.ISequence<Dafny.Rune>>)((_790_variant) => {
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _789_ind), RAST.__default.IND), (_790_variant)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_789_ind, RAST.__default.IND), true));
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
     }
   }
 
-  public interface _ITypeParam {
-    bool is_RawTypeParam { get; }
+  public interface _ITypeParamDecl {
+    bool is_TypeParamDecl { get; }
     Dafny.ISequence<Dafny.Rune> dtor_content { get; }
     Dafny.ISequence<RAST._IType> dtor_constraints { get; }
-    _ITypeParam DowncastClone();
-    RAST._ITypeParam AddConstraints(Dafny.ISequence<RAST._IType> constraints);
+    _ITypeParamDecl DowncastClone();
+    RAST._ITypeParamDecl AddConstraints(Dafny.ISequence<RAST._IType> constraints);
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
-  public class TypeParam : _ITypeParam {
+  public class TypeParamDecl : _ITypeParamDecl {
     public readonly Dafny.ISequence<Dafny.Rune> _content;
     public readonly Dafny.ISequence<RAST._IType> _constraints;
-    public TypeParam(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
+    public TypeParamDecl(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
       this._content = content;
       this._constraints = constraints;
     }
-    public _ITypeParam DowncastClone() {
-      if (this is _ITypeParam dt) { return dt; }
-      return new TypeParam(_content, _constraints);
+    public _ITypeParamDecl DowncastClone() {
+      if (this is _ITypeParamDecl dt) { return dt; }
+      return new TypeParamDecl(_content, _constraints);
     }
     public override bool Equals(object other) {
-      var oth = other as RAST.TypeParam;
+      var oth = other as RAST.TypeParamDecl;
       return oth != null && object.Equals(this._content, oth._content) && object.Equals(this._constraints, oth._constraints);
     }
     public override int GetHashCode() {
@@ -1095,7 +1282,7 @@ namespace RAST {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "RAST.TypeParam.RawTypeParam";
+      string s = "RAST.TypeParamDecl.TypeParamDecl";
       s += "(";
       s += this._content.ToVerbatimString(true);
       s += ", ";
@@ -1103,21 +1290,21 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._ITypeParam theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IType>.Empty);
-    public static RAST._ITypeParam Default() {
+    private static readonly RAST._ITypeParamDecl theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IType>.Empty);
+    public static RAST._ITypeParamDecl Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<RAST._ITypeParam> _TYPE = new Dafny.TypeDescriptor<RAST._ITypeParam>(RAST.TypeParam.Default());
-    public static Dafny.TypeDescriptor<RAST._ITypeParam> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<RAST._ITypeParamDecl> _TYPE = new Dafny.TypeDescriptor<RAST._ITypeParamDecl>(RAST.TypeParamDecl.Default());
+    public static Dafny.TypeDescriptor<RAST._ITypeParamDecl> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ITypeParam create(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
-      return new TypeParam(content, constraints);
+    public static _ITypeParamDecl create(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
+      return new TypeParamDecl(content, constraints);
     }
-    public static _ITypeParam create_RawTypeParam(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
+    public static _ITypeParamDecl create_TypeParamDecl(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
       return create(content, constraints);
     }
-    public bool is_RawTypeParam { get { return true; } }
+    public bool is_TypeParamDecl { get { return true; } }
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
         return this._content;
@@ -1128,39 +1315,39 @@ namespace RAST {
         return this._constraints;
       }
     }
-    public static Dafny.ISequence<Dafny.Rune> ToStringMultiple(Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<Dafny.Rune> ind)
+    public static Dafny.ISequence<Dafny.Rune> ToStringMultiple(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<Dafny.Rune> ind)
     {
       if ((new BigInteger((typeParams).Count)).Sign == 0) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
       } else {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"), RAST.__default.SeqToString<RAST._ITypeParam>(typeParams, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._ITypeParam, Dafny.ISequence<Dafny.Rune>>>>((_783_ind) => ((System.Func<RAST._ITypeParam, Dafny.ISequence<Dafny.Rune>>)((_784_t) => {
-          return (_784_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_783_ind, RAST.__default.IND));
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"), RAST.__default.SeqToString<RAST._ITypeParamDecl>(typeParams, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._ITypeParamDecl, Dafny.ISequence<Dafny.Rune>>>>((_791_ind) => ((System.Func<RAST._ITypeParamDecl, Dafny.ISequence<Dafny.Rune>>)((_792_t) => {
+          return (_792_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_791_ind, RAST.__default.IND));
         })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"));
       }
     }
-    public static Dafny.ISequence<RAST._ITypeParam> AddConstraintsMultiple(Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IType> constraints)
+    public static Dafny.ISequence<RAST._ITypeParamDecl> AddConstraintsMultiple(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IType> constraints)
     {
-      Dafny.ISequence<RAST._ITypeParam> _785___accumulator = Dafny.Sequence<RAST._ITypeParam>.FromElements();
+      Dafny.ISequence<RAST._ITypeParamDecl> _793___accumulator = Dafny.Sequence<RAST._ITypeParamDecl>.FromElements();
     TAIL_CALL_START: ;
       if ((new BigInteger((typeParams).Count)).Sign == 0) {
-        return Dafny.Sequence<RAST._ITypeParam>.Concat(_785___accumulator, Dafny.Sequence<RAST._ITypeParam>.FromElements());
+        return Dafny.Sequence<RAST._ITypeParamDecl>.Concat(_793___accumulator, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements());
       } else {
-        _785___accumulator = Dafny.Sequence<RAST._ITypeParam>.Concat(_785___accumulator, Dafny.Sequence<RAST._ITypeParam>.FromElements(((typeParams).Select(BigInteger.Zero)).AddConstraints(constraints)));
-        Dafny.ISequence<RAST._ITypeParam> _in111 = (typeParams).Drop(BigInteger.One);
+        _793___accumulator = Dafny.Sequence<RAST._ITypeParamDecl>.Concat(_793___accumulator, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(((typeParams).Select(BigInteger.Zero)).AddConstraints(constraints)));
+        Dafny.ISequence<RAST._ITypeParamDecl> _in111 = (typeParams).Drop(BigInteger.One);
         Dafny.ISequence<RAST._IType> _in112 = constraints;
         typeParams = _in111;
         constraints = _in112;
         goto TAIL_CALL_START;
       }
     }
-    public RAST._ITypeParam AddConstraints(Dafny.ISequence<RAST._IType> constraints) {
-      RAST._ITypeParam _786_dt__update__tmp_h0 = this;
-      Dafny.ISequence<RAST._IType> _787_dt__update_hconstraints_h0 = Dafny.Sequence<RAST._IType>.Concat((this).dtor_constraints, constraints);
-      return RAST.TypeParam.create((_786_dt__update__tmp_h0).dtor_content, _787_dt__update_hconstraints_h0);
+    public RAST._ITypeParamDecl AddConstraints(Dafny.ISequence<RAST._IType> constraints) {
+      RAST._ITypeParamDecl _794_dt__update__tmp_h0 = this;
+      Dafny.ISequence<RAST._IType> _795_dt__update_hconstraints_h0 = Dafny.Sequence<RAST._IType>.Concat((this).dtor_constraints, constraints);
+      return RAST.TypeParamDecl.create((_794_dt__update__tmp_h0).dtor_content, _795_dt__update_hconstraints_h0);
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat((this).dtor_content, (((new BigInteger(((this).dtor_constraints).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": "), RAST.__default.SeqToString<RAST._IType>((this).dtor_constraints, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_788_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_789_t) => {
-        return (_789_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_788_ind, RAST.__default.IND));
+      return Dafny.Sequence<Dafny.Rune>.Concat((this).dtor_content, (((new BigInteger(((this).dtor_constraints).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": "), RAST.__default.SeqToString<RAST._IType>((this).dtor_constraints, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_796_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_797_t) => {
+        return (_797_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_796_ind, RAST.__default.IND));
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" + "))))));
     }
   }
@@ -1177,6 +1364,7 @@ namespace RAST {
     bool is_I32 { get; }
     bool is_I64 { get; }
     bool is_I128 { get; }
+    bool is_Bool { get; }
     bool is_TIdentifier { get; }
     bool is_TMemberSelect { get; }
     bool is_TypeApp { get; }
@@ -1196,9 +1384,12 @@ namespace RAST {
     RAST._IType dtor_left { get; }
     RAST._IType dtor_right { get; }
     _IType DowncastClone();
+    bool CanReadWithoutClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
     RAST._IType MSel(Dafny.ISequence<Dafny.Rune> name);
     RAST._IType Apply1(RAST._IType arg);
+    RAST._IType Apply(Dafny.ISequence<RAST._IType> args);
+    RAST._IType ToOwned();
   }
   public abstract class Type : _IType {
     public Type() {
@@ -1244,6 +1435,9 @@ namespace RAST {
     public static _IType create_I128() {
       return new Type_I128();
     }
+    public static _IType create_Bool() {
+      return new Type_Bool();
+    }
     public static _IType create_TIdentifier(Dafny.ISequence<Dafny.Rune> name) {
       return new Type_TIdentifier(name);
     }
@@ -1285,6 +1479,7 @@ namespace RAST {
     public bool is_I32 { get { return this is Type_I32; } }
     public bool is_I64 { get { return this is Type_I64; } }
     public bool is_I128 { get { return this is Type_I128; } }
+    public bool is_Bool { get { return this is Type_Bool; } }
     public bool is_TIdentifier { get { return this is Type_TIdentifier; } }
     public bool is_TMemberSelect { get { return this is Type_TMemberSelect; } }
     public bool is_TypeApp { get { return this is Type_TypeApp; } }
@@ -1350,6 +1545,9 @@ namespace RAST {
       }
     }
     public abstract _IType DowncastClone();
+    public bool CanReadWithoutClone() {
+      return (((((((((((this).is_U8) || ((this).is_U16)) || ((this).is_U32)) || ((this).is_U64)) || ((this).is_U128)) || ((this).is_I8)) || ((this).is_I16)) || ((this).is_I32)) || ((this).is_I64)) || ((this).is_I128)) || ((this).is_Bool);
+    }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
       var _pat_let_tv27 = ind;
       var _pat_let_tv28 = ind;
@@ -1363,154 +1561,160 @@ namespace RAST {
       var _pat_let_tv36 = ind;
       var _pat_let_tv37 = ind;
       var _pat_let_tv38 = ind;
-      RAST._IType _source26 = this;
-      bool unmatched26 = true;
-      if (unmatched26) {
-        if (_source26.is_TIdentifier) {
-          Dafny.ISequence<Dafny.Rune> _790_underlying = _source26.dtor_name;
-          unmatched26 = false;
-          return _790_underlying;
+      RAST._IType _source27 = this;
+      bool unmatched27 = true;
+      if (unmatched27) {
+        if (_source27.is_Bool) {
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("bool");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_TMemberSelect) {
-          RAST._IType _791_underlying = _source26.dtor_base;
-          Dafny.ISequence<Dafny.Rune> _792_name = _source26.dtor_name;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_791_underlying)._ToString(_pat_let_tv27), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")), _792_name);
+      if (unmatched27) {
+        if (_source27.is_TIdentifier) {
+          Dafny.ISequence<Dafny.Rune> _798_underlying = _source27.dtor_name;
+          unmatched27 = false;
+          return _798_underlying;
         }
       }
-      if (unmatched26) {
-        if (_source26.is_Borrowed) {
-          RAST._IType _793_underlying = _source26.dtor_underlying;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), (_793_underlying)._ToString(_pat_let_tv28));
+      if (unmatched27) {
+        if (_source27.is_TMemberSelect) {
+          RAST._IType _799_underlying = _source27.dtor_base;
+          Dafny.ISequence<Dafny.Rune> _800_name = _source27.dtor_name;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_799_underlying)._ToString(_pat_let_tv27), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")), _800_name);
         }
       }
-      if (unmatched26) {
-        if (_source26.is_BorrowedMut) {
-          RAST._IType _794_underlying = _source26.dtor_underlying;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut "), (_794_underlying)._ToString(_pat_let_tv29));
+      if (unmatched27) {
+        if (_source27.is_Borrowed) {
+          RAST._IType _801_underlying = _source27.dtor_underlying;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), (_801_underlying)._ToString(_pat_let_tv28));
         }
       }
-      if (unmatched26) {
-        if (_source26.is_ImplType) {
-          RAST._IType _795_underlying = _source26.dtor_underlying;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("impl "), (_795_underlying)._ToString(_pat_let_tv30));
+      if (unmatched27) {
+        if (_source27.is_BorrowedMut) {
+          RAST._IType _802_underlying = _source27.dtor_underlying;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut "), (_802_underlying)._ToString(_pat_let_tv29));
         }
       }
-      if (unmatched26) {
-        if (_source26.is_DynType) {
-          RAST._IType _796_underlying = _source26.dtor_underlying;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dyn "), (_796_underlying)._ToString(_pat_let_tv31));
+      if (unmatched27) {
+        if (_source27.is_ImplType) {
+          RAST._IType _803_underlying = _source27.dtor_underlying;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("impl "), (_803_underlying)._ToString(_pat_let_tv30));
         }
       }
-      if (unmatched26) {
-        if (_source26.is_FnType) {
-          Dafny.ISequence<RAST._IType> _797_arguments = _source26.dtor_arguments;
-          RAST._IType _798_returnType = _source26.dtor_returnType;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::std::ops::Fn("), RAST.__default.SeqToString<RAST._IType>(_797_arguments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_799_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_800_arg) => {
-            return (_800_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_799_ind, RAST.__default.IND));
-          })))(_pat_let_tv32), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(") -> ")), (_798_returnType)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv33, RAST.__default.IND)));
+      if (unmatched27) {
+        if (_source27.is_DynType) {
+          RAST._IType _804_underlying = _source27.dtor_underlying;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dyn "), (_804_underlying)._ToString(_pat_let_tv31));
         }
       }
-      if (unmatched26) {
-        if (_source26.is_IntersectionType) {
-          RAST._IType _801_left = _source26.dtor_left;
-          RAST._IType _802_right = _source26.dtor_right;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_801_left)._ToString(_pat_let_tv34), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" + ")), (_802_right)._ToString(_pat_let_tv35));
+      if (unmatched27) {
+        if (_source27.is_FnType) {
+          Dafny.ISequence<RAST._IType> _805_arguments = _source27.dtor_arguments;
+          RAST._IType _806_returnType = _source27.dtor_returnType;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::std::ops::Fn("), RAST.__default.SeqToString<RAST._IType>(_805_arguments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_807_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_808_arg) => {
+            return (_808_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_807_ind, RAST.__default.IND));
+          })))(_pat_let_tv32), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(") -> ")), (_806_returnType)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv33, RAST.__default.IND)));
         }
       }
-      if (unmatched26) {
-        if (_source26.is_TupleType) {
-          Dafny.ISequence<RAST._IType> _803_args = _source26.dtor_arguments;
-          unmatched26 = false;
-          if ((_803_args).Equals(Dafny.Sequence<RAST._IType>.FromElements())) {
+      if (unmatched27) {
+        if (_source27.is_IntersectionType) {
+          RAST._IType _809_left = _source27.dtor_left;
+          RAST._IType _810_right = _source27.dtor_right;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_809_left)._ToString(_pat_let_tv34), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" + ")), (_810_right)._ToString(_pat_let_tv35));
+        }
+      }
+      if (unmatched27) {
+        if (_source27.is_TupleType) {
+          Dafny.ISequence<RAST._IType> _811_args = _source27.dtor_arguments;
+          unmatched27 = false;
+          if ((_811_args).Equals(Dafny.Sequence<RAST._IType>.FromElements())) {
             return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("()");
           } else {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<RAST._IType>(_803_args, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_804_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_805_arg) => {
-              return (_805_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_804_ind, RAST.__default.IND));
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<RAST._IType>(_811_args, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_812_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_813_arg) => {
+              return (_813_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_812_ind, RAST.__default.IND));
             })))(_pat_let_tv36), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
           }
         }
       }
-      if (unmatched26) {
-        if (_source26.is_TypeApp) {
-          RAST._IType _806_base = _source26.dtor_baseName;
-          Dafny.ISequence<RAST._IType> _807_args = _source26.dtor_arguments;
-          unmatched26 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat((_806_base)._ToString(_pat_let_tv37), (((_807_args).Equals(Dafny.Sequence<RAST._IType>.FromElements())) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"), RAST.__default.SeqToString<RAST._IType>(_807_args, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_808_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_809_arg) => {
-            return (_809_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_808_ind, RAST.__default.IND));
+      if (unmatched27) {
+        if (_source27.is_TypeApp) {
+          RAST._IType _814_base = _source27.dtor_baseName;
+          Dafny.ISequence<RAST._IType> _815_args = _source27.dtor_arguments;
+          unmatched27 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat((_814_base)._ToString(_pat_let_tv37), (((_815_args).Equals(Dafny.Sequence<RAST._IType>.FromElements())) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"), RAST.__default.SeqToString<RAST._IType>(_815_args, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_816_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_817_arg) => {
+            return (_817_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_816_ind, RAST.__default.IND));
           })))(_pat_let_tv38), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">")))));
         }
       }
-      if (unmatched26) {
-        if (_source26.is_SelfOwned) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_SelfOwned) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Self");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_U8) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_U8) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("u8");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_U16) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_U16) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("u16");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_U32) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_U32) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("u32");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_U64) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_U64) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("u64");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_U128) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_U128) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("u128");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_I8) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_I8) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("i8");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_I16) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_I16) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("i16");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_I32) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_I32) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("i32");
         }
       }
-      if (unmatched26) {
-        if (_source26.is_I64) {
-          unmatched26 = false;
+      if (unmatched27) {
+        if (_source27.is_I64) {
+          unmatched27 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("i64");
         }
       }
-      if (unmatched26) {
-        unmatched26 = false;
+      if (unmatched27) {
+        unmatched27 = false;
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("i128");
       }
       throw new System.Exception("unexpected control point");
@@ -1520,6 +1724,33 @@ namespace RAST {
     }
     public RAST._IType Apply1(RAST._IType arg) {
       return RAST.Type.create_TypeApp(this, Dafny.Sequence<RAST._IType>.FromElements(arg));
+    }
+    public RAST._IType Apply(Dafny.ISequence<RAST._IType> args) {
+      return RAST.Type.create_TypeApp(this, args);
+    }
+    public RAST._IType ToOwned() {
+      RAST._IType _source28 = this;
+      bool unmatched28 = true;
+      if (unmatched28) {
+        if (_source28.is_Borrowed) {
+          RAST._IType _818_x = _source28.dtor_underlying;
+          unmatched28 = false;
+          return _818_x;
+        }
+      }
+      if (unmatched28) {
+        if (_source28.is_BorrowedMut) {
+          RAST._IType _819_x = _source28.dtor_underlying;
+          unmatched28 = false;
+          return _819_x;
+        }
+      }
+      if (unmatched28) {
+        RAST._IType _820_x = _source28;
+        unmatched28 = false;
+        return _820_x;
+      }
+      throw new System.Exception("unexpected control point");
     }
   }
   public class Type_SelfOwned : Type {
@@ -1753,6 +1984,27 @@ namespace RAST {
       return s;
     }
   }
+  public class Type_Bool : Type {
+    public Type_Bool() : base() {
+    }
+    public override _IType DowncastClone() {
+      if (this is _IType dt) { return dt; }
+      return new Type_Bool();
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.Type_Bool;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 11;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.Type.Bool";
+      return s;
+    }
+  }
   public class Type_TIdentifier : Type {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
     public Type_TIdentifier(Dafny.ISequence<Dafny.Rune> name) : base() {
@@ -1768,7 +2020,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 11;
+      hash = ((hash << 5) + hash) + 12;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       return (int) hash;
     }
@@ -1797,7 +2049,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 12;
+      hash = ((hash << 5) + hash) + 13;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._base));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       return (int) hash;
@@ -1829,7 +2081,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 13;
+      hash = ((hash << 5) + hash) + 14;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._baseName));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
       return (int) hash;
@@ -1859,7 +2111,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 14;
+      hash = ((hash << 5) + hash) + 15;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
     }
@@ -1886,7 +2138,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 15;
+      hash = ((hash << 5) + hash) + 16;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
     }
@@ -1913,7 +2165,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 16;
+      hash = ((hash << 5) + hash) + 17;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
     }
@@ -1940,7 +2192,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 17;
+      hash = ((hash << 5) + hash) + 18;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
     }
@@ -1967,7 +2219,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 18;
+      hash = ((hash << 5) + hash) + 19;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
       return (int) hash;
     }
@@ -1996,7 +2248,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 19;
+      hash = ((hash << 5) + hash) + 20;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._returnType));
       return (int) hash;
@@ -2028,7 +2280,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 20;
+      hash = ((hash << 5) + hash) + 21;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._right));
       return (int) hash;
@@ -2046,7 +2298,7 @@ namespace RAST {
 
   public interface _ITrait {
     bool is_Trait { get; }
-    Dafny.ISequence<RAST._ITypeParam> dtor_typeParams { get; }
+    Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams { get; }
     RAST._IType dtor_tpe { get; }
     Dafny.ISequence<Dafny.Rune> dtor_where { get; }
     Dafny.ISequence<RAST._IImplMember> dtor_body { get; }
@@ -2054,11 +2306,11 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class Trait : _ITrait {
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
     public readonly RAST._IType _tpe;
     public readonly Dafny.ISequence<Dafny.Rune> _where;
     public readonly Dafny.ISequence<RAST._IImplMember> _body;
-    public Trait(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
+    public Trait(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
       this._typeParams = typeParams;
       this._tpe = tpe;
       this._where = @where;
@@ -2094,7 +2346,7 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._ITrait theDefault = create(Dafny.Sequence<RAST._ITypeParam>.Empty, RAST.Type.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IImplMember>.Empty);
+    private static readonly RAST._ITrait theDefault = create(Dafny.Sequence<RAST._ITypeParamDecl>.Empty, RAST.Type.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IImplMember>.Empty);
     public static RAST._ITrait Default() {
       return theDefault;
     }
@@ -2102,14 +2354,14 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._ITrait> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ITrait create(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
+    public static _ITrait create(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
       return new Trait(typeParams, tpe, @where, body);
     }
-    public static _ITrait create_Trait(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
+    public static _ITrait create_Trait(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
       return create(typeParams, tpe, @where, body);
     }
     public bool is_Trait { get { return true; } }
-    public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
+    public Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams {
       get {
         return this._typeParams;
       }
@@ -2130,8 +2382,8 @@ namespace RAST {
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("trait "), RAST.TypeParam.ToStringMultiple((this).dtor_typeParams, ind)), ((this).dtor_tpe)._ToString(ind)), ((!((this).dtor_where).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), (this).dtor_where)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IImplMember>((this).dtor_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>>>((_810_ind) => ((System.Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>)((_811_member) => {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _810_ind), RAST.__default.IND), (_811_member)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_810_ind, RAST.__default.IND)));
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub trait "), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), ((this).dtor_tpe)._ToString(ind)), ((!((this).dtor_where).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), (this).dtor_where)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IImplMember>((this).dtor_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>>>((_821_ind) => ((System.Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>)((_822_member) => {
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _821_ind), RAST.__default.IND), (_822_member)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_821_ind, RAST.__default.IND)));
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), (((new BigInteger(((this).dtor_body).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
     }
   }
@@ -2139,7 +2391,7 @@ namespace RAST {
   public interface _IImpl {
     bool is_ImplFor { get; }
     bool is_Impl { get; }
-    Dafny.ISequence<RAST._ITypeParam> dtor_typeParams { get; }
+    Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams { get; }
     RAST._IType dtor_tpe { get; }
     RAST._IType dtor_forType { get; }
     Dafny.ISequence<Dafny.Rune> dtor_where { get; }
@@ -2150,7 +2402,7 @@ namespace RAST {
   public abstract class Impl : _IImpl {
     public Impl() {
     }
-    private static readonly RAST._IImpl theDefault = create_ImplFor(Dafny.Sequence<RAST._ITypeParam>.Empty, RAST.Type.Default(), RAST.Type.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IImplMember>.Empty);
+    private static readonly RAST._IImpl theDefault = create_ImplFor(Dafny.Sequence<RAST._ITypeParamDecl>.Empty, RAST.Type.Default(), RAST.Type.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IImplMember>.Empty);
     public static RAST._IImpl Default() {
       return theDefault;
     }
@@ -2158,15 +2410,15 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IImpl> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IImpl create_ImplFor(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, RAST._IType forType, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
+    public static _IImpl create_ImplFor(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, RAST._IType forType, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
       return new Impl_ImplFor(typeParams, tpe, forType, @where, body);
     }
-    public static _IImpl create_Impl(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
+    public static _IImpl create_Impl(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) {
       return new Impl_Impl(typeParams, tpe, @where, body);
     }
     public bool is_ImplFor { get { return this is Impl_ImplFor; } }
     public bool is_Impl { get { return this is Impl_Impl; } }
-    public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
+    public Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams {
       get {
         var d = this;
         if (d is Impl_ImplFor) { return ((Impl_ImplFor)d)._typeParams; }
@@ -2202,18 +2454,18 @@ namespace RAST {
     }
     public abstract _IImpl DowncastClone();
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("impl "), RAST.TypeParam.ToStringMultiple((this).dtor_typeParams, ind)), ((this).dtor_tpe)._ToString(ind)), (((this).is_ImplFor) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" for "), ((this).dtor_forType)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND)))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), ((!((this).dtor_where).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), (this).dtor_where)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IImplMember>((this).dtor_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>>>((_812_ind) => ((System.Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>)((_813_member) => {
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _812_ind), RAST.__default.IND), (_813_member)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_812_ind, RAST.__default.IND)));
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("impl"), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" ")), ((this).dtor_tpe)._ToString(ind)), (((this).is_ImplFor) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("for ")), ((this).dtor_forType)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND)))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), ((!((this).dtor_where).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), (this).dtor_where)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IImplMember>((this).dtor_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>>>((_823_ind) => ((System.Func<RAST._IImplMember, Dafny.ISequence<Dafny.Rune>>)((_824_member) => {
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _823_ind), RAST.__default.IND), (_824_member)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_823_ind, RAST.__default.IND)));
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), (((new BigInteger(((this).dtor_body).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind)))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
     }
   }
   public class Impl_ImplFor : Impl {
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
     public readonly RAST._IType _tpe;
     public readonly RAST._IType _forType;
     public readonly Dafny.ISequence<Dafny.Rune> _where;
     public readonly Dafny.ISequence<RAST._IImplMember> _body;
-    public Impl_ImplFor(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, RAST._IType forType, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) : base() {
+    public Impl_ImplFor(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, RAST._IType forType, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) : base() {
       this._typeParams = typeParams;
       this._tpe = tpe;
       this._forType = forType;
@@ -2255,11 +2507,11 @@ namespace RAST {
     }
   }
   public class Impl_Impl : Impl {
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
     public readonly RAST._IType _tpe;
     public readonly Dafny.ISequence<Dafny.Rune> _where;
     public readonly Dafny.ISequence<RAST._IImplMember> _body;
-    public Impl_Impl(Dafny.ISequence<RAST._ITypeParam> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) : base() {
+    public Impl_Impl(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, RAST._IType tpe, Dafny.ISequence<Dafny.Rune> @where, Dafny.ISequence<RAST._IImplMember> body) : base() {
       this._typeParams = typeParams;
       this._tpe = tpe;
       this._where = @where;
@@ -2346,7 +2598,7 @@ namespace RAST {
     public abstract _IImplMember DowncastClone();
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
       if ((this).is_FnDecl) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(((object.Equals((this).dtor_pub, RAST.Visibility.create_PUB())) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub ")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), ((this).dtor_fun)._ToString(ind));
+        return Dafny.Sequence<Dafny.Rune>.Concat(((this).dtor_pub)._ToString(), ((this).dtor_fun)._ToString(ind));
       } else {
         return (this).dtor_content;
       }
@@ -2416,6 +2668,7 @@ namespace RAST {
     bool is_PUB { get; }
     bool is_PRIV { get; }
     _IVisibility DowncastClone();
+    Dafny.ISequence<Dafny.Rune> _ToString();
   }
   public abstract class Visibility : _IVisibility {
     public Visibility() {
@@ -2443,6 +2696,13 @@ namespace RAST {
       }
     }
     public abstract _IVisibility DowncastClone();
+    public Dafny.ISequence<Dafny.Rune> _ToString() {
+      if ((this).is_PUB) {
+        return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub ");
+      } else {
+        return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+      }
+    }
   }
   public class Visibility_PUB : Visibility {
     public Visibility_PUB() : base() {
@@ -2551,24 +2811,24 @@ namespace RAST {
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      if ((((this).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) && (((this).dtor_tpe).is_SelfOwned)) {
+      if ((((this).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) && (object.Equals((this).dtor_tpe, RAST.Type.create_SelfOwned()))) {
         return (this).dtor_name;
-      } else if ((((this).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&self"))) && (object.Equals((this).dtor_tpe, RAST.Type.create_Borrowed(RAST.Type.create_SelfOwned())))) {
-        return (this).dtor_name;
-      } else if ((((this).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut self"))) && (object.Equals((this).dtor_tpe, RAST.Type.create_Borrowed(RAST.__default.SelfMut)))) {
-        return (this).dtor_name;
+      } else if ((((this).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) && (object.Equals((this).dtor_tpe, RAST.__default.SelfBorrowed))) {
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), (this).dtor_name);
+      } else if ((((this).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) && (object.Equals((this).dtor_tpe, RAST.__default.SelfBorrowedMut))) {
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut "), (this).dtor_name);
       } else {
         return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((this).dtor_name, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": ")), ((this).dtor_tpe)._ToString(ind));
       }
     }
-    public static RAST._IFormal self { get {
-      return RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&self"), RAST.__default.Self);
+    public static RAST._IFormal selfBorrowed { get {
+      return RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"), RAST.__default.SelfBorrowed);
     } }
     public static RAST._IFormal selfOwned { get {
       return RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"), RAST.Type.create_SelfOwned());
     } }
-    public static RAST._IFormal selfMut { get {
-      return RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut self"), RAST.__default.SelfMut);
+    public static RAST._IFormal selfBorrowedMut { get {
+      return RAST.Formal.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"), RAST.__default.SelfBorrowedMut);
     } }
   }
 
@@ -2690,9 +2950,9 @@ namespace RAST {
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      Dafny.ISequence<Dafny.Rune> _814_newIndent = ((((this).dtor_rhs).is_Block) ? (ind) : (Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND)));
-      Dafny.ISequence<Dafny.Rune> _815_rhsString = ((this).dtor_rhs)._ToString(_814_newIndent);
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Pattern._ToString((this).dtor_pattern, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" =>")), ((((_815_rhsString).Contains(new Dafny.Rune('\n'))) && (((_815_rhsString).Select(BigInteger.Zero)) != (new Dafny.Rune('{')))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), _815_rhsString)) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), _815_rhsString))));
+      Dafny.ISequence<Dafny.Rune> _825_newIndent = ((((this).dtor_rhs).is_Block) ? (ind) : (Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND)));
+      Dafny.ISequence<Dafny.Rune> _826_rhsString = ((this).dtor_rhs)._ToString(_825_newIndent);
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Pattern._ToString((this).dtor_pattern, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" =>")), ((((_826_rhsString).Contains(new Dafny.Rune('\n'))) && (((_826_rhsString).Select(BigInteger.Zero)) != (new Dafny.Rune('{')))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), _826_rhsString)) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), _826_rhsString))));
     }
   }
 
@@ -3137,8 +3397,206 @@ namespace RAST {
     }
   }
 
+  public interface _IAssignLhs {
+    bool is_LocalVar { get; }
+    bool is_SelectMember { get; }
+    bool is_ExtractTuple { get; }
+    bool is_Index { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    RAST._IExpr dtor_on { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_field { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_names { get; }
+    RAST._IExpr dtor_expr { get; }
+    Dafny.ISequence<RAST._IExpr> dtor_indices { get; }
+    _IAssignLhs DowncastClone();
+  }
+  public abstract class AssignLhs : _IAssignLhs {
+    public AssignLhs() {
+    }
+    private static readonly RAST._IAssignLhs theDefault = create_LocalVar(Dafny.Sequence<Dafny.Rune>.Empty);
+    public static RAST._IAssignLhs Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<RAST._IAssignLhs> _TYPE = new Dafny.TypeDescriptor<RAST._IAssignLhs>(RAST.AssignLhs.Default());
+    public static Dafny.TypeDescriptor<RAST._IAssignLhs> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IAssignLhs create_LocalVar(Dafny.ISequence<Dafny.Rune> name) {
+      return new AssignLhs_LocalVar(name);
+    }
+    public static _IAssignLhs create_SelectMember(RAST._IExpr @on, Dafny.ISequence<Dafny.Rune> field) {
+      return new AssignLhs_SelectMember(@on, field);
+    }
+    public static _IAssignLhs create_ExtractTuple(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names) {
+      return new AssignLhs_ExtractTuple(names);
+    }
+    public static _IAssignLhs create_Index(RAST._IExpr expr, Dafny.ISequence<RAST._IExpr> indices) {
+      return new AssignLhs_Index(expr, indices);
+    }
+    public bool is_LocalVar { get { return this is AssignLhs_LocalVar; } }
+    public bool is_SelectMember { get { return this is AssignLhs_SelectMember; } }
+    public bool is_ExtractTuple { get { return this is AssignLhs_ExtractTuple; } }
+    public bool is_Index { get { return this is AssignLhs_Index; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
+      get {
+        var d = this;
+        return ((AssignLhs_LocalVar)d)._name;
+      }
+    }
+    public RAST._IExpr dtor_on {
+      get {
+        var d = this;
+        return ((AssignLhs_SelectMember)d)._on;
+      }
+    }
+    public Dafny.ISequence<Dafny.Rune> dtor_field {
+      get {
+        var d = this;
+        return ((AssignLhs_SelectMember)d)._field;
+      }
+    }
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_names {
+      get {
+        var d = this;
+        return ((AssignLhs_ExtractTuple)d)._names;
+      }
+    }
+    public RAST._IExpr dtor_expr {
+      get {
+        var d = this;
+        return ((AssignLhs_Index)d)._expr;
+      }
+    }
+    public Dafny.ISequence<RAST._IExpr> dtor_indices {
+      get {
+        var d = this;
+        return ((AssignLhs_Index)d)._indices;
+      }
+    }
+    public abstract _IAssignLhs DowncastClone();
+  }
+  public class AssignLhs_LocalVar : AssignLhs {
+    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public AssignLhs_LocalVar(Dafny.ISequence<Dafny.Rune> name) : base() {
+      this._name = name;
+    }
+    public override _IAssignLhs DowncastClone() {
+      if (this is _IAssignLhs dt) { return dt; }
+      return new AssignLhs_LocalVar(_name);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.AssignLhs_LocalVar;
+      return oth != null && object.Equals(this._name, oth._name);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.AssignLhs.LocalVar";
+      s += "(";
+      s += this._name.ToVerbatimString(true);
+      s += ")";
+      return s;
+    }
+  }
+  public class AssignLhs_SelectMember : AssignLhs {
+    public readonly RAST._IExpr _on;
+    public readonly Dafny.ISequence<Dafny.Rune> _field;
+    public AssignLhs_SelectMember(RAST._IExpr @on, Dafny.ISequence<Dafny.Rune> field) : base() {
+      this._on = @on;
+      this._field = field;
+    }
+    public override _IAssignLhs DowncastClone() {
+      if (this is _IAssignLhs dt) { return dt; }
+      return new AssignLhs_SelectMember(_on, _field);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.AssignLhs_SelectMember;
+      return oth != null && object.Equals(this._on, oth._on) && object.Equals(this._field, oth._field);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._on));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.AssignLhs.SelectMember";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._on);
+      s += ", ";
+      s += this._field.ToVerbatimString(true);
+      s += ")";
+      return s;
+    }
+  }
+  public class AssignLhs_ExtractTuple : AssignLhs {
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _names;
+    public AssignLhs_ExtractTuple(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names) : base() {
+      this._names = names;
+    }
+    public override _IAssignLhs DowncastClone() {
+      if (this is _IAssignLhs dt) { return dt; }
+      return new AssignLhs_ExtractTuple(_names);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.AssignLhs_ExtractTuple;
+      return oth != null && object.Equals(this._names, oth._names);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._names));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.AssignLhs.ExtractTuple";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._names);
+      s += ")";
+      return s;
+    }
+  }
+  public class AssignLhs_Index : AssignLhs {
+    public readonly RAST._IExpr _expr;
+    public readonly Dafny.ISequence<RAST._IExpr> _indices;
+    public AssignLhs_Index(RAST._IExpr expr, Dafny.ISequence<RAST._IExpr> indices) : base() {
+      this._expr = expr;
+      this._indices = indices;
+    }
+    public override _IAssignLhs DowncastClone() {
+      if (this is _IAssignLhs dt) { return dt; }
+      return new AssignLhs_Index(_expr, _indices);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.AssignLhs_Index;
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._indices, oth._indices);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 3;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._indices));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.AssignLhs.Index";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._expr);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._indices);
+      s += ")";
+      return s;
+    }
+  }
+
   public interface _IExpr {
     bool is_RawExpr { get; }
+    bool is_ExprFromType { get; }
     bool is_Identifier { get; }
     bool is_Match { get; }
     bool is_StmtExpr { get; }
@@ -3149,10 +3607,10 @@ namespace RAST {
     bool is_BinaryOp { get; }
     bool is_TypeAscription { get; }
     bool is_LiteralInt { get; }
+    bool is_LiteralBool { get; }
     bool is_LiteralString { get; }
-    bool is_ConversionNum { get; }
     bool is_DeclareVar { get; }
-    bool is_AssignVar { get; }
+    bool is_Assign { get; }
     bool is_IfExpr { get; }
     bool is_Loop { get; }
     bool is_For { get; }
@@ -3160,10 +3618,13 @@ namespace RAST {
     bool is_Break { get; }
     bool is_Continue { get; }
     bool is_Return { get; }
+    bool is_CallType { get; }
     bool is_Call { get; }
     bool is_Select { get; }
     bool is_MemberSelect { get; }
+    bool is_Lambda { get; }
     Dafny.ISequence<Dafny.Rune> dtor_content { get; }
+    RAST._IType dtor_tpe { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     RAST._IExpr dtor_matchee { get; }
     Dafny.ISequence<RAST._IMatchCase> dtor_cases { get; }
@@ -3178,12 +3639,14 @@ namespace RAST {
     RAST._IExpr dtor_left { get; }
     RAST._IExpr dtor_right { get; }
     DAST.Format._IBinaryOpFormat dtor_format2 { get; }
-    RAST._IType dtor_tpe { get; }
     Dafny.ISequence<Dafny.Rune> dtor_value { get; }
+    bool dtor_bvalue { get; }
     bool dtor_binary { get; }
+    bool dtor_verbatim { get; }
     RAST._IDeclareType dtor_declareType { get; }
     Std.Wrappers._IOption<RAST._IType> dtor_optType { get; }
     Std.Wrappers._IOption<RAST._IExpr> dtor_optRhs { get; }
+    Std.Wrappers._IOption<RAST._IAssignLhs> dtor_names { get; }
     RAST._IExpr dtor_cond { get; }
     RAST._IExpr dtor_thn { get; }
     RAST._IExpr dtor_els { get; }
@@ -3195,6 +3658,8 @@ namespace RAST {
     Std.Wrappers._IOption<RAST._IExpr> dtor_optExpr { get; }
     RAST._IExpr dtor_obj { get; }
     Dafny.ISequence<RAST._IType> dtor_typeParameters { get; }
+    Dafny.ISequence<RAST._IFormal> dtor_params { get; }
+    Std.Wrappers._IOption<RAST._IType> dtor_retType { get; }
     _IExpr DowncastClone();
     bool NoExtraSemicolonAfter();
     RAST._IPrintingInfo printingInfo { get; }
@@ -3208,8 +3673,12 @@ namespace RAST {
     RAST._IExpr Then(RAST._IExpr rhs2);
     RAST._IExpr Sel(Dafny.ISequence<Dafny.Rune> name);
     RAST._IExpr MSel(Dafny.ISequence<Dafny.Rune> name);
-    RAST._IExpr Apply(Dafny.ISequence<RAST._IType> typeParameters, Dafny.ISequence<RAST._IExpr> arguments);
+    RAST._IExpr ApplyType(Dafny.ISequence<RAST._IType> typeParameters);
+    RAST._IExpr ApplyType1(RAST._IType typeParameter);
+    RAST._IExpr Apply(Dafny.ISequence<RAST._IExpr> arguments);
     RAST._IExpr Apply1(RAST._IExpr argument);
+    bool IsLhsIdentifier();
+    Dafny.ISequence<Dafny.Rune> LhsIdentifierName();
   }
   public abstract class Expr : _IExpr {
     public Expr() {
@@ -3225,6 +3694,9 @@ namespace RAST {
     public static _IExpr create_RawExpr(Dafny.ISequence<Dafny.Rune> content) {
       return new Expr_RawExpr(content);
     }
+    public static _IExpr create_ExprFromType(RAST._IType tpe) {
+      return new Expr_ExprFromType(tpe);
+    }
     public static _IExpr create_Identifier(Dafny.ISequence<Dafny.Rune> name) {
       return new Expr_Identifier(name);
     }
@@ -3237,8 +3709,8 @@ namespace RAST {
     public static _IExpr create_Block(RAST._IExpr underlying) {
       return new Expr_Block(underlying);
     }
-    public static _IExpr create_StructBuild(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IAssignIdentifier> assignments) {
-      return new Expr_StructBuild(name, assignments);
+    public static _IExpr create_StructBuild(RAST._IExpr underlying, Dafny.ISequence<RAST._IAssignIdentifier> assignments) {
+      return new Expr_StructBuild(underlying, assignments);
     }
     public static _IExpr create_Tuple(Dafny.ISequence<RAST._IExpr> arguments) {
       return new Expr_Tuple(arguments);
@@ -3255,17 +3727,17 @@ namespace RAST {
     public static _IExpr create_LiteralInt(Dafny.ISequence<Dafny.Rune> @value) {
       return new Expr_LiteralInt(@value);
     }
-    public static _IExpr create_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary) {
-      return new Expr_LiteralString(@value, binary);
+    public static _IExpr create_LiteralBool(bool bvalue) {
+      return new Expr_LiteralBool(bvalue);
     }
-    public static _IExpr create_ConversionNum(RAST._IType tpe, RAST._IExpr underlying) {
-      return new Expr_ConversionNum(tpe, underlying);
+    public static _IExpr create_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary, bool verbatim) {
+      return new Expr_LiteralString(@value, binary, verbatim);
     }
     public static _IExpr create_DeclareVar(RAST._IDeclareType declareType, Dafny.ISequence<Dafny.Rune> name, Std.Wrappers._IOption<RAST._IType> optType, Std.Wrappers._IOption<RAST._IExpr> optRhs) {
       return new Expr_DeclareVar(declareType, name, optType, optRhs);
     }
-    public static _IExpr create_AssignVar(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr rhs) {
-      return new Expr_AssignVar(name, rhs);
+    public static _IExpr create_Assign(Std.Wrappers._IOption<RAST._IAssignLhs> names, RAST._IExpr rhs) {
+      return new Expr_Assign(names, rhs);
     }
     public static _IExpr create_IfExpr(RAST._IExpr cond, RAST._IExpr thn, RAST._IExpr els) {
       return new Expr_IfExpr(cond, thn, els);
@@ -3288,8 +3760,11 @@ namespace RAST {
     public static _IExpr create_Return(Std.Wrappers._IOption<RAST._IExpr> optExpr) {
       return new Expr_Return(optExpr);
     }
-    public static _IExpr create_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeParameters, Dafny.ISequence<RAST._IExpr> arguments) {
-      return new Expr_Call(obj, typeParameters, arguments);
+    public static _IExpr create_CallType(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeParameters) {
+      return new Expr_CallType(obj, typeParameters);
+    }
+    public static _IExpr create_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IExpr> arguments) {
+      return new Expr_Call(obj, arguments);
     }
     public static _IExpr create_Select(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) {
       return new Expr_Select(obj, name);
@@ -3297,7 +3772,11 @@ namespace RAST {
     public static _IExpr create_MemberSelect(RAST._IExpr obj, Dafny.ISequence<Dafny.Rune> name) {
       return new Expr_MemberSelect(obj, name);
     }
+    public static _IExpr create_Lambda(Dafny.ISequence<RAST._IFormal> @params, Std.Wrappers._IOption<RAST._IType> retType, RAST._IExpr body) {
+      return new Expr_Lambda(@params, retType, body);
+    }
     public bool is_RawExpr { get { return this is Expr_RawExpr; } }
+    public bool is_ExprFromType { get { return this is Expr_ExprFromType; } }
     public bool is_Identifier { get { return this is Expr_Identifier; } }
     public bool is_Match { get { return this is Expr_Match; } }
     public bool is_StmtExpr { get { return this is Expr_StmtExpr; } }
@@ -3308,10 +3787,10 @@ namespace RAST {
     public bool is_BinaryOp { get { return this is Expr_BinaryOp; } }
     public bool is_TypeAscription { get { return this is Expr_TypeAscription; } }
     public bool is_LiteralInt { get { return this is Expr_LiteralInt; } }
+    public bool is_LiteralBool { get { return this is Expr_LiteralBool; } }
     public bool is_LiteralString { get { return this is Expr_LiteralString; } }
-    public bool is_ConversionNum { get { return this is Expr_ConversionNum; } }
     public bool is_DeclareVar { get { return this is Expr_DeclareVar; } }
-    public bool is_AssignVar { get { return this is Expr_AssignVar; } }
+    public bool is_Assign { get { return this is Expr_Assign; } }
     public bool is_IfExpr { get { return this is Expr_IfExpr; } }
     public bool is_Loop { get { return this is Expr_Loop; } }
     public bool is_For { get { return this is Expr_For; } }
@@ -3319,22 +3798,29 @@ namespace RAST {
     public bool is_Break { get { return this is Expr_Break; } }
     public bool is_Continue { get { return this is Expr_Continue; } }
     public bool is_Return { get { return this is Expr_Return; } }
+    public bool is_CallType { get { return this is Expr_CallType; } }
     public bool is_Call { get { return this is Expr_Call; } }
     public bool is_Select { get { return this is Expr_Select; } }
     public bool is_MemberSelect { get { return this is Expr_MemberSelect; } }
+    public bool is_Lambda { get { return this is Expr_Lambda; } }
     public Dafny.ISequence<Dafny.Rune> dtor_content {
       get {
         var d = this;
         return ((Expr_RawExpr)d)._content;
       }
     }
+    public RAST._IType dtor_tpe {
+      get {
+        var d = this;
+        if (d is Expr_ExprFromType) { return ((Expr_ExprFromType)d)._tpe; }
+        return ((Expr_TypeAscription)d)._tpe;
+      }
+    }
     public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         var d = this;
         if (d is Expr_Identifier) { return ((Expr_Identifier)d)._name; }
-        if (d is Expr_StructBuild) { return ((Expr_StructBuild)d)._name; }
         if (d is Expr_DeclareVar) { return ((Expr_DeclareVar)d)._name; }
-        if (d is Expr_AssignVar) { return ((Expr_AssignVar)d)._name; }
         if (d is Expr_For) { return ((Expr_For)d)._name; }
         if (d is Expr_Select) { return ((Expr_Select)d)._name; }
         return ((Expr_MemberSelect)d)._name;
@@ -3362,15 +3848,15 @@ namespace RAST {
       get {
         var d = this;
         if (d is Expr_StmtExpr) { return ((Expr_StmtExpr)d)._rhs; }
-        return ((Expr_AssignVar)d)._rhs;
+        return ((Expr_Assign)d)._rhs;
       }
     }
     public RAST._IExpr dtor_underlying {
       get {
         var d = this;
         if (d is Expr_Block) { return ((Expr_Block)d)._underlying; }
+        if (d is Expr_StructBuild) { return ((Expr_StructBuild)d)._underlying; }
         if (d is Expr_UnaryOp) { return ((Expr_UnaryOp)d)._underlying; }
-        if (d is Expr_ConversionNum) { return ((Expr_ConversionNum)d)._underlying; }
         if (d is Expr_Loop) { return ((Expr_Loop)d)._underlying; }
         return ((Expr_Labelled)d)._underlying;
       }
@@ -3425,13 +3911,6 @@ namespace RAST {
         return ((Expr_BinaryOp)d)._format2;
       }
     }
-    public RAST._IType dtor_tpe {
-      get {
-        var d = this;
-        if (d is Expr_TypeAscription) { return ((Expr_TypeAscription)d)._tpe; }
-        return ((Expr_ConversionNum)d)._tpe;
-      }
-    }
     public Dafny.ISequence<Dafny.Rune> dtor_value {
       get {
         var d = this;
@@ -3439,10 +3918,22 @@ namespace RAST {
         return ((Expr_LiteralString)d)._value;
       }
     }
+    public bool dtor_bvalue {
+      get {
+        var d = this;
+        return ((Expr_LiteralBool)d)._bvalue;
+      }
+    }
     public bool dtor_binary {
       get {
         var d = this;
         return ((Expr_LiteralString)d)._binary;
+      }
+    }
+    public bool dtor_verbatim {
+      get {
+        var d = this;
+        return ((Expr_LiteralString)d)._verbatim;
       }
     }
     public RAST._IDeclareType dtor_declareType {
@@ -3461,6 +3952,12 @@ namespace RAST {
       get {
         var d = this;
         return ((Expr_DeclareVar)d)._optRhs;
+      }
+    }
+    public Std.Wrappers._IOption<RAST._IAssignLhs> dtor_names {
+      get {
+        var d = this;
+        return ((Expr_Assign)d)._names;
       }
     }
     public RAST._IExpr dtor_cond {
@@ -3496,7 +3993,8 @@ namespace RAST {
     public RAST._IExpr dtor_body {
       get {
         var d = this;
-        return ((Expr_For)d)._body;
+        if (d is Expr_For) { return ((Expr_For)d)._body; }
+        return ((Expr_Lambda)d)._body;
       }
     }
     public Dafny.ISequence<Dafny.Rune> dtor_lbl {
@@ -3521,6 +4019,7 @@ namespace RAST {
     public RAST._IExpr dtor_obj {
       get {
         var d = this;
+        if (d is Expr_CallType) { return ((Expr_CallType)d)._obj; }
         if (d is Expr_Call) { return ((Expr_Call)d)._obj; }
         if (d is Expr_Select) { return ((Expr_Select)d)._obj; }
         return ((Expr_MemberSelect)d)._obj;
@@ -3529,33 +4028,44 @@ namespace RAST {
     public Dafny.ISequence<RAST._IType> dtor_typeParameters {
       get {
         var d = this;
-        return ((Expr_Call)d)._typeParameters;
+        return ((Expr_CallType)d)._typeParameters;
+      }
+    }
+    public Dafny.ISequence<RAST._IFormal> dtor_params {
+      get {
+        var d = this;
+        return ((Expr_Lambda)d)._params;
+      }
+    }
+    public Std.Wrappers._IOption<RAST._IType> dtor_retType {
+      get {
+        var d = this;
+        return ((Expr_Lambda)d)._retType;
       }
     }
     public abstract _IExpr DowncastClone();
     public bool NoExtraSemicolonAfter() {
-      return ((((((this).is_DeclareVar) || ((this).is_AssignVar)) || ((this).is_Break)) || ((this).is_Continue)) || ((this).is_Return)) || ((((this).is_RawExpr) && ((new BigInteger(((this).dtor_content).Count)).Sign == 1)) && ((((this).dtor_content).Select((new BigInteger(((this).dtor_content).Count)) - (BigInteger.One))) == (new Dafny.Rune(';'))));
+      return (((((((this).is_DeclareVar) || ((this).is_Assign)) || ((this).is_Break)) || ((this).is_Continue)) || ((this).is_Return)) || ((this).is_For)) || ((((this).is_RawExpr) && ((new BigInteger(((this).dtor_content).Count)).Sign == 1)) && ((((this).dtor_content).Select((new BigInteger(((this).dtor_content).Count)) - (BigInteger.One))) == (new Dafny.Rune(';'))));
     }
     public RAST._IExpr Optimize() {
-      RAST._IExpr _source27 = this;
-      bool unmatched27 = true;
-      if (unmatched27) {
-        if (_source27.is_UnaryOp) {
-          Dafny.ISequence<Dafny.Rune> op10 = _source27.dtor_op1;
+      RAST._IExpr _source29 = this;
+      bool unmatched29 = true;
+      if (unmatched29) {
+        if (_source29.is_UnaryOp) {
+          Dafny.ISequence<Dafny.Rune> op10 = _source29.dtor_op1;
           if (object.Equals(op10, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
-            RAST._IExpr underlying0 = _source27.dtor_underlying;
+            RAST._IExpr underlying0 = _source29.dtor_underlying;
             if (underlying0.is_Call) {
               RAST._IExpr obj0 = underlying0.dtor_obj;
               if (obj0.is_Select) {
-                RAST._IExpr _816_underlying = obj0.dtor_obj;
-                Dafny.ISequence<Dafny.Rune> name0 = obj0.dtor_name;
-                if (object.Equals(name0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))) {
-                  Dafny.ISequence<RAST._IType> _817_typeArgs = underlying0.dtor_typeParameters;
-                  Dafny.ISequence<RAST._IExpr> _818_args = underlying0.dtor_arguments;
-                  DAST.Format._IUnaryOpFormat _819_format = _source27.dtor_format;
-                  unmatched27 = false;
-                  if (((_817_typeArgs).Equals(Dafny.Sequence<RAST._IType>.FromElements())) && ((_818_args).Equals(Dafny.Sequence<RAST._IExpr>.FromElements()))) {
-                    return RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), _816_underlying, _819_format);
+                RAST._IExpr _827_underlying = obj0.dtor_obj;
+                Dafny.ISequence<Dafny.Rune> name4 = obj0.dtor_name;
+                if (object.Equals(name4, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("clone"))) {
+                  Dafny.ISequence<RAST._IExpr> _828_args = underlying0.dtor_arguments;
+                  DAST.Format._IUnaryOpFormat _829_format = _source29.dtor_format;
+                  unmatched29 = false;
+                  if ((_828_args).Equals(Dafny.Sequence<RAST._IExpr>.FromElements())) {
+                    return RAST.Expr.create_UnaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"), _827_underlying, _829_format);
                   } else {
                     return this;
                   }
@@ -3565,43 +4075,43 @@ namespace RAST {
           }
         }
       }
-      if (unmatched27) {
-        if (_source27.is_UnaryOp) {
-          Dafny.ISequence<Dafny.Rune> op11 = _source27.dtor_op1;
+      if (unmatched29) {
+        if (_source29.is_UnaryOp) {
+          Dafny.ISequence<Dafny.Rune> op11 = _source29.dtor_op1;
           if (object.Equals(op11, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
-            RAST._IExpr underlying1 = _source27.dtor_underlying;
+            RAST._IExpr underlying1 = _source29.dtor_underlying;
             if (underlying1.is_BinaryOp) {
               Dafny.ISequence<Dafny.Rune> op20 = underlying1.dtor_op2;
               if (object.Equals(op20, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
-                RAST._IExpr _820_left = underlying1.dtor_left;
-                RAST._IExpr _821_right = underlying1.dtor_right;
-                DAST.Format._IBinaryOpFormat _822_format = underlying1.dtor_format2;
-                DAST.Format._IUnaryOpFormat format0 = _source27.dtor_format;
+                RAST._IExpr _830_left = underlying1.dtor_left;
+                RAST._IExpr _831_right = underlying1.dtor_right;
+                DAST.Format._IBinaryOpFormat _832_format = underlying1.dtor_format2;
+                DAST.Format._IUnaryOpFormat format0 = _source29.dtor_format;
                 if (format0.is_CombineFormat) {
-                  unmatched27 = false;
-                  return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!="), _820_left, _821_right, DAST.Format.BinaryOpFormat.create_NoFormat());
+                  unmatched29 = false;
+                  return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!="), _830_left, _831_right, DAST.Format.BinaryOpFormat.create_NoFormat());
                 }
               }
             }
           }
         }
       }
-      if (unmatched27) {
-        if (_source27.is_UnaryOp) {
-          Dafny.ISequence<Dafny.Rune> op12 = _source27.dtor_op1;
+      if (unmatched29) {
+        if (_source29.is_UnaryOp) {
+          Dafny.ISequence<Dafny.Rune> op12 = _source29.dtor_op1;
           if (object.Equals(op12, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
-            RAST._IExpr underlying2 = _source27.dtor_underlying;
+            RAST._IExpr underlying2 = _source29.dtor_underlying;
             if (underlying2.is_BinaryOp) {
               Dafny.ISequence<Dafny.Rune> op21 = underlying2.dtor_op2;
               if (object.Equals(op21, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) {
-                RAST._IExpr _823_left = underlying2.dtor_left;
-                RAST._IExpr _824_right = underlying2.dtor_right;
+                RAST._IExpr _833_left = underlying2.dtor_left;
+                RAST._IExpr _834_right = underlying2.dtor_right;
                 DAST.Format._IBinaryOpFormat format20 = underlying2.dtor_format2;
                 if (format20.is_NoFormat) {
-                  DAST.Format._IUnaryOpFormat format1 = _source27.dtor_format;
+                  DAST.Format._IUnaryOpFormat format1 = _source29.dtor_format;
                   if (format1.is_CombineFormat) {
-                    unmatched27 = false;
-                    return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">="), _823_left, _824_right, DAST.Format.BinaryOpFormat.create_NoFormat());
+                    unmatched29 = false;
+                    return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">="), _833_left, _834_right, DAST.Format.BinaryOpFormat.create_NoFormat());
                   }
                 }
               }
@@ -3609,22 +4119,22 @@ namespace RAST {
           }
         }
       }
-      if (unmatched27) {
-        if (_source27.is_UnaryOp) {
-          Dafny.ISequence<Dafny.Rune> op13 = _source27.dtor_op1;
+      if (unmatched29) {
+        if (_source29.is_UnaryOp) {
+          Dafny.ISequence<Dafny.Rune> op13 = _source29.dtor_op1;
           if (object.Equals(op13, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
-            RAST._IExpr underlying3 = _source27.dtor_underlying;
+            RAST._IExpr underlying3 = _source29.dtor_underlying;
             if (underlying3.is_BinaryOp) {
               Dafny.ISequence<Dafny.Rune> op22 = underlying3.dtor_op2;
               if (object.Equals(op22, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) {
-                RAST._IExpr _825_left = underlying3.dtor_left;
-                RAST._IExpr _826_right = underlying3.dtor_right;
+                RAST._IExpr _835_left = underlying3.dtor_left;
+                RAST._IExpr _836_right = underlying3.dtor_right;
                 DAST.Format._IBinaryOpFormat format21 = underlying3.dtor_format2;
                 if (format21.is_ReverseFormat) {
-                  DAST.Format._IUnaryOpFormat format2 = _source27.dtor_format;
+                  DAST.Format._IUnaryOpFormat format2 = _source29.dtor_format;
                   if (format2.is_CombineFormat) {
-                    unmatched27 = false;
-                    return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<="), _826_right, _825_left, DAST.Format.BinaryOpFormat.create_NoFormat());
+                    unmatched29 = false;
+                    return RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<="), _836_right, _835_left, DAST.Format.BinaryOpFormat.create_NoFormat());
                   }
                 }
               }
@@ -3632,105 +4142,105 @@ namespace RAST {
           }
         }
       }
-      if (unmatched27) {
-        if (_source27.is_ConversionNum) {
-          RAST._IType _827_tpe = _source27.dtor_tpe;
-          RAST._IExpr _828_expr = _source27.dtor_underlying;
-          unmatched27 = false;
-          if (((((((((((_827_tpe).is_U8) || ((_827_tpe).is_U16)) || ((_827_tpe).is_U32)) || ((_827_tpe).is_U64)) || ((_827_tpe).is_U128)) || ((_827_tpe).is_I8)) || ((_827_tpe).is_I16)) || ((_827_tpe).is_I32)) || ((_827_tpe).is_I64)) || ((_827_tpe).is_I128)) {
-            RAST._IExpr _source28 = _828_expr;
-            bool unmatched28 = true;
-            if (unmatched28) {
-              if (_source28.is_Call) {
-                RAST._IExpr obj1 = _source28.dtor_obj;
-                if (obj1.is_MemberSelect) {
-                  RAST._IExpr obj2 = obj1.dtor_obj;
-                  if (obj2.is_MemberSelect) {
-                    RAST._IExpr obj3 = obj2.dtor_obj;
-                    if (obj3.is_MemberSelect) {
-                      RAST._IExpr obj4 = obj3.dtor_obj;
-                      if (obj4.is_Identifier) {
-                        Dafny.ISequence<Dafny.Rune> name1 = obj4.dtor_name;
-                        if (object.Equals(name1, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
-                          Dafny.ISequence<Dafny.Rune> name2 = obj3.dtor_name;
-                          if (object.Equals(name2, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("dafny_runtime"))) {
-                            Dafny.ISequence<Dafny.Rune> name3 = obj2.dtor_name;
-                            if (object.Equals(name3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyInt"))) {
-                              Dafny.ISequence<Dafny.Rune> name4 = obj1.dtor_name;
-                              if (object.Equals(name4, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("from"))) {
-                                Dafny.ISequence<RAST._IType> _829_tpe = _source28.dtor_typeParameters;
-                                Dafny.ISequence<RAST._IExpr> _830_args = _source28.dtor_arguments;
-                                unmatched28 = false;
-                                if (((new BigInteger((_829_tpe).Count)).Sign == 0) && ((new BigInteger((_830_args).Count)) == (BigInteger.One))) {
-                                  RAST._IExpr _source29 = (_830_args).Select(BigInteger.Zero);
-                                  bool unmatched29 = true;
-                                  if (unmatched29) {
-                                    if (_source29.is_LiteralInt) {
-                                      Dafny.ISequence<Dafny.Rune> _831_number = _source29.dtor_value;
-                                      unmatched29 = false;
-                                      return RAST.Expr.create_LiteralInt(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/*optimized*/"), _831_number));
-                                    }
-                                  }
-                                  if (unmatched29) {
-                                    if (_source29.is_LiteralString) {
-                                      Dafny.ISequence<Dafny.Rune> _832_number = _source29.dtor_value;
-                                      bool _833___v22 = _source29.dtor_binary;
-                                      unmatched29 = false;
-                                      return RAST.Expr.create_LiteralInt(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/*optimized*/"), _832_number));
-                                    }
-                                  }
-                                  if (unmatched29) {
-                                    RAST._IExpr _834___v23 = _source29;
-                                    unmatched29 = false;
-                                    return this;
-                                  }
-                                  throw new System.Exception("unexpected control point");
-                                } else {
-                                  return this;
+      if (unmatched29) {
+        if (_source29.is_Call) {
+          RAST._IExpr obj1 = _source29.dtor_obj;
+          if (obj1.is_MemberSelect) {
+            RAST._IExpr _837_r = obj1.dtor_obj;
+            Dafny.ISequence<Dafny.Rune> name5 = obj1.dtor_name;
+            if (object.Equals(name5, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("truncate!"))) {
+              Dafny.ISequence<RAST._IExpr> _838_args = _source29.dtor_arguments;
+              unmatched29 = false;
+              if (((!object.Equals(_837_r, RAST.__default.dafny__runtime)) && (!object.Equals(_837_r, RAST.__default.@global))) || ((new BigInteger((_838_args).Count)) != (new BigInteger(2)))) {
+                return this;
+              } else {
+                RAST._IExpr _839_expr = (_838_args).Select(BigInteger.Zero);
+                RAST._IExpr _840_tpeExpr = (_838_args).Select(BigInteger.One);
+                if (!((_840_tpeExpr).is_ExprFromType)) {
+                  return this;
+                } else {
+                  RAST._IType _841_tpe = (_840_tpeExpr).dtor_tpe;
+                  if (((((((((((_841_tpe).is_U8) || ((_841_tpe).is_U16)) || ((_841_tpe).is_U32)) || ((_841_tpe).is_U64)) || ((_841_tpe).is_U128)) || ((_841_tpe).is_I8)) || ((_841_tpe).is_I16)) || ((_841_tpe).is_I32)) || ((_841_tpe).is_I64)) || ((_841_tpe).is_I128)) {
+                    RAST._IExpr _source30 = _839_expr;
+                    bool unmatched30 = true;
+                    if (unmatched30) {
+                      if (_source30.is_Call) {
+                        RAST._IExpr obj2 = _source30.dtor_obj;
+                        if (obj2.is_MemberSelect) {
+                          RAST._IExpr _842_base = obj2.dtor_obj;
+                          Dafny.ISequence<Dafny.Rune> name6 = obj2.dtor_name;
+                          if (object.Equals(name6, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("int!"))) {
+                            Dafny.ISequence<RAST._IExpr> _843_args = _source30.dtor_arguments;
+                            unmatched30 = false;
+                            if (((new BigInteger((_843_args).Count)) == (BigInteger.One)) && ((object.Equals(_842_base, RAST.__default.dafny__runtime)) || (object.Equals(_842_base, RAST.__default.@global)))) {
+                              RAST._IExpr _source31 = (_843_args).Select(BigInteger.Zero);
+                              bool unmatched31 = true;
+                              if (unmatched31) {
+                                if (_source31.is_LiteralInt) {
+                                  Dafny.ISequence<Dafny.Rune> _844_number = _source31.dtor_value;
+                                  unmatched31 = false;
+                                  return RAST.Expr.create_LiteralInt(_844_number);
                                 }
                               }
+                              if (unmatched31) {
+                                if (_source31.is_LiteralString) {
+                                  Dafny.ISequence<Dafny.Rune> _845_number = _source31.dtor_value;
+                                  bool _846___v33 = _source31.dtor_binary;
+                                  bool _847___v34 = _source31.dtor_verbatim;
+                                  unmatched31 = false;
+                                  return RAST.Expr.create_LiteralInt(_845_number);
+                                }
+                              }
+                              if (unmatched31) {
+                                RAST._IExpr _848___v35 = _source31;
+                                unmatched31 = false;
+                                return this;
+                              }
+                              throw new System.Exception("unexpected control point");
+                            } else {
+                              return this;
                             }
                           }
                         }
                       }
                     }
+                    if (unmatched30) {
+                      RAST._IExpr _849___v36 = _source30;
+                      unmatched30 = false;
+                      return this;
+                    }
+                    throw new System.Exception("unexpected control point");
+                  } else {
+                    return this;
                   }
                 }
               }
             }
-            if (unmatched28) {
-              RAST._IExpr _835___v24 = _source28;
-              unmatched28 = false;
-              return this;
-            }
-            throw new System.Exception("unexpected control point");
-          } else {
-            return this;
           }
         }
       }
-      if (unmatched27) {
-        if (_source27.is_StmtExpr) {
-          RAST._IExpr stmt0 = _source27.dtor_stmt;
+      if (unmatched29) {
+        if (_source29.is_StmtExpr) {
+          RAST._IExpr stmt0 = _source29.dtor_stmt;
           if (stmt0.is_DeclareVar) {
-            RAST._IDeclareType _836_mod = stmt0.dtor_declareType;
-            Dafny.ISequence<Dafny.Rune> _837_name = stmt0.dtor_name;
+            RAST._IDeclareType _850_mod = stmt0.dtor_declareType;
+            Dafny.ISequence<Dafny.Rune> _851_name = stmt0.dtor_name;
             Std.Wrappers._IOption<RAST._IType> optType0 = stmt0.dtor_optType;
             if (optType0.is_Some) {
-              RAST._IType _838_tpe = optType0.dtor_value;
+              RAST._IType _852_tpe = optType0.dtor_value;
               Std.Wrappers._IOption<RAST._IExpr> optRhs0 = stmt0.dtor_optRhs;
               if (optRhs0.is_None) {
-                RAST._IExpr rhs0 = _source27.dtor_rhs;
+                RAST._IExpr rhs0 = _source29.dtor_rhs;
                 if (rhs0.is_StmtExpr) {
                   RAST._IExpr stmt1 = rhs0.dtor_stmt;
-                  if (stmt1.is_AssignVar) {
-                    Dafny.ISequence<Dafny.Rune> _839_name2 = stmt1.dtor_name;
-                    RAST._IExpr _840_rhs = stmt1.dtor_rhs;
-                    RAST._IExpr _841_last = rhs0.dtor_rhs;
-                    unmatched27 = false;
-                    if ((_837_name).Equals(_839_name2)) {
-                      RAST._IExpr _842_rewriting = RAST.Expr.create_StmtExpr(RAST.Expr.create_DeclareVar(_836_mod, _837_name, Std.Wrappers.Option<RAST._IType>.create_Some(_838_tpe), Std.Wrappers.Option<RAST._IExpr>.create_Some(_840_rhs)), _841_last);
-                      return _842_rewriting;
+                  if (stmt1.is_Assign) {
+                    Std.Wrappers._IOption<RAST._IAssignLhs> _853_name2 = stmt1.dtor_names;
+                    RAST._IExpr _854_rhs = stmt1.dtor_rhs;
+                    RAST._IExpr _855_last = rhs0.dtor_rhs;
+                    unmatched29 = false;
+                    if (object.Equals(_853_name2, Std.Wrappers.Option<RAST._IAssignLhs>.create_Some(RAST.AssignLhs.create_LocalVar(_851_name)))) {
+                      RAST._IExpr _856_rewriting = RAST.Expr.create_StmtExpr(RAST.Expr.create_DeclareVar(_850_mod, _851_name, Std.Wrappers.Option<RAST._IType>.create_Some(_852_tpe), Std.Wrappers.Option<RAST._IExpr>.create_Some(_854_rhs)), _855_last);
+                      return _856_rewriting;
                     } else {
                       return this;
                     }
@@ -3741,9 +4251,48 @@ namespace RAST {
           }
         }
       }
-      if (unmatched27) {
-        RAST._IExpr _843___v25 = _source27;
-        unmatched27 = false;
+      if (unmatched29) {
+        if (_source29.is_StmtExpr) {
+          RAST._IExpr stmt2 = _source29.dtor_stmt;
+          if (stmt2.is_IfExpr) {
+            RAST._IExpr cond0 = stmt2.dtor_cond;
+            if (cond0.is_UnaryOp) {
+              Dafny.ISequence<Dafny.Rune> op14 = cond0.dtor_op1;
+              if (object.Equals(op14, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
+                RAST._IExpr underlying4 = cond0.dtor_underlying;
+                if (underlying4.is_BinaryOp) {
+                  Dafny.ISequence<Dafny.Rune> op23 = underlying4.dtor_op2;
+                  if (object.Equals(op23, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
+                    RAST._IExpr _857_a = underlying4.dtor_left;
+                    RAST._IExpr _858_b = underlying4.dtor_right;
+                    DAST.Format._IBinaryOpFormat _859_f = underlying4.dtor_format2;
+                    DAST.Format._IUnaryOpFormat _860_of = cond0.dtor_format;
+                    RAST._IExpr thn0 = stmt2.dtor_thn;
+                    if (thn0.is_RawExpr) {
+                      Dafny.ISequence<Dafny.Rune> content0 = thn0.dtor_content;
+                      if (object.Equals(content0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!(\"Halt\");"))) {
+                        RAST._IExpr els0 = stmt2.dtor_els;
+                        if (els0.is_RawExpr) {
+                          Dafny.ISequence<Dafny.Rune> content1 = els0.dtor_content;
+                          if (object.Equals(content1, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+                            RAST._IExpr _861_last = _source29.dtor_rhs;
+                            unmatched29 = false;
+                            RAST._IExpr _862_rewriting = RAST.Expr.create_StmtExpr((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("assert_eq!"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(_857_a, _858_b)), _861_last);
+                            return _862_rewriting;
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (unmatched29) {
+        RAST._IExpr _863___v37 = _source29;
+        unmatched29 = false;
         return this;
       }
       throw new System.Exception("unexpected control point");
@@ -3769,22 +4318,66 @@ namespace RAST {
       }
     }
     public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> RightMostIdentifier() {
-      RAST._IExpr _source30 = this;
-      bool unmatched30 = true;
-      if (unmatched30) {
-        if (_source30.is_MemberSelect) {
-          RAST._IExpr _844___v26 = _source30.dtor_obj;
-          Dafny.ISequence<Dafny.Rune> _845_id = _source30.dtor_name;
-          unmatched30 = false;
-          return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(_845_id);
+      RAST._IExpr _source32 = this;
+      bool unmatched32 = true;
+      if (unmatched32) {
+        if (_source32.is_MemberSelect) {
+          RAST._IExpr _864___v38 = _source32.dtor_obj;
+          Dafny.ISequence<Dafny.Rune> _865_id = _source32.dtor_name;
+          unmatched32 = false;
+          return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(_865_id);
         }
       }
-      if (unmatched30) {
-        RAST._IExpr _846___v27 = _source30;
-        unmatched30 = false;
+      if (unmatched32) {
+        RAST._IExpr _866___v39 = _source32;
+        unmatched32 = false;
         return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None();
       }
       throw new System.Exception("unexpected control point");
+    }
+    public static Dafny.ISequence<Dafny.Rune> MaxHashes(Dafny.ISequence<Dafny.Rune> s, Dafny.ISequence<Dafny.Rune> currentHashes, Dafny.ISequence<Dafny.Rune> mostHashes)
+    {
+    TAIL_CALL_START: ;
+      if ((new BigInteger((s).Count)).Sign == 0) {
+        if ((new BigInteger((currentHashes).Count)) < (new BigInteger((mostHashes).Count))) {
+          return mostHashes;
+        } else {
+          return currentHashes;
+        }
+      } else if (((s).Subsequence(BigInteger.Zero, BigInteger.One)).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#"))) {
+        Dafny.ISequence<Dafny.Rune> _in113 = (s).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in114 = Dafny.Sequence<Dafny.Rune>.Concat(currentHashes, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#"));
+        Dafny.ISequence<Dafny.Rune> _in115 = mostHashes;
+        s = _in113;
+        currentHashes = _in114;
+        mostHashes = _in115;
+        goto TAIL_CALL_START;
+      } else {
+        Dafny.ISequence<Dafny.Rune> _in116 = (s).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in117 = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+        Dafny.ISequence<Dafny.Rune> _in118 = (((new BigInteger((currentHashes).Count)) < (new BigInteger((mostHashes).Count))) ? (mostHashes) : (currentHashes));
+        s = _in116;
+        currentHashes = _in117;
+        mostHashes = _in118;
+        goto TAIL_CALL_START;
+      }
+    }
+    public static Dafny.ISequence<Dafny.Rune> RemoveDoubleQuotes(Dafny.ISequence<Dafny.Rune> s) {
+      Dafny.ISequence<Dafny.Rune> _867___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+    TAIL_CALL_START: ;
+      if ((new BigInteger((s).Count)) <= (BigInteger.One)) {
+        return Dafny.Sequence<Dafny.Rune>.Concat(_867___accumulator, s);
+      } else if (((s).Subsequence(BigInteger.Zero, new BigInteger(2))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@""""""))) {
+        _867___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_867___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@""""));
+        Dafny.ISequence<Dafny.Rune> _in119 = (s).Drop(new BigInteger(2));
+        s = _in119;
+        goto TAIL_CALL_START;
+      } else {
+        _867___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_867___accumulator, (s).Subsequence(BigInteger.Zero, BigInteger.One));
+        Dafny.ISequence<Dafny.Rune> _in120 = (s).Drop(BigInteger.One);
+        s = _in120;
+        goto TAIL_CALL_START;
+      }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
       var _pat_let_tv39 = ind;
@@ -3835,346 +4428,458 @@ namespace RAST {
       var _pat_let_tv84 = ind;
       var _pat_let_tv85 = ind;
       var _pat_let_tv86 = ind;
-      RAST._IExpr _source31 = (this).Optimize();
-      bool unmatched31 = true;
-      if (unmatched31) {
-        if (_source31.is_Identifier) {
-          Dafny.ISequence<Dafny.Rune> _847_name = _source31.dtor_name;
-          unmatched31 = false;
-          return _847_name;
+      var _pat_let_tv87 = ind;
+      var _pat_let_tv88 = ind;
+      var _pat_let_tv89 = ind;
+      var _pat_let_tv90 = ind;
+      var _pat_let_tv91 = ind;
+      var _pat_let_tv92 = ind;
+      var _pat_let_tv93 = ind;
+      var _pat_let_tv94 = ind;
+      var _pat_let_tv95 = ind;
+      var _pat_let_tv96 = ind;
+      RAST._IExpr _source33 = (this).Optimize();
+      bool unmatched33 = true;
+      if (unmatched33) {
+        if (_source33.is_Identifier) {
+          Dafny.ISequence<Dafny.Rune> _868_name = _source33.dtor_name;
+          unmatched33 = false;
+          return _868_name;
         }
       }
-      if (unmatched31) {
-        if (_source31.is_LiteralInt) {
-          Dafny.ISequence<Dafny.Rune> _848_number = _source31.dtor_value;
-          unmatched31 = false;
-          return _848_number;
+      if (unmatched33) {
+        if (_source33.is_ExprFromType) {
+          RAST._IType _869_t = _source33.dtor_tpe;
+          unmatched33 = false;
+          return (_869_t)._ToString(_pat_let_tv39);
         }
       }
-      if (unmatched31) {
-        if (_source31.is_LiteralString) {
-          Dafny.ISequence<Dafny.Rune> _849_characters = _source31.dtor_value;
-          bool _850_binary = _source31.dtor_binary;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(((_850_binary) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("b")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\"")), _849_characters), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\""));
+      if (unmatched33) {
+        if (_source33.is_LiteralInt) {
+          Dafny.ISequence<Dafny.Rune> _870_number = _source33.dtor_value;
+          unmatched33 = false;
+          return _870_number;
         }
       }
-      if (unmatched31) {
-        if (_source31.is_ConversionNum) {
-          RAST._IType _851_tpe = _source31.dtor_tpe;
-          RAST._IExpr _852_expr = _source31.dtor_underlying;
-          unmatched31 = false;
-          if (((((((((((_851_tpe).is_U8) || ((_851_tpe).is_U16)) || ((_851_tpe).is_U32)) || ((_851_tpe).is_U64)) || ((_851_tpe).is_U128)) || ((_851_tpe).is_I8)) || ((_851_tpe).is_I16)) || ((_851_tpe).is_I32)) || ((_851_tpe).is_I64)) || ((_851_tpe).is_I128)) {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("num::ToPrimitive::to_"), (_851_tpe)._ToString(_pat_let_tv39)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (_852_expr)._ToString(_pat_let_tv40)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap()"));
+      if (unmatched33) {
+        if (_source33.is_LiteralBool) {
+          bool _871_b = _source33.dtor_bvalue;
+          unmatched33 = false;
+          if (_871_b) {
+            return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("true");
           } else {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<b>Unsupported: Numeric conversion to "), (_851_tpe)._ToString(_pat_let_tv41)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("</b>"));
+            return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("false");
           }
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Match) {
-          RAST._IExpr _853_matchee = _source31.dtor_matchee;
-          Dafny.ISequence<RAST._IMatchCase> _854_cases = _source31.dtor_cases;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("match "), (_853_matchee)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv42, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IMatchCase>(_854_cases, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IMatchCase, Dafny.ISequence<Dafny.Rune>>>>((_855_ind) => ((System.Func<RAST._IMatchCase, Dafny.ISequence<Dafny.Rune>>)((_856_c) => {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _855_ind), RAST.__default.IND), (_856_c)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_855_ind, RAST.__default.IND)));
-          })))(_pat_let_tv43), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv44), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      if (unmatched33) {
+        if (_source33.is_LiteralString) {
+          Dafny.ISequence<Dafny.Rune> _872_characters = _source33.dtor_value;
+          bool _873_binary = _source33.dtor_binary;
+          bool _874_verbatim = _source33.dtor_verbatim;
+          unmatched33 = false;
+          Dafny.ISequence<Dafny.Rune> _875_hashes = ((_874_verbatim) ? (Dafny.Sequence<Dafny.Rune>.Concat(RAST.Expr.MaxHashes(_872_characters, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#"))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")));
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(((_873_binary) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("b")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), ((_874_verbatim) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("r"), _875_hashes)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\"")), ((_874_verbatim) ? (RAST.Expr.RemoveDoubleQuotes(_872_characters)) : (_872_characters))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\"")), _875_hashes);
         }
       }
-      if (unmatched31) {
-        if (_source31.is_StmtExpr) {
-          RAST._IExpr _857_stmt = _source31.dtor_stmt;
-          RAST._IExpr _858_rhs = _source31.dtor_rhs;
-          unmatched31 = false;
-          if (((_857_stmt).is_RawExpr) && (((_857_stmt).dtor_content).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))) {
-            return (_858_rhs)._ToString(_pat_let_tv45);
+      if (unmatched33) {
+        if (_source33.is_Match) {
+          RAST._IExpr _876_matchee = _source33.dtor_matchee;
+          Dafny.ISequence<RAST._IMatchCase> _877_cases = _source33.dtor_cases;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("match "), (_876_matchee)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv40, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IMatchCase>(_877_cases, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IMatchCase, Dafny.ISequence<Dafny.Rune>>>>((_878_ind) => ((System.Func<RAST._IMatchCase, Dafny.ISequence<Dafny.Rune>>)((_879_c) => {
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _878_ind), RAST.__default.IND), (_879_c)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_878_ind, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","));
+          })))(_pat_let_tv41), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv42), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+        }
+      }
+      if (unmatched33) {
+        if (_source33.is_StmtExpr) {
+          RAST._IExpr _880_stmt = _source33.dtor_stmt;
+          RAST._IExpr _881_rhs = _source33.dtor_rhs;
+          unmatched33 = false;
+          if (((_880_stmt).is_RawExpr) && (((_880_stmt).dtor_content).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))) {
+            return (_881_rhs)._ToString(_pat_let_tv43);
           } else {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_857_stmt)._ToString(_pat_let_tv46), (((_857_stmt).NoExtraSemicolonAfter()) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv47), (_858_rhs)._ToString(_pat_let_tv48));
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_880_stmt)._ToString(_pat_let_tv44), (((_880_stmt).NoExtraSemicolonAfter()) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv45), (_881_rhs)._ToString(_pat_let_tv46));
           }
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Block) {
-          RAST._IExpr _859_underlying = _source31.dtor_underlying;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{\n"), _pat_let_tv49), RAST.__default.IND), (_859_underlying)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv50, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv51), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      if (unmatched33) {
+        if (_source33.is_Block) {
+          RAST._IExpr _882_underlying = _source33.dtor_underlying;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{\n"), _pat_let_tv47), RAST.__default.IND), (_882_underlying)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv48, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv49), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_IfExpr) {
-          RAST._IExpr _860_cond = _source31.dtor_cond;
-          RAST._IExpr _861_thn = _source31.dtor_thn;
-          RAST._IExpr _862_els = _source31.dtor_els;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("if "), (_860_cond)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv52, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n")), _pat_let_tv53), RAST.__default.IND), (_861_thn)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv54, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv55), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("} else {\n")), _pat_let_tv56), RAST.__default.IND), (_862_els)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv57, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv58), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      if (unmatched33) {
+        if (_source33.is_IfExpr) {
+          RAST._IExpr _883_cond = _source33.dtor_cond;
+          RAST._IExpr _884_thn = _source33.dtor_thn;
+          RAST._IExpr _885_els = _source33.dtor_els;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("if "), (_883_cond)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv50, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n")), _pat_let_tv51), RAST.__default.IND), (_884_thn)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv52, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv53), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}")), ((object.Equals(_885_els, RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" else {\n"), _pat_let_tv54), RAST.__default.IND), (_885_els)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv55, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv56), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}")))));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_StructBuild) {
-          Dafny.ISequence<Dafny.Rune> _863_name = _source31.dtor_name;
-          Dafny.ISequence<RAST._IAssignIdentifier> _864_assignments = _source31.dtor_assignments;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_863_name, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IAssignIdentifier>(_864_assignments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IAssignIdentifier, Dafny.ISequence<Dafny.Rune>>>>((_865_ind) => ((System.Func<RAST._IAssignIdentifier, Dafny.ISequence<Dafny.Rune>>)((_866_assignment) => {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _865_ind), RAST.__default.IND), (_866_assignment)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_865_ind, RAST.__default.IND)));
-          })))(_pat_let_tv59), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), (((new BigInteger((_864_assignments).Count)).Sign == 1) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _pat_let_tv60)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      if (unmatched33) {
+        if (_source33.is_StructBuild) {
+          RAST._IExpr _886_name = _source33.dtor_underlying;
+          Dafny.ISequence<RAST._IAssignIdentifier> _887_assignments = _source33.dtor_assignments;
+          unmatched33 = false;
+          if (((new BigInteger((_887_assignments).Count)).Sign == 1) && ((((_887_assignments).Select(BigInteger.Zero)).dtor_identifier).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0")))) {
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_886_name)._ToString(_pat_let_tv57), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" (")), RAST.__default.SeqToString<RAST._IAssignIdentifier>(_887_assignments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IAssignIdentifier, Dafny.ISequence<Dafny.Rune>>>>((_888_ind) => ((System.Func<RAST._IAssignIdentifier, Dafny.ISequence<Dafny.Rune>>)((_889_assignment) => {
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _888_ind), RAST.__default.IND), ((_889_assignment).dtor_rhs)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_888_ind, RAST.__default.IND)));
+            })))(_pat_let_tv58), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), (((new BigInteger((_887_assignments).Count)) > (BigInteger.One)) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _pat_let_tv59)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+          } else {
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat((_886_name)._ToString(_pat_let_tv60), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), RAST.__default.SeqToString<RAST._IAssignIdentifier>(_887_assignments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IAssignIdentifier, Dafny.ISequence<Dafny.Rune>>>>((_890_ind) => ((System.Func<RAST._IAssignIdentifier, Dafny.ISequence<Dafny.Rune>>)((_891_assignment) => {
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _890_ind), RAST.__default.IND), (_891_assignment)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_890_ind, RAST.__default.IND)));
+            })))(_pat_let_tv61), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), (((new BigInteger((_887_assignments).Count)).Sign == 1) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _pat_let_tv62)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+          }
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Tuple) {
-          Dafny.ISequence<RAST._IExpr> _867_arguments = _source31.dtor_arguments;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<RAST._IExpr>(_867_arguments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>>>((_868_ind) => ((System.Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>)((_869_arg) => {
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _868_ind), RAST.__default.IND), (_869_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_868_ind, RAST.__default.IND)));
-          })))(_pat_let_tv61), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), (((new BigInteger((_867_arguments).Count)).Sign == 1) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _pat_let_tv62)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
+      if (unmatched33) {
+        if (_source33.is_Tuple) {
+          Dafny.ISequence<RAST._IExpr> _892_arguments = _source33.dtor_arguments;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<RAST._IExpr>(_892_arguments, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>>>((_893_ind) => ((System.Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>)((_894_arg) => {
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _893_ind), RAST.__default.IND), (_894_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_893_ind, RAST.__default.IND)));
+          })))(_pat_let_tv63), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), (((new BigInteger((_892_arguments).Count)).Sign == 1) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), _pat_let_tv64)) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_UnaryOp) {
-          Dafny.ISequence<Dafny.Rune> _870_op = _source31.dtor_op1;
-          RAST._IExpr _871_underlying = _source31.dtor_underlying;
-          DAST.Format._IUnaryOpFormat _872_format = _source31.dtor_format;
-          unmatched31 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs41 = ((((this).printingInfo).NeedParenthesesFor((_871_underlying).printingInfo)) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"))) : (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
-          Dafny.ISequence<Dafny.Rune> _873_leftP = _let_tmp_rhs41.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _874_rightP = _let_tmp_rhs41.dtor__1;
-          Dafny.ISequence<Dafny.Rune> _875_leftOp = ((((_870_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) && (!(_873_leftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_870_op, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "))) : ((((_870_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (_870_op))));
-          Dafny.ISequence<Dafny.Rune> _876_rightOp = (((_870_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) ? (_870_op) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")));
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_875_leftOp, _873_leftP), (_871_underlying)._ToString(_pat_let_tv63)), _874_rightP), _876_rightOp);
+      if (unmatched33) {
+        if (_source33.is_UnaryOp) {
+          Dafny.ISequence<Dafny.Rune> _895_op = _source33.dtor_op1;
+          RAST._IExpr _896_underlying = _source33.dtor_underlying;
+          DAST.Format._IUnaryOpFormat _897_format = _source33.dtor_format;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs41 = ((((this).printingInfo).NeedParenthesesFor((_896_underlying).printingInfo)) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"))) : (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
+          Dafny.ISequence<Dafny.Rune> _898_leftP = _let_tmp_rhs41.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _899_rightP = _let_tmp_rhs41.dtor__1;
+          Dafny.ISequence<Dafny.Rune> _900_leftOp = ((((_895_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) && (!(_898_leftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_895_op, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "))) : ((((_895_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (_895_op))));
+          Dafny.ISequence<Dafny.Rune> _901_rightOp = (((_895_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) ? (_895_op) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")));
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_900_leftOp, _898_leftP), (_896_underlying)._ToString(_pat_let_tv65)), _899_rightP), _901_rightOp);
         }
       }
-      if (unmatched31) {
-        if (_source31.is_TypeAscription) {
-          RAST._IExpr _877_left = _source31.dtor_left;
-          RAST._IType _878_tpe = _source31.dtor_tpe;
-          unmatched31 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs42 = (this).LeftParentheses(_877_left);
-          Dafny.ISequence<Dafny.Rune> _879_leftLeftP = _let_tmp_rhs42.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _880_leftRightP = _let_tmp_rhs42.dtor__1;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_879_leftLeftP, (_877_left)._ToString(RAST.__default.IND)), _880_leftRightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" as ")), (_878_tpe)._ToString(RAST.__default.IND));
+      if (unmatched33) {
+        if (_source33.is_TypeAscription) {
+          RAST._IExpr _902_left = _source33.dtor_left;
+          RAST._IType _903_tpe = _source33.dtor_tpe;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs42 = (this).LeftParentheses(_902_left);
+          Dafny.ISequence<Dafny.Rune> _904_leftLeftP = _let_tmp_rhs42.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _905_leftRightP = _let_tmp_rhs42.dtor__1;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_904_leftLeftP, (_902_left)._ToString(RAST.__default.IND)), _905_leftRightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" as ")), (_903_tpe)._ToString(RAST.__default.IND));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_BinaryOp) {
-          Dafny.ISequence<Dafny.Rune> _881_op2 = _source31.dtor_op2;
-          RAST._IExpr _882_left = _source31.dtor_left;
-          RAST._IExpr _883_right = _source31.dtor_right;
-          DAST.Format._IBinaryOpFormat _884_format = _source31.dtor_format2;
-          unmatched31 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs43 = (this).LeftParentheses(_882_left);
-          Dafny.ISequence<Dafny.Rune> _885_leftLeftP = _let_tmp_rhs43.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _886_leftRighP = _let_tmp_rhs43.dtor__1;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs44 = (this).RightParentheses(_883_right);
-          Dafny.ISequence<Dafny.Rune> _887_rightLeftP = _let_tmp_rhs44.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _888_rightRightP = _let_tmp_rhs44.dtor__1;
-          Dafny.ISequence<Dafny.Rune> _889_opRendered = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), _881_op2), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "));
-          Dafny.ISequence<Dafny.Rune> _890_indLeft = (((_885_leftLeftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv64, RAST.__default.IND)) : (_pat_let_tv65));
-          Dafny.ISequence<Dafny.Rune> _891_indRight = (((_887_rightLeftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv66, RAST.__default.IND)) : (_pat_let_tv67));
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_885_leftLeftP, (_882_left)._ToString(_890_indLeft)), _886_leftRighP), _889_opRendered), _887_rightLeftP), (_883_right)._ToString(_891_indRight)), _888_rightRightP);
+      if (unmatched33) {
+        if (_source33.is_BinaryOp) {
+          Dafny.ISequence<Dafny.Rune> _906_op2 = _source33.dtor_op2;
+          RAST._IExpr _907_left = _source33.dtor_left;
+          RAST._IExpr _908_right = _source33.dtor_right;
+          DAST.Format._IBinaryOpFormat _909_format = _source33.dtor_format2;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs43 = (this).LeftParentheses(_907_left);
+          Dafny.ISequence<Dafny.Rune> _910_leftLeftP = _let_tmp_rhs43.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _911_leftRighP = _let_tmp_rhs43.dtor__1;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs44 = (this).RightParentheses(_908_right);
+          Dafny.ISequence<Dafny.Rune> _912_rightLeftP = _let_tmp_rhs44.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _913_rightRightP = _let_tmp_rhs44.dtor__1;
+          Dafny.ISequence<Dafny.Rune> _914_opRendered = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), _906_op2), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "));
+          Dafny.ISequence<Dafny.Rune> _915_indLeft = (((_910_leftLeftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv66, RAST.__default.IND)) : (_pat_let_tv67));
+          Dafny.ISequence<Dafny.Rune> _916_indRight = (((_912_rightLeftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv68, RAST.__default.IND)) : (_pat_let_tv69));
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_910_leftLeftP, (_907_left)._ToString(_915_indLeft)), _911_leftRighP), _914_opRendered), _912_rightLeftP), (_908_right)._ToString(_916_indRight)), _913_rightRightP);
         }
       }
-      if (unmatched31) {
-        if (_source31.is_DeclareVar) {
-          RAST._IDeclareType _892_declareType = _source31.dtor_declareType;
-          Dafny.ISequence<Dafny.Rune> _893_name = _source31.dtor_name;
-          Std.Wrappers._IOption<RAST._IType> _894_optType = _source31.dtor_optType;
-          Std.Wrappers._IOption<RAST._IExpr> _895_optExpr = _source31.dtor_optRhs;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let "), ((object.Equals(_892_declareType, RAST.DeclareType.create_MUT())) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mut ")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), _893_name), (((_894_optType).is_Some) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": "), ((_894_optType).dtor_value)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv68, RAST.__default.IND)))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), (((_895_optExpr).is_Some) ? (Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(((_895_optExpr).dtor_value)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv69, RAST.__default.IND)), _pat_let5_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(_pat_let5_0, _896_optExprString => (((_896_optExprString).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("= /*issue with empty RHS*/"), ((((_895_optExpr).dtor_value).is_RawExpr) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Empty Raw expr")) : (((((_895_optExpr).dtor_value).is_LiteralString) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Empty string literal")) : (((((_895_optExpr).dtor_value).is_LiteralInt) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Empty int literal")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Another case"))))))))) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = "), _896_optExprString)))))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
+      if (unmatched33) {
+        if (_source33.is_DeclareVar) {
+          RAST._IDeclareType _917_declareType = _source33.dtor_declareType;
+          Dafny.ISequence<Dafny.Rune> _918_name = _source33.dtor_name;
+          Std.Wrappers._IOption<RAST._IType> _919_optType = _source33.dtor_optType;
+          Std.Wrappers._IOption<RAST._IExpr> _920_optExpr = _source33.dtor_optRhs;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let "), ((object.Equals(_917_declareType, RAST.DeclareType.create_MUT())) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("mut ")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), _918_name), (((_919_optType).is_Some) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": "), ((_919_optType).dtor_value)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv70, RAST.__default.IND)))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), (((_920_optExpr).is_Some) ? (Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(((_920_optExpr).dtor_value)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv71, RAST.__default.IND)), _pat_let5_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(_pat_let5_0, _921_optExprString => (((_921_optExprString).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("= /*issue with empty RHS*/"), ((((_920_optExpr).dtor_value).is_RawExpr) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Empty Raw expr")) : (((((_920_optExpr).dtor_value).is_LiteralString) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Empty string literal")) : (((((_920_optExpr).dtor_value).is_LiteralInt) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Empty int literal")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Another case"))))))))) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = "), _921_optExprString)))))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_AssignVar) {
-          Dafny.ISequence<Dafny.Rune> _897_name = _source31.dtor_name;
-          RAST._IExpr _898_expr = _source31.dtor_rhs;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_897_name, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), (_898_expr)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv70, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
+      if (unmatched33) {
+        if (_source33.is_Assign) {
+          Std.Wrappers._IOption<RAST._IAssignLhs> _922_names = _source33.dtor_names;
+          RAST._IExpr _923_expr = _source33.dtor_rhs;
+          unmatched33 = false;
+          Dafny.ISequence<Dafny.Rune> _924_lhs = ((System.Func<Dafny.ISequence<Dafny.Rune>>)(() => {
+            Std.Wrappers._IOption<RAST._IAssignLhs> _source34 = _922_names;
+            bool unmatched34 = true;
+            if (unmatched34) {
+              if (_source34.is_Some) {
+                RAST._IAssignLhs value0 = _source34.dtor_value;
+                if (value0.is_LocalVar) {
+                  Dafny.ISequence<Dafny.Rune> _925_name = value0.dtor_name;
+                  unmatched34 = false;
+                  return Dafny.Sequence<Dafny.Rune>.Concat(_925_name, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = "));
+                }
+              }
+            }
+            if (unmatched34) {
+              if (_source34.is_Some) {
+                RAST._IAssignLhs value1 = _source34.dtor_value;
+                if (value1.is_SelectMember) {
+                  RAST._IExpr _926_member = value1.dtor_on;
+                  Dafny.ISequence<Dafny.Rune> _927_field = value1.dtor_field;
+                  unmatched34 = false;
+                  _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs45 = (RAST.Expr.create_Select(_926_member, _927_field)).LeftParentheses(_926_member);
+                  Dafny.ISequence<Dafny.Rune> _928_leftP = _let_tmp_rhs45.dtor__0;
+                  Dafny.ISequence<Dafny.Rune> _929_rightP = _let_tmp_rhs45.dtor__1;
+                  return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_928_leftP, (_926_member)._ToString(_pat_let_tv72)), _929_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".")), _927_field), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = "));
+                }
+              }
+            }
+            if (unmatched34) {
+              if (_source34.is_Some) {
+                RAST._IAssignLhs value2 = _source34.dtor_value;
+                if (value2.is_ExtractTuple) {
+                  Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _930_names = value2.dtor_names;
+                  unmatched34 = false;
+                  return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), RAST.__default.SeqToString<Dafny.ISequence<Dafny.Rune>>(_930_names, ((System.Func<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>)((_931_name) => {
+                    return _931_name;
+                  })), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(") = "));
+                }
+              }
+            }
+            if (unmatched34) {
+              if (_source34.is_Some) {
+                RAST._IAssignLhs value3 = _source34.dtor_value;
+                if (value3.is_Index) {
+                  RAST._IExpr _932_e = value3.dtor_expr;
+                  Dafny.ISequence<RAST._IExpr> _933_indices = value3.dtor_indices;
+                  unmatched34 = false;
+                  _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs46 = (RAST.Expr.create_Call(_932_e, _933_indices)).LeftParentheses(_932_e);
+                  Dafny.ISequence<Dafny.Rune> _934_leftP = _let_tmp_rhs46.dtor__0;
+                  Dafny.ISequence<Dafny.Rune> _935_rightP = _let_tmp_rhs46.dtor__1;
+                  return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_934_leftP, (_932_e)._ToString(_pat_let_tv73)), _935_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("[")), RAST.__default.SeqToString<RAST._IExpr>(_933_indices, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>>>((_936_ind) => ((System.Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>)((_937_index) => {
+                    return (_937_index)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_936_ind, RAST.__default.IND));
+                  })))(_pat_let_tv74), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("]["))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("] = "));
+                }
+              }
+            }
+            if (unmatched34) {
+              unmatched34 = false;
+              return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_ = ");
+            }
+            throw new System.Exception("unexpected control point");
+          }))();
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_924_lhs, (_923_expr)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv75, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Labelled) {
-          Dafny.ISequence<Dafny.Rune> _899_name = _source31.dtor_lbl;
-          RAST._IExpr _900_underlying = _source31.dtor_underlying;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), _899_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": ")), (_900_underlying)._ToString(_pat_let_tv71));
+      if (unmatched33) {
+        if (_source33.is_Labelled) {
+          Dafny.ISequence<Dafny.Rune> _938_name = _source33.dtor_lbl;
+          RAST._IExpr _939_underlying = _source33.dtor_underlying;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("'"), _938_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": ")), (_939_underlying)._ToString(_pat_let_tv76));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Break) {
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _901_optLbl = _source31.dtor_optLbl;
-          unmatched31 = false;
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source32 = _901_optLbl;
-          bool unmatched32 = true;
-          if (unmatched32) {
-            if (_source32.is_Some) {
-              Dafny.ISequence<Dafny.Rune> _902_lbl = _source32.dtor_value;
-              unmatched32 = false;
-              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("break '"), _902_lbl), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
+      if (unmatched33) {
+        if (_source33.is_Break) {
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _940_optLbl = _source33.dtor_optLbl;
+          unmatched33 = false;
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source35 = _940_optLbl;
+          bool unmatched35 = true;
+          if (unmatched35) {
+            if (_source35.is_Some) {
+              Dafny.ISequence<Dafny.Rune> _941_lbl = _source35.dtor_value;
+              unmatched35 = false;
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("break '"), _941_lbl), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
             }
           }
-          if (unmatched32) {
-            unmatched32 = false;
+          if (unmatched35) {
+            unmatched35 = false;
             return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("break;");
           }
           throw new System.Exception("unexpected control point");
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Continue) {
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _903_optLbl = _source31.dtor_optLbl;
-          unmatched31 = false;
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source33 = _903_optLbl;
-          bool unmatched33 = true;
-          if (unmatched33) {
-            if (_source33.is_Some) {
-              Dafny.ISequence<Dafny.Rune> _904_lbl = _source33.dtor_value;
-              unmatched33 = false;
-              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("continue '"), _904_lbl), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
+      if (unmatched33) {
+        if (_source33.is_Continue) {
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _942_optLbl = _source33.dtor_optLbl;
+          unmatched33 = false;
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source36 = _942_optLbl;
+          bool unmatched36 = true;
+          if (unmatched36) {
+            if (_source36.is_Some) {
+              Dafny.ISequence<Dafny.Rune> _943_lbl = _source36.dtor_value;
+              unmatched36 = false;
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("continue '"), _943_lbl), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
             }
           }
-          if (unmatched33) {
-            unmatched33 = false;
+          if (unmatched36) {
+            unmatched36 = false;
             return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("continue;");
           }
           throw new System.Exception("unexpected control point");
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Loop) {
-          Std.Wrappers._IOption<RAST._IExpr> _905_optCond = _source31.dtor_optCond;
-          RAST._IExpr _906_underlying = _source31.dtor_underlying;
-          unmatched31 = false;
+      if (unmatched33) {
+        if (_source33.is_Loop) {
+          Std.Wrappers._IOption<RAST._IExpr> _944_optCond = _source33.dtor_optCond;
+          RAST._IExpr _945_underlying = _source33.dtor_underlying;
+          unmatched33 = false;
           return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(((System.Func<Dafny.ISequence<Dafny.Rune>>)(() => {
-            Std.Wrappers._IOption<RAST._IExpr> _source34 = _905_optCond;
-            bool unmatched34 = true;
-            if (unmatched34) {
-              if (_source34.is_None) {
-                unmatched34 = false;
+            Std.Wrappers._IOption<RAST._IExpr> _source37 = _944_optCond;
+            bool unmatched37 = true;
+            if (unmatched37) {
+              if (_source37.is_None) {
+                unmatched37 = false;
                 return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("loop");
               }
             }
-            if (unmatched34) {
-              RAST._IExpr _907_c = _source34.dtor_value;
-              unmatched34 = false;
-              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("while "), (_907_c)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv72, RAST.__default.IND)));
+            if (unmatched37) {
+              RAST._IExpr _946_c = _source37.dtor_value;
+              unmatched37 = false;
+              return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("while "), (_946_c)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv77, RAST.__default.IND)));
             }
             throw new System.Exception("unexpected control point");
-          }))(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n")), _pat_let_tv73), RAST.__default.IND), (_906_underlying)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv74, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv75), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+          }))(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n")), _pat_let_tv78), RAST.__default.IND), (_945_underlying)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv79, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv80), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_For) {
-          Dafny.ISequence<Dafny.Rune> _908_name = _source31.dtor_name;
-          RAST._IExpr _909_range = _source31.dtor_range;
-          RAST._IExpr _910_body = _source31.dtor_body;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("for "), _908_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" in ")), (_909_range)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv76, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n")), _pat_let_tv77), RAST.__default.IND), (_910_body)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv78, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv79), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+      if (unmatched33) {
+        if (_source33.is_For) {
+          Dafny.ISequence<Dafny.Rune> _947_name = _source33.dtor_name;
+          RAST._IExpr _948_range = _source33.dtor_range;
+          RAST._IExpr _949_body = _source33.dtor_body;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("for "), _947_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" in ")), (_948_range)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv81, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n")), _pat_let_tv82), RAST.__default.IND), (_949_body)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv83, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv84), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Return) {
-          Std.Wrappers._IOption<RAST._IExpr> _911_optExpr = _source31.dtor_optExpr;
-          unmatched31 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("return"), (((_911_optExpr).is_Some) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), ((_911_optExpr).dtor_value)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv80, RAST.__default.IND)))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
+      if (unmatched33) {
+        if (_source33.is_Return) {
+          Std.Wrappers._IOption<RAST._IExpr> _950_optExpr = _source33.dtor_optExpr;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("return"), (((_950_optExpr).is_Some) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "), ((_950_optExpr).dtor_value)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv85, RAST.__default.IND)))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";"));
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Call) {
-          RAST._IExpr _912_expr = _source31.dtor_obj;
-          Dafny.ISequence<RAST._IType> _913_tpes = _source31.dtor_typeParameters;
-          Dafny.ISequence<RAST._IExpr> _914_args = _source31.dtor_arguments;
-          unmatched31 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs45 = (this).LeftParentheses(_912_expr);
-          Dafny.ISequence<Dafny.Rune> _915_leftP = _let_tmp_rhs45.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _916_rightP = _let_tmp_rhs45.dtor__1;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs46 = ((System.Func<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>>)(() => {
-            Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source35 = (_912_expr).RightMostIdentifier();
-            bool unmatched35 = true;
-            if (unmatched35) {
+      if (unmatched33) {
+        if (_source33.is_CallType) {
+          RAST._IExpr _951_expr = _source33.dtor_obj;
+          Dafny.ISequence<RAST._IType> _952_tpes = _source33.dtor_typeParameters;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs47 = (this).LeftParentheses(_951_expr);
+          Dafny.ISequence<Dafny.Rune> _953_leftP = _let_tmp_rhs47.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _954_rightP = _let_tmp_rhs47.dtor__1;
+          if ((_952_tpes).Equals(Dafny.Sequence<RAST._IType>.FromElements())) {
+            return (_951_expr)._ToString(_pat_let_tv86);
+          } else {
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_953_leftP, (_951_expr)._ToString(_pat_let_tv87)), _954_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::<")), RAST.__default.SeqToString<RAST._IType>(_952_tpes, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_955_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_956_tpe) => {
+              return (_956_tpe)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_955_ind, RAST.__default.IND));
+            })))(_pat_let_tv88), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"));
+          }
+        }
+      }
+      if (unmatched33) {
+        if (_source33.is_Call) {
+          RAST._IExpr _957_expr = _source33.dtor_obj;
+          Dafny.ISequence<RAST._IExpr> _958_args = _source33.dtor_arguments;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs48 = (this).LeftParentheses(_957_expr);
+          Dafny.ISequence<Dafny.Rune> _959_leftP = _let_tmp_rhs48.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _960_rightP = _let_tmp_rhs48.dtor__1;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs49 = ((System.Func<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>>)(() => {
+            Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _source38 = (_957_expr).RightMostIdentifier();
+            bool unmatched38 = true;
+            if (unmatched38) {
               bool disjunctiveMatch0 = false;
-              if (_source35.is_Some) {
-                Dafny.ISequence<Dafny.Rune> value0 = _source35.dtor_value;
-                if (object.Equals(value0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("seq!"))) {
+              if (_source38.is_Some) {
+                Dafny.ISequence<Dafny.Rune> value4 = _source38.dtor_value;
+                if (object.Equals(value4, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("seq!"))) {
                   disjunctiveMatch0 = true;
                 }
               }
-              if (_source35.is_Some) {
-                Dafny.ISequence<Dafny.Rune> value1 = _source35.dtor_value;
-                if (object.Equals(value1, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("map!"))) {
+              if (_source38.is_Some) {
+                Dafny.ISequence<Dafny.Rune> value5 = _source38.dtor_value;
+                if (object.Equals(value5, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("map!"))) {
                   disjunctiveMatch0 = true;
                 }
               }
               if (disjunctiveMatch0) {
-                unmatched35 = false;
+                unmatched38 = false;
                 return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("["), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("]"));
               }
             }
-            if (unmatched35) {
+            if (unmatched38) {
               bool disjunctiveMatch1 = false;
-              if (_source35.is_Some) {
-                Dafny.ISequence<Dafny.Rune> value2 = _source35.dtor_value;
-                if (object.Equals(value2, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("set!"))) {
+              if (_source38.is_Some) {
+                Dafny.ISequence<Dafny.Rune> value6 = _source38.dtor_value;
+                if (object.Equals(value6, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("set!"))) {
                   disjunctiveMatch1 = true;
                 }
               }
-              if (_source35.is_Some) {
-                Dafny.ISequence<Dafny.Rune> value3 = _source35.dtor_value;
-                if (object.Equals(value3, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("multiset!"))) {
+              if (_source38.is_Some) {
+                Dafny.ISequence<Dafny.Rune> value7 = _source38.dtor_value;
+                if (object.Equals(value7, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("multiset!"))) {
                   disjunctiveMatch1 = true;
                 }
               }
               if (disjunctiveMatch1) {
-                unmatched35 = false;
+                unmatched38 = false;
                 return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{"), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
               }
             }
-            if (unmatched35) {
-              Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _917___v28 = _source35;
-              unmatched35 = false;
+            if (unmatched38) {
+              Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _961___v40 = _source38;
+              unmatched38 = false;
               return _System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"));
             }
             throw new System.Exception("unexpected control point");
           }))();
-          Dafny.ISequence<Dafny.Rune> _918_leftCallP = _let_tmp_rhs46.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _919_rightCallP = _let_tmp_rhs46.dtor__1;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_915_leftP, (_912_expr)._ToString(_pat_let_tv81)), _916_rightP), (((new BigInteger((_913_tpes).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::<"), RAST.__default.SeqToString<RAST._IType>(_913_tpes, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_920_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_921_tpe) => {
-            return (_921_tpe)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_920_ind, RAST.__default.IND));
-          })))(_pat_let_tv82), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"))))), _918_leftCallP), RAST.__default.SeqToString<RAST._IExpr>(_914_args, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>>>((_922_ind) => ((System.Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>)((_923_arg) => {
-            return (_923_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_922_ind, RAST.__default.IND));
-          })))(_pat_let_tv83), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), _919_rightCallP);
+          Dafny.ISequence<Dafny.Rune> _962_leftCallP = _let_tmp_rhs49.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _963_rightCallP = _let_tmp_rhs49.dtor__1;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_959_leftP, (_957_expr)._ToString(_pat_let_tv89)), _960_rightP), _962_leftCallP), RAST.__default.SeqToString<RAST._IExpr>(_958_args, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>>>((_964_ind) => ((System.Func<RAST._IExpr, Dafny.ISequence<Dafny.Rune>>)((_965_arg) => {
+            return (_965_arg)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_964_ind, RAST.__default.IND));
+          })))(_pat_let_tv90), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), _963_rightCallP);
         }
       }
-      if (unmatched31) {
-        if (_source31.is_Select) {
-          RAST._IExpr _924_expression = _source31.dtor_obj;
-          Dafny.ISequence<Dafny.Rune> _925_name = _source31.dtor_name;
-          unmatched31 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs47 = (this).LeftParentheses(_924_expression);
-          Dafny.ISequence<Dafny.Rune> _926_leftP = _let_tmp_rhs47.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _927_rightP = _let_tmp_rhs47.dtor__1;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_926_leftP, (_924_expression)._ToString(_pat_let_tv84)), _927_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".")), _925_name);
+      if (unmatched33) {
+        if (_source33.is_Select) {
+          RAST._IExpr _966_expression = _source33.dtor_obj;
+          Dafny.ISequence<Dafny.Rune> _967_name = _source33.dtor_name;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs50 = (this).LeftParentheses(_966_expression);
+          Dafny.ISequence<Dafny.Rune> _968_leftP = _let_tmp_rhs50.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _969_rightP = _let_tmp_rhs50.dtor__1;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_968_leftP, (_966_expression)._ToString(_pat_let_tv91)), _969_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".")), _967_name);
         }
       }
-      if (unmatched31) {
-        if (_source31.is_MemberSelect) {
-          RAST._IExpr _928_expression = _source31.dtor_obj;
-          Dafny.ISequence<Dafny.Rune> _929_name = _source31.dtor_name;
-          unmatched31 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs48 = (this).LeftParentheses(_928_expression);
-          Dafny.ISequence<Dafny.Rune> _930_leftP = _let_tmp_rhs48.dtor__0;
-          Dafny.ISequence<Dafny.Rune> _931_rightP = _let_tmp_rhs48.dtor__1;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_930_leftP, (_928_expression)._ToString(_pat_let_tv85)), _931_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")), _929_name);
+      if (unmatched33) {
+        if (_source33.is_MemberSelect) {
+          RAST._IExpr _970_expression = _source33.dtor_obj;
+          Dafny.ISequence<Dafny.Rune> _971_name = _source33.dtor_name;
+          unmatched33 = false;
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs51 = (this).LeftParentheses(_970_expression);
+          Dafny.ISequence<Dafny.Rune> _972_leftP = _let_tmp_rhs51.dtor__0;
+          Dafny.ISequence<Dafny.Rune> _973_rightP = _let_tmp_rhs51.dtor__1;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_972_leftP, (_970_expression)._ToString(_pat_let_tv92)), _973_rightP), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")), _971_name);
         }
       }
-      if (unmatched31) {
-        RAST._IExpr _932_r = _source31;
-        unmatched31 = false;
-        return RAST.__default.AddIndent((_932_r).dtor_content, _pat_let_tv86);
+      if (unmatched33) {
+        if (_source33.is_Lambda) {
+          Dafny.ISequence<RAST._IFormal> _974_params = _source33.dtor_params;
+          Std.Wrappers._IOption<RAST._IType> _975_retType = _source33.dtor_retType;
+          RAST._IExpr _976_body = _source33.dtor_body;
+          unmatched33 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("move |"), RAST.__default.SeqToString<RAST._IFormal>(_974_params, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>>>((_977_ind) => ((System.Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>)((_978_arg) => {
+            return (_978_arg)._ToString(_977_ind);
+          })))(_pat_let_tv93), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(","))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("| ")), (((_975_retType).is_Some) ? (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-> "), ((_975_retType).dtor_value)._ToString(_pat_let_tv94)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "))) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))), (_976_body)._ToString(_pat_let_tv95));
+        }
+      }
+      if (unmatched33) {
+        RAST._IExpr _979_r = _source33;
+        unmatched33 = false;
+        return RAST.__default.AddIndent((_979_r).dtor_content, _pat_let_tv96);
       }
       throw new System.Exception("unexpected control point");
     }
     public RAST._IExpr Then(RAST._IExpr rhs2) {
       if ((this).is_StmtExpr) {
         return RAST.Expr.create_StmtExpr((this).dtor_stmt, ((this).dtor_rhs).Then(rhs2));
+      } else if (object.Equals(this, RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))) {
+        return rhs2;
       } else {
         return RAST.Expr.create_StmtExpr(this, rhs2);
       }
@@ -4185,292 +4890,338 @@ namespace RAST {
     public RAST._IExpr MSel(Dafny.ISequence<Dafny.Rune> name) {
       return RAST.Expr.create_MemberSelect(this, name);
     }
-    public RAST._IExpr Apply(Dafny.ISequence<RAST._IType> typeParameters, Dafny.ISequence<RAST._IExpr> arguments)
-    {
-      return RAST.Expr.create_Call(this, typeParameters, arguments);
+    public RAST._IExpr ApplyType(Dafny.ISequence<RAST._IType> typeParameters) {
+      return RAST.Expr.create_CallType(this, typeParameters);
+    }
+    public RAST._IExpr ApplyType1(RAST._IType typeParameter) {
+      return RAST.Expr.create_CallType(this, Dafny.Sequence<RAST._IType>.FromElements(typeParameter));
+    }
+    public RAST._IExpr Apply(Dafny.ISequence<RAST._IExpr> arguments) {
+      return RAST.Expr.create_Call(this, arguments);
     }
     public RAST._IExpr Apply1(RAST._IExpr argument) {
-      return RAST.Expr.create_Call(this, Dafny.Sequence<RAST._IType>.FromElements(), Dafny.Sequence<RAST._IExpr>.FromElements(argument));
+      return RAST.Expr.create_Call(this, Dafny.Sequence<RAST._IExpr>.FromElements(argument));
+    }
+    public bool IsLhsIdentifier() {
+      return ((this).is_Identifier) || (((((this).is_Call) && (object.Equals((this).dtor_obj, RAST.__default.modify__macro))) && ((new BigInteger(((this).dtor_arguments).Count)) == (BigInteger.One))) && ((((this).dtor_arguments).Select(BigInteger.Zero)).is_Identifier));
+    }
+    public Dafny.ISequence<Dafny.Rune> LhsIdentifierName() {
+      if ((this).is_Identifier) {
+        return (this).dtor_name;
+      } else {
+        return (((this).dtor_arguments).Select(BigInteger.Zero)).dtor_name;
+      }
     }
     public RAST._IPrintingInfo printingInfo { get {
-      RAST._IExpr _source36 = this;
-      bool unmatched36 = true;
-      if (unmatched36) {
-        if (_source36.is_RawExpr) {
-          Dafny.ISequence<Dafny.Rune> _933___v0 = _source36.dtor_content;
-          unmatched36 = false;
+      RAST._IExpr _source39 = this;
+      bool unmatched39 = true;
+      if (unmatched39) {
+        if (_source39.is_RawExpr) {
+          Dafny.ISequence<Dafny.Rune> _980___v1 = _source39.dtor_content;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_UnknownPrecedence();
         }
       }
-      if (unmatched36) {
-        if (_source36.is_Identifier) {
-          Dafny.ISequence<Dafny.Rune> _934___v1 = _source36.dtor_name;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_ExprFromType) {
+          RAST._IType _981___v2 = _source39.dtor_tpe;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_Precedence(BigInteger.One);
         }
       }
-      if (unmatched36) {
-        if (_source36.is_LiteralInt) {
-          Dafny.ISequence<Dafny.Rune> _935___v2 = _source36.dtor_value;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_Identifier) {
+          Dafny.ISequence<Dafny.Rune> _982___v3 = _source39.dtor_name;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_Precedence(BigInteger.One);
         }
       }
-      if (unmatched36) {
-        if (_source36.is_LiteralString) {
-          Dafny.ISequence<Dafny.Rune> _936___v3 = _source36.dtor_value;
-          bool _937___v4 = _source36.dtor_binary;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_LiteralInt) {
+          Dafny.ISequence<Dafny.Rune> _983___v4 = _source39.dtor_value;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_Precedence(BigInteger.One);
         }
       }
-      if (unmatched36) {
-        if (_source36.is_UnaryOp) {
-          Dafny.ISequence<Dafny.Rune> _938_op = _source36.dtor_op1;
-          RAST._IExpr _939_underlying = _source36.dtor_underlying;
-          DAST.Format._IUnaryOpFormat _940_format = _source36.dtor_format;
-          unmatched36 = false;
-          Dafny.ISequence<Dafny.Rune> _source37 = _938_op;
-          bool unmatched37 = true;
-          if (unmatched37) {
-            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) {
-              unmatched37 = false;
+      if (unmatched39) {
+        if (_source39.is_LiteralBool) {
+          bool _984___v5 = _source39.dtor_bvalue;
+          unmatched39 = false;
+          return RAST.PrintingInfo.create_Precedence(BigInteger.One);
+        }
+      }
+      if (unmatched39) {
+        if (_source39.is_LiteralString) {
+          Dafny.ISequence<Dafny.Rune> _985___v6 = _source39.dtor_value;
+          bool _986___v7 = _source39.dtor_binary;
+          bool _987___v8 = _source39.dtor_verbatim;
+          unmatched39 = false;
+          return RAST.PrintingInfo.create_Precedence(BigInteger.One);
+        }
+      }
+      if (unmatched39) {
+        if (_source39.is_UnaryOp) {
+          Dafny.ISequence<Dafny.Rune> _988_op = _source39.dtor_op1;
+          RAST._IExpr _989_underlying = _source39.dtor_underlying;
+          DAST.Format._IUnaryOpFormat _990_format = _source39.dtor_format;
+          unmatched39 = false;
+          Dafny.ISequence<Dafny.Rune> _source40 = _988_op;
+          bool unmatched40 = true;
+          if (unmatched40) {
+            if (object.Equals(_source40, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) {
+              unmatched40 = false;
               return RAST.PrintingInfo.create_SuffixPrecedence(new BigInteger(5));
             }
           }
-          if (unmatched37) {
+          if (unmatched40) {
             bool disjunctiveMatch2 = false;
-            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
+            if (object.Equals(_source40, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
               disjunctiveMatch2 = true;
             }
-            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
+            if (object.Equals(_source40, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
               disjunctiveMatch2 = true;
             }
-            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
+            if (object.Equals(_source40, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
               disjunctiveMatch2 = true;
             }
-            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
+            if (object.Equals(_source40, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
               disjunctiveMatch2 = true;
             }
-            if (object.Equals(_source37, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) {
+            if (object.Equals(_source40, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) {
               disjunctiveMatch2 = true;
             }
             if (disjunctiveMatch2) {
-              unmatched37 = false;
+              unmatched40 = false;
               return RAST.PrintingInfo.create_Precedence(new BigInteger(6));
             }
           }
-          if (unmatched37) {
-            Dafny.ISequence<Dafny.Rune> _941___v5 = _source37;
-            unmatched37 = false;
+          if (unmatched40) {
+            Dafny.ISequence<Dafny.Rune> _991___v9 = _source40;
+            unmatched40 = false;
             return RAST.PrintingInfo.create_UnknownPrecedence();
           }
           throw new System.Exception("unexpected control point");
         }
       }
-      if (unmatched36) {
-        if (_source36.is_Select) {
-          RAST._IExpr _942_underlying = _source36.dtor_obj;
-          Dafny.ISequence<Dafny.Rune> _943_name = _source36.dtor_name;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_Select) {
+          RAST._IExpr _992_underlying = _source39.dtor_obj;
+          Dafny.ISequence<Dafny.Rune> _993_name = _source39.dtor_name;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(2), RAST.Associativity.create_LeftToRight());
         }
       }
-      if (unmatched36) {
-        if (_source36.is_MemberSelect) {
-          RAST._IExpr _944_underlying = _source36.dtor_obj;
-          Dafny.ISequence<Dafny.Rune> _945_name = _source36.dtor_name;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_MemberSelect) {
+          RAST._IExpr _994_underlying = _source39.dtor_obj;
+          Dafny.ISequence<Dafny.Rune> _995_name = _source39.dtor_name;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(2), RAST.Associativity.create_LeftToRight());
         }
       }
-      if (unmatched36) {
-        if (_source36.is_Call) {
-          RAST._IExpr _946___v6 = _source36.dtor_obj;
-          Dafny.ISequence<RAST._IType> _947___v7 = _source36.dtor_typeParameters;
-          Dafny.ISequence<RAST._IExpr> _948___v8 = _source36.dtor_arguments;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_CallType) {
+          RAST._IExpr _996___v10 = _source39.dtor_obj;
+          Dafny.ISequence<RAST._IType> _997___v11 = _source39.dtor_typeParameters;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(2), RAST.Associativity.create_LeftToRight());
         }
       }
-      if (unmatched36) {
-        if (_source36.is_TypeAscription) {
-          RAST._IExpr _949_left = _source36.dtor_left;
-          RAST._IType _950_tpe = _source36.dtor_tpe;
-          unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_Call) {
+          RAST._IExpr _998___v12 = _source39.dtor_obj;
+          Dafny.ISequence<RAST._IExpr> _999___v13 = _source39.dtor_arguments;
+          unmatched39 = false;
+          return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(2), RAST.Associativity.create_LeftToRight());
+        }
+      }
+      if (unmatched39) {
+        if (_source39.is_TypeAscription) {
+          RAST._IExpr _1000_left = _source39.dtor_left;
+          RAST._IType _1001_tpe = _source39.dtor_tpe;
+          unmatched39 = false;
           return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(10), RAST.Associativity.create_LeftToRight());
         }
       }
-      if (unmatched36) {
-        if (_source36.is_BinaryOp) {
-          Dafny.ISequence<Dafny.Rune> _951_op2 = _source36.dtor_op2;
-          RAST._IExpr _952_left = _source36.dtor_left;
-          RAST._IExpr _953_right = _source36.dtor_right;
-          DAST.Format._IBinaryOpFormat _954_format = _source36.dtor_format2;
-          unmatched36 = false;
-          Dafny.ISequence<Dafny.Rune> _source38 = _951_op2;
-          bool unmatched38 = true;
-          if (unmatched38) {
+      if (unmatched39) {
+        if (_source39.is_BinaryOp) {
+          Dafny.ISequence<Dafny.Rune> _1002_op2 = _source39.dtor_op2;
+          RAST._IExpr _1003_left = _source39.dtor_left;
+          RAST._IExpr _1004_right = _source39.dtor_right;
+          DAST.Format._IBinaryOpFormat _1005_format = _source39.dtor_format2;
+          unmatched39 = false;
+          Dafny.ISequence<Dafny.Rune> _source41 = _1002_op2;
+          bool unmatched41 = true;
+          if (unmatched41) {
             bool disjunctiveMatch3 = false;
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))) {
               disjunctiveMatch3 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/"))) {
               disjunctiveMatch3 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%"))) {
               disjunctiveMatch3 = true;
             }
             if (disjunctiveMatch3) {
-              unmatched38 = false;
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(20), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
+          if (unmatched41) {
             bool disjunctiveMatch4 = false;
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+"))) {
               disjunctiveMatch4 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-"))) {
               disjunctiveMatch4 = true;
             }
             if (disjunctiveMatch4) {
-              unmatched38 = false;
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(30), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
+          if (unmatched41) {
             bool disjunctiveMatch5 = false;
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) {
               disjunctiveMatch5 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>"))) {
               disjunctiveMatch5 = true;
             }
             if (disjunctiveMatch5) {
-              unmatched38 = false;
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
-              unmatched38 = false;
+          if (unmatched41) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&"))) {
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(50), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^"))) {
-              unmatched38 = false;
+          if (unmatched41) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^"))) {
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(60), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("|"))) {
-              unmatched38 = false;
+          if (unmatched41) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("|"))) {
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(70), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
+          if (unmatched41) {
             bool disjunctiveMatch6 = false;
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
               disjunctiveMatch6 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!="))) {
               disjunctiveMatch6 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) {
               disjunctiveMatch6 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">"))) {
               disjunctiveMatch6 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<="))) {
               disjunctiveMatch6 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">="))) {
               disjunctiveMatch6 = true;
             }
             if (disjunctiveMatch6) {
-              unmatched38 = false;
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());
             }
           }
-          if (unmatched38) {
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&&"))) {
-              unmatched38 = false;
+          if (unmatched41) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&&"))) {
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(90), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("||"))) {
-              unmatched38 = false;
+          if (unmatched41) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("||"))) {
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(100), RAST.Associativity.create_LeftToRight());
             }
           }
-          if (unmatched38) {
+          if (unmatched41) {
             bool disjunctiveMatch7 = false;
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".."))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".."))) {
               disjunctiveMatch7 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("..="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("..="))) {
               disjunctiveMatch7 = true;
             }
             if (disjunctiveMatch7) {
-              unmatched38 = false;
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RequiresParentheses());
             }
           }
-          if (unmatched38) {
+          if (unmatched41) {
             bool disjunctiveMatch8 = false;
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("+="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("-="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("/="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("%="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("|="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("|="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("^="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<="))) {
               disjunctiveMatch8 = true;
             }
-            if (object.Equals(_source38, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>="))) {
+            if (object.Equals(_source41, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>="))) {
               disjunctiveMatch8 = true;
             }
             if (disjunctiveMatch8) {
-              unmatched38 = false;
+              unmatched41 = false;
               return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RightToLeft());
             }
           }
-          if (unmatched38) {
-            Dafny.ISequence<Dafny.Rune> _955___v9 = _source38;
-            unmatched38 = false;
+          if (unmatched41) {
+            Dafny.ISequence<Dafny.Rune> _1006___v14 = _source41;
+            unmatched41 = false;
             return RAST.PrintingInfo.create_PrecedenceAssociativity(BigInteger.Zero, RAST.Associativity.create_RequiresParentheses());
           }
           throw new System.Exception("unexpected control point");
         }
       }
-      if (unmatched36) {
-        RAST._IExpr _956___v10 = _source36;
-        unmatched36 = false;
+      if (unmatched39) {
+        if (_source39.is_Lambda) {
+          Dafny.ISequence<RAST._IFormal> _1007___v15 = _source39.dtor_params;
+          Std.Wrappers._IOption<RAST._IType> _1008___v16 = _source39.dtor_retType;
+          RAST._IExpr _1009___v17 = _source39.dtor_body;
+          unmatched39 = false;
+          return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(300), RAST.Associativity.create_LeftToRight());
+        }
+      }
+      if (unmatched39) {
+        RAST._IExpr _1010___v18 = _source39;
+        unmatched39 = false;
         return RAST.PrintingInfo.create_UnknownPrecedence();
       }
       throw new System.Exception("unexpected control point");
@@ -4503,6 +5254,33 @@ namespace RAST {
       return s;
     }
   }
+  public class Expr_ExprFromType : Expr {
+    public readonly RAST._IType _tpe;
+    public Expr_ExprFromType(RAST._IType tpe) : base() {
+      this._tpe = tpe;
+    }
+    public override _IExpr DowncastClone() {
+      if (this is _IExpr dt) { return dt; }
+      return new Expr_ExprFromType(_tpe);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.Expr_ExprFromType;
+      return oth != null && object.Equals(this._tpe, oth._tpe);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.Expr.ExprFromType";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._tpe);
+      s += ")";
+      return s;
+    }
+  }
   public class Expr_Identifier : Expr {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
     public Expr_Identifier(Dafny.ISequence<Dafny.Rune> name) : base() {
@@ -4518,7 +5296,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + 2;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       return (int) hash;
     }
@@ -4547,7 +5325,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 2;
+      hash = ((hash << 5) + hash) + 3;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._matchee));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cases));
       return (int) hash;
@@ -4579,7 +5357,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 3;
+      hash = ((hash << 5) + hash) + 4;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._stmt));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rhs));
       return (int) hash;
@@ -4609,7 +5387,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 4;
+      hash = ((hash << 5) + hash) + 5;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
     }
@@ -4622,31 +5400,31 @@ namespace RAST {
     }
   }
   public class Expr_StructBuild : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly RAST._IExpr _underlying;
     public readonly Dafny.ISequence<RAST._IAssignIdentifier> _assignments;
-    public Expr_StructBuild(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IAssignIdentifier> assignments) : base() {
-      this._name = name;
+    public Expr_StructBuild(RAST._IExpr underlying, Dafny.ISequence<RAST._IAssignIdentifier> assignments) : base() {
+      this._underlying = underlying;
       this._assignments = assignments;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_StructBuild(_name, _assignments);
+      return new Expr_StructBuild(_underlying, _assignments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_StructBuild;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._assignments, oth._assignments);
+      return oth != null && object.Equals(this._underlying, oth._underlying) && object.Equals(this._assignments, oth._assignments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 5;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + 6;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._assignments));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.Expr.StructBuild";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._underlying);
       s += ", ";
       s += Dafny.Helpers.ToString(this._assignments);
       s += ")";
@@ -4668,7 +5446,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 6;
+      hash = ((hash << 5) + hash) + 7;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
       return (int) hash;
     }
@@ -4699,7 +5477,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 7;
+      hash = ((hash << 5) + hash) + 8;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._op1));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._format));
@@ -4738,7 +5516,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 8;
+      hash = ((hash << 5) + hash) + 9;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._op2));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._right));
@@ -4776,7 +5554,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 9;
+      hash = ((hash << 5) + hash) + 10;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._left));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
       return (int) hash;
@@ -4806,7 +5584,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 10;
+      hash = ((hash << 5) + hash) + 11;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       return (int) hash;
     }
@@ -4818,26 +5596,56 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_LiteralString : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _value;
-    public readonly bool _binary;
-    public Expr_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary) : base() {
-      this._value = @value;
-      this._binary = binary;
+  public class Expr_LiteralBool : Expr {
+    public readonly bool _bvalue;
+    public Expr_LiteralBool(bool bvalue) : base() {
+      this._bvalue = bvalue;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_LiteralString(_value, _binary);
+      return new Expr_LiteralBool(_bvalue);
     }
     public override bool Equals(object other) {
-      var oth = other as RAST.Expr_LiteralString;
-      return oth != null && object.Equals(this._value, oth._value) && this._binary == oth._binary;
+      var oth = other as RAST.Expr_LiteralBool;
+      return oth != null && this._bvalue == oth._bvalue;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 11;
+      hash = ((hash << 5) + hash) + 12;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._bvalue));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.Expr.LiteralBool";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._bvalue);
+      s += ")";
+      return s;
+    }
+  }
+  public class Expr_LiteralString : Expr {
+    public readonly Dafny.ISequence<Dafny.Rune> _value;
+    public readonly bool _binary;
+    public readonly bool _verbatim;
+    public Expr_LiteralString(Dafny.ISequence<Dafny.Rune> @value, bool binary, bool verbatim) : base() {
+      this._value = @value;
+      this._binary = binary;
+      this._verbatim = verbatim;
+    }
+    public override _IExpr DowncastClone() {
+      if (this is _IExpr dt) { return dt; }
+      return new Expr_LiteralString(_value, _binary, _verbatim);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.Expr_LiteralString;
+      return oth != null && object.Equals(this._value, oth._value) && this._binary == oth._binary && this._verbatim == oth._verbatim;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 13;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._binary));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._verbatim));
       return (int) hash;
     }
     public override string ToString() {
@@ -4846,38 +5654,8 @@ namespace RAST {
       s += this._value.ToVerbatimString(true);
       s += ", ";
       s += Dafny.Helpers.ToString(this._binary);
-      s += ")";
-      return s;
-    }
-  }
-  public class Expr_ConversionNum : Expr {
-    public readonly RAST._IType _tpe;
-    public readonly RAST._IExpr _underlying;
-    public Expr_ConversionNum(RAST._IType tpe, RAST._IExpr underlying) : base() {
-      this._tpe = tpe;
-      this._underlying = underlying;
-    }
-    public override _IExpr DowncastClone() {
-      if (this is _IExpr dt) { return dt; }
-      return new Expr_ConversionNum(_tpe, _underlying);
-    }
-    public override bool Equals(object other) {
-      var oth = other as RAST.Expr_ConversionNum;
-      return oth != null && object.Equals(this._tpe, oth._tpe) && object.Equals(this._underlying, oth._underlying);
-    }
-    public override int GetHashCode() {
-      ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 12;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._tpe));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
-      return (int) hash;
-    }
-    public override string ToString() {
-      string s = "RAST.Expr.ConversionNum";
-      s += "(";
-      s += Dafny.Helpers.ToString(this._tpe);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._underlying);
+      s += Dafny.Helpers.ToString(this._verbatim);
       s += ")";
       return s;
     }
@@ -4903,7 +5681,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 13;
+      hash = ((hash << 5) + hash) + 14;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._declareType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optType));
@@ -4924,32 +5702,32 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_AssignVar : Expr {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+  public class Expr_Assign : Expr {
+    public readonly Std.Wrappers._IOption<RAST._IAssignLhs> _names;
     public readonly RAST._IExpr _rhs;
-    public Expr_AssignVar(Dafny.ISequence<Dafny.Rune> name, RAST._IExpr rhs) : base() {
-      this._name = name;
+    public Expr_Assign(Std.Wrappers._IOption<RAST._IAssignLhs> names, RAST._IExpr rhs) : base() {
+      this._names = names;
       this._rhs = rhs;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_AssignVar(_name, _rhs);
+      return new Expr_Assign(_names, _rhs);
     }
     public override bool Equals(object other) {
-      var oth = other as RAST.Expr_AssignVar;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._rhs, oth._rhs);
+      var oth = other as RAST.Expr_Assign;
+      return oth != null && object.Equals(this._names, oth._names) && object.Equals(this._rhs, oth._rhs);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 14;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + 15;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._names));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._rhs));
       return (int) hash;
     }
     public override string ToString() {
-      string s = "RAST.Expr.AssignVar";
+      string s = "RAST.Expr.Assign";
       s += "(";
-      s += this._name.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._names);
       s += ", ";
       s += Dafny.Helpers.ToString(this._rhs);
       s += ")";
@@ -4975,7 +5753,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 15;
+      hash = ((hash << 5) + hash) + 16;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._cond));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._thn));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._els));
@@ -5010,7 +5788,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 16;
+      hash = ((hash << 5) + hash) + 17;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optCond));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
@@ -5044,7 +5822,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 17;
+      hash = ((hash << 5) + hash) + 18;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._range));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
@@ -5079,7 +5857,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 18;
+      hash = ((hash << 5) + hash) + 19;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lbl));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._underlying));
       return (int) hash;
@@ -5109,7 +5887,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 19;
+      hash = ((hash << 5) + hash) + 20;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optLbl));
       return (int) hash;
     }
@@ -5136,7 +5914,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 20;
+      hash = ((hash << 5) + hash) + 21;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optLbl));
       return (int) hash;
     }
@@ -5163,7 +5941,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 21;
+      hash = ((hash << 5) + hash) + 22;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._optExpr));
       return (int) hash;
     }
@@ -5175,28 +5953,57 @@ namespace RAST {
       return s;
     }
   }
-  public class Expr_Call : Expr {
+  public class Expr_CallType : Expr {
     public readonly RAST._IExpr _obj;
     public readonly Dafny.ISequence<RAST._IType> _typeParameters;
-    public readonly Dafny.ISequence<RAST._IExpr> _arguments;
-    public Expr_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeParameters, Dafny.ISequence<RAST._IExpr> arguments) : base() {
+    public Expr_CallType(RAST._IExpr obj, Dafny.ISequence<RAST._IType> typeParameters) : base() {
       this._obj = obj;
       this._typeParameters = typeParameters;
+    }
+    public override _IExpr DowncastClone() {
+      if (this is _IExpr dt) { return dt; }
+      return new Expr_CallType(_obj, _typeParameters);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.Expr_CallType;
+      return oth != null && object.Equals(this._obj, oth._obj) && object.Equals(this._typeParameters, oth._typeParameters);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 23;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParameters));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.Expr.CallType";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._obj);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._typeParameters);
+      s += ")";
+      return s;
+    }
+  }
+  public class Expr_Call : Expr {
+    public readonly RAST._IExpr _obj;
+    public readonly Dafny.ISequence<RAST._IExpr> _arguments;
+    public Expr_Call(RAST._IExpr obj, Dafny.ISequence<RAST._IExpr> arguments) : base() {
+      this._obj = obj;
       this._arguments = arguments;
     }
     public override _IExpr DowncastClone() {
       if (this is _IExpr dt) { return dt; }
-      return new Expr_Call(_obj, _typeParameters, _arguments);
+      return new Expr_Call(_obj, _arguments);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Expr_Call;
-      return oth != null && object.Equals(this._obj, oth._obj) && object.Equals(this._typeParameters, oth._typeParameters) && object.Equals(this._arguments, oth._arguments);
+      return oth != null && object.Equals(this._obj, oth._obj) && object.Equals(this._arguments, oth._arguments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 22;
+      hash = ((hash << 5) + hash) + 24;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typeParameters));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
       return (int) hash;
     }
@@ -5204,8 +6011,6 @@ namespace RAST {
       string s = "RAST.Expr.Call";
       s += "(";
       s += Dafny.Helpers.ToString(this._obj);
-      s += ", ";
-      s += Dafny.Helpers.ToString(this._typeParameters);
       s += ", ";
       s += Dafny.Helpers.ToString(this._arguments);
       s += ")";
@@ -5229,7 +6034,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 23;
+      hash = ((hash << 5) + hash) + 25;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       return (int) hash;
@@ -5261,7 +6066,7 @@ namespace RAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 24;
+      hash = ((hash << 5) + hash) + 26;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._obj));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       return (int) hash;
@@ -5276,11 +6081,48 @@ namespace RAST {
       return s;
     }
   }
+  public class Expr_Lambda : Expr {
+    public readonly Dafny.ISequence<RAST._IFormal> _params;
+    public readonly Std.Wrappers._IOption<RAST._IType> _retType;
+    public readonly RAST._IExpr _body;
+    public Expr_Lambda(Dafny.ISequence<RAST._IFormal> @params, Std.Wrappers._IOption<RAST._IType> retType, RAST._IExpr body) : base() {
+      this._params = @params;
+      this._retType = retType;
+      this._body = body;
+    }
+    public override _IExpr DowncastClone() {
+      if (this is _IExpr dt) { return dt; }
+      return new Expr_Lambda(_params, _retType, _body);
+    }
+    public override bool Equals(object other) {
+      var oth = other as RAST.Expr_Lambda;
+      return oth != null && object.Equals(this._params, oth._params) && object.Equals(this._retType, oth._retType) && object.Equals(this._body, oth._body);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 27;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._params));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._retType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "RAST.Expr.Lambda";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._params);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._retType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._body);
+      s += ")";
+      return s;
+    }
+  }
 
   public interface _IFn {
     bool is_Fn { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
-    Dafny.ISequence<RAST._ITypeParam> dtor_typeParams { get; }
+    Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams { get; }
     Dafny.ISequence<RAST._IFormal> dtor_formals { get; }
     Std.Wrappers._IOption<RAST._IType> dtor_returnType { get; }
     Dafny.ISequence<Dafny.Rune> dtor_where { get; }
@@ -5290,12 +6132,12 @@ namespace RAST {
   }
   public class Fn : _IFn {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
-    public readonly Dafny.ISequence<RAST._ITypeParam> _typeParams;
+    public readonly Dafny.ISequence<RAST._ITypeParamDecl> _typeParams;
     public readonly Dafny.ISequence<RAST._IFormal> _formals;
     public readonly Std.Wrappers._IOption<RAST._IType> _returnType;
     public readonly Dafny.ISequence<Dafny.Rune> _where;
     public readonly Std.Wrappers._IOption<RAST._IExpr> _body;
-    public Fn(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
+    public Fn(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
       this._name = name;
       this._typeParams = typeParams;
       this._formals = formals;
@@ -5339,7 +6181,7 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._IFn theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParam>.Empty, Dafny.Sequence<RAST._IFormal>.Empty, Std.Wrappers.Option<RAST._IType>.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<RAST._IExpr>.Default());
+    private static readonly RAST._IFn theDefault = create(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._ITypeParamDecl>.Empty, Dafny.Sequence<RAST._IFormal>.Empty, Std.Wrappers.Option<RAST._IType>.Default(), Dafny.Sequence<Dafny.Rune>.Empty, Std.Wrappers.Option<RAST._IExpr>.Default());
     public static RAST._IFn Default() {
       return theDefault;
     }
@@ -5347,10 +6189,10 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IFn> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IFn create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
+    public static _IFn create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
       return new Fn(name, typeParams, formals, returnType, @where, body);
     }
-    public static _IFn create_Fn(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParam> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
+    public static _IFn create_Fn(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.ISequence<RAST._IFormal> formals, Std.Wrappers._IOption<RAST._IType> returnType, Dafny.ISequence<Dafny.Rune> @where, Std.Wrappers._IOption<RAST._IExpr> body) {
       return create(name, typeParams, formals, returnType, @where, body);
     }
     public bool is_Fn { get { return true; } }
@@ -5359,7 +6201,7 @@ namespace RAST {
         return this._name;
       }
     }
-    public Dafny.ISequence<RAST._ITypeParam> dtor_typeParams {
+    public Dafny.ISequence<RAST._ITypeParamDecl> dtor_typeParams {
       get {
         return this._typeParams;
       }
@@ -5385,41 +6227,41 @@ namespace RAST {
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      var _pat_let_tv87 = ind;
-      var _pat_let_tv88 = ind;
-      var _pat_let_tv89 = ind;
-      var _pat_let_tv90 = ind;
-      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fn "), (this).dtor_name), RAST.TypeParam.ToStringMultiple((this).dtor_typeParams, ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), RAST.__default.SeqToString<RAST._IFormal>((this).dtor_formals, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>>>((_957_ind) => ((System.Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>)((_958_formal) => {
-        return (_958_formal)._ToString(_957_ind);
+      var _pat_let_tv97 = ind;
+      var _pat_let_tv98 = ind;
+      var _pat_let_tv99 = ind;
+      var _pat_let_tv100 = ind;
+      return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("fn "), (this).dtor_name), RAST.TypeParamDecl.ToStringMultiple((this).dtor_typeParams, ind)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), RAST.__default.SeqToString<RAST._IFormal>((this).dtor_formals, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>>>((_1011_ind) => ((System.Func<RAST._IFormal, Dafny.ISequence<Dafny.Rune>>)((_1012_formal) => {
+        return (_1012_formal)._ToString(_1011_ind);
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")")), ((System.Func<Dafny.ISequence<Dafny.Rune>>)(() => {
-        Std.Wrappers._IOption<RAST._IType> _source39 = (this).dtor_returnType;
-        bool unmatched39 = true;
-        if (unmatched39) {
-          if (_source39.is_Some) {
-            RAST._IType _959_t = _source39.dtor_value;
-            unmatched39 = false;
-            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" -> "), (_959_t)._ToString(_pat_let_tv87));
+        Std.Wrappers._IOption<RAST._IType> _source42 = (this).dtor_returnType;
+        bool unmatched42 = true;
+        if (unmatched42) {
+          if (_source42.is_Some) {
+            RAST._IType _1013_t = _source42.dtor_value;
+            unmatched42 = false;
+            return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" -> "), (_1013_t)._ToString(_pat_let_tv97));
           }
         }
-        if (unmatched39) {
-          Std.Wrappers._IOption<RAST._IType> _960___v29 = _source39;
-          unmatched39 = false;
+        if (unmatched42) {
+          Std.Wrappers._IOption<RAST._IType> _1014___v41 = _source42;
+          unmatched42 = false;
           return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
         }
         throw new System.Exception("unexpected control point");
       }))()), ((((this).dtor_where).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n"), ind), RAST.__default.IND), (this).dtor_where)))), ((System.Func<Dafny.ISequence<Dafny.Rune>>)(() => {
-        Std.Wrappers._IOption<RAST._IExpr> _source40 = (this).dtor_body;
-        bool unmatched40 = true;
-        if (unmatched40) {
-          if (_source40.is_None) {
-            unmatched40 = false;
+        Std.Wrappers._IOption<RAST._IExpr> _source43 = (this).dtor_body;
+        bool unmatched43 = true;
+        if (unmatched43) {
+          if (_source43.is_None) {
+            unmatched43 = false;
             return Dafny.Sequence<Dafny.Rune>.UnicodeFromString(";");
           }
         }
-        if (unmatched40) {
-          RAST._IExpr _961_body = _source40.dtor_value;
-          unmatched40 = false;
-          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n"), _pat_let_tv88), RAST.__default.IND), (_961_body)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv89, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv90), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
+        if (unmatched43) {
+          RAST._IExpr _1015_body = _source43.dtor_value;
+          unmatched43 = false;
+          return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {\n"), _pat_let_tv98), RAST.__default.IND), (_1015_body)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_pat_let_tv99, RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), _pat_let_tv100), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
         }
         throw new System.Exception("unexpected control point");
       }))());
