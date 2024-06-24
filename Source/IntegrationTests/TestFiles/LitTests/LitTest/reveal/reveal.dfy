@@ -54,6 +54,24 @@ blind method OpaqueUser() {
   }
 }
 
+blind method FunctionSubsetResult(a: nat) {
+  assert a >= 0;
+  if (*) { 
+    var x: nat := Natty();
+    assert x >= 0;
+  } else if (*) {
+    var y: int := Natty();
+    assert y >= 0;
+  } else {
+    reveal Natty;
+    var z: nat := Natty();
+    assert z >= 0;
+  }
+}
+function Natty(): nat {
+  3
+}
+
 blind method RevealExpressionScope()
 {
   reveal P;
@@ -76,7 +94,6 @@ blind method MethodEnsuresAreHidden() {
 
 method Bar() returns (x: bool) 
   ensures x
-
 
 // Consequence axiom also contains information about subset types of the return types
 // Reveals in contracts are fine, but they never escape the contract.
