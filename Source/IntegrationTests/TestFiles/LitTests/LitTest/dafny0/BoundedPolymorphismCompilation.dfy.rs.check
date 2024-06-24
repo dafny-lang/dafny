@@ -1,1 +1,1 @@
-// CHECK-L: Unhandled exception: System.InvalidOperationException: Unknown buildable type: NULL
+// L-CHECK: error: `_` cannot be a raw identifier
