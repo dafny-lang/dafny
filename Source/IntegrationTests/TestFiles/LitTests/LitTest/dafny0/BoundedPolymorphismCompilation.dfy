@@ -8,6 +8,7 @@ method Main() {
   BoundsAndCasts.Test();
   Conversions.Test();
   Operators.Test();
+  ReturnExpr.Test();
 }
 
 module As {
@@ -290,5 +291,31 @@ module Operators {
     var _, _ := P9(cc, cc);
     var _ := P10(cc, cc);
     print "done\n";
+  }
+}
+
+module ReturnExpr {
+  trait Trait {}
+
+  function F<X extends Trait>(x: X): Trait {
+    assert x is Trait;
+    x
+  }
+
+  function G<X extends Trait>(x: X): Trait {
+    x as Trait
+  }
+
+  class C extends Trait {
+  }
+
+  method Test() {
+    var c := new C;
+    for i := 0 to 2 {
+      var t: Trait := if i == 0 then F(c) else G(c);
+      assert c == t;
+      var tc: C := t as C;
+      expect c == tc;
+    }
   }
 }

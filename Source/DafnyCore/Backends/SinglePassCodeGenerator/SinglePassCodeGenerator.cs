@@ -576,7 +576,9 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      EmitExpr(expr, inLetExprBody, EmitCoercionIfNecessary(expr.Type, resultType, null, w), wStmts);
+      w = EmitCoercionIfNecessary(expr.Type, resultType, expr.tok, w);
+      w = EmitDowncastIfNecessary(expr.Type, resultType, expr.tok, w);
+      EmitExpr(expr, inLetExprBody, w, wStmts);
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);
