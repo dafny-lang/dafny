@@ -37,4 +37,7 @@
 // Files excluded by the project file and included on the CLI, are included
 // RUN: ! %resolve "%S/dfyconfig.toml" "%S/src/excluded.dfy" &>> "%t"
 
+// A project file can be found from an input file
+// RUN: ! %resolve %S/src/input.dfy --find-project &>> "%t"
+
 // RUN: %diff "%s.expect" "%t"

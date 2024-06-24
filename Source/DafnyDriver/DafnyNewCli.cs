@@ -20,6 +20,7 @@ using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny;
 
@@ -199,11 +200,17 @@ public static class DafnyNewCli {
   }
 
   private static async Task<bool> ProcessFile(DafnyOptions dafnyOptions, FileInfo singleFile) {
-    var isProjectFile = Path.GetExtension(singleFile.FullName) == DafnyProject.Extension;
+    var isProjectFile = singleFile.FullName.EndsWith(DafnyProject.FileName);
     if (isProjectFile) {
       return await ProcessProjectFile(dafnyOptions, new Uri(singleFile.FullName));
     }
 
+    if (dafnyOptions.DafnyProject == null && dafnyOptions.Get(DafnyProject.FindProject)) {
+      var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
+      var project = await opener.TryFindProject(new Uri(singleFile.FullName));
+      project?.Validate(dafnyOptions.OutputWriter, AllOptions);
+      dafnyOptions.DafnyProject = project;
+    }
     dafnyOptions.CliRootSourceUris.Add(new Uri(singleFile.FullName));
     return true;
   }
@@ -219,7 +226,7 @@ public static class DafnyNewCli {
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file, Token.Cli);
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, file, Token.Cli);
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
@@ -271,7 +278,7 @@ public static class DafnyNewCli {
       yield break;
     }
 
-    var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
+    var dependencyProject = await DafnyProject.Open(fileSystem, uri, uriOrigin);
     var dependencyOptions =
       DooFile.CheckAndGetLibraryOptions(reporter, uri, options, uriOrigin, dependencyProject.Options);
     if (dependencyOptions == null) {
