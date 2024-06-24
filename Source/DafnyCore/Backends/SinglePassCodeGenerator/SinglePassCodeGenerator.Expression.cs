@@ -290,7 +290,8 @@ namespace Microsoft.Dafny.Compilers {
             var fromType = e.E.Type.GetRuntimeType();
             var toType = e.ToType.GetRuntimeType();
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
-                            toType.IsRefType == fromType.IsRefType);
+                            toType.IsRefType == fromType.IsRefType ||
+                            (fromType.IsTypeParameter && toType.IsTraitType));
             if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
               var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.tok, wr);
               w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.tok, w);

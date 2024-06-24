@@ -1212,7 +1212,9 @@ public partial class BoogieGenerator {
       }
     }
 
-    Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType == toType.IsRefType);
+    Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
+                    fromType.IsRefType == toType.IsRefType ||
+                    (fromType.IsTypeParameter && toType.IsTraitType));
     if (toType.IsRefType) {
       PutSourceIntoLocal();
       CheckSubrange(tok, o, fromType, toType, expr, builder, errorMsgPrefix);
