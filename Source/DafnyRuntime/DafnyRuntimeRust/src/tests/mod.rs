@@ -779,4 +779,16 @@ mod tests {
 
         deallocate(a);
     }
+
+    // Conversion of any usize-compatible value into usize
+    #[test]
+    fn test_usize() {
+        let a: u128 = 1;
+        let b: i8 = 1;
+        let u: usize = 1;
+        assert_eq!(DafnyUsize::into_usize(int!(a)), u);
+        assert_eq!(DafnyUsize::into_usize(a), u);
+        assert_eq!(DafnyUsize::into_usize(b), u);
+        assert_eq!(DafnyUsize::into_usize(int!(b)), u);
+    }
 }

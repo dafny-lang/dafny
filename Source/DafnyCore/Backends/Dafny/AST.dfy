@@ -244,7 +244,7 @@ module {:extern "DAST"} DAST {
 
   datatype Expression =
     Literal(Literal) |
-    Ident(Name) |
+    Ident(name: Name) |
     Companion(seq<Ident>, typeArgs: seq<Type>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
@@ -278,7 +278,7 @@ module {:extern "DAST"} DAST {
     Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
     BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
-    IIFE(name: Ident, typ: Type, value: Expression, iifeBody: Expression) |
+    IIFE(ident: Ident, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: Name) |
     InitializationValue(typ: Type) |

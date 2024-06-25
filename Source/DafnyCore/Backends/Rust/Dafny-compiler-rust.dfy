@@ -344,6 +344,18 @@ module RAST
         case _ => None
       }
     }
+    function ExtractMaybeUninitArrayElement(): Option<Type> {
+      if this.IsObjectOrPointer() then
+        var s := this.ObjectOrPointerUnderlying();
+        if s.Array? && IsMaybeUninitType(s.underlying) then
+          Some(MaybeUninitTypeUnderlying(s.underlying))
+        else if s.IsMultiArray() && IsMaybeUninitType(s.MultiArrayUnderlying()) then
+          Some(MaybeUninitTypeUnderlying(s.MultiArrayUnderlying()))
+        else
+          None
+      else
+        None
+    }
     function ToString(ind: string): string {
       match this {
         case Bool() => "bool"
@@ -440,6 +452,12 @@ module RAST
       requires IsMultiArray()
     {
       this.baseName.name
+    }
+
+    function MultiArrayUnderlying(): Type
+      requires IsMultiArray()
+    {
+      arguments[0]
     }
 
     // Given an array type like *mut [T], produces the type *mut[MaybeUninit<T>]
@@ -561,6 +579,14 @@ module RAST
 
   function MaybeUninitType(underlying: Type): Type {
     MaybeUninitPath.Apply([underlying])
+  }
+  predicate IsMaybeUninitType(tpe: Type) {
+    tpe.TypeApp? && tpe.baseName == MaybeUninitPath && |tpe.arguments| == 1
+  }
+  function MaybeUninitTypeUnderlying(tpe: Type): Type
+    requires IsMaybeUninitType(tpe)
+  {
+    tpe.arguments[0]
   }
   function MaybeUninitNew(underlying: Expr): Expr {
     std.MSel("mem").MSel("MaybeUninit").MSel("new").Apply([underlying])
@@ -785,6 +811,7 @@ module RAST
     | CallType(obj: Expr, typeParameters: seq<Type>) // obj::<...type parameters>
     | Call(obj: Expr, arguments: seq<Expr>)          // obj(...arguments)
     | Select(obj: Expr, name: string)                // obj.name
+    | SelectIndex(obj: Expr, range: Expr)            // obj[range]
     | MemberSelect(obj: Expr, name: string)          // obj::name
     | Lambda(params: seq<Formal>, retType: Option<Type>, body: Expr) // move |<params>| -> retType { body }
   {
@@ -812,6 +839,7 @@ module RAST
             case _ => UnknownPrecedence()
           }
         case Select(underlying, name) => PrecedenceAssociativity(2, LeftToRight)
+        case SelectIndex(underlying, range) => PrecedenceAssociativity(2, LeftToRight)
         case MemberSelect(underlying, name) => PrecedenceAssociativity(2, LeftToRight)
         case CallType(_, _) => PrecedenceAssociativity(2, LeftToRight)
         case Call(_, _) => PrecedenceAssociativity(2, LeftToRight)
@@ -907,6 +935,8 @@ module RAST
                   SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height()))
         case Select(expression, name) =>
           1 + expression.Height()
+        case SelectIndex(expression, range) =>
+          1 + max(expression.Height(), range.Height())
         case MemberSelect(expression, name) =>
           1 + expression.Height()
         case Lambda(params, retType, body) =>
@@ -1171,6 +1201,10 @@ module RAST
         case Select(expression, name) =>
           var (leftP, rightP) := LeftParentheses(expression);
           leftP + expression.ToString(ind) + rightP + "." + name
+        case SelectIndex(expression, range) =>
+          var (leftP, rightP) := LeftParentheses(expression);
+          var rangeStr := range.ToString(ind + IND);
+          leftP + expression.ToString(ind) + rightP + "[" + rangeStr + "]"
         case MemberSelect(expression, name) =>
           var (leftP, rightP) := LeftParentheses(expression);
           leftP + expression.ToString(ind) + rightP + "::" + name
@@ -1277,6 +1311,10 @@ module RAST
 
   function RcNew(underlying: Expr): Expr {
     Call(std_rc_Rc_new, [underlying])
+  }
+
+  function IntoUsize(underlying: Expr): Expr {
+    dafny_runtime.MSel("DafnyUsize").MSel("into_usize").Apply1(underlying)
   }
 
   datatype Fn =
@@ -3040,8 +3078,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var varName := "__idx" + Strings.OfNat(i);
             indicesExpr := indicesExpr + [R.Identifier(varName)];
             r := r.Then(
-              R.DeclareVar(R.CONST, varName, None, Some(R.RawExpr("<usize as ::dafny_runtime::NumCast>::from(" + idx.ToString(IND) + ").unwrap()")))
-            );
+              R.DeclareVar(
+                R.CONST, varName, None,
+                Some(
+                  R.IntoUsize(idx))));
             readIdents := readIdents + recIdentsIdx;
           }
 
@@ -3106,6 +3146,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               expr, exprOwnership, recIdents := GenExpr(expression, selfIdent, env, OwnershipOwned);
             }
             readIdents := recIdents;
+            //print "Setting type of " + escapeName(name) + " to " + tpe.ToString("") + "\n";
+            //print if expression.NewUninitArray? then "Actually, preferring type at initialization" else "ok", "\n";
             tpe := if expression.NewUninitArray? then tpe.TypeAtInitialization() else tpe;
             generated := R.DeclareVar(R.MUT, escapeName(name), Some(tpe), Some(expr));
             newEnv := env.AddAssigned(escapeName(name), tpe);
@@ -3123,6 +3165,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var tpe := env.GetType(rustId);
             if tpe.Some? && tpe.value.ExtractMaybePlacebo().Some? {
               exprGen := R.MaybePlacebo(exprGen);
+            }
+          }
+          if lhs.Index? && lhs.expr.Ident? {
+            var rustId := escapeName(lhs.expr.name);
+            var tpe := env.GetType(rustId);
+            if tpe.Some? && tpe.value.ExtractMaybeUninitArrayElement().Some? {
+              exprGen := R.MaybeUninitNew(exprGen);
             }
           }
           var lhsGen, needsIIFE, recIdents, resEnv := GenAssignLhs(lhs, exprGen, selfIdent, env);
@@ -4266,7 +4315,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var dimExprs := [];
             for i := 0 to |dims| invariant |dimExprs| == i {
               var recursiveGen, _, recIdents := GenExpr(dims[i], selfIdent, env, OwnershipOwned);
-              dimExprs := dimExprs + [R.TypeAscription(recursiveGen, R.TIdentifier("usize"))];
+              dimExprs := dimExprs + [R.IntoUsize(recursiveGen)];
               readIdents := readIdents + recIdents;
             }
             if |dims| > 1 {
@@ -4537,7 +4586,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               if dim == 0 {
                 r := read_macro.Apply1(recursiveGen).Sel("data").Sel("len").Apply([]);
               } else {
-                r := read_macro.Apply1(recursiveGen).Sel("Length" + Strings.OfNat(dim));
+                r := read_macro.Apply1(recursiveGen).Sel("length" + Strings.OfNat(dim) + "_usize").Apply([]);
               }
             }
             if !native {
@@ -4652,15 +4701,28 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           r := onExpr;
 
-          var i := 0;
-          while i < |indices| {
-            if collKind == CollKind.Array {
-              r := r.Sel("borrow").Apply([]);
+          var hadArray := false;
+          if collKind == CollKind.Array {
+            r := read_macro.Apply1(r);
+            hadArray := true;
+            if |indices| > 1 {
+              r := r.Sel("data");
             }
-            var idx, idxOwned, recIdentsIdx := GenExpr(indices[i], selfIdent, env, OwnershipBorrowed);
-            r := r.Sel("get").Apply1(idx);
-            readIdents := readIdents + recIdentsIdx;
-            i := i + 1;
+          }
+          for i := 0 to |indices| {
+            if collKind == CollKind.Array {
+              var idx, idxOwned, recIdentsIdx := GenExpr(indices[i], selfIdent, env, OwnershipOwned);
+              idx := R.IntoUsize(idx);
+              r := R.SelectIndex(r, idx);
+              readIdents := readIdents + recIdentsIdx;
+            } else {
+              var idx, idxOwned, recIdentsIdx := GenExpr(indices[i], selfIdent, env, OwnershipBorrowed);
+              r := r.Sel("get").Apply1(idx);
+              readIdents := readIdents + recIdentsIdx;
+            }
+          }
+          if hadArray {
+            r := r.Clone();
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;

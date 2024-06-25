@@ -236,6 +236,10 @@ pub mod dafny_runtime_conversions {
     }
 }
 
+pub trait DafnyUsize {
+    fn into_usize(self) -> usize;
+}
+
 // **************
 // Dafny integers
 // **************
@@ -252,6 +256,12 @@ impl DafnyInt {
     }
     pub fn as_usize(&self) -> usize {
         self.to_usize().unwrap()
+    }
+}
+
+impl DafnyUsize for DafnyInt {
+    fn into_usize(self) -> usize {
+        self.as_usize()
     }
 }
 
@@ -538,6 +548,11 @@ macro_rules! impl_dafnyint_from {
                 DafnyInt {
                     data: Rc::new(n.into()),
                 }
+            }
+        }
+        impl DafnyUsize for $type {
+            fn into_usize(self) -> usize {
+                self as usize
             }
         }
     };
@@ -2487,14 +2502,37 @@ macro_rules! INIT_ARRAY_DATA {
 macro_rules! ARRAY_METHODS {
     // Accepts any number of length identifiers
     ($ArrayType:ident, $length0: ident, $($length:ident),+) => {
+        pub fn placebos_box_usize(
+            $length0: usize,
+            $($length: usize),+
+        ) -> Box<$ArrayType<$crate::MaybeUninit<T>>> {
+            Box::new($ArrayType {
+                $($length: $length),+,
+                data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
+            })
+        }
+        
         pub fn placebos_usize(
             $length0: usize,
             $($length: usize),+
         ) -> *mut $ArrayType<$crate::MaybeUninit<T>> {
-            Box::into_raw(Box::new($ArrayType {
-                $($length: $length),+,
-                data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
-            }))
+            Box::into_raw(Self::placebos_box_usize(
+                $length0,
+                $($length),+
+            ))
+        }
+
+        pub fn placebos_usize_object(
+            $length0: usize,
+            $($length: usize),+
+        ) -> $crate::Object<$ArrayType<$crate::MaybeUninit<T>>> {
+            // SAFETY: We know the object is owned and never referred to by anything else
+            unsafe {
+                $crate::Object::from_rc(Rc::new($ArrayType {
+                    $($length: $length),+,
+                    data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
+                }))
+            }
         }
 
         pub fn placebos(
@@ -2523,7 +2561,7 @@ macro_rules! ARRAY_STRUCT {
     ($ArrayType:ident, $length0: ident, $($length:ident),+) => {
         pub struct $ArrayType<T> {
             $($length: usize),+,
-            data: ARRAY_DATA_TYPE!($length0, $($length),+),
+            pub data: ARRAY_DATA_TYPE!($length0, $($length),+),
         }
     }
 }
@@ -3091,6 +3129,11 @@ macro_rules! update_field_if_uninit {
 
 pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 
+impl <T: ?Sized> Object<T> {
+    unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
+        Object(Some(rcmut::from_rc(rc)))
+    }
+}
 impl<T: ?Sized> Eq for Object<T> {}
 
 impl<T: ?Sized> Clone for Object<T> {
@@ -3303,7 +3346,7 @@ pub mod rcmut {
             crate::Object(Some(crate::rcmut::new(Array { data })))
         }
 
-        pub fn placebos_usize(length: usize) -> crate::Object<Array<MaybeUninit<T>>> {
+        pub fn placebos_usize_object(length: usize) -> crate::Object<Array<MaybeUninit<T>>> {
             let x = crate::array::placebos_box_usize::<T>(length);
             crate::rcmut::Array::<MaybeUninit<T>>::new(x)
         }

@@ -5767,7 +5767,7 @@ namespace DAST {
     bool is_UnboundedIntRange { get; }
     bool is_Quantifier { get; }
     DAST._ILiteral dtor_Literal_a0 { get; }
-    Dafny.ISequence<Dafny.Rune> dtor_Ident_a0 { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_Companion_a0 { get; }
     Dafny.ISequence<DAST._IType> dtor_typeArgs { get; }
     Dafny.ISequence<DAST._IExpression> dtor_Tuple_a0 { get; }
@@ -5821,7 +5821,7 @@ namespace DAST {
     DAST._IType dtor_retType { get; }
     Dafny.ISequence<DAST._IStatement> dtor_body { get; }
     Dafny.ISequence<_System._ITuple2<DAST._IFormal, DAST._IExpression>> dtor_values { get; }
-    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_ident { get; }
     DAST._IExpression dtor_iifeBody { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_dType { get; }
     DAST._IExpression dtor_of { get; }
@@ -5849,8 +5849,8 @@ namespace DAST {
     public static _IExpression create_Literal(DAST._ILiteral _a0) {
       return new Expression_Literal(_a0);
     }
-    public static _IExpression create_Ident(Dafny.ISequence<Dafny.Rune> _a0) {
-      return new Expression_Ident(_a0);
+    public static _IExpression create_Ident(Dafny.ISequence<Dafny.Rune> name) {
+      return new Expression_Ident(name);
     }
     public static _IExpression create_Companion(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _a0, Dafny.ISequence<DAST._IType> typeArgs) {
       return new Expression_Companion(_a0, typeArgs);
@@ -5951,8 +5951,8 @@ namespace DAST {
     public static _IExpression create_BetaRedex(Dafny.ISequence<_System._ITuple2<DAST._IFormal, DAST._IExpression>> values, DAST._IType retType, DAST._IExpression expr) {
       return new Expression_BetaRedex(values, retType, expr);
     }
-    public static _IExpression create_IIFE(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ, DAST._IExpression @value, DAST._IExpression iifeBody) {
-      return new Expression_IIFE(name, typ, @value, iifeBody);
+    public static _IExpression create_IIFE(Dafny.ISequence<Dafny.Rune> ident, DAST._IType typ, DAST._IExpression @value, DAST._IExpression iifeBody) {
+      return new Expression_IIFE(ident, typ, @value, iifeBody);
     }
     public static _IExpression create_Apply(DAST._IExpression expr, Dafny.ISequence<DAST._IExpression> args) {
       return new Expression_Apply(expr, args);
@@ -6036,10 +6036,10 @@ namespace DAST {
         return ((Expression_Literal)d)._a0;
       }
     }
-    public Dafny.ISequence<Dafny.Rune> dtor_Ident_a0 {
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
         var d = this;
-        return ((Expression_Ident)d)._a0;
+        return ((Expression_Ident)d)._name;
       }
     }
     public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_Companion_a0 {
@@ -6397,10 +6397,10 @@ namespace DAST {
         return ((Expression_BetaRedex)d)._values;
       }
     }
-    public Dafny.ISequence<Dafny.Rune> dtor_name {
+    public Dafny.ISequence<Dafny.Rune> dtor_ident {
       get {
         var d = this;
-        return ((Expression_IIFE)d)._name;
+        return ((Expression_IIFE)d)._ident;
       }
     }
     public DAST._IExpression dtor_iifeBody {
@@ -6502,28 +6502,28 @@ namespace DAST {
     }
   }
   public class Expression_Ident : Expression {
-    public readonly Dafny.ISequence<Dafny.Rune> _a0;
-    public Expression_Ident(Dafny.ISequence<Dafny.Rune> _a0) : base() {
-      this._a0 = _a0;
+    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public Expression_Ident(Dafny.ISequence<Dafny.Rune> name) : base() {
+      this._name = name;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_Ident(_a0);
+      return new Expression_Ident(_name);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_Ident;
-      return oth != null && object.Equals(this._a0, oth._a0);
+      return oth != null && object.Equals(this._name, oth._name);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._a0));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       return (int) hash;
     }
     public override string ToString() {
       string s = "DAST.Expression.Ident";
       s += "(";
-      s += Dafny.Helpers.ToString(this._a0);
+      s += Dafny.Helpers.ToString(this._name);
       s += ")";
       return s;
     }
@@ -7664,28 +7664,28 @@ namespace DAST {
     }
   }
   public class Expression_IIFE : Expression {
-    public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly Dafny.ISequence<Dafny.Rune> _ident;
     public readonly DAST._IType _typ;
     public readonly DAST._IExpression _value;
     public readonly DAST._IExpression _iifeBody;
-    public Expression_IIFE(Dafny.ISequence<Dafny.Rune> name, DAST._IType typ, DAST._IExpression @value, DAST._IExpression iifeBody) : base() {
-      this._name = name;
+    public Expression_IIFE(Dafny.ISequence<Dafny.Rune> ident, DAST._IType typ, DAST._IExpression @value, DAST._IExpression iifeBody) : base() {
+      this._ident = ident;
       this._typ = typ;
       this._value = @value;
       this._iifeBody = iifeBody;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_IIFE(_name, _typ, _value, _iifeBody);
+      return new Expression_IIFE(_ident, _typ, _value, _iifeBody);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_IIFE;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._typ, oth._typ) && object.Equals(this._value, oth._value) && object.Equals(this._iifeBody, oth._iifeBody);
+      return oth != null && object.Equals(this._ident, oth._ident) && object.Equals(this._typ, oth._typ) && object.Equals(this._value, oth._value) && object.Equals(this._iifeBody, oth._iifeBody);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 35;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._ident));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._value));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._iifeBody));
@@ -7694,7 +7694,7 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Expression.IIFE";
       s += "(";
-      s += Dafny.Helpers.ToString(this._name);
+      s += Dafny.Helpers.ToString(this._ident);
       s += ", ";
       s += Dafny.Helpers.ToString(this._typ);
       s += ", ";
