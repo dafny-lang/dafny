@@ -381,7 +381,7 @@ method Foo() {
   }
 
   [Fact]
-  public async Task ConcurrentCompilationDoesNotBreakCaching() {
+  public async Task CachingWorksWhenManyChangesAreMadeWithoutWaits() {
     var largeImport1 = GetLargeFile("Imported1", 100);
     var largeImport2 = GetLargeFile("Imported2", 100);
 
