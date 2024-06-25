@@ -264,8 +264,9 @@ namespace Microsoft.Dafny.Compilers {
             where !arg.IsGhost
             let formalName = Sequence<Rune>.UnicodeFromString(GetDestructorFormalName(arg))
             let formalType = GenType(arg.Type)
-            let formalCallName = GetExtractOverrideName(arg.Attributes, arg.CompileName)
+            let formalCallName = GetExtractOverrideName(arg.Attributes, null)
             let dtorName =
+              formalCallName == null ? Option<Sequence<Rune>>.create_None() :
               Option<Sequence<Rune>>.create_Some((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(formalCallName))
             let formalAttributes = ParseAttributes(arg.Attributes)
             select (DAST.DatatypeDtor)DAST.DatatypeDtor.create_DatatypeDtor((DAST.Formal)DAST.Formal.create_Formal(

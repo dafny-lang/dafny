@@ -1633,7 +1633,7 @@ namespace DCOMP {
           if (_1318_isNumeric) {
             _1322_patternName = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.GetOr((_1321_dtor).dtor_callName, Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("v"), Std.Strings.__default.OfNat(_1320_j)));
           }
-          _1316_hashRhs = (_1316_hashRhs).Then(((RAST.Expr.create_Identifier(_1322_patternName)).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hash"))).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_state"))));
+          _1316_hashRhs = (((_1323_formalType).is_Arrow) ? ((_1316_hashRhs).Then(((RAST.Expr.create_LiteralInt(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0"))).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hash"))).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_state"))))) : ((_1316_hashRhs).Then(((RAST.Expr.create_Identifier(_1322_patternName)).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("hash"))).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_state"))))));
           _1319_ctorMatchInner = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_1319_ctorMatchInner, _1322_patternName), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(", "));
           if ((_1320_j).Sign == 1) {
             _1315_printRhs = (_1315_printRhs).Then(RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("write!(_formatter, \", \")?")));
@@ -5301,7 +5301,7 @@ namespace DCOMP {
                       goto after__ASSIGN_SUCH_THAT_2;
                     }
                   }
-                  throw new System.Exception("assign-such-that search produced no value (line 4326)");
+                  throw new System.Exception("assign-such-that search produced no value (line 4331)");
                 after__ASSIGN_SUCH_THAT_2: ;
                   _1879_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_1879_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), _1880_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _1880_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                   _1878_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_1878_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_1880_next));
@@ -6567,7 +6567,7 @@ namespace DCOMP {
                   goto after__ASSIGN_SUCH_THAT_3;
                 }
               }
-              throw new System.Exception("assign-such-that search produced no value (line 4788)");
+              throw new System.Exception("assign-such-that search produced no value (line 4793)");
             after__ASSIGN_SUCH_THAT_3: ;
               if ((!object.Equals(selfIdent, DCOMP.SelfInfo.create_NoSelf())) && ((_2109_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
                 RAST._IExpr _2110_selfCloned;
