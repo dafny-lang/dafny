@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-=======
-
 pub mod experimental;
->>>>>>> 56987c0f3 (feat-rust-traits: Support for traits, constructors, classes, self type)
 // Test module
 #[cfg(test)]
 mod tests {
