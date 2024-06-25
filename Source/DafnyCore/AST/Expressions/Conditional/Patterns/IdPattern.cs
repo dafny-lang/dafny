@@ -22,10 +22,12 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   public DatatypeCtor Ctor;
 
   public bool IsWildcardPattern =>
-    Arguments == null && Id.StartsWith("_");
+    Arguments == null && Id.StartsWith(WildcardString);
 
   public bool IsWildcardExact =>
-    Arguments == null && Id == "_";
+    Arguments == null && Id == WildcardString;
+
+  public const string WildcardString = "_";
 
   public void MakeAConstructor() {
     this.Arguments = new List<ExtendedPattern>();
