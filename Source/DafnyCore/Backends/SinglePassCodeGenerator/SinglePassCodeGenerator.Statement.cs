@@ -18,6 +18,7 @@ using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
+    public static const string AllMatchPrefixVar = "_";
     protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
@@ -594,7 +595,7 @@ namespace Microsoft.Dafny.Compilers {
         writer = thenWriter;
       } else if (pattern is IdPattern idPattern) {
         if (idPattern.BoundVar != null) {
-          if (idPattern.BoundVar.Tok.val.StartsWith("_")) {
+          if (idPattern.BoundVar.Tok.val.StartsWith(AllMatchPrefixVar)) {
             return writer;
           }
 
@@ -655,7 +656,7 @@ namespace Microsoft.Dafny.Compilers {
           var childPattern = idPattern.Arguments[index];
           if (childPattern is IdPattern { BoundVar: not null } childIdPattern) {
             var boundVar = childIdPattern.BoundVar;
-            if (!childIdPattern.BoundVar.Name.StartsWith("_")) {
+            if (!childIdPattern.BoundVar.Name.StartsWith(AllMatchPrefixVar)) {
               newSourceName = IdName(boundVar);
               var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
               valueWriter.Append(destructor);
