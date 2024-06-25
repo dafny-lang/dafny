@@ -2748,10 +2748,14 @@ namespace Microsoft.Dafny.Compilers {
         Coverage.Instrument(f.Body.tok, $"entry to function {f.FullName}", w);
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
-        CompileReturnBody(f.Body, f.Original.ResultType, w, accVar);
+        CompileReturnBody(f.Body, ResultTypeAsViewedByFunctionBody(f), w, accVar);
         Contract.Assert(enclosingFunction == f);
         enclosingFunction = null;
       }
+    }
+
+    public virtual Type ResultTypeAsViewedByFunctionBody(Function f) {
+      return f.ResultType;
     }
 
     public const string STATIC_ARGS_NAME = "args";
@@ -3137,14 +3141,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void CompileReturnBody(Expression body, Type originalResultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
+    void CompileReturnBody(Expression body, Type resultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(body != null);
-      Contract.Requires(originalResultType != null);
+      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
       copyInstrWriters.Push(wr.Fork());
       var wStmts = wr.Fork();
-      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar);
+      TrExprOpt(body.Resolved, resultType, wr, wStmts, false, accumulatorVar);
       copyInstrWriters.Pop();
     }
 
