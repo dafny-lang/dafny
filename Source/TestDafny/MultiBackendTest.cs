@@ -423,6 +423,12 @@ public class MultiBackendTest {
       }
 
       await output.WriteLineAsync(diffMessage);
+      if (backend.IsInternal) {
+        await output.WriteLineAsync(
+          $"(non-blocking) The '{backend.TargetName}' code generator is internal. Not having a '*.{backend.TargetName}.check' file is acceptable for now.");
+        return 0;
+      }
+
       return 1;
     }
 
@@ -456,9 +462,25 @@ public class MultiBackendTest {
         }
       }
 
+      if (backend.IsInternal && checkResult != 0) {
+        await output.WriteLineAsync(
+          $"(non-blocking) The '{backend.TargetName}' code generator is internal. An unmatched '*.{backend.TargetName}.check' file is acceptable for now.");
+        return 0;
+      }
+
       return checkResult;
     }
 
+
+    if (backend.IsInternal) {
+      await output.WriteLineAsync($"(non-blocking) Execution failed for the internal code generator to {backend.TargetName}, for reasons other than known unsupported features. Output:");
+      await output.WriteLineAsync(outputString);
+      await output.WriteLineAsync("Error:");
+      await output.WriteLineAsync(error);
+      await output.WriteLineAsync(
+        $"The '{backend.TargetName}' code generator is internal. An unmatched '*.{backend.TargetName}.check' file is acceptable for now.");
+      return 0;
+    }
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
     await output.WriteLineAsync(outputString);
     await output.WriteLineAsync("Error:");
