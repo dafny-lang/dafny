@@ -9,5 +9,6 @@ datatype D = A(int) | C(int) {
   }
 }
 method Main() {
-  print C(0).Test();
+  var x := C(0).Test();
+  print "ok";
 }
