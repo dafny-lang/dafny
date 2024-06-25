@@ -4932,36 +4932,33 @@ namespace DCOMP {
         _1824_typeExpr = _out342;
         typeExprs = Dafny.Sequence<RAST._IType>.Concat(typeExprs, Dafny.Sequence<RAST._IType>.FromElements(_1824_typeExpr));
       }
-      fullNameQualifier = ((System.Func<Std.Wrappers._IOption<DAST._IResolvedType>>)(() => {
-        DAST._ICallName _source95 = name;
-        bool unmatched95 = true;
-        if (unmatched95) {
-          if (_source95.is_CallName) {
-            Dafny.ISequence<Dafny.Rune> _1825_nameIdent = _source95.dtor_name;
-            Std.Wrappers._IOption<DAST._IType> onType1 = _source95.dtor_onType;
-            if (onType1.is_Some) {
-              DAST._IType value10 = onType1.dtor_value;
-              if (value10.is_UserDefined) {
-                DAST._IResolvedType _1826_resolvedType = value10.dtor_resolved;
-                unmatched95 = false;
-                if ((((_1826_resolvedType).dtor_kind).is_Trait) || (Dafny.Helpers.Id<Func<DAST._IResolvedType, Dafny.ISequence<Dafny.Rune>, bool>>((_1827_resolvedType, _1828_nameIdent) => Dafny.Helpers.Quantifier<Dafny.ISequence<Dafny.Rune>>(((_1827_resolvedType).dtor_properMethods).UniqueElements, true, (((_forall_var_8) => {
-                  Dafny.ISequence<Dafny.Rune> _1829_m = (Dafny.ISequence<Dafny.Rune>)_forall_var_8;
-                  return !(((_1827_resolvedType).dtor_properMethods).Contains(_1829_m)) || (!object.Equals((_1829_m), _1828_nameIdent));
-                }))))(_1826_resolvedType, _1825_nameIdent))) {
-                  return Std.Wrappers.Option<DAST._IResolvedType>.create_Some(Std.Wrappers.Option<DAST._IResolvedType>.GetOr(DCOMP.__default.TraitTypeContainingMethod(_1826_resolvedType, (_1825_nameIdent)), _1826_resolvedType));
-                } else {
-                  return Std.Wrappers.Option<DAST._IResolvedType>.create_None();
-                }
+      DAST._ICallName _source95 = name;
+      bool unmatched95 = true;
+      if (unmatched95) {
+        if (_source95.is_CallName) {
+          Dafny.ISequence<Dafny.Rune> _1825_nameIdent = _source95.dtor_name;
+          Std.Wrappers._IOption<DAST._IType> onType1 = _source95.dtor_onType;
+          if (onType1.is_Some) {
+            DAST._IType value10 = onType1.dtor_value;
+            if (value10.is_UserDefined) {
+              DAST._IResolvedType _1826_resolvedType = value10.dtor_resolved;
+              unmatched95 = false;
+              if ((((_1826_resolvedType).dtor_kind).is_Trait) || (Dafny.Helpers.Id<Func<DAST._IResolvedType, Dafny.ISequence<Dafny.Rune>, bool>>((_1827_resolvedType, _1828_nameIdent) => Dafny.Helpers.Quantifier<Dafny.ISequence<Dafny.Rune>>(((_1827_resolvedType).dtor_properMethods).UniqueElements, true, (((_forall_var_8) => {
+                Dafny.ISequence<Dafny.Rune> _1829_m = (Dafny.ISequence<Dafny.Rune>)_forall_var_8;
+                return !(((_1827_resolvedType).dtor_properMethods).Contains(_1829_m)) || (!object.Equals((_1829_m), _1828_nameIdent));
+              }))))(_1826_resolvedType, _1825_nameIdent))) {
+                fullNameQualifier = Std.Wrappers.Option<DAST._IResolvedType>.create_Some(Std.Wrappers.Option<DAST._IResolvedType>.GetOr(DCOMP.__default.TraitTypeContainingMethod(_1826_resolvedType, (_1825_nameIdent)), _1826_resolvedType));
+              } else {
+                fullNameQualifier = Std.Wrappers.Option<DAST._IResolvedType>.create_None();
               }
             }
           }
         }
-        if (unmatched95) {
-          unmatched95 = false;
-          return Std.Wrappers.Option<DAST._IResolvedType>.create_None();
-        }
-        throw new System.Exception("unexpected control point");
-      }))();
+      }
+      if (unmatched95) {
+        unmatched95 = false;
+        fullNameQualifier = Std.Wrappers.Option<DAST._IResolvedType>.create_None();
+      }
       if ((((((fullNameQualifier).is_Some) && ((selfIdent).is_ThisTyped)) && (((selfIdent).dtor_dafnyType).is_UserDefined)) && ((this).IsSameResolvedType(((selfIdent).dtor_dafnyType).dtor_resolved, (fullNameQualifier).dtor_value))) && (!((this).HasExternAttributeRenamingModule(((fullNameQualifier).dtor_value).dtor_attributes)))) {
         fullNameQualifier = Std.Wrappers.Option<DAST._IResolvedType>.create_None();
       }
@@ -5328,7 +5325,7 @@ namespace DCOMP {
                       goto after__ASSIGN_SUCH_THAT_2;
                     }
                   }
-                  throw new System.Exception("assign-such-that search produced no value (line 4388)");
+                  throw new System.Exception("assign-such-that search produced no value (line 4389)");
                 after__ASSIGN_SUCH_THAT_2: ;
                   _1892_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_1892_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), _1893_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _1893_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                   _1891_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_1891_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_1893_next));
@@ -6617,7 +6614,7 @@ namespace DCOMP {
                   goto after__ASSIGN_SUCH_THAT_3;
                 }
               }
-              throw new System.Exception("assign-such-that search produced no value (line 4863)");
+              throw new System.Exception("assign-such-that search produced no value (line 4864)");
             after__ASSIGN_SUCH_THAT_3: ;
               if ((!object.Equals(selfIdent, DCOMP.SelfInfo.create_NoSelf())) && ((_2126_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
                 RAST._IExpr _2127_selfCloned;

@@ -4196,16 +4196,18 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         typeExprs := typeExprs + [typeExpr];
       }
 
-      fullNameQualifier := match name {
+      match name {
         // Calls on traits should be fully specified as we can't guarantee traits will be in context
         // Calls on non-traits should be also fully specified if the method is not found in the definition of that type
         case CallName(nameIdent, Some(UserDefined(resolvedType)), _, _) =>
-          if resolvedType.kind.Trait? || forall m <- resolvedType.properMethods :: m.id != nameIdent then
-            Some(TraitTypeContainingMethod(resolvedType, nameIdent.dafny_name).GetOr(resolvedType))
-          else
-            None
-        case _ => None
-      };
+          if resolvedType.kind.Trait? || forall m <- resolvedType.properMethods :: m.id != nameIdent {
+            fullNameQualifier := Some(TraitTypeContainingMethod(resolvedType, nameIdent.dafny_name).GetOr(resolvedType));
+          } else {
+            fullNameQualifier := None;
+          }
+        case _ =>
+          fullNameQualifier := None;
+      }
 
       // If we are in the same context as the trait on which we are making a method call,
       // we don't need to know the type of self.
@@ -4216,7 +4218,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
          && IsSameResolvedType(selfIdent.dafnyType.resolved, fullNameQualifier.value)
          && !HasExternAttributeRenamingModule(fullNameQualifier.value.attributes) {
         fullNameQualifier := None; // We can just use the "infix" annotation
-        // N
       }
     }
 

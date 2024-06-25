@@ -1613,7 +1613,7 @@ namespace Microsoft.Dafny.Compilers {
       if (topLevel is TopLevelDeclWithMembers memberContainer) {
         foreach (var member in memberContainer.Members) {
           if (member.OverriddenMember == null) {
-            properMethods.Add((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(member.Name));
+            properMethods.Add((Sequence<Rune>)Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)));
           }
         }
       }

@@ -1,3 +1,23 @@
+module InterfaceHolder {
+  trait {:termination false} Interface {
+    method PutCacheEntry'()
+  }
+}
+
+module InterfaceWrapper {
+  import InterfaceHolder
+  class InterfaceExtender extends InterfaceHolder.Interface {
+    constructor () {
+    }
+    method PutCacheEntry'() {
+    }
+  }
+
+  method PutCacheEntry(ex: InterfaceExtender) {
+    ex.PutCacheEntry'();
+  }
+}
+
 module TraitDefinitions {
   datatype Option<+T> = Some(value: T) | None {
     function Negate(t: T): Option<T> {
