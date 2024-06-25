@@ -2287,7 +2287,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if isNumeric {
             patternName := dtor.callName.GetOr("v" + Strings.OfNat(j));
           }
-          hashRhs := hashRhs.Then(R.Identifier(patternName).Sel("hash").Apply1(R.Identifier("_state")));
+          hashRhs :=
+            if formalType.Arrow? then
+              hashRhs.Then(R.LiteralInt("0").Sel("hash").Apply1(R.Identifier("_state")))
+            else
+              hashRhs.Then(R.Identifier(patternName).Sel("hash").Apply1(R.Identifier("_state")));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
 
@@ -2295,12 +2299,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \", \")?"));
           }
 
-          printRhs := printRhs.Then(R.RawExpr(
-                                      if formalType.Arrow? then
-                                        "write!(_formatter, \"<function>\")?"
-                                      else
-                                        "::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"
-                                    ));
+          printRhs := printRhs.Then(
+            R.RawExpr(
+              if formalType.Arrow? then
+                "write!(_formatter, \"<function>\")?"
+              else
+                "::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"
+            ));
 
           var coerceRhsArg: R.Expr;
 
