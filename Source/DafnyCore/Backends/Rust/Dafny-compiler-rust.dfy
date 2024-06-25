@@ -1980,7 +1980,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       match c.constraint {
         case None =>
         case Some(NewtypeConstraint(formal, constraintStmts)) =>
-          var rStmts, _, newEnv := GenStmts(constraintStmts, NoSelf, Environment.Empty(), false, R.RawExpr(""));
+          var rStmts, _, newEnv := GenStmts(constraintStmts, NoSelf, Environment.Empty(), false, None);
           var rFormals := GenParams([formal]);
           s := s + [
             R.ImplDecl(
@@ -2056,7 +2056,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       match c.witnessExpr {
         case Some(e) => {
-          var rStmts, _, newEnv := GenStmts(c.witnessStmts, NoSelf, Environment.Empty(), false, R.RawExpr(""));
+          var rStmts, _, newEnv := GenStmts(c.witnessStmts, NoSelf, Environment.Empty(), false, None);
           var rExpr, _, _ := GenExpr(e, NoSelf, newEnv, OwnershipOwned);
           var constantName := escapeName(Name("_init_" + c.name.dafny_name));
           s := s + [
@@ -2903,11 +2903,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var preAssignTypes: map<string, R.Type> := map[];
 
       if m.hasBody {
-        var earlyReturn: R.Expr := R.Return(None);
+        var earlyReturn: Option<seq<string>> := None;
         match m.outVars {
           case Some(outVars) => {
             if m.outVarsAreUninitFieldsToAssign {
-              earlyReturn := R.Return(Some(R.Tuple([])));
+              earlyReturn := Some([]);
               for outI := 0 to |outVars| {
                 var outVar := outVars[outI];
                 var outName := escapeName(outVar.id);
@@ -2929,15 +2929,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 var outMaybeType := if outType.CanReadWithoutClone() then outType else R.MaybePlaceboType(outType);
                 paramTypes := paramTypes[outName := outMaybeType];
 
-                var outVarReturn, _, _ := GenExpr(Expression.Ident(outVar.id), NoSelf,
-                                                  Environment([outName], map[outName := outMaybeType]), OwnershipOwned);
-                tupleArgs := tupleArgs + [outVarReturn];
+                tupleArgs := tupleArgs + [outName];
               }
-              if |tupleArgs| == 1 {
-                earlyReturn := R.Return(Some(tupleArgs[0]));
-              } else {
-                earlyReturn := R.Return(Some(R.Tuple(tupleArgs)));
-              }
+              earlyReturn := Some(tupleArgs);
             }
           }
           case None => {}
@@ -2964,7 +2958,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       );
     }
 
-    method GenStmts(stmts: seq<Statement>, selfIdent: SelfInfo, env: Environment, isLast: bool, earlyReturn: R.Expr) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
+    method GenStmts(stmts: seq<Statement>, selfIdent: SelfInfo, env: Environment, isLast: bool, earlyReturn: Option<seq<string>>)
+      returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
       decreases stmts, 1, 0
       modifies this
     {
@@ -3103,7 +3098,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    method GenStmt(stmt: Statement, selfIdent: SelfInfo, env: Environment, isLast: bool, earlyReturn: R.Expr) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
+    method GenStmt(stmt: Statement, selfIdent: SelfInfo, env: Environment, isLast: bool, earlyReturn: Option<seq<string>>) returns (generated: R.Expr, readIdents: set<string>, newEnv: Environment)
       decreases stmt, 1, 1
       modifies this
     {
@@ -3146,8 +3141,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               expr, exprOwnership, recIdents := GenExpr(expression, selfIdent, env, OwnershipOwned);
             }
             readIdents := recIdents;
-            //print "Setting type of " + escapeName(name) + " to " + tpe.ToString("") + "\n";
-            //print if expression.NewUninitArray? then "Actually, preferring type at initialization" else "ok", "\n";
             tpe := if expression.NewUninitArray? then tpe.TypeAtInitialization() else tpe;
             generated := R.DeclareVar(R.MUT, escapeName(name), Some(tpe), Some(expr));
             newEnv := env.AddAssigned(escapeName(name), tpe);
@@ -3356,7 +3349,22 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           newEnv := env;
         }
         case EarlyReturn() => {
-          generated := earlyReturn;
+
+          match earlyReturn {
+            case None =>
+              generated := R.Return(None);
+            case Some(rustIdents) =>
+              var tupleArgs := [];
+              for i := 0 to |rustIdents| {
+                var rIdent, _, _ := GenIdent(rustIdents[i], selfIdent, env, OwnershipOwned);
+                tupleArgs := tupleArgs + [rIdent];
+              }
+              if |tupleArgs| == 1 {
+                generated := R.Return(Some(tupleArgs[0]));
+              } else {
+                generated := R.Return(Some(R.Tuple(tupleArgs)));
+              }
+          }
           readIdents := {};
           newEnv := env;
         }
@@ -4847,7 +4855,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           var subEnv := env.ToOwned().merge(Environment(paramNames, paramTypesMap));
 
-          var recursiveGen, recIdents, _ := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, subEnv, true, R.RawExpr(""));
+          var recursiveGen, recIdents, _ := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, subEnv, true, None);
           readIdents := {};
           recIdents := recIdents - (set name <- paramNames);
           var allReadCloned := R.RawExpr("");
