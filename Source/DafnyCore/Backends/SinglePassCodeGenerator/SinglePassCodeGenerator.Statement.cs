@@ -595,6 +595,10 @@ namespace Microsoft.Dafny.Compilers {
       } else if (pattern is IdPattern idPattern) {
         if (idPattern.BoundVar != null) {
           var boundVar = idPattern.BoundVar;
+          if (boundVar.Tok.val.StartsWith("_")) {
+            return writer;
+          }
+
           var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
           valueWriter.Write(sourceName);
           return writer;
@@ -651,9 +655,11 @@ namespace Microsoft.Dafny.Compilers {
           var childPattern = idPattern.Arguments[index];
           if (childPattern is IdPattern { BoundVar: not null } childIdPattern) {
             var boundVar = childIdPattern.BoundVar;
-            newSourceName = IdName(boundVar);
-            var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
-            valueWriter.Append(destructor);
+            if (!childIdPattern.BoundVar.Name.StartsWith("_")) {
+              newSourceName = IdName(boundVar);
+              var valueWriter = DeclareLocalVar(newSourceName, boundVar.Type, idPattern.Tok, result);
+              valueWriter.Append(destructor);
+            }
           } else {
             newSourceName = ProtectedFreshId(arg.CompileName);
             var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
