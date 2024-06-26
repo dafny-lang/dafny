@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -16,6 +18,14 @@ public class JavaBackend : ExecutableBackend {
   public override string TargetName => "Java";
   public override bool IsStable => true;
   public override string TargetExtension => "java";
+
+  public bool JavaPackageMode { get; set; } = true;
+  public string JavaPackageName;
+
+  public static readonly Option<string> JavaPackageNameCliOption = new("--java-package-name",
+    @"This Option is used to specify the Java Package Name for the translated code".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { JavaPackageNameCliOption };
 
   public override string TargetBasename(string dafnyProgramName) =>
     JavaCodeGenerator.TransformToClassName(base.TargetBasename(dafnyProgramName));
@@ -34,6 +44,11 @@ public class JavaBackend : ExecutableBackend {
   }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    var javaPackageName = Options.Get(JavaPackageNameCliOption);
+    JavaPackageMode = javaPackageName != null;
+    if (JavaPackageMode) {
+      JavaPackageName = javaPackageName;
+    }
     return new JavaCodeGenerator(Options, Reporter);
   }
 
@@ -188,5 +203,8 @@ public class JavaBackend : ExecutableBackend {
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
 
   public JavaBackend(DafnyOptions options) : base(options) {
+    // TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+    //   { JavaPackageNameCliOption, OptionCompatibility.NoOpOptionCheck }
+    // });
   }
 }

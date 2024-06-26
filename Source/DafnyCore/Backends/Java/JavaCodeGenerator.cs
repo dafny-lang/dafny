@@ -13,6 +13,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
@@ -21,6 +22,12 @@ namespace Microsoft.Dafny.Compilers {
     public JavaCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
       IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
+      
+      var javaPackageName = Options.Get(JavaBackend.JavaPackageNameCliOption);
+      JavaPackageMode = javaPackageName != null;
+      if (JavaPackageMode) {
+        JavaPackageName = javaPackageName.ToString();
+      }
     }
 
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
@@ -68,6 +75,10 @@ namespace Microsoft.Dafny.Compilers {
     private string ModulePath;
     private int FileCount = 0;
     private Import ModuleImport;
+    private bool JavaPackageMode;
+    private string JavaPackageName;
+
+    private Dictionary<string, string> moduleToPackageName = new Dictionary<string, string>();
 
     private readonly List<Import> Imports = new List<Import>();
 
@@ -372,6 +383,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private void EmitImport(Import import, ConcreteSyntaxTree importWriter) {
       importWriter.WriteLine($"import {import.Path.Replace('/', '.')}.*;");
+      // importWriter.WriteLine($"import {import.Path.Replace('/', '.')};");
     }
 
     string IdProtectModule(string moduleName) {
@@ -380,6 +392,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
+
+      var javaPackageName = JavaPackageMode ? JavaPackageName : "";
       moduleName = IdProtectModule(moduleName);
       if (isDefault) {
         // Fold the default module into the main module
@@ -387,8 +401,9 @@ namespace Microsoft.Dafny.Compilers {
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
-      var import = new Import(moduleName, path);
-      ModuleName = IdProtect(moduleName);
+      // var trimmedModuleName = string.Join(".", moduleName.Split('.').Reverse().Skip(1).Reverse());
+      var import = new Import(javaPackageName + "." + moduleName, javaPackageName + "." +  moduleName);
+      ModuleName = IdProtect(javaPackageName + "." +  moduleName);
       ModulePath = path;
       ModuleImport = import;
       FileCount = 0;
@@ -830,8 +845,12 @@ namespace Microsoft.Dafny.Compilers {
         return IdProtect(udt.GetFullCompanionCompileName(Options));
       } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
         return IdProtect(cl.GetCompileName(Options));
-      } else {
-        return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
+      } 
+      // else {
+      //   return IdProtect(cl.GetCompileName(Options));
+      // } 
+      else {
+        return IdProtect(cl.GetCompileName(Options));
       }
     }
 
@@ -1827,6 +1846,16 @@ namespace Microsoft.Dafny.Compilers {
       return middle;
     }
 
+    protected string FilterModuleNameWithPackage(string moduleName) {
+      var sanitizedName = moduleName.TrimEnd('.');
+      if (JavaPackageMode) {
+        Console.WriteLine("filter " + sanitizedName + " = " + moduleToPackageName[sanitizedName]);
+        return moduleToPackageName[sanitizedName];
+        // return "";
+      }
+      return moduleName;
+    }
+
     protected override bool CompareZeroUsingSign(Type type) {
       // Everything is boxed, so everything benefits from avoiding explicit 0
       return true;
@@ -2183,7 +2212,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : FilterModuleNameWithPackage(dt.EnclosingModuleDefinition.Name + ".")) + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -2255,7 +2284,7 @@ namespace Microsoft.Dafny.Compilers {
       if (dt is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       }
-      var dtName = IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
+      var dtName = FilterModuleNameWithPackage(IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + IdName(dt);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.GetCompileName(Options);
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -2642,16 +2671,34 @@ namespace Microsoft.Dafny.Compilers {
       modules = new List<ModuleDefinition>();
       foreach (var m in program.CompileModules) {
         if (!m.IsDefaultModule && !m.Name.Equals("_System")) {
+
+          var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
+          translatedRecord.OptionsByModule.TryGetValue(m.FullDafnyName, out var moduleOptions);
+          object dependencyModuleName = null;
+          moduleOptions?.TryGetValue(JavaBackend.JavaPackageNameCliOption.Name, out dependencyModuleName);
+
+          moduleToPackageName.Add(m.GetCompileName(Options), (string)dependencyModuleName);
+
+          Console.WriteLine(m.GetCompileName(Options) + " = " + dependencyModuleName);
+
           modules.Add(m);
         }
       }
       foreach (var m in program.CompileModules) {
         if (m.Name.Equals("_System")) {
+          Console.WriteLine(m.GetCompileName(Options) + " = " + "System_");
+
+          moduleToPackageName.Add(m.GetCompileName(Options), "System_");
+
           modules.Add(m);
         }
       }
       foreach (var m in program.CompileModules) {
         if (m.IsDefaultModule) {
+          Console.WriteLine(m.GetCompileName(Options) + " = " + "dafny_");
+
+          moduleToPackageName.Add(m.GetCompileName(Options), "dafny_");
+
           modules.Add(m);
         }
       }
@@ -2667,7 +2714,7 @@ namespace Microsoft.Dafny.Compilers {
       string typeDescriptorArguments, string arguments, ConcreteSyntaxTree wr) {
       var dtName = dt is TupleTypeDecl tupleDecl
         ? DafnyTupleClass(tupleDecl.NonGhostDims)
-        : IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdName(dt);
+        : FilterModuleNameWithPackage(IdProtectModule(dt.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + IdName(dt);
       var typeParams = typeArgs.Count == 0 ? "" : $"<{BoxedTypeNames(typeArgs, wr, dt.tok)}>";
       var sep = typeDescriptorArguments.Length != 0 && arguments.Length != 0 ? ", " : "";
       if (!isCoCall) {

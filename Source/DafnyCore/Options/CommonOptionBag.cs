@@ -618,6 +618,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterNoChecksNeeded(ShowProofObligationExpressions, false);
     DooFile.RegisterNoChecksNeeded(GoBackend.GoModuleNameCliOption, false);
     DooFile.RegisterNoChecksNeeded(PythonBackend.PythonModuleNameCliOption, false);
+    DooFile.RegisterNoChecksNeeded(JavaBackend.JavaPackageNameCliOption, false);
   }
 }
 
