@@ -2700,7 +2700,7 @@ namespace Microsoft.Dafny.Compilers {
 
           moduleToPackageName.Add(m.GetCompileName(Options), (string)dependencyModuleName);
 
-          Console.WriteLine(m.GetCompileName(Options) + " = " + dependencyModuleName);
+          Console.WriteLine("organizemodules" + m.GetCompileName(Options) + " = " + dependencyModuleName);
 
           modules.Add(m);
         }
