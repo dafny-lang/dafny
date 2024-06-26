@@ -64,7 +64,7 @@ $DAFNY build -t:go c.dfy | diff - $tmp || exit 1
 (cd c-go; GO111MODULE=auto GOPATH=`pwd` go run src/c.go) | diff - $tmpx || exit 1
 echo Building with Python
 $DAFNY build -t:py c.dfy | diff - $tmp || exit 1
-python c-py/c.py | diff - $tmpx || exit 1
+python c-py/__main__.py | diff - $tmpx || exit 1
 echo Building with Rust
 $DAFNY build -t:rs c.dfy | diff - $tmp || exit 1
 ./c-rust/target/debug/c | diff - $tmpx || exit 1
