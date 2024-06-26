@@ -393,7 +393,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
 
-      var javaPackageName = JavaPackageMode ? JavaPackageName : "";
+      var javaPackageName = JavaPackageMode ? JavaPackageName + "." : "";
       moduleName = IdProtectModule(moduleName);
       if (isDefault) {
         // Fold the default module into the main module
@@ -402,8 +402,8 @@ namespace Microsoft.Dafny.Compilers {
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
       // var trimmedModuleName = string.Join(".", moduleName.Split('.').Reverse().Skip(1).Reverse());
-      var import = new Import(javaPackageName + "." + moduleName, javaPackageName + "." +  moduleName);
-      ModuleName = IdProtect(javaPackageName + "." +  moduleName);
+      var import = new Import(javaPackageName + moduleName, javaPackageName + moduleName);
+      ModuleName = IdProtect(javaPackageName + moduleName);
       ModulePath = path;
       ModuleImport = import;
       FileCount = 0;
