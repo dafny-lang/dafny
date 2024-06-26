@@ -366,6 +366,10 @@ namespace Microsoft.Dafny.Compilers {
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var modName = mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options) == "_module" ? "_System." : "";
+      // JavaPackageMode already prefixes _System.
+      if (modName == "_System." && moduleToPackageName.ContainsKey("_System")) {
+        modName = "";
+      }
       companion = modName + companion;
       Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling(() -> {{ {companion}.__Main({DafnyHelpersClass}.{CharMethodQualifier}FromMainArguments(args)); }} );");
@@ -1842,13 +1846,35 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string FilterModuleNameWithPackage(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
-        Console.WriteLine("should filter " + moduleName + " = " + moduleToPackageName.ContainsKey(sanitizedName));
-      if (moduleToPackageName.ContainsKey(sanitizedName)) {
-        Console.WriteLine("filter " + sanitizedName + " = " + moduleToPackageName[sanitizedName]);
+      if (ShouldStripPackageNameFromModuleName(sanitizedName)) {
+        Console.WriteLine("filter " + sanitizedName + " from " + ModuleName + " = " + moduleToPackageName[sanitizedName]);
         return moduleToPackageName[sanitizedName];
         // return "";
       }
       return moduleName;
+    }
+
+    protected bool ShouldStripPackageNameFromModuleName(string sanitizedName) {
+      Console.WriteLine("Sanitized = " + sanitizedName);
+      Console.WriteLine("ModuelName = " + ModuleName);
+      Console.WriteLine("check 1 = " + moduleToPackageName.ContainsKey(sanitizedName));
+      Console.WriteLine("check 2 = " + (sanitizedName == ModuleName.Split('.').Last()));
+      Console.WriteLine("check 3 = " + (PackageWasImported(sanitizedName)));
+
+      return moduleToPackageName.ContainsKey(sanitizedName) && (sanitizedName == ModuleName.Split('.').Last() || PackageWasImported(sanitizedName));
+    }
+
+    protected bool PackageWasImported(string sanitizedName) {
+      foreach (var import in Imports) {
+        // TODO make this bimap lookup
+        foreach (KeyValuePair<string, string> kvp in moduleToPackageName)
+        {
+          if (kvp.Key == sanitizedName) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
     protected override bool CompareZeroUsingSign(Type type) {
@@ -2681,9 +2707,9 @@ namespace Microsoft.Dafny.Compilers {
       }
       foreach (var m in program.CompileModules) {
         if (m.Name.Equals("_System")) {
-          Console.WriteLine(m.GetCompileName(Options) + " = " + "System_");
+          Console.WriteLine(m.GetCompileName(Options) + " = " + "_System");
 
-          moduleToPackageName.Add(m.GetCompileName(Options), "System_");
+          moduleToPackageName.Add(m.GetCompileName(Options), "_System.");
 
           modules.Add(m);
         }
