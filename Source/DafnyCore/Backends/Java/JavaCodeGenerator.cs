@@ -1848,7 +1848,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected string FilterModuleNameWithPackage(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
-      if (JavaPackageMode) {
+        Console.WriteLine("should filter " + moduleName + " = " + moduleToPackageName.ContainsKey(sanitizedName));
+      if (moduleToPackageName.ContainsKey(sanitizedName)) {
         Console.WriteLine("filter " + sanitizedName + " = " + moduleToPackageName[sanitizedName]);
         return moduleToPackageName[sanitizedName];
         // return "";
