@@ -843,15 +843,9 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyTupleClass(tupleDecl.NonGhostDims);
       } else if (cl is TraitDecl && useCompanionName) {
         return IdProtect(udt.GetFullCompanionCompileName(Options));
-      } else if (cl.EnclosingModuleDefinition.GetCompileName(Options) == ModuleName || cl.EnclosingModuleDefinition.TryToAvoidName) {
-        return IdProtect(cl.GetCompileName(Options));
+      } else {
+        return FilterModuleNameWithPackage(IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + ".") + IdProtect(cl.GetCompileName(Options));
       } 
-      // else {
-      //   return IdProtect(cl.GetCompileName(Options));
-      // } 
-      else {
-        return IdProtect(cl.GetCompileName(Options));
-      }
     }
 
     protected override void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
