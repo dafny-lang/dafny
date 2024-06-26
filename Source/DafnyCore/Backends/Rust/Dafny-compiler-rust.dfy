@@ -1632,6 +1632,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const downcast :=
       if ObjectType.RawPointers? then "cast!" else "cast_object!"
 
+    function UnreachablePanicIfVerified(optText: string := ""): string {
+      if ObjectType.RawPointers? then "unsafe { ::std::hint::unreachable_unchecked() }" else
+      if optText == "" then "panic!()" else "panic!(\"" + optText + "\")"
+    }
 
     const ObjectType: ObjectType
 
@@ -1641,6 +1645,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.UnicodeChars := unicodeChars;
       this.ObjectType := objectType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
+      new;
+      if objectType.RawPointers? {
+        this.error := Some("Raw pointers need to be wrapped in a newtype so that their equality has the semantics of Dafny (e.g. a class pointer and a trait pointer are equal), not Rust."); 
+      }
     }
 
     method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: R.Mod)
@@ -2200,7 +2208,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   rhs := hasMatchingField.value + "";
                 }
               } else {
-                rhs := "panic!(\"field does not exist on this variant\")";
+                rhs := UnreachablePanicIfVerified("field does not exist on this variant");
               }
               var ctorMatch := R.MatchCase(R.RawPattern(pattern), R.RawExpr(rhs));
               cases := cases + [ctorMatch];
@@ -2208,7 +2216,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
             if |c.typeParams| > 0 {
               cases := cases + [
-                R.MatchCase(R.RawPattern(datatypeName + "::_PhantomVariant(..)"), R.RawExpr("panic!()"))
+                R.MatchCase(R.RawPattern(datatypeName + "::_PhantomVariant(..)"), R.RawExpr(UnreachablePanicIfVerified("")))
               ];
             }
 
@@ -2396,7 +2404,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       if |c.typeParams| > 0 {
         var extraCases := [
-          R.MatchCase(R.RawPattern(datatypeName + "::_PhantomVariant(..)"), R.RawExpr("{panic!()}"))
+          R.MatchCase(R.RawPattern(datatypeName + "::_PhantomVariant(..)"), R.RawExpr("{"+UnreachablePanicIfVerified()+"}"))
         ];
         printImplBodyCases := printImplBodyCases + extraCases;
         hashImplBodyCases := hashImplBodyCases + extraCases;
