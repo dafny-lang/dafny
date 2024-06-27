@@ -1,19 +1,15 @@
 // RUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
 // RUN: %diff "%s.expect" "%t"
 
-blind method FunctionSubsetResult() {
-  if (*) { 
-    reveal Natty;
-    var x: nat := Natty();
-    assert x >= 0; // no error
-  } else if (*) {
-    var y: nat := Natty();
-    assert y >= 0; // right now error, 
-    // would be nice if it passes based on the type of y
-    // if nat is revealed
+blind method ReadsClause() {
+  var o := new O;
+  var before := Obj(o);
+  o.x := 3;
+  if (*) {
+    assert Obj(o) == before; // passes, because reads clause is never hidden
   } else {
-    var z: int := Natty();
-    assert z >= 0; // error
+    assert Obj(o) == before by { // passes
+      reveal Obj;
+    }
   }
 }
-function Natty(): nat
