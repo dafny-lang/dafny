@@ -1,1 +1,0 @@
-Add the attribute `{:isolate_assertions}`, which does the same as `{:vcs_split_on_every_assert}`. Deprecated `{:vcs_split_on_every_assert}`

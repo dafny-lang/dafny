@@ -1,1 +1,0 @@
-Stop incorrectly emitting the error message "Dafny encountered an internal error while waiting for this symbol to verify"
