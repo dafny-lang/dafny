@@ -13,6 +13,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
   protected override bool PreventShadowing => false;
+  protected override string InternalFieldPrefix => "_i_";
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
@@ -33,7 +34,7 @@ public class RustBackend : DafnyExecutableBackend {
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
-    return new RustCodeGenerator();
+    return new RustCodeGenerator(Options);
   }
 
   private string ComputeExeName(string targetFilename) {
@@ -81,8 +82,8 @@ public class RustBackend : DafnyExecutableBackend {
       stream.CopyTo(outFile);
     });
 
-    using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
-      using var cargoTomlWriter = new StreamWriter(cargoToml);
+    await using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
+      await using var cargoTomlWriter = new StreamWriter(cargoToml);
       await cargoTomlWriter.WriteLineAsync("[package]");
       var packageName = Path.GetFileNameWithoutExtension(targetFilename);
       // package name cannot start with a digit

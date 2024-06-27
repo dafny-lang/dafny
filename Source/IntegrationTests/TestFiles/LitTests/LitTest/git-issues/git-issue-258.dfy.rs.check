@@ -1,1 +1,1 @@
-// CHECK: .*<i>Char literal without unicode char enabled</i>.*
+// CHECK-L: error[E0061]: this function takes 1 argument but 0 arguments were supplied

@@ -1,1 +1,0 @@
-- To enable smoothly working with multiple projects inside a single repository, Dafny now allows using a Dafny project file as an argument to `--library`. This first ensures that the defined Dafny project is built. Once it is built, Dafny will use the library file from that build as if it was passed to `--library`.

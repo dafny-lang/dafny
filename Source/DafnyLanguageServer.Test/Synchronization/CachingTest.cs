@@ -381,7 +381,7 @@ method Foo() {
   }
 
   [Fact]
-  public async Task ConcurrentCompilationDoesNotBreakCaching() {
+  public async Task CachingWorksWhenManyChangesAreMadeWithoutWaits() {
     var largeImport1 = GetLargeFile("Imported1", 100);
     var largeImport2 = GetLargeFile("Imported2", 100);
 
@@ -395,16 +395,15 @@ method Foo() {
 }";
 
     var temp = GetFreshTempPath();
+    var project = CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
     var imported1 = CreateAndOpenTestDocument(largeImport1, Path.Combine(temp, "imported1.dfy"));
     var imported2 = CreateAndOpenTestDocument(largeImport2, Path.Combine(temp, "imported2.dfy"));
     var importer = CreateAndOpenTestDocument(importerSource, Path.Combine(temp, "importer.dfy"));
-    var project = CreateOpenAndWaitForResolve("", Path.Combine(temp, "dfyconfig.toml"));
 
     var before1 = await WaitAndCountHits(imported1);
     var before2 = await WaitAndCountHits(imported2);
     var beforeImporter = await WaitAndCountHits(importer);
 
-    ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     for (int i = 0; i < 100; i++) {
       ApplyChange(ref importer, new Range(0, 0, 0, 0), "// added this comment\n");
     }

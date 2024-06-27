@@ -36,7 +36,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public bool MustReverify;
   public bool IsEntryPoint = false;
   public readonly List<Formal> Outs;
-  public readonly Specification<FrameExpression> Reads;
   public readonly Specification<FrameExpression> Mod;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
@@ -394,8 +393,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public virtual SymbolKind? Kind => SymbolKind.Method;
-  public string GetDescription(DafnyOptions options) {
+  public override SymbolKind? Kind => SymbolKind.Method;
+  public override string GetDescription(DafnyOptions options) {
     var qualifiedName = GetQualifiedName();
     var signatureWithoutReturn = $"{WhatKind} {qualifiedName}({string.Join(", ", Ins.Select(i => i.AsText()))})";
     if (Outs.Count == 0) {

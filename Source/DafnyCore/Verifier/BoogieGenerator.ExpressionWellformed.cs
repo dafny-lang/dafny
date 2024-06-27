@@ -278,6 +278,8 @@ namespace Microsoft.Dafny {
         wfOptions = wfOptions.WithLValueContext(false);
       }
 
+      var readFrames = GetContextReadsFrames();
+
       switch (expr) {
         case StaticReceiverExpr stexpr: {
             if (stexpr.ObjectToDiscard != null) {
@@ -374,8 +376,10 @@ namespace Microsoft.Dafny {
               }
             }
             if (!origOptions.LValueContext && wfOptions.DoReadsChecks && e.Member is Field { IsMutable: true } f) {
+              var requiredFrame = new FrameExpression(Token.NoToken, e.Obj, f.Name);
+              var desc = new PODesc.ReadFrameSubset("read field", requiredFrame, readFrames, selectExpr, etran.scope);
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), etran.TrExpr(e.Obj), GetField(e)),
-                new PODesc.ReadFrameSubset("read field", selectExpr, etran.scope), wfOptions.AssertKv);
+                desc, wfOptions.AssertKv);
             }
 
             break;
@@ -429,8 +433,10 @@ namespace Microsoft.Dafny {
                 var i = etran.TrExpr(e.E0);
                 i = ConvertExpression(selectExpr.tok, i, e.E0.Type, Type.Int);
                 Bpl.Expr fieldName = FunctionCall(selectExpr.tok, BuiltinFunction.IndexField, null, i);
+                var requiredFrame = new FrameExpression(Token.NoToken, e.Seq, null);
+                var desc = new PODesc.ReadFrameSubset("read array element", requiredFrame, readFrames, e, etran.scope);
                 wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), seq, fieldName),
-                  new PODesc.ReadFrameSubset("read array element", e, etran.scope), wfOptions.AssertKv);
+                  desc, wfOptions.AssertKv);
               } else {
                 Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
                 Contract.Assert(eSeqType.AsArrayType.Dims == 1);
@@ -443,9 +449,9 @@ namespace Microsoft.Dafny {
                 var allowedToRead = Bpl.Expr.SelectTok(e.tok, etran.ReadsFrame(e.tok), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
                 var qq = new Bpl.ForallExpr(e.tok, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
-                wfOptions.AssertSink(this, builder)(selectExpr.tok, qq,
-                  new PODesc.ReadFrameSubset("read the indicated range of array elements", e, etran.scope),
-                  wfOptions.AssertKv);
+                var requiredFrame = new FrameExpression(Token.NoToken, e.Seq, null);
+                var desc = new PODesc.ReadFrameSubset("read the indicated range of array elements", requiredFrame, readFrames, e, etran.scope);
+                wfOptions.AssertSink(this, builder)(selectExpr.tok, qq, desc, wfOptions.AssertKv);
               }
             }
 
@@ -478,8 +484,10 @@ namespace Microsoft.Dafny {
             }
             if (wfOptions.DoReadsChecks) {
               Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.tok, e.Indices);
+              var requiredFrame = new FrameExpression(Token.NoToken, e.Array, null);
+              var desc = new PODesc.ReadFrameSubset("read array element", requiredFrame, readFrames, selectExpr, etran.scope);
               wfOptions.AssertSink(this, builder)(selectExpr.tok, Bpl.Expr.SelectTok(selectExpr.tok, etran.ReadsFrame(selectExpr.tok), array, fieldName),
-                new PODesc.ReadFrameSubset("read array element", selectExpr, etran.scope), wfOptions.AssertKv);
+                desc, wfOptions.AssertKv);
             }
 
             break;
@@ -586,18 +594,19 @@ namespace Microsoft.Dafny {
               fnCoreType = fnCore.Type;
             }
 
+            // unwrap renamed local lambdas
+            var unwrappedFunc = e.Function;
+            while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
+              unwrappedFunc = cse.ResolvedExpression;
+            }
+            if (unwrappedFunc is IdentifierExpr { tok: var tok, DafnyName: var name }) {
+              unwrappedFunc = new IdentifierExpr(tok, name);
+            }
+
             if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
-              // unwrap renamed local lambdas
-              var funcExpr = e.Function;
-              while (funcExpr is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
-                funcExpr = cse.ResolvedExpression;
-              }
-              if (funcExpr is IdentifierExpr ie) {
-                funcExpr = new IdentifierExpr(ie.tok, ie.DafnyName);
-              }
               var dPrecond = new ApplyExpr(
                 Token.NoToken,
-                new ExprDotName(Token.NoToken, funcExpr, "requires", null),
+                new ExprDotName(Token.NoToken, unwrappedFunc, "requires", null),
                 e.Args,
                 Token.NoToken);
 
@@ -612,9 +621,20 @@ namespace Microsoft.Dafny {
               Expression wrap = new BoogieWrapper(
                 FunctionCall(e.tok, Reads(arity), TrType(objset), args),
                 objset);
-              var reads = new FrameExpression(e.tok, wrap, null);
-              CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { reads }, null, null,
-                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.ReadFrameSubset("invoke function"), wfOptions.AssertKv);
+              var wrappedReads = new FrameExpression(e.tok, wrap, null);
+
+              var readsCall = new ApplyExpr(
+                Token.NoToken,
+                new ExprDotName(Token.NoToken, unwrappedFunc, "reads", null),
+                e.Args,
+                Token.NoToken
+              );
+              readsCall.Type = objset;
+              var requiredFrame = new FrameExpression(Token.NoToken, readsCall, null);
+              var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrame, readFrames);
+
+              CheckFrameSubset(applyExpr.tok, new List<FrameExpression> { wrappedReads }, null, null,
+                etran, etran.ReadsFrame(applyExpr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
             }
 
             break;
@@ -665,6 +685,7 @@ namespace Microsoft.Dafny {
               }
               // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
               Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+              Dictionary<IVariable, Expression> directSubstMap = new Dictionary<IVariable, Expression>();
               for (int i = 0; i < e.Function.Ins.Count; i++) {
                 Formal p = e.Function.Ins[i];
                 // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
@@ -678,6 +699,7 @@ namespace Microsoft.Dafny {
                 locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
+                directSubstMap.Add(p, ee);
                 CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, ee, builder);
                 Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
@@ -751,14 +773,38 @@ namespace Microsoft.Dafny {
                     FunctionCall(expr.tok, Reads(e.Args.Count()), TrType(objset), arguments),
                     objset);
                   var reads = new FrameExpression(expr.tok, wrap, null);
+                  List<FrameExpression> requiredFrames;
+                  switch (e.Receiver.Resolved) {
+                    case MemberSelectExpr { Member: MethodOrFunction readsReceiver }: {
+                        var receiverReplacement = readsReceiver.IsStatic
+                          ? null
+                          : new ThisExpr(readsReceiver);
+                        var receiverSubstMap = readsReceiver.Ins.Zip(e.Args)
+                          .ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
+                        var subst = new Substituter(receiverReplacement, receiverSubstMap, e.GetTypeArgumentSubstitutions());
+                        requiredFrames = readsReceiver.Reads.Expressions.ConvertAll(subst.SubstFrameExpr);
+                        break;
+                      }
+                    default:
+                      var readsCall = new ApplyExpr(
+                        Token.NoToken,
+                        new ExprDotName(Token.NoToken, e.Receiver.Resolved, "reads", null),
+                        e.Args,
+                        Token.NoToken
+                      );
+                      readsCall.Type = objset;
+                      requiredFrames = new() { new FrameExpression(Token.NoToken, readsCall, null) };
+                      break;
+                  }
+                  var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrames, readFrames);
                   CheckFrameSubset(expr.tok, new List<FrameExpression> { reads }, null, null,
-                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), new PODesc.ReadFrameSubset("invoke function"), wfOptions.AssertKv);
+                    etran, etran.ReadsFrame(expr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
                 }
 
               } else {
                 // Directly substitutes arguments for formals, to be displayed to the user
-                var directSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
-                var directSub = new Substituter(e.Receiver, directSubstMap, e.GetTypeArgumentSubstitutions());
+                var argSubstMap = e.Function.Ins.Zip(e.Args).ToDictionary(fa => fa.First as IVariable, fa => fa.Second);
+                var directSub = new Substituter(e.Receiver, argSubstMap, e.GetTypeArgumentSubstitutions());
 
                 foreach (AttributedExpression p in e.Function.Req) {
                   var directPrecond = directSub.Substitute(p.E);
@@ -784,10 +830,16 @@ namespace Microsoft.Dafny {
                 }
                 if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
-                  var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
+
+                  // substitute actual args for parameters in description expression frames...
+                  var requiredFrames = e.Function.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
+                  var desc = new PODesc.ReadFrameSubset("invoke function", requiredFrames, readFrames);
+
+                  // ... but that substitution isn't needed for frames passed to CheckFrameSubset
+                  var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
                   CheckFrameSubset(callExpr.tok,
-                    e.Function.Reads.Expressions.ConvertAll(s.SubstFrameExpr),
-                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), new PODesc.ReadFrameSubset("invoke function"), wfOptions.AssertKv);
+                    e.Function.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
+                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.tok), wfOptions.AssertSink(this, builder), desc, wfOptions.AssertKv);
                 }
               }
               Expression allowance = null;
@@ -839,7 +891,7 @@ namespace Microsoft.Dafny {
                     if (e.CoCallHint != null) {
                       hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
                     }
-                    CheckCallTermination(callExpr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
+                    CheckCallTermination(callExpr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, directSubstMap, e.GetTypeArgumentSubstitutions(),
                       etran, false, builder, codeContext.InferredDecreases, hint);
                   }
                 }
@@ -887,6 +939,7 @@ namespace Microsoft.Dafny {
           }
         case UnchangedExpr unchangedExpr: {
             var e = unchangedExpr;
+            var contextReadsFrames = GetContextReadsFrames();
             foreach (var fe in e.Frame) {
               CheckWellformed(fe.E, wfOptions, locals, builder, etran);
 
@@ -908,10 +961,11 @@ namespace Microsoft.Dafny {
               }
               // check that the 'unchanged' argument reads only what the context is allowed to read
               if (wfOptions.DoReadsChecks) {
+                var desc = new PODesc.ReadFrameSubset($"read state of 'unchanged' {description}", fe, contextReadsFrames);
                 CheckFrameSubset(fe.E.tok,
                   new List<FrameExpression>() { fe },
                   null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.tok), wfOptions.AssertSink(this, builder),
-                  new PODesc.ReadFrameSubset($"read state of 'unchanged' {description}"), wfOptions.AssertKv);
+                  desc, wfOptions.AssertKv);
               }
             }
 
@@ -919,7 +973,12 @@ namespace Microsoft.Dafny {
           }
         case UnaryExpr unaryExpr: {
             UnaryExpr e = unaryExpr;
-            CheckWellformed(e.E, wfOptions, locals, builder, etran);
+            if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Assigned }) {
+              CheckWellformed(e.E.Resolved, wfOptions.WithLValueContext(true), locals, builder, etran);
+            } else {
+              CheckWellformed(e.E, wfOptions, locals, builder, etran);
+            }
+
             if (e is ConversionExpr ee) {
               CheckResultToBeInType(unaryExpr.tok, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
@@ -1267,6 +1326,12 @@ namespace Microsoft.Dafny {
 
             break;
           }
+        case DecreasesToExpr decreasesToExpr: {
+            foreach (var subexpr in decreasesToExpr.SubExpressions) {
+              CheckWellformed(subexpr, wfOptions, locals, builder, etran);
+            }
+            break;
+          }
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1554,9 +1619,17 @@ namespace Microsoft.Dafny {
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
-      var desc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence", dims, init);
-      builder.Add(AssertNS(tok, q, desc));
+      var indicesDesc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence", dims, init);
+      builder.Add(AssertNS(tok, q, indicesDesc));
       if (!forArray && options.DoReadsChecks) {
+        // unwrap renamed local lambdas
+        var unwrappedFunc = init;
+        while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
+          unwrappedFunc = cse.ResolvedExpression;
+        }
+        if (unwrappedFunc is IdentifierExpr { tok: var initTok, DafnyName: var name }) {
+          unwrappedFunc = new IdentifierExpr(initTok, name);
+        }
         // check read effects
         Type objset = program.SystemModuleManager.ObjectSetType();
         Expression wrap = new BoogieWrapper(
@@ -1567,10 +1640,27 @@ namespace Microsoft.Dafny {
           var qe = new Bpl.ForallExpr(t, bvs, BplImp(ante, e));
           options.AssertSink(this, builder)(t, qe, d, qk);
         };
+
+        PODesc.Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
+        var readsCall = new ApplyExpr(
+          Token.NoToken,
+          new ExprDotName(Token.NoToken, unwrappedFunc, "reads", null),
+          indexVarExprs,
+          Token.NoToken
+        );
+        readsCall.Type = objset;
+        var contextReads = GetContextReadsFrames();
+        var readsDescExpr = new ForallExpr(
+          Token.NoToken,
+          RangeToken.NoToken,
+          indexVars,
+          indicesRange,
+          PODesc.Utils.MakeDafnyFrameCheck(contextReads, readsCall, null),
+          null
+        );
+        var readsDesc = new PODesc.ReadFrameSubset("invoke the function passed as an argument to the sequence constructor", readsDescExpr);
         CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
-          etran, etran.ReadsFrame(tok), maker,
-          new PODesc.ReadFrameSubset("invoke the function passed as an argument to the sequence constructor"),
-          options.AssertKv);
+          etran, etran.ReadsFrame(tok), maker, readsDesc, options.AssertKv);
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints
       var apply = UnboxUnlessInherentlyBoxed(FunctionCall(tok, Apply(dims.Count), TrType(elementType), args), elementType);

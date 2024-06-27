@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -26,10 +28,29 @@ public class PythonBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => true;
 
+  public bool PythonModuleMode { get; set; } = true;
+  public string PythonModuleName;
+
+  public static readonly Option<string> PythonModuleNameCliOption = new("--python-module-name",
+    @"This Option is used to specify the Python Module Name for the translated code".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { PythonModuleNameCliOption };
+
+  static PythonBackend() {
+    TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+      { PythonModuleNameCliOption, OptionCompatibility.NoOpOptionCheck }
+    });
+  }
+
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
+    var pythonModuleName = Options.Get(PythonModuleNameCliOption);
+    PythonModuleMode = pythonModuleName != null;
+    if (PythonModuleMode) {
+      PythonModuleName = pythonModuleName;
+    }
     return new PythonCodeGenerator(Options, Reporter);
   }
 

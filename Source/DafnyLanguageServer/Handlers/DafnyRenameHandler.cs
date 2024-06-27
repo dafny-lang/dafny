@@ -47,13 +47,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return null;
       }
 
-      var node = state.SymbolTable.GetNode(requestUri, request.Position);
-      if (node == null || node.NameToken.val == request.NewName) {
+      var node = state.SymbolTable.GetDeclarationNode(requestUri, request.Position);
+      if (node == null || node.NavigationToken.val == request.NewName) {
         return null;
       }
 
       var declaration = SymbolTable.NodeToLocation(node);
-      var usages = state.SymbolTable.GetUsages(declaration.Uri.ToUri(), declaration.Range.Start);
+      if (declaration == null) {
+        return null;
+      }
+      var usages = state.SymbolTable.GetReferences(declaration.Uri.ToUri(), declaration.Range.Start);
       var changes = usages
         .Append(declaration)
         .GroupBy(location => location.Uri)

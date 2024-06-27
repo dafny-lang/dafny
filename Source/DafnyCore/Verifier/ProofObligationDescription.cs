@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 
@@ -58,6 +59,10 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
   }
 
   public virtual bool ProvedOutsideUserCode => false;
+
+  public virtual string GetExtraExplanation() {
+    return null;
+  }
 }
 
 //// Arithmetic and logical operators, conversions
@@ -640,6 +645,39 @@ public class CalculationStep : ProofObligationDescription {
     "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
+
+  private readonly Expression expr;
+  private readonly BlockStmt hints;
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
+  }
+
+  public override string GetExtraExplanation() {
+    if (hints is null || hints.Body is null || hints.Body.Count == 0) {
+      return null;
+    }
+
+    StringBuilder builder = new();
+    builder.Append("\n  asserted after the following statements:");
+
+    // These can be deeply nested for some reason
+    List<Statement> stmts = hints.Body;
+    while (stmts.Count == 1 && stmts[0] is BlockStmt bs) {
+      stmts = bs.Body;
+    }
+
+    foreach (var stmt in stmts) {
+      builder.Append($"\n    {stmt}");
+    }
+
+    return builder.ToString();
+  }
+
+  public CalculationStep(Expression expr, BlockStmt hints) {
+    this.expr = expr;
+    this.hints = hints;
+  }
 }
 
 public class EnsuresStronger : ProofObligationDescription {
@@ -742,10 +780,18 @@ public class TraitFrame : ProofObligationDescription {
 
   private readonly string whatKind;
   private bool isModify;
+  private readonly List<FrameExpression> subsetFrames;
+  private readonly List<FrameExpression> supersetFrames;
 
-  public TraitFrame(string whatKind, bool isModify) {
+  public TraitFrame(string whatKind, bool isModify, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames) {
     this.whatKind = whatKind;
     this.isModify = isModify;
+    this.subsetFrames = subsetFrames;
+    this.supersetFrames = supersetFrames;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames);
   }
 }
 
@@ -761,9 +807,15 @@ public class TraitDecreases : ProofObligationDescription {
   public override bool ProvedOutsideUserCode => true;
 
   private readonly string whatKind;
+  private readonly Expression expr;
 
-  public TraitDecreases(string whatKind) {
+  public TraitDecreases(string whatKind, Expression expr) {
     this.whatKind = whatKind;
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return expr;
   }
 }
 
@@ -819,13 +871,25 @@ public class ReadFrameSubset : ProofObligationDescription {
   public override string ShortDescription => "read frame subset";
 
   private readonly string whatKind;
+  private readonly Expression assertedExpr;
   private readonly Expression readExpression;
   [CanBeNull] private readonly IFrameScope scope;
 
-  public ReadFrameSubset(string whatKind, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
+  public ReadFrameSubset(string whatKind, FrameExpression subsetFrame, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
+    : this(whatKind, new List<FrameExpression> { subsetFrame }, supersetFrames, readExpression, scope) { }
+
+  public ReadFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
+    : this(whatKind, Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames), readExpression, scope) { }
+
+  public ReadFrameSubset(string whatKind, Expression assertedExpr, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
     this.whatKind = whatKind;
+    this.assertedExpr = assertedExpr;
     this.readExpression = readExpression;
     this.scope = scope;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return assertedExpr;
   }
 }
 
@@ -839,9 +903,17 @@ public class ModifyFrameSubset : ProofObligationDescription {
   public override string ShortDescription => "modify frame subset";
 
   private readonly string whatKind;
+  private readonly List<FrameExpression> subsetFrames;
+  private readonly List<FrameExpression> supersetFrames;
 
-  public ModifyFrameSubset(string whatKind) {
+  public ModifyFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames) {
     this.whatKind = whatKind;
+    this.subsetFrames = subsetFrames;
+    this.supersetFrames = supersetFrames;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames);
   }
 }
 
@@ -886,13 +958,40 @@ public class Terminates : ProofObligationDescription {
   private readonly List<Expression> oldExpressions;
   private readonly List<Expression> newExpressions;
   private readonly List<VarDeclStmt> prevGhostLocals;
+  private bool allowNoChange;
 
-  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, string hint = null) {
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    Expression expr = new DecreasesToExpr(Token.NoToken, oldExpressions, newExpressions, allowNoChange);
+    if (allowance is not null) {
+      expr = Expression.CreateOr(allowance, expr);
+    }
+    return expr;
+  }
+
+  public override string GetExtraExplanation() {
+    var builder = new StringBuilder();
+    if (prevGhostLocals is not null) {
+      builder.Append("\n  with the label `LoopEntry` applied to the loop");
+      if (prevGhostLocals.Count > 0) {
+        builder.Append("\n  and with the following declarations at the beginning of the loop body:");
+        foreach (var decl in prevGhostLocals) {
+          builder.Append($"\n    {decl}");
+        }
+      }
+
+      return builder.ToString();
+    }
+
+    return null;
+  }
+
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, bool allowNoChange, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;
     this.allowance = allowance;
     this.oldExpressions = oldExpressions;
     this.newExpressions = newExpressions;
+    this.allowNoChange = allowNoChange;
     this.hint = hint;
   }
 }
@@ -912,12 +1011,37 @@ public class DecreasesBoundedBelow : ProofObligationDescription {
   private readonly string zeroStr;
   private readonly string suffix;
   private readonly int N, k;
+  private readonly Expression bound;
+  private readonly List<VarDeclStmt> prevGhostLocals;
 
-  public DecreasesBoundedBelow(int N, int k, string zeroStr, string suffix) {
+  public override Expression GetAssertedExpr(DafnyOptions _) {
+    return bound;
+  }
+
+  public override string GetExtraExplanation() {
+    var builder = new StringBuilder();
+    if (prevGhostLocals is not null) {
+      builder.Append("\n  with the label `LoopEntry` applied to the loop");
+      if (prevGhostLocals.Count > 0) {
+        builder.Append("\n  and with the following declarations at the beginning of the loop body:");
+        foreach (var decl in prevGhostLocals) {
+          builder.Append($"\n    {decl}");
+        }
+      }
+
+      return builder.ToString();
+    }
+
+    return null;
+  }
+
+  public DecreasesBoundedBelow(int N, int k, string zeroStr, List<VarDeclStmt> prevGhostLocals, Expression bound, string suffix) {
     this.N = N;
     this.k = k;
     this.zeroStr = zeroStr;
     this.suffix = suffix;
+    this.prevGhostLocals = prevGhostLocals;
+    this.bound = bound;
   }
 }
 
@@ -931,9 +1055,19 @@ public class Modifiable : ProofObligationDescription {
   public override string ShortDescription => "modifiable";
 
   private readonly string description;
+  private readonly List<FrameExpression> frames;
+  private readonly Expression obj;
+  private readonly Field field;
 
-  public Modifiable(string description) {
+  public Modifiable(string description, List<FrameExpression> frames, Expression obj, Field field) {
     this.description = description;
+    this.frames = frames;
+    this.obj = obj;
+    this.field = field;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return Utils.MakeDafnyFrameCheck(frames, obj, field);
   }
 }
 
@@ -989,7 +1123,7 @@ public class MatchIsComplete : ProofObligationDescription {
   }
 
   // ReSharper disable once UnusedMember.Global
-  public string GetExtraExplanation() {
+  public override string GetExtraExplanation() {
     return (
       "\n  in an added catch-all case:"
       + "\n    case _ => ..."
@@ -1013,7 +1147,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
   }
 
   // ReSharper disable once UnusedMember.Global
-  public string GetExtraExplanation() {
+  public override string GetExtraExplanation() {
     return (
       "\n  in an added catch-all case:"
       + "\n    case true => ..."
@@ -1147,23 +1281,7 @@ public class IndicesInDomain : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    var zero = new LiteralExpr(Token.NoToken, 0);
-    var indexVars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
-    var indexVarExprs = indexVars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
-    var indexRanges = dims.Select((dim, i) => new ChainingExpression(
-      Token.NoToken,
-      new() { zero, indexVarExprs[i], dim },
-      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
-      new() { Token.NoToken, Token.NoToken },
-      new() { null, null }
-    ) as Expression).ToList();
-    var indicesRange = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
-      Token.NoToken,
-      indexRanges,
-      Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
-      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
-      Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
-    );
+    Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
     var precond = new FunctionCallExpr(Token.NoToken, "requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
     return new ForallExpr(Token.NoToken, RangeToken.NoToken, indexVars, indicesRange, precond, null);
   }
@@ -1394,19 +1512,25 @@ public class ElementInDomain : ProofObligationDescription {
 
 public class DefiniteAssignment : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{what}, which is subject to definite-assignment rules, is always initialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{what}, which is subject to definite-assignment rules, might be uninitialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, might be uninitialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
-  private readonly string what;
+  private readonly string kind;
+  private readonly string name;
   private readonly string where;
 
-  public DefiniteAssignment(string what, string where) {
-    this.what = what;
+  public DefiniteAssignment(string kind, string name, string where) {
+    this.kind = kind;
+    this.name = name;
     this.where = where;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Assigned, new IdentifierExpr(Token.NoToken, name));
   }
 }
 
@@ -1764,9 +1888,106 @@ internal class Utils {
     return new BinaryExpr(lowRange.tok, BinaryExpr.Opcode.Or, lowRange, highRange);
   }
 
+  public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
+    var zero = new LiteralExpr(Token.NoToken, 0);
+    vars = dims.Select((_, i) => new BoundVar(Token.NoToken, "i" + i, Type.Int)).ToList();
+
+    // can't assign to out-param immediately, since it's accessed in the lambda below
+    var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
+    var indexRanges = dims.Select((dim, i) => new ChainingExpression(
+      Token.NoToken,
+      new() { zero, tempVarExprs[i], dim },
+      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
+      new() { Token.NoToken, Token.NoToken },
+      new() { null, null }
+    ) as Expression).ToList();
+    varExprs = tempVarExprs;
+
+    range = dims.Count == 1 ? indexRanges[0] : new ChainingExpression(
+      Token.NoToken,
+      indexRanges,
+      Enumerable.Repeat(BinaryExpr.Opcode.And, dims.Count - 1).ToList(),
+      Enumerable.Repeat(Token.NoToken as IToken, dims.Count - 1).ToList(),
+      Enumerable.Repeat(null as Expression, dims.Count - 1).ToList()
+    );
+  }
+
   internal static Expression MakeIsOneCtorAssertion(Expression root, List<DatatypeCtor> ctors) {
     return ctors
       .Select(ctor => new ExprDotName(Token.NoToken, root, ctor.Name + "?", null) as Expression)
       .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
+  }
+
+  /// <summary>
+  /// Builds an expression that represents whether (the relevant subset of) the given `supersetFrames`
+  /// permit read/modification access to all objects, arrays, and/or sets of objects/arrays in the `subsetFrames`.
+  /// </summary>
+  public static Expression MakeDafnyMultiFrameCheck(List<FrameExpression> supersetFrames, List<FrameExpression> subsetFrames) {
+    if (subsetFrames.Count == 0) {
+      return null;
+    }
+    return subsetFrames
+      .Select(target => MakeDafnyFrameCheck(supersetFrames, target.E, target.Field))
+      .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
+  }
+
+  /// <summary>
+  /// Builds an expression that represents whether (the relevant subset of) the given frames
+  /// permit read/modification access to an object/array (or set of objects/arrays).
+  /// </summary>
+  public static Expression MakeDafnyFrameCheck(List<FrameExpression> frames, Expression objOrObjSet, Field field) {
+    if (frames.Any(frame => frame.E is WildcardExpr)) {
+      return new LiteralExpr(Token.NoToken, true);
+    }
+
+    Type objType;
+    BoundVar objVar;
+    Expression objOperand;
+    var isSetObj = objOrObjSet.Type is SetType;
+    if (isSetObj) {
+      objType = objOrObjSet.Type.AsSetType.Arg;
+      objVar = new BoundVar(Token.NoToken, "obj", objType);
+      objOperand = new IdentifierExpr(Token.NoToken, objVar);
+    } else {
+      objType = objOrObjSet.Type;
+      objVar = null;
+      objOperand = objOrObjSet;
+    }
+
+    var disjuncts = new List<Expression>();
+    foreach (var frame in frames) {
+      var isSetFrame = frame.E.Type is SetType;
+      var frameObjType = isSetFrame ? frame.E.Type.AsSetType.Arg : frame.E.Type;
+      var isTypeRelated =
+        objType.IsSubtypeOf(frameObjType, false, false)
+        || objType.IsObjectQ;
+      var isFieldRelated = field == null || frame.Field == null || field.Name.Equals(frame.Field.Name);
+      if (!(isTypeRelated && isFieldRelated)) {
+        continue;
+      }
+
+      var relationOp = isSetFrame ? BinaryExpr.Opcode.In : BinaryExpr.Opcode.Eq;
+      disjuncts.Add(new BinaryExpr(Token.NoToken, relationOp, objOperand, frame.E));
+    }
+
+    if (disjuncts.Count == 0) {
+      var emptySet = new SetDisplayExpr(Token.NoToken, true, new());
+      disjuncts.Add(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, emptySet));
+    }
+
+    var check = disjuncts.Aggregate((e0, e1) =>
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Or, e0, e1));
+    if (!isSetObj) {
+      return check;
+    }
+
+    return new ForallExpr(
+      Token.NoToken,
+      RangeToken.NoToken,
+      new() { objVar },
+      new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, objOrObjSet),
+      check,
+      null
+    );
   }
 }

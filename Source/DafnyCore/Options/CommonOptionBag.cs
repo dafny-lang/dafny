@@ -5,6 +5,7 @@ using System.Linq;
 using DafnyCore;
 using DafnyCore.Options;
 using Serilog.Events;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -580,7 +581,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterNoChecksNeeded(LogLevelOption, false);
     DooFile.RegisterNoChecksNeeded(ManualTriggerOption, true);
     DooFile.RegisterNoChecksNeeded(ShowHints, false);
-    DooFile.RegisterNoChecksNeeded(Libraries, false);
+    DooFile.RegisterNoChecksNeeded(Libraries, true);
     DooFile.RegisterNoChecksNeeded(Output, false);
     DooFile.RegisterNoChecksNeeded(PluginOption, false);
     DooFile.RegisterNoChecksNeeded(Prelude, false);
@@ -617,6 +618,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterNoChecksNeeded(ExtractCounterexample, false);
     DooFile.RegisterNoChecksNeeded(ShowProofObligationExpressions, false);
     DooFile.RegisterNoChecksNeeded(GoBackend.GoModuleNameCliOption, false);
+    DooFile.RegisterNoChecksNeeded(PythonBackend.PythonModuleNameCliOption, false);
   }
 }
 

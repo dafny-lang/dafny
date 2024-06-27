@@ -1,4 +1,4 @@
-﻿for-range-bounds-valid.dfy(6,13): Error: lower bound must not exceed upper bound
+for-range-bounds-valid.dfy(6,13): Error: lower bound must not exceed upper bound
  Asserted expression: 1 <= 0
 
 Dafny program verifier finished with 0 verified, 1 error

@@ -314,7 +314,9 @@ namespace Microsoft.Dafny {
               case IdPattern idPattern:
                 if (idPattern.BoundVar == null) {
                   return new IdPattern(idPattern.Tok, idPattern.Id, idPattern.Type,
-                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost);
+                    idPattern.Arguments?.Select(SubstituteForPattern).ToList(), idPattern.IsGhost) {
+                    Ctor = idPattern.Ctor
+                  };
                 }
 
                 discoveredBvs.Add((BoundVar)idPattern.BoundVar);
@@ -424,6 +426,13 @@ namespace Microsoft.Dafny {
         if (anythingChanged) {
           newExpr = new BoogieGenerator.BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
         }
+
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        List<Expression> oldExpressionsSubst = SubstituteExprList(decreasesToExpr.OldExpressions.ToList());
+        List<Expression> newExpressionsSubst = SubstituteExprList(decreasesToExpr.NewExpressions.ToList());
+        newExpr = new DecreasesToExpr(decreasesToExpr.tok, oldExpressionsSubst, newExpressionsSubst, decreasesToExpr.AllowNoChange) {
+          Type = decreasesToExpr.Type
+        };
 
       } else {
         Contract.Assume(false); // unexpected Expression

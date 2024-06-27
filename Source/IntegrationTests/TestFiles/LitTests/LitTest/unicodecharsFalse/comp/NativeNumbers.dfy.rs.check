@@ -1,1 +1,1 @@
-// CHECK: .*<i>Cannot\ assign\ null\ value\ to\ variable</i>.*
+// CHECK-L: error[E0308]: mismatched types

@@ -1294,7 +1294,7 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
-To avoid cuasing circular reasoning chains or providing too much informatino that might
+To avoid causing circular reasoning chains or providing too much information that might
 complicate Dafny's prover finding proofs, not all properties of maps are known by the prover by default.
 For example, the following does not prove:
 <!-- %check-verify Types.25.expect -->
@@ -1937,7 +1937,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 9.37](#sec-compile-time-constants).
+in [Section 9.39](#sec-compile-time-constants).
 
 ### 5.7.1. Conversion operations {#sec-conversion}
 

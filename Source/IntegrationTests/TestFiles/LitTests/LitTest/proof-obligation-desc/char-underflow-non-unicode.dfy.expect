@@ -1,4 +1,4 @@
-﻿CLI: Warning: the option unicode-char has been deprecated.
+CLI: Warning: the option unicode-char has been deprecated.
 char-underflow-non-unicode.dfy(5,7): Error: char subtraction might underflow
  Asserted expression: 0 <= c0 as int - c1 as int && c0 as int - c1 as int < 65536
 
