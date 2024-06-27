@@ -19,6 +19,8 @@ public class JavaBackend : ExecutableBackend {
   public override bool IsStable => true;
   public override string TargetExtension => "java";
 
+  private bool AddedCliOption = false;
+
   public bool JavaPackageMode { get; set; } = true;
   public string JavaPackageName;
 
@@ -203,8 +205,10 @@ public class JavaBackend : ExecutableBackend {
   private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
 
   public JavaBackend(DafnyOptions options) : base(options) {
-    // TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
-    //   { JavaPackageNameCliOption, OptionCompatibility.NoOpOptionCheck }
-    // });
+    try {
+TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+      { JavaPackageNameCliOption, OptionCompatibility.NoOpOptionCheck }
+    });
+    } catch ( System.ArgumentException ex) {}
   }
 }

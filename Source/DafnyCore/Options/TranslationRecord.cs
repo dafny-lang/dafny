@@ -5,6 +5,7 @@ using System.Linq;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
+using System;
 
 namespace DafnyCore.Options;
 
@@ -176,6 +177,7 @@ public class TranslationRecord {
 
   public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
     foreach (var (option, check) in checks) {
+      Console.WriteLine("option " + option + " check " + check);
       OptionChecks.Add(option, check);
     }
   }

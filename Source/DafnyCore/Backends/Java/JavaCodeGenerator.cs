@@ -1848,20 +1848,32 @@ namespace Microsoft.Dafny.Compilers {
       var sanitizedName = moduleName.TrimEnd('.');
       if (ShouldStripPackageNameFromModuleName(sanitizedName)) {
         Console.WriteLine("filter " + sanitizedName + " from " + ModuleName + " = " + moduleToPackageName[sanitizedName]);
-        return moduleToPackageName[sanitizedName];
-        // return "";
+        return "";
+      } else
+      
+      if (ShouldPrependPackageNamePrefix(sanitizedName)) {
+        return moduleToPackageName[sanitizedName] + "." + moduleName;
       }
       return moduleName;
+    }
+
+    protected bool ShouldPrependPackageNamePrefix(string sanitizedName) {
+            Console.WriteLine("prefix check 1 = " + (PackageWasImported(sanitizedName)));
+
+      return !PackageWasImported(sanitizedName);
     }
 
     protected bool ShouldStripPackageNameFromModuleName(string sanitizedName) {
       Console.WriteLine("Sanitized = " + sanitizedName);
       Console.WriteLine("ModuelName = " + ModuleName);
-      Console.WriteLine("check 1 = " + moduleToPackageName.ContainsKey(sanitizedName));
-      Console.WriteLine("check 2 = " + (sanitizedName == ModuleName.Split('.').Last()));
-      Console.WriteLine("check 3 = " + (PackageWasImported(sanitizedName)));
+      Console.WriteLine("strip check 1 = " + moduleToPackageName.ContainsKey(sanitizedName));
+      Console.WriteLine("strip check 2 = " + (moduleToPackageName[sanitizedName] == ""));
+      Console.WriteLine("debug strip check 2 = " + moduleToPackageName[sanitizedName]);
+      Console.WriteLine("strip check 3 = " + (sanitizedName == ModuleName.Split('.').Last()));
 
-      return moduleToPackageName.ContainsKey(sanitizedName) && (sanitizedName == ModuleName.Split('.').Last() || PackageWasImported(sanitizedName));
+      return moduleToPackageName.ContainsKey(sanitizedName)
+        && moduleToPackageName[sanitizedName] == ""
+        && (sanitizedName == ModuleName.Split('.').Last());
     }
 
     protected bool PackageWasImported(string sanitizedName) {
