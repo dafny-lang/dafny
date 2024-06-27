@@ -2260,6 +2260,22 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
 
+      if (declWithConstraints is SubsetTypeDecl subsetTypeDecl) {
+        // Since this type becomes a type synonym at run-time, we simply inline the condition
+        // We put it as a IIFE
+        var constraint = subsetTypeDecl.Constraint;
+        
+        var statementBuf = new NoStatementBuffer();
+        ConcreteSyntaxTree sNoStmt = new BuilderSyntaxTree<StatementContainer>(statementBuf, this);
+        CreateIIFE(GetCompileNameNotProtected(subsetTypeDecl.Var), subsetTypeDecl.Var.Type, subsetTypeDecl.Var.tok,
+        Type.Bool, constraint.tok, wr, ref sNoStmt, out ConcreteSyntaxTree wrRhs, out ConcreteSyntaxTree wrBody);
+        if (!GetExprBuilder(wrBody, out var wrBodyBuilder)) {
+          throw new InvalidOperationException();
+        }
+        wrBodyBuilder.Builder.AddExpr(ConvertExpression(constraint, sNoStmt));
+        return wrRhs;
+      }
+
       var signature = Sequence<_IFormal>.FromArray(new[] {
         new DAST.Formal(Sequence<Rune>.UnicodeFromString("_dummy_"), GenType(type), Sequence<DAST.Attribute>.Empty)
       });

@@ -2168,7 +2168,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       modifies this
     {
       var typeParamsSeq, rTypeParams, rTypeParamsDecls, whereConstraints := GenTypeParameters(c.typeParams);
-      var constrainedTypeParams := R.TypeParamDecl.ToStringMultiple(rTypeParamsDecls, R.IND + R.IND);
       var synonymTypeName := escapeName(c.name);
       var resultingType := GenType(c.base, GenTypeContext.default());
 
@@ -2179,6 +2178,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             synonymTypeName, rTypeParamsDecls, resultingType
           ))];
 
+      var defaultConstrainedTypeParams := R.TypeParamDecl.AddConstraintsMultiple(
+        rTypeParamsDecls, [R.DefaultTrait]
+      );
       match c.witnessExpr {
         case Some(e) => {
           var rStmts, _, newEnv := GenStmts(c.witnessStmts, NoSelf, Environment.Empty(), false, None);
@@ -2189,7 +2191,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.TopFn(
                 [], R.PUB,
                 R.Fn(
-                  constantName, [], [], Some(resultingType),
+                  constantName, defaultConstrainedTypeParams, [], Some(resultingType),
                   "",
                   Some(rStmts.Then(rExpr)))
               )
