@@ -2,29 +2,36 @@
 // NoRUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
 // NoRUN: %diff "%s.expect" "%t"
 
-function P(): bool {
-  true
-}
+function P(): nat
 
-function Q(): int 
-  requires P() {
-  3
-}
-
-blind method FunctionSubsetResult(a: nat) {
-  assert a >= 0;
-  if (*) { 
-    var x: nat := Natty();
-    assert x >= 0;
-  } else if (*) {
-    var y: int := Natty();
-    assert y >= 0;
+method Foo(x: nat) {
+  hide nat;
+  if (*) {
+    assert x > 0; // Fails because nat is hidden
   } else {
-    reveal Natty;
-    var z: nat := Natty();
-    assert z >= 0;
+    reveal nat;
+    assert x > 0; // No error
   }
-}
-function Natty(): nat {
-  3
+  var y := P();
+  assert y > 0; // Fails because nat is hidden, even though P is revealed
+  
+  var z: int := P();
+  reveal nat;
+  assert z > 0; // Fails because z is an int
+  
+  hide P;
+  var a: nat := P();
+  assert a > 0; // Passes, because nat is revealed, even though P is hidden.
+  
+  var b: nat := *;
+  assert b >= 0; // Passes
+  
+  var c: int := *;
+  if (*) {
+    assert c > 0; // Fails
+  }
+  var d: nat := c by { // New syntax
+    assume c >= 0;
+  }
+  assert d > 0; // Passes
 }
