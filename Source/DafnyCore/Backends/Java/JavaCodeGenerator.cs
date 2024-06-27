@@ -1844,16 +1844,43 @@ namespace Microsoft.Dafny.Compilers {
       return middle;
     }
 
-    protected string FilterModuleNameWithPackage(string moduleName) {
+    protected bool ThisIsInTheSamePackage(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
-      if (ShouldStripPackageNameFromModuleName(sanitizedName)) {
-        Console.WriteLine("filter " + sanitizedName + " from " + ModuleName + " = " + moduleToPackageName[sanitizedName]);
+      var packageName = moduleToPackageName[sanitizedName] + "." + sanitizedName;
+      var output = (packageName == ModuleName);
+      Console.WriteLine("ThisIsInTheSamePackage packageName = " + packageName);
+      Console.WriteLine("ThisIsInTheSamePackage ModuleName = " + ModuleName);
+      Console.WriteLine("ThisIsInTheSamePackage = " + output);
+      return output;
+    }
+
+    protected string FilterModuleNameWithPackage(string moduleName) {
+      if (ThisIsInTheSamePackage(moduleName)) {
         return "";
-      } else
-      
-      if (ShouldPrependPackageNamePrefix(sanitizedName)) {
+      }
+
+      var sanitizedName = moduleName.TrimEnd('.');
+      if (moduleToPackageName.ContainsKey(sanitizedName)) {
+        if (string.IsNullOrEmpty(moduleToPackageName[sanitizedName])) {
+          return moduleName;
+        }
         return moduleToPackageName[sanitizedName] + "." + moduleName;
       }
+
+      if (PackageWasImported(moduleName)) {
+        return "";
+      }
+
+
+      // var sanitizedName = moduleName.TrimEnd('.');
+      // if (ShouldStripPackageNameFromModuleName(sanitizedName)) {
+      //   Console.WriteLine("filter " + sanitizedName + " from " + ModuleName + " = " + moduleToPackageName[sanitizedName]);
+      //   return "";
+      // } else
+      
+      // if (ShouldPrependPackageNamePrefix(sanitizedName)) {
+      //   return moduleToPackageName[sanitizedName] + "." + moduleName;
+      // }
       return moduleName;
     }
 
@@ -1876,11 +1903,26 @@ namespace Microsoft.Dafny.Compilers {
         && (sanitizedName == ModuleName.Split('.').Last());
     }
 
-    protected bool PackageWasImported(string sanitizedName) {
+    protected string GetOriginalPackageName(string sanitizedName) {
+      return moduleToPackageName[sanitizedName];
+        // foreach (KeyValuePair<string, string> kvp in moduleToPackageName)
+        // {
+        //   Console.WriteLine("Key = " + kvp.Key);
+        //   if (kvp.Key == sanitizedName) {
+        //     Console.WriteLine("Val = " + kvp.Value);
+        //     return kvp.Value;
+        //   }
+        // }
+    }
+
+    protected bool PackageWasImported(string moduleName) {
+      var sanitizedName = moduleName.TrimEnd('.');
+      Console.WriteLine("import check sanitizedName = " + sanitizedName);
       foreach (var import in Imports) {
         // TODO make this bimap lookup
         foreach (KeyValuePair<string, string> kvp in moduleToPackageName)
         {
+          Console.WriteLine("import check key = " + kvp.Key);
           if (kvp.Key == sanitizedName) {
             return true;
           }
@@ -2705,14 +2747,25 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var m in program.CompileModules) {
         if (!m.IsDefaultModule && !m.Name.Equals("_System")) {
 
+          Console.WriteLine("m.FullDafnyName = " + m.FullDafnyName);
+
           var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
           translatedRecord.OptionsByModule.TryGetValue(m.FullDafnyName, out var moduleOptions);
           object dependencyModuleName = null;
           moduleOptions?.TryGetValue(JavaBackend.JavaPackageNameCliOption.Name, out dependencyModuleName);
 
-          moduleToPackageName.Add(m.GetCompileName(Options), (string)dependencyModuleName);
+          var dependencyModuleNameStr = (string)dependencyModuleName;
 
-          Console.WriteLine("organizemodules" + m.GetCompileName(Options) + " = " + dependencyModuleName);
+          Console.WriteLine("dependencyModuleNameStr = " + dependencyModuleNameStr);
+
+          if (string.IsNullOrEmpty(dependencyModuleNameStr)) {
+            dependencyModuleNameStr = JavaPackageName;
+          }
+
+          moduleToPackageName.Add(m.GetCompileName(Options), dependencyModuleNameStr);
+
+
+          Console.WriteLine("organizemodules" + m.GetCompileName(Options) + " = " + dependencyModuleNameStr);
 
           modules.Add(m);
         }
@@ -2721,7 +2774,7 @@ namespace Microsoft.Dafny.Compilers {
         if (m.Name.Equals("_System")) {
           Console.WriteLine(m.GetCompileName(Options) + " = " + "_System");
 
-          moduleToPackageName.Add(m.GetCompileName(Options), "_System.");
+          moduleToPackageName.Add(m.GetCompileName(Options), "");
 
           modules.Add(m);
         }
