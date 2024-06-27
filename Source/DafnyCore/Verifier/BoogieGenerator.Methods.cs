@@ -35,7 +35,6 @@ namespace Microsoft.Dafny {
           var res = new Bpl.Formal(c.tok, new Bpl.TypedIdent(c.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
           var implement_intr = new Bpl.Function(c.tok, "implements$" + c.FullSanitizedName, vars, res);
           // Seems unused??
-          implement_intr.AlwaysRevealed = true;
           sink.AddTopLevelDeclaration(implement_intr);
         } else if (c is ClassDecl classDecl) {
           AddImplementsAxioms(classDecl);

@@ -2702,7 +2702,6 @@ namespace Microsoft.Dafny {
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         var args = td.TypeArgs.ConvertAll(_ => (Bpl.Variable)BplFormalVar(null, predef.Ty, true));
         func = new Bpl.Function(td.tok, name, args, tyVarOut);
-        func.AlwaysRevealed = true;
         sink.AddTopLevelDeclaration(func);
 
         if (td is AbstractTypeDecl or InternalTypeSynonymDecl) {
@@ -2822,7 +2821,6 @@ namespace Microsoft.Dafny {
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
         var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<Bpl.TypeVariable>(), formals, res);
-        canCallF.AlwaysRevealed = true;
         sink.AddTopLevelDeclaration(canCallF);
       }
 

@@ -51,9 +51,7 @@ public partial class BoogieGenerator {
           BplFormalVar(null, requires_ty, true),
           BplFormalVar(null, reads_ty, true)
         };
-      var declaration = new Bpl.Function(Token.NoToken, Handle(arity), arg, res) {
-        AlwaysRevealed = true // Seems unneeded since there are no axioms
-      };
+      var declaration = new Bpl.Function(Token.NoToken, Handle(arity), arg, res);
       sink.AddTopLevelDeclaration(declaration);
     }
 
@@ -64,7 +62,7 @@ public partial class BoogieGenerator {
       args.Add(BplFormalVar(null, predef.HandleType, true));
       MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
       var boogieFunction = new Bpl.Function(Token.NoToken, name, args, BplFormalVar(null, t, false));
-      boogieFunction.AlwaysRevealed = true; // Seems unused
+      // Seems unused
       if (dafnyFunction != null) {
         declarationMapping[dafnyFunction] = boogieFunction;
       }
@@ -147,9 +145,7 @@ public partial class BoogieGenerator {
           new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<TypeVariable>(), formals,
             BplFormalVar(null, Bpl.Type.Bool, false), null,
             InlineAttribute(f.tok)) {
-            Body = Bpl.Expr.True,
-            AlwaysRevealed = true
-            
+            Body = Bpl.Expr.True
           });
       };
 
@@ -501,7 +497,6 @@ public partial class BoogieGenerator {
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         var injname = name + "_" + i;
         var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
-        injfunc.AlwaysRevealed = true;
         sink.AddTopLevelDeclaration(injfunc);
         var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
         Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
