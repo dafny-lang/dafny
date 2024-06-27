@@ -3,4 +3,4 @@ revealFunctions.dfy(19,2): Error: function precondition could not be proved
 revealFunctions.dfy(28,11): Related location: this proposition could not be proved
 revealFunctions.dfy(53,21): Error: assertion might not hold
 
-Dafny program verifier finished with 11 verified, 4 errors
+Dafny program verifier finished with 28 verified, 3 errors

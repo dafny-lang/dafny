@@ -74,7 +74,7 @@ blind method ReadsClause() {
   var before := Obj(o);
   o.x := 3;
   if (*) {
-    assert Obj(o) == before; // passes, because reads clause is never hidden
+    assert Obj(o) == before; // passes, because at the moment reads clauses are never hidden
   } else {
     assert Obj(o) == before by { // passes
       reveal Obj;
