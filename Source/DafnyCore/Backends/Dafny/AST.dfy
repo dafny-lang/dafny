@@ -36,7 +36,7 @@ module {:extern "DAST"} DAST {
   // See issue https://github.com/dafny-lang/dafny/issues/5345
   datatype Name = Name(dafny_name: string)
 
-  datatype Module = Module(name: Name, attributes: seq<Attribute>, body: Option<seq<ModuleItem>>)
+  datatype Module = Module(name: Name, attributes: seq<Attribute>, requiresExterns: bool, body: Option<seq<ModuleItem>>)
 
   datatype ModuleItem =
     | Module(Module)
@@ -45,6 +45,28 @@ module {:extern "DAST"} DAST {
     | Newtype(Newtype)
     | SynonymType(SynonymType)
     | Datatype(Datatype)
+  {
+    function name(): Name {
+      match this {
+        case Module(m) => m.name
+        case Class(m) => m.name
+        case Trait(m) => m.name
+        case Newtype(m) => m.name
+        case SynonymType(m) => m.name
+        case Datatype(m) => m.name
+      }
+    }
+    function attributes(): seq<Attribute> {
+      match this {
+        case Module(m) => m.attributes
+        case Class(m) => m.attributes
+        case Trait(m) => m.attributes
+        case Newtype(m) => m.attributes
+        case SynonymType(m) => m.attributes
+        case Datatype(m) => m.attributes
+      }
+    }
+  }
 
   datatype Type =
     UserDefined(resolved: ResolvedType) |
@@ -246,6 +268,7 @@ module {:extern "DAST"} DAST {
     Literal(Literal) |
     Ident(name: Name) |
     Companion(seq<Ident>, typeArgs: seq<Type>) |
+    ExternCompanion(seq<Ident>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
     NewUninitArray(dims: seq<Expression>, typ: Type) |

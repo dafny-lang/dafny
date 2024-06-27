@@ -56,6 +56,7 @@ module RAST
     | ImplDecl(impl: Impl)
     | TraitDecl(tr: Trait)
     | TopFnDecl(fn: TopFnDecl)
+    | UseDecl(use: Use)
   {
     function ToString(ind: string): string
       decreases this
@@ -68,7 +69,13 @@ module RAST
       else if ConstDecl? then c.ToString(ind)
       else if TraitDecl? then tr.ToString(ind)
       else if TopFnDecl? then fn.ToString(ind)
+      else if UseDecl? then use.ToString(ind)
       else assert RawDecl?; body
+    }
+  }
+  datatype Use = Use(visibility: Visibility, path: Expr) {
+    function ToString(ind: string): string {
+      visibility.ToString() + "use " + path.ToString(ind) + ";"
     }
   }
   datatype TopFnDecl = TopFn(attributes: seq<Attribute>, visibility: Visibility, fn: Fn) {
@@ -1600,6 +1607,60 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
   }
 
+  datatype ExternAttribute =
+    | NoExtern()
+    | SimpleExtern(overrideName: string)
+    | AdvancedExtern(enclosingModule: string, overrideName: string)
+    | UnsupportedExtern(reason: string)
+  
+  opaque function OptExtern(attr: Attribute, dafnyName: Name): Option<ExternAttribute> {
+    if attr.name == "extern" then
+      Some(
+        if |attr.args| == 0 then SimpleExtern(escapeName(dafnyName)) else
+        if |attr.args| == 1 then SimpleExtern(attr.args[0]) else
+        if |attr.args| == 2 then AdvancedExtern(ReplaceDotByDoubleColon(attr.args[0]), attr.args[1]) else
+        UnsupportedExtern("{:extern} supports only 0, 1 or 2 attributes, got " + Std.Strings.OfNat(|attr.args|))
+      )
+    else
+      None
+  }
+
+  // Dots make no sense in Rust, so we replace them by double colons, except if the string started with a space
+  function ReplaceDotByDoubleColon(s: string): string {
+    if |s| == 0 then "" else
+    if s[0] == ' ' then s else
+    (if s[0] == '.' then "::" else [s[0]]) + ReplaceDotByDoubleColon(s[1..])
+  }
+
+  function ExtractExtern(attributes: seq<Attribute>, dafnyName: Name): (res: ExternAttribute) {
+    if |attributes| == 0 then NoExtern()
+    else
+      var attr := OptExtern(attributes[0], dafnyName);
+      match attr
+      case Some(n) => n
+      case None =>
+        ExtractExtern(attributes[1..], dafnyName)
+  } by method {
+    for i := 0 to |attributes|
+      invariant ExtractExtern(attributes, dafnyName) == ExtractExtern(attributes[i..], dafnyName)
+    {
+      var attr := OptExtern(attributes[i], dafnyName);
+      assert attributes[i] == attributes[i..][0];
+      match attr {
+        case Some(n) =>
+          res := n;
+          return;
+        case _ =>
+      }
+      assert attributes[i..][1..] == attributes[i+1..];
+    }
+    res := NoExtern();
+  }
+
+  function ExtractExternMod(mod: Module): ExternAttribute {
+    ExtractExtern(mod.attributes, mod.name)
+  }
+
   class COMP {
     const UnicodeChars: bool
     const DafnyChar := if UnicodeChars then "DafnyChar" else "DafnyCharUTF16"
@@ -1641,6 +1702,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     var error: Option<string>
 
+    static const DAFNY_EXTERN_MODULE := "_dafny_externs"
+
     constructor(unicodeChars: bool, objectType: ObjectType) {
       this.UnicodeChars := unicodeChars;
       this.ObjectType := objectType;
@@ -1660,7 +1723,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         s := R.ExternMod(modName);
       } else {
         assume {:axiom} forall m: ModuleItem <- mod.body.value :: m < mod;
+        var optExtern: ExternAttribute := ExtractExternMod(mod);
         var body := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(mod.name)]);
+        if optExtern.SimpleExtern? {
+          if mod.requiresExterns {
+            body := [R.UseDecl(R.Use(R.PUB, R.Identifier("crate").MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
+          }
+        } else if optExtern.AdvancedExtern? {
+          error := Some("Externs on modules can only have 1 string argument");
+        } else if optExtern.UnsupportedExtern? {
+          error := Some(optExtern.reason);
+        }
         s := R.Mod(modName, body);
       }
     }
@@ -1794,13 +1867,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.RawExpr("::std::marker::PhantomData"))];
       }
 
-      var datatypeName := escapeName(c.name);
+      var extern := ExtractExtern(c.attributes, c.name);
+      
+      var className;
+      if extern.SimpleExtern? {
+        className := extern.overrideName;
+      } else {
+        className := escapeName(c.name);
+        if extern.AdvancedExtern? {
+          error := Some("Multi-argument externs not supported for classes yet");
+        }
+      }
 
-      var struct := R.Struct([], datatypeName, rTypeParamsDecls, R.NamedFields(fields));
+      var struct := R.Struct([], className, rTypeParamsDecls, R.NamedFields(fields));
+      s := [];
 
-      s := [R.StructDecl(struct)];
+      if extern.NoExtern? {
+        s := s + [R.StructDecl(struct)];
+      }
 
-      var implBodyRaw, traitBodies := GenClassImplBody(
+      var implBody, traitBodies := GenClassImplBody(
         c.body, false,
         Type.UserDefined(
           ResolvedType(
@@ -1810,25 +1896,38 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             c.attributes,
             [], [])),
         typeParamsSeq);
-      var implBody := [
-        R.FnDecl(
-          R.PUB,
-          R.Fn(allocate_fn,
-               [], [], Some(Object(R.SelfOwned)),
-               "",
-               Some(
-                 R.dafny_runtime.MSel(allocate).ApplyType1(R.SelfOwned).Apply([])
-               ))
-        )
-      ] + implBodyRaw;
+      
+      if extern.NoExtern? {
+        implBody := [
+          R.FnDecl(
+            R.PUB,
+            R.Fn(allocate_fn,
+                [], [], Some(Object(R.SelfOwned)),
+                "",
+                Some(
+                  R.dafny_runtime.MSel(allocate).ApplyType1(R.SelfOwned).Apply([])
+                ))
+          )
+        ] + implBody;
+      }
 
-      var i := R.Impl(
-        rTypeParamsDecls,
-        R.TypeApp(R.TIdentifier(datatypeName), rTypeParams),
-        whereConstraints,
-        implBody
-      );
-      s := s + [R.ImplDecl(i)];
+      var selfTypeForImpl;
+      if extern.NoExtern? || extern.UnsupportedExtern? {
+        selfTypeForImpl := R.TIdentifier(className);
+      } else if extern.AdvancedExtern? {
+        selfTypeForImpl := R.TIdentifier("crate").MSel(extern.enclosingModule).MSel(extern.overrideName);
+      } else if extern.SimpleExtern? {
+        selfTypeForImpl := R.TIdentifier(extern.overrideName);
+      }
+      if |implBody| > 0 {
+        var i := R.Impl(
+          rTypeParamsDecls,
+          R.TypeApp(selfTypeForImpl, rTypeParams),
+          whereConstraints,
+          implBody
+        );
+        s := s + [R.ImplDecl(i)];
+      }
       var genSelfPath := GenPath(path);
       // TODO: If general traits, check whether the trait extends object or not.
       s := s + [
@@ -1847,10 +1946,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           )
         )
       ];
-      for i := 0 to |c.superClasses| {
-        var superClass := c.superClasses[i];
+      var superClasses := if className == "_default" then [] else c.superClasses;
+      for i := 0 to |superClasses| {
+        var superClass := superClasses[i];
         match superClass {
-          case UserDefined(ResolvedType(traitPath, typeArgs, Trait(), _, _, _)) => {
+          case UserDefined(ResolvedType(traitPath, typeArgs, Trait(), _, properMethods, _)) => {
             var pathStr := GenPath(traitPath);
             var typeArgs := GenTypeArgs(typeArgs, GenTypeContext.default());
             var body: seq<R.ImplMember> := [];
@@ -1859,6 +1959,23 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
 
             var traitType := R.TypeApp(pathStr, typeArgs);
+            if !extern.NoExtern? { // An extern of some kind
+              // Either the Dafny code implements all the methods of the trait or none,
+              if |body| == 0 && |properMethods| != 0 {
+                continue; // We assume everything is implemented externally
+              }
+              if |body| != |properMethods| {
+                error := Some("Error: In the class " + R.SeqToString(path, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
+                 traitType.ToString("") + " are marked {:extern} and some are not." +
+                 " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Ident) => s.id.dafny_name, ", ") +
+                 ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
+                 "or mark none of them as {:extern} and implement them in Dafny. " +
+                 "Alternatively, you can insert an intermediate trait that performs the partial implementation if feasible.");
+              }
+            }
+            if |body| == 0 {
+              // Extern type, we assume
+            }
             var x := R.ImplDecl(
               R.ImplFor(
                 rTypeParamsDecls,
@@ -2191,7 +2308,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   patternName := dtor2.callName.GetOr("v" + Strings.OfNat(l));
                 }
                 if dtor.formal.name == dtor2.formal.name {
-                  hasMatchingField := Some(patternName);
+                  hasMatchingField := Some(escapeField(dtor2.formal.name));
                 }
                 patternInner := patternInner + patternName + ", ";
               }
@@ -2325,19 +2442,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var ctorMatchInner := "";
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
-          var patternName := escapeField(dtor.formal.name);
+          var patternName := escapeDtor(dtor.formal.name);
+          var fieldName := escapeField(dtor.formal.name);
           var formalType := dtor.formal.typ;
-          if j == 0 && patternName == "0" {
+          if j == 0 && fieldName == "0" {
             isNumeric := true;
           }
           if isNumeric {
-            patternName := dtor.callName.GetOr("v" + Strings.OfNat(j));
+            fieldName := dtor.callName.GetOr("v" + Strings.OfNat(j));
           }
           hashRhs :=
             if formalType.Arrow? then
               hashRhs.Then(R.LiteralInt("0").Sel("hash").Apply1(R.Identifier("_state")))
             else
-              hashRhs.Then(R.Identifier(patternName).Sel("hash").Apply1(R.Identifier("_state")));
+              hashRhs.Then(R.Identifier(fieldName).Sel("hash").Apply1(R.Identifier("_state")));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
 
@@ -2350,7 +2468,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               if formalType.Arrow? then
                 "write!(_formatter, \"<function>\")?"
               else
-                "::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"
+                "::dafny_runtime::DafnyPrint::fmt_print(" + fieldName + ", _formatter, false)?"
             ));
 
           var coerceRhsArg: R.Expr;
@@ -2608,7 +2726,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    static method GenPathExpr(p: seq<Ident>) returns (r: R.Expr) {
+    static method GenPathExpr(p: seq<Ident>, escape: bool := true) returns (r: R.Expr) {
       if |p| == 0 {
         return R.self;
       } else {
@@ -2620,7 +2738,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           else
             R.Identifier("super");
         for i := 0 to |p| {
-          r := r.MSel(escapeName(p[i].id));
+          var id := p[i].id;
+          r := r.MSel(if escape then escapeName(id) else ReplaceDotByDoubleColon(id.dafny_name));
         }
       }
     }
@@ -3294,13 +3413,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case _ => // Infix call on.name(args)
               var onExpr, _, enclosingIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
               readIdents := readIdents + enclosingIdents;
-              var renderedName := match name {
-                case CallName(name, _, _, _) => escapeName(name)
-                case MapBuilderAdd() | SetBuilderAdd() => "add"
-                case MapBuilderBuild() | SetBuilderBuild() => "build"
-              };
+              var renderedName := GetMethodName(on, name);
               match on {
-                case Companion(_, _) => {
+                case Companion(_, _) | ExternCompanion(_) => {
                   onExpr := onExpr.MSel(renderedName);
                 }
                 case _ => {
@@ -4229,6 +4344,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    function GetMethodName(on: Expression, name: CallName): string {
+        match name {
+        case CallName(ident, _, _, _) =>
+          if on.ExternCompanion? then ident.dafny_name else escapeName(ident)
+        case MapBuilderAdd() | SetBuilderAdd() => "add"
+        case MapBuilderBuild() | SetBuilderBuild() => "build"
+      }
+    }
+
     method GenExpr(
       e: Expression,
       selfIdent: SelfInfo,
@@ -4244,6 +4368,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             GenExprLiteral(e, selfIdent, env, expectedOwnership);
         case Ident(name) => {
           r, resultingOwnership, readIdents := GenIdent(escapeName(name), selfIdent, env, expectedOwnership);
+        }
+        case ExternCompanion(path) => {
+          r := GenPathExpr(path, false);
+          
+          if expectedOwnership == OwnershipBorrowed {
+            resultingOwnership := OwnershipBorrowed;
+          } else if expectedOwnership == OwnershipOwned {
+            resultingOwnership := OwnershipOwned;
+          } else {
+            r, resultingOwnership := FromOwned(r, expectedOwnership);
+          }
+          readIdents := {};
+          return;
         }
         case Companion(path, typeArgs) => {
           r := GenPathExpr(path);
@@ -4671,17 +4808,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           return;
         }
-        case Select(Companion(c, typeArgs), field, isConstant, isDatatype, fieldType) => {
-          var onExpr, onOwned, recIdents := GenExpr(Companion(c, typeArgs), selfIdent, env, OwnershipBorrowed);
-
-          r := onExpr.MSel(escapeName(field)).Apply([]);
-
-          r, resultingOwnership := FromOwned(r, expectedOwnership);
-          readIdents := recIdents;
-          return;
-        }
         case Select(on, field, isConstant, isDatatype, fieldType) => {
-          if isDatatype {
+          if on.Companion? || on.ExternCompanion? {
+            var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
+
+            r := onExpr.MSel(escapeName(field)).Apply([]);
+
+            r, resultingOwnership := FromOwned(r, expectedOwnership);
+            readIdents := recIdents;
+            return;
+          } else if isDatatype {
             var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
             r := onExpr.Sel(escapeName(field)).Apply([]);
             var typ := GenType(fieldType, GenTypeContext.default());
@@ -4824,14 +4960,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case _ => // Infix call on.name(args)
               var onExpr, _, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
               readIdents := readIdents + recIdents;
-              var renderedName := match name {
-                case CallName(ident, _, _, _) => escapeName(ident)
-                case MapBuilderAdd | SetBuilderAdd => "add"
-                case MapBuilderBuild | SetBuilderBuild => "build"
-              };
+              var renderedName := GetMethodName(on, name);
               // Pointers in the role of "self" must be converted to borrowed versions.
               match on {
-                case Companion(_, _) => {
+                case Companion(_, _) | ExternCompanion(_) => {
                   onExpr := onExpr.MSel(renderedName);
                 }
                 case _ => {
@@ -5066,24 +5198,37 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    method Compile(p: seq<Module>) returns (s: string)
+    method Compile(p: seq<Module>, externalFiles: seq<string>) returns (s: string)
       modifies this
     {
       s := "#![allow(warnings, unconditional_panic)]\n";
       s := s + "#![allow(nonstandard_style)]\n";
 
-      var i := 0;
-      while i < |p| {
-        var generated: string;
-        var m := GenModule(p[i], []);
-        generated := m.ToString("");
+      var externUseDecls := [];
 
-        if i > 0 {
-          s := s + "\n";
+      for i := 0 to |externalFiles| {
+        var externalFile := externalFiles[i];
+        var externalMod := externalFile;
+        if |externalFile| > 3 && externalFile[|externalFile|-3..] == ".rs" {
+          externalMod := externalFile[0..|externalFile|-3];
+        } else {
+          error := Some("Unrecognized external file " + externalFile + ". External file must be *.rs files");
         }
+        var externMod := R.ExternMod(externalMod);
+        s := s + externMod.ToString("") + "\n";
+        externUseDecls := externUseDecls + [
+          R.UseDecl(R.Use(R.PUB, R.Identifier("crate").MSel(externalMod).MSel("*")))
+        ];
+      }
 
-        s := s + generated;
-        i := i + 1;
+      if externUseDecls != [] {
+        s := s + R.Mod(DAFNY_EXTERN_MODULE, externUseDecls).ToString("") + "\n";
+      }
+
+      for i := 0 to |p| {
+        var m := GenModule(p[i], []);
+        s := s + "\n";
+        s := s + m.ToString("");
       }
     }
 

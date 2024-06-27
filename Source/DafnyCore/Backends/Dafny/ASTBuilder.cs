@@ -35,13 +35,13 @@ namespace Microsoft.Dafny.Compilers {
   interface ModuleContainer : Container {
     void AddModule(Module item);
 
-    public ModuleBuilder Module(string name, Sequence<Attribute> attributes) {
-      return new ModuleBuilder(this, name, attributes);
+    public ModuleBuilder Module(string name, Sequence<Attribute> attributes, bool requiresExterns) {
+      return new ModuleBuilder(this, name, attributes, requiresExterns);
     }
 
     static public Module UnsupportedToModule(string why) {
       return new Module(Sequence<Rune>.UnicodeFromString(why), Sequence<Attribute>.FromElements((Attribute)Attribute.create_Attribute(
-          Sequence<Rune>.UnicodeFromString(why), Sequence<Sequence<Rune>>.Empty)),
+          Sequence<Rune>.UnicodeFromString(why), Sequence<Sequence<Rune>>.Empty)), false,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_None());
     }
   }
@@ -51,11 +51,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly Sequence<Attribute> attributes;
     readonly List<ModuleItem> body = new();
+    private readonly bool requiresExterns;
 
-    public ModuleBuilder(ModuleContainer parent, string name, Sequence<Attribute> attributes) {
+    public ModuleBuilder(ModuleContainer parent, string name, Sequence<Attribute> attributes, bool requiresExterns) {
       this.parent = parent;
       this.name = name;
       this.attributes = attributes;
+      this.requiresExterns = requiresExterns;
     }
 
     public void AddModule(Module item) {
@@ -82,6 +84,7 @@ namespace Microsoft.Dafny.Compilers {
       parent.AddModule((Module)Module.create(
         Sequence<Rune>.UnicodeFromString(this.name),
         attributes,
+        requiresExterns,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_Some((Sequence<ModuleItem>)Sequence<ModuleItem>.FromArray(body.ToArray()))
       ));
 

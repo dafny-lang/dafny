@@ -3130,7 +3130,7 @@ macro_rules! update_field_if_uninit {
 pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 
 impl <T: ?Sized> Object<T> {
-    unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
+    pub unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
         Object(Some(rcmut::from_rc(rc)))
     }
 }

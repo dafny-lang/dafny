@@ -119,6 +119,11 @@ namespace Microsoft.Dafny.Compilers {
         new ExprBuffer(this), this);
     }
 
+    private bool NeedsExternalImport(MemberDecl memberDecl) {
+      return !memberDecl.IsGhost && memberDecl.HasExternAttribute &&
+             memberDecl is Function { Body: null } or Method { Body: null };
+    }
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
@@ -126,7 +131,17 @@ namespace Microsoft.Dafny.Compilers {
         if (externModule != null) {
           attributes = (Sequence<DAST.Attribute>)ParseAttributes(externModule.Attributes);
         }
-        currentBuilder = moduleBuilder.Module(moduleName, attributes);
+
+        var requiresExternImport = enclosingModule.TopLevelDecls.Any((TopLevelDecl decl) =>
+          (decl is DefaultClassDecl defaultClassDecl && 
+           GetIsExternAndIncluded(defaultClassDecl) is (_, included: false)
+           &&  defaultClassDecl.Members.Exists(NeedsExternalImport)
+           ) ||
+          (decl is ClassLikeDecl classLikeDecl &&
+           GetIsExternAndIncluded(classLikeDecl) is (classIsExtern: true, _)) ||
+          (decl is AbstractTypeDecl)
+        );
+        currentBuilder = moduleBuilder.Module(moduleName, attributes, requiresExternImport);
       } else {
         throw new InvalidOperationException();
       }
@@ -940,6 +955,10 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var parameters = GenFormals(s.Method.Ins);
           var callBuilder = stmtContainer.Builder.Call(parameters);
+          if (s.Method.IsStatic) {
+            // Need to emit the companion as an expression
+            
+          }
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wrStmts, wrStmtsAfterCall);
         }
       } else {
@@ -949,6 +968,19 @@ namespace Microsoft.Dafny.Compilers {
 
     public override bool NeedsCustomReceiverNotTrait(MemberDecl member) {
       return member is Constructor || base.NeedsCustomReceiverNotTrait(member);
+    }
+
+    protected override void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
+      if (GetExprBuilder(wr, out var builder)) {
+        builder.Builder.AddExpr( (DAST.Expression)DAST.Expression.create_ExternCompanion(
+          Sequence<ISequence<Rune>>.FromArray(new [] {
+            DCOMP.COMP.DAFNY__EXTERN__MODULE,
+            Sequence<Rune>.UnicodeFromString(qual)
+          })
+          ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
