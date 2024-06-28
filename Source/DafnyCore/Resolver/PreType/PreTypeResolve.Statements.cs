@@ -1064,17 +1064,18 @@ namespace Microsoft.Dafny {
       s.ResolvedStatements.Add(up);
 
       if (s.KeywordToken != null) {
-        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(s.Tok, temp, "IsFailure"));
+        var token = s.KeywordToken.Token;
+        var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
-        if (s.KeywordToken.Token.val == "expect") {
+        if (token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(new RangeToken(token, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
+          ss = new AssumeStmt(new RangeToken(token, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new RangeToken(token, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
+          Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {
