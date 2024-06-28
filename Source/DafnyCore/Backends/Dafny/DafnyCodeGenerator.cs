@@ -938,14 +938,14 @@ namespace Microsoft.Dafny.Compilers {
       // nothing to do, we auto-emit a return for the method
     }
 
-    protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
+    protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, int letExprNesting,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced) {
       var toType = thisContext == null ? e.Type : e.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr = EmitCoercionIfNecessary(e.Function.Original.ResultType, toType, e.tok, wr);
 
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         var callBuilder = builder.Builder.Call(GenFormals(e.Function.Ins));
-        base.CompileFunctionCallExpr(e, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), inLetExprBody, wStmts, tr, true);
+        base.CompileFunctionCallExpr(e, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), letExprNesting, wStmts, tr, true);
       } else {
         throw new InvalidOperationException("Cannot call function in this context: " + currentBuilder);
       }
@@ -1410,7 +1410,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
-        bool inLetExprBody, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
+        int letExprNesting, ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr) {
       AddUnsupportedFeature(e0.tok, Feature.BitvectorRotateFunctions);
     }
 
@@ -1583,16 +1583,16 @@ namespace Microsoft.Dafny.Compilers {
       return topLevelType.NormalizeToAncestorType();
     }
 
-    public override ConcreteSyntaxTree Expr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+    public override ConcreteSyntaxTree Expr(Expression expr, int letExprNesting, ConcreteSyntaxTree wStmts) {
       if (currentBuilder is ExprContainer container) {
-        EmitExpr(expr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(container, this), wStmts);
+        EmitExpr(expr, letExprNesting, new BuilderSyntaxTree<ExprContainer>(container, this), wStmts);
         return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null), this);
       } else {
         throw new InvalidOperationException();
       }
     }
 
-    public override void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    public override void EmitExpr(Expression expr, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var actualWr = wr;
       if (currentBuilder is ExprBuffer buf && wr is not BuilderSyntaxTree<ExprContainer>) {
         // the writers are not currently wired properly for DatatypeValue
@@ -1603,7 +1603,7 @@ namespace Microsoft.Dafny.Compilers {
         ExprBuffer buffer = new(currentBuilder);
         var origBuilder = currentBuilder;
         currentBuilder = buffer;
-        base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
+        base.EmitExpr(expr, letExprNesting, actualWr, wStmts);
 
         if (currentBuilder == buffer) {
           // sometimes, we don't actually call EmitDatatypeValue
@@ -1611,7 +1611,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else if (expr is BinaryExpr bin) {
         var origBuilder = currentBuilder;
-        base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
+        base.EmitExpr(expr, letExprNesting, actualWr, wStmts);
         currentBuilder = origBuilder;
       } else if (expr is IdentifierExpr) {
         // we don't need to create a copy of the identifier, that's language specific
@@ -1619,7 +1619,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is QuantifierExpr) {
         AddUnsupported("<i>QuantifierExpr</i>");
       } else {
-        base.EmitExpr(expr, inLetExprBody, actualWr, wStmts);
+        base.EmitExpr(expr, letExprNesting, actualWr, wStmts);
       }
     }
 
@@ -1854,7 +1854,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody,
+    protected override ConcreteSyntaxTree EmitArraySelect(List<Expression> indices, Type elmtType, int letExprNesting,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         var indicesAST = indices.Select(convert).ToList();
@@ -1883,18 +1883,18 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitExprAsNativeInt(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+    protected override void EmitExprAsNativeInt(Expression expr, int letExprNesting, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
-      EmitExpr(expr, inLetExprBody, wr, wStmts);
+      EmitExpr(expr, letExprNesting, wr, wStmts);
     }
 
-    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
+    protected override void EmitIndexCollectionSelect(Expression source, Expression index, int letExprNesting,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var sourceBuf = new ExprBuffer(null);
-      EmitExpr(source, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this), wStmts);
+      EmitExpr(source, letExprNesting, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this), wStmts);
 
       var indexBuf = new ExprBuffer(null);
-      EmitExpr(index, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(indexBuf, this), wStmts);
+      EmitExpr(index, letExprNesting, new BuilderSyntaxTree<ExprContainer>(indexBuf, this), wStmts);
 
       DAST._ICollKind collKind;
       if (source.Type.IsArrayType) {
@@ -1957,7 +1957,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
-      CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      CollectionType resultCollectionType, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         if (resultCollectionType.AsSeqType is { }) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqUpdate(
@@ -1976,11 +1976,11 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray,
-      bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var sourceBuf = new ExprBuffer(null);
       EmitExpr(
         source,
-        inLetExprBody,
+        letExprNesting,
         EmitCoercionIfNecessary(
           source.Type,
           source.Type.IsNonNullRefType || !source.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)source.Type.NormalizeExpand()),
@@ -1993,14 +1993,14 @@ namespace Microsoft.Dafny.Compilers {
       DAST.Expression loExpr = null;
       if (lo != null) {
         var loBuf = new ExprBuffer(null);
-        EmitExpr(lo, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(loBuf, this), wStmts);
+        EmitExpr(lo, letExprNesting, new BuilderSyntaxTree<ExprContainer>(loBuf, this), wStmts);
         loExpr = loBuf.Finish();
       }
 
       DAST.Expression hiExpr = null;
       if (hi != null) {
         var hiBuf = new ExprBuffer(null);
-        EmitExpr(hi, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(hiBuf, this), wStmts);
+        EmitExpr(hi, letExprNesting, new BuilderSyntaxTree<ExprContainer>(hiBuf, this), wStmts);
         hiExpr = hiBuf.Finish();
       }
 
@@ -2016,7 +2016,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         var size = expr.N;
         if (size.Type.AsNewtype is { }) {
@@ -2031,7 +2031,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, ConcreteSyntaxTree wr,
+    protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, int letExprNesting, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ToMultiset(
@@ -2042,7 +2042,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitApplyExpr(Type functionType, IToken tok, Expression function,
-        List<Expression> arguments, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+        List<Expression> arguments, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Apply(
           convert(function),
@@ -2054,7 +2054,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
-      List<Type> boundTypes, Type resultType, IToken resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
+      List<Type> boundTypes, Type resultType, IToken resultTok, int letExprNesting, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         var argsAST = arguments.Select((t, i) =>
@@ -2151,7 +2151,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitBoolBoundedPool(bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitBoolBoundedPool(int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprBuilder(wr, out var exprBuilder)) {
         exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_BoolBoundedPool());
       } else {
@@ -2159,15 +2159,15 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitCharBoundedPool(bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitCharBoundedPool(int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupported("<i>EmitCharBoundedPool</i>");
     }
 
-    protected override void EmitWiggleWaggleBoundedPool(bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitWiggleWaggleBoundedPool(int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupported("<i>EmitWiggleWaggleBoundedPool</i>");
     }
 
-    protected override void EmitSetBoundedPool(Expression of, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitSetBoundedPool(Expression of, string propertySuffix, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
         exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SetBoundedPool(
           convert(of)
@@ -2177,19 +2177,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMultiSetBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitMultiSetBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupported("<i>EmitMultiSetBoundedPool</i>");
     }
 
-    protected override void EmitSubSetBoundedPool(Expression of, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitSubSetBoundedPool(Expression of, string propertySuffix, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupported("<i>EmitSubSetBoundedPool</i>");
     }
 
-    protected override void EmitMapBoundedPool(Expression map, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitMapBoundedPool(Expression map, string propertySuffix, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupported("<i>EmitMapBoundedPool</i>");
     }
 
-    protected override void EmitSeqBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitSeqBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
         exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_SeqBoundedPool(
           convert(of),
@@ -2200,7 +2200,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitDatatypeBoundedPool(IVariable bv, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitDatatypeBoundedPool(IVariable bv, string propertySuffix, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupported("<i>EmitDatatypeBoundedPool</i>");
     }
 
@@ -2231,7 +2231,7 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var container, out var convert)) {
         switch (op) {
           case ResolvedUnaryOp.BoolNot: {
@@ -2520,7 +2520,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Ite(
           convert(guard),
@@ -2536,12 +2536,12 @@ namespace Microsoft.Dafny.Compilers {
       AddUnsupported("<i>EmitIsZero</i>");
     }
 
-    protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprBuilder(wr, out var builder)) {
         if (toType.Equals(fromType)) {
-          EmitExpr(fromExpr, inLetExprBody, builder, wStmts);
+          EmitExpr(fromExpr, letExprNesting, builder, wStmts);
         } else {
-          EmitExpr(fromExpr, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
+          EmitExpr(fromExpr, letExprNesting, new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(
             GenType(fromType),
             GenType(toType)
           ), this), wStmts);
@@ -2580,7 +2580,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, IToken tok, List<Expression> elements,
-      bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      int letExprNesting, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
         var elementsAST = elements.Select(convert).ToArray();
 
@@ -2605,7 +2605,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements, bool inLetExprBody,
+    protected override void EmitMapDisplay(MapType mt, IToken tok, List<ExpressionPair> elements, int letExprNesting,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var converter)) {
         var elementsAST = new List<_System.Tuple2<DAST.Expression, DAST.Expression>>();
@@ -2665,7 +2665,7 @@ namespace Microsoft.Dafny.Compilers {
       //throw new InvalidOperationException();
     }
 
-    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, int letExprNesting,
         ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var builder)) {
         var stmtBuilder = new CallStmtBuilder(Sequence<_IFormal>.Empty);
@@ -2701,7 +2701,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitMapBuilder_Add(MapType mt, IToken tok, string collName, Expression term,
-        bool inLetExprBody, ConcreteSyntaxTree wr) {
+        int letExprNesting, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var builder)) {
         var stmtBuilder = new CallStmtBuilder(Sequence<_IFormal>.Empty);
         stmtBuilder.SetName((DAST.CallName)DAST.CallName.create_MapBuilderAdd());
@@ -2825,7 +2825,7 @@ namespace Microsoft.Dafny.Compilers {
       AddUnsupported("<i>EmitNull</i>");
     }
 
-    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
+    protected override void EmitSingleValueGenerator(Expression e, int letExprNesting, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       AddUnsupportedFeature(e.Tok, Feature.ExactBoundedPool);
     }
@@ -2838,14 +2838,14 @@ namespace Microsoft.Dafny.Compilers {
       return new BuilderSyntaxTree<StatementContainer>(new StatementBuffer(), this);
     }
 
-    protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
+    protected override void EmitNestedMatchExpr(NestedMatchExpr match, int letExprNesting, ConcreteSyntaxTree output,
       ConcreteSyntaxTree wStmts) {
-      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      EmitExpr(match.Flattened, letExprNesting, output, wStmts);
     }
 
     protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
-      bool inLetExprBody, IVariable accumulatorVar) {
-      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+      int letExprNesting, IVariable accumulatorVar) {
+      TrExprOpt(match.Flattened, resultType, wr, wStmts, letExprNesting, accumulatorVar);
     }
 
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
