@@ -19,6 +19,18 @@ using static Microsoft.Dafny.GeneratorErrors;
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
 
+    // TODO: Expose option?
+    private const int MAX_LET_EXPR_NESTING = 5;
+    
+    private int IncreaseLetNestingAndMaybeWarn(IToken tok, int letExprNesting) {
+      // Only check for when we're about to cross the threshold for the first time,
+      // so we don't get further warnings on sub-expressions.
+      if (letExprNesting == MAX_LET_EXPR_NESTING) {
+        Warning(ErrorId.c_let_expr_nesting_too_deep, tok, "This expression is too deeply nested (TODO improve)");
+      }
+      return letExprNesting + 1;
+    }
+    
     public virtual void EmitExpr(Expression expr, int letExprNesting, ConcreteSyntaxTree wr,
       ConcreteSyntaxTree wStmts) {
       switch (expr) {
@@ -331,7 +343,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
               }
 
-              EmitExpr(e.Body, letExprNesting + 1, w, wStmts);
+              EmitExpr(e.Body, IncreaseLetNestingAndMaybeWarn(e.tok, letExprNesting), w, wStmts);
             } else if (e.BoundVars.All(bv => bv.IsGhost)) {
               // The Dafny "let" expression
               //    ghost var x,y :| Constraint; E
@@ -366,7 +378,7 @@ namespace Microsoft.Dafny.Compilers {
 
                 TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0],
                   e.Constraint_Bounds, e.tok.line, w, letExprNesting);
-                EmitReturnExpr(e.Body, e.Body.Type, letExprNesting + 1, w);
+                EmitReturnExpr(e.Body, e.Body.Type, IncreaseLetNestingAndMaybeWarn(e.tok, letExprNesting), w);
               }
             }
 
@@ -697,9 +709,10 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         int i = 0;
         var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
+        var newLetExprNesting = IncreaseLetNestingAndMaybeWarn(e.tok, letExprNesting);
         foreach (MatchCaseExpr mc in e.Cases) {
           var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, letExprNesting: letExprNesting + 1, accumulatorVar: null);
+          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, letExprNesting: newLetExprNesting, accumulatorVar: null);
           i++;
         }
       }
@@ -718,9 +731,10 @@ namespace Microsoft.Dafny.Compilers {
 
       wStmts = wr.Fork();
 
+      var newLetExprNesting = IncreaseLetNestingAndMaybeWarn(match.tok, letExprNesting);
       EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, letExprNesting: letExprNesting + 1, accumulatorVar: null);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, letExprNesting: newLetExprNesting, accumulatorVar: null);
       }, wr, true);
     }
 

@@ -115,6 +115,10 @@ namespace Microsoft.Dafny.Compilers {
     public void Error(ErrorId errorId, IToken tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
       ReportError(errorId, Reporter, tok, msg, wr, args);
     }
+    
+    public void Warning(ErrorId errorId, IToken tok, string msg, params object[] args) {
+      Reporter.Warning(MessageSource.Compiler, errorId, tok, msg, args);
+    }
 
     protected void UnsupportedFeatureError(IToken tok, Feature feature, string message = null, ConcreteSyntaxTree wr = null, params object[] args) {
       if (!UnsupportedFeatures.Contains(feature)) {
