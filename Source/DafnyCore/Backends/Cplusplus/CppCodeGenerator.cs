@@ -621,9 +621,9 @@ namespace Microsoft.Dafny.Compilers {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
         var wStmts = w.Fork();
         if (nt.NativeType == null) {
-          witness.Append(Expr(nt.Witness, false, wStmts));
+          witness.Append(Expr(nt.Witness, 0, wStmts));
         } else {
-          TrParenExpr(nt.Witness, witness, false, wStmts);
+          TrParenExpr(nt.Witness, witness, 0, wStmts);
           witness.Write(".toNumber()");
         }
         DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
@@ -658,7 +658,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
-        witness.Append(Expr(sst.Witness, false, w));
+        witness.Append(Expr(sst.Witness, 0, w));
         DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }
 
@@ -1260,7 +1260,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       var wStmts = wr.Fork();
       wr.Write("dafny_print(");
-      wr.Append(Expr(arg, false, wStmts));
+      wr.Append(Expr(arg, 0, wStmts));
       wr.WriteLine(");");
     }
 
@@ -1314,7 +1314,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (messageExpr.Type.IsStringType) {
         wr.Write("ToVerbatimString(");
-        wr.Append(Expr(messageExpr, false, wStmts));
+        wr.Append(Expr(messageExpr, 0, wStmts));
         wr.Write(")");
       } else {
         throw new UnsupportedFeatureException(tok, Feature.ConvertingValuesToStrings);
@@ -1415,7 +1415,7 @@ namespace Microsoft.Dafny.Compilers {
             Formal p = ctor.Ins[i];
             if (!p.IsGhost) {
               wr.Write(sep);
-              wr.Append(Expr(initCall.Args[i], false, wStmts));
+              wr.Append(Expr(initCall.Args[i], 0, wStmts));
               sep = ", ";
             }
           }

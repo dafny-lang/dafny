@@ -276,17 +276,17 @@ namespace Microsoft.Dafny.Compilers {
       var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr);
       wrTuple.Write($"{L}<{tupleTypeArgs}>(");
       if (s0.Lhs is MemberSelectExpr lhs1) {
-        wrTuple.Append(Expr(lhs1.Obj, false, wStmts));
+        wrTuple.Append(Expr(lhs1.Obj, 0, wStmts));
       } else if (s0.Lhs is SeqSelectExpr lhs2) {
-        wrTuple.Append(Expr(lhs2.Seq, false, wStmts));
+        wrTuple.Append(Expr(lhs2.Seq, 0, wStmts));
         wrTuple.Write(", ");
-        TrParenExpr(lhs2.E0, wrTuple, false, wStmts);
+        TrParenExpr(lhs2.E0, wrTuple, 0, wStmts);
       } else {
         var lhs = (MultiSelectExpr)s0.Lhs;
-        wrTuple.Append(Expr(lhs.Array, false, wStmts));
+        wrTuple.Append(Expr(lhs.Array, 0, wStmts));
         foreach (var t in lhs.Indices) {
           wrTuple.Write(", ");
-          TrParenExpr(t, wrTuple, false, wStmts);
+          TrParenExpr(t, wrTuple, 0, wStmts);
         }
       }
 
@@ -296,7 +296,7 @@ namespace Microsoft.Dafny.Compilers {
         wrTuple.Write($"({TypeName(t, wrTuple, rhs.tok)})");
       }
 
-      wrTuple.Append(Expr(rhs, false, wStmts));
+      wrTuple.Append(Expr(rhs, 0, wStmts));
       return wrOuter;
     }
 
@@ -415,7 +415,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
-        sw.Append(Expr(sst.Witness, false, wStmts));
+        sw.Append(Expr(sst.Witness, 0, wStmts));
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
         if (sst.TypeArgs.Count == 0) {
@@ -2325,7 +2325,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else {
         var argumentWriter = EmitToString(wr, arg.Type);
-        argumentWriter.Append(Expr(arg, false, wStmts));
+        argumentWriter.Append(Expr(arg, 0, wStmts));
       }
     }
 
@@ -3632,7 +3632,7 @@ namespace Microsoft.Dafny.Compilers {
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var wStmts = w.Fork();
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
-        witness.Append(Expr(nt.Witness, false, wStmts));
+        witness.Append(Expr(nt.Witness, 0, wStmts));
         if (nt.NativeType == null) {
           cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString(), null);
         } else {
@@ -4283,23 +4283,23 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(".isInteger() && ");
     }
 
     protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("dafny.CodePoint.isCodePoint");
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" && ");
     }
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(".compareTo(");
       EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
       wr.Write(") >= 0 && ");
 
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(".compareTo(");
       EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
       wr.Write(") < 0 && ");

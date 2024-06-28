@@ -151,7 +151,7 @@ public class CsharpSynthesizer {
   private void SynthesizeExpression(ConcreteSyntaxTree wr, Expression expr, ConcreteSyntaxTree wStmts) {
     switch (expr) {
       case LiteralExpr literalExpr:
-        wr.Append(codeGenerator.Expr(literalExpr, false, wStmts));
+        wr.Append(codeGenerator.Expr(literalExpr, 0, wStmts));
         break;
       case ApplySuffix applySuffix:
         SynthesizeExpression(wr, applySuffix, wStmts);
@@ -199,7 +199,7 @@ public class CsharpSynthesizer {
       if (bound != null) { // if true, arg is a bound variable
         wr.Write(bound.Item2);
       } else {
-        wr.Append(codeGenerator.Expr(arg, false, wStmts));
+        wr.Append(codeGenerator.Expr(arg, 0, wStmts));
       }
       if (i != applySuffix.Args.Count - 1) {
         wr.Write(", ");
@@ -230,7 +230,7 @@ public class CsharpSynthesizer {
         fieldName, obj.Name, lastSynthesizedMethod.Name);
       var tmpId = codeGenerator.idGenerator.FreshId("tmp");
       wr.Format($"{objectToMockName[obj]}.SetupGet({tmpId} => {tmpId}.@{fieldName}).Returns( ");
-      wr.Append(codeGenerator.Expr(binaryExpr.E1, false, wStmts));
+      wr.Append(codeGenerator.Expr(binaryExpr.E1, 0, wStmts));
       wr.WriteLine(");");
       return;
     }
@@ -256,7 +256,7 @@ public class CsharpSynthesizer {
       }
     }
     wr.Write(")=>");
-    wr.Append(codeGenerator.Expr(binaryExpr.E1, false, wStmts));
+    wr.Append(codeGenerator.Expr(binaryExpr.E1, 0, wStmts));
     wr.WriteLine(");");
   }
 
@@ -286,7 +286,7 @@ public class CsharpSynthesizer {
     switch (binaryExpr.Op) {
       case BinaryExpr.Opcode.Imp:
         wr.Write("\treturn ");
-        wr.Append(codeGenerator.Expr(binaryExpr.E0, false, wStmts));
+        wr.Append(codeGenerator.Expr(binaryExpr.E0, 0, wStmts));
         wr.WriteLine(";");
         binaryExpr = (BinaryExpr)binaryExpr.E1.Resolved;
         break;

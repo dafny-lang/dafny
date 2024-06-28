@@ -223,8 +223,8 @@ namespace Microsoft.Dafny.Compilers {
         case FunctionCallExpr callExpr: {
             FunctionCallExpr e = callExpr;
 
-            void EmitExpr(Expression e2, ConcreteSyntaxTree wr2, bool inLetExpr, ConcreteSyntaxTree wStmts2) {
-              this.EmitExpr(e2, inLetExpr, wr2, wStmts2);
+            void EmitExpr(Expression e2, ConcreteSyntaxTree wr2, int letExprNesting, ConcreteSyntaxTree wStmts2) {
+              this.EmitExpr(e2, letExprNesting, wr2, wStmts2);
             }
 
             if (e.Function is SpecialFunction) {
@@ -514,7 +514,7 @@ namespace Microsoft.Dafny.Compilers {
               var tmpVar = ProtectedFreshId("_compr_");
               var wStmtsLoop = wr.Fork();
               var elementType = CompileCollection(bound, bv, letExprNesting, true, null, out var collection, out var newtypeConversionsWereExplicit, wStmtsLoop);
-              wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, false, bv.tok, collection, wr);
+              wr = CreateGuardedForeachLoop(tmpVar, elementType, bv, newtypeConversionsWereExplicit, true, 0, bv.tok, collection, wr);
               wr = EmitGuardFragment(unusedConjuncts, processedBounds, wr);
             }
 

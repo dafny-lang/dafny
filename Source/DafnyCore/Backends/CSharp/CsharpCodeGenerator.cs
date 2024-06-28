@@ -1243,7 +1243,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var wStmts = w.Fork();
-        var witness = Expr(nt.Witness, false, wStmts).ToString();
+        var witness = Expr(nt.Witness, 0, wStmts).ToString();
         string typeName;
         if (nt.NativeType == null) {
           typeName = TypeName(nt.BaseType, cw.StaticMemberWriter, nt.tok);
@@ -1308,7 +1308,7 @@ namespace Microsoft.Dafny.Compilers {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new ConcreteSyntaxTree(cw.InstanceMemberWriter.RelativeIndentLevel);
         var wStmts = cw.InstanceMemberWriter.Fork();
-        sw.Append(Expr(sst.Witness, false, wStmts));
+        sw.Append(Expr(sst.Witness, 0, wStmts));
         var witness = sw.ToString();
         var typeName = TypeName(sst.Rhs, cw.StaticMemberWriter, sst.tok);
         if (sst.TypeArgs.Count == 0) {
@@ -1995,7 +1995,7 @@ namespace Microsoft.Dafny.Compilers {
       var type = DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type);
       var typeArgs = type.AsArrowType == null ? "" : $"<{TypeName(type, wr, null, null)}>";
       var suffix = type.IsStringType && UnicodeCharEnabled ? ".ToVerbatimString(false)" : "";
-      wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, false, wStmts)}){suffix});");
+      wr.WriteLine($"{DafnyHelpersClass}.Print{typeArgs}(({Expr(arg, 0, wStmts)}){suffix});");
     }
 
     protected override void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr) {
@@ -2035,7 +2035,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitHalt(IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
-      var exceptionMessage = Expr(messageExpr, false, wr.Fork());
+      var exceptionMessage = Expr(messageExpr, 0, wr.Fork());
       if (tok != null) {
         exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(tok.TokenToString(Options) + ": ", true) + " + "));
       }
@@ -3353,23 +3353,23 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(".IsInteger() && ");
     }
 
     protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("Dafny.Rune.IsRune");
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" && ");
     }
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
       wr.Write(" <= ");
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" && ");
 
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" < ");
       EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
       wr.Write(" && ");

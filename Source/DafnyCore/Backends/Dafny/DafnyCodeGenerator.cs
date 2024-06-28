@@ -315,7 +315,7 @@ namespace Microsoft.Dafny.Compilers {
         var statementBuf = new StatementBuffer();
         if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           EmitExpr(
-            nt.Witness, false,
+            nt.Witness, 0,
             EmitCoercionIfNecessary(nt.Witness.Type, erasedType, null,
               new BuilderSyntaxTree<ExprContainer>(buf, this)),
             new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
@@ -401,7 +401,7 @@ namespace Microsoft.Dafny.Compilers {
         var buf = new ExprBuffer(null);
         if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
           EmitExpr(
-            sst.Witness, false,
+            sst.Witness, 0,
             EmitCoercionIfNecessary(sst.Witness.Type, erasedType, null, new BuilderSyntaxTree<ExprContainer>(buf, this)),
             new BuilderSyntaxTree<StatementContainer>(statementBuf, this)
           );
@@ -1030,7 +1030,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ILvalue SeqSelectLvalue(SeqSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var sourceBuf = new ExprBuffer(null);
       EmitExpr(
-        ll.Seq, false,
+        ll.Seq, 0,
         EmitCoercionIfNecessary(
           ll.Seq.Type,
           ll.Seq.Type.IsNonNullRefType || !ll.Seq.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Seq.Type.NormalizeExpand()),
@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny.Compilers {
       );
 
       var indexBuf = new ExprBuffer(null);
-      EmitExpr(ll.E0, false, new BuilderSyntaxTree<ExprContainer>(indexBuf, this), wStmts);
+      EmitExpr(ll.E0, 0, new BuilderSyntaxTree<ExprContainer>(indexBuf, this), wStmts);
 
       var source = sourceBuf.Finish();
       var index = indexBuf.Finish();
@@ -1069,7 +1069,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         ExprBuffer buffer = new(null);
-        EmitExpr(arg, false, new BuilderSyntaxTree<ExprContainer>(buffer, this), wr);
+        EmitExpr(arg, 0, new BuilderSyntaxTree<ExprContainer>(buffer, this), wr);
         stmtContainer.Builder.Print(buffer.Finish());
       } else {
         throw new InvalidOperationException("Cannot print outside of a statement container: " + currentBuilder);
@@ -1260,7 +1260,7 @@ namespace Microsoft.Dafny.Compilers {
             .Select(tp => {
               var buf = new ExprBuffer(null);
               var localWriter = new BuilderSyntaxTree<ExprContainer>(buf, this);
-              EmitExpr(initCall.Args[tp.i], false, localWriter, wStmts);
+              EmitExpr(initCall.Args[tp.i], 0, localWriter, wStmts);
               return buf.Finish();
             });
         }
@@ -1615,7 +1615,7 @@ namespace Microsoft.Dafny.Compilers {
         currentBuilder = origBuilder;
       } else if (expr is IdentifierExpr) {
         // we don't need to create a copy of the identifier, that's language specific
-        base.EmitExpr(expr, false, actualWr, wStmts);
+        base.EmitExpr(expr, 0, actualWr, wStmts);
       } else if (expr is QuantifierExpr) {
         AddUnsupported("<i>QuantifierExpr</i>");
       } else {
@@ -2684,7 +2684,7 @@ namespace Microsoft.Dafny.Compilers {
     // Normally wStmt is a BuilderSyntaxTree<StatementContainer> but it might not while the compiler is being developed
     private DAST.Expression ConvertExpression(Expression term, ConcreteSyntaxTree wStmt) {
       var buffer0 = new ExprBuffer(null);
-      EmitExpr(term, false, new BuilderSyntaxTree<ExprContainer>(buffer0, this), wStmt);
+      EmitExpr(term, 0, new BuilderSyntaxTree<ExprContainer>(buffer0, this), wStmt);
       return buffer0.Finish();
     }
 
@@ -2770,7 +2770,7 @@ namespace Microsoft.Dafny.Compilers {
           };
         }
       } else {
-        typeTest = wr => EmitExpr(Expression.CreateBoolLiteral(tok, true), false, wr, null);
+        typeTest = wr => EmitExpr(Expression.CreateBoolLiteral(tok, true), 0, wr, null);
       }
 
       return typeTest;

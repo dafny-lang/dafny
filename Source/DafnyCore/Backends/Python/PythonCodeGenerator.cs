@@ -459,7 +459,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = block.Fork();
       block.Write("return ");
       if (witnessKind == SubsetTypeDecl.WKind.Compiled) {
-        block.Append(Expr(witness, false, wStmts));
+        block.Append(Expr(witness, 0, wStmts));
       } else {
         block.Write(TypeInitializationValue(udt, wr, d.tok, false, false));
       }
@@ -965,11 +965,11 @@ namespace Microsoft.Dafny.Compilers {
 
     private void EmitToString(ConcreteSyntaxTree wr, Expression arg, ConcreteSyntaxTree wStmts) {
       if (UnicodeCharEnabled && DatatypeWrapperEraser.SimplifyTypeAndTrimNewtypes(Options, arg.Type).IsStringType) {
-        TrParenExpr(arg, wr, false, wStmts);
+        TrParenExpr(arg, wr, 0, wStmts);
         wr.Write(".VerbatimString(False)");
       } else {
         wr.Write($"{DafnyRuntimeModule}.string_of(");
-        wr.Append(Expr(arg, false, wStmts));
+        wr.Append(Expr(arg, 0, wStmts));
         wr.Write(")");
       }
     }
@@ -1849,23 +1849,23 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(".is_integer() and ");
     }
 
     protected override void EmitIsUnicodeScalarValueTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("_dafny.CodePoint.is_code_point");
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" and ");
     }
 
     protected override void EmitIsInIntegerRange(Expression source, BigInteger lo, BigInteger hi, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       EmitLiteralExpr(wr, new LiteralExpr(source.tok, lo) { Type = Type.Int });
       wr.Write(" <= ");
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" and ");
 
-      EmitExpr(source, false, wr.ForkInParens(), wStmts);
+      EmitExpr(source, 0, wr.ForkInParens(), wStmts);
       wr.Write(" < ");
       EmitLiteralExpr(wr, new LiteralExpr(source.tok, hi) { Type = Type.Int });
       wr.Write(" and ");
