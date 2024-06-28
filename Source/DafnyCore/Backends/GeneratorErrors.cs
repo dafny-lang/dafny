@@ -46,6 +46,7 @@ public class GeneratorErrors {
     c_abstract_type_cannot_be_compiled_extern,
     c_Go_unsupported_field,
     c_Go_infeasible_conversion,
+    c_let_expr_nesting_too_deep,
 
     f_unsupported_feature,
 
@@ -371,6 +372,11 @@ _Documentation of the Go compiler errors is in progress._
     Add(ErrorId.c_Go_infeasible_conversion,
     @"
 _Documentation of the Go compiler errors is in progress._
+".TrimStart());
+    
+    Add(ErrorId.c_let_expr_nesting_too_deep,
+      @"
+_TODO_
 ".TrimStart());
   }
 

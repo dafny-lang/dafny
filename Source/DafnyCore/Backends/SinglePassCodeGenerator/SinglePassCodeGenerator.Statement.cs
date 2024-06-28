@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.Compilers {
               }
             } else {
               Contract.Assert(s.Bounds != null);
-              TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+              TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, 0);
             }
 
             break;
@@ -159,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
             ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
             var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
             negated.Type = Type.Bool;
-            EmitExpr(negated, false, guardWriter, wStmts);
+            EmitExpr(negated, 0, guardWriter, wStmts);
             EmitHalt(s.Tok, s.Message, bodyWriter);
             break;
           }
@@ -190,15 +190,15 @@ namespace Microsoft.Dafny.Compilers {
                 Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
                 var notFalse = (UnaryOpExpr)Expression.CreateNot(s.Thn.Tok, Expression.CreateBoolLiteral(s.Thn.Tok, false));
                 var thenWriter = EmitIf(out guardWriter, false, wr);
-                EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
+                EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, 0, guardWriter, wStmts);
                 Coverage.Instrument(s.Tok, "implicit else branch", wr);
                 thenWriter = EmitIf(out guardWriter, false, thenWriter);
-                EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
+                EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, 0, guardWriter, wStmts);
                 TrStmtList(new List<Statement>(), thenWriter);
               } else {
                 // let's compile the "then" branch
                 wr = EmitIf(out guardWriter, false, wr);
-                EmitExpr(Expression.CreateBoolLiteral(s.Thn.tok, true), false, guardWriter, wStmts);
+                EmitExpr(Expression.CreateBoolLiteral(s.Thn.tok, true), 0, guardWriter, wStmts);
                 Coverage.Instrument(s.Thn.Tok, "then branch", wr);
                 TrStmtList(s.Thn.Body, wr);
                 Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
@@ -210,7 +210,7 @@ namespace Microsoft.Dafny.Compilers {
 
               var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
               var thenWriter = EmitIf(out var guardWriter, s.Els != null || coverageForElse, wr);
-              EmitExpr(s.IsBindingGuard ? ((ExistsExpr)s.Guard).AlphaRename("eg_d") : s.Guard, false, guardWriter, wStmts);
+              EmitExpr(s.IsBindingGuard ? ((ExistsExpr)s.Guard).AlphaRename("eg_d") : s.Guard, 0, guardWriter, wStmts);
               // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
               if (s.IsBindingGuard) {
                 IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
@@ -240,7 +240,7 @@ namespace Microsoft.Dafny.Compilers {
             }
             foreach (var alternative in s.Alternatives) {
               var thn = EmitIf(out var guardWriter, true, wr);
-              EmitExpr(alternative.IsBindingGuard ? ((ExistsExpr)alternative.Guard).AlphaRename("eg_d") : alternative.Guard, false, guardWriter, wStmts);
+              EmitExpr(alternative.IsBindingGuard ? ((ExistsExpr)alternative.Guard).AlphaRename("eg_d") : alternative.Guard, 0, guardWriter, wStmts);
               if (alternative.IsBindingGuard) {
                 IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
               }
@@ -264,12 +264,12 @@ namespace Microsoft.Dafny.Compilers {
               // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
               // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
               var wBody = CreateWhileLoop(out var guardWriter, wr);
-              EmitExpr(Expression.CreateBoolLiteral(s.Body.tok, true), false, guardWriter, wStmts);
+              EmitExpr(Expression.CreateBoolLiteral(s.Body.tok, true), 0, guardWriter, wStmts);
               EmitBreak(null, wBody);
               Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
             } else {
               var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, s.Labels, wr);
-              EmitExpr(s.Guard, false, guardWriter, wStmts);
+              EmitExpr(s.Guard, 0, guardWriter, wStmts);
             }
 
             break;
@@ -280,11 +280,11 @@ namespace Microsoft.Dafny.Compilers {
             }
             if (loopStmt.Alternatives.Count != 0) {
               var w = CreateWhileLoop(out var whileGuardWriter, wr);
-              EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), false, whileGuardWriter, wStmts);
+              EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), 0, whileGuardWriter, wStmts);
               w = EmitContinueLabel(loopStmt.Labels, w);
               foreach (var alternative in loopStmt.Alternatives) {
                 var thn = EmitIf(out var guardWriter, true, w);
-                EmitExpr(alternative.Guard, false, guardWriter, wStmts);
+                EmitExpr(alternative.Guard, 0, guardWriter, wStmts);
                 Coverage.Instrument(alternative.Tok, "while-case branch", thn);
                 TrStmtList(alternative.Body, thn);
               }
@@ -306,10 +306,10 @@ namespace Microsoft.Dafny.Compilers {
               // introduce a variable to hold the value of the end-expression
               endVarName = ProtectedFreshId(s.GoingUp ? "_hi" : "_lo");
               wStmts = wr.Fork();
-              EmitExpr(s.End, false, DeclareLocalVar(endVarName, s.End.Type, s.End.tok, wr), wStmts);
+              EmitExpr(s.End, 0, DeclareLocalVar(endVarName, s.End.Type, s.End.tok, wr), wStmts);
             }
             var startExprWriter = EmitForStmt(s.Tok, s.LoopIndex, s.GoingUp, endVarName, s.Body.Body, s.Labels, wr);
-            EmitExpr(s.Start, false, startExprWriter, wStmts);
+            EmitExpr(s.Start, 0, startExprWriter, wStmts);
             break;
           }
         case ForallStmt forallStmt: {
@@ -462,7 +462,7 @@ namespace Microsoft.Dafny.Compilers {
         case VarDeclPattern pattern: {
             var s = pattern;
             if (Contract.Exists(s.LHS.Vars, bv => !bv.IsGhost)) {
-              TrCasePatternOpt(s.LHS, s.RHS, wr, false);
+              TrCasePatternOpt(s.LHS, s.RHS, wr, 0);
             }
 
             break;
@@ -498,7 +498,7 @@ namespace Microsoft.Dafny.Compilers {
       // }
       if (s.Cases.Count != 0) {
         string source = ProtectedFreshId("_source");
-        DeclareLocalVar(source, s.Source.Type, s.Source.tok, s.Source, false, wr);
+        DeclareLocalVar(source, s.Source.Type, s.Source.tok, s.Source, 0, wr);
 
         int i = 0;
         var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
@@ -553,10 +553,10 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else {
         string sourceName = ProtectedFreshId("_source");
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, output);
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, 0, output);
 
         string unmatched = ProtectedFreshId("unmatched");
-        DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, output);
+        DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), 0, output);
 
         var sourceType = match.Source.Type.NormalizeExpand();
         for (var index = 0; index < match.Cases.Count; index++) {
@@ -589,7 +589,7 @@ namespace Microsoft.Dafny.Compilers {
           out _, out _, out _, out _,
           writer);
         var right = new ConcreteSyntaxTree();
-        EmitExpr(litExpression, false, right, writer);
+        EmitExpr(litExpression, 0, right, writer);
         EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
         writer = thenWriter;
       } else if (pattern is IdPattern idPattern) {
@@ -608,7 +608,7 @@ namespace Microsoft.Dafny.Compilers {
 
       } else if (pattern is DisjunctivePattern disjunctivePattern) {
         string disjunctiveMatch = ProtectedFreshId("disjunctiveMatch");
-        DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), false, writer);
+        DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), 0, writer);
         foreach (var alternative in disjunctivePattern.Alternatives) {
           var alternativeWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, alternative, writer, lastCase);
           EmitAssignment(disjunctiveMatch, Type.Bool, True, Type.Bool, alternativeWriter);
