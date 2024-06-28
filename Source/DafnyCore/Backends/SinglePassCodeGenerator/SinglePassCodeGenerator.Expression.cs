@@ -43,7 +43,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case IdentifierExpr identifierExpr: {
             var e = identifierExpr;
-            if (letExprNesting && !(e.Var is BoundVar)) {
+            if (letExprNesting > 0 && !(e.Var is BoundVar)) {
               // copy variable to a temp since
               //   - C# doesn't allow out param in letExpr body, and
               //   - Java doesn't allow any non-final variable in letExpr body.
@@ -331,7 +331,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
               }
 
-              EmitExpr(e.Body, true, w, wStmts);
+              EmitExpr(e.Body, letExprNesting + 1, w, wStmts);
             } else if (e.BoundVars.All(bv => bv.IsGhost)) {
               // The Dafny "let" expression
               //    ghost var x,y :| Constraint; E
@@ -366,7 +366,7 @@ namespace Microsoft.Dafny.Compilers {
 
                 TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0],
                   e.Constraint_Bounds, e.tok.line, w, letExprNesting);
-                EmitReturnExpr(e.Body, e.Body.Type, true, w);
+                EmitReturnExpr(e.Body, e.Body.Type, letExprNesting + 1, w);
               }
             }
 
@@ -699,7 +699,7 @@ namespace Microsoft.Dafny.Compilers {
         var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
         foreach (MatchCaseExpr mc in e.Cases) {
           var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, letExprNesting: true, accumulatorVar: null);
+          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, letExprNesting: letExprNesting + 1, accumulatorVar: null);
           i++;
         }
       }
@@ -720,7 +720,7 @@ namespace Microsoft.Dafny.Compilers {
 
       EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, letExprNesting: true, accumulatorVar: null);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, letExprNesting: letExprNesting + 1, accumulatorVar: null);
       }, wr, true);
     }
 
