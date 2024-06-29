@@ -116,13 +116,24 @@ namespace Microsoft.Dafny.Compilers {
               if (Options.ForbidNondeterminism) {
                 Error(ErrorId.c_nondeterminism_forbidden, s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
               }
-            } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
-              TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
-            } else {
+            } else if (s.Rhs is TypeRhs typeRhs) {
               var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
               wStmts = wr.Fork();
-              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, assignStmt.Tok);
-              TrRhs(s.Rhs, wRhs, wStmts);
+              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(typeRhs), wr, assignStmt.Tok);
+              TrRhs(typeRhs, wRhs, wStmts);
+            } else {
+              var eRhs = (ExprRhs)s.Rhs;
+              if (eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+                TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
+              } else {
+                var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
+                var doAssignment = (Expression e, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wrAssignment) => {
+                  var wStmtsBeforeAssignment = wrAssignment.Fork();
+                  var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Tok);
+                  EmitExpr(e, false, wRhs, wStmtsBeforeAssignment);
+                };
+                TrExprOpt(eRhs.Expr, TypeOfLhs(s.Lhs), wr, wStmts, false, null, doAssignment);
+              }
             }
 
             break;

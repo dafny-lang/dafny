@@ -9,6 +9,8 @@ method Main() {
   print WoahThat'sDeepToo(AA("i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x"), "555"), "\n";
   print "Recur: ", recur.Follow0(A, 12, 80), "\n"; // 116 (that is, 80 + 12*(2 + 1)
   print "Recur: ", recur.Follow1(A, 12, 80), "\n"; // 116 (that is, 80 + 12*(2 + 1)
+  var w := DeepAssignment(25);
+  print w, "\n"; // 25
 }
 
 method NotOptimized(s: string) returns (r: int) {
@@ -162,4 +164,25 @@ datatype Option<+T> = None | Some(value: T) {
   {
     value
   }
+}
+
+method DeepAssignment(x: int) returns (r: int) {
+  r :=
+    var x0 := x;
+    var x1 := x0;
+    var x2 := x1;
+    var x3 := x2;
+    var x4 := x3;
+    var x5 := x4;
+    var x6 := x5;
+    var x7 := x6;
+    if x0 == x7 then
+      var y0 := x;
+      var y1 := y0;
+      y1
+    else
+      var y2 := x;
+      var y3 := y2;
+      y3;
+  return r;
 }
