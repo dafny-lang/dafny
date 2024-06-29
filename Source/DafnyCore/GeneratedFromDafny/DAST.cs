@@ -5913,7 +5913,7 @@ namespace DAST {
     bool dtor_onDatatype { get; }
     DAST._IType dtor_fieldType { get; }
     bool dtor_isStatic { get; }
-    BigInteger dtor_arity { get; }
+    Dafny.ISequence<DAST._IType> dtor_arguments { get; }
     DAST._ICollKind dtor_collKind { get; }
     Dafny.ISequence<DAST._IExpression> dtor_indices { get; }
     bool dtor_isArray { get; }
@@ -6038,8 +6038,8 @@ namespace DAST {
     public static _IExpression create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant, bool onDatatype, DAST._IType fieldType) {
       return new Expression_Select(expr, field, isConstant, onDatatype, fieldType);
     }
-    public static _IExpression create_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, BigInteger arity) {
-      return new Expression_SelectFn(expr, field, onDatatype, isStatic, arity);
+    public static _IExpression create_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, bool isConstant, Dafny.ISequence<DAST._IType> arguments) {
+      return new Expression_SelectFn(expr, field, onDatatype, isStatic, isConstant, arguments);
     }
     public static _IExpression create_Index(DAST._IExpression expr, DAST._ICollKind collKind, Dafny.ISequence<DAST._IExpression> indices) {
       return new Expression_Index(expr, collKind, indices);
@@ -6409,7 +6409,8 @@ namespace DAST {
     public bool dtor_isConstant {
       get {
         var d = this;
-        return ((Expression_Select)d)._isConstant;
+        if (d is Expression_Select) { return ((Expression_Select)d)._isConstant; }
+        return ((Expression_SelectFn)d)._isConstant;
       }
     }
     public bool dtor_onDatatype {
@@ -6432,10 +6433,10 @@ namespace DAST {
         return ((Expression_SelectFn)d)._isStatic;
       }
     }
-    public BigInteger dtor_arity {
+    public Dafny.ISequence<DAST._IType> dtor_arguments {
       get {
         var d = this;
-        return ((Expression_SelectFn)d)._arity;
+        return ((Expression_SelectFn)d)._arguments;
       }
     }
     public DAST._ICollKind dtor_collKind {
@@ -7531,21 +7532,23 @@ namespace DAST {
     public readonly Dafny.ISequence<Dafny.Rune> _field;
     public readonly bool _onDatatype;
     public readonly bool _isStatic;
-    public readonly BigInteger _arity;
-    public Expression_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, BigInteger arity) : base() {
+    public readonly bool _isConstant;
+    public readonly Dafny.ISequence<DAST._IType> _arguments;
+    public Expression_SelectFn(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool onDatatype, bool isStatic, bool isConstant, Dafny.ISequence<DAST._IType> arguments) : base() {
       this._expr = expr;
       this._field = field;
       this._onDatatype = onDatatype;
       this._isStatic = isStatic;
-      this._arity = arity;
+      this._isConstant = isConstant;
+      this._arguments = arguments;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_SelectFn(_expr, _field, _onDatatype, _isStatic, _arity);
+      return new Expression_SelectFn(_expr, _field, _onDatatype, _isStatic, _isConstant, _arguments);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_SelectFn;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && this._onDatatype == oth._onDatatype && this._isStatic == oth._isStatic && this._arity == oth._arity;
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && this._onDatatype == oth._onDatatype && this._isStatic == oth._isStatic && this._isConstant == oth._isConstant && object.Equals(this._arguments, oth._arguments);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
@@ -7554,7 +7557,8 @@ namespace DAST {
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._onDatatype));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isStatic));
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arity));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._arguments));
       return (int) hash;
     }
     public override string ToString() {
@@ -7568,7 +7572,9 @@ namespace DAST {
       s += ", ";
       s += Dafny.Helpers.ToString(this._isStatic);
       s += ", ";
-      s += Dafny.Helpers.ToString(this._arity);
+      s += Dafny.Helpers.ToString(this._isConstant);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._arguments);
       s += ")";
       return s;
     }

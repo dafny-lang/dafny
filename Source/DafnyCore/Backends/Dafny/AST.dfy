@@ -294,7 +294,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     Select(expr: Expression, field: Name, isConstant: bool, onDatatype: bool, fieldType: Type) |
-    SelectFn(expr: Expression, field: Name, onDatatype: bool, isStatic: bool, arity: nat) |
+    SelectFn(expr: Expression, field: Name, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
     TupleSelect(expr: Expression, index: nat, fieldType: Type) |

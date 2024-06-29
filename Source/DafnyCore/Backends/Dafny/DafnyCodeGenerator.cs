@@ -372,17 +372,34 @@ namespace Microsoft.Dafny.Compilers {
 
         return FullTypeNameAST(udt, null);
       } else if (AsNativeType(typ) != null) {
-        return (DAST.Type)(AsNativeType(typ).Sel switch {
-          NativeType.Selection.Byte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u8")),
-          NativeType.Selection.SByte => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i8")),
-          NativeType.Selection.Short => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i16")),
-          NativeType.Selection.UShort => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u16")),
-          NativeType.Selection.Int => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i32")),
-          NativeType.Selection.UInt => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u32")),
-          NativeType.Selection.Long => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i64")),
-          NativeType.Selection.ULong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u64")),
-          NativeType.Selection.DoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("i128")),
-          NativeType.Selection.UDoubleLong => DAST.Type.create_Passthrough(Sequence<Rune>.UnicodeFromString("u128")),
+        var CreateNewtype = (string baseName, DAST._INewtypeRange newTypeRange) =>
+          DAST.Type.create_UserDefined(
+            DAST.ResolvedType.create_ResolvedType(
+              Sequence<ISequence<Rune>>.FromElements(
+                Sequence<Rune>.UnicodeFromString(baseName)
+              ),
+              Sequence<DAST.Type>.Empty,
+              DAST.ResolvedTypeBase.create_Newtype(
+                DAST.Type.create_Primitive(DAST.Primitive.create_Int()),
+                newTypeRange,
+                true
+              ),
+              Sequence<DAST.Attribute>.Empty,
+              Sequence<ISequence<Rune>>.Empty,
+              Sequence<DAST.Type>.Empty
+            )
+          );
+        return (DAST.Type)(AsNativeType(xType).Sel switch {
+          NativeType.Selection.Byte => CreateNewtype("u8", DAST.NewtypeRange.create_U8()),
+          NativeType.Selection.SByte => CreateNewtype("i8", DAST.NewtypeRange.create_I8()),
+          NativeType.Selection.Short => CreateNewtype("i16", DAST.NewtypeRange.create_I16()),
+          NativeType.Selection.UShort => CreateNewtype("u16", DAST.NewtypeRange.create_U16()),
+          NativeType.Selection.Int => CreateNewtype("i32", DAST.NewtypeRange.create_I32()),
+          NativeType.Selection.UInt => CreateNewtype("u32", DAST.NewtypeRange.create_U32()),
+          NativeType.Selection.Long => CreateNewtype("i64", DAST.NewtypeRange.create_I64()),
+          NativeType.Selection.ULong => CreateNewtype("u64", DAST.NewtypeRange.create_U64()),
+          NativeType.Selection.DoubleLong => CreateNewtype("i128", DAST.NewtypeRange.create_I128()),
+          NativeType.Selection.UDoubleLong => CreateNewtype("u128", DAST.NewtypeRange.create_U128()),
           _ => throw new InvalidOperationException(),
         });
       } else if (xType is SeqType seq) {
@@ -1927,7 +1944,8 @@ namespace Microsoft.Dafny.Compilers {
             Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
             member.EnclosingClass is DatatypeDecl,
             member.IsStatic,
-            expectedType.AsArrowType.Arity
+            member.IsInstanceIndependentConstant,
+            Sequence<DAST.Type>.FromElements(expectedType.AsArrowType.Args.Select(GenType).ToArray())
           ), null, this);
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
@@ -2007,18 +2025,22 @@ namespace Microsoft.Dafny.Compilers {
       var sourceBuf = new ExprBuffer(null);
       EmitExpr(source, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this), wStmts);
 
-      var indexBuf = new ExprBuffer(null);
-      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
-      EmitExpr(index, inLetExprBody, indexWr, wStmts);
-
       DAST._ICollKind collKind;
+      Type indexType;
       if (source.Type.IsArrayType) {
         collKind = DAST.CollKind.create_Array();
-      } else if (source.Type.NormalizeToAncestorType().IsMapType) {
+        indexType = Type.Int;
+      } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true} normalized) {
         collKind = DAST.CollKind.create_Map();
+        indexType = normalized.AsMapType.Domain; // Or Range?
       } else {
         collKind = DAST.CollKind.create_Seq();
+        indexType = Type.Int;
       }
+
+      var indexBuf = new ExprBuffer(null);
+      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), indexType, null, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
+      EmitExpr(index, inLetExprBody, indexWr, wStmts);
 
       if (GetExprBuilder(wr, out var builder)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Index(
