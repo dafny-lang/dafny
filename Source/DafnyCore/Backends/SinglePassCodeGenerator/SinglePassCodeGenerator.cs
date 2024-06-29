@@ -2924,11 +2924,12 @@ namespace Microsoft.Dafny.Compilers {
     /// Other than the syntactic differences in the target code, the idea is that "TrExprOpt(...)" and "Expr(...)" generate code with the
     /// same semantics.
     /// </summary>
-    protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody, [CanBeNull] IVariable accumulatorVar) {
+    protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody,
+      [CanBeNull] IVariable accumulatorVar, Action<Expression, Type, bool, ConcreteSyntaxTree> continuation) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
-      Contract.Requires(resultType != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
+      Contract.Requires(continuation != null);
 
       expr = expr.Resolved;
       if (expr is LetExpr) {
@@ -2940,37 +2941,37 @@ namespace Microsoft.Dafny.Compilers {
               TrCasePatternOpt(lhs, e.RHSs[i], wr, inLetExprBody);
             }
           }
-          TrExprOpt(e.Body, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+          TrExprOpt(e.Body, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
         } else {
           // We haven't optimized the other cases, so fallback to normal compilation
-          EmitReturnExpr(e, resultType, inLetExprBody, wr);
+          continuation(e, resultType, inLetExprBody, wr);
         }
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         switch (e.HowToCompile) {
           case ITEExpr.ITECompilation.CompileJustThenBranch:
-            TrExprOpt(e.Thn, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+            TrExprOpt(e.Thn, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
             break;
           case ITEExpr.ITECompilation.CompileJustElseBranch:
-            TrExprOpt(e.Els, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+            TrExprOpt(e.Els, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
             break;
           case ITEExpr.ITECompilation.CompileBothBranches:
             var thn = EmitIf(out var guardWriter, true, wr);
             EmitExpr(e.Test, inLetExprBody, guardWriter, wStmts);
             Coverage.Instrument(e.Thn.tok, "then branch", thn);
-            TrExprOpt(e.Thn, resultType, thn, wStmts, inLetExprBody, accumulatorVar);
+            TrExprOpt(e.Thn, resultType, thn, wStmts, inLetExprBody, accumulatorVar, continuation);
             ConcreteSyntaxTree els = wr;
             if (!(e.Els is ITEExpr { HowToCompile: ITEExpr.ITECompilation.CompileBothBranches })) {
               els = EmitBlock(wr);
               Coverage.Instrument(e.Thn.tok, "else branch", els);
             }
-            TrExprOpt(e.Els, resultType, els, wStmts, inLetExprBody, accumulatorVar);
+            TrExprOpt(e.Els, resultType, els, wStmts, inLetExprBody, accumulatorVar, continuation);
             break;
         }
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
-        TrOptNestedMatchExpr(nestedMatchExpr, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+        TrOptNestedMatchExpr(nestedMatchExpr, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -2995,14 +2996,14 @@ namespace Microsoft.Dafny.Compilers {
           var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
           foreach (MatchCaseExpr mc in e.Cases) {
             var w = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, wr);
-            TrExprOpt(mc.Body, resultType, w, wStmts, inLetExprBody, accumulatorVar);
+            TrExprOpt(mc.Body, resultType, w, wStmts, inLetExprBody, accumulatorVar, continuation);
             i++;
           }
         }
 
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
-        TrExprOpt(e.E, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+        TrExprOpt(e.E, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
 
       } else if (expr is FunctionCallExpr fce && fce.Function == enclosingFunction && enclosingFunction.IsTailRecursive) {
         var e = fce;
@@ -3088,7 +3089,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         var wRhs = EmitAssignment(VariableLvalue(accumulatorVar), enclosingFunction.ResultType, enclosingFunction.ResultType, wr, expr.tok);
         EmitExpr(rhs, false, wRhs, wStmts);
-        TrExprOpt(tailTerm, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+        TrExprOpt(tailTerm, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
 
       } else {
         // We haven't optimized any other cases, so fallback to normal compilation
@@ -3130,7 +3131,8 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           Contract.Assert(accumulatorVar == null);
         }
-        EmitReturnExpr(expr, resultType, inLetExprBody, wr);
+
+        continuation(expr, resultType, inLetExprBody, wr);
       }
     }
 
@@ -3141,7 +3143,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
       copyInstrWriters.Push(wr.Fork());
       var wStmts = wr.Fork();
-      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar);
+      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar, EmitReturnExpr);
       copyInstrWriters.Pop();
     }
 
