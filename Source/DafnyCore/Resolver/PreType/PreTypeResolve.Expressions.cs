@@ -465,8 +465,7 @@ namespace Microsoft.Dafny {
             var prevErrorCount = ErrorCount;
             resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
             if (ErrorCount == prevErrorCount) {
-              string errorMessageFormat;
-              var toPreType = (DPreType)Type2PreType(e.ToType);
+              var toPreType = Type2PreType(e.ToType);
               var errorMessage = () => {
                 string errorMessageFormat;
                 if (toPreType.Normalize() is DPreType dtoPreType && AncestorPreType(dtoPreType)?.Decl is { } ancestorDecl) {
