@@ -1,1 +1,1 @@
-// CHECK: .*<i>Char literal without unicode char enabled</i>.*
+// CHECK: .*<i>Type name for ORDINAL \(Microsoft_dDafny_dBigOrdinalType\)</i>.*

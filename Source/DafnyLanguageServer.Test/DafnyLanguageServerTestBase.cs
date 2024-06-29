@@ -105,7 +105,7 @@ lemma {:neverVerify} HasNeverVerifyAttribute(p: nat, q: nat)
     private Action<LanguageServerOptions> GetServerOptionsAction(Action<DafnyOptions> modifyOptions) {
       var dafnyOptions = DafnyOptions.CreateUsingOldParser(output);
       dafnyOptions.Set(ProjectManager.UpdateThrottling, 0);
-      dafnyOptions.Set(ProjectManagerDatabase.ProjectFileCacheExpiry, 0);
+      dafnyOptions.Set(CachingProjectFileOpener.ProjectFileCacheExpiry, 0);
       modifyOptions?.Invoke(dafnyOptions);
       dafnyOptions.UsingNewCli = true;
       LanguageServer.ConfigureDafnyOptionsForServer(dafnyOptions);

@@ -14,12 +14,19 @@
    to be updated. However, you may want to increment them further
    depending the types of changes that are in the release.
 
-1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this branch>`
-   (`--source-branch` is optional and defaults to 'master')
-   from the root of the repository. The script will check that the repository is in a good
-   state, create and check out a new release branch, update
-   `Source/Directory.Build.props` and `RELEASE_NOTES.md`, prepare a release commit,
-   and push it.
+1. Run `Scripts/prepare_release.py $VER prepare --source-branch <this
+   branch>` (`--source-branch` is optional and defaults to 'master')
+   from the root of the repository. The script will check that the
+   repository is in a good state, create and check out a new release
+   branch, update `Source/Directory.Build.props` and `RELEASE_NOTES.md`.
+
+1. Ensure that all `.doo` files use the new version. Start by running
+   `make -C Source/DafnyStandardLibraries update-binary`. Then search
+   for any `.doo` files outside of `Source/DafnyStandardLibraries` and
+   re-build them manually. Note: this is currently way too manual!
+
+1. Prepare a release commit containing the changes from the last two
+   steps and push it.
 
 1. Run `./Scripts/prepare_release.py $VER
    release` from the root of the repository. The script will tag the
@@ -43,6 +50,12 @@
 
 1. Create a pull request to merge the newly created branch into the source branch (the
    script will give you a link to do so).  Get it approved and merged.
+
+1. Check out the source branch and run `./Scripts/prepare_release.py
+   $NEXT_VER set-next version` to set the version number for the next
+   release, where `$NEXT_VER` is `$VER` with the patch incremented.
+   Create a new pull request for this change. Get it approved and
+   merged.
 
 1. Clone <https://github.com/dafny-lang/ide-vscode> and run `publish_process.js`
    to create a new release of the VSCode plugin.

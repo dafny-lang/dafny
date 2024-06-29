@@ -14,15 +14,19 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
-      var c = new COMP();
+      var c = new DCOMP.COMP();
       c.__ctor(Options.Get(CommonOptionBag.UnicodeCharacters));
-      return c.Compile(program);
+      var s = c.Compile(program);
+      if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
+        throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
+      }
+      return s;
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {
       var splitByDot = fullName.Split('.');
       var convertedToUnicode = Sequence<Sequence<Rune>>.FromArray(splitByDot.Select(s => (Sequence<Rune>)Sequence<Rune>.UnicodeFromString(s)).ToArray());
-      return COMP.EmitCallToMain(convertedToUnicode);
+      return DCOMP.COMP.EmitCallToMain(convertedToUnicode);
     }
   }
 

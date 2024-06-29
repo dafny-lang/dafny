@@ -1,1 +1,1 @@
-// CHECK: .*<i>Cannot\ assign\ null\ value\ to\ variable</i>.*
+// CHECK: .*<i>Static\ functions\ with\ type\ arguments</i>.*

@@ -1,1 +1,1 @@
-// CHECK: .*<i>Cannot\ assign\ null\ value\ to\ variable</i>.*
+// CHECK: .*<i>Unsupported:\ DAST_dBinOp_dEuclidianMod\ with\ not\ 2\ elements</i>.*
