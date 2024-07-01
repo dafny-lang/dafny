@@ -7,6 +7,7 @@ using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using static Microsoft.Dafny.Util;
+using Action = System.Action;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
@@ -937,9 +938,7 @@ namespace Microsoft.Dafny {
         IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
         CurrentIdGenerator.Pop();
       }
-      CurrentIdGenerator.Push();
-      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran);
-      CurrentIdGenerator.Pop();
+      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, true);
       Bpl.StmtList els;
       Bpl.IfCmd elsIf = null;
       b = new BoogieStmtListBuilder(this, options, builder.Context);
@@ -949,9 +948,7 @@ namespace Microsoft.Dafny {
       if (stmt.Els == null) {
         els = b.Collect(stmt.Tok);
       } else {
-        CurrentIdGenerator.Push();
-        els = TrStmt2StmtList(b, stmt.Els, locals, etran);
-        CurrentIdGenerator.Pop();
+        els = TrStmt2StmtList(b, stmt.Els, locals, etran, true);
         if (els.BigBlocks.Count == 1) {
           Bpl.BigBlock bb = els.BigBlocks[0];
           if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
@@ -962,7 +959,6 @@ namespace Microsoft.Dafny {
       }
       builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
     }
-
 
     void TrForallProof(ForallStmt s, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
       // Translate:

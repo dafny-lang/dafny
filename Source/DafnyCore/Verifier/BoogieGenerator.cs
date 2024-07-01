@@ -3471,7 +3471,7 @@ namespace Microsoft.Dafny {
     }
 
     Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder,
-      Statement block, List<Variable> locals, ExpressionTranslator etran) {
+      Statement block, List<Variable> locals, ExpressionTranslator etran, bool introduceScope = false) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -3479,7 +3479,15 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
+      if (introduceScope) {
+        CurrentIdGenerator.Push();
+        builder.Add(new ChangeScope(Token.NoToken, true));
+      }
       TrStmt(block, builder, locals, etran);
+      if (introduceScope) {
+        builder.Add(new ChangeScope(Token.NoToken, false));
+        CurrentIdGenerator.Pop();
+      }
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
