@@ -1308,7 +1308,7 @@ namespace Microsoft.Dafny {
       }
       if (f.Body != null) {
         var prevErrorCount = ErrorCount;
-        ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction, f.IsBlind));
+        ResolveExpression(f.Body, new ResolutionContext(f, f is TwoStateFunction));
         AddSubtypeConstraint(Type2PreType(f.ResultType), f.Body.PreType, f.tok, "Function body type mismatch (expected {0}, got {1})");
         Constraints.SolveAllTypeConstraints($"body of {f.WhatKind} '{f.Name}'");
       }

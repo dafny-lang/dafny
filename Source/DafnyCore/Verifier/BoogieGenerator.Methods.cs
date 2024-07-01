@@ -539,7 +539,7 @@ namespace Microsoft.Dafny {
       List<Variable> inParams = Boogie.Formal.StripWhereClauses(proc.InParams);
       List<Variable> outParams = Boogie.Formal.StripWhereClauses(proc.OutParams);
 
-      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(m.IsBlind));
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(m.ContainsHide));
       var builderInitializationArea = new BoogieStmtListBuilder(this, options, builder.Context);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, predef, m.tok,
@@ -1744,7 +1744,7 @@ namespace Microsoft.Dafny {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
           } else {
-            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.IsBlind), p.E, etran, kind)) {
+            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
               if (s.IsOnlyChecked && bodyKind) {
                 // don't include in split
               } else if (s.IsOnlyFree && !bodyKind) {
@@ -1762,7 +1762,7 @@ namespace Microsoft.Dafny {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
           AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
           comment = null;
-          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.IsBlind), p.E, etran, kind)) {
+          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
             var post = s.E;
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"

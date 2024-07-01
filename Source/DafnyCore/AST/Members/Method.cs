@@ -283,7 +283,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
         resolver.scope.Push(p.Name, p);
       }
 
-      var resolutionContext = new ResolutionContext(this, this is TwoStateLemma, IsBlind);
+      var resolutionContext = new ResolutionContext(this, this is TwoStateLemma);
       resolver.ResolveParameterDefaultValues(Ins, resolutionContext);
 
       // Start resolving specification...
@@ -294,7 +294,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
         resolver.ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
       }
 
-      var context = new ResolutionContext(this, false, IsBlind);
+      var context = new ResolutionContext(this, false);
       resolver.ResolveAttributes(Reads, context);
       foreach (FrameExpression fe in Reads.Expressions) {
         resolver.ResolveFrameExpressionTopLevel(fe, FrameExpressionUse.Reads, this);

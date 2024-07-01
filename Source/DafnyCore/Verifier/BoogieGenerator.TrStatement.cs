@@ -532,9 +532,13 @@ namespace Microsoft.Dafny {
         builder.Add(new Bpl.AssumeCmd(revealStmt.Tok, la.E));
       }
 
-      if (revealStmt.InBlindContext) {
-        foreach (var member in revealStmt.RevealedMembers) {
-          builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), false));
+      if (builder.Context.ContainsHide) {
+        if (revealStmt.Wildcard) {
+          builder.Add(new HideRevealCmd(revealStmt.Tok, revealStmt.Hide));
+        } else {
+          foreach (var member in revealStmt.OffsetMembers) {
+            builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Hide));
+          }
         }
       }
 

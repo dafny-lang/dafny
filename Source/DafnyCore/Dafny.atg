@@ -3016,14 +3016,17 @@ RevealStmt<out Statement s>
      IToken x; Expression e; var es = new List<Expression>();
      IToken startToken = null;
      bool hide = false;
+     s = null;
   .)
   ( "reveal"                                    (. x = t; startToken = t; hide = false; .)
   | "hide"                                      (. x = t; startToken = t; hide = true; .)
   )
-  Expression<out e, false, true>                (. es.Add(e); .)
-  { "," Expression<out e, false, true>          (. es.Add(e); .)
-  }
-  ";"                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, hide); .)
+  ( Expression<out e, false, true>                (. es.Add(e); .)
+    { "," Expression<out e, false, true>          (. es.Add(e); .)
+    }                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, hide); .)
+  | "*"                                         (. s = new HideRevealStmt(new RangeToken(startToken, t), hide); .)
+  )
+  ";"                                           
   .
 
 /*------------------------------------------------------------------------*/

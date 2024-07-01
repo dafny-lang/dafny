@@ -12,11 +12,10 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   public readonly List<AssertLabel> LabeledAsserts = new();  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution]
   public readonly List<Statement> ResolvedStatements = new();
-  [FilledInDuringResolution] public bool InBlindContext { get; private set; }
-  [FilledInDuringResolution] public List<MemberDecl> RevealedMembers = new();
+  [FilledInDuringResolution] public List<MemberDecl> OffsetMembers = new();
   public bool Hide { get; private set; }
-
-
+  public bool Wildcard { get; private set; }
+  
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
@@ -33,17 +32,26 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
 
   public HideRevealStmt(Cloner cloner, HideRevealStmt original) : base(cloner, original) {
     Hide = original.Hide;
-    Exprs = original.Exprs.Select(cloner.CloneExpr).ToList();
+    Exprs = original.Exprs?.Select(cloner.CloneExpr).ToList();
+    Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
       LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
+  public HideRevealStmt(RangeToken rangeToken, bool hide)
+    : base(rangeToken) {
+    Wildcard = true;
+    this.Exprs = null;
+    Hide = hide;
+  }
+  
   public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, bool hide)
     : base(rangeToken) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
+    Wildcard = false;
     Hide = hide;
   }
 
@@ -61,6 +69,12 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   }
 
   public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
+    ((MethodOrFunction)resolutionContext.CodeContext).ContainsHide |= Hide;
+
+    if (Wildcard) {
+      return;
+    }
+    
     foreach (var expr in Exprs) {
       var name = SingleName(expr);
       var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;
@@ -77,7 +91,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
           if (callee == null) {
             // error from resolving child
           } else {
-            RevealedMembers.Add(callee.Member);
+            OffsetMembers.Add(callee.Member);
             if (callee.Member.IsOpaque && !Hide) {
               var revealResolutionContext = resolutionContext with { InReveal = true };
               var exprClone = new Cloner().CloneExpr(expr);

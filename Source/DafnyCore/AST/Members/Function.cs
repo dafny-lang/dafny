@@ -435,7 +435,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
           }
         }
       }
-      resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction, IsBlind));
+      resolver.ResolveExpression(Body, new ResolutionContext(this, this is TwoStateFunction));
       Contract.Assert(Body.Type != null);  // follows from postcondition of ResolveExpression
       resolver.AddAssignableConstraint(tok, ResultType, Body.Type, "Function body type mismatch (expected {0}, got {1})");
       resolver.SolveAllTypeConstraints();

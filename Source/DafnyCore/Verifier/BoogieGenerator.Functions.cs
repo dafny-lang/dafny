@@ -86,7 +86,7 @@ public partial class BoogieGenerator {
     };
     // check that postconditions hold
     var ens = new List<Bpl.Ensures>();
-    var context = new BodyTranslationContext(f.IsBlind);
+    var context = new BodyTranslationContext(f.ContainsHide);
     foreach (AttributedExpression ensures in f.Ens) {
       var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
       var splits = new List<SplitExprInfo>();
