@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
-          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, RevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, HideRevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
         sink.AddTopLevelDeclaration(revealTrigger);
         Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
         this.functionReveals[f] = revealTrigger_expr;
@@ -1391,7 +1391,7 @@ namespace Microsoft.Dafny {
     }
 
     private Implementation AddImplementationWithAttributes(IToken tok, Procedure proc, List<Variable> inParams,
-      List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv, bool isBlind = false) {
+      List<Variable> outParams, List<Variable> localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         new List<Bpl.TypeVariable>(), inParams, outParams,
         localVariables, stmts, kv);
@@ -1404,7 +1404,6 @@ namespace Microsoft.Dafny {
         AddSmtOptionAttribute(impl, "smt.arith.solver", ArithmeticSolver.ToString());
       }
       sink.AddTopLevelDeclaration(impl);
-      impl.IsBlind = isBlind;
       return impl;
     }
 

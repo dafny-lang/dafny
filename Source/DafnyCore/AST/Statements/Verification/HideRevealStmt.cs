@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
+public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat {
   public const string RevealLemmaPrefix = "reveal_";
 
   public readonly List<Expression> Exprs;
@@ -27,11 +27,11 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     Contract.Invariant(LabeledAsserts.Count <= Exprs.Count);
   }
 
-  public RevealStmt Clone(Cloner cloner) {
-    return new RevealStmt(cloner, this);
+  public HideRevealStmt Clone(Cloner cloner) {
+    return new HideRevealStmt(cloner, this);
   }
 
-  public RevealStmt(Cloner cloner, RevealStmt original) : base(cloner, original) {
+  public HideRevealStmt(Cloner cloner, HideRevealStmt original) : base(cloner, original) {
     Hide = original.Hide;
     Exprs = original.Exprs.Select(cloner.CloneExpr).ToList();
     if (cloner.CloneResolvedFields) {
@@ -40,7 +40,7 @@ public class RevealStmt : Statement, ICloneable<RevealStmt>, ICanFormat {
     }
   }
 
-  public RevealStmt(RangeToken rangeToken, List<Expression> exprs, bool hide)
+  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, bool hide)
     : base(rangeToken) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;

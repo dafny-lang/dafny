@@ -389,7 +389,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     resolver.ResolveParameterDefaultValues(Ins, ResolutionContext.FromCodeContext(this));
 
-    var contractContext = new ResolutionContext(this, this is TwoStateFunction, false);
+    var contractContext = new ResolutionContext(this, this is TwoStateFunction);
     foreach (var req in Req) {
       resolver.ResolveAttributes(req, contractContext);
       Expression r = req.E;

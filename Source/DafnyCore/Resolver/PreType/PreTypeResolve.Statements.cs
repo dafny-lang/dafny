@@ -117,8 +117,8 @@ namespace Microsoft.Dafny {
           ResolveExpression(e, resolutionContext);
         }
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
+      } else if (stmt is HideRevealStmt) {
+        var s = (HideRevealStmt)stmt;
         s.Resolve(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;

@@ -30,7 +30,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
-  public record BodyTranslationContext(bool IsBlind);
+  public record BodyTranslationContext(bool ContainsHide);
 
   public partial class BoogieGenerator {
 
@@ -477,7 +477,7 @@ namespace Microsoft.Dafny {
 
     private bool TrSplitFunctionCallExpr(BodyTranslationContext context,
       Expression expr, List<SplitExprInfo> splits, int heightLimit, bool inlineProtectedFunctions,
-      bool apply_induction, ExpressionTranslator etran, FunctionCallExpr fexp) {
+      bool applyInduction, ExpressionTranslator etran, FunctionCallExpr fexp) {
       var f = fexp.Function;
       Contract.Assert(f != null); // filled in during resolution
       var module = f.EnclosingClass.EnclosingModuleDefinition;
@@ -491,7 +491,7 @@ namespace Microsoft.Dafny {
           // that needed to be proved about the function was proved already in the previous module, even without the body definition).
         } else if (!FunctionBodyIsAvailable(f, currentModule, currentScope, inlineProtectedFunctions)) {
           // Don't inline opaque functions
-        } else if (context.IsBlind) {
+        } else if (context.ContainsHide) {
           // Do not inline in a blind context
         } else if (Attributes.Contains(f.Attributes, "no_inline")) {
           // User manually prevented inlining
@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
 
             // recurse on body
             var ss = new List<SplitExprInfo>();
-            TrSplitExpr(context, typeSpecializedBody, ss, true, functionHeight, inlineProtectedFunctions, apply_induction, etran);
+            TrSplitExpr(context, typeSpecializedBody, ss, true, functionHeight, inlineProtectedFunctions, applyInduction, etran);
             var needsTokenAdjust = TrSplitNeedsTokenAdjustment(typeSpecializedBody);
             foreach (var s in ss) {
               if (s.IsChecked) {

@@ -785,7 +785,7 @@ namespace Microsoft.Dafny {
         // emit impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(m.Attributes, null);
         Bpl.Implementation impl = AddImplementationWithAttributes(GetToken(m), proc,
-           inParams, outParams, localVariables, stmts, kv, m.IsBlind);
+           inParams, outParams, localVariables, stmts, kv);
 
         if (InsertChecksums) {
           InsertChecksum(m, impl);

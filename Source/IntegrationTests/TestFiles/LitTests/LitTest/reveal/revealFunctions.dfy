@@ -5,34 +5,37 @@ function P(): bool {
   true
 }
 
-blind method Foo()
-{
+method HideAndRevealStatementScoping() {
+  hide *;
+  
   if (*) {
     reveal P;
     assert P();
   } else {
     assert P(); // error
   }
-}
-
-blind function Zer(): int {
-  Q() // requires error
-}
-
-blind function Zaz(): int {
-  reveal P; 
-  Q()
-}
-
-function Q(): int 
-  requires P() {
-  3
+  reveal P;
+  if (*) {
+    assert P();
+  } else {
+    hide *;
+    assert P(); // error
+  }
+  
+  hide *;
+  if (*) {
+    reveal P;
+  } else {
+    reveal P;
+  }
+  assert P(); // error, since the previous two reveal statements are out of scope
 }
 
 function EnsuresFuncFoo(): bool
   ensures EnsuresFuncFoo()
 
-blind method UseEnsuresFuncFoo() {
+method UseEnsuresFuncFoo() {
+  hide *;
   if (*) {
     reveal EnsuresFuncFoo;
     assert EnsuresFuncFoo();
@@ -45,7 +48,8 @@ opaque predicate OpaqueFunc() {
   true
 }
 
-blind method OpaqueUser() {
+method OpaqueUser() {
+  hide *;
   if (*) {
     reveal OpaqueFunc;
     assert OpaqueFunc();
@@ -54,14 +58,18 @@ blind method OpaqueUser() {
   }
 }
 
-blind method FunctionSubsetResult() {
-    var x: nat := Natty();
-    assert x >= 0; // no error
+// Subset results
+method FunctionSubsetResult() {
+  hide *;
+  var x: nat := Natty();
+  assert x >= 0; // no error
 }
 
 function Natty(): nat {
   3
 }
+
+// Reads clause
 class O { var x: int }
 function Obj(o: O): int 
   ensures Obj(o) > 0
@@ -69,7 +77,8 @@ function Obj(o: O): int
   3
 }
 
-blind method ReadsClause() {
+method ReadsClause() {
+  hide *;
   var o := new O;
   var before := Obj(o);
   o.x := 3;

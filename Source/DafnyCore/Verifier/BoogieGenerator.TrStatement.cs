@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
           builder.AddCaptureState(s);
         }
 
-      } else if (stmt is RevealStmt revealStmt) {
+      } else if (stmt is HideRevealStmt revealStmt) {
         TranslateRevealStmt(builder, locals, etran, revealStmt);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -525,7 +525,7 @@ namespace Microsoft.Dafny {
     }
 
     private void TranslateRevealStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
-      RevealStmt revealStmt) {
+      HideRevealStmt revealStmt) {
       AddComment(builder, revealStmt, "reveal statement");
       foreach (var la in revealStmt.LabeledAsserts) {
         Contract.Assert(la.E != null);  // this should have been filled in by now
@@ -534,10 +534,10 @@ namespace Microsoft.Dafny {
 
       if (revealStmt.InBlindContext) {
         foreach (var member in revealStmt.RevealedMembers) {
-          builder.Add(new RevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName)));
+          builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), false));
         }
-      } else {
       }
+
       TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
     }
 

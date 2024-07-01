@@ -288,7 +288,7 @@ public partial class BoogieGenerator {
       var impl = AddImplementationWithAttributes(GetToken(f), proc,
         Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), inParams_Heap), implInParams),
         implOutParams,
-        locals, implBody, kv, f.IsBlind);
+        locals, implBody, kv);
       if (InsertChecksums) {
         InsertChecksum(f, impl);
       }

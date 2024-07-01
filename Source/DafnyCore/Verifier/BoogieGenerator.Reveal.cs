@@ -38,7 +38,7 @@ public partial class BoogieGenerator {
           }
         }
       }
-    } else if (stmt is RevealStmt reveal) {
+    } else if (stmt is HideRevealStmt reveal) {
       foreach (var s in reveal.ResolvedStatements) {
         e = BplAnd(e, TrFunctionSideEffect(s, etran));
       }

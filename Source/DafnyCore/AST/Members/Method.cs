@@ -333,7 +333,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
       // ... continue resolving specification
       foreach (AttributedExpression e in Ens) {
-        var ensuresContext = new ResolutionContext(this, true, false);
+        var ensuresContext = new ResolutionContext(this, true);
         resolver.ResolveAttributes(e, ensuresContext);
         resolver.ResolveExpression(e.E, ensuresContext);
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression

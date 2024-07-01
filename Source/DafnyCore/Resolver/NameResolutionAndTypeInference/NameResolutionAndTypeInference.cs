@@ -3532,10 +3532,10 @@ namespace Microsoft.Dafny {
         var s = (PrintStmt)stmt;
         s.Args.ForEach(e => ResolveExpression(e, resolutionContext));
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
+      } else if (stmt is HideRevealStmt) {
+        var s = (HideRevealStmt)stmt;
         foreach (var expr in s.Exprs) {
-          var name = RevealStmt.SingleName(expr);
+          var name = HideRevealStmt.SingleName(expr);
           var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
           if (labeledAssert != null) {
             s.LabeledAsserts.Add(labeledAssert);
@@ -4578,8 +4578,8 @@ namespace Microsoft.Dafny {
     }
 
     private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
-      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
-        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+      if (memberName.StartsWith(HideRevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[HideRevealStmt.RevealLemmaPrefix.Length..];
         var members = receiverDecl is TopLevelDeclWithMembers topLevelDeclWithMembers ? GetClassMembers(topLevelDeclWithMembers) : null;
         if (members == null) {
           reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
@@ -5335,7 +5335,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       // For 3:
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -5452,7 +5452,7 @@ namespace Microsoft.Dafny {
 
     private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
       if (resolutionContext.InReveal) {
-        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        var nameToReport = name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? name[HideRevealStmt.RevealLemmaPrefix.Length..] : name;
         reporter.Error(MessageSource.Resolver, tok,
           "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
           nameToReport);
@@ -5672,7 +5672,7 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       if (!expr.Lhs.WasResolved()) {
         return null;
       }

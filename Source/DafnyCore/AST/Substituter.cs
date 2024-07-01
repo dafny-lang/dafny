@@ -872,12 +872,11 @@ namespace Microsoft.Dafny {
         var lhss = SubstituteCasePattern(s.LHS, false, CloneLocalVariable);
         var rr = new VarDeclPattern(s.RangeToken, lhss, (Expression)Substitute(s.RHS), s.HasGhostModifier);
         r = rr;
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
+      } else if (stmt is HideRevealStmt revealStmt) {
         // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
-        var rr = new RevealStmt(s.RangeToken, s.Exprs);
-        rr.LabeledAsserts.AddRange(s.LabeledAsserts);
-        rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+        var rr = new HideRevealStmt(revealStmt.RangeToken, revealStmt.Exprs, revealStmt.Hide);
+        rr.LabeledAsserts.AddRange(revealStmt.LabeledAsserts);
+        rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
         r = rr;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

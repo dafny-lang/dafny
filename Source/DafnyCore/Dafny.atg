@@ -245,7 +245,6 @@ DeclModifier<ref DeclModifierData dmod>
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "blind"                                (. dmod.IsBlind = true; CheckAndSetToken(ref dmod.BlindToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   )
   .
 
@@ -1277,7 +1276,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                       new Specification<FrameExpression>(mod, modAttrs), ens, 
                       new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
-     m.IsBlind = dmod.IsBlind;
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
  .)
@@ -2012,7 +2010,6 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
                         byMethodTok, byMethodBody,
                         attrs, signatureEllipsis);
      }
-     f.IsBlind = dmod.IsBlind;
      f.BodyStartTok = bodyStart;
      f.TokenWithTrailingDocString = tokenWithTrailingDocString;
      SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(formals.Count));
@@ -3018,14 +3015,15 @@ RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression e; var es = new List<Expression>();
      IToken startToken = null;
+     bool hide = false;
   .)
-  "reveal"                                      (. x = t; startToken = t; .)
+  ( "reveal"                                    (. x = t; startToken = t; hide = false; .)
+  | "hide"                                      (. x = t; startToken = t; hide = true; .)
+  )
   Expression<out e, false, true>                (. es.Add(e); .)
   { "," Expression<out e, false, true>          (. es.Add(e); .)
   }
-  ";"                                           (.
-    s = new RevealStmt(new RangeToken(startToken, t), es);
-    .)
+  ";"                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, hide); .)
   .
 
 /*------------------------------------------------------------------------*/

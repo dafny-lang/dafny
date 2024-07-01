@@ -101,8 +101,8 @@ class GhostInterestVisitor {
         s.Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
       }
 
-    } else if (stmt is RevealStmt) {
-      var s = (RevealStmt)stmt;
+    } else if (stmt is HideRevealStmt) {
+      var s = (HideRevealStmt)stmt;
       s.ResolvedStatements.ForEach(ss => Visit(ss, true, "a reveal statement"));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
 

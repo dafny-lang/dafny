@@ -116,7 +116,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
   }
 
   public class RevealStmtWithDepth {
-    public RevealStmtWithDepth(RevealStmt RevealStmt, int Depth) {
+    public RevealStmtWithDepth(HideRevealStmt RevealStmt, int Depth) {
       this.RevealStmt = RevealStmt;
       this.Depth = Depth;
     }
@@ -130,7 +130,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
       return HashCode.Combine(RevealStmt.ToString());
     }
 
-    public RevealStmt RevealStmt { get; }
+    public HideRevealStmt RevealStmt { get; }
     public int Depth { get; }
   };
 
@@ -301,7 +301,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
     return finalExpr;
   }
 
-  public static RevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
+  public static HideRevealStmt BuildRevealStmt(Function func, IToken tok, ModuleDefinition rootModule) {
     List<Type> args = new List<Type>();
     foreach (var _ in func.EnclosingClass.TypeArgs) {
       args.Add(new IntType());
@@ -313,7 +313,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
 
     var callableClass = ((TopLevelDeclWithMembers)func.EnclosingClass);
 
-    var callableName = RevealStmt.RevealLemmaPrefix + func.Name;
+    var callableName = HideRevealStmt.RevealLemmaPrefix + func.Name;
     var member = callableClass.Members.Find(decl => decl.Name == callableName);
 
     Type.PushScope(callableClass.EnclosingModuleDefinition.VisibilityScope);
@@ -345,7 +345,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
         new List<ActualBinding>(), tok)
     };
 
-    var revealStmt = new RevealStmt(func.RangeToken, expressionList);
+    var revealStmt = new HideRevealStmt(func.RangeToken, expressionList, false);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
 

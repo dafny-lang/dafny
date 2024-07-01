@@ -70,16 +70,16 @@ namespace Microsoft.Dafny {
         PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
+      } else if (stmt is HideRevealStmt) {
+        var s = (HideRevealStmt)stmt;
         wr.Write("reveal ");
         var sep = "";
         foreach (var e in s.Exprs) {
           wr.Write(sep);
           sep = ", ";
-          if (RevealStmt.SingleName(e) != null) {
+          if (HideRevealStmt.SingleName(e) != null) {
             // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
-            wr.Write(RevealStmt.SingleName(e));
+            wr.Write(HideRevealStmt.SingleName(e));
           } else {
             PrintExpression(e, true);
           }

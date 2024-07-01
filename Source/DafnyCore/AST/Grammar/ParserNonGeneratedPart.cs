@@ -623,8 +623,6 @@ public partial class Parser {
     public bool IsStatic;
     public IToken StaticToken;
     public bool IsOpaque;
-    public bool IsBlind;
-    public IToken BlindToken;
     public IToken OpaqueToken;
     public IToken FirstToken;
   }

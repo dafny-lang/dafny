@@ -1073,8 +1073,8 @@ namespace Microsoft.Dafny {
 
     private void ReportMemberNotFoundError(IToken tok, string memberName, [CanBeNull] Dictionary<string, MemberDecl> members,
       TopLevelDecl receiverDecl, ResolutionContext resolutionContext) {
-      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
-        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+      if (memberName.StartsWith(HideRevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[HideRevealStmt.RevealLemmaPrefix.Length..];
         if (members == null) {
           if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
             // try this instead:
@@ -1150,7 +1150,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       Tuple<DatatypeCtor, bool> pair;
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       var v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -1274,7 +1274,7 @@ namespace Microsoft.Dafny {
 
     private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
       if (resolutionContext.InReveal) {
-        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        var nameToReport = name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? name[HideRevealStmt.RevealLemmaPrefix.Length..] : name;
         ReportError(tok,
           "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
           nameToReport);
@@ -1410,7 +1410,7 @@ namespace Microsoft.Dafny {
       Expression r = null;  // the resolved expression, if successful
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       var lhs = expr.Lhs.Resolved;
       if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
         var ri = (Resolver_IdentifierExpr)lhs;
