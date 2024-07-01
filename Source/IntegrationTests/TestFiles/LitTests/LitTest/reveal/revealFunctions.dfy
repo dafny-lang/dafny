@@ -1,7 +1,7 @@
 // RUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
 // RUN: %diff "%s.expect" "%t"
 
-function P(): bool {
+function P(x: int): bool {
   true
 }
 
@@ -10,16 +10,16 @@ method HideAndRevealStatementScoping() {
   
   if (*) {
     reveal P;
-    assert P();
+    assert P(0);
   } else {
-    assert P(); // error
+    assert P(0); // error
   }
   reveal P;
   if (*) {
-    assert P();
+    assert P(1);
   } else {
     hide *;
-    assert P(); // error
+    assert P(1); // error
   }
   
   hide *;
@@ -28,7 +28,7 @@ method HideAndRevealStatementScoping() {
   } else {
     reveal P;
   }
-  assert P(); // error, since the previous two reveal statements are out of scope
+  assert P(2); // error, since the previous two reveal statements are out of scope
 }
 
 function EnsuresFuncFoo(): bool
