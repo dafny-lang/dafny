@@ -3,4 +3,4 @@ revealFunctions.dfy(22,12): Error: assertion might not hold
 revealFunctions.dfy(31,10): Error: assertion might not hold
 revealFunctions.dfy(57,21): Error: assertion might not hold
 
-Dafny program verifier finished with 28 verified, 4 errors
+Dafny program verifier finished with 26 verified, 4 errors
