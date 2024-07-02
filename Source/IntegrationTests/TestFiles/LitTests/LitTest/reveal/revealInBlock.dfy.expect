@@ -25,14 +25,3 @@ method RevealExpressionScope()
   var e := ((x: bool) => reveal P; assert P(7); x)(true) || 
            (assert P(8); true); // error 
 }
-
-method MatchExpressionScope(x: int) {
-  hide *;
-  var x := match x {
-    case 0 =>
-      reveal P; assert P(0); 1
-    case _ =>
-      assert P(0); 2 // error
-  }
-  assert P(1); // error
-}

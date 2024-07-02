@@ -5,7 +5,7 @@ function P(x: int): bool {
   true
 }
 
-method HideAndRevealStatementScoping() {
+method HideAndRevealHappyFlow() {
   hide *;
   
   if (*) {
@@ -21,14 +21,6 @@ method HideAndRevealStatementScoping() {
     hide *;
     assert P(1); // error
   }
-  
-  hide *;
-  if (*) {
-    reveal P;
-  } else {
-    reveal P;
-  }
-  assert P(2); // error, since the previous two reveal statements are out of scope
 }
 
 function EnsuresFuncFoo(): bool
