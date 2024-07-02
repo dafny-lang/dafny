@@ -1,15 +1,18 @@
 // RUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
 // RUN: %diff "%s.expect" "%t"
 
-blind method ReadsClause() {
-  var o := new O;
-  var before := Obj(o);
-  o.x := 3;
-  if (*) {
-    assert Obj(o) == before; // passes, because reads clause is never hidden
-  } else {
-    assert Obj(o) == before by { // passes
-      reveal Obj;
-    }
+function P(x: int): bool {
+  true
+}
+
+method MatchStatementScope(x: int) {
+  hide *;
+  match x {
+    case 0 =>
+      reveal P;
+      assert P(0);
+    case _ =>
+      assert P(1); // error
   }
+  assert P(2); // error
 }

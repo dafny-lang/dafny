@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
 
     private void TranslateRevealStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
       HideRevealStmt revealStmt) {
-      AddComment(builder, revealStmt, "reveal statement");
+      AddComment(builder, revealStmt, "hide/reveal statement");
       foreach (var la in revealStmt.LabeledAsserts) {
         Contract.Assert(la.E != null);  // this should have been filled in by now
         builder.Add(new Bpl.AssumeCmd(revealStmt.Tok, la.E));
@@ -546,6 +546,8 @@ namespace Microsoft.Dafny {
             builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Hide));
           }
         }
+      } else {
+        var b = 3;
       }
 
       TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);

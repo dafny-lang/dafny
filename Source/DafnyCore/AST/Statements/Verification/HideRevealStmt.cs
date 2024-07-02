@@ -35,6 +35,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
     Exprs = original.Exprs?.Select(cloner.CloneExpr).ToList();
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
+      OffsetMembers = original.OffsetMembers.ToList();
       LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Tok(a.Tok), a.Name)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
