@@ -5141,6 +5141,23 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           return;
         }
+        case Is(expr, fromType, toType) => {
+          var expr, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
+          var fromType := GenType(fromType, GenTypeContext.default());
+          var toType := GenType(toType, GenTypeContext.default());
+          if fromType.IsObject() && toType.IsObject() {
+            r := R.dafny_runtime.MSel("is_instance_of_object").ApplyType(
+              [fromType.ObjectOrPointerUnderlying(), toType.ObjectOrPointerUnderlying()]
+            ).Apply1(expr);
+          } else {
+            error := Some("Source and/or target types of type test is/are not Object");
+            r := R.RawExpr(error.value);
+            readIdents := {};
+          }
+          r, resultingOwnership := FromOwnership(r, recOwned, expectedOwnership);
+          readIdents := recIdents;
+          return;
+        }
         case BoolBoundedPool() => {
           r := R.RawExpr("[false, true]");
           r, resultingOwnership := FromOwned(r, expectedOwnership);

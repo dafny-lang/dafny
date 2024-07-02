@@ -305,6 +305,7 @@ module {:extern "DAST"} DAST {
     IIFE(ident: Ident, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: Name) |
+    Is(expr: Expression, fromType: Type, toType: Type) |
     InitializationValue(typ: Type) |
     BoolBoundedPool() |
     SetBoundedPool(of: Expression) |

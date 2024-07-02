@@ -2767,7 +2767,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitTypeTest(string localName, Type fromType, Type toType, IToken tok, ConcreteSyntaxTree wr) {
-      AddUnsupportedFeature(tok, Feature.TypeTests);
+      if (GetExprBuilder(wr, out var builder)) {
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Is(
+          DAST.Expression.create_Ident(Sequence<Rune>.UnicodeFromString(localName)),
+          GenType(fromType),
+          GenType(toType)
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitIsIntegerTest(Expression source, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {

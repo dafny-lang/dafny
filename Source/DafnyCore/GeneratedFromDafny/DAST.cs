@@ -5863,6 +5863,7 @@ namespace DAST {
     bool is_IIFE { get; }
     bool is_Apply { get; }
     bool is_TypeTest { get; }
+    bool is_Is { get; }
     bool is_InitializationValue { get; }
     bool is_BoolBoundedPool { get; }
     bool is_SetBoundedPool { get; }
@@ -5930,6 +5931,8 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_ident { get; }
     DAST._IExpression dtor_iifeBody { get; }
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_dType { get; }
+    DAST._IType dtor_fromType { get; }
+    DAST._IType dtor_toType { get; }
     DAST._IExpression dtor_of { get; }
     bool dtor_includeDuplicates { get; }
     DAST._IExpression dtor_lo { get; }
@@ -6072,6 +6075,9 @@ namespace DAST {
     public static _IExpression create_TypeTest(DAST._IExpression @on, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dType, Dafny.ISequence<Dafny.Rune> variant) {
       return new Expression_TypeTest(@on, dType, variant);
     }
+    public static _IExpression create_Is(DAST._IExpression expr, DAST._IType fromType, DAST._IType toType) {
+      return new Expression_Is(expr, fromType, toType);
+    }
     public static _IExpression create_InitializationValue(DAST._IType typ) {
       return new Expression_InitializationValue(typ);
     }
@@ -6136,6 +6142,7 @@ namespace DAST {
     public bool is_IIFE { get { return this is Expression_IIFE; } }
     public bool is_Apply { get { return this is Expression_Apply; } }
     public bool is_TypeTest { get { return this is Expression_TypeTest; } }
+    public bool is_Is { get { return this is Expression_Is; } }
     public bool is_InitializationValue { get { return this is Expression_InitializationValue; } }
     public bool is_BoolBoundedPool { get { return this is Expression_BoolBoundedPool; } }
     public bool is_SetBoundedPool { get { return this is Expression_SetBoundedPool; } }
@@ -6310,7 +6317,8 @@ namespace DAST {
         if (d is Expression_IndexRange) { return ((Expression_IndexRange)d)._expr; }
         if (d is Expression_TupleSelect) { return ((Expression_TupleSelect)d)._expr; }
         if (d is Expression_BetaRedex) { return ((Expression_BetaRedex)d)._expr; }
-        return ((Expression_Apply)d)._expr;
+        if (d is Expression_Apply) { return ((Expression_Apply)d)._expr; }
+        return ((Expression_Is)d)._expr;
       }
     }
     public DAST._IExpression dtor_indexExpr {
@@ -6535,6 +6543,18 @@ namespace DAST {
       get {
         var d = this;
         return ((Expression_TypeTest)d)._dType;
+      }
+    }
+    public DAST._IType dtor_fromType {
+      get {
+        var d = this;
+        return ((Expression_Is)d)._fromType;
+      }
+    }
+    public DAST._IType dtor_toType {
+      get {
+        var d = this;
+        return ((Expression_Is)d)._toType;
       }
     }
     public DAST._IExpression dtor_of {
@@ -7955,6 +7975,43 @@ namespace DAST {
       return s;
     }
   }
+  public class Expression_Is : Expression {
+    public readonly DAST._IExpression _expr;
+    public readonly DAST._IType _fromType;
+    public readonly DAST._IType _toType;
+    public Expression_Is(DAST._IExpression expr, DAST._IType fromType, DAST._IType toType) : base() {
+      this._expr = expr;
+      this._fromType = fromType;
+      this._toType = toType;
+    }
+    public override _IExpression DowncastClone() {
+      if (this is _IExpression dt) { return dt; }
+      return new Expression_Is(_expr, _fromType, _toType);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Expression_Is;
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._fromType, oth._fromType) && object.Equals(this._toType, oth._toType);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 40;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._fromType));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._toType));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Expression.Is";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._expr);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._fromType);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._toType);
+      s += ")";
+      return s;
+    }
+  }
   public class Expression_InitializationValue : Expression {
     public readonly DAST._IType _typ;
     public Expression_InitializationValue(DAST._IType typ) : base() {
@@ -7970,7 +8027,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 40;
+      hash = ((hash << 5) + hash) + 41;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._typ));
       return (int) hash;
     }
@@ -7995,7 +8052,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 41;
+      hash = ((hash << 5) + hash) + 42;
       return (int) hash;
     }
     public override string ToString() {
@@ -8018,7 +8075,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 42;
+      hash = ((hash << 5) + hash) + 43;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       return (int) hash;
     }
@@ -8045,7 +8102,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 43;
+      hash = ((hash << 5) + hash) + 44;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       return (int) hash;
     }
@@ -8074,7 +8131,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 44;
+      hash = ((hash << 5) + hash) + 45;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._includeDuplicates));
       return (int) hash;
@@ -8108,7 +8165,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 45;
+      hash = ((hash << 5) + hash) + 46;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hi));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
@@ -8143,7 +8200,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 46;
+      hash = ((hash << 5) + hash) + 47;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
       return (int) hash;
@@ -8179,7 +8236,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 47;
+      hash = ((hash << 5) + hash) + 48;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collection));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._is__forall));
