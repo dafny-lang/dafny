@@ -191,7 +191,6 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   }
 
   string compileName;
-  bool hasFoundPackageName = false;
 
   public string GetCompileName(DafnyOptions options) {
     if (compileName != null) {

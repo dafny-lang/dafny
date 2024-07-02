@@ -185,10 +185,10 @@ public class CsharpBackend : ExecutableBackend {
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {
-        try {
-TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
-      { NetNamespaceCliOption, OptionCompatibility.NoOpOptionCheck }
-    });
+    try {
+      TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { NetNamespaceCliOption, OptionCompatibility.NoOpOptionCheck }
+      });
     } catch ( System.ArgumentException ex) {}
   }
 }
