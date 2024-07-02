@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore;
 using DafnyCore.Options;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Tomlyn;
@@ -16,6 +17,13 @@ using Tomlyn.Model;
 namespace Microsoft.Dafny;
 
 public class DafnyProject : IEquatable<DafnyProject> {
+  public static Option<FileInfo> FindProjectOption = new("--find-project",
+    "Given a filesystem path, search for a project file by traversing up the file tree.");
+
+  static DafnyProject() {
+    DooFile.RegisterNoChecksNeeded(FindProjectOption, false);
+  }
+
   public const string Extension = ".toml";
   public const string FileName = "dfyconfig" + Extension;
 
@@ -48,7 +56,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     Options = options ?? new Dictionary<string, object>();
   }
 
-  public static async Task<DafnyProject> Open(IFileSystem fileSystem, DafnyOptions dafnyOptions, Uri uri, IToken uriOrigin,
+  public static async Task<DafnyProject> Open(IFileSystem fileSystem, Uri uri, IToken uriOrigin,
     bool defaultIncludes = true, bool serverNameCheck = true) {
 
     var emptyProject = new DafnyProject(uri, null, new HashSet<string>(), new HashSet<string>(),
@@ -67,7 +75,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
         model.Options ?? new Dictionary<string, object>());
 
       if (result.Base != null) {
-        var baseProject = await Open(fileSystem, dafnyOptions, result.Base, new Token {
+        var baseProject = await Open(fileSystem, result.Base, new Token {
           Uri = uri,
           line = 1,
           col = 1

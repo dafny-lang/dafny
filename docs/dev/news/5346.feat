@@ -1,4 +1,0 @@
-Add support for "translation records", which record the options used when translating library code.
-* `--translation-record` - Provides a `.dtr` file from a previous translation of library code. Can be specified multiple times.
-* `--translation-record-output` - Customizes where to write the translation record for the current translation. Defaults to the output directory.
-Providing translation records is necessary to handle options such as `--outer-module` that affect how code is translated.

@@ -1647,7 +1647,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
       new;
       if objectType.RawPointers? {
-        this.error := Some("Raw pointers need to be wrapped in a newtype so that their equality has the semantics of Dafny (e.g. a class pointer and a trait pointer are equal), not Rust."); 
+        this.error := Some("Raw pointers need to be wrapped in a newtype so that their equality has the semantics of Dafny (e.g. a class pointer and a trait pointer are equal), not Rust.");
       }
     }
 

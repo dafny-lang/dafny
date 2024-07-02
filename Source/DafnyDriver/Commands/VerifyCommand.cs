@@ -42,7 +42,7 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
-        DafnyFile.UnsafeDependencies
+        DafnyFile.DoNotVerifyDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
       Concat(DafnyCommands.ResolverOptions);
