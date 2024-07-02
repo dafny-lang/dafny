@@ -450,7 +450,12 @@ namespace Microsoft.Dafny.Compilers {
                   hasRhs = true;
                 }
               }
-              TrLocalVar(local, !hasRhs, wr);
+              
+              // The head variable of an elephant assignment will be declared by its desugaring
+              if (!(i == 0 && s.Update is AssignOrReturnStmt)) {
+                TrLocalVar(local, !hasRhs, wr);
+              }
+
               i++;
             }
             if (s.Update != null) {
