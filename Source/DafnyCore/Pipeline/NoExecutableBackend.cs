@@ -17,6 +17,8 @@ public class NoExecutableBackend : IExecutableBackend {
     throw new NotSupportedException();
   }
 
+  public override string FilterModuleNameWithPackage(string moduleName) { return moduleName; }
+
   public override bool TextualTargetIsExecutable => throw new NotSupportedException();
 
   public override bool SupportsInMemoryCompilation => throw new NotSupportedException();

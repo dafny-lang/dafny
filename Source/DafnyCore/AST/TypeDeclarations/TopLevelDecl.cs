@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System;
 
 namespace Microsoft.Dafny;
 
@@ -75,6 +76,12 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
         return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
       }
     }
+
+    // Console.WriteLine("GetCompileName(options) = " + GetCompileName(options));
+    //     Console.WriteLine("EnclosingModuleDefinition.GetCompileName(options) = " + EnclosingModuleDefinition.GetCompileName(options));
+
+    // Console.WriteLine("GetCompileName(options) = " + GetCompileName(options));
+
 
     return options.Backend.GetCompileName(EnclosingModuleDefinition.TryToAvoidName,
       EnclosingModuleDefinition.GetCompileName(options), GetCompileName(options));

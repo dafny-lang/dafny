@@ -74,6 +74,8 @@ public abstract class IExecutableBackend {
   public virtual string GetCompileName(bool isDefaultModule, string moduleName, string compileName) =>
     $"{PublicIdProtect(moduleName)}.{PublicIdProtect(compileName)}";
 
+  public abstract string FilterModuleNameWithPackage(string moduleName);
+
   /// <summary>
   /// Which native formats this compiler supports (members of <c>Dafny.NativeType.Selection</c>).
   /// </summary>

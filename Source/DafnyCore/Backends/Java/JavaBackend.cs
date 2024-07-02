@@ -54,6 +54,35 @@ public class JavaBackend : ExecutableBackend {
     return new JavaCodeGenerator(Options, Reporter);
   }
 
+  
+
+  public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
+    // var newModuleName = FilterModuleNameWithPackage(moduleName);
+    return isDefaultModule
+      ? PublicIdProtect(compileName)
+      : base.GetCompileName(isDefaultModule, moduleName, compileName);
+  }
+
+  // protected string FilterModuleNameWithPackage(string moduleName) {
+  //     // if (ThisIsInTheSamePackage(moduleName)) {
+  //     //   return "";
+  //     // }
+
+  //     var sanitizedName = moduleName.TrimEnd('.');
+  //     if (moduleNameToPackageNameMap.ContainsKey(sanitizedName)) {
+  //       if (string.IsNullOrEmpty(moduleNameToPackageNameMap[sanitizedName])) {
+  //         return moduleName;
+  //       }
+  //       return moduleNameToPackageNameMap[sanitizedName] + "." + moduleName;
+  //     }
+
+  //     return moduleName;
+
+  //     // if (PackageWasImported(moduleName)) {
+  //     //   return "";
+  //     // }
+  // }
+
   private void EmitRuntimeJar(string targetDirectory) {
     // Since DafnyRuntime.jar is binary, we can't use ReadRuntimeSystem
     var jarName = "DafnyRuntime.jar";

@@ -8,6 +8,18 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using DafnyCore.Options;
+
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.CommandLine;
+using System.Diagnostics.Contracts;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -23,9 +35,19 @@ public class CsharpBackend : ExecutableBackend {
   public override bool IsStable => true;
   public override string TargetExtension => "cs";
 
+  public bool NetNamespaceMode { get; set; } = true;
+  public string NetNamespace;
+
+  public static readonly Option<string> NetNamespaceCliOption = new("--dotnet-namespace",
+    @"This Option is used to specify the .NET namespace for the translated code".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { NetNamespaceCliOption };
+
+
   // True if the most recently visited AST has a method annotated with {:synthesize}:
 
   public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
+    // var newModuleName = FilterModuleNameWithPackage(moduleName);
     return isDefaultModule
       ? PublicIdProtect(compileName)
       : base.GetCompileName(isDefaultModule, moduleName, compileName);
@@ -164,5 +186,10 @@ public class CsharpBackend : ExecutableBackend {
   }
 
   public CsharpBackend(DafnyOptions options) : base(options) {
+        try {
+TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+      { NetNamespaceCliOption, OptionCompatibility.NoOpOptionCheck }
+    });
+    } catch ( System.ArgumentException ex) {}
   }
 }
