@@ -387,16 +387,11 @@ namespace Microsoft.Dafny.Compilers {
 
     private void EmitImport(Import import, ConcreteSyntaxTree importWriter) {
       importWriter.WriteLine($"import {import.Path.Replace('/', '.')}.*;");
-      // importWriter.WriteLine($"import {import.Path.Replace('/', '.')};");
     }
 
     string IdProtectModule(string moduleName) {
       return string.Join(".", moduleName.Split(".").Select(IdProtect));
     }
-
-    // protected override string IdProtect(string name) {
-    //   return PublicIdProtect(name);
-    // }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
       string libraryName /*?*/, ConcreteSyntaxTree wr) {
@@ -409,7 +404,6 @@ namespace Microsoft.Dafny.Compilers {
       }
       var pkgName = libraryName ?? IdProtect(moduleName);
       var path = pkgName.Replace('.', '/');
-      // var trimmedModuleName = string.Join(".", moduleName.Split('.').Reverse().Skip(1).Reverse());
       var import = new Import(moduleName, moduleName);
       ModuleName = IdProtect(moduleName);
       ModulePath = path;
@@ -853,7 +847,7 @@ namespace Microsoft.Dafny.Compilers {
         return IdProtect(udt.GetFullCompanionCompileName(Options));
       } else {
         return IdProtectModule(cl.EnclosingModuleDefinition.GetCompileName(Options)) + "." + IdProtect(cl.GetCompileName(Options));
-      } 
+      }
     }
 
     protected override void TypeName_SplitArrayName(Type type, out Type innermostElementType, out string brackets) {
@@ -1848,83 +1842,21 @@ namespace Microsoft.Dafny.Compilers {
       return middle;
     }
 
-    protected bool ThisIsInTheSamePackage(string moduleName) {
-      var sanitizedName = moduleName.TrimEnd('.');
-      if (!moduleToPackageName.ContainsKey(sanitizedName)) {
-        return false;
-      }
-      var packageName = moduleToPackageName[sanitizedName] + "." + sanitizedName;
-      var output = (packageName == ModuleName);
-      // Console.WriteLine("ThisIsInTheSamePackage packageName = " + packageName);
-      // Console.WriteLine("ThisIsInTheSamePackage ModuleName = " + ModuleName);
-      // Console.WriteLine("ThisIsInTheSamePackage = " + output);
-      return output;
-    }
-
-    // protected override string IdProtect(string name) {
-    //   return PublicIdProtect(name);
-    // }
-
-    public override string FilterModuleNameWithPackage(string moduleName) {
+    public override string MaybePrependModuleNameWithCodeLocationPrefix(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
 
       var prefixes = sanitizedName.Split('.').Select((s, i) => string.Join(".", sanitizedName.Split('.').Take(i + 1))).ToList();
 
       foreach (string prefix in prefixes) {
-            if (moduleToPackageName.ContainsKey(prefix)) {
-            if (string.IsNullOrEmpty(moduleToPackageName[prefix])) {
-              return moduleName;
-            }
-            return moduleToPackageName[prefix] + "." + moduleName;
+        if (moduleToPackageName.ContainsKey(prefix)) {
+          if (string.IsNullOrEmpty(moduleToPackageName[prefix])) {
+            return moduleName;
           }
-        }
-
-                  return moduleName;
-
-      }
-
-
-    protected bool ShouldPrependPackageNamePrefix(string sanitizedName) {
-            Console.WriteLine("prefix check 1 = " + (PackageWasImported(sanitizedName)));
-
-      return !PackageWasImported(sanitizedName);
-    }
-
-    protected bool ShouldStripPackageNameFromModuleName(string sanitizedName) {
-      Console.WriteLine("Sanitized = " + sanitizedName);
-      Console.WriteLine("ModuelName = " + ModuleName);
-      Console.WriteLine("strip check 1 = " + moduleToPackageName.ContainsKey(sanitizedName));
-      Console.WriteLine("strip check 2 = " + (moduleToPackageName[sanitizedName] == ""));
-      Console.WriteLine("debug strip check 2 = " + moduleToPackageName[sanitizedName]);
-      Console.WriteLine("strip check 3 = " + (sanitizedName == ModuleName.Split('.').Last()));
-
-      return moduleToPackageName.ContainsKey(sanitizedName)
-        && moduleToPackageName[sanitizedName] == ""
-        && (sanitizedName == ModuleName.Split('.').Last());
-    }
-
-    protected string GetOriginalPackageName(string sanitizedName) {
-      return moduleToPackageName[sanitizedName];
-        // foreach (KeyValuePair<string, string> kvp in moduleToPackageName)
-        // {
-        //   Console.WriteLine("Key = " + kvp.Key);
-        //   if (kvp.Key == sanitizedName) {
-        //     Console.WriteLine("Val = " + kvp.Value);
-        //     return kvp.Value;
-        //   }
-        // }
-    }
-
-    protected bool PackageWasImported(string moduleName) {
-      var sanitizedName = moduleName.TrimEnd('.');
-      // Console.WriteLine("import check sanitizedName = " + sanitizedName);
-      // This makes 0 sense now
-      foreach (var import in Imports) {
-        if (moduleToPackageName.ContainsKey(sanitizedName)) {
-          return true;
+        return moduleToPackageName[prefix] + "." + moduleName;
         }
       }
-      return false;
+
+      return moduleName;
     }
 
     protected override bool CompareZeroUsingSign(Type type) {
@@ -2283,7 +2215,7 @@ namespace Microsoft.Dafny.Compilers {
         if (dt is TupleTypeDecl) {
           nm = "";
         } else {
-          nm = dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + "." + dt.Name + "." + ctor.Name;
+          nm = (dt.EnclosingModuleDefinition.TryToAvoidName ? "" : dt.EnclosingModuleDefinition.Name + ".") + dt.Name + "." + ctor.Name;
         }
         if (dt is TupleTypeDecl && ctor.Formals.Count == 0) {
           // here we want parentheses and no name
@@ -2743,8 +2675,6 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var m in program.CompileModules) {
         if (!m.IsDefaultModule && !m.Name.Equals("_System")) {
 
-          // Console.WriteLine("m.FullDafnyName = " + m.FullDafnyName);
-
           var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
           translatedRecord.OptionsByModule.TryGetValue(m.FullDafnyName, out var moduleOptions);
           object dependencyModuleName = null;
@@ -2752,24 +2682,17 @@ namespace Microsoft.Dafny.Compilers {
 
           var dependencyModuleNameStr = (string)dependencyModuleName;
 
-          // Console.WriteLine("dependencyModuleNameStr = " + dependencyModuleNameStr);
-
           if (string.IsNullOrEmpty(dependencyModuleNameStr)) {
             dependencyModuleNameStr = JavaPackageName;
           }
 
           moduleToPackageName.Add(m.GetCompileName(Options), dependencyModuleNameStr);
-          // JavaBackend.moduleNameToPackageNameMap.Add(m.GetCompileName(Options), dependencyModuleNameStr);
-
-          Console.WriteLine("organizemodules" + m.GetCompileName(Options) + " = " + dependencyModuleNameStr);
 
           modules.Add(m);
         }
       }
       foreach (var m in program.CompileModules) {
         if (m.Name.Equals("_System")) {
-          Console.WriteLine(m.GetCompileName(Options) + " = " + "_System");
-
           moduleToPackageName.Add(m.GetCompileName(Options), JavaPackageName);
 
           modules.Add(m);
@@ -2777,8 +2700,6 @@ namespace Microsoft.Dafny.Compilers {
       }
       foreach (var m in program.CompileModules) {
         if (m.IsDefaultModule) {
-          Console.WriteLine(m.GetCompileName(Options) + " = " + "dafny_");
-
           moduleToPackageName.Add(m.GetCompileName(Options), "dafny_");
 
           modules.Add(m);

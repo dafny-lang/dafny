@@ -1342,7 +1342,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public override string FilterModuleNameWithPackage(string moduleName) {
+    public override string MaybePrependModuleNameWithCodeLocationPrefix(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
 
       var prefixes = sanitizedName.Split('.').Select((s, i) => string.Join(".", sanitizedName.Split('.').Take(i + 1))).ToList();

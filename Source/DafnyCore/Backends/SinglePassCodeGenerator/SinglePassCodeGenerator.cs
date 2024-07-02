@@ -42,7 +42,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     public abstract string PublicIdProtect(string name);
 
-    public virtual string FilterModuleNameWithPackage(string moduleName) { return moduleName; }
+    public virtual string MaybePrependModuleNameWithCodeLocationPrefix(string moduleName) { return moduleName; }
 
     public static Plugin Plugin =
       new ConfiguredPlugin(InternalBackendsPluginConfiguration.Singleton);
@@ -1482,7 +1482,6 @@ namespace Microsoft.Dafny.Compilers {
 
       return (result, (wr) => {
         if (AsNativeType(type) != null) {
-          Console.WriteLine("BLAH " + type.AsNewtype.GetFullCompileName(Options));
           wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.GetFullCompileName(Options)));
         } else {
           wr.Write("{0}.IntegerRange(", GetHelperModuleName());

@@ -21,7 +21,7 @@ public static class ExternExtensions {
           name = externArgs[0].AsStringLiteral();
           return true;
         } else if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
-          qualification = options.Backend.FilterModuleNameWithPackage(externArgs[0].AsStringLiteral());
+          qualification = options.Backend.MaybePrependModuleNameWithCodeLocationPrefix(externArgs[0].AsStringLiteral());
           name = externArgs[1].AsStringLiteral();
           return true;
         }

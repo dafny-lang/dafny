@@ -27,8 +27,8 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   public override string ModuleSeparator => CodeGenerator.ModuleSeparator;
 
-  public override string FilterModuleNameWithPackage(string moduleName) { 
-    return CodeGenerator.FilterModuleNameWithPackage(moduleName);
+  public override string MaybePrependModuleNameWithCodeLocationPrefix(string moduleName) { 
+    return CodeGenerator.MaybePrependModuleNameWithCodeLocationPrefix(moduleName);
   }
 
   public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {

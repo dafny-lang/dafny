@@ -47,7 +47,7 @@ public class CsharpBackend : ExecutableBackend {
   // True if the most recently visited AST has a method annotated with {:synthesize}:
 
   public override string GetCompileName(bool isDefaultModule, string moduleName, string compileName) {
-    // var newModuleName = FilterModuleNameWithPackage(moduleName);
+    // var newModuleName = MaybePrependModuleNameWithCodeLocationPrefix(moduleName);
     return isDefaultModule
       ? PublicIdProtect(compileName)
       : base.GetCompileName(isDefaultModule, moduleName, compileName);
