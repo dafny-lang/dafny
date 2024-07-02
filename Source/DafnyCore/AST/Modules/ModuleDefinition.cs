@@ -195,7 +195,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public string GetCompileName(DafnyOptions options) {
     // Console.WriteLine("GETTING");
-    if (compileName != null && hasFoundPackageName) {
+    if (compileName != null) {
+
+    // if (compileName != null && hasFoundPackageName) {
       // Console.WriteLine("cache hit " + compileName);
       return compileName;
     }
@@ -219,35 +221,10 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         // a flat list of modules.
         // Use an "underscore-escaped" character as a module name separator, since
         // underscores are already used as escape characters in SanitizeName()
-        compileName = options.Backend.FilterModuleNameWithPackage(EnclosingModule.GetCompileName(options)) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
-      // } else {
-        // if (EnclosingModule != null) {
-        //   if (options.Backend.FilterModuleNameWithPackage(EnclosingModule.GetCompileName(options)) != "_module") {
-        //     Console.WriteLine("This is not _System: " + options.Backend.FilterModuleNameWithPackage(EnclosingModule.GetCompileName(options)));
-        //     Console.WriteLine("proof: " + options.Backend.FilterModuleNameWithPackage(EnclosingModule.GetCompileName(options))!= "_System");
-        //     compileName = options.Backend.FilterModuleNameWithPackage(compileName) +  NonglobalVariable.SanitizeName(Name);
-        //   } else {
-        //     // this is boundedints path...
-        //     Console.WriteLine("Name = " + Name);
-        //     Console.WriteLine("FilterModuleNameWithPackage = " + options.Backend.FilterModuleNameWithPackage(Name));
-          // }
-        } else if (options.Backend.FilterModuleNameWithPackage(Name) != Name) {
-            hasFoundPackageName = true;
-            // Console.WriteLine("now true also Name = " + Name);
-            // Console.WriteLine("FilterModuleNameWithPackage = " + options.Backend.FilterModuleNameWithPackage(Name));
-            compileName = options.Backend.FilterModuleNameWithPackage(Name);
-        }
-        
-        else {
-            // Console.WriteLine("still false also Name = " + Name);
-            //             Console.WriteLine("FilterModuleNameWithPackage = " + options.Backend.FilterModuleNameWithPackage(Name));
-            compileName = NonglobalVariable.SanitizeName(Name);
-        }
-        // Console.WriteLine("options = " + options);
-        // Console.WriteLine("options.Backend = " + options.Backend);
-        // Console.WriteLine("EnclosingModule = " + EnclosingModule);
-        // Console.WriteLine("EnclosingModule.GetCompileName(options) = " + EnclosingModule.GetCompileName(options));
-      // }
+        compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+      } else {
+        compileName = NonglobalVariable.SanitizeName(Name);
+      }
 
       compileName += nonExternSuffix;
     }
