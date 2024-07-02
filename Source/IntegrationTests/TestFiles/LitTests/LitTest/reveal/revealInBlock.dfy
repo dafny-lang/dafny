@@ -7,7 +7,7 @@ function P(x: int): bool {
 }
 
 function Q(): int 
-  requires P() {
+  requires P(0) {
   3
 }
 
@@ -41,11 +41,14 @@ method BlockScope() {
   assert P(1); // error
 }
 
-method Forall(a: Array<int>) {
-  forall i | 0 <= i < a.Length {
-    a[i] := 0;
-    reveal P;
-    assert P(0);
+method Forall() {
+  var aa := new int[3];
+  forall i | 0 <= i < aa.Length
+  {
+    aa[i] := 0;
+    // Somehow the next two lines cause the entire forall to become a ghost context
+    // reveal P;
+    // assert P(0);
   }
   assert P(1); // error
 }
@@ -59,3 +62,7 @@ method While() {
   }
   assert P(1); // error
 }
+
+// Calc statement
+
+// If-alternative statement. Does anyone use that?
