@@ -221,39 +221,8 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmdWithDependencies(etran, s.Tok, s.Expr, "assign-such-that constraint"));
         builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
-        // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
-        // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
-        var resolved = s.ResolvedStatements;
-        if (resolved.Count == 1) {
-          TrStmt(resolved[0], builder, locals, etran);
-        } else {
-          AddComment(builder, s, "update statement");
-          var assignStmts = resolved.Cast<AssignStmt>().ToList();
-          var lhss = assignStmts.Select(a => a.Lhs).ToList();
-          var rhss = assignStmts.Select(a => a.Rhs).ToList();
-          // note: because we have more than one expression, we always must assign to Boogie locals in a two
-          // phase operation. Thus rhssCanAffectPreviouslyKnownExpressions is just true.
-          Contract.Assert(1 < lhss.Count);
-
-          ProcessLhss(lhss, true, false, builder, locals, etran, stmt, out var lhsBuilder, out var bLhss, out var lhsObjs, out var lhsFields, out var lhsNames);
-          // We know that, because the translation saves to a local variable, that the RHS always need to
-          // generate a new local, i.e. bLhss is just all nulls.
-          Contract.Assert(Contract.ForAll(bLhss, lhs => lhs == null));
-          // This generates the assignments, and gives them to us as finalRhss.
-          var finalRhss = ProcessUpdateAssignRhss(lhss, rhss, builder, locals, etran, stmt);
-          // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
-          // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
-          // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
-          CheckLhssDistinctness(finalRhss, s.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames, s.OriginalInitialLhs);
-          // Now actually perform the assignments to the LHS.
-          for (int i = 0; i < lhss.Count; i++) {
-            lhsBuilder[i](finalRhss[i], s.Rhss[i] is HavocRhs, builder, etran);
-          }
-          builder.AddCaptureState(s);
-        }
-
+      } else if (stmt is UpdateStmt statement) {
+        TrUpdateStmt(builder, locals, etran, statement);
       } else if (stmt is AssignOrReturnStmt) {
         AddComment(builder, stmt, "assign-or-return statement (:-)");
         AssignOrReturnStmt s = (AssignOrReturnStmt)stmt;
@@ -413,6 +382,40 @@ namespace Microsoft.Dafny {
         throw new NotSupportedException("Verification of try/recover statements is not supported");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    private void TrUpdateStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, UpdateStmt statement)
+    {
+      // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
+      // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
+      var resolved = statement.ResolvedStatements;
+      if (resolved.Count == 1) {
+        TrStmt(resolved[0], builder, locals, etran);
+      } else {
+        AddComment(builder, statement, "update statement");
+        var assignStmts = resolved.Cast<AssignStmt>().ToList();
+        var lhss = assignStmts.Select(a => a.Lhs).ToList();
+        var rhss = assignStmts.Select(a => a.Rhs).ToList();
+        // note: because we have more than one expression, we always must assign to Boogie locals in a two
+        // phase operation. Thus rhssCanAffectPreviouslyKnownExpressions is just true.
+        Contract.Assert(1 < lhss.Count);
+
+        ProcessLhss(lhss, true, false, builder, locals, etran, statement, out var lhsBuilder, out var bLhss, out var lhsObjs, out var lhsFields, out var lhsNames);
+        // We know that, because the translation saves to a local variable, that the RHS always need to
+        // generate a new local, i.e. bLhss is just all nulls.
+        Contract.Assert(Contract.ForAll(bLhss, lhs => lhs == null));
+        // This generates the assignments, and gives them to us as finalRhss.
+        var finalRhss = ProcessUpdateAssignRhss(lhss, rhss, builder, locals, etran, statement);
+        // ProcessLhss has laid down framing conditions and the ProcessUpdateAssignRhss will check subranges (nats),
+        // but we need to generate the distinctness condition (two LHS are equal only when the RHS is also
+        // equal). We need both the LHS and the RHS to do this, which is why we need to do it here.
+        CheckLhssDistinctness(finalRhss, statement.Rhss, lhss, builder, etran, lhsObjs, lhsFields, lhsNames, statement.OriginalInitialLhs);
+        // Now actually perform the assignments to the LHS.
+        for (int i = 0; i < lhss.Count; i++) {
+          lhsBuilder[i](finalRhss[i], statement.Rhss[i] is HavocRhs, builder, etran);
+        }
+        builder.AddCaptureState(statement);
       }
     }
 
