@@ -791,4 +791,8 @@ mod tests {
         assert_eq!(DafnyUsize::into_usize(b), u);
         assert_eq!(DafnyUsize::into_usize(int!(b)), u);
     }
+
+    // Tests that we can compose Dafny types, like a sequence of maps
+    fn _test<X: DafnyTypeEq, Y: DafnyType>(_input: Sequence<Map<X, Y>>) {
+    }
 }

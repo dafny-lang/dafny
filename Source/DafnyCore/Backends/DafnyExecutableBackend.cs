@@ -10,6 +10,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected virtual bool PreventShadowing => true;
   protected virtual bool CanEmitUncompilableCode => true;
+  public override bool SupportsDatatypeWrapperErasure => false;
 
   protected virtual string InternalFieldPrefix => "_i_";
 

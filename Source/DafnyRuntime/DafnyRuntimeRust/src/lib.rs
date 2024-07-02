@@ -940,12 +940,12 @@ impl<V: DafnyType> Debug for Sequence<V> {
 pub struct Map<K, V>
 where
     K: DafnyTypeEq,
-    V: DafnyTypeEq,
+    V: DafnyType,
 {
     data: Rc<HashMap<K, V>>,
 }
 
-impl<K: DafnyTypeEq, V: DafnyTypeEq> Default for Map<K, V> {
+impl<K: DafnyTypeEq, V: DafnyType> Default for Map<K, V> {
     fn default() -> Self {
         Map {
             data: Rc::new(HashMap::new()),
@@ -953,13 +953,13 @@ impl<K: DafnyTypeEq, V: DafnyTypeEq> Default for Map<K, V> {
     }
 }
 
-impl<K: DafnyTypeEq, V: DafnyTypeEq> NontrivialDefault for Map<K, V> {
+impl<K: DafnyTypeEq, V: DafnyType> NontrivialDefault for Map<K, V> {
     fn nontrivial_default() -> Self {
         Self::default()
     }
 }
 
-impl<K: DafnyTypeEq, V: DafnyTypeEq> Hash for Map<K, V> {
+impl<K: DafnyTypeEq, V: DafnyType> Hash for Map<K, V> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.data.len().hash(state); // Worst performance for things that are not hashable like maps
     }
@@ -985,7 +985,7 @@ where
 
 impl<K: DafnyTypeEq, V: DafnyTypeEq> Eq for Map<K, V> {}
 
-impl<K: DafnyTypeEq, V: DafnyTypeEq> Map<K, V> {
+impl<K: DafnyTypeEq, V: DafnyType> Map<K, V> {
     pub fn new_empty() -> Map<K, V> {
         Map {
             data: Rc::new(HashMap::new()),
@@ -1095,13 +1095,6 @@ impl<K: DafnyTypeEq, V: DafnyTypeEq> Map<K, V> {
         }
         Set::from_hashset_owned(result)
     }
-    pub fn values(&self) -> Set<V> {
-        let mut result: Vec<V> = Vec::new();
-        for (_, v) in self.data.iter() {
-            result.push(v.clone());
-        }
-        Set::from_array(&result)
-    }
 
     pub fn update_index(&self, index: &K, value: &V) -> Self {
         let mut result = self.data.as_ref().clone();
@@ -1124,6 +1117,24 @@ impl<K: DafnyTypeEq, V: DafnyTypeEq> Map<K, V> {
     }
 }
 
+
+impl<K: DafnyTypeEq, V: DafnyTypeEq> Map<K, V> {
+    pub fn values(&self) -> Set<V> {
+        let mut result: Vec<V> = Vec::new();
+        for (_, v) in self.data.iter() {
+            result.push(v.clone());
+        }
+        Set::from_array(&result)
+    }
+    pub fn items(&self) -> Set<(K, V)> {
+        let mut result: Vec<(K, V)> = Vec::new();
+        for (k, v) in self.data.iter() {
+            result.push((k.clone(), v.clone()));
+        }
+        Set::from_array(&result)
+    }
+}
+
 impl<K: DafnyTypeEq> Map<K, DafnyInt> {
     pub fn as_dafny_multiset(&self) -> Multiset<K> {
         Multiset::from_hashmap(&self.data)
@@ -1141,7 +1152,7 @@ where
 impl<K, V> MapBuilder<K, V>
 where
     K: DafnyTypeEq,
-    V: DafnyTypeEq,
+    V: DafnyType,
 {
     pub fn new() -> MapBuilder<K, V> {
         MapBuilder {
@@ -1160,7 +1171,7 @@ where
 impl<K, V> DafnyPrint for Map<K, V>
 where
     K: DafnyTypeEq,
-    V: DafnyTypeEq,
+    V: DafnyType,
 {
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
         f.write_str("map[")?;
@@ -1196,6 +1207,15 @@ where
 pub struct Set<V: DafnyTypeEq> {
     data: Rc<HashSet<V>>,
 }
+
+// Since there is no canonical way to iterate over a set to compute the hash.
+impl<T: DafnyTypeEq> ::std::hash::Hash for Set<T> {
+    fn hash<_H: ::std::hash::Hasher>(&self, _state: &mut _H) {
+        self.cardinality_usize().hash(_state)
+    }
+}
+
+impl<T: DafnyTypeEq> Eq for Set<T> {}
 
 impl<T> Default for Set<T>
 where
