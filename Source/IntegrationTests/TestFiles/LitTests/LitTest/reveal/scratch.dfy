@@ -5,14 +5,10 @@ function P(x: int): bool {
   true
 }
 
-method MatchStatementScope(x: int) {
-  hide *;
-  match x {
-    case 0 =>
-      reveal P;
-      assert P(0);
-    case _ =>
-      assert P(1); // error
+method BlockScope() {
+  {
+    reveal P;
+    assert P(0);
   }
-  assert P(2); // error
+  assert P(1); // error
 }

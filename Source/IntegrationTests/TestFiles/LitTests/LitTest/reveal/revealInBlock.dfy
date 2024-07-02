@@ -34,6 +34,7 @@ method MatchStatementScope(x: int) {
 }
 
 method BlockScope() {
+  hide *;
   {
     reveal P;
     assert P(0);
@@ -42,6 +43,7 @@ method BlockScope() {
 }
 
 method Forall() {
+  hide *;
   var aa := new int[3];
   forall i | 0 <= i < aa.Length
   {
@@ -54,6 +56,7 @@ method Forall() {
 }
 
 method While() {
+  hide *;
   var x := 3;
   while(x > 0) {
     reveal P;

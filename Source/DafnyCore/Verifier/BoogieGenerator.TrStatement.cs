@@ -308,12 +308,10 @@ namespace Microsoft.Dafny {
         TrStmtList(s.BodyProper, builder, locals, etran);
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
-      } else if (stmt is BlockStmt) {
-        var s = (BlockStmt)stmt;
+      } else if (stmt is BlockStmt blockStmt) {
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(s.Body, builder, locals, etran);
-        RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
-
+        TrStmtList(blockStmt.Body, builder, locals, etran, true);
+        RemoveDefiniteAssignmentTrackers(blockStmt.Body, prevDefiniteAssignmentTrackerCount);
       } else if (stmt is IfStmt ifStmt) {
         TrIfStmt(ifStmt, builder, locals, etran);
 
@@ -2783,11 +2781,14 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool introduceScope = false) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+      if (introduceScope) {
+        builder.Add(new ChangeScope(Token.NoToken, true));
+      }
       foreach (Statement ss in stmts) {
         for (var l = ss.Labels; l != null; l = l.Next) {
           var heapAt = new Bpl.LocalVariable(ss.Tok, new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
@@ -2798,6 +2799,9 @@ namespace Microsoft.Dafny {
         if (ss.Labels != null) {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
+      }
+      if (introduceScope) {
+        builder.Add(new ChangeScope(Token.NoToken, false));
       }
     }
 
