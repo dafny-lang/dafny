@@ -1015,8 +1015,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced) {
-      var toType = thisContext == null ? e.Type : e.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-      wr = EmitCoercionIfNecessary(e.Function.Original.ResultType, toType, e.tok, wr);
+      var toType = e.Type.Subst(e.GetTypeArgumentSubstitutions());
+      var fromType = e.Function.Original.ResultType.Subst(e.GetTypeArgumentSubstitutions());
+      if (thisContext != null) {
+        toType = toType.Subst(thisContext.ParentFormalTypeParametersToActuals);
+        fromType = fromType.Subst(thisContext.ParentFormalTypeParametersToActuals);
+      }
+      wr = EmitCoercionIfNecessary(fromType, toType, e.tok, wr);
 
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         var callBuilder = builder.Builder.Call(GenFormals(e.Function.Ins));
@@ -2039,7 +2044,7 @@ namespace Microsoft.Dafny.Compilers {
         indexType = Type.Int;
       } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true} normalized) {
         collKind = DAST.CollKind.create_Map();
-        indexType = normalized.AsMapType.Domain; // Or Range?
+        indexType = normalized.AsMapType.Domain;
       } else {
         collKind = DAST.CollKind.create_Seq();
         indexType = Type.Int;

@@ -1854,6 +1854,7 @@ namespace RAST {
     RAST._IType dtor_right { get; }
     Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> dtor_size { get; }
     _IType DowncastClone();
+    bool EndsWithNameThatCanAcceptGenerics();
     RAST._IType Replace(Dafny.IMap<RAST._IType,RAST._IType> mapping);
     bool CanReadWithoutClone();
     bool IsSelfPointer();
@@ -2056,6 +2057,9 @@ namespace RAST {
       }
     }
     public abstract _IType DowncastClone();
+    public bool EndsWithNameThatCanAcceptGenerics() {
+      return (((((((((((((((((((this).is_U8) || ((this).is_U16)) || ((this).is_U32)) || ((this).is_U64)) || ((this).is_U128)) || ((this).is_I8)) || ((this).is_I16)) || ((this).is_I32)) || ((this).is_I64)) || ((this).is_I128)) || ((this).is_TIdentifier)) || ((this).is_TMemberSelect)) || (((this).is_Borrowed) && (((this).dtor_underlying).EndsWithNameThatCanAcceptGenerics()))) || (((this).is_BorrowedMut) && (((this).dtor_underlying).EndsWithNameThatCanAcceptGenerics()))) || (((this).is_Pointer) && (((this).dtor_underlying).EndsWithNameThatCanAcceptGenerics()))) || (((this).is_PointerMut) && (((this).dtor_underlying).EndsWithNameThatCanAcceptGenerics()))) || (((this).is_ImplType) && (((this).dtor_underlying).EndsWithNameThatCanAcceptGenerics()))) || (((this).is_DynType) && (((this).dtor_underlying).EndsWithNameThatCanAcceptGenerics()))) || (((this).is_IntersectionType) && (((this).dtor_right).EndsWithNameThatCanAcceptGenerics()));
+    }
     public RAST._IType Replace(Dafny.IMap<RAST._IType,RAST._IType> mapping) {
       var _pat_let_tv41 = mapping;
       var _pat_let_tv42 = mapping;
@@ -6287,7 +6291,11 @@ namespace RAST {
             }
             if (disjunctiveMatch7) {
               unmatched50 = false;
-              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
+              if ((((_1099_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) && ((_1100_left).is_TypeAscription)) && (((_1100_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
+              } else {
+                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
+              }
             }
           }
           if (unmatched50) {
@@ -6330,7 +6338,11 @@ namespace RAST {
             }
             if (disjunctiveMatch8) {
               unmatched50 = false;
-              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());
+              if (((((_1099_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) || ((_1099_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<=")))) && ((_1100_left).is_TypeAscription)) && (((_1100_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
+              } else {
+                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());
+              }
             }
           }
           if (unmatched50) {
@@ -6395,7 +6407,11 @@ namespace RAST {
             }
             if (disjunctiveMatch10) {
               unmatched50 = false;
-              return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RightToLeft());
+              if ((((_1099_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<="))) && ((_1100_left).is_TypeAscription)) && (((_1100_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
+              } else {
+                return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RightToLeft());
+              }
             }
           }
           if (unmatched50) {

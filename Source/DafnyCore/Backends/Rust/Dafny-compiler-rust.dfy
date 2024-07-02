@@ -293,6 +293,17 @@ module RAST
     | IntersectionType(left: Type, right: Type)
     | Array(underlying: Type, size: Option<string>)
   {
+    predicate EndsWithNameThatCanAcceptGenerics() {
+      || U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128?
+      || TIdentifier? || TMemberSelect?
+      || (Borrowed? && underlying.EndsWithNameThatCanAcceptGenerics())
+      || (BorrowedMut? && underlying.EndsWithNameThatCanAcceptGenerics())
+      || (Pointer? && underlying.EndsWithNameThatCanAcceptGenerics())
+      || (PointerMut? && underlying.EndsWithNameThatCanAcceptGenerics())
+      || (ImplType? && underlying.EndsWithNameThatCanAcceptGenerics())
+      || (DynType? && underlying.EndsWithNameThatCanAcceptGenerics())
+      || (IntersectionType? && right.EndsWithNameThatCanAcceptGenerics())
+    }
     function Replace(mapping: map<Type, Type>): Type {
       if this in mapping then mapping[this] else
       match this {
@@ -856,16 +867,28 @@ module RAST
           match op2 {
             case "*" | "/" | "%" => PrecedenceAssociativity(20, LeftToRight)
             case "+" | "-" => PrecedenceAssociativity(30, LeftToRight)
-            case "<<" | ">>" => PrecedenceAssociativity(40, LeftToRight)
+            case "<<" | ">>" =>
+              // x as u16 << 6 is parsed as x as u16<... and expect a generic argument
+              if op2 == "<<" && left.TypeAscription? && left.tpe.EndsWithNameThatCanAcceptGenerics() then
+                PrecedenceAssociativity(9, LeftToRight)
+              else
+                PrecedenceAssociativity(40, LeftToRight)
             case "&" => PrecedenceAssociativity(50, LeftToRight)
             case "^" => PrecedenceAssociativity(60, LeftToRight)
             case "|" => PrecedenceAssociativity(70, LeftToRight)
-            case "==" | "!=" | "<" | ">" | "<=" | ">=" => PrecedenceAssociativity(80, RequiresParentheses)
+            case "==" | "!=" | "<" | ">" | "<=" | ">=" =>
+              if (op2 == "<" || op2 == "<=") && left.TypeAscription? && left.tpe.EndsWithNameThatCanAcceptGenerics() then
+                PrecedenceAssociativity(9, LeftToRight)
+              else
+                PrecedenceAssociativity(80, RequiresParentheses)
             case "&&" => PrecedenceAssociativity(90, LeftToRight)
             case "||" => PrecedenceAssociativity(100, LeftToRight)
             case ".." | "..=" => PrecedenceAssociativity(110, RequiresParentheses)
             case "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" =>
-              PrecedenceAssociativity(110, RightToLeft)
+              if op2 == "<<=" && left.TypeAscription? && left.tpe.EndsWithNameThatCanAcceptGenerics() then
+                PrecedenceAssociativity(9, LeftToRight)
+              else
+                PrecedenceAssociativity(110, RightToLeft)
             case _ => PrecedenceAssociativity(0, RequiresParentheses)
           }
         case Lambda(_, _, _) => PrecedenceAssociativity(300, LeftToRight)
