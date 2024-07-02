@@ -4779,6 +4779,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
+        case MapItems(expr) => {
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
+          readIdents := recIdents;
+          r := recursiveGen.Sel("items").Apply([]);
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          return;
+        }
         case SelectFn(on, field, isDatatype, isStatic, isConstant, arguments) => {
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
           var s: string;

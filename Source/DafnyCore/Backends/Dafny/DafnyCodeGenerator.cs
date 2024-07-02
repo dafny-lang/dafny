@@ -1846,6 +1846,8 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.Values:
           break;
+        case SpecialField.ID.Items:
+          break;
         default:
           AddUnsupported("<i>Special field: " + id + "</i>");
           break;
@@ -1910,6 +1912,11 @@ namespace Microsoft.Dafny.Compilers {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
         var objExpr = objReceiver.Finish();
         return new ExprLvalue((DAST.Expression)DAST.Expression.create_MapValues(
+          objExpr), null, this);
+      } else if (member is SpecialField { SpecialId: SpecialField.ID.Items }) {
+        obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
+        var objExpr = objReceiver.Finish();
+        return new ExprLvalue((DAST.Expression)DAST.Expression.create_MapItems(
           objExpr), null, this);
       } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));

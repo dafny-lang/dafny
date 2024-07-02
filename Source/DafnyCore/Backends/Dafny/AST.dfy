@@ -293,6 +293,7 @@ module {:extern "DAST"} DAST {
     ArrayLen(expr: Expression, exprType: Type, dim: nat, native: bool) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
+    MapItems(expr: Expression) |
     Select(expr: Expression, field: Name, isConstant: bool, onDatatype: bool, fieldType: Type) |
     SelectFn(expr: Expression, field: Name, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
