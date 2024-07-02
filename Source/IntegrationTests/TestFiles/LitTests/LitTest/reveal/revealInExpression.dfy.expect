@@ -1,0 +1,3 @@
+revealInExpression.dfy(35,14): Error: assertion might not hold
+
+Dafny program verifier finished with 17 verified, 6 errors
