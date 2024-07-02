@@ -194,11 +194,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   bool hasFoundPackageName = false;
 
   public string GetCompileName(DafnyOptions options) {
-    // Console.WriteLine("GETTING");
     if (compileName != null) {
-
-    // if (compileName != null && hasFoundPackageName) {
-      // Console.WriteLine("cache hit " + compileName);
       return compileName;
     }
 

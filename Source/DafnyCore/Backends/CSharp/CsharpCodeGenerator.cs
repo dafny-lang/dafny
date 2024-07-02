@@ -35,11 +35,11 @@ namespace Microsoft.Dafny.Compilers {
     };
 
     public CsharpCodeGenerator(DafnyOptions options, ErrorReporter reporter) : base(options, reporter) {
-          var netNamespace = Options.Get(CsharpBackend.NetNamespaceCliOption);
-    NetNamespaceMode = netNamespace != null;
-    if (NetNamespaceMode) {
-      NetNamespace = netNamespace.ToString();
-    }
+      var netNamespace = Options.Get(CsharpBackend.NetNamespaceCliOption);
+      NetNamespaceMode = netNamespace != null;
+      if (NetNamespaceMode) {
+        NetNamespace = netNamespace.ToString();
+      }
     }
 
     const string DafnyISet = "Dafny.ISet";
@@ -80,8 +80,6 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var m in program.CompileModules) {
         if (!m.IsDefaultModule && !m.Name.Equals("_System")) {
 
-          // Console.WriteLine("m.FullDafnyName = " + m.FullDafnyName);
-
           var translatedRecord = program.Compilation.AlreadyTranslatedRecord;
           translatedRecord.OptionsByModule.TryGetValue(m.FullDafnyName, out var moduleOptions);
           object dependencyModuleName = null;
@@ -89,24 +87,17 @@ namespace Microsoft.Dafny.Compilers {
 
           var dependencyModuleNameStr = (string)dependencyModuleName;
 
-          // Console.WriteLine("dependencyModuleNameStr = " + dependencyModuleNameStr);
-
           if (string.IsNullOrEmpty(dependencyModuleNameStr)) {
             dependencyModuleNameStr = NetNamespace;
           }
 
           moduleToNamespace.Add(m.GetCompileName(Options), dependencyModuleNameStr);
-          // JavaBackend.moduleNameToPackageNameMap.Add(m.GetCompileName(Options), dependencyModuleNameStr);
-
-          Console.WriteLine("organizemodules" + m.GetCompileName(Options) + " = " + dependencyModuleNameStr);
 
           modules.Add(m);
         }
       }
       foreach (var m in program.CompileModules) {
         if (m.Name.Equals("_System")) {
-          Console.WriteLine(m.GetCompileName(Options) + " = " + "_System");
-
           moduleToNamespace.Add(m.GetCompileName(Options), NetNamespace);
 
           modules.Add(m);
@@ -114,8 +105,6 @@ namespace Microsoft.Dafny.Compilers {
       }
       foreach (var m in program.CompileModules) {
         if (m.IsDefaultModule) {
-          Console.WriteLine(m.GetCompileName(Options) + " = " + "dafny_");
-
           moduleToNamespace.Add(m.GetCompileName(Options), "dafny_");
 
           modules.Add(m);
@@ -1348,17 +1337,15 @@ namespace Microsoft.Dafny.Compilers {
       var prefixes = sanitizedName.Split('.').Select((s, i) => string.Join(".", sanitizedName.Split('.').Take(i + 1))).ToList();
 
       foreach (string prefix in prefixes) {
-            if (moduleToNamespace.ContainsKey(prefix)) {
-            if (string.IsNullOrEmpty(moduleToNamespace[prefix])) {
-              return moduleName;
-            }
-            return moduleToNamespace[prefix] + "." + moduleName;
+        if (moduleToNamespace.ContainsKey(prefix)) {
+          if (string.IsNullOrEmpty(moduleToNamespace[prefix])) {
+            return moduleName;
           }
+          return moduleToNamespace[prefix] + "." + moduleName;
         }
-
-                  return moduleName;
-
       }
+      return moduleName;
+    }
       
       
 
