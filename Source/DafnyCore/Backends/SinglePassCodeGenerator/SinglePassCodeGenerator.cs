@@ -2914,6 +2914,8 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public record OptimizedExpressionContinuation(Action<Expression, Type, bool, ConcreteSyntaxTree> Continuation);
+
     /// <summary>
     /// This method compiles "expr" into a statement context of the target. This typically means that, for example, Dafny let-bound variables can
     /// be compiled into local variables in the target code, and that Dafny if-then-else expressions can be compiled into if statements in the
@@ -2925,7 +2927,7 @@ namespace Microsoft.Dafny.Compilers {
     /// same semantics.
     /// </summary>
     protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody,
-      [CanBeNull] IVariable accumulatorVar, Action<Expression, Type, bool, ConcreteSyntaxTree> continuation) {
+      [CanBeNull] IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
@@ -2944,7 +2946,7 @@ namespace Microsoft.Dafny.Compilers {
           TrExprOpt(e.Body, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
         } else {
           // We haven't optimized the other cases, so fallback to normal compilation
-          continuation(e, resultType, inLetExprBody, wr);
+          continuation.Continuation(e, resultType, inLetExprBody, wr);
         }
 
       } else if (expr is ITEExpr) {
@@ -3132,7 +3134,7 @@ namespace Microsoft.Dafny.Compilers {
           Contract.Assert(accumulatorVar == null);
         }
 
-        continuation(expr, resultType, inLetExprBody, wr);
+        continuation.Continuation(expr, resultType, inLetExprBody, wr);
       }
     }
 
@@ -3143,7 +3145,8 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
       copyInstrWriters.Push(wr.Fork());
       var wStmts = wr.Fork();
-      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar, EmitReturnExpr);
+      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr);
+      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar, continuation);
       copyInstrWriters.Pop();
     }
 

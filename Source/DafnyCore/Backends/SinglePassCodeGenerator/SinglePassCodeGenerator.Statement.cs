@@ -132,7 +132,8 @@ namespace Microsoft.Dafny.Compilers {
                   var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Tok);
                   EmitExpr(e, false, wRhs, wStmtsBeforeAssignment);
                 };
-                TrExprOpt(eRhs.Expr, TypeOfLhs(s.Lhs), wr, wStmts, false, null, doAssignment);
+                var continuation = new OptimizedExpressionContinuation(doAssignment);
+                TrExprOpt(eRhs.Expr, TypeOfLhs(s.Lhs), wr, wStmts, false, null, continuation);
               }
             }
 

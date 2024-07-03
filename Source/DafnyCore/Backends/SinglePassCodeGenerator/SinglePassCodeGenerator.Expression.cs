@@ -699,7 +699,8 @@ namespace Microsoft.Dafny.Compilers {
         var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
         foreach (MatchCaseExpr mc in e.Cases) {
           var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null, EmitReturnExpr);
+          var continuation = new OptimizedExpressionContinuation(EmitReturnExpr);
+          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
           i++;
         }
       }
@@ -710,11 +711,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
       var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
-      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null, EmitReturnExpr);
+      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr);
+      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null, continuation);
     }
 
     protected virtual void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar, Action<Expression, Type, bool, ConcreteSyntaxTree> continuation) {
+      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
 
       wStmts = wr.Fork();
 
