@@ -132,7 +132,7 @@ namespace Microsoft.Dafny.Compilers {
                   var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Tok);
                   EmitExpr(e, false, wRhs, wStmtsBeforeAssignment);
                 };
-                var continuation = new OptimizedExpressionContinuation(doAssignment);
+                var continuation = new OptimizedExpressionContinuation(doAssignment, true);
                 TrExprOpt(eRhs.Expr, TypeOfLhs(s.Lhs), wr, wStmts, false, null, continuation);
               }
             }
@@ -523,39 +523,48 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+      EmitNestedMatchGeneric(match, true, (caseIndex, caseBody) => {
         TrStmtList(match.Cases[caseIndex].Body, caseBody);
       }, false, writer);
     }
 
     /// <summary>
-    ///
-    /// match a
+    /// Given
+    /// 
+    ///   match a
     ///   case X(Y(b),Z(W(c)) => body1
     ///   case r => body2
-    ///
-    /// var unmatched = true;
-    /// if (unmatched && a is X) {
-    ///   var x1 = ((X)a).1;
-    ///   if (x1 is Y) {
-    ///     var b = ((Y)x1).1;
     /// 
-    ///     var x2 = ((X)a).2; 
-    ///     if (x2 is Z) {
-    ///       var x4 = ((Z)x2).1;
-    ///       if (x4 is W) {
-    ///         var c = ((W)x4).1;
-    ///         body1;
+    /// If there are no cases, then emit:
+    ///
+    ///   throw ABSURD;
+    ///
+    /// Else, emit:
+    /// 
+    ///   BLOCK {
+    ///     var unmatched = true;
+    ///     if (unmatched && a is X) {
+    ///       var x1 = ((X)a).1;
+    ///       if (x1 is Y) {
+    ///         var b = ((Y)x1).1;
+    /// 
+    ///         var x2 = ((X)a).2; 
+    ///         if (x2 is Z) {
+    ///           var x4 = ((Z)x2).1;
+    ///           if (x4 is W) {
+    ///             var c = ((W)x4).1;
+    ///             body1;
+    ///           }
+    ///         }
     ///       }
-    ///     } 
+    ///       break BLOCK; 
+    ///     }
+    ///     var r = a;
+    ///     body2;
     ///   }
-    /// }
-    /// var r = a;
-    /// body2;
-    /// throw ABSURD;
     /// 
     /// </summary>
-    private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
+    private void EmitNestedMatchGeneric(INestedMatch match, bool preventCaseFallThrough, Action<int, ConcreteSyntaxTree> emitBody,
       bool inLetExprBody, ConcreteSyntaxTree output) {
       if (match.Cases.Count == 0) {
         // the verifier would have proved we never get here; still, we need some code that will compile
@@ -563,6 +572,11 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         string sourceName = ProtectedFreshId("_source");
         DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
+
+        var label = preventCaseFallThrough ? ProtectedFreshId("match") : null;
+        if (label != null) {
+          output = CreateLabeledCode(label, false, output);
+        }
 
         var sourceType = match.Source.Type.NormalizeExpand();
         for (var index = 0; index < match.Cases.Count; index++) {
@@ -572,6 +586,9 @@ namespace Microsoft.Dafny.Compilers {
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
 
           emitBody(index, innerWriter);
+          if (label != null && !lastCase) {
+            EmitBreak(label, innerWriter);
+          }
         }
       }
     }

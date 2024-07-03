@@ -699,7 +699,7 @@ namespace Microsoft.Dafny.Compilers {
         var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
         foreach (MatchCaseExpr mc in e.Cases) {
           var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          var continuation = new OptimizedExpressionContinuation(EmitReturnExpr);
+          var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
           TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
           i++;
         }
@@ -711,7 +711,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
       var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
-      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr);
+      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
       TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null, continuation);
     }
 
@@ -720,7 +720,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wStmts = wr.Fork();
 
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+      EmitNestedMatchGeneric(match, continuation.PreventCaseFallThrough, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
         TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
       }, inLetExprBody, wr);

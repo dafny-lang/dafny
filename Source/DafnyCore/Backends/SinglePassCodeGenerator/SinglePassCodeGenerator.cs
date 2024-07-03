@@ -2914,7 +2914,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public record OptimizedExpressionContinuation(Action<Expression, Type, bool, ConcreteSyntaxTree> Continuation);
+    public record OptimizedExpressionContinuation(Action<Expression, Type, bool, ConcreteSyntaxTree> Continuation, bool PreventCaseFallThrough);
 
     /// <summary>
     /// This method compiles "expr" into a statement context of the target. This typically means that, for example, Dafny let-bound variables can
@@ -3145,7 +3145,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
       copyInstrWriters.Push(wr.Fork());
       var wStmts = wr.Fork();
-      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr);
+      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
       TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar, continuation);
       copyInstrWriters.Pop();
     }
