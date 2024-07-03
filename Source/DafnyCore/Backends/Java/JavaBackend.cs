@@ -214,9 +214,13 @@ public class JavaBackend : ExecutableBackend {
 
   public JavaBackend(DafnyOptions options) : base(options) {
     try {
-TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
-      { JavaPackageNameCliOption, OptionCompatibility.NoOpOptionCheck }
-    });
+      TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { JavaPackageNameCliOption, OptionCompatibility.NoOpOptionCheck }
+      });
+    // JavaBackend, and only JavaBackend, seems to be created multiple times,
+    // resulting in the CLI option being added multiple times,
+    // which throws an exception.
+    // Workaround: Swallow "multiple times" exceptions.
     } catch ( System.ArgumentException ex) {}
   }
 }

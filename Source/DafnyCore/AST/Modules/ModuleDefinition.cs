@@ -204,6 +204,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
     var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
     if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
+      // If compiled with a "code location prefix",
+      // prepend it to the extern module name.
+      // Note that this does NOT prepend any outer-module prefix.
       compileName = options.Backend.MaybePrependModuleNameWithCodeLocationPrefix((string)((StringLiteralExpr)externArgs[0]).Value);
     } else if (externArgs != null) {
       compileName = Name + nonExternSuffix;
