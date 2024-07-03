@@ -2492,7 +2492,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             if formalType.Arrow? then
               hashRhs.Then(R.LiteralInt("0").Sel("hash").Apply1(R.Identifier("_state")))
             else
-              hashRhs.Then(R.Identifier(fieldName).Sel("hash").Apply1(R.Identifier("_state")));
+              hashRhs.Then(R.std.MSel("hash").MSel("Hash").MSel("hash").Apply([R.Identifier(fieldName), R.Identifier("_state")]));
 
           ctorMatchInner := ctorMatchInner + patternName + ", ";
 
