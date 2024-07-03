@@ -1334,21 +1334,28 @@ namespace Microsoft.Dafny.Compilers {
     public override string MaybePrependModuleNameWithCodeLocationPrefix(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
 
+      // Need to look up prefixes in case of externs.
+      // ex. {:extern "Signature.ECDSA", "Sign"}
+      // moduleName will be `Signature.ECDSA.`
+      // However, there is only a dtr entry for "Signature".
+      // prefixes will be ["Signature", "Signature.ECDSA"],
+      // and the matching prefix will prepend the namespace prefix.
       var prefixes = sanitizedName.Split('.').Select((s, i) => string.Join(".", sanitizedName.Split('.').Take(i + 1))).ToList();
 
       foreach (string prefix in prefixes) {
         if (moduleToNamespace.ContainsKey(prefix)) {
+          // If entry is empty, assume it's in the current module
           if (string.IsNullOrEmpty(moduleToNamespace[prefix])) {
             return moduleName;
           }
+          // Otherwise, prepend the namespace to the moduleName
           return moduleToNamespace[prefix] + "." + moduleName;
         }
       }
+      // In all other cases, return the original moduleName
       return moduleName;
     }
-      
-      
-
+    
     void DeclareBoxedNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
       // instance field:  public TargetRepresentation _value;
       var targetTypeName = nt.NativeType == null ? TypeName(nt.BaseType, wr, nt.tok) : GetNativeTypeName(nt.NativeType);

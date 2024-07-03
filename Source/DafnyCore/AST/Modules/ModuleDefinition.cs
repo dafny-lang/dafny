@@ -191,9 +191,17 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   }
 
   string compileName;
+  bool hasFoundCodeLocationPrefix;
 
   public string GetCompileName(DafnyOptions options) {
-    if (compileName != null) {
+    // The code generator may not have populated its module-name-to-code-location-prefix map
+    //   when this module's compilename is first called.
+    // Until the map has been populated and this module's compile name has the code location prefix,
+    //   it must check to see if the map has been populated.
+    // Even if the current module is not using code location prefixes,
+    //   it may be depending on a module that is,
+    //   and must do this check.
+    if (compileName != null && hasFoundCodeLocationPrefix) {
       return compileName;
     }
 
@@ -204,9 +212,9 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
     var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
     if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-      // If compiled with a "code location prefix",
+      // If compiled with a code location prefix,
       // prepend it to the extern module name.
-      // Note that this does NOT prepend any outer-module prefix.
+      // Note: this does NOT prepend any outer-module prefix.
       compileName = options.Backend.MaybePrependModuleNameWithCodeLocationPrefix((string)((StringLiteralExpr)externArgs[0]).Value);
     } else if (externArgs != null) {
       compileName = Name + nonExternSuffix;
@@ -220,10 +228,15 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
         // Use an "underscore-escaped" character as a module name separator, since
         // underscores are already used as escape characters in SanitizeName()
         compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+      } else if (options.Backend.MaybePrependModuleNameWithCodeLocationPrefix(Name) != Name) {
+        // Here, the code generator has a code location prefix for the given module name.
+        // If the code generator has populated its module name to package name map with this module,
+        //   the compileName can now be "cached".
+        hasFoundCodeLocationPrefix = true;
+        compileName = options.Backend.MaybePrependModuleNameWithCodeLocationPrefix(Name);
       } else {
         compileName = NonglobalVariable.SanitizeName(Name);
       }
-
       compileName += nonExternSuffix;
     }
 

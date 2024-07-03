@@ -1845,17 +1845,25 @@ namespace Microsoft.Dafny.Compilers {
     public override string MaybePrependModuleNameWithCodeLocationPrefix(string moduleName) {
       var sanitizedName = moduleName.TrimEnd('.');
 
+      // Need to look up prefixes in case of externs.
+      // ex. {:extern "Signature.ECDSA", "Sign"}
+      // moduleName will be `Signature.ECDSA.`
+      // However, there is only a dtr entry for "Signature".
+      // prefixes will be ["Signature", "Signature.ECDSA"],
+      // and the matching prefix will prepend the namespace prefix.
       var prefixes = sanitizedName.Split('.').Select((s, i) => string.Join(".", sanitizedName.Split('.').Take(i + 1))).ToList();
 
       foreach (string prefix in prefixes) {
         if (moduleToPackageName.ContainsKey(prefix)) {
+          // If entry is empty, assume it's in the current module
           if (string.IsNullOrEmpty(moduleToPackageName[prefix])) {
             return moduleName;
           }
-        return moduleToPackageName[prefix] + "." + moduleName;
+          // Otherwise, prepend the packageName to the moduleName
+          return moduleToPackageName[prefix] + "." + moduleName;
         }
       }
-
+      // In all other cases, return the original moduleName
       return moduleName;
     }
 

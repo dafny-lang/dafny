@@ -5,7 +5,6 @@ using System.Linq;
 using DafnyCore.Generic;
 using Microsoft.Dafny;
 using Tomlyn;
-using System;
 
 namespace DafnyCore.Options;
 
