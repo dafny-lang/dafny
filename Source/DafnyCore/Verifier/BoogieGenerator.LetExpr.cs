@@ -16,9 +16,8 @@ using static Microsoft.Dafny.Util;
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     public partial class ExpressionTranslator {
-      
-      private Expr LetCanCallAssumption(LetExpr expr)
-      {
+
+      private Expr LetCanCallAssumption(LetExpr expr) {
         if (!expr.Exact) {
           // CanCall[[ var b0,b1 :| RHS(b0,b1,g); Body(b0,b1,g,h) ]] =
           //   $let$canCall(g) &&
@@ -74,7 +73,7 @@ namespace Microsoft.Dafny {
           return BplAnd(canCallRHS, let);
         }
       }
-      
+
       private Expr TrLetExpr(LetExpr letExpr) {
         if (!letExpr.Exact) {
           var d = LetDesugaring(letExpr);
@@ -121,12 +120,12 @@ namespace Microsoft.Dafny {
           rhss.Add(TrExpr(rhs));
         }
       }
-      
+
       /// <summary>
       /// Fills in, if necessary, the e.translationDesugaring field, and returns it.
       /// Also, makes sure that letSuchThatExprInfo maps e to something.
       /// </summary>
-      Expression LetDesugaring(LetExpr e) {
+      public Expression LetDesugaring(LetExpr e) {
         Contract.Requires(e != null);
         Contract.Requires(!e.Exact);
         Contract.Ensures(Contract.Result<Expression>() != null);
@@ -234,7 +233,7 @@ namespace Microsoft.Dafny {
 
       private void AddLetSuchThenCanCallAxiom(LetExpr e, LetSuchThatExprInfo info, Bpl.Function canCallFunction) {
         var etranCC =
-          new ExpressionTranslator(this, predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(this, true), null);
+          new ExpressionTranslator(BoogieGenerator, predef, info.HeapExpr(BoogieGenerator, false), info.HeapExpr(BoogieGenerator, true), null);
         Bpl.Expr typeAntecedents; // later ignored
         List<Variable> gg = info.GAsVars(BoogieGenerator, false, out typeAntecedents, etranCC);
         var gExprs = new List<Bpl.Expr>();
@@ -247,7 +246,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr antecedent = Bpl.Expr.True;
         foreach (var bv in e.BoundVars) {
           // create a call to $let$x(g)
-          var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
+          var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), BoogieGenerator.TrType(bv.Type), gExprs);
           tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
           substMap.Add(bv, new BoogieWrapper(call, bv.Type));
           if (!(bv.Type.IsTypeParameter)) {
@@ -280,211 +279,211 @@ namespace Microsoft.Dafny {
         BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
       }
 
-      class LetSuchThatExprInfo {
-        public readonly IToken Tok;
-        public readonly int LetId;
-        public readonly List<IVariable> FVs;
+      public Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new();
+    }
 
-        public readonly List<Expression>
-          FV_Exprs; // these are what initially were the free variables, but they may have undergone substitution so they are here Expression's.
+    public class LetSuchThatExprInfo {
+      public readonly IToken Tok;
+      public readonly int LetId;
+      public readonly List<IVariable> FVs;
 
-        public readonly List<TypeParameter> FTVs;
-        public readonly List<Type> FTV_Types;
-        public readonly bool UsesHeap;
-        public readonly bool UsesOldHeap;
-        public readonly List<Label> UsesHeapAt;
-        public readonly Type ThisType; // null if 'this' is not used
+      public readonly List<Expression>
+        FV_Exprs; // these are what initially were the free variables, but they may have undergone substitution so they are here Expression's.
 
-        public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
-          List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
-          bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
-          Tok = tok;
-          LetId = uniqueLetId;
-          FTVs = freeTypeVars;
-          FTV_Types = Map(freeTypeVars, tt => (Type)new UserDefinedType(tt));
-          FVs = freeVariables;
-          FV_Exprs = new List<Expression>();
-          foreach (var v in FVs) {
-            var idExpr = new IdentifierExpr(v.Tok, v.AssignUniqueName(currentDeclaration.IdGenerator));
-            idExpr.Var = v;
-            idExpr.Type = v.Type; // resolve here
-            FV_Exprs.Add(idExpr);
-          }
+      public readonly List<TypeParameter> FTVs;
+      public readonly List<Type> FTV_Types;
+      public readonly bool UsesHeap;
+      public readonly bool UsesOldHeap;
+      public readonly List<Label> UsesHeapAt;
+      public readonly Type ThisType; // null if 'this' is not used
 
-          UsesHeap = usesHeap;
-          UsesOldHeap = usesOldHeap;
-          // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
-          UsesHeapAt = new List<Label>(usesHeapAt);
-          ThisType = thisType;
+      public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
+        List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
+        bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
+        Tok = tok;
+        LetId = uniqueLetId;
+        FTVs = freeTypeVars;
+        FTV_Types = Map(freeTypeVars, tt => (Type)new UserDefinedType(tt));
+        FVs = freeVariables;
+        FV_Exprs = new List<Expression>();
+        foreach (var v in FVs) {
+          var idExpr = new IdentifierExpr(v.Tok, v.AssignUniqueName(currentDeclaration.IdGenerator));
+          idExpr.Var = v;
+          idExpr.Type = v.Type; // resolve here
+          FV_Exprs.Add(idExpr);
         }
 
-        public LetSuchThatExprInfo(LetSuchThatExprInfo template, BoogieGenerator boogieGenerator,
-          Dictionary<IVariable, Expression> substMap,
-          Dictionary<TypeParameter, Type> typeMap) {
-          Contract.Requires(template != null);
-          Contract.Requires(boogieGenerator != null);
-          Contract.Requires(substMap != null);
-          Tok = template.Tok;
-          LetId = template.LetId; // reuse the ID, which ensures we get the same $let functions
-          FTVs = template.FTVs;
-          FTV_Types = template.FTV_Types.ConvertAll(t => t.Subst(typeMap));
-          FVs = template.FVs;
-          FV_Exprs = template.FV_Exprs.ConvertAll(e => BoogieGenerator.Substitute(e, null, substMap, typeMap));
-          UsesHeap = template.UsesHeap;
-          UsesOldHeap = template.UsesOldHeap;
-          UsesHeapAt = template.UsesHeapAt;
-          ThisType = template.ThisType;
-        }
-
-        public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, BoogieGenerator boogieGenerator,
-          ExpressionTranslator etran) {
-          Contract.Requires(bv != null);
-          Contract.Requires(boogieGenerator != null);
-          Contract.Requires(etran != null);
-          var args = new List<Expression>();
-          if (ThisType != null) {
-            var th = new ThisExpr(bv.tok);
-            th.Type = ThisType;
-            args.Add(th);
-          }
-
-          args.AddRange(FV_Exprs);
-          return Tuple.Create(args, new List<Type>(FTV_Types));
-        }
-
-        public string SkolemFunctionName(BoundVar bv) {
-          Contract.Requires(bv != null);
-          return string.Format("$let#{0}_{1}", LetId, bv.Name);
-        }
-
-        public Bpl.Expr CanCallFunctionCall(BoogieGenerator boogieGenerator, ExpressionTranslator etran) {
-          Contract.Requires(boogieGenerator != null);
-          Contract.Requires(etran != null);
-          var gExprs = new List<Bpl.Expr>();
-          gExprs.AddRange(Map(FTV_Types, tt => boogieGenerator.TypeToTy(tt)));
-          if (UsesHeap) {
-            gExprs.Add(etran.HeapExpr);
-          }
-
-          if (UsesOldHeap) {
-            gExprs.Add(etran.Old.HeapExpr);
-          }
-
-          foreach (var heapAtLabel in UsesHeapAt) {
-            Bpl.Expr ve;
-            var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
-              boogieGenerator.predef.HeapType, out ve);
-            gExprs.Add(ve);
-          }
-
-          if (ThisType != null) {
-            var th = new Bpl.IdentifierExpr(Tok, etran.This);
-            gExprs.Add(th);
-          }
-
-          foreach (var v in FV_Exprs) {
-            gExprs.Add(etran.TrExpr(v));
-          }
-
-          return FunctionCall(Tok, CanCallFunctionName(), Bpl.Type.Bool, gExprs);
-        }
-
-        public string CanCallFunctionName() {
-          return string.Format("$let#{0}$canCall", LetId);
-        }
-
-        public Bpl.Expr HeapExpr(BoogieGenerator boogieGenerator, bool old) {
-          Contract.Requires(boogieGenerator != null);
-          return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.predef.HeapType);
-        }
-
-        /// <summary>
-        /// "wantFormals" means the returned list will consist of all in-parameters.
-        /// "!wantFormals" means the returned list will consist of all bound variables.
-        /// Guarantees that, in the list returned, "this" is the parameter immediately following
-        /// the (0, 1, or 2) heap arguments, if there is a "this" parameter at all.
-        /// Note, "typeAntecedents" is meaningfully filled only if "etran" is not null.
-        /// </summary>
-        public List<Variable> GAsVars(BoogieGenerator boogieGenerator, bool wantFormals, out Bpl.Expr typeAntecedents,
-          ExpressionTranslator etran) {
-          Contract.Requires(boogieGenerator != null);
-          var vv = new List<Variable>();
-          // first, add the type variables
-          vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.predef.Ty, wantFormals)));
-          typeAntecedents = Bpl.Expr.True;
-          if (UsesHeap) {
-            var nv = NewVar("$heap", boogieGenerator.predef.HeapType, wantFormals);
-            vv.Add(nv);
-            if (etran != null) {
-              var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
-                new Bpl.IdentifierExpr(Tok, nv));
-              typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
-            }
-          }
-
-          if (UsesOldHeap) {
-            var nv = NewVar("$heap$old", boogieGenerator.predef.HeapType, wantFormals);
-            vv.Add(nv);
-            if (etran != null) {
-              var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
-                new Bpl.IdentifierExpr(Tok, nv));
-              typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
-            }
-          }
-
-          foreach (var heapAtLabel in UsesHeapAt) {
-            var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
-              boogieGenerator.predef.HeapType, wantFormals);
-            vv.Add(nv);
-            if (etran != null) {
-              // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
-              // But $HeapSucc relations among the various heap variables appears not needed for either soundness or completeness, since the
-              // let-such-that functions will always be invoked on arguments for which these properties are known.
-              var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
-                new Bpl.IdentifierExpr(Tok, nv));
-              typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
-            }
-          }
-
-          if (ThisType != null) {
-            var nv = NewVar("this", boogieGenerator.TrType(ThisType), wantFormals);
-            vv.Add(nv);
-            if (etran != null) {
-              var th = new Bpl.IdentifierExpr(Tok, nv);
-              typeAntecedents = BplAnd(typeAntecedents, boogieGenerator.ReceiverNotNull(th));
-              var wh = boogieGenerator.GetWhereClause(Tok, th, ThisType, etran, NOALLOC);
-              if (wh != null) {
-                typeAntecedents = BplAnd(typeAntecedents, wh);
-              }
-            }
-          }
-
-          foreach (var v in FVs) {
-            var nv = NewVar(v.Name, boogieGenerator.TrType(v.Type), wantFormals);
-            vv.Add(nv);
-            if (etran != null) {
-              var wh = boogieGenerator.GetWhereClause(Tok, new Bpl.IdentifierExpr(Tok, nv), v.Type, etran, NOALLOC);
-              if (wh != null) {
-                typeAntecedents = BplAnd(typeAntecedents, wh);
-              }
-            }
-          }
-
-          return vv;
-        }
-
-        Bpl.Variable NewVar(string name, Bpl.Type type, bool wantFormal) {
-          Contract.Requires(name != null);
-          Contract.Requires(type != null);
-          if (wantFormal) {
-            return new Bpl.Formal(Tok, new Bpl.TypedIdent(Tok, name, type), true);
-          } else {
-            return new Bpl.BoundVariable(Tok, new Bpl.TypedIdent(Tok, name, type));
-          }
-        }
+        UsesHeap = usesHeap;
+        UsesOldHeap = usesOldHeap;
+        // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
+        UsesHeapAt = new List<Label>(usesHeapAt);
+        ThisType = thisType;
       }
 
-      Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new Dictionary<LetExpr, LetSuchThatExprInfo>();
+      public LetSuchThatExprInfo(LetSuchThatExprInfo template, BoogieGenerator boogieGenerator,
+        Dictionary<IVariable, Expression> substMap,
+        Dictionary<TypeParameter, Type> typeMap) {
+        Contract.Requires(template != null);
+        Contract.Requires(boogieGenerator != null);
+        Contract.Requires(substMap != null);
+        Tok = template.Tok;
+        LetId = template.LetId; // reuse the ID, which ensures we get the same $let functions
+        FTVs = template.FTVs;
+        FTV_Types = template.FTV_Types.ConvertAll(t => t.Subst(typeMap));
+        FVs = template.FVs;
+        FV_Exprs = template.FV_Exprs.ConvertAll(e => BoogieGenerator.Substitute(e, null, substMap, typeMap));
+        UsesHeap = template.UsesHeap;
+        UsesOldHeap = template.UsesOldHeap;
+        UsesHeapAt = template.UsesHeapAt;
+        ThisType = template.ThisType;
+      }
+
+      public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, BoogieGenerator boogieGenerator,
+        ExpressionTranslator etran) {
+        Contract.Requires(bv != null);
+        Contract.Requires(boogieGenerator != null);
+        Contract.Requires(etran != null);
+        var args = new List<Expression>();
+        if (ThisType != null) {
+          var th = new ThisExpr(bv.tok);
+          th.Type = ThisType;
+          args.Add(th);
+        }
+
+        args.AddRange(FV_Exprs);
+        return Tuple.Create(args, new List<Type>(FTV_Types));
+      }
+
+      public string SkolemFunctionName(BoundVar bv) {
+        Contract.Requires(bv != null);
+        return string.Format("$let#{0}_{1}", LetId, bv.Name);
+      }
+
+      public Bpl.Expr CanCallFunctionCall(BoogieGenerator boogieGenerator, ExpressionTranslator etran) {
+        Contract.Requires(boogieGenerator != null);
+        Contract.Requires(etran != null);
+        var gExprs = new List<Bpl.Expr>();
+        gExprs.AddRange(Map(FTV_Types, tt => boogieGenerator.TypeToTy(tt)));
+        if (UsesHeap) {
+          gExprs.Add(etran.HeapExpr);
+        }
+
+        if (UsesOldHeap) {
+          gExprs.Add(etran.Old.HeapExpr);
+        }
+
+        foreach (var heapAtLabel in UsesHeapAt) {
+          Bpl.Expr ve;
+          var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
+            boogieGenerator.predef.HeapType, out ve);
+          gExprs.Add(ve);
+        }
+
+        if (ThisType != null) {
+          var th = new Bpl.IdentifierExpr(Tok, etran.This);
+          gExprs.Add(th);
+        }
+
+        foreach (var v in FV_Exprs) {
+          gExprs.Add(etran.TrExpr(v));
+        }
+
+        return FunctionCall(Tok, CanCallFunctionName(), Bpl.Type.Bool, gExprs);
+      }
+
+      public string CanCallFunctionName() {
+        return string.Format("$let#{0}$canCall", LetId);
+      }
+
+      public Bpl.Expr HeapExpr(BoogieGenerator boogieGenerator, bool old) {
+        Contract.Requires(boogieGenerator != null);
+        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.predef.HeapType);
+      }
+
+      /// <summary>
+      /// "wantFormals" means the returned list will consist of all in-parameters.
+      /// "!wantFormals" means the returned list will consist of all bound variables.
+      /// Guarantees that, in the list returned, "this" is the parameter immediately following
+      /// the (0, 1, or 2) heap arguments, if there is a "this" parameter at all.
+      /// Note, "typeAntecedents" is meaningfully filled only if "etran" is not null.
+      /// </summary>
+      public List<Variable> GAsVars(BoogieGenerator boogieGenerator, bool wantFormals, out Bpl.Expr typeAntecedents,
+        ExpressionTranslator etran) {
+        Contract.Requires(boogieGenerator != null);
+        var vv = new List<Variable>();
+        // first, add the type variables
+        vv.AddRange(Map(FTVs, tp => NewVar(NameTypeParam(tp), boogieGenerator.predef.Ty, wantFormals)));
+        typeAntecedents = Bpl.Expr.True;
+        if (UsesHeap) {
+          var nv = NewVar("$heap", boogieGenerator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
+              new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+
+        if (UsesOldHeap) {
+          var nv = NewVar("$heap$old", boogieGenerator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
+              new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+
+        foreach (var heapAtLabel in UsesHeapAt) {
+          var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(boogieGenerator.CurrentIdGenerator),
+            boogieGenerator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
+            // But $HeapSucc relations among the various heap variables appears not needed for either soundness or completeness, since the
+            // let-such-that functions will always be invoked on arguments for which these properties are known.
+            var isGoodHeap = boogieGenerator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null,
+              new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+
+        if (ThisType != null) {
+          var nv = NewVar("this", boogieGenerator.TrType(ThisType), wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var th = new Bpl.IdentifierExpr(Tok, nv);
+            typeAntecedents = BplAnd(typeAntecedents, boogieGenerator.ReceiverNotNull(th));
+            var wh = boogieGenerator.GetWhereClause(Tok, th, ThisType, etran, NOALLOC);
+            if (wh != null) {
+              typeAntecedents = BplAnd(typeAntecedents, wh);
+            }
+          }
+        }
+
+        foreach (var v in FVs) {
+          var nv = NewVar(v.Name, boogieGenerator.TrType(v.Type), wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            var wh = boogieGenerator.GetWhereClause(Tok, new Bpl.IdentifierExpr(Tok, nv), v.Type, etran, NOALLOC);
+            if (wh != null) {
+              typeAntecedents = BplAnd(typeAntecedents, wh);
+            }
+          }
+        }
+
+        return vv;
+      }
+
+      Bpl.Variable NewVar(string name, Bpl.Type type, bool wantFormal) {
+        Contract.Requires(name != null);
+        Contract.Requires(type != null);
+        if (wantFormal) {
+          return new Bpl.Formal(Tok, new Bpl.TypedIdent(Tok, name, type), true);
+        } else {
+          return new Bpl.BoundVariable(Tok, new Bpl.TypedIdent(Tok, name, type));
+        }
+      }
     }
   }
 }

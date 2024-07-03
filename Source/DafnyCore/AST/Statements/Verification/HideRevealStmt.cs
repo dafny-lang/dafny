@@ -15,7 +15,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   [FilledInDuringResolution] public List<MemberDecl> OffsetMembers = new();
   public bool Hide { get; private set; }
   public bool Wildcard { get; private set; }
-  
+
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
@@ -47,7 +47,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
     this.Exprs = null;
     Hide = hide;
   }
-  
+
   public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, bool hide)
     : base(rangeToken) {
     Contract.Requires(exprs != null);
@@ -75,7 +75,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
     if (Wildcard) {
       return;
     }
-    
+
     foreach (var expr in Exprs) {
       var name = SingleName(expr);
       var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;

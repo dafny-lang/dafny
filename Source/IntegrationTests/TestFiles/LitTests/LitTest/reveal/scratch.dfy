@@ -5,10 +5,9 @@ function P(x: int): bool {
   true
 }
 
-method BlockScope() {
-  {
-    reveal P;
-    assert P(0);
-  }
-  assert P(1); // error
+method RevealExpressionScope()
+{
+  hide *;
+  var c := (var x: bool :| (reveal P; assert P(4); x); 
+            assert P(5); x); // error
 }

@@ -457,8 +457,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void PrintHideReveal(HideRevealStmt revealStmt)
-    {
+    private void PrintHideReveal(HideRevealStmt revealStmt) {
       wr.Write(revealStmt.Hide ? "hide " : "reveal ");
       if (revealStmt.Wildcard) {
         wr.Write("*");

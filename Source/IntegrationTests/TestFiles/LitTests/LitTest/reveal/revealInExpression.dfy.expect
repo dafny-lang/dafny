@@ -4,6 +4,5 @@ revealInExpression.dfy(22,20): Error: assertion might not hold
 revealInExpression.dfy(24,20): Error: assertion might not hold
 revealInExpression.dfy(35,14): Error: assertion might not hold
 revealInExpression.dfy(37,10): Error: assertion might not hold
-revealInExpression.dfy(35,14): Error: assertion might not hold
 
-Dafny program verifier finished with 17 verified, 6 errors
+Dafny program verifier finished with 12 verified, 6 errors

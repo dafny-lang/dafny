@@ -877,6 +877,7 @@ namespace Microsoft.Dafny {
         var rr = new HideRevealStmt(revealStmt.RangeToken, revealStmt.Exprs, revealStmt.Hide);
         rr.LabeledAsserts.AddRange(revealStmt.LabeledAsserts);
         rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
+        rr.OffsetMembers = revealStmt.OffsetMembers.ToList();
         r = rr;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

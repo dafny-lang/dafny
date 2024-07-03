@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
         case LetExpr letExpr: {
             var e = letExpr;
             if (!e.Exact) {
-              var d = LetDesugaring(e);
+              var d = etran.LetDesugaring(e);
               return TrSplitExpr(context, d, splits, position, heightLimit, inlineProtectedFunctions, applyInduction, etran);
             } else {
               var ss = new List<SplitExprInfo>();

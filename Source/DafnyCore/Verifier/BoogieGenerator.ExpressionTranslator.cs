@@ -1292,8 +1292,8 @@ namespace Microsoft.Dafny {
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
               }
             }
-          case LetExpr letExpr: 
-              return TrLetExpr(letExpr);
+          case LetExpr letExpr:
+            return TrLetExpr(letExpr);
           case QuantifierExpr quantifierExpr: {
               QuantifierExpr e = quantifierExpr;
 
@@ -2244,8 +2244,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           var e = (TernaryExpr)expr;
           return BplAnd(CanCallAssumption(e.E0), BplAnd(CanCallAssumption(e.E1), CanCallAssumption(e.E2)));
 
-        } else if (expr is LetExpr) {
-          return LetCanCallAssumption(expr);
+        } else if (expr is LetExpr letExpr) {
+          return LetCanCallAssumption(letExpr);
         } else if (expr is LambdaExpr) {
           var e = (LambdaExpr)expr;
 

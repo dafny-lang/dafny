@@ -385,8 +385,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void TrUpdateStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, UpdateStmt statement)
-    {
+    private void TrUpdateStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, UpdateStmt statement) {
       // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
       // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
       var resolved = statement.ResolvedStatements;
@@ -547,13 +546,10 @@ namespace Microsoft.Dafny {
             builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Hide));
           }
         }
-      } else {
-        var b = 3;
       }
 
       TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
     }
-
 
     private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(stmt != null);
@@ -968,7 +964,7 @@ namespace Microsoft.Dafny {
       builder.Add(new Bpl.IfCmd(stmt.Tok, guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), thn, elsIf, els));
     }
 
-    void TrForallProof(ForallStmt forallStmt, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, 
+    void TrForallProof(ForallStmt forallStmt, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter,
       List<Variable> locals, ExpressionTranslator etran) {
       // Translate:
       //   forall (x,y | Range(x,y))
