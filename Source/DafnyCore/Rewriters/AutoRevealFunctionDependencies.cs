@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -345,7 +346,7 @@ public class AutoRevealFunctionDependencies : IRewriter {
         new List<ActualBinding>(), tok)
     };
 
-    var revealStmt = new HideRevealStmt(func.RangeToken, expressionList, false);
+    var revealStmt = new HideRevealStmt(func.RangeToken, expressionList, HideRevealCmd.Modes.Reveal);
     revealStmt.ResolvedStatements.Add(call);
     revealStmt.IsGhost = true;
 

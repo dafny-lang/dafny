@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -13,7 +14,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   [FilledInDuringResolution]
   public readonly List<Statement> ResolvedStatements = new();
   [FilledInDuringResolution] public List<MemberDecl> OffsetMembers = new();
-  public bool Hide { get; private set; }
+  public HideRevealCmd.Modes Mode { get; private set; }
   public bool Wildcard { get; private set; }
 
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
@@ -31,7 +32,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   }
 
   public HideRevealStmt(Cloner cloner, HideRevealStmt original) : base(cloner, original) {
-    Hide = original.Hide;
+    Mode = original.Mode;
     Exprs = original.Exprs?.Select(cloner.CloneExpr).ToList();
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
@@ -41,19 +42,19 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
     }
   }
 
-  public HideRevealStmt(RangeToken rangeToken, bool hide)
+  public HideRevealStmt(RangeToken rangeToken, HideRevealCmd.Modes mode)
     : base(rangeToken) {
     Wildcard = true;
     this.Exprs = null;
-    Hide = hide;
+    Mode = mode;
   }
 
-  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, bool hide)
+  public HideRevealStmt(RangeToken rangeToken, List<Expression> exprs, HideRevealCmd.Modes mode)
     : base(rangeToken) {
     Contract.Requires(exprs != null);
     this.Exprs = exprs;
     Wildcard = false;
-    Hide = hide;
+    Mode = mode;
   }
 
   public static string SingleName(Expression e) {
@@ -70,7 +71,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   }
 
   public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
-    ((MethodOrFunction)resolutionContext.CodeContext).ContainsHide |= Hide;
+    ((MethodOrFunction)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
       return;
@@ -93,7 +94,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
             // error from resolving child
           } else {
             OffsetMembers.Add(callee.Member);
-            if (callee.Member.IsOpaque && !Hide) {
+            if (callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
               var revealResolutionContext = resolutionContext with { InReveal = true };
               var exprClone = new Cloner().CloneExpr(expr);
               if (exprClone is NameSegment) {
@@ -120,7 +121,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
             var exprClone = (ApplySuffix)new Cloner().CloneExpr(applySuffix);
             var revealResolutionContext = resolutionContext with { InReveal = true };
             var revealMethodCallInfo = resolver.ResolveApplySuffix(exprClone, revealResolutionContext, true);
-            if (revealMethodCallInfo.Callee.Member.IsOpaque && !Hide) {
+            if (revealMethodCallInfo.Callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
               var call = new CallStmt(RangeToken, new List<Expression>(), revealMethodCallInfo.Callee, revealMethodCallInfo.ActualParameters);
               ResolvedStatements.Add(call);
             }

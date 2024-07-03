@@ -3015,16 +3015,16 @@ RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression e; var es = new List<Expression>();
      IToken startToken = null;
-     bool hide = false;
+     HideRevealCmd.Modes mode = HideRevealCmd.Modes.Reveal;
      s = null;
   .)
-  ( "reveal"                                    (. x = t; startToken = t; hide = false; .)
-  | "hide"                                      (. x = t; startToken = t; hide = true; .)
+  ( "reveal"                                    (. x = t; startToken = t; mode = HideRevealCmd.Modes.Reveal; .)
+  | "hide"                                      (. x = t; startToken = t; mode = HideRevealCmd.Modes.Hide; .)
   )
   ( Expression<out e, false, true>                (. es.Add(e); .)
     { "," Expression<out e, false, true>          (. es.Add(e); .)
-    }                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, hide); .)
-  | "*"                                         (. s = new HideRevealStmt(new RangeToken(startToken, t), hide); .)
+    }                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, mode); .)
+  | "*"                                         (. s = new HideRevealStmt(new RangeToken(startToken, t), mode); .)
   )
   ";"                                           
   .

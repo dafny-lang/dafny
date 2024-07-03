@@ -540,10 +540,10 @@ namespace Microsoft.Dafny {
 
       if (builder.Context.ContainsHide) {
         if (revealStmt.Wildcard) {
-          builder.Add(new HideRevealCmd(revealStmt.Tok, revealStmt.Hide));
+          builder.Add(new HideRevealCmd(revealStmt.Tok, revealStmt.Mode));
         } else {
           foreach (var member in revealStmt.OffsetMembers) {
-            builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Hide));
+            builder.Add(new HideRevealCmd(new Bpl.IdentifierExpr(revealStmt.Tok, member.FullSanitizedName), revealStmt.Mode));
           }
         }
       }
@@ -2786,7 +2786,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, true));
+        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Push));
       }
       foreach (Statement ss in stmts) {
         for (var l = ss.Labels; l != null; l = l.Next) {
@@ -2800,7 +2800,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, false));
+        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Pop));
       }
     }
 

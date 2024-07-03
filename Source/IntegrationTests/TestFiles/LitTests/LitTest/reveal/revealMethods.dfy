@@ -1,8 +1,9 @@
-// echo ''
-// NoRUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
-// NoRUN: %diff "%s.expect" "%t"
+// RUN: echo ''
+// No: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
+// No: %diff "%s.expect" "%t"
 
-blind method MethodEnsuresAreHidden() {
+method MethodEnsuresAreHidden() {
+  hide *;
   var x := Bar();
   if (*) {
     reveal Bar();
