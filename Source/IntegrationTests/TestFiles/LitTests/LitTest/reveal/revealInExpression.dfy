@@ -23,7 +23,7 @@ method RevealExpressionScope()
   var d := (forall x: int :: reveal P; assert P(x); Q(x)) || 
            (assert P(7); true); // error
   var e := ((x: bool) => reveal P; assert P(7); x)(true) || 
-           (assert P(8); true); // error 
+           (assert P(8); true); // error
 }
 
 function MatchExpressionScope(x: int): int {

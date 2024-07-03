@@ -15,6 +15,8 @@ namespace Microsoft.Dafny {
       Context = context;
     }
 
+    public bool Empty => builder.Empty;
+
     public void Add(Cmd cmd) {
       builder.Add(cmd);
       if (cmd is Boogie.AssertCmd) {
