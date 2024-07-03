@@ -858,10 +858,10 @@ namespace Microsoft.Dafny.Compilers {
 
       if (GetExprBuilder(wr, out var st) && st.Builder is CallExprBuilder callExpr) {
         var signature = callExpr.Signature;
-        callExpr.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, receiverArg, signature));
+        callExpr.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, receiverArg, receiverAsArgument, signature));
       } else if (GetExprBuilder(wr, out var st2) && st2.Builder is CallStmtBuilder callStmt) {
         var signature = callStmt.Signature;
-        callStmt.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, receiverArg, signature));
+        callStmt.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString(protectedName), receiverType, receiverArg, receiverAsArgument, signature));
       } else {
         AddUnsupported("Builder issue: wr is as " + wr.GetType() +
                                 (GetExprBuilder(wr, out var st3) ?
@@ -1688,7 +1688,7 @@ namespace Microsoft.Dafny.Compilers {
           GenType(EraseNewtypeLayers(topLevel)), range, true);
       } else if (topLevel is TypeSynonymDecl typeSynonym) { // Also SubsetTypeDecl
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Newtype(
-          GenType(typeSynonym.Rhs.NormalizeExpand()), NewtypeRange.create_NoRange(), true);
+          GenType(typeSynonym.Rhs.Subst(typeSynonym.TypeArgs.Zip(typeArgs).ToDictionary(kv => kv.Item1, kv => kv.Item2)).NormalizeExpand()), NewtypeRange.create_NoRange(), true);
       } else if (topLevel is TraitDecl) {
         resolvedTypeBase = (DAST.ResolvedTypeBase)DAST.ResolvedTypeBase.create_Trait();
       } else if (topLevel is DatatypeDecl dd) {
@@ -2315,7 +2315,7 @@ namespace Microsoft.Dafny.Compilers {
       });
       var c = builder.Builder.Call(signature);
       c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("is"),
-        Option<_IType>.create_None(), Option<_IFormal>.create_None(), signature));
+        Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
       var wrc = new BuilderSyntaxTree<ExprContainer>(c, this);
       EmitTypeName_Companion(type, wrc,
         wr, declWithConstraints.tok, null);

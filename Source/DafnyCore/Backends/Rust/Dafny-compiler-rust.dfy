@@ -292,7 +292,13 @@ module RAST
     | FnType(arguments: seq<Type>, returnType: Type)
     | IntersectionType(left: Type, right: Type)
     | Array(underlying: Type, size: Option<string>)
+    | TSynonym(display: Type, base: Type)
   {
+    function Expand(): (r: Type)
+      ensures !r.TSynonym? && (!TSynonym? ==> r == this)
+    {
+      if TSynonym? then base.Expand() else this
+    }
     predicate EndsWithNameThatCanAcceptGenerics() {
       || U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128?
       || TIdentifier? || TMemberSelect?
@@ -303,6 +309,7 @@ module RAST
       || (ImplType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (DynType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (IntersectionType? && right.EndsWithNameThatCanAcceptGenerics())
+      || (TSynonym? && display.EndsWithNameThatCanAcceptGenerics())
     }
     function Replace(mapping: map<Type, Type>): Type {
       if this in mapping then mapping[this] else
@@ -334,20 +341,24 @@ module RAST
           this.(left := left.Replace(mapping), right := right.Replace(mapping))
         case Array(underlying, size) =>
           this.(underlying := underlying.Replace(mapping))
+        case TSynonym(display, base) =>
+          this.(display := display.Replace(mapping), base := base.Replace(mapping))
       }
     }
     predicate CanReadWithoutClone() {
       U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || Bool?
-      || Pointer? || PointerMut?
+      || Pointer? || PointerMut? || (TSynonym? && base.CanReadWithoutClone())
     }
     predicate IsSelfPointer() {
       || (Borrowed? && underlying.PointerMut? && underlying.underlying.SelfOwned?)
       || (PointerMut? && underlying.SelfOwned?)
       || (PointerMut? && underlying.TypeApp? && |underlying.arguments| == 0 && underlying.baseName.SelfOwned?)
+      || (TSynonym? && base.IsSelfPointer())
     }
     predicate IsRcOrBorrowedRc() {
       (TypeApp? && baseName == RcType) ||
-      (Borrowed? && underlying.IsRcOrBorrowedRc())
+      (Borrowed? && underlying.IsRcOrBorrowedRc()) ||
+      (TSynonym? && base.IsRcOrBorrowedRc())
     }
     function ExtractMaybePlacebo(): Option<Type> {
       match this {
@@ -420,6 +431,7 @@ module RAST
         case I64() => "i64"
         case I128() => "i128"
         case Array(underlying, size) => "[" + underlying.ToString(ind) + (if size.Some? then "; " + size.value else "") + "]"
+        case TSynonym(display, base) => display.ToString(ind)
       }
     }
 
@@ -446,9 +458,12 @@ module RAST
     function ToNullExpr(): Expr
       requires IsObjectOrPointer()
     {
-      if IsObject() then dafny_runtime.MSel("Object").Apply1(std.MSel("option").MSel("Option").MSel("None")) else
-      var underlying := underlying;
-      var n := if PointerMut? then "null_mut" else "null";
+      assert Expand().IsObject() || Expand().IsPointer();
+      if Expand().IsObject() then dafny_runtime.MSel("Object").Apply1(std.MSel("option").MSel("Option").MSel("None")) else
+      assert !Expand().IsObject();
+      assert Expand().IsPointer();
+      var underlying := Expand().underlying;
+      var n := if Expand().PointerMut? then "null_mut" else "null";
       if underlying.Array? && underlying.size.None? then // dynamic arrays
         // Fat null pointer have a special syntax
         std.MSel("ptr").MSel(n).ApplyType([Array(underlying.underlying, Some("0"))]).Apply([])
@@ -457,9 +472,10 @@ module RAST
     }
 
     predicate IsMultiArray() {
-      this.TypeApp? &&
-      var baseName := this.baseName;
-      var args := this.arguments;
+      var t := Expand();
+      t.TypeApp? &&
+      var baseName := t.baseName;
+      var args := t.arguments;
       |args| == 1 &&
       baseName.TMemberSelect? &&
       baseName.base == dafny_runtime_type &&
@@ -469,13 +485,13 @@ module RAST
     function MultiArrayClass(): string
       requires IsMultiArray()
     {
-      this.baseName.name
+      this.Expand().baseName.name
     }
 
     function MultiArrayUnderlying(): Type
       requires IsMultiArray()
     {
-      arguments[0]
+      this.Expand().arguments[0]
     }
 
     // Given an array type like *mut [T], produces the type *mut[MaybeUninit<T>]
@@ -487,7 +503,7 @@ module RAST
           var newUnderlying := Array(MaybeUninitType(s.underlying), None);
           if this.IsObject() then ObjectType(newUnderlying) else PointerMut(newUnderlying)
         else if s.IsMultiArray() then
-          var newUnderlying := TypeApp(s.baseName, [MaybeUninitType(s.arguments[0])]);
+          var newUnderlying := TypeApp(s.Expand().baseName, [MaybeUninitType(s.Expand().arguments[0])]);
           if this.IsObject() then ObjectType(newUnderlying) else PointerMut(newUnderlying)
         else
           this
@@ -500,8 +516,8 @@ module RAST
     }
 
     predicate IsUninitArray() {
-      if this.IsObjectOrPointer() then
-        var s := this.ObjectOrPointerUnderlying();
+      if IsObjectOrPointer() then
+        var s := ObjectOrPointerUnderlying().Expand();
         if s.Array? && s.size.None? then
           s.underlying.IsMaybeUninit()
         else if s.IsMultiArray() then
@@ -519,23 +535,32 @@ module RAST
       }
     }
     predicate IsPointer() {
-      this.Pointer? || this.PointerMut?
+      Pointer? || PointerMut?
     }
     predicate IsObjectOrPointer() {
-      IsPointer() || IsObject()
+      this.Expand().IsPointer() || this.Expand().IsObject()
+    } by method {
+      var t := this.Expand();
+      return t.IsPointer() || t.IsObject();
     }
     function ObjectOrPointerUnderlying(): Type
       requires IsObjectOrPointer()
     {
-      if this.PointerMut? || this.Pointer? then this.underlying else
-      match this {
+      if Expand().IsPointer() then Expand().underlying else
+      match Expand() {
         case TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), _), elems1) =>
           elems1[0]
       }
+    } by method {
+      var t := Expand();
+      if t.IsPointer() {
+        return t.underlying;
+      }
+      return t.arguments[0];
     }
 
     predicate IsBuiltinCollection() {
-      match this {
+      match this.Expand() {
         case TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), tpe), elems1) =>
           || ((tpe == "Set" || tpe == "Sequence" || tpe == "Multiset") && |elems1| == 1)
           || (tpe == "Map" && |elems1| == 2)
@@ -546,7 +571,7 @@ module RAST
     function GetBuiltinCollectionElement(): Type
       requires IsBuiltinCollection()
     {
-      match this {
+      match this.Expand() {
         case TypeApp(TMemberSelect(TMemberSelect(TIdentifier(""), "dafny_runtime"), tpe), elems) =>
           if tpe == "Map" then elems[1] else elems[0]
       }
@@ -2089,7 +2114,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var constrainedTypeParams := R.TypeParamDecl.ToStringMultiple(rTypeParamsDecls, R.IND + R.IND);
 
       var underlyingType;
-      match NewtypeToRustType(c.base, c.range) {
+      match NewtypeRangeToRustType(c.range) {
         case Some(v) =>
           underlyingType := v;
         case None =>
@@ -2337,15 +2362,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               for l := 0 to |ctor2.args| {
                 var dtor2 := ctor2.args[l];
                 var patternName := escapeDtor(dtor2.formal.name);
+                var varName := escapeVar(dtor2.formal.name);
                 if l == 0 && patternName == "0" {
                   isNumeric := true;
                 }
                 if isNumeric {
                   patternName := dtor2.callName.GetOr("v" + Strings.OfNat(l));
+                  varName := patternName;
                 }
                 if dtor.formal.name == dtor2.formal.name {
                   // Note: here, we use escapeVar because the corresponding destructor uses a non-punned name
-                  hasMatchingField := Some(escapeVar(dtor2.formal.name));
+                  hasMatchingField := Some(varName);
                 }
                 patternInner := patternInner + patternName + ", ";
               }
@@ -2494,7 +2521,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             else
               hashRhs.Then(R.std.MSel("hash").MSel("Hash").MSel("hash").Apply([R.Identifier(fieldName), R.Identifier("_state")]));
 
-          ctorMatchInner := ctorMatchInner + patternName + ", ";
+          ctorMatchInner := ctorMatchInner + (if isNumeric then fieldName else patternName) + ", ";
 
           if (j > 0) {
             printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \", \")?"));
@@ -2819,12 +2846,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 s := Object(R.DynType(s));
               }
             }
-            case Newtype(t, range, erased) => {
+            case Newtype(base, range, erased) => {
               if erased {
-                match NewtypeToRustType(t, range) {
+                match NewtypeRangeToRustType(range) {
                   case Some(v) =>
                     s := v;
                   case None =>
+                    var underlying := GenType(base, GenTypeContext.default());
+                    s := R.TSynonym(s, underlying);
                 }
               }
             }
@@ -3012,14 +3041,19 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           if selfId == "this" {
             tpe := R.Borrowed(tpe);
           } else if selfId == "self" {
-            if tpe.IsObjectOrPointer() { // For classes.
+            if tpe.IsObjectOrPointer() { // For classes and traits
               if m.wasFunction {
                 tpe := R.SelfBorrowed;
               } else {
                 tpe := R.SelfBorrowedMut;
               }
-            } else { // For datatypes
-              tpe := R.Borrowed(R.Rc(R.SelfOwned));
+            } else { // For Rc-defined datatypes
+              if enclosingType.UserDefined? && enclosingType.resolved.kind.Datatype?
+                 && IsRcWrapped(enclosingType.resolved.attributes) {
+                tpe := R.Borrowed(R.Rc(R.SelfOwned));
+              } else { // For raw-defined datatypes, newtypes
+                tpe := R.Borrowed(R.SelfOwned);
+              }
             }
           }
           params := [R.Formal(selfId, tpe)] + params;
@@ -3458,7 +3492,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 case _ => {
                   if onExpr != R.self { // Self has the reference type already
                     match name {
-                      case CallName(_, Some(tpe), _, _) =>
+                      case CallName(_, Some(tpe), _, _, _) =>
                         var typ := GenType(tpe, GenTypeContext.default());
                         if typ.IsObjectOrPointer() && onExpr != R.Identifier("self") {
                           onExpr := modify_macro.Apply1(onExpr);
@@ -3561,7 +3595,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         BitwiseShiftLeft() := "<<"
       ]
 
-    static function NewtypeToRustType(base: Type, range: NewtypeRange)
+    static function NewtypeRangeToRustType(range: NewtypeRange)
       : Option<R.Type> {
       match range {
         case NoRange() => None
@@ -3917,7 +3951,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       var Convert(expr, fromTpe, toTpe) := e;
       var UserDefined(ResolvedType(path, typeArgs, Newtype(b, range, erase), _, _, _)) := toTpe;
-      var nativeToType := NewtypeToRustType(b, range);
+      var nativeToType := NewtypeRangeToRustType(range);
       if fromTpe == b {
         var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
@@ -3940,7 +3974,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           match fromTpe {
             case UserDefined(
               ResolvedType(_, _, Newtype(b0, range0, erase0), attributes0, _, _)) => {
-              var nativeFromType := NewtypeToRustType(b0, range0);
+              var nativeFromType := NewtypeRangeToRustType(range0);
               if nativeFromType.Some? {
                 var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
                 r, resultingOwnership := FromOwnership(R.TypeAscription(recursiveGen, nativeToType.value), recOwned, expectedOwnership);
@@ -3979,7 +4013,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var Convert(expr, fromTpe, toTpe) := e;
       var UserDefined(
       ResolvedType(_, _, Newtype(b, range, erase), attributes, _, _)) := fromTpe;
-      var nativeFromType := NewtypeToRustType(b, range);
+      var nativeFromType := NewtypeRangeToRustType(range);
       if b == toTpe {
         var recursiveGen, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
         readIdents := recIdents;
@@ -4088,10 +4122,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var newToType := GetBuiltinCollectionElement(toType);
         var coerceArg :-
           UpcastConversionLambda(newFromType, newFromTpe, newToType, newToTpe, typeParams);
-        var collectionType := R.dafny_runtime.MSel(fromTpe.baseName.name);
+        var collectionType := R.dafny_runtime.MSel(fromTpe.Expand().baseName.name);
         var baseType :=
-          if fromTpe.baseName.name == "Map" then
-            collectionType.ApplyType([fromTpe.arguments[0], newFromTpe])
+          if fromTpe.Expand().baseName.name == "Map" then
+            collectionType.ApplyType([fromTpe.Expand().arguments[0], newFromTpe])
           else
             collectionType.ApplyType([newFromTpe]);
         Success(baseType.MSel("coerce").Apply1(coerceArg))
@@ -4336,10 +4370,18 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     {
       argExprs := [];
       readIdents := {};
+      var signature :=
+        if name.CallName? then
+          if name.receiverArg.Some? && name.receiverAsArgument then
+            [name.receiverArg.value] + name.signature.parameters
+          else
+            name.signature.parameters
+        else
+          [];
       for i := 0 to |args| {
         var argOwnership := OwnershipBorrowed;
-        if name.CallName? && i < |name.signature.parameters| {
-          var tpe := GenType(name.signature.parameters[i].typ, GenTypeContext.default());
+        if i < |signature| {
+          var tpe := GenType(signature[i].typ, GenTypeContext.default());
           if tpe.CanReadWithoutClone() {
             argOwnership := OwnershipOwned;
           }
@@ -4359,7 +4401,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       match name {
         // Calls on traits should be fully specified as we can't guarantee traits will be in context
         // Calls on non-traits should be also fully specified if the method is not found in the definition of that type
-        case CallName(nameIdent, Some(UserDefined(resolvedType)), _, _) =>
+        case CallName(nameIdent, Some(UserDefined(resolvedType)), _, _, _) =>
           if resolvedType.kind.Trait? || forall m <- resolvedType.properMethods :: m.id != nameIdent {
             fullNameQualifier := Some(TraitTypeContainingMethod(resolvedType, nameIdent.dafny_name).GetOr(resolvedType));
           } else {
@@ -4383,7 +4425,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     function GetMethodName(on: Expression, name: CallName): string {
         match name {
-        case CallName(ident, _, _, _) =>
+        case CallName(ident, _, _, _, _) =>
           if on.ExternCompanion? then ident.dafny_name else escapeName(ident)
         case MapBuilderAdd() | SetBuilderAdd() => "add"
         case MapBuilderBuild() | SetBuilderBuild() => "build"
@@ -5038,7 +5080,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 case _ => {
                   if onExpr != R.self { // Self has the reference type already
                     match name {
-                      case CallName(_, Some(tpe), _, _) =>
+                      case CallName(_, Some(tpe), _, _, _) =>
                         var typ := GenType(tpe, GenTypeContext.default());
                         if typ.IsObjectOrPointer() {
                           onExpr := read_macro.Apply1(onExpr);
