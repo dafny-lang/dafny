@@ -575,8 +575,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName,
-      Type sourceType,
+    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName, Type sourceType,
       ExtendedPattern pattern, ConcreteSyntaxTree writer, bool lastCase) {
 
       var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
@@ -590,6 +589,7 @@ namespace Microsoft.Dafny.Compilers {
         EmitExpr(litExpression, false, right, writer);
         EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
         writer = thenWriter;
+
       } else if (pattern is IdPattern idPattern) {
         if (idPattern.BoundVar != null) {
           if (idPattern.BoundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
@@ -613,27 +613,13 @@ namespace Microsoft.Dafny.Compilers {
         }
         writer = EmitIf(out var guardWriter, false, writer);
         guardWriter.Write(disjunctiveMatch);
+
       } else {
         throw new Exception();
       }
 
       return writer;
     }
-
-    /// <summary>
-    /// If "emitIf" is true, then emits an else-less "if" statement, sets "guardWriter" to a non-null value, and returns the writer to the
-    /// "then" branch.
-    /// If "emitIf" is false, then emits a block statement, sets "guardWriter" to null, and returns the writer to the inside of the block.  
-    /// </summary>
-    protected ConcreteSyntaxTree EmitIfOrBlock(bool emitIf, [CanBeNull] out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
-      var innerWriter = EmitIf(out guardWriter, false, wr);
-      if (!emitIf) {
-        guardWriter.Write(True);
-        guardWriter = null;
-      }
-      return innerWriter;
-    }
-
 
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
       IdPattern idPattern,
