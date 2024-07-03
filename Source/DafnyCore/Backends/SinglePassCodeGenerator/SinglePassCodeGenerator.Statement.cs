@@ -580,6 +580,10 @@ namespace Microsoft.Dafny.Compilers {
 
       var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
       if (litExpression != null) {
+        if (lastCase) {
+          return writer;
+        }
+
         var thenWriter = EmitIf(out var guardWriter, false, writer);
         CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, litExpression.Type, pattern.Tok, Type.Bool,
           out var opString, out var preOpString, out var postOpString, out var callString, out var staticCallString,
@@ -605,6 +609,10 @@ namespace Microsoft.Dafny.Compilers {
         }
 
       } else if (pattern is DisjunctivePattern disjunctivePattern) {
+        if (lastCase) {
+          return writer;
+        }
+
         string disjunctiveMatch = ProtectedFreshId("disjunctiveMatch");
         DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), false, writer);
         foreach (var alternative in disjunctivePattern.Alternatives) {
