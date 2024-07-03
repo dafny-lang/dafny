@@ -1513,7 +1513,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-
       public Expr TrExprSpecialFunctionCall(FunctionCallExpr expr) {
         Contract.Requires(expr.Function is SpecialFunction);
         string name = expr.Function.Name;

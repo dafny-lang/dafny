@@ -1,6 +1,5 @@
-// RUN: echo ''
-// No: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
-// No: %diff "%s.expect" "%t"
+// RUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
+// RUN: %diff "%s.expect" "%t"
 
 function P(): nat
 

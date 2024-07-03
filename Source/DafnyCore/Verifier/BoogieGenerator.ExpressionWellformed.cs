@@ -255,6 +255,13 @@ namespace Microsoft.Dafny {
       CheckWellformedWithResult(expr, wfOptions, null, null, locals, builder, etran);
     }
 
+    /// <summary>
+    /// Adds to "builder" code that checks the well-formedness of "expr".  Any local variables introduced
+    /// in this code are added to "locals".
+    /// If "result" is non-null, then after checking the well-formedness of "expr", the generated code will
+    /// assume the equivalent of "result == expr".
+    /// See class WFOptions for descriptions of the specified options.
+    /// </summary>
     void CheckWellformedWithResult(Expression expr, WFOptions wfOptions, Expr result, Type resultType, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, string resultDescription = null) {
       var origOptions = wfOptions;

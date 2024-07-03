@@ -3532,13 +3532,12 @@ namespace Microsoft.Dafny {
         var s = (PrintStmt)stmt;
         s.Args.ForEach(e => ResolveExpression(e, resolutionContext));
 
-      } else if (stmt is HideRevealStmt) {
-        var s = (HideRevealStmt)stmt;
-        foreach (var expr in s.Exprs) {
+      } else if (stmt is HideRevealStmt hideRevealStmt) {
+        foreach (var expr in hideRevealStmt.Exprs) {
           var name = HideRevealStmt.SingleName(expr);
           var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
           if (labeledAssert != null) {
-            s.LabeledAsserts.Add(labeledAssert);
+            hideRevealStmt.LabeledAsserts.Add(labeledAssert);
           } else {
             var revealResolutionContext = resolutionContext with { InReveal = true };
             if (expr is ApplySuffix) {
@@ -3552,8 +3551,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
-                s.ResolvedStatements.Add(call);
+                var call = new CallStmt(hideRevealStmt.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+                hideRevealStmt.ResolvedStatements.Add(call);
               }
             } else if (expr is NameSegment or ExprDotName) {
               if (expr is NameSegment) {
@@ -3567,15 +3566,15 @@ namespace Microsoft.Dafny {
                 //The revealed member is a function
                 reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-                s.ResolvedStatements.Add(call);
+                var call = new CallStmt(hideRevealStmt.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
+                hideRevealStmt.ResolvedStatements.Add(call);
               }
             } else {
               ResolveExpression(expr, revealResolutionContext);
             }
           }
         }
-        foreach (var a in s.ResolvedStatements) {
+        foreach (var a in hideRevealStmt.ResolvedStatements) {
           ResolveStatement(a, resolutionContext);
         }
       } else if (stmt is BreakStmt) {
