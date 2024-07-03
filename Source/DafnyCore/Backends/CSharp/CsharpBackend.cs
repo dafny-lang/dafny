@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -8,17 +9,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using DafnyCore.Options;
-
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.CommandLine;
-using System.Diagnostics.Contracts;
-using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
