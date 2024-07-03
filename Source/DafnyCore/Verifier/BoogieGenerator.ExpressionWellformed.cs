@@ -255,32 +255,7 @@ namespace Microsoft.Dafny {
       CheckWellformedWithResult(expr, wfOptions, null, null, locals, builder, etran);
     }
 
-    /// <summary>
-    /// Adds to "builder" code that checks the well-formedness of "expr".  Any local variables introduced
-    /// in this code are added to "locals".
-    /// If "result" is non-null, then after checking the well-formedness of "expr", the generated code will
-    /// assume the equivalent of "result == expr".
-    /// See class WFOptions for descriptions of the specified options.
-    /// </summary>
-    void CheckWellformedWithResult(Expression expr, WFOptions wfOptions, Bpl.Expr result, Type resultType,
-                                   List<Bpl.Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-                                   string resultDescription = null) {
-      Contract.Requires(expr != null);
-      Contract.Requires(wfOptions != null);
-      Contract.Requires((result == null) == (resultType == null));
-      Contract.Requires(locals != null);
-      Contract.Requires(builder != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(predef != null);
-
-      var proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-      CheckWellFormedInner(expr, wfOptions, result, resultType, locals, proofBuilder, etran, resultDescription);
-      if (!proofBuilder.Empty) {
-        PathAsideBlock(expr.Tok, proofBuilder, builder);
-      }
-    }
-
-    private void CheckWellFormedInner(Expression expr, WFOptions wfOptions, Expr result, Type resultType, List<Variable> locals,
+    void CheckWellformedWithResult(Expression expr, WFOptions wfOptions, Expr result, Type resultType, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, string resultDescription = null) {
       var origOptions = wfOptions;
       if (wfOptions.LValueContext) {
@@ -293,7 +268,7 @@ namespace Microsoft.Dafny {
       switch (expr) {
         case StaticReceiverExpr stexpr: {
             if (stexpr.ObjectToDiscard != null) {
-              CheckWellFormedInner(stexpr.ObjectToDiscard, wfOptions, null, null, locals, builder, etran);
+              CheckWellformedWithResult(stexpr.ObjectToDiscard, wfOptions, null, null, locals, builder, etran);
             }
 
             break;
@@ -1221,7 +1196,7 @@ namespace Microsoft.Dafny {
                     resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
                     rangeType = lam.Type.AsArrowType.Result;
                   }
-                  CheckWellFormedInner(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran, "lambda expression");
+                  CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, comprehensionEtran, "lambda expression");
                 });
 
                 if (mc != null) {
@@ -1291,9 +1266,9 @@ namespace Microsoft.Dafny {
               Contract.Assert(letExpr != null);
               CheckWellformedLetExprWithResult(letExpr, wfOptions, result, resultType, locals, bThen, etran, false);
             } else {
-              CheckWellFormedInner(e.Thn, wfOptions, result, resultType, locals, bThen, etran, "if expression then branch");
+              CheckWellformedWithResult(e.Thn, wfOptions, result, resultType, locals, bThen, etran, "if expression then branch");
             }
-            CheckWellFormedInner(e.Els, wfOptions, result, resultType, locals, bElse, etran, "if expression else branch");
+            CheckWellformedWithResult(e.Els, wfOptions, result, resultType, locals, bElse, etran, "if expression else branch");
             builder.Add(new Bpl.IfCmd(iteExpr.tok, etran.TrExpr(e.Test), bThen.Collect(iteExpr.tok), null, bElse.Collect(iteExpr.tok)));
             result = null;
             break;
@@ -1317,18 +1292,18 @@ namespace Microsoft.Dafny {
             CheckNotGhostVariant(e.InCompiledContext, updateExpr, e.Root, "update of", e.Members,
               e.LegalSourceConstructors, builder, etran);
 
-            CheckWellFormedInner(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran, resultDescription);
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran, resultDescription);
             result = null;
             break;
           }
         case ConcreteSyntaxExpression expression: {
             var e = expression;
-            CheckWellFormedInner(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran, resultDescription);
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, result, resultType, locals, builder, etran, resultDescription);
             result = null;
             break;
           }
         case NestedMatchExpr nestedMatchExpr:
-          CheckWellFormedInner(nestedMatchExpr.Flattened, wfOptions, result, resultType, locals, builder, etran, resultDescription);
+          CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, result, resultType, locals, builder, etran, resultDescription);
           result = null;
           break;
         case BoogieFunctionCall call: {
@@ -1401,7 +1376,7 @@ namespace Microsoft.Dafny {
         var b = new BoogieStmtListBuilder(this, options, builder.Context);
         Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
         // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-        CheckWellFormedInner(mc.Body, wfOptions, result, resultType, locals, b, etran, "match expression branch result");
+        CheckWellformedWithResult(mc.Body, wfOptions, result, resultType, locals, b, etran, "match expression branch result");
         ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
         els = null;
       }
@@ -1424,7 +1399,7 @@ namespace Microsoft.Dafny {
         TrStmt(stmtExpr.S, builder, locals, etran);
       }
 
-      CheckWellFormedInner(stmtExpr.E, options, result, resultType, locals, builder, etran, "statement expression result");
+      CheckWellformedWithResult(stmtExpr.E, options, result, resultType, locals, builder, etran, "statement expression result");
     }
 
     /// <summary>
@@ -1508,12 +1483,12 @@ namespace Microsoft.Dafny {
           var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(pat.Expr.Type)));
           locals.Add(r);
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-          CheckWellFormedInner(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran, "let expression binding RHS well-formed");
+          CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, pat.Expr.Type, locals, builder, etran, "let expression binding RHS well-formed");
           CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
           builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
         }
-        CheckWellFormedInner(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran, "let expression result");
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, resultType, locals, builder, etran, "let expression result");
 
       } else {
         // CheckWellformed(var b :| RHS(b); Body(b)) =
