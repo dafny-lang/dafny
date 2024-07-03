@@ -721,7 +721,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
         TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
-      }, wr, true);
+      }, inLetExprBody, wr, true);
     }
 
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,

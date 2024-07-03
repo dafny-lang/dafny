@@ -524,7 +524,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
       EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         TrStmtList(match.Cases[caseIndex].Body, caseBody);
-      }, writer, false);
+      }, false, writer, false);
     }
 
     /// <summary>
@@ -556,7 +556,7 @@ namespace Microsoft.Dafny.Compilers {
     /// 
     /// </summary>
     private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
-      ConcreteSyntaxTree output, bool bodyExpected) {
+      bool inLetExprBody, ConcreteSyntaxTree output, bool bodyExpected) {
       if (match.Cases.Count == 0) {
         if (bodyExpected) {
           // the verifier would have proved we never get here; still, we need some code that will compile
@@ -564,7 +564,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       } else {
         string sourceName = ProtectedFreshId("_source");
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, output);
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
 
         string unmatched = ProtectedFreshId("unmatched");
         DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, output);
