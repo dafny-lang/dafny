@@ -565,20 +565,12 @@ namespace Microsoft.Dafny.Compilers {
         string sourceName = ProtectedFreshId("_source");
         DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
 
-        string unmatched = ProtectedFreshId("unmatched");
-        DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, output);
-
         var sourceType = match.Source.Type.NormalizeExpand();
         for (var index = 0; index < match.Cases.Count; index++) {
           var myCase = match.Cases[index];
           var lastCase = index == match.Cases.Count - 1;
-          var result = EmitIfOrBlock(!lastCase, out var guardWriter, output);
-          if (guardWriter != null) {
-            guardWriter.Write(unmatched);
-          }
-          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result, lastCase);
+          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, output, lastCase);
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
-          EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
 
           emitBody(index, innerWriter);
         }
