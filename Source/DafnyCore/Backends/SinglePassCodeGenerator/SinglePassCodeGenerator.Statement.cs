@@ -524,7 +524,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
       EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
         TrStmtList(match.Cases[caseIndex].Body, caseBody);
-      }, false, writer, false);
+      }, false, writer);
     }
 
     /// <summary>
@@ -555,12 +555,10 @@ namespace Microsoft.Dafny.Compilers {
     /// 
     /// </summary>
     private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
-      bool inLetExprBody, ConcreteSyntaxTree output, bool bodyExpected) {
+      bool inLetExprBody, ConcreteSyntaxTree output) {
       if (match.Cases.Count == 0) {
-        if (bodyExpected) {
-          // the verifier would have proved we never get here; still, we need some code that will compile
-          EmitAbsurd(null, output);
-        }
+        // the verifier would have proved we never get here; still, we need some code that will compile
+        EmitAbsurd(null, output);
       } else {
         string sourceName = ProtectedFreshId("_source");
         DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
