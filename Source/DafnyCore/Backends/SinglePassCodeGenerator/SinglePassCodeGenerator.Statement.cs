@@ -549,10 +549,9 @@ namespace Microsoft.Dafny.Compilers {
     ///     } 
     ///   }
     /// }
-    /// if (unmatched) {
-    ///   var r = a;
-    ///   body2;
-    /// }
+    /// var r = a;
+    /// body2;
+    /// throw ABSURD;
     /// 
     /// </summary>
     private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
@@ -573,17 +572,15 @@ namespace Microsoft.Dafny.Compilers {
         for (var index = 0; index < match.Cases.Count; index++) {
           var myCase = match.Cases[index];
           var lastCase = index == match.Cases.Count - 1;
-          var result = EmitIf(out var guardWriter, false, output);
-          guardWriter.Write(unmatched);
+          var result = EmitIfOrBlock(!lastCase, out var guardWriter, output);
+          if (guardWriter != null) {
+            guardWriter.Write(unmatched);
+          }
           var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result, lastCase);
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
           EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
 
           emitBody(index, innerWriter);
-        }
-
-        if (bodyExpected) {
-          EmitAbsurd(null, output);
         }
       }
     }
@@ -632,6 +629,21 @@ namespace Microsoft.Dafny.Compilers {
 
       return writer;
     }
+
+    /// <summary>
+    /// If "emitIf" is true, then emits an else-less "if" statement, sets "guardWriter" to a non-null value, and returns the writer to the
+    /// "then" branch.
+    /// If "emitIf" is false, then emits a block statement, sets "guardWriter" to null, and returns the writer to the inside of the block.  
+    /// </summary>
+    protected ConcreteSyntaxTree EmitIfOrBlock(bool emitIf, [CanBeNull] out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
+      var innerWriter = EmitIf(out guardWriter, false, wr);
+      if (!emitIf) {
+        guardWriter.Write(True);
+        guardWriter = null;
+      }
+      return innerWriter;
+    }
+
 
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
       IdPattern idPattern,
