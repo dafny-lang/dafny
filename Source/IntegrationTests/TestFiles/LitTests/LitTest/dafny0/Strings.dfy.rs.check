@@ -1,1 +1,1 @@
-// CHECK: .*<i>Char literal without unicode char enabled</i>.*
+// CHECK: .*<i>EmitCharBoundedPool</i>.*

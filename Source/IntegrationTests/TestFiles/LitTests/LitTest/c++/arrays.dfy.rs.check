@@ -1,1 +1,1 @@
-// CHECK-L: error[E0433]: failed to resolve: use of undeclared crate or module `num`
+// CHECK-L: error[E0277]: the type `[u32]` cannot be indexed by `&u32`

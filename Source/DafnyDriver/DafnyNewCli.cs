@@ -20,6 +20,7 @@ using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer;
+using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny;
 
@@ -108,12 +109,23 @@ public static class DafnyNewCli {
           }
         }
       }
+
+      ProcessOption(context, DafnyProject.FindProjectOption, dafnyOptions);
+      var findProjectPath = dafnyOptions.Get(DafnyProject.FindProjectOption);
+      if (dafnyOptions.DafnyProject == null && findProjectPath != null) {
+        var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
+        var project = await opener.TryFindProject(new Uri(findProjectPath.FullName));
+        project?.Validate(dafnyOptions.OutputWriter, AllOptions);
+        dafnyOptions.DafnyProject = project;
+      }
+
       foreach (var option in command.Options) {
-        if (option == CommonOptionBag.UseBaseFileName) {
+        if (option == CommonOptionBag.UseBaseFileName || option == DafnyProject.FindProjectOption) {
           continue;
         }
         ProcessOption(context, option, dafnyOptions);
       }
+
       foreach (var option in command.Options) {
         try {
           dafnyOptions.ApplyBinding(option);
@@ -219,7 +231,7 @@ public static class DafnyNewCli {
       await dafnyOptions.ErrorWriter.WriteLineAsync($"Error: file {dafnyOptions.GetPrintPath(file.LocalPath)} not found");
       return false;
     }
-    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, dafnyOptions, file, Token.Cli);
+    var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, file, Token.Cli);
 
     projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
@@ -271,14 +283,14 @@ public static class DafnyNewCli {
       yield break;
     }
 
-    var dependencyProject = await DafnyProject.Open(fileSystem, options, uri, uriOrigin);
+    var dependencyProject = await DafnyProject.Open(fileSystem, uri, uriOrigin);
     var dependencyOptions =
       DooFile.CheckAndGetLibraryOptions(reporter, uri, options, uriOrigin, dependencyProject.Options);
     if (dependencyOptions == null) {
       yield break;
     }
 
-    if (options.Get(DafnyFile.UnsafeDependencies) || !options.Verify) {
+    if (options.Get(DafnyFile.DoNotVerifyDependencies) || !options.Verify) {
       foreach (var libraryRootSetFile in dependencyProject.GetRootSourceUris(fileSystem)) {
         var file = DafnyFile.HandleDafnyFile(fileSystem, reporter, dependencyOptions, libraryRootSetFile,
           dependencyProject.StartingToken, true, false);
@@ -301,7 +313,7 @@ public static class DafnyNewCli {
       dependencyOptions.Compile = true;
       dependencyOptions.RunAfterCompile = false;
       var exitCode = await SynchronousCliCompilation.Run(dependencyOptions);
-      if (exitCode == 0) {
+      if (exitCode == 0 && libraryBackend.DooPath != null) {
         var dooUri = new Uri(libraryBackend.DooPath);
         await foreach (var dooResult in DafnyFile.HandleDooFile(fileSystem, reporter, options, dooUri, uriOrigin, true)) {
           yield return dooResult;

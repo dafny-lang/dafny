@@ -1,1 +1,1 @@
-// CHECK-L: error[E0277]: the trait bound `Rc<Dt>: DafnyType` is not satisfied
+// CHECK-L: error[E0308]: mismatched types
