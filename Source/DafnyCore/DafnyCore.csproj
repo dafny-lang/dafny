@@ -17,7 +17,7 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     
     <NoWarn>$(NoWarn);NU5104</NoWarn> <!-- Required because System.CommandLine is in beta. -->
