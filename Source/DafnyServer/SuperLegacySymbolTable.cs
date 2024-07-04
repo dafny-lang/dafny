@@ -228,8 +228,7 @@ namespace DafnyServer {
       var leftSide = updateStmt.Lhss;
       var rightSide = updateStmt.Rhss;
       var leftSideDots = leftSide.OfType<ExprDotName>();
-      var rightSideDots = rightSide.OfType<ExprDotName>();
-      var allExprDotNames = leftSideDots.Concat(rightSideDots);
+      var allExprDotNames = leftSideDots;
       foreach (var exprDotName in allExprDotNames) {
         if (!(exprDotName.Lhs.Type is UserDefinedType)) {
           continue;
