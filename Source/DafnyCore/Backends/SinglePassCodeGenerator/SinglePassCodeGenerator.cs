@@ -576,7 +576,9 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      EmitExpr(expr, inLetExprBody, EmitCoercionIfNecessary(expr.Type, resultType, null, w), wStmts);
+      w = EmitCoercionIfNecessary(expr.Type, resultType, expr.tok, w);
+      w = EmitDowncastIfNecessary(expr.Type, resultType, expr.tok, w);
+      EmitExpr(expr, inLetExprBody, w, wStmts);
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);
@@ -2868,7 +2870,8 @@ namespace Microsoft.Dafny.Compilers {
           var wStmts = wr.Fork();
           var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
-            w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
+            w = EmitCoercionIfNecessary(rhs.Type, bv.Type, rhsTok, wr: w);
+            w = EmitDowncastIfNecessary(rhs.Type, bv.Type, rhsTok, w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {
             emitRhs(w);
