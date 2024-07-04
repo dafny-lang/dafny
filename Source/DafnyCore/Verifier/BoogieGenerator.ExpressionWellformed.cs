@@ -1257,7 +1257,6 @@ namespace Microsoft.Dafny {
           var proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
           CheckWellformedStmtExpr(stmtExpr, wfOptions, result, resultType, locals, proofBuilder, etran);
           PathAsideBlock(stmtExpr.Tok, proofBuilder, builder);
-          // CheckWellformedStmtExpr(stmtExpr, wfOptions, result, resultType, locals, builder, etran);
           result = null;
           break;
         case ITEExpr iteExpr: {
