@@ -30,7 +30,7 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
   public SetComprehension(IToken tok, RangeToken rangeToken, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
     : base(tok, rangeToken, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(bvars));
+    Contract.Requires(Cce.NonNullElements(bvars));
     Contract.Requires(1 <= bvars.Count);
     Contract.Requires(range != null);
     Contract.Requires(term != null || bvars.Count == 1);

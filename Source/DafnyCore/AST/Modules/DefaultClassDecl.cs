@@ -14,7 +14,7 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
     : base(RangeToken.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
     Contract.Requires(module != null);
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(members));
     this.NewSelfSynonym();
   }
 }

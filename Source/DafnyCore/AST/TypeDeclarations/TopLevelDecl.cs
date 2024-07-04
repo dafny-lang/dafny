@@ -12,7 +12,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
   public readonly List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
   }
 
   protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
@@ -24,7 +24,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
     : base(rangeToken, name, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
     EnclosingModuleDefinition = enclosingModule;
     TypeArgs = typeArgs;
   }

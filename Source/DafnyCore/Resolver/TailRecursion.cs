@@ -581,7 +581,7 @@ class TailRecursion {
             }
           default:
             Contract.Assert(false); // unexpected case
-            throw new cce.UnreachableException();
+            throw new Cce.UnreachableException();
         }
       }
       // not an operator that allows accumulation, so drop down below

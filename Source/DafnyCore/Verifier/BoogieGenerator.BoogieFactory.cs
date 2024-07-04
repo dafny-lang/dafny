@@ -575,7 +575,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "AtLayer", typeInstantiation, args);
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected built-in function
       }
     }
 
@@ -593,7 +593,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       List<Bpl.Expr> aa = new List<Bpl.Expr>();

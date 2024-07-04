@@ -19,7 +19,7 @@ public class Attributes : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
-    Contract.Invariant(cce.NonNullElements(Args));
+    Contract.Invariant(Cce.NonNullElements(Args));
   }
 
   public static string AxiomAttributeName = "axiom";
@@ -36,7 +36,7 @@ public class Attributes : TokenNode {
   public readonly Attributes Prev;
   public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
     Name = name;
     Args = args;
     Prev = prev;

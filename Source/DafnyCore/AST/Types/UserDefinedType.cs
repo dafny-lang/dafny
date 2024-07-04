@@ -11,7 +11,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
     Contract.Invariant(Name != null);
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
     Contract.Invariant(NamePath is NameSegment or ExprDotName);
     Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
   }
@@ -151,7 +151,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
     Contract.Requires(cd != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
     Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
     Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
     // The following is almost a precondition. In a few places, the source program names a class, not a type,

@@ -104,35 +104,35 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
 
 public class DontUseICallable : ICallable {
-  public string WhatKind { get { throw new cce.UnreachableException(); } }
-  public bool IsGhost { get { throw new cce.UnreachableException(); } }
-  public List<TypeParameter> TypeArgs { get { throw new cce.UnreachableException(); } }
-  public List<Formal> Ins { get { throw new cce.UnreachableException(); } }
-  public ModuleDefinition EnclosingModule { get { throw new cce.UnreachableException(); } }
-  public bool MustReverify { get { throw new cce.UnreachableException(); } }
-  public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
-  public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public IEnumerable<INode> Children => throw new cce.UnreachableException();
-  public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
+  public string WhatKind { get { throw new Cce.UnreachableException(); } }
+  public bool IsGhost { get { throw new Cce.UnreachableException(); } }
+  public List<TypeParameter> TypeArgs { get { throw new Cce.UnreachableException(); } }
+  public List<Formal> Ins { get { throw new Cce.UnreachableException(); } }
+  public ModuleDefinition EnclosingModule { get { throw new Cce.UnreachableException(); } }
+  public bool MustReverify { get { throw new Cce.UnreachableException(); } }
+  public string FullSanitizedName { get { throw new Cce.UnreachableException(); } }
+  public bool AllowsNontermination { get { throw new Cce.UnreachableException(); } }
+  public IToken Tok { get { throw new Cce.UnreachableException(); } }
+  public IEnumerable<INode> Children => throw new Cce.UnreachableException();
+  public IEnumerable<INode> PreResolveChildren => throw new Cce.UnreachableException();
 
-  public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
-  public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
+  public string NameRelativeToModule { get { throw new Cce.UnreachableException(); } }
+  public Specification<Expression> Decreases { get { throw new Cce.UnreachableException(); } }
   public bool InferredDecreases {
-    get { throw new cce.UnreachableException(); }
-    set { throw new cce.UnreachableException(); }
+    get { throw new Cce.UnreachableException(); }
+    set { throw new Cce.UnreachableException(); }
   }
-  public bool AllowsAllocation => throw new cce.UnreachableException();
+  public bool AllowsAllocation => throw new Cce.UnreachableException();
   public IEnumerable<INode> GetConcreteChildren() {
-    throw new cce.UnreachableException();
+    throw new Cce.UnreachableException();
   }
 
-  public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
-  public RangeToken RangeToken => throw new cce.UnreachableException();
-  public IToken NavigationToken => throw new cce.UnreachableException();
-  public SymbolKind? Kind => throw new cce.UnreachableException();
+  public IEnumerable<IToken> OwnedTokens => throw new Cce.UnreachableException();
+  public RangeToken RangeToken => throw new Cce.UnreachableException();
+  public IToken NavigationToken => throw new Cce.UnreachableException();
+  public SymbolKind? Kind => throw new Cce.UnreachableException();
   public string GetDescription(DafnyOptions options) {
-    throw new cce.UnreachableException();
+    throw new Cce.UnreachableException();
   }
   public string Designator => WhatKind;
 }
@@ -157,9 +157,9 @@ public class NoContext : ICodeContext {
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
-  bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
-  public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
-  public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+  bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new Cce.UnreachableException(); } }
+  public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new Cce.UnreachableException(); } }
+  public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new Cce.UnreachableException(); } }
   public bool AllowsAllocation => true;
 }
 

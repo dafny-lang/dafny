@@ -25,7 +25,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Args));
+    Contract.Invariant(Cce.NonNullElements(Args));
   }
 
   public PrintStmt Clone(Cloner cloner) {
@@ -39,7 +39,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
   public PrintStmt(RangeToken rangeToken, List<Expression> args)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
 
     Args = args;
   }

@@ -32,12 +32,12 @@ public abstract class ExtremeLemma : Method {
     : base(rangeToken, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(outs));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(outs));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(mod != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     TypeOfK = typeOfK;
   }
@@ -62,12 +62,12 @@ public class LeastLemma : ExtremeLemma {
     : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(outs));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(outs));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(mod != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
   }
 
@@ -92,12 +92,12 @@ public class GreatestLemma : ExtremeLemma {
     : base(rangeToken, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(outs));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(outs));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(mod != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
   }
 

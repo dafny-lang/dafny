@@ -20,8 +20,8 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   void ObjectInvariant() {
     Contract.Invariant(DatatypeName != null);
     Contract.Invariant(MemberName != null);
-    Contract.Invariant(cce.NonNullElements(Arguments));
-    Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
+    Contract.Invariant(Cce.NonNullElements(Arguments));
+    Contract.Invariant(Cce.NonNullElements(InferredTypeArgs));
     Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
   }
 
@@ -43,7 +43,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
 
   public DatatypeValue(IToken tok, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
     : base(tok) {
-    Contract.Requires(cce.NonNullElements(arguments));
+    Contract.Requires(Cce.NonNullElements(arguments));
     Contract.Requires(tok != null);
     Contract.Requires(datatypeName != null);
     Contract.Requires(memberName != null);

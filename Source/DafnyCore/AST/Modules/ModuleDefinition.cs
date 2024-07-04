@@ -100,7 +100,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TopLevelDecls));
+    Contract.Invariant(Cce.NonNullElements(TopLevelDecls));
     Contract.Invariant(CallGraph != null);
   }
 

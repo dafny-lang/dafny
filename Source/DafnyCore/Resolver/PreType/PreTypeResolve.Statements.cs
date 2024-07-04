@@ -255,7 +255,7 @@ namespace Microsoft.Dafny {
         } else if (s.Rhs is HavocRhs) {
           // nothing else to do
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected RHS
         }
 
       } else if (stmt is CallStmt callStmt) {
@@ -416,7 +416,7 @@ namespace Microsoft.Dafny {
         }
 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 

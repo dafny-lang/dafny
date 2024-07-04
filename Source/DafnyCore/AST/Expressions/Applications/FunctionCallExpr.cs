@@ -63,7 +63,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
     Contract.Invariant(Receiver != null);
-    Contract.Invariant(cce.NonNullElements(Args));
+    Contract.Invariant(Cce.NonNullElements(Args));
     Contract.Invariant(
       Function == null || TypeApplication_AtEnclosingClass == null ||
       Function.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
@@ -79,7 +79,7 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     Contract.Requires(tok != null);
     Contract.Requires(fn != null);
     Contract.Requires(receiver != null);
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
     Contract.Requires(openParen != null || args.Count == 0);
     Contract.Ensures(type == null);
   }

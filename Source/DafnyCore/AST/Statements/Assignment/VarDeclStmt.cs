@@ -9,7 +9,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public readonly ConcreteUpdateStatement Update;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Locals));
+    Contract.Invariant(Cce.NonNullElements(Locals));
     Contract.Invariant(Locals.Count != 0);
   }
 

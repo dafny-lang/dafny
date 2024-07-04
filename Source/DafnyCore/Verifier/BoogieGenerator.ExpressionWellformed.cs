@@ -701,7 +701,7 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
                 CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, ee, builder);
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), Cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
                 if (!etran.UsesOldHeap) {
                   // the argument can't be assumed to be allocated for the old heap
@@ -1333,7 +1333,7 @@ namespace Microsoft.Dafny {
             break;
           }
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
       }
 
       if (result != null) {

@@ -664,7 +664,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();  // to please the compiler
       }
     }
 
@@ -703,7 +703,7 @@ namespace Microsoft.Dafny.Compilers {
         CodeGenerator.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new Cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
@@ -852,7 +852,7 @@ namespace Microsoft.Dafny.Compilers {
           return TypeName_UDT(FullTypeName(udt), udt, wr, udt.tok);
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -946,7 +946,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is MapType) {
         return DafnyMapClass;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -1050,7 +1050,7 @@ namespace Microsoft.Dafny.Compilers {
         var arguments = relevantTypeArgs.Comma(arg => DefaultValue(arg, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
         return string.Format($"{s}.Default({typeDescriptors}{sep}{arguments})");
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
 
     }
@@ -1434,7 +1434,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("\"))");
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
       }
     }
     string IntegerLiteral(BigInteger i) {
@@ -2044,7 +2044,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
     }
 
@@ -2162,7 +2162,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (IsRepresentedAsBigNumber(e0Type) || e0Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isLessThan";
           } else {
-            Contract.Assert(false); throw new cce.UnreachableException();
+            Contract.Assert(false); throw new Cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
@@ -2173,7 +2173,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (e0Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             callString = "isAtMost";
           } else {
-            Contract.Assert(false); throw new cce.UnreachableException();
+            Contract.Assert(false); throw new Cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
@@ -2186,7 +2186,7 @@ namespace Microsoft.Dafny.Compilers {
             callString = "isAtMost";
             reverseArguments = true;
           } else {
-            Contract.Assert(false); throw new cce.UnreachableException();
+            Contract.Assert(false); throw new Cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
@@ -2196,7 +2196,7 @@ namespace Microsoft.Dafny.Compilers {
             callString = "isLessThan";
             reverseArguments = true;
           } else {
-            Contract.Assert(false); throw new cce.UnreachableException();
+            Contract.Assert(false); throw new Cce.UnreachableException();
           }
           break;
         case BinaryExpr.ResolvedOpcode.LtChar when UnicodeCharEnabled:

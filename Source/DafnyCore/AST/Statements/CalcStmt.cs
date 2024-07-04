@@ -95,7 +95,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
         return other.ResultOp(this);
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
     }
 
@@ -140,7 +140,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
         return new TernaryCalcOp(minIndex); // ToDo: if we could compare expressions for syntactic equality, we could use this here to optimize
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
     }
 
@@ -213,12 +213,12 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lines != null);
-    Contract.Invariant(cce.NonNullElements(Lines));
+    Contract.Invariant(Cce.NonNullElements(Lines));
     Contract.Invariant(Hints != null);
-    Contract.Invariant(cce.NonNullElements(Hints));
+    Contract.Invariant(Cce.NonNullElements(Hints));
     Contract.Invariant(StepOps != null);
     Contract.Invariant(Steps != null);
-    Contract.Invariant(cce.NonNullElements(Steps));
+    Contract.Invariant(Cce.NonNullElements(Steps));
     Contract.Invariant(Hints.Count == Math.Max(Lines.Count - 1, 0));
     Contract.Invariant(StepOps.Count == Hints.Count);
   }
@@ -229,8 +229,8 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     Contract.Requires(lines != null);
     Contract.Requires(hints != null);
     Contract.Requires(stepOps != null);
-    Contract.Requires(cce.NonNullElements(lines));
-    Contract.Requires(cce.NonNullElements(hints));
+    Contract.Requires(Cce.NonNullElements(lines));
+    Contract.Requires(Cce.NonNullElements(hints));
     Contract.Requires(hints.Count == Math.Max(lines.Count - 1, 0));
     Contract.Requires(stepOps.Count == hints.Count);
     UserSuppliedOp = userSuppliedOp;

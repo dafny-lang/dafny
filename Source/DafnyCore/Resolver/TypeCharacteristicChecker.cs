@@ -182,7 +182,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
       return false;
     }

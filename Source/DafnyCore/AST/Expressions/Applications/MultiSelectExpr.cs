@@ -10,7 +10,7 @@ public class MultiSelectExpr : Expression, ICloneable<MultiSelectExpr> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Array != null);
-    Contract.Invariant(cce.NonNullElements(Indices));
+    Contract.Invariant(Cce.NonNullElements(Indices));
     Contract.Invariant(1 <= Indices.Count);
   }
 
@@ -23,7 +23,7 @@ public class MultiSelectExpr : Expression, ICloneable<MultiSelectExpr> {
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(array != null);
-    Contract.Requires(cce.NonNullElements(indices) && 1 <= indices.Count);
+    Contract.Requires(Cce.NonNullElements(indices) && 1 <= indices.Count);
 
     Array = array;
     Indices = indices;

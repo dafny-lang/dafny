@@ -58,7 +58,7 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
   public AssignSuchThatStmt(RangeToken rangeToken, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attrs)
     : base(rangeToken, lhss, attrs) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);
     Contract.Requires(expr != null);
     Expr = expr;

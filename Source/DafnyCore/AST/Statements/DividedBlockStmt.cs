@@ -25,8 +25,8 @@ public class DividedBlockStmt : BlockStmt, ICloneable<DividedBlockStmt> {
   public DividedBlockStmt(RangeToken rangeToken, List<Statement> bodyInit, IToken/*?*/ separatorTok, List<Statement> bodyProper)
     : base(rangeToken, Util.Concat(bodyInit, bodyProper)) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(bodyInit));
-    Contract.Requires(cce.NonNullElements(bodyProper));
+    Contract.Requires(Cce.NonNullElements(bodyInit));
+    Contract.Requires(Cce.NonNullElements(bodyProper));
     this.BodyInit = bodyInit;
     this.SeparatorTok = separatorTok;
     this.BodyProper = bodyProper;

@@ -107,7 +107,7 @@ namespace Microsoft.Dafny.Compilers {
           return JavaNativeType.Long;
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
 
@@ -479,7 +479,7 @@ namespace Microsoft.Dafny.Compilers {
         CodeGenerator.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new Cce.UnreachableException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public ConcreteSyntaxTree/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -645,7 +645,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     string TypeParameters(List<TypeParameter>/*?*/ targs, string suffix = "") {
-      Contract.Requires(targs == null || cce.NonNullElements(targs));
+      Contract.Requires(targs == null || Cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (targs == null || targs.Count == 0) {
@@ -772,7 +772,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         return $"{DafnyMapClass}<{ActualTypeArgument(domType, TypeParameter.TPVariance.Co, wr, tok)}, {ActualTypeArgument(ranType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyMapClass;
       } else {
         Contract.Assert(false);  // unexpected collection type
-        throw new cce.UnreachableException();  // to please the compiler
+        throw new Cce.UnreachableException();  // to please the compiler
       }
     }
 
@@ -1072,7 +1072,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           default:
             Contract.Assert(false); // unexpected case
-            throw new cce.UnreachableException();
+            throw new Cce.UnreachableException();
         }
       }
 
@@ -1170,7 +1170,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("\"))");
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
       }
     }
 
@@ -1224,7 +1224,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Long: return "0L";
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();  // to please the compiler
       }
     }
 
@@ -1239,7 +1239,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Long: name = "long"; literalSuffix = "L"; break;
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();  // to please the compiler
       }
     }
 
@@ -1255,7 +1255,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Long: return "java.lang.Long";
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();  // to please the compiler
       }
     }
 
@@ -2359,7 +2359,7 @@ namespace Microsoft.Dafny.Compilers {
           default:
             // Should be an unsigned type by assumption
             Contract.Assert(false);
-            throw new cce.UnreachableException();
+            throw new Cce.UnreachableException();
         }
       } else {
         bool isGeneric = type.NormalizeToAncestorType().AsSeqType is { Arg: { IsTypeParameter: true } };
@@ -2579,7 +2579,7 @@ namespace Microsoft.Dafny.Compilers {
             case JavaNativeType.Long: return $"{DafnyTypeDescriptor}.LONG_ARRAY";
             default:
               Contract.Assert(false);
-              throw new cce.UnreachableException();
+              throw new Cce.UnreachableException();
           }
         } else {
           return $"(({DafnyTypeDescriptor}<{BoxedTypeName(type, wr, tok)}>)({TypeDescriptor(elType, wr, tok)}).arrayType())";
@@ -2632,7 +2632,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return AddTypeDescriptorArgs(s, udt.TypeArgs, relevantTypeArgs, wr, udt.tok);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 
@@ -2642,7 +2642,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Short: return $"{DafnyTypeDescriptor}.SHORT";
         case JavaNativeType.Int: return $"{DafnyTypeDescriptor}.INT";
         case JavaNativeType.Long: return $"{DafnyTypeDescriptor}.LONG";
-        default: Contract.Assert(false); throw new cce.UnreachableException();
+        default: Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 
@@ -2779,7 +2779,7 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
     }
 
@@ -2899,7 +2899,7 @@ namespace Microsoft.Dafny.Compilers {
                 break;
               default:
                 Contract.Assert(false);
-                throw new cce.UnreachableException();
+                throw new Cce.UnreachableException();
             }
           } else {
             switch (op) {
@@ -2917,7 +2917,7 @@ namespace Microsoft.Dafny.Compilers {
                 break;
               default:
                 Contract.Assert(false);
-                throw new cce.UnreachableException();
+                throw new Cce.UnreachableException();
             }
           }
           break;
@@ -3297,7 +3297,7 @@ namespace Microsoft.Dafny.Compilers {
         return $"{s}.{typeargs}Default({wDefaultTypeArguments}{sep}{arguments})";
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected type
+        throw new Cce.UnreachableException(); // unexpected type
       }
     }
 
@@ -3575,7 +3575,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"new {DafnyMapClass}<{domtypeName},{rantypeName}>({collName})");
       } else {
         Contract.Assume(false);  // unexpected collection type
-        throw new cce.UnreachableException();  // please compiler
+        throw new Cce.UnreachableException();  // please compiler
       }
     }
 
@@ -4093,7 +4093,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Short: return 16;
         case JavaNativeType.Int: return 32;
         case JavaNativeType.Long: return 64;
-        default: Contract.Assert(false); throw new cce.UnreachableException();
+        default: Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 

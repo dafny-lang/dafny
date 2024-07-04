@@ -54,7 +54,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
   public ComprehensionExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(bvars));
+    Contract.Requires(Cce.NonNullElements(bvars));
     Contract.Requires(term != null);
 
     BoundVars = bvars;

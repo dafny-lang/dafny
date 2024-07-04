@@ -39,7 +39,7 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     : base(tok, lhs) {
     Contract.Requires(tok != null);
     Contract.Requires(lhs != null);
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
     AtTok = atLabel;
     CloseParen = closeParen;
     Bindings = new ActualBindings(args);

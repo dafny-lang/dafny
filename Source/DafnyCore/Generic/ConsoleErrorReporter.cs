@@ -14,7 +14,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       case ErrorLevel.Info:
         return ConsoleColor.Green;
       default:
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
     }
   }
 

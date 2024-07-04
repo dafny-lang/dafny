@@ -240,7 +240,7 @@ namespace Microsoft.Dafny {
       ReadOnlyCollection<string> otherFileNames,
       DafnyOptions options, ProofDependencyManager depManager,
       bool lookForSnapshots = true, string programId = null) {
-      Contract.Requires(cce.NonNullElements(dafnyFiles));
+      Contract.Requires(Cce.NonNullElements(dafnyFiles));
       var dafnyFileNames = DafnyFile.FileNames(dafnyFiles);
 
       ExitValue exitValue = ExitValue.SUCCESS;
@@ -286,7 +286,7 @@ namespace Microsoft.Dafny {
         var boogiePrograms =
           await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
-        string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
+        string baseName = Cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
         var (verified, outcome, moduleStats) =
           await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
 

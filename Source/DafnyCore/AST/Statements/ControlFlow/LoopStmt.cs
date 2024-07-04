@@ -10,7 +10,7 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
   public readonly Specification<FrameExpression> Mod;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Invariants));
+    Contract.Invariant(Cce.NonNullElements(Invariants));
     Contract.Invariant(Decreases != null);
     Contract.Invariant(Mod != null);
   }
@@ -28,7 +28,7 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
   public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(invariants));
+    Contract.Requires(Cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);
 
@@ -39,7 +39,7 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
   public LoopStmt(RangeToken rangeToken, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
     : base(rangeToken, attrs) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(invariants));
+    Contract.Requires(Cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
     Contract.Requires(mod != null);
 

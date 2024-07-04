@@ -30,8 +30,8 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(members));
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

@@ -16,7 +16,7 @@ public class MapDisplayExpr : Expression, ICanFormat, ICloneable<MapDisplayExpr>
   public MapDisplayExpr(IToken tok, bool finite, List<ExpressionPair> elements)
     : base(tok) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(elements));
+    Contract.Requires(Cce.NonNullElements(elements));
     Finite = finite;
     Elements = elements;
   }

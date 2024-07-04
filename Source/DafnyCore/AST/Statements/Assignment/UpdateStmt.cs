@@ -34,8 +34,8 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Lhss));
-    Contract.Invariant(cce.NonNullElements(Rhss));
+    Contract.Invariant(Cce.NonNullElements(Lhss));
+    Contract.Invariant(Cce.NonNullElements(Rhss));
   }
 
   public UpdateStmt Clone(Cloner cloner) {
@@ -52,16 +52,16 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
 
   public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(rangeToken, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
   }
   public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
     : base(rangeToken, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = mutate;
