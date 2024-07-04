@@ -1975,18 +1975,22 @@ namespace Microsoft.Dafny.Compilers {
       var sourceBuf = new ExprBuffer(null);
       EmitExpr(source, inLetExprBody, new BuilderSyntaxTree<ExprContainer>(sourceBuf, this), wStmts);
 
-      var indexBuf = new ExprBuffer(null);
-      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), Type.Int, null, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
-      EmitExpr(index, inLetExprBody, indexWr, wStmts);
-
       DAST._ICollKind collKind;
+      Type indexType;
       if (source.Type.IsArrayType) {
         collKind = DAST.CollKind.create_Array();
-      } else if (source.Type.NormalizeToAncestorType().IsMapType) {
+        indexType = Type.Int;
+      } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true } normalized) {
         collKind = DAST.CollKind.create_Map();
+        indexType = normalized.AsMapType.Domain;
       } else {
         collKind = DAST.CollKind.create_Seq();
+        indexType = Type.Int;
       }
+
+      var indexBuf = new ExprBuffer(null);
+      var indexWr = EmitCoercionIfNecessary(index.Type.NormalizeExpand(), indexType, null, new BuilderSyntaxTree<ExprContainer>(indexBuf, this));
+      EmitExpr(index, inLetExprBody, indexWr, wStmts);
 
       if (GetExprBuilder(wr, out var builder)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Index(

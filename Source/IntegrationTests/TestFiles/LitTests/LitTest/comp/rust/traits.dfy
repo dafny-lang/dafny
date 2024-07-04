@@ -1,3 +1,7 @@
+// NONUNIFORM: Temporary development of the Rust compiler
+// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 module InterfaceHolder {
   trait {:termination false} Interface {
     method PutCacheEntry'()

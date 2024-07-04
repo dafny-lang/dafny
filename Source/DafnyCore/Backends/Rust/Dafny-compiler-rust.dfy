@@ -2184,14 +2184,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               for l := 0 to |ctor2.args| {
                 var dtor2 := ctor2.args[l];
                 var patternName := escapeDtor(dtor2.formal.name);
+                var varName := escapeField(dtor2.formal.name);
                 if l == 0 && patternName == "0" {
                   isNumeric := true;
                 }
                 if isNumeric {
                   patternName := dtor2.callName.GetOr("v" + Strings.OfNat(l));
+                  varName := patternName;
                 }
                 if dtor.formal.name == dtor2.formal.name {
-                  hasMatchingField := Some(patternName);
+                  hasMatchingField := Some(varName);
                 }
                 patternInner := patternInner + patternName + ", ";
               }
@@ -2325,21 +2327,22 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var ctorMatchInner := "";
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
-          var patternName := escapeField(dtor.formal.name);
+          var patternName := escapeDtor(dtor.formal.name);
+          var fieldName := escapeField(dtor.formal.name);
           var formalType := dtor.formal.typ;
-          if j == 0 && patternName == "0" {
+          if j == 0 && fieldName == "0" {
             isNumeric := true;
           }
           if isNumeric {
-            patternName := dtor.callName.GetOr("v" + Strings.OfNat(j));
+            fieldName := dtor.callName.GetOr("v" + Strings.OfNat(j));
           }
           hashRhs :=
             if formalType.Arrow? then
               hashRhs.Then(R.LiteralInt("0").Sel("hash").Apply1(R.Identifier("_state")))
             else
-              hashRhs.Then(R.Identifier(patternName).Sel("hash").Apply1(R.Identifier("_state")));
+              hashRhs.Then(R.Identifier(fieldName).Sel("hash").Apply1(R.Identifier("_state")));
 
-          ctorMatchInner := ctorMatchInner + patternName + ", ";
+          ctorMatchInner := ctorMatchInner + (if isNumeric then fieldName else patternName) + ", ";
 
           if (j > 0) {
             printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \", \")?"));
@@ -2350,7 +2353,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               if formalType.Arrow? then
                 "write!(_formatter, \"<function>\")?"
               else
-                "::dafny_runtime::DafnyPrint::fmt_print(" + patternName + ", _formatter, false)?"
+                "::dafny_runtime::DafnyPrint::fmt_print(" + fieldName + ", _formatter, false)?"
             ));
 
           var coerceRhsArg: R.Expr;
@@ -2862,8 +2865,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               } else {
                 tpe := R.SelfBorrowedMut;
               }
-            } else { // For datatypes
-              tpe := R.Borrowed(R.Rc(R.SelfOwned));
+            } else { // For Rc-defined datatypes
+              if enclosingType.UserDefined? && enclosingType.resolved.kind.Datatype?
+                 && IsRcWrapped(enclosingType.resolved.attributes) {
+                tpe := R.Borrowed(R.Rc(R.SelfOwned));
+              } else { // For raw-defined datatypes, newtypes
+                tpe := R.Borrowed(R.SelfOwned);
+              }
             }
           }
           params := [R.Formal(selfId, tpe)] + params;
@@ -3549,9 +3557,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Literal(StringLiteral(l, verbatim)) => {
-          if verbatim {
-            error := Some("Verbatim strings prefixed by @ not supported yet.");
-          }
           r := R.dafny_runtime.MSel(string_of).Apply1(R.LiteralString(l, binary := false, verbatim := verbatim));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := {};
