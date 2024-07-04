@@ -17,8 +17,8 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
   }
 
   public DecreasesToExpr(Cloner cloner, DecreasesToExpr original) : base(cloner, original) {
-    OldExpressions = original.OldExpressions.Select(cloner.CloneExpr);
-    NewExpressions = original.NewExpressions.Select(cloner.CloneExpr);
+    OldExpressions = original.OldExpressions.Select(cloner.CloneExpr).ToList();
+    NewExpressions = original.NewExpressions.Select(cloner.CloneExpr).ToList();
     AllowNoChange = original.AllowNoChange;
   }
 
@@ -26,14 +26,5 @@ public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
     return new DecreasesToExpr(cloner, this);
   }
 
-  public override IEnumerable<Expression> SubExpressions {
-    get {
-      foreach (var oldExpr in OldExpressions) {
-        yield return oldExpr;
-      }
-      foreach (var newExpr in NewExpressions) {
-        yield return newExpr;
-      }
-    }
-  }
+  public override IEnumerable<Expression> SubExpressions => OldExpressions.Concat(NewExpressions);
 }
