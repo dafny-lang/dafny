@@ -34,7 +34,7 @@ public class CsharpBackend : ExecutableBackend {
   public override bool SupportsInMemoryCompilation => true;
   public override bool TextualTargetIsExecutable => false;
 
-  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+  public override async Task<(bool Success, object CompilationResult)> -(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter) {

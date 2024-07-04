@@ -62,7 +62,7 @@ public class SystemModuleManager {
             Concat(TotalArrowTypeDecls.Keys.OrderBy(x => x)).
             Concat(tupleInts.OrderBy(x => x));
         var bytes = ints.SelectMany(BitConverter.GetBytes).ToArray();
-        hash = HashAlgorithm.Create("SHA256")!.ComputeHash(bytes);
+        hash = SHA256.Create().ComputeHash(bytes);
       }
 
       return hash;
