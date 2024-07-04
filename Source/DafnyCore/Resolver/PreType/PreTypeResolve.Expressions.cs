@@ -1710,7 +1710,7 @@ namespace Microsoft.Dafny {
       }
       Label atLabel = null;
       if (e.AtTok != null) {
-        atLabel = dominatingStatementLabels.Find(e.AtTok.val);
+        atLabel = DominatingStatementLabels.Find(e.AtTok.val);
         if (atLabel == null) {
           ReportError(e.AtTok, "no label '{0}' in scope at this time", e.AtTok.val);
         }

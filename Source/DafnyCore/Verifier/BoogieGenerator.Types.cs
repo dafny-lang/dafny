@@ -62,7 +62,6 @@ public partial class BoogieGenerator {
       args.Add(BplFormalVar(null, predef.HandleType, true));
       MapM(Enumerable.Range(0, arity), i => args.Add(BplFormalVar(null, predef.BoxType, true)));
       var boogieFunction = new Bpl.Function(Token.NoToken, name, args, BplFormalVar(null, t, false));
-      // Seems unused
       if (dafnyFunction != null) {
         declarationMapping[dafnyFunction] = boogieFunction;
       }
