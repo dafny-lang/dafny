@@ -427,7 +427,7 @@ namespace Microsoft.Dafny {
 
       scope = new Scope<IVariable>(resolver.Options);
       EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      dominatingStatementLabels = new Scope<Label>(resolver.Options);
+      DominatingStatementLabels = new Scope<Label>(resolver.Options);
       Constraints = new PreTypeConstraints(this);
     }
 
@@ -1216,19 +1216,19 @@ namespace Microsoft.Dafny {
 
       // Resolve body
       if (iter.Body != null) {
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         foreach (var req in iter.Requires) {
           if (req.Label != null) {
-            if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+            if (DominatingStatementLabels.Find(req.Label.Name) != null) {
               ReportError(req.Label.Tok, "assert label shadows a dominating label");
             } else {
-              var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+              var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
               Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
             }
           }
         }
         ResolveBlockStatement(iter.Body, ResolutionContext.FromCodeContext(iter));
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         Constraints.SolveAllTypeConstraints($"body of iterator '{iter.Name}'");
       }
 
@@ -1413,19 +1413,19 @@ namespace Microsoft.Dafny {
             ScopePushExpectSuccess(k, "_k parameter", false);
           }
 
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           foreach (var req in m.Req) {
             if (req.Label != null) {
-              if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+              if (DominatingStatementLabels.Find(req.Label.Name) != null) {
                 ReportError(req.Label.Tok, "assert label shadows a dominating label");
               } else {
-                var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+                var rr = DominatingStatementLabels.Push(req.Label.Name, req.Label);
                 Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
               }
             }
           }
           ResolveBlockStatement(m.Body, ResolutionContext.FromCodeContext(m));
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
           Constraints.SolveAllTypeConstraints($"body of {m.WhatKind} '{m.Name}'");
         }
 
