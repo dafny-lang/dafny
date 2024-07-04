@@ -2897,7 +2897,7 @@ namespace Microsoft.Dafny.Compilers {
       var w = new ConcreteSyntaxTree();
       if (from.IsTraitType && to.AsNewtype != null) {
         wr.Format($"(({to.AsNewtype.GetFullCompileName(Options)})({w}))");
-      } else if (to.IsRefType || to.IsTraitType || from.IsTraitType) {
+      } else if (to.IsRefType || to.IsTraitType || from.IsTraitType || to.IsTypeParameter) {
         wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         Contract.Assert(Type.SameHead(from, to));
