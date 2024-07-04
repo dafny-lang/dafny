@@ -68,7 +68,7 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
         var afterChange = DateTime.Now;
         var changeMilliseconds = (afterChange - afterOpen).TotalMilliseconds;
         await AssertNoDiagnosticsAreComing(CancellationTokenWithHighTimeout);
-        threadPoolSchedulingCancellationToken.Cancel();
+        await threadPoolSchedulingCancellationToken.CancelAsync();
         var averageTimeToSchedule = await threadPoolSchedulingTimeTask;
         var division = changeMilliseconds / openMilliseconds;
 

@@ -1,4 +1,5 @@
 DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
+BIN=$(DIR)/Binaries/net8.0/
 
 default: exe
 
@@ -39,37 +40,37 @@ refman-release: exe
 	make -C "${DIR}"/docs/DafnyRef release
 
 z3-mac:
-	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-macos-11-bin.zip
-	unzip z3-4.12.1-x64-macos-11-bin.zip
-	rm z3-4.12.1-x64-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
-	unzip z3-4.8.5-x64-macos-11-bin.zip
-	rm z3-4.8.5-x64-macos-11-bin.zip
-	mv z3-* "${DIR}"/Binaries/z3/bin/
-	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
+	mkdir -p "${BIN}"/z3/bin
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.1-x64-macos-13-bin.zip
+	unzip z3-4.12.1-x64-macos-13-bin.zip
+	rm z3-4.12.1-x64-macos-13-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.6-x64-macos-13-bin.zip
+	unzip z3-4.12.6-x64-macos-13-bin.zip
+	rm z3-4.12.6-x64-macos-13-bin.zip
+	mv z3-* "${BIN}"/z3/bin/
+	chmod +x "${BIN}"/z3/bin/z3-*
 
 z3-mac-arm:
-	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-arm64-macos-11-bin.zip
-	unzip z3-4.12.1-arm64-macos-11-bin.zip
-	rm z3-4.12.1-arm64-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
-	unzip z3-4.8.5-x64-macos-11-bin.zip
-	rm z3-4.8.5-x64-macos-11-bin.zip
-	mv z3-* "${DIR}"/Binaries/z3/bin/
-	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
+	mkdir -p "${BIN}"/z3/bin
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.1-arm64-macos-13-bin.zip
+	unzip z3-4.12.1-arm64-macos-13-bin.zip
+	rm z3-4.12.1-arm64-macos-13-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.6-x64-macos-13-bin.zip
+	unzip z3-4.12.6-x64-macos-13-bin.zip
+	rm z3-4.12.6-x64-macos-13-bin.zip
+	mv z3-* "${BIN}"/z3/bin/
+	chmod +x "${BIN}"/z3/bin/z3-*
 
 z3-ubuntu:
-	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip
+	mkdir -p "${BIN}"/z3/bin
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.1-x64-ubuntu-20.04-bin.zip
 	unzip z3-4.12.1-x64-ubuntu-20.04-bin.zip
 	rm z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	unzip z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	rm z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	mv z3-* "${DIR}"/Binaries/z3/bin/
-	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.6-x64-ubuntu-20.04-bin.zip
+	unzip z3-4.12.6-x64-ubuntu-20.04-bin.zip
+	rm z3-4.12.6-x64-ubuntu-20.04-bin.zip
+	mv z3-* "${BIN}"/z3/bin/
+	chmod +x "${BIN}"/z3/bin/z3-*
 
 format:
 	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs

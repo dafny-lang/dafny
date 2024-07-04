@@ -17,7 +17,7 @@ if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
 else
     DAFNY_EXE_NAME="Dafny.dll"
 fi
-DAFNY="$DAFNY_ROOT/Binaries/$DAFNY_EXE_NAME"
+DAFNY="$DAFNY_ROOT/Binaries/net8.0/$DAFNY_EXE_NAME"
 if [[ ! -e "$DAFNY" ]]; then
     echo "Error: $DAFNY_EXE_NAME not found at $DAFNY."
     exit 1

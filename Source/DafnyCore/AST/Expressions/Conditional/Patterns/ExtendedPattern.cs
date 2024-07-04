@@ -77,7 +77,7 @@ public abstract class ExtendedPattern : TokenNode {
         /* =[2]= */
         return;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
       var udt = type.NormalizeExpand() as UserDefinedType;
@@ -125,7 +125,7 @@ public abstract class ExtendedPattern : TokenNode {
       var dtd = type.AsDatatype;
       Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
       if (ctors == null) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
+        Contract.Assert(false); throw new Cce.UnreachableException();  // Datatype not found
       }
       DatatypeCtor ctor = null;
       // Check if the head of the pattern is a constructor or a variable

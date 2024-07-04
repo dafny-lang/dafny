@@ -14,8 +14,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(MethodSelect.Member is Method);
-    Contract.Invariant(cce.NonNullElements(Lhs));
-    Contract.Invariant(cce.NonNullElements(Args));
+    Contract.Invariant(Cce.NonNullElements(Lhs));
+    Contract.Invariant(Cce.NonNullElements(Args));
   }
 
   public override IEnumerable<INode> Children => Lhs.Concat(new Node[] { MethodSelect, Bindings });
@@ -32,10 +32,10 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
-    Contract.Requires(cce.NonNullElements(lhs));
+    Contract.Requires(Cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
     Contract.Requires(memSel.Member is Method);
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
 
     this.Lhs = lhs;
     this.MethodSelect = memSel;

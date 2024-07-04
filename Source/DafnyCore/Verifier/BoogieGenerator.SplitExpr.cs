@@ -551,7 +551,7 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 Type t = e.Function.Ins[i].Type;
                 Expr tr_ee = etran.TrExpr(ee);
-                Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
+                Bpl.Expr wh = GetWhereClause(e.tok, tr_ee, Cce.NonNull(ee.Type), etran, NOALLOC);
                 if (wh != null) {
                   fargs = BplAnd(fargs, wh);
                 }
@@ -622,7 +622,7 @@ namespace Microsoft.Dafny {
         Formal p = f.Ins[i];
         var formalType = p.Type.Subst(fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
-        arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
+        arg = new BoxingCastExpr(arg, Cce.NonNull(arg.Type), formalType);
         arg.Type = formalType;  // resolve here
         substMap.Add(p, arg);
       }

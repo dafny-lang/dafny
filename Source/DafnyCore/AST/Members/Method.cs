@@ -110,13 +110,13 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(cce.NonNullElements(Ins));
-    Contract.Invariant(cce.NonNullElements(Outs));
-    Contract.Invariant(cce.NonNullElements(Req));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(Ins));
+    Contract.Invariant(Cce.NonNullElements(Outs));
+    Contract.Invariant(Cce.NonNullElements(Req));
     Contract.Invariant(Reads != null);
     Contract.Invariant(Mod != null);
-    Contract.Invariant(cce.NonNullElements(Ens));
+    Contract.Invariant(Cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
   }
 
@@ -147,13 +147,13 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       typeArgs, ins, req, ens, decreases) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(outs));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(outs));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(reads != null);
     Contract.Requires(mod != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.Outs = outs;
     this.Reads = reads;

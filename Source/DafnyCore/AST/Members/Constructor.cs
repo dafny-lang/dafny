@@ -48,11 +48,11 @@ public class Constructor : Method {
     : base(rangeToken, name, false, isGhost, typeArgs, ins, new List<Formal>(), req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(mod != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
   }
 

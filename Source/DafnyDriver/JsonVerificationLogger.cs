@@ -133,7 +133,7 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
         return currentVcOutcome;
       default:
         Contract.Assert(false);
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
     }
   }
 

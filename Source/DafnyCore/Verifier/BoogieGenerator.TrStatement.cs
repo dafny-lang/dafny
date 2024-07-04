@@ -525,7 +525,7 @@ namespace Microsoft.Dafny {
         // their use is low value.
         throw new NotSupportedException("Verification of try/recover statements is not supported");
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
       }
     }
 
@@ -1034,7 +1034,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'forall' statements
       Contract.Requires(rhs != null);
       Contract.Requires(builder != null);
-      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(Cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
@@ -1131,7 +1131,7 @@ namespace Microsoft.Dafny {
         MemberSelectExpr e => (e.Obj, e.Member as Field),
         SeqSelectExpr e => (e.Seq, null),
         MultiSelectExpr e => (e.Array, null),
-        _ => throw new cce.UnreachableException()
+        _ => throw new Cce.UnreachableException()
       };
       var desc = new PODesc.Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
       definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.ModifiesFrame(lhs.tok), obj, F),
@@ -2180,10 +2180,10 @@ namespace Microsoft.Dafny {
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Statement stmt) {
       Contract.Requires(lhsBuilder != null);
       Contract.Requires(bLhss != null);
-      Contract.Requires(cce.NonNullElements(lhss));
-      Contract.Requires(cce.NonNullElements(rhss));
+      Contract.Requires(Cce.NonNullElements(lhss));
+      Contract.Requires(Cce.NonNullElements(rhss));
       Contract.Requires(builder != null);
-      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(Cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
 
@@ -2232,10 +2232,10 @@ namespace Microsoft.Dafny {
     List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
       BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
       Statement stmt) {
-      Contract.Requires(cce.NonNullElements(lhss));
-      Contract.Requires(cce.NonNullElements(rhss));
+      Contract.Requires(Cce.NonNullElements(lhss));
+      Contract.Requires(Cce.NonNullElements(rhss));
       Contract.Requires(builder != null);
-      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(Cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.ForAll(Contract.Result<List<Bpl.Expr>>(), i => i != null));
@@ -2336,9 +2336,9 @@ namespace Microsoft.Dafny {
       out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
       out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
-      Contract.Requires(cce.NonNullElements(lhss));
+      Contract.Requires(Cce.NonNullElements(lhss));
       Contract.Requires(builder != null);
-      Contract.Requires(cce.NonNullElements(locals));
+      Contract.Requires(Cce.NonNullElements(locals));
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.ValueAtReturn(out lhsBuilders).Count == lhss.Count);

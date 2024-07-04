@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       } else if (d is TupleTypeDecl) {
         // Tuple type declarations only exist in the system module. Therefore, they are never cloned.
         Contract.Assert(false);
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       } else if (d is IndDatatypeDecl) {
         var dd = (IndDatatypeDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
@@ -441,7 +441,7 @@ namespace Microsoft.Dafny {
       }
 
       Contract.Assert(false);
-      throw new cce.UnreachableException(); // unexpected statement TODO, make all statements inherit from ICloneable.
+      throw new Cce.UnreachableException(); // unexpected statement TODO, make all statements inherit from ICloneable.
     }
 
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
@@ -481,7 +481,7 @@ namespace Microsoft.Dafny {
         return new CalcStmt.TernaryCalcOp(CloneExpr(((CalcStmt.TernaryCalcOp)op).Index));
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
     }
 

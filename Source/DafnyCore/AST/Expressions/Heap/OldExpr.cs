@@ -32,7 +32,7 @@ public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
     : base(tok) {
     Contract.Requires(tok != null);
     Contract.Requires(expr != null);
-    cce.Owner.AssignSame(this, expr);
+    Cce.Owner.AssignSame(this, expr);
     E = expr;
     At = at;
   }

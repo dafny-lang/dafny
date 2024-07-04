@@ -10,7 +10,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   public readonly List<Formal> Formals;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Formals));
+    Contract.Invariant(Cce.NonNullElements(Formals));
     Contract.Invariant(Destructors != null);
     Contract.Invariant(
       Destructors.Count == 0 || // this is until resolution
@@ -28,7 +28,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     : base(rangeToken, name, attributes, false) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(formals));
+    Contract.Requires(Cce.NonNullElements(formals));
     this.Formals = formals;
     this.IsGhost = isGhost;
   }

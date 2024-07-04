@@ -9,7 +9,7 @@ public class Specification<T> : TokenNode, IAttributeBearingDeclaration
 
   [ContractInvariantMethod]
   private void ObjectInvariant() {
-    Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
+    Contract.Invariant(Expressions == null || Cce.NonNullElements<T>(Expressions));
   }
 
   public Specification() {
@@ -18,7 +18,7 @@ public class Specification<T> : TokenNode, IAttributeBearingDeclaration
   }
 
   public Specification(List<T> exprs, Attributes attrs) {
-    Contract.Requires(exprs == null || cce.NonNullElements<T>(exprs));
+    Contract.Requires(exprs == null || Cce.NonNullElements<T>(exprs));
     Expressions = exprs;
     Attributes = attrs;
   }

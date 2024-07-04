@@ -66,7 +66,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
     } else if (S is UpdateStmt) {
       return CreateBoolLiteral(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
     } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
     }
   }
 

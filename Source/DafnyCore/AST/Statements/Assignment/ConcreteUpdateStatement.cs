@@ -16,7 +16,7 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
 
   public ConcreteUpdateStatement(RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
     : base(rangeToken, attrs) {
-    Contract.Requires(cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
     Lhss = lhss;
   }
 

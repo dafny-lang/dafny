@@ -92,7 +92,7 @@ public class TypeParameter : TopLevelDecl {
           return TPVariance.Contra;
         default:
           Contract.Assert(false);  // unexpected VarianceSyntax
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
   }
@@ -108,7 +108,7 @@ public class TypeParameter : TopLevelDecl {
           return false;
         default:
           Contract.Assert(false);  // unexpected VarianceSyntax
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
   }

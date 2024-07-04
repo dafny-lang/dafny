@@ -53,7 +53,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   public QuantifierExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok, rangeToken, bvars, range, term, attrs) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(bvars));
+    Contract.Requires(Cce.NonNullElements(bvars));
     Contract.Requires(term != null);
     this.UniqueId = FreshQuantId();
   }
@@ -70,7 +70,7 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
   public virtual Expression LogicalBody(bool bypassSplitQuantifier = false) {
     // Don't call this on a quantifier with a Split clause: it's not a real quantifier. The only exception is the Compiler.
     Contract.Requires(bypassSplitQuantifier || SplitQuantifier == null);
-    throw new cce.UnreachableException(); // This body is just here for the "Requires" clause
+    throw new Cce.UnreachableException(); // This body is just here for the "Requires" clause
   }
 
   public override IEnumerable<INode> PreResolveChildren => base.SubExpressions;

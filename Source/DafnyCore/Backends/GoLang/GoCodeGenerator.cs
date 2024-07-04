@@ -1187,7 +1187,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();  // to please the compiler
       }
     }
     protected class ClassWriter : IClassWriter {
@@ -1513,7 +1513,7 @@ namespace Microsoft.Dafny.Compilers {
         return w.ToString();
 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -1637,7 +1637,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is MapType) {
         return "_dafny.Map";
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -1746,7 +1746,7 @@ namespace Microsoft.Dafny.Compilers {
         var arguments = relevantTypeArgs.Comma(ta => DefaultValue(ta.Actual, wr, tok, constructTypeParameterDefaultsFromTypeDescriptors));
         return $"{n}({wTypeDescriptorArguments}{sep}{arguments})";
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -2282,7 +2282,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         wr.Write("_dafny.RealOfString(\"{0}\")", str);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
       }
     }
     void EmitIntegerLiteral(BigInteger i, ConcreteSyntaxTree wr) {
@@ -3203,7 +3203,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write($"IntOfInt64(");
             break;
           default:
-            throw new cce.UnreachableException();  // unexpected nativeType.Selection value
+            throw new Cce.UnreachableException();  // unexpected nativeType.Selection value
         }
       }
 
@@ -3240,7 +3240,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (eeType is SetType) {
         TrParenExpr("_dafny.MultiSetFromSet", expr.E, wr, inLetExprBody, wStmts);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 
@@ -3354,7 +3354,7 @@ namespace Microsoft.Dafny.Compilers {
 
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
     }
 

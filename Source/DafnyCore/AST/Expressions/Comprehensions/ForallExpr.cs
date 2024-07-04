@@ -9,7 +9,7 @@ public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
 
   public ForallExpr(IToken tok, RangeToken rangeToken, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
     : base(tok, rangeToken, bvars, range, term, attrs) {
-    Contract.Requires(cce.NonNullElements(bvars));
+    Contract.Requires(Cce.NonNullElements(bvars));
     Contract.Requires(tok != null);
     Contract.Requires(term != null);
   }

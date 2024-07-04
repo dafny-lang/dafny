@@ -203,12 +203,12 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(cce.NonNullElements(Ins));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(Ins));
     Contract.Invariant(ResultType != null);
-    Contract.Invariant(cce.NonNullElements(Req));
+    Contract.Invariant(Cce.NonNullElements(Req));
     Contract.Invariant(Reads != null);
-    Contract.Invariant(cce.NonNullElements(Ens));
+    Contract.Invariant(Cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
   }
 
@@ -221,12 +221,12 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
     Contract.Requires(resultType != null);
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(reads != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation

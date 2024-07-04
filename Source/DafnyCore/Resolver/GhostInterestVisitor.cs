@@ -485,7 +485,7 @@ class GhostInterestVisitor {
       }
 
     } else {
-      Contract.Assert(false); throw new cce.UnreachableException();
+      Contract.Assert(false); throw new Cce.UnreachableException();
     }
   }
 

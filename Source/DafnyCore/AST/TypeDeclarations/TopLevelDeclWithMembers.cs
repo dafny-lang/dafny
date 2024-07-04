@@ -93,8 +93,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     : base(rangeToken, name, module, typeArgs, attributes, isRefining) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(members));
     Members = members;
     ParentTraits = traits ?? new List<Type>();
     SetMembersBeforeResolution();

@@ -7,7 +7,7 @@ public abstract class DisplayExpression : Expression {
   public readonly List<Expression> Elements;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Elements));
+    Contract.Invariant(Cce.NonNullElements(Elements));
   }
 
   protected DisplayExpression(Cloner cloner, DisplayExpression original) : base(cloner, original) {
@@ -16,7 +16,7 @@ public abstract class DisplayExpression : Expression {
 
   public DisplayExpression(IToken tok, List<Expression> elements)
     : base(tok) {
-    Contract.Requires(cce.NonNullElements(elements));
+    Contract.Requires(Cce.NonNullElements(elements));
     Elements = elements;
   }
 

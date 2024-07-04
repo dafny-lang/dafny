@@ -9,7 +9,7 @@ public class MultiSetDisplayExpr : DisplayExpression, ICloneable<MultiSetDisplay
 
   public MultiSetDisplayExpr(IToken tok, List<Expression> elements) : base(tok, elements) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(elements));
+    Contract.Requires(Cce.NonNullElements(elements));
   }
 
   public MultiSetDisplayExpr Clone(Cloner cloner) {

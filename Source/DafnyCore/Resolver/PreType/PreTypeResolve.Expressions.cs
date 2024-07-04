@@ -84,7 +84,7 @@ namespace Microsoft.Dafny {
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.String);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSeqFamily, e.PreType, e.tok, "string literal used as if it had type {0}");
               } else {
-                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
+                Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal type
               }
             }
 
@@ -456,7 +456,7 @@ namespace Microsoft.Dafny {
                 expr.PreType = ConstrainResultToBoolFamily(expr.tok, "assigned", "boolean literal used as if it had type {0}");
                 break;
               default:
-                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
+                Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary operator
             }
 
             break;
@@ -739,7 +739,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); // this case is always handled via NestedMatchExpr
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
       }
 
       if (expr.PreType == null) {
@@ -1010,7 +1010,7 @@ namespace Microsoft.Dafny {
 
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected operator
+          throw new Cce.UnreachableException(); // unexpected operator
       }
       // We should also fill in e.ResolvedOp, but we may not have enough information for that yet.  So, instead, delay
       // setting e.ResolvedOp until inside CheckTypeInference.

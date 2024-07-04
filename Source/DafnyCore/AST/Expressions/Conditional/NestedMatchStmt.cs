@@ -68,7 +68,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
   public NestedMatchStmt(RangeToken rangeToken, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
     : base(rangeToken, attrs) {
     Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
+    Contract.Requires(Cce.NonNullElements(cases));
     this.Source = source;
     this.Cases = cases;
     this.UsesOptionalBraces = usesOptionalBraces;

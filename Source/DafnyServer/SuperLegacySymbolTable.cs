@@ -228,8 +228,7 @@ namespace DafnyServer {
       var leftSide = updateStmt.Lhss;
       var rightSide = updateStmt.Rhss;
       var leftSideDots = leftSide.OfType<ExprDotName>();
-      var rightSideDots = rightSide.OfType<ExprDotName>();
-      var allExprDotNames = leftSideDots.Concat(rightSideDots);
+      var allExprDotNames = leftSideDots;
       foreach (var exprDotName in allExprDotNames) {
         if (!(exprDotName.Lhs.Type is UserDefinedType)) {
           continue;
@@ -305,11 +304,9 @@ namespace DafnyServer {
           var leftSide = updateStmt.Lhss;
           var rightSide = updateStmt.Rhss;
           var leftSideDots = leftSide.OfType<ExprDotName>();
-          var rightSideDots = rightSide.OfType<ExprDotName>();
-          var exprDotNames = leftSideDots.Concat(rightSideDots);
+          var exprDotNames = leftSideDots;
           var leftSideNameSegments = leftSide.OfType<NameSegment>();
-          var rightSideNameSegments = rightSide.OfType<NameSegment>();
-          var nameSegments = leftSideNameSegments.Concat(rightSideNameSegments);
+          var nameSegments = leftSideNameSegments;
           var allRightSideExpressions = rightSide.SelectMany(e => e.SubExpressions.SelectMany(GetAllSubExpressions));
           var allLeftSideExpressions =
               leftSide.SelectMany(e => e.SubExpressions.SelectMany(GetAllSubExpressions));

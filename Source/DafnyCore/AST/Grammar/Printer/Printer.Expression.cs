@@ -781,7 +781,7 @@ namespace Microsoft.Dafny {
             case UnaryOpExpr.Opcode.Not:
               op = "!"; opBindingStrength = 0x80; break;
             default:
-              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary opcode
+              Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary opcode
           }
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
 
@@ -857,7 +857,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.Iff:
             opBindingStrength = 0x08; break;
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary operator
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected binary operator
         }
         int opBS = opBindingStrength & 0xF8;
         int ctxtBS = contextBindingStrength & 0xF8;
@@ -1220,7 +1220,7 @@ namespace Microsoft.Dafny {
           comma = true;
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
       }
     }
 

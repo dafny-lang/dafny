@@ -8,7 +8,7 @@ public class SetDisplayExpr : DisplayExpression, ICanFormat, ICloneable<SetDispl
   public SetDisplayExpr(IToken tok, bool finite, List<Expression> elements)
     : base(tok, elements) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(elements));
+    Contract.Requires(Cce.NonNullElements(elements));
     Finite = finite;
   }
 

@@ -104,7 +104,7 @@ public static class InductionHeuristic {
             VarOccursInArgumentToRecursiveFunction(options, e.E1, n, subExprIsProminent) ||
             VarOccursInArgumentToRecursiveFunction(options, e.E2, n, subExprIsProminent);
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected ternary expression
       }
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
