@@ -69,53 +69,29 @@ namespace Std.Wrappers {
     public static T GetOr(Std.Wrappers._IOption<T> _this, T @default) {
       var _pat_let_tv0 = @default;
       Std.Wrappers._IOption<T> _source0 = _this;
-      bool unmatched0 = true;
-      if (unmatched0) {
-        if (_source0.is_Some) {
-          T v = _source0.dtor_value;
-          unmatched0 = false;
-          return v;
-        }
+      if (_source0.is_Some) {
+        T v = _source0.dtor_value;
+        return v;
       }
-      if (unmatched0) {
-        unmatched0 = false;
-        return _pat_let_tv0;
-      }
-      throw new System.Exception("unexpected control point");
+      return _pat_let_tv0;
     }
     public Std.Wrappers._IResult<T, __E> ToResult<__E>(__E error) {
       var _pat_let_tv1 = error;
       Std.Wrappers._IOption<T> _source1 = this;
-      bool unmatched1 = true;
-      if (unmatched1) {
-        if (_source1.is_Some) {
-          T v = _source1.dtor_value;
-          unmatched1 = false;
-          return Std.Wrappers.Result<T, __E>.create_Success(v);
-        }
+      if (_source1.is_Some) {
+        T v = _source1.dtor_value;
+        return Std.Wrappers.Result<T, __E>.create_Success(v);
       }
-      if (unmatched1) {
-        unmatched1 = false;
-        return Std.Wrappers.Result<T, __E>.create_Failure(_pat_let_tv1);
-      }
-      throw new System.Exception("unexpected control point");
+      return Std.Wrappers.Result<T, __E>.create_Failure(_pat_let_tv1);
     }
     public Std.Wrappers._IOutcome<__E> ToOutcome<__E>(__E error) {
       var _pat_let_tv2 = error;
       Std.Wrappers._IOption<T> _source2 = this;
-      bool unmatched2 = true;
-      if (unmatched2) {
-        if (_source2.is_Some) {
-          T v = _source2.dtor_value;
-          unmatched2 = false;
-          return Std.Wrappers.Outcome<__E>.create_Pass();
-        }
+      if (_source2.is_Some) {
+        T v = _source2.dtor_value;
+        return Std.Wrappers.Outcome<__E>.create_Pass();
       }
-      if (unmatched2) {
-        unmatched2 = false;
-        return Std.Wrappers.Outcome<__E>.create_Fail(_pat_let_tv2);
-      }
-      throw new System.Exception("unexpected control point");
+      return Std.Wrappers.Outcome<__E>.create_Fail(_pat_let_tv2);
     }
     public static __FC Map<__FC>(Std.Wrappers._IOption<T> _this, Func<Std.Wrappers._IOption<T>, __FC> rewrap) {
       return Dafny.Helpers.Id<Func<Std.Wrappers._IOption<T>, __FC>>(rewrap)(_this);
@@ -224,54 +200,30 @@ namespace Std.Wrappers {
     public static R GetOr(Std.Wrappers._IResult<R, E> _this, R @default) {
       var _pat_let_tv3 = @default;
       Std.Wrappers._IResult<R, E> _source3 = _this;
-      bool unmatched3 = true;
-      if (unmatched3) {
-        if (_source3.is_Success) {
-          R s = _source3.dtor_value;
-          unmatched3 = false;
-          return s;
-        }
+      if (_source3.is_Success) {
+        R s = _source3.dtor_value;
+        return s;
       }
-      if (unmatched3) {
-        E e = _source3.dtor_error;
-        unmatched3 = false;
-        return _pat_let_tv3;
-      }
-      throw new System.Exception("unexpected control point");
+      E e = _source3.dtor_error;
+      return _pat_let_tv3;
     }
     public Std.Wrappers._IOption<R> ToOption() {
       Std.Wrappers._IResult<R, E> _source4 = this;
-      bool unmatched4 = true;
-      if (unmatched4) {
-        if (_source4.is_Success) {
-          R s = _source4.dtor_value;
-          unmatched4 = false;
-          return Std.Wrappers.Option<R>.create_Some(s);
-        }
+      if (_source4.is_Success) {
+        R s = _source4.dtor_value;
+        return Std.Wrappers.Option<R>.create_Some(s);
       }
-      if (unmatched4) {
-        E _10_e = _source4.dtor_error;
-        unmatched4 = false;
-        return Std.Wrappers.Option<R>.create_None();
-      }
-      throw new System.Exception("unexpected control point");
+      E _10_e = _source4.dtor_error;
+      return Std.Wrappers.Option<R>.create_None();
     }
     public Std.Wrappers._IOutcome<E> ToOutcome() {
       Std.Wrappers._IResult<R, E> _source5 = this;
-      bool unmatched5 = true;
-      if (unmatched5) {
-        if (_source5.is_Success) {
-          R _11_s = _source5.dtor_value;
-          unmatched5 = false;
-          return Std.Wrappers.Outcome<E>.create_Pass();
-        }
+      if (_source5.is_Success) {
+        R _11_s = _source5.dtor_value;
+        return Std.Wrappers.Outcome<E>.create_Pass();
       }
-      if (unmatched5) {
-        E _12_e = _source5.dtor_error;
-        unmatched5 = false;
-        return Std.Wrappers.Outcome<E>.create_Fail(_12_e);
-      }
-      throw new System.Exception("unexpected control point");
+      E _12_e = _source5.dtor_error;
+      return Std.Wrappers.Outcome<E>.create_Fail(_12_e);
     }
     public static __FC Map<__FC>(Std.Wrappers._IResult<R, E> _this, Func<Std.Wrappers._IResult<R, E>, __FC> rewrap) {
       return Dafny.Helpers.Id<Func<Std.Wrappers._IResult<R, E>, __FC>>(rewrap)(_this);
@@ -279,20 +231,12 @@ namespace Std.Wrappers {
     public static Std.Wrappers._IResult<R, __NewE> MapFailure<__NewE>(Std.Wrappers._IResult<R, E> _this, Func<E, __NewE> reWrap) {
       var _pat_let_tv4 = reWrap;
       Std.Wrappers._IResult<R, E> _source6 = _this;
-      bool unmatched6 = true;
-      if (unmatched6) {
-        if (_source6.is_Success) {
-          R _13_s = _source6.dtor_value;
-          unmatched6 = false;
-          return Std.Wrappers.Result<R, __NewE>.create_Success(_13_s);
-        }
+      if (_source6.is_Success) {
+        R _13_s = _source6.dtor_value;
+        return Std.Wrappers.Result<R, __NewE>.create_Success(_13_s);
       }
-      if (unmatched6) {
-        E _14_e = _source6.dtor_error;
-        unmatched6 = false;
-        return Std.Wrappers.Result<R, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(_pat_let_tv4)(_14_e));
-      }
-      throw new System.Exception("unexpected control point");
+      E _14_e = _source6.dtor_error;
+      return Std.Wrappers.Result<R, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(_pat_let_tv4)(_14_e));
     }
   }
   public class Result_Success<R, E> : Result<R, E> {
@@ -393,36 +337,20 @@ namespace Std.Wrappers {
     public Std.Wrappers._IOption<__R> ToOption<__R>(__R r) {
       var _pat_let_tv5 = r;
       Std.Wrappers._IOutcome<E> _source7 = this;
-      bool unmatched7 = true;
-      if (unmatched7) {
-        if (_source7.is_Pass) {
-          unmatched7 = false;
-          return Std.Wrappers.Option<__R>.create_Some(_pat_let_tv5);
-        }
+      if (_source7.is_Pass) {
+        return Std.Wrappers.Option<__R>.create_Some(_pat_let_tv5);
       }
-      if (unmatched7) {
-        E _15_e = _source7.dtor_error;
-        unmatched7 = false;
-        return Std.Wrappers.Option<__R>.create_None();
-      }
-      throw new System.Exception("unexpected control point");
+      E _15_e = _source7.dtor_error;
+      return Std.Wrappers.Option<__R>.create_None();
     }
     public Std.Wrappers._IResult<__R, E> ToResult<__R>(__R r) {
       var _pat_let_tv6 = r;
       Std.Wrappers._IOutcome<E> _source8 = this;
-      bool unmatched8 = true;
-      if (unmatched8) {
-        if (_source8.is_Pass) {
-          unmatched8 = false;
-          return Std.Wrappers.Result<__R, E>.create_Success(_pat_let_tv6);
-        }
+      if (_source8.is_Pass) {
+        return Std.Wrappers.Result<__R, E>.create_Success(_pat_let_tv6);
       }
-      if (unmatched8) {
-        E _16_e = _source8.dtor_error;
-        unmatched8 = false;
-        return Std.Wrappers.Result<__R, E>.create_Failure(_16_e);
-      }
-      throw new System.Exception("unexpected control point");
+      E _16_e = _source8.dtor_error;
+      return Std.Wrappers.Result<__R, E>.create_Failure(_16_e);
     }
     public static __FC Map<__FC>(Std.Wrappers._IOutcome<E> _this, Func<Std.Wrappers._IOutcome<E>, __FC> rewrap) {
       return Dafny.Helpers.Id<Func<Std.Wrappers._IOutcome<E>, __FC>>(rewrap)(_this);
@@ -432,19 +360,11 @@ namespace Std.Wrappers {
       var _pat_let_tv7 = @default;
       var _pat_let_tv8 = rewrap;
       Std.Wrappers._IOutcome<E> _source9 = _this;
-      bool unmatched9 = true;
-      if (unmatched9) {
-        if (_source9.is_Pass) {
-          unmatched9 = false;
-          return Std.Wrappers.Result<__T, __NewE>.create_Success(_pat_let_tv7);
-        }
+      if (_source9.is_Pass) {
+        return Std.Wrappers.Result<__T, __NewE>.create_Success(_pat_let_tv7);
       }
-      if (unmatched9) {
-        E _17_e = _source9.dtor_error;
-        unmatched9 = false;
-        return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(_pat_let_tv8)(_17_e));
-      }
-      throw new System.Exception("unexpected control point");
+      E _17_e = _source9.dtor_error;
+      return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(_pat_let_tv8)(_17_e));
     }
     public static Std.Wrappers._IOutcome<E> Need(bool condition, E error)
     {
