@@ -2031,7 +2031,7 @@ is not used subsequently.  For example, consider
 ```dafny
 method m(i: int) {
   assert x: i == 0; // Fails
-  assert i == 0; // Fails also because the x: makes the first assertion opaque
+  assert i == 0; // Fails also because the label 'x:' hides the first assertion
 }
 ```
 The first assertion fails. Without the label `x:`, the second would succeed because after a failing assertion, the 
@@ -2099,27 +2099,72 @@ relevant information.
 Section 7 of [http://leino.science/papers/krml276.html](http://leino.science/papers/krml276.html) provides 
 an extended illustration of this technique to make all the dependencies of an `assert` explicit.
 
-### 8.20.3. Revealing function bodies
+### 8.20.3. Hiding and revealing function bodies {#hide-statement}
 
-By default, function bodies are transparent and available for constructing proofs of assertions that use those functions. 
-This can be changed using the `--defaul-function-opacity` commandline flag, or by using the [`:{opaque}`](#sec-opaque) attribute and treat it as an uninterpreted function, whose properties are
-just its specifications.  This action limits the information available to the logical reasoning engine and may make a proof 
-possible where there might be information overload otherwise.
+By default, function bodies are revealed and available for constructing proofs of assertions that use those functions.
+However, if a function body is not necessary for a proof, the runtime of the proof can be improved by hiding that body.
+To do this, use the hide statement. Here's an example:
 
-But then there may be specific instances where the definition of that opaque function is needed. In that situation, the
-body of the function can be _revealed_ using the reveal statement. Here is an example:
-<!-- %check-verify Statements.9.expect -->
 ```dafny
-opaque function f(i: int): int { i + 1 }
+method Outer(x: int)
+  requires ComplicatedBody(x) 
+{
+  hide ComplicatedBody; // This hides the body of ComplicatedBody for the remainder of the method.
+  
+  // The body of ComplicatedBody is not needed to prove the requires of Inner
+  var y := Inner(x);
+  
+  // We reveal ComplicatedBody inside the following expression, to prove that we are not dividing by zero
+  var z := (reveal ComplicatedBody; 10 / x);
+  ...
+}
 
-method m(i: int) {
-  assert f(i) == i + 1;
+method Inner(x: int) returns (r: int)
+  requires ComplicatedBody(x)
+
+predicate ComplicatedBody(x: int) {
+  x != 0 && ...
 }
 ```
-Without the [`opaque`] modifier, the assertion is valid; with the modifier it cannot be proved because the body of the
-function is not visible. However if a `reveal f();` statement is inserted before the assertion, the proof succeeds.
-Note that the pseudo-function-call in the `reveal` statement is written without arguments and serves to mark `f` as a function name
-instead of a label.
+
+Here is a larger example that shows the rules for hide and reveal statements when used on functions:
+
+```dafny
+predicate P() { true }
+predicate Q(x: bool) requires x
+
+method Foo() {
+  var q1 := Q(hide P; P()); // error, precondition not satisfied
+  var q2 := Q(hide P; reveal P; P()); // no error
+  
+  hide *;
+  
+  var q3 := Q(P()); // error, precondition not satisfied
+  var q4 := Q(reveal P; Q()); // no error
+  
+  if (*) {
+    reveal P;
+    assert P();
+  } else {
+    assert P(); // error
+  }
+  reveal P;
+  if (*) {
+    assert P();
+  } else {
+    hide *;
+    assert P(); // error
+  }
+  
+  hide *;
+  if (*) {
+    reveal P;
+  } else {
+    reveal P;
+  }
+  assert P(); // error, since the previous two reveal statements are out of scope
+}
+```
 
 ### 8.20.4. Revealing constants
 
