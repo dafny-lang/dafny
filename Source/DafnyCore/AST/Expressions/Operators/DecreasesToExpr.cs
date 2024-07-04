@@ -5,12 +5,14 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DecreasesToExpr : Expression, ICloneable<DecreasesToExpr> {
-  public IEnumerable<Expression> OldExpressions { get; }
-  public IEnumerable<Expression> NewExpressions { get; }
+  public IReadOnlyList<Expression> OldExpressions { get; }
+  public IReadOnlyList<Expression> NewExpressions { get; }
 
   public bool AllowNoChange { get; }
 
-  public DecreasesToExpr(IToken tok, IEnumerable<Expression> oldExpressions, IEnumerable<Expression> newExpressions, bool allowNoChange) : base(tok) {
+  public DecreasesToExpr(IToken tok,
+    IReadOnlyList<Expression> oldExpressions,
+    IReadOnlyList<Expression> newExpressions, bool allowNoChange) : base(tok) {
     OldExpressions = oldExpressions;
     NewExpressions = newExpressions;
     AllowNoChange = allowNoChange;
