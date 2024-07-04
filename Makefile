@@ -67,8 +67,8 @@ z3-ubuntu:
 	unzip z3-4.12.1-x64-ubuntu-20.04-bin.zip
 	rm z3-4.12.1-x64-ubuntu-20.04-bin.zip
 	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10/z3-4.12.6-x64-ubuntu-20.04-bin.zip
-	unzip z3-z3-4.12.6-x64-ubuntu-20.04-bin.zip
-	rm z3-z3-4.12.6-x64-ubuntu-20.04-bin.zip
+	unzip z3-4.12.6-x64-ubuntu-20.04-bin.zip
+	rm z3-4.12.6-x64-ubuntu-20.04-bin.zip
 	mv z3-* "${BIN}"/z3/bin/
 	chmod +x "${BIN}"/z3/bin/z3-*
 
