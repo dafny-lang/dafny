@@ -201,7 +201,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   }
 
   public async Task<bool> WaitUntilResolutionFinished(TextDocumentItem documentId,
-    CancellationToken cancellationToken = default) {
+    CancellationToken cancellationToken = default, bool allowException = false) {
 
     CompilationStatusParams compilationStatusParams = compilationStatusReceiver.GetLatestAndClearQueue(s => s.Uri == documentId.Uri);
     while (compilationStatusParams == null || compilationStatusParams.Version != documentId.Version || compilationStatusParams.Uri != documentId.Uri ||
@@ -209,6 +209,9 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       compilationStatusParams = await compilationStatusReceiver.AwaitNextNotificationAsync(cancellationToken);
     }
 
+    if (!allowException && compilationStatusParams.Status == CompilationStatus.InternalException) {
+      throw new Exception("Encountered internal exception");
+    }
     return compilationStatusParams.Status == CompilationStatus.ResolutionSucceeded;
   }
 
