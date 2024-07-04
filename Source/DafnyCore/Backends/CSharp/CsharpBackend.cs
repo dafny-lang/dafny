@@ -112,7 +112,7 @@ public class CsharpBackend : ExecutableBackend {
               framework = new {
                 name = "Microsoft.NETCore.App",
                 version = "6.0.0",
-                rollForward = "LatestMinor"
+                rollForward = "major"
               }
             }
           }, new JsonSerializerOptions() { WriteIndented = true });
