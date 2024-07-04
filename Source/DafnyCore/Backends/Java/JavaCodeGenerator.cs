@@ -4364,16 +4364,28 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
       ConcreteSyntaxTree wStmts) {
-      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      if (match.Cases.Count == 0) {
+        base.EmitNestedMatchExpr(match, inLetExprBody, output, wStmts);
+      } else {
+        EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      }
     }
 
     protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
       bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
-      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      if (match.Cases.Count == 0) {
+        base.TrOptNestedMatchExpr(match, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      } else {
+        TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      }
     }
 
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      TrStmt(match.Flattened, writer);
+      if (match.Cases.Count == 0) {
+        base.EmitNestedMatchStmt(match, writer);
+      } else {
+        TrStmt(match.Flattened, writer);
+      }
     }
   }
 }
