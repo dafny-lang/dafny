@@ -18,6 +18,7 @@
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <TargetFramework>net6.0</TargetFramework>
+    <RollForward>Major</RollForward>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     
     <NoWarn>$(NoWarn);NU5104</NoWarn> <!-- Required because System.CommandLine is in beta. -->
