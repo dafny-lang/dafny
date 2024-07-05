@@ -14,16 +14,17 @@ module DafnyToRustCompilerCoverage {
 
     function ConversionNum(t: Type, x: Expr): Expr {
       Call(
-        MemberSelect(
-          MemberSelect(
-            Identifier(""),
-            "dafny_runtime"),
-          "truncate!"),
+        ExprFromPath(
+          PMemberSelect(
+            PMemberSelect(
+              Global(),
+              "dafny_runtime"),
+            "truncate!")),
         [x, ExprFromType(t)])
     }
 
     function DafnyIntLiteral(s: string): Expr {
-      Call(MemberSelect(dafny_runtime, "int!"), [LiteralInt("1")])
+      Call(ExprFromPath(PMemberSelect(dafny_runtime, "int!")), [LiteralInt("1")])
     }
 
     method TestOptimizeToString() {
@@ -90,7 +91,8 @@ module DafnyToRustCompilerCoverage {
         Call(Identifier("x"), [Identifier("x"), Identifier("y")]),
         CallType(Identifier("x"), [I128, U32]),
         Select(Identifier("x"), "abc"),
-        MemberSelect(Identifier("x"), "abc")
+        ExprFromPath(PMemberSelect(Crate(), "abc")),
+        ExprFromPath(PMemberSelect(Global(), "abc"))
       ];
       for i := 0 to |coverageExpression| {
         var c := coverageExpression[i];
@@ -103,9 +105,6 @@ module DafnyToRustCompilerCoverage {
         var _ := UnaryOp("!", c, UnaryOpFormat.NoFormat()).Optimize();
         var _ := ConversionNum(U8, c).Optimize();
         var _ := ConversionNum(U8, Call(c, [])).Optimize();
-        var _ := ConversionNum(U8, Call(MemberSelect(c, "int!"), [])).Optimize();
-        var _ := ConversionNum(U8, Call(MemberSelect(MemberSelect(c, "dafny_runtime"), "int!"), [])).Optimize();
-        var _ := ConversionNum(U8, Call(MemberSelect(MemberSelect(Identifier(""), "dafny_runtime"), "int!"), [c])).Optimize();
         var _ := c.RightMostIdentifier();
 
       }
@@ -127,7 +126,7 @@ module DafnyToRustCompilerCoverage {
       AssertCoverage(UnaryOp("&mut", x, UnaryOpFormat.NoFormat).printingInfo == Precedence(6));
       AssertCoverage(UnaryOp("!!", x, UnaryOpFormat.NoFormat).printingInfo == UnknownPrecedence());
       AssertCoverage(Select(x, "name").printingInfo == PrecedenceAssociativity(2, LeftToRight));
-      AssertCoverage(MemberSelect(x, "name").printingInfo == PrecedenceAssociativity(2, LeftToRight));
+      AssertCoverage(ExprFromPath(PMemberSelect(Global(), "name")).printingInfo == Precedence(2));
       AssertCoverage(Call(x, []).printingInfo == PrecedenceAssociativity(2, LeftToRight));
       AssertCoverage(TypeAscription(x, I128).printingInfo == PrecedenceAssociativity(10, LeftToRight));
       AssertCoverage(BinaryOp("*", x, y, bnf).printingInfo == PrecedenceAssociativity(20, LeftToRight));
