@@ -95,6 +95,7 @@ public class CsharpBackend : ExecutableBackend {
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <NoWarn>CS8600;CS8603;CS8604;CS8605;CS8625;CS8629;CS8714;CS8765;CS8769;CS8981</NoWarn>
     <Nullable>enable</Nullable>
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   {itemGroup}
