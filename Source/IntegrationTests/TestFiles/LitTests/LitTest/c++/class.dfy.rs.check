@@ -1,1 +1,1 @@
-// CHECK-L: error[E0599]: no method named `borrow` found for type `u32` in the current scope
+// CHECK-L: error[E0609]: no field `__i_d` on type `&mut MyClass`

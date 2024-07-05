@@ -92,6 +92,7 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExternalConstructors,
       Feature.SubtypeConstraintsInQuantifiers,
       Feature.TuplesWiderThan20,
+      Feature.ArraysWithMoreThan16Dims,
       Feature.ForLoops,
       Feature.Traits,
       Feature.RuntimeCoverageReport,
@@ -1395,6 +1396,10 @@ namespace Microsoft.Dafny.Compilers {
               EmitExpr(initCall.Args[tp.i], false, localWriter, wStmts);
               return buf.Finish();
             });
+        }
+
+        if (ctor == null) {
+          AddUnsupported("Creation of object of type "+type.ToString()+" requires a constructor");
         }
 
         var typeArgs = type.TypeArgs.Select(GenType).ToArray();

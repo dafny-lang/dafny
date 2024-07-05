@@ -1956,7 +1956,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             [], [])),
         typeParamsSeq);
       
-      if extern.NoExtern? {
+      if extern.NoExtern? && className != "_default" {
         implBody := [
           R.FnDecl(
             R.PUB,
@@ -1989,22 +1989,24 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
       var genSelfPath := GenPath(path);
       // TODO: If general traits, check whether the trait extends object or not.
-      s := s + [
-        R.ImplDecl(
-          R.ImplFor(
-            rTypeParamsDecls,
-            R.dafny_runtime_type.MSel(Upcast).Apply([R.DynType(R.std_type.MSel("any").MSel("Any"))]),
-            R.TypeApp(genSelfPath, rTypeParams),
-            whereConstraints,
-            [
-              R.ImplMemberMacro(
-                R.dafny_runtime
-                .MSel(UpcastFnMacro)
-                .Apply1(R.ExprFromType(R.DynType(R.std_type.MSel("any").MSel("Any")))))
-            ]
+      if className != "_default" {
+        s := s + [
+          R.ImplDecl(
+            R.ImplFor(
+              rTypeParamsDecls,
+              R.dafny_runtime_type.MSel(Upcast).Apply([R.DynType(R.std_type.MSel("any").MSel("Any"))]),
+              R.TypeApp(genSelfPath, rTypeParams),
+              whereConstraints,
+              [
+                R.ImplMemberMacro(
+                  R.dafny_runtime
+                  .MSel(UpcastFnMacro)
+                  .Apply1(R.ExprFromType(R.DynType(R.std_type.MSel("any").MSel("Any")))))
+              ]
+            )
           )
-        )
-      ];
+        ];
+      }
       var superClasses := if className == "_default" then [] else c.superClasses;
       for i := 0 to |superClasses| {
         var superClass := superClasses[i];
@@ -4831,21 +4833,21 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case MapKeys(expr) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipAutoBorrowed);
           readIdents := recIdents;
           r := recursiveGen.Sel("keys").Apply([]);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
         case MapValues(expr) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipAutoBorrowed);
           readIdents := recIdents;
           r := recursiveGen.Sel("values").Apply([]);
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }
         case MapItems(expr) => {
-          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
+          var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipAutoBorrowed);
           readIdents := recIdents;
           r := recursiveGen.Sel("items").Apply([]);
           r, resultingOwnership := FromOwned(r, expectedOwnership);

@@ -1,1 +1,1 @@
-// CHECK-L: Unhandled exception: System.InvalidOperationException: Expected a buffered value to have been populated because rhs != null
+// CHECK-L: error: expected one of `;` or `{`, found `of`
