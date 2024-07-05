@@ -63,6 +63,57 @@ namespace DAST {
     }
   }
 
+  public interface _IVarName {
+    bool is_VarName { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_dafny__name { get; }
+  }
+  public class VarName : _IVarName {
+    public readonly Dafny.ISequence<Dafny.Rune> _dafny__name;
+    public VarName(Dafny.ISequence<Dafny.Rune> dafny__name) {
+      this._dafny__name = dafny__name;
+    }
+    public static Dafny.ISequence<Dafny.Rune> DowncastClone(Dafny.ISequence<Dafny.Rune> _this) {
+      return _this;
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.VarName;
+      return oth != null && object.Equals(this._dafny__name, oth._dafny__name);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._dafny__name));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.VarName.VarName";
+      s += "(";
+      s += this._dafny__name.ToVerbatimString(true);
+      s += ")";
+      return s;
+    }
+    private static readonly Dafny.ISequence<Dafny.Rune> theDefault = Dafny.Sequence<Dafny.Rune>.Empty;
+    public static Dafny.ISequence<Dafny.Rune> Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<Dafny.ISequence<Dafny.Rune>> _TYPE = new Dafny.TypeDescriptor<Dafny.ISequence<Dafny.Rune>>(Dafny.Sequence<Dafny.Rune>.Empty);
+    public static Dafny.TypeDescriptor<Dafny.ISequence<Dafny.Rune>> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IVarName create(Dafny.ISequence<Dafny.Rune> dafny__name) {
+      return new VarName(dafny__name);
+    }
+    public static _IVarName create_VarName(Dafny.ISequence<Dafny.Rune> dafny__name) {
+      return create(dafny__name);
+    }
+    public bool is_VarName { get { return true; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_dafny__name {
+      get {
+        return this._dafny__name;
+      }
+    }
+  }
+
   public interface _IModule {
     bool is_Module { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
