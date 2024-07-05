@@ -177,9 +177,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   public async Task<int> WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
 
-    await PassthroughBuffer(process.StandardError, errorWriter);
-    await PassthroughBuffer(process.StandardOutput, outputWriter);
+    var errorTask = PassthroughBuffer(process.StandardError, errorWriter);
+    var outputTask = PassthroughBuffer(process.StandardOutput, outputWriter);
     await process.WaitForExitAsync();
+    await errorTask;
+    await outputTask;
     if (process.ExitCode != 0 && errorMessage != null) {
       await outputWriter.WriteLineAsync($"{errorMessage} Process exited with exit code {process.ExitCode}");
     }

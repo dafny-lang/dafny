@@ -8,10 +8,10 @@
 // RUN: %baredafny run %args --allow-deprecation --unicode-char false --no-verify --target:js "%s" -- Javascript 2 >> "%t"
 // RUN: %run --no-verify --allow-deprecation --unicode-char false --target py "%s" Python 1 >> "%t"
 // RUN: %run --no-verify --allow-deprecation --unicode-char false --target go "%s" "Go go" 1 >> "%t"
-// RUN: %baredafny build %args --allow-deprecation --unicode-char false --no-verify --target:cs "%s" --output:%s.dll
-// RUN: dotnet %s.dll "dotnet" "howdy" >> "%t"
-// RUN: dotnet %s.dll "dotnet" "hello" >> "%t"
-// RUN: dotnet %s.dll "dotnet" "aloha" >> "%t"
+// RUN: %baredafny build %args --allow-deprecation --unicode-char false --no-verify --target:cs "%s" --output:%S/Output/CompileWithArgument.dll
+// RUN: dotnet %S/Output/CompileWithArgument.dll "dotnet" "howdy" >> "%t"
+// RUN: dotnet %S/Output/CompileWithArgument.dll "dotnet" "hello" >> "%t"
+// RUN: dotnet %S/Output/CompileWithArgument.dll "dotnet" "aloha" >> "%t"
 // RUN: %baredafny build %args --allow-deprecation --unicode-char false --no-verify --target:js "%s" --output=%s.js
 // RUN: node %s.js "javascript" 2 >> "%t"
 // RUN: node %s.js "javascript" 1 >> "%t"

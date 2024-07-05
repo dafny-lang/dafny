@@ -11,8 +11,6 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using Microsoft.CodeAnalysis.CSharp;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
@@ -2037,7 +2035,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHalt(IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(tok.TokenToString(Options) + ": ", true) + " + "));
+        exceptionMessage.Prepend(new LineSegment($"\"{tok.TokenToString(Options)}: \" + "));
       }
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         exceptionMessage.Write(".ToVerbatimString(false)");
