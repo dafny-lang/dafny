@@ -1000,7 +1000,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         UnsupportedFeatureError(tok, Feature.UnboundedIntegers);
         return "new BigNumber(0)";
       } else if (xType is RealType) {
@@ -1029,7 +1029,7 @@ namespace Microsoft.Dafny.Compilers {
       var udt = (UserDefinedType)xType;
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
-      if (cl is TypeParameter || cl is AbstractTypeDecl) {
+      if (cl is TypeParameter or AbstractTypeDecl) {
         var hasCompiledValue = (cl is TypeParameter ? ((TypeParameter)cl).Characteristics : ((AbstractTypeDecl)cl).Characteristics).HasCompiledValue;
         if (Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
           // Assume the external definition includes a default value
@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       TrParenExpr(source, wr, inLetExprBody, wStmts);
-      if (source.Type.NormalizeExpand() is SeqType) {
+      if (source.Type.NormalizeToAncestorType() is SeqType) {
         // seq
         wr.Write(".select(");
         wr.Append(Expr(index, inLetExprBody, wStmts));
@@ -1956,7 +1956,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("is_{1}({0})", source, DatatypeSubStructName(ctor));
     }
 
-    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, ConcreteSyntaxTree wr) {
+    protected override void EmitDestructor(Action<ConcreteSyntaxTree> source, Formal dtor, int formalNonGhostIndex,
+      DatatypeCtor ctor, Func<List<Type>> getTypeArgs, Type bvType, ConcreteSyntaxTree wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
         wr.Write("(");
         source(wr);
@@ -2013,8 +2014,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(resultTok, Feature.LetSuchThatExpressions);
     }
 
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
-        ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       switch (op) {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("!", expr, wr, inLetExprBody, wStmts);
@@ -2043,7 +2043,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
-      Expression e0, Expression e1, IToken tok, Type resultType,
+      Type e0Type, Type e1Type, IToken tok, Type resultType,
       out string opString,
       out string preOpString,
       out string postOpString,
@@ -2097,9 +2097,9 @@ namespace Microsoft.Dafny.Compilers {
           break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            if (IsDirectlyComparable(e0.Type)) {
+            if (IsDirectlyComparable(e0Type)) {
               opString = "==";
-            } else if (e0.Type.IsRefType) {
+            } else if (e0Type.IsRefType) {
               opString = "==";
             } else {
               //staticCallString = "==";
@@ -2108,9 +2108,9 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            if (IsDirectlyComparable(e0.Type)) {
+            if (IsDirectlyComparable(e0Type)) {
               opString = "!=";
-            } else if (e0.Type.IsRefType) {
+            } else if (e0Type.IsRefType) {
               opString = "!=";
             } else {
               opString = "!=";
@@ -2148,7 +2148,7 @@ namespace Microsoft.Dafny.Compilers {
         case BinaryExpr.ResolvedOpcode.RightShift:
           if (AsNativeType(resultType) != null) {
             opString = ">>";
-            if (AsNativeType(e1.Type) == null) {
+            if (AsNativeType(e1Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
@@ -2433,7 +2433,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName) {
       var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
-      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.AsSetType.Arg, wrVarInit, e.tok, null, false));
+      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.NormalizeToAncestorType().AsSetType.Arg, wrVarInit, e.tok, null, false));
     }
 
     protected override void EmitMapBuilder_New(ConcreteSyntaxTree wr, MapComprehension e, string collectionName) {
@@ -2456,9 +2456,10 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(tok, Feature.MapComprehensions);
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName, ConcreteSyntaxTree wr) {
+    protected override void GetCollectionBuilder_Build(CollectionType ct, IToken tok, string collName,
+      ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmt) {
       // collections are built in place
-      return collName;
+      wr.Write(collName);
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,

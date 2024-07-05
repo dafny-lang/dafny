@@ -1,0 +1,13 @@
+GeneralNewtypeMemberResolution.dfy(6,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
+GeneralNewtypeMemberResolution.dfy(48,11): Error: method 'PrintMe' is inherited from newtype 'Bool' and is not allowed to be re-declared in newtype 'BoolBool'
+GeneralNewtypeMemberResolution.dfy(51,13): Error: function 'F' is inherited from newtype 'Bool' and is not allowed to be re-declared in newtype 'BoolBool'
+GeneralNewtypeMemberResolution.dfy(55,19): Error: const field 'n' is inherited from newtype 'Bool' and is not allowed to be re-declared in newtype 'BoolBool'
+GeneralNewtypeMemberResolution.dfy(60,13): Error: function 'H' is inherited from newtype 'Bool' and is not allowed to be re-declared in newtype 'BoolBoolBool'
+GeneralNewtypeMemberResolution.dfy(72,10): Error: field 'Floor' is inherited from type 'real' and is not allowed to be re-declared in newtype 'Real'
+GeneralNewtypeMemberResolution.dfy(88,11): Error: function 'RotateLeft' is inherited from type 'bv7' and is not allowed to be re-declared in newtype 'Bv'
+GeneralNewtypeMemberResolution.dfy(102,14): Error: field 'Values' is inherited from type 'map' and is not allowed to be re-declared in newtype 'Map'
+GeneralNewtypeMemberResolution.dfy(103,14): Error: field 'Items' is inherited from type 'map' and is not allowed to be re-declared in newtype 'Map'
+GeneralNewtypeMemberResolution.dfy(107,14): Error: field 'Keys' is inherited from type 'imap' and is not allowed to be re-declared in newtype 'IMap'
+GeneralNewtypeMemberResolution.dfy(108,14): Error: field 'Values' is inherited from type 'imap' and is not allowed to be re-declared in newtype 'IMap'
+GeneralNewtypeMemberResolution.dfy(139,15): Error: member 'P' does not exist in type 'set'
+12 resolution/type errors detected in GeneralNewtypeMemberResolution.dfy

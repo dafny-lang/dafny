@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       var pt = this;
       while (true) {
         pt = pt.Normalize();
-        if (pt is DPreType preType && preType.Decl is NewtypeDecl newtypeDecl) {
+        if (pt is DPreType { Decl: NewtypeDecl newtypeDecl } preType) {
           // expand the newtype into its base type
           var subst = PreTypeSubstMap(newtypeDecl.TypeArgs, preType.Arguments);
           var basePreType = ptResolver.Type2PreType(newtypeDecl.BaseType);
@@ -282,13 +282,11 @@ namespace Microsoft.Dafny {
       var name = Decl.Name;
       string s;
       if (IsArrowType(Decl)) {
-        var a0 = Arguments[0].Normalize() as DPreType;
-        if (Arguments.Count == 2 && (a0 == null || (!IsTupleType(a0.Decl) && !IsArrowType(a0.Decl)))) {
-          s = Arguments[0].ToString();
-        } else {
-          s = $"({Util.Comma(Arguments.GetRange(0, Arguments.Count - 1), arg => arg.ToString())})";
-        }
-        s += $" ~> {Arguments.Last()}";
+        s = AnyArrowTypeToString("~>");
+      } else if (ArrowType.IsPartialArrowTypeName(Decl.Name)) {
+        s = AnyArrowTypeToString("-->");
+      } else if (ArrowType.IsTotalArrowTypeName(Decl.Name)) {
+        s = AnyArrowTypeToString("->");
       } else if (IsTupleType(Decl)) {
         var tupleTypeDecl = (TupleTypeDecl)Decl;
         Contract.Assert(Arguments.Count == tupleTypeDecl.ArgumentGhostness.Count);
@@ -307,6 +305,18 @@ namespace Microsoft.Dafny {
         }
       }
 
+      return s;
+    }
+
+    private string AnyArrowTypeToString(string arrow) {
+      string s;
+      var a0 = Arguments[0].Normalize() as DPreType;
+      if (Arguments.Count == 2 && (a0 == null || (!IsTupleType(a0.Decl) && !IsArrowType(a0.Decl)))) {
+        s = Arguments[0].ToString();
+      } else {
+        s = $"({Util.Comma(Arguments.GetRange(0, Arguments.Count - 1), arg => arg.ToString())})";
+      }
+      s += $" {arrow} {Arguments.Last()}";
       return s;
     }
 
@@ -445,10 +455,13 @@ namespace Microsoft.Dafny {
   public class PreTypePlaceholderType : PreTypePlaceholder {
   }
 
-  public class UnusedPreType : PreTypePlaceholder {
+  /// Used for assigning a pre-type to MemberSelect expressions, such as "obj.method",
+  /// which is not considered an expression. This indicates that resolution has occurred,
+  /// even though the pre-type itself is not useful.
+  public class MethodPreType : PreTypePlaceholder {
     public readonly string Why;
 
-    public UnusedPreType(string why) {
+    public MethodPreType(string why) {
       Why = why;
     }
 

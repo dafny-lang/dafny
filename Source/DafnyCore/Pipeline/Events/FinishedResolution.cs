@@ -6,8 +6,4 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public record FinishedResolution(
-  ResolutionResult Result,
-  ImmutableDictionary<Uri, ImmutableList<Diagnostic>> Diagnostics) : ICompilationEvent {
-
-}
+public record FinishedResolution(ResolutionResult Result) : ICompilationEvent;

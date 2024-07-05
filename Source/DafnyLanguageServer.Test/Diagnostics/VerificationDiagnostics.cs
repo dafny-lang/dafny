@@ -14,6 +14,36 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 public class VerificationDiagnostics : ClientBasedLanguageServerTest {
 
   [Fact]
+  public async Task SubExpression() {
+    var source = @"predicate P(x: int) {
+  Q(x) && Q(x + 3)
+}
+
+predicate Q(x: int) {
+  x > 10 && x < 30
+}
+
+method Foo(x: int) requires P(x) {
+
+}
+
+method Main() {
+  Foo(30);
+}";
+    var document = CreateAndOpenTestDocument(source);
+    var diagnostics = await GetLastDiagnostics(document);
+    Assert.Single(diagnostics);
+    var diagnostic = diagnostics[0];
+    Assert.Contains("a precondition for this call could not be proved", diagnostic.Message);
+    Assert.NotNull(diagnostic.RelatedInformation);
+    var relatedInformation = diagnostic.RelatedInformation.ToList();
+    Assert.Equal(3, relatedInformation.Count);
+    Assert.Contains("this is the precondition that could not be proved", relatedInformation[0].Message);
+    Assert.Contains("this proposition could not be proved", relatedInformation[1].Message);
+    Assert.Contains("this proposition could not be proved", relatedInformation[2].Message);
+  }
+
+  [Fact]
   public async Task BadSolverPath() {
     var projectFile = @"
 [options]

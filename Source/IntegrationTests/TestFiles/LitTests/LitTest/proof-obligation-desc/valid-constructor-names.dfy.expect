@@ -1,0 +1,4 @@
+valid-constructor-names.dfy(7,14): Error: source of datatype update must be constructed by 'D2' or 'D0'
+ Asserted expression: d.D2? || d.D0?
+
+Dafny program verifier finished with 0 verified, 1 error

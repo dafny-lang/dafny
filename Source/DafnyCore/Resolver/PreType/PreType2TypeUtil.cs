@@ -12,9 +12,9 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 public static class PreType2TypeUtil {
-  public static Type PreType2Type(PreType preType, bool allowFutureAdjustments, TypeParameter.TPVariance futureAdjustments) {
-    if (allowFutureAdjustments) {
-      return PreType2AdjustableType(preType, futureAdjustments);
+  public static Type PreType2Type(PreType preType, bool allowFutureRefinements, TypeParameter.TPVariance futureRefinements) {
+    if (allowFutureRefinements) {
+      return PreType2RefinableType(preType, futureRefinements);
     } else {
       return PreType2FixedType(preType);
     }
@@ -24,9 +24,9 @@ public static class PreType2TypeUtil {
     return PreType2TypeCore(preType, false, TypeParameter.TPVariance.Co);
   }
 
-  public static Type PreType2AdjustableType(PreType preType, TypeParameter.TPVariance futureAdjustments) {
-    var ty = PreType2TypeCore(preType, true, futureAdjustments);
-    switch (futureAdjustments) {
+  public static Type PreType2RefinableType(PreType preType, TypeParameter.TPVariance futureRefinements) {
+    var ty = PreType2TypeCore(preType, true, futureRefinements);
+    switch (futureRefinements) {
       case TypeParameter.TPVariance.Co:
         ty = new BottomTypePlaceholder(ty);
         break;
@@ -34,20 +34,20 @@ public static class PreType2TypeUtil {
         break;
     }
 
-    return new AdjustableType(ty);
+    return new TypeRefinementWrapper(ty);
   }
 
   /// <summary>
-  /// The "futureAdjustment" parameter is relevant only if "allowFutureAdjustments" is "true".
+  /// The "futureRefinements" parameter is relevant only if "allowFutureRefinements" is "true".
   /// </summary>
-  private static Type PreType2TypeCore(PreType preType, bool allowFutureAdjustments, TypeParameter.TPVariance futureAdjustments) {
+  private static Type PreType2TypeCore(PreType preType, bool allowFutureRefinements, TypeParameter.TPVariance futureRefinements) {
     var pt = (DPreType)preType.Normalize(); // all pre-types should have been filled in and resolved to a non-proxy
     if (pt.PrintablePreType != null) {
       pt = pt.PrintablePreType;
     }
 
     Type ArgumentAsCo(int i) {
-      return PreType2Type(pt.Arguments[i], true, futureAdjustments);
+      return PreType2Type(pt.Arguments[i], true, futureRefinements);
     }
 
     switch (pt.Decl.Name) {
@@ -77,7 +77,7 @@ public static class PreType2TypeUtil {
         break;
     }
 
-    var arguments = pt.Arguments.ConvertAll(preType => PreType2AdjustableType(preType, futureAdjustments));
+    var arguments = pt.Arguments.ConvertAll(preType => PreType2RefinableType(preType, futureRefinements));
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.tok, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
@@ -89,8 +89,8 @@ public static class PreType2TypeUtil {
     }
   }
 
-  public static void Combine(Type userSuppliedType, PreType preType, bool allowFutureAdjustments) {
-    var preTypeConverted = PreType2Type(preType, allowFutureAdjustments, TypeParameter.TPVariance.Co);
+  public static void Combine(Type userSuppliedType, PreType preType, bool allowFutureRefinements) {
+    var preTypeConverted = PreType2Type(preType, allowFutureRefinements, TypeParameter.TPVariance.Co);
     Combine(userSuppliedType, preTypeConverted);
   }
 
@@ -102,11 +102,11 @@ public static class PreType2TypeUtil {
   ///       "preTypes" are expected to have the same length. The respective types and pre-types are combined in "types",
   ///       and then "types" is returned.
   /// </summary>
-  public static List<Type> Combine([CanBeNull] List<Type> types, List<PreType> preTypes, bool allowFutureAdjustments) {
+  public static List<Type> Combine([CanBeNull] List<Type> types, List<PreType> preTypes, bool allowFutureRefinements) {
     Contract.Requires(types == null || types.Count == preTypes.Count);
     if (types == null) {
-      if (allowFutureAdjustments) {
-        return preTypes.ConvertAll(preType => PreType2AdjustableType(preType, TypeParameter.TPVariance.Co));
+      if (allowFutureRefinements) {
+        return preTypes.ConvertAll(preType => PreType2RefinableType(preType, TypeParameter.TPVariance.Co));
       } else {
         return preTypes.ConvertAll(PreType2FixedType);
       }
@@ -114,7 +114,7 @@ public static class PreType2TypeUtil {
 
     Contract.Assert(types.Count == preTypes.Count);
     for (var i = 0; i < types.Count; i++) {
-      Combine(types[i], preTypes[i], allowFutureAdjustments);
+      Combine(types[i], preTypes[i], allowFutureRefinements);
     }
     return types;
   }
@@ -127,7 +127,7 @@ public static class PreType2TypeUtil {
     if (type is TypeProxy { T: null } typeProxy) {
       typeProxy.T = preTypeConverted;
     } else {
-      // Even if the head type of preTypeConverted is adjustable, we're going to stick with the user-defined type, so we Normalize() here.
+      // Even if the head type of preTypeConverted is a refinement wrapper, we're going to stick with the user-defined type, so we Normalize() here.
       preTypeConverted = preTypeConverted.Normalize();
 
       Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass);

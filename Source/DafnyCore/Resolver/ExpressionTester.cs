@@ -7,7 +7,7 @@ using static Microsoft.Dafny.ResolutionErrors;
 namespace Microsoft.Dafny;
 
 public class ExpressionTester {
-  private DafnyOptions options;
+  private readonly DafnyOptions options;
   private bool ReportErrors => reporter != null;
   [CanBeNull] private readonly ErrorReporter reporter; // if null, no errors will be reported
 
@@ -26,25 +26,35 @@ public class ExpressionTester {
     this.options = options;
   }
 
-  // Static call to CheckIsCompilable
+  /// <summary>
+  /// Determines whether or not "expr" is compilable, and returns the answer.
+  /// If "resolver" is non-null and "expr" is not compilable, then an error is reported.
+  /// Also, updates various bookkeeping information (see instance method CheckIsCompilable for more details).
+  /// </summary>
   public static bool CheckIsCompilable(DafnyOptions options, [CanBeNull] ModuleResolver resolver, Expression expr, ICodeContext codeContext) {
     return new ExpressionTester(resolver, resolver?.Reporter, options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public static bool CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
-    return new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
+  /// <summary>
+  /// Checks that "expr" is compilable and report an error if it is not.
+  /// Also, updates various bookkeeping information (see instance method CheckIsCompilable for more details).
+  /// </summary>
+  public static void CheckIsCompilable(ModuleResolver resolver, ErrorReporter reporter, Expression expr, ICodeContext codeContext) {
+    new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  public void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
   }
 
-  public void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
+  private void ReportError(ErrorId errorId, IToken t, string msg, params object[] args) {
     reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
   }
 
   /// <summary>
-  /// Checks that "expr" is compilable and reports an error if it is not.
+  /// Determines and returns whether or not "expr" is compilable.
+  /// If it is not, it calls ReportError. (Note, whether or not ReportError reports an error depends on if "reporter" is non-null.)
+  ///
   /// Also, updates bookkeeping information for the verifier to record the fact that "expr" is to be compiled.
   /// For example, this bookkeeping information keeps track of if the constraint of a let-such-that expression
   /// must determine the value uniquely.
@@ -84,7 +94,7 @@ public class ExpressionTester {
         var what = selectExpr.Member.WhatKindMentionGhost;
         ReportError(ErrorId.r_only_in_specification, selectExpr, $"a {what} is allowed only in specification contexts");
         return false;
-      } else if (selectExpr.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+      } else if (selectExpr.Member is Function function && function.Ins.Any(formal => formal.IsGhost)) {
         var what = selectExpr.Member.WhatKindMentionGhost;
         ReportError(ErrorId.r_ghost_parameters_only_in_specification, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
         return false;
@@ -154,8 +164,8 @@ public class ExpressionTester {
         }
         // function is okay, so check all NON-ghost arguments
         isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
-        for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
-          if (!callExpr.Function.Formals[i].IsGhost && i < callExpr.Args.Count) {
+        for (var i = 0; i < callExpr.Function.Ins.Count; i++) {
+          if (!callExpr.Function.Ins[i].IsGhost && i < callExpr.Args.Count) {
             isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
           }
         }
@@ -219,23 +229,21 @@ public class ExpressionTester {
     } else if (expr is LetExpr letExpr) {
       if (letExpr.Exact) {
         Contract.Assert(letExpr.LHSs.Count == letExpr.RHSs.Count);
-        var i = 0;
-        foreach (var ee in letExpr.RHSs) {
+        for (var i = 0; i < letExpr.RHSs.Count; i++) {
+          var rhs = letExpr.RHSs[i];
           var lhs = letExpr.LHSs[i];
           // Make LHS vars ghost if the RHS is a ghost
-          if (UsesSpecFeatures(ee)) {
+          if (UsesSpecFeatures(rhs)) {
             foreach (var bv in lhs.Vars) {
               if (!bv.IsGhost) {
                 bv.MakeGhost();
-                isCompilable = false;
               }
             }
           }
 
           if (!lhs.Vars.All(bv => bv.IsGhost)) {
-            isCompilable = CheckIsCompilable(ee, codeContext) && isCompilable;
+            isCompilable = CheckIsCompilable(rhs, codeContext) && isCompilable;
           }
-          i++;
         }
         isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
       } else {
@@ -247,13 +255,19 @@ public class ExpressionTester {
         isCompilable = CheckIsCompilable(letExpr.Body, codeContext, insideBranchesOnly) && isCompilable;
 
         // fill in bounds for this to-be-compiled let-such-that expression
-        Contract.Assert(letExpr.RHSs.Count == 1);  // if we got this far, the resolver will have checked this condition successfully
+        Contract.Assert(letExpr.RHSs.Count == 1); // if we got this far, the resolver will have checked this condition successfully
         var constraint = letExpr.RHSs[0];
         if (resolver != null) {
           letExpr.Constraint_Bounds = ModuleResolver.DiscoverBestBounds_MultipleVars(letExpr.BoundVars.ToList<IVariable>(), constraint, true);
         }
       }
       return isCompilable;
+
+    } else if (expr is NestedMatchExpr nestedMatchExpr) {
+      foreach (var kase in nestedMatchExpr.Cases) {
+        MakeGhostAsNeeded(kase.Pat, false);
+      }
+
     } else if (expr is LambdaExpr lambdaExpr) {
       return CheckIsCompilable(lambdaExpr.Body, codeContext);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
@@ -304,9 +318,9 @@ public class ExpressionTester {
             if (!function.IsStatic && functionCallExpr.Receiver.Resolved is not ThisExpr) {
               return false;
             }
-            Contract.Assert(function.Formals.Count == functionCallExpr.Args.Count);
-            for (var i = 0; i < function.Formals.Count; i++) {
-              var formal = function.Formals[i];
+            Contract.Assert(function.Ins.Count == functionCallExpr.Args.Count);
+            for (var i = 0; i < function.Ins.Count; i++) {
+              var formal = function.Ins[i];
               if (!formal.IsGhost && !IdentifierExpr.Is(functionCallExpr.Args[i], formal)) {
                 return false;
               }
@@ -336,6 +350,11 @@ public class ExpressionTester {
       }
       // other conditions are checked below
       subexpressionsAreInsideBranchesOnlyExcept = matchExpr.Source;
+
+    } else if (expr is DecreasesToExpr _) {
+      ReportError(ErrorId.r_decreases_to_only_in_specification,
+                  expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
+      return false;
 
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
       return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
@@ -487,7 +506,7 @@ public class ExpressionTester {
         return true;
       } else if (e.Member != null && e.Member.IsGhost) {
         return true;
-      } else if (e.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+      } else if (e.Member is Function function && function.Ins.Any(formal => formal.IsGhost)) {
         return true;
       } else if (e.Member is DatatypeDestructor dtor) {
         return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
@@ -530,8 +549,8 @@ public class ExpressionTester {
       if (UsesSpecFeatures(e.Receiver)) {
         return true;
       }
-      for (int i = 0; i < e.Function.Formals.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost && UsesSpecFeatures(e.Args[i])) {
+      for (int i = 0; i < e.Function.Ins.Count; i++) {
+        if (!e.Function.Ins[i].IsGhost && UsesSpecFeatures(e.Args[i])) {
           return true;
         }
       }
@@ -543,7 +562,7 @@ public class ExpressionTester {
       return true;
     } else if (expr is UnaryExpr) {
       var e = (UnaryExpr)expr;
-      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
+      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated or UnaryOpExpr.Opcode.Assigned }) {
         return true;
       }
       if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {
@@ -650,6 +669,30 @@ public class ExpressionTester {
     }
     if (arg.Ctor != null) {
       MakeGhostAsNeeded(arg);
+    }
+  }
+
+  public static void MakeGhostAsNeeded(ExtendedPattern extendedPattern, bool inGhostContext) {
+    if (extendedPattern is DisjunctivePattern disjunctivePattern) {
+      foreach (var alternative in disjunctivePattern.Alternatives) {
+        MakeGhostAsNeeded(alternative, inGhostContext);
+      }
+    } else if (extendedPattern is LitPattern) {
+      // nothing to do
+    } else if (extendedPattern is IdPattern idPattern) {
+      if (idPattern.BoundVar != null) {
+        if (inGhostContext && !idPattern.BoundVar.IsGhost) {
+          idPattern.BoundVar.MakeGhost();
+        }
+      } else if (idPattern.Ctor != null) {
+        var argumentCount = idPattern.Ctor.Formals.Count;
+        Contract.Assert(argumentCount == (idPattern.Arguments?.Count ?? 0));
+        for (var i = 0; i < argumentCount; i++) {
+          MakeGhostAsNeeded(idPattern.Arguments[i], inGhostContext || idPattern.Ctor.Formals[i].IsGhost);
+        }
+      }
+    } else {
+      Contract.Assert(false); // unexpected ExtendedPattern
     }
   }
 

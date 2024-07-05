@@ -256,9 +256,9 @@ namespace Microsoft.Dafny {
         return inferredTypeProxy;
       } else if (t is ParamTypeProxy) {
         return new ParamTypeProxy(CloneTypeParam(((ParamTypeProxy)t).orig));
-      } else if (t is AdjustableType adjustableType) {
-        // don't bother keeping AdjustableType wrappers
-        return CloneType(adjustableType.T);
+      } else if (t is TypeRefinementWrapper typeRefinementWrapper) {
+        // don't bother keeping TypeRefinementWrapper wrappers
+        return CloneType(typeRefinementWrapper.T);
       } else {
         Contract.Assert(false); // unexpected type (e.g., no other type proxies are expected at this time)
         return null; // to please compiler
@@ -517,7 +517,7 @@ namespace Microsoft.Dafny {
 
     public virtual Function CloneFunction(Function f, string newName = null) {
       var tps = f.TypeArgs.ConvertAll(CloneTypeParam);
-      var formals = f.Formals.ConvertAll(p => CloneFormal(p, false));
+      var formals = f.Ins.ConvertAll(p => CloneFormal(p, false));
       var result = f.Result != null ? CloneFormal(f.Result, false) : null;
       var req = f.Req.ConvertAll(CloneAttributedExpr);
       var reads = CloneSpecFrameExpr(f.Reads);

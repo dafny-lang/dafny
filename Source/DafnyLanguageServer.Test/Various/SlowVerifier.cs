@@ -45,6 +45,10 @@ class SlowVerifier : IProgramVerifier {
       source = new();
     }
 
+    public IVerificationTask FromSeed(int newSeed) {
+      return this;
+    }
+
     public IVerificationStatus CacheStatus => new Stale();
     public ManualSplit Split => original.Split;
     public Boogie.IToken ScopeToken => original.ScopeToken;

@@ -25,7 +25,7 @@ module _System {
   */
 
   class {:compile false} array<arg> {
-    var Length: int  // immutable
+    const Length: int
   }
   /*-- non-null type
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
@@ -67,17 +67,19 @@ module _System {
 
   type bool { }
 
+  type char { }
+
   type int { }
 
   type real {
-    var Floor: int  // immutable
+    const Floor: int
   }
 
   type ORDINAL {
-    var IsLimit: bool  // immutable
-    var IsSucc: bool  // immutable
-    var Offset: int  // immutable
-    var IsNat: bool  // immutable
+    const IsLimit: bool
+    const IsSucc: bool
+    const Offset: int
+    const IsNat: bool
   }
 
   type _bv {
@@ -86,16 +88,24 @@ module _System {
     function RotateRight(w: nat): selftype
   }
 
+  type set<+T> { }
+
+  type iset<*T> { }
+
+  type seq<+T> { }
+
+  type multiset<+T> { }
+
   type map<+T, +U> {
-    var Keys: set<T>  // immutable
-    var Values: set<U>  // immutable
-    var Items: set<(T, U)>  // immutable
+    const Keys: set<T>
+    const Values: set<U>
+    const Items: set<(T, U)>
   }
 
   type imap<*T, +U> {
-    var Keys: iset<T>  // immutable
-    var Values: iset<U>  // immutable
-    var Items: iset<(T, U)>  // immutable
+    const Keys: iset<T>
+    const Values: iset<U>
+    const Items: iset<(T, U)>
   }
 
   datatype /*_tuple#0*/ () = _#Make0
@@ -679,18 +689,18 @@ module DefaultValueExpressionSubstitution {
 }
 PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(58,0): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(57,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(64,0): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(63,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(70,0): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(69,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(85,9): Error: a postcondition could not be proved on this return path
 PrefixTypeSubst.dfy(81,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location
+PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 12 verified, 5 errors

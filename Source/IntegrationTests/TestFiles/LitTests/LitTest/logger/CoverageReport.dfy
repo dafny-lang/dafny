@@ -1,12 +1,12 @@
 // NONUNIFORM: Not a compiler test
 // Verification coverage:
 // RUN: rm -rf "%t"/coverage_verification
-// RUN: %baredafny verify --use-basename-for-filename --show-snippets false --allow-axioms --verify-included-files --no-timestamp-for-coverage-report --verification-coverage-report "%t/coverage_verification" %s
+// RUN: %verify --allow-axioms --verify-included-files --no-timestamp-for-coverage-report --verification-coverage-report "%t/coverage_verification" %s
 // RUN: %sed 's/<h1 hidden.*//' "%t"/coverage_verification/ProofDependencies.dfy_verification.html > "%t"/coverage_verification_actual.html
 // RUN: %diff "%S/ProofDependencies.dfy_verification.html.expect" "%t/coverage_verification_actual.html"
 // Expected test coverage:
 // RUN: rm -rf "%t"/coverage_testing
-// RUN: %baredafny generate-tests Block --no-timestamp-for-coverage-report --coverage-report "%t/coverage_testing" %s
+// RUN: %baredafny generate-tests Block --allow-axioms --no-timestamp-for-coverage-report --expected-coverage-report "%t/coverage_testing" %s
 // RUN: %sed 's/<h1 hidden.*//' "%t"/coverage_testing/ProofDependencies.dfy_tests_expected.html > "%t"/coverage_testing_actual.html
 // RUN: %diff "%S/ProofDependencies.dfy_tests_expected.html.expect" "%t/coverage_testing_actual.html"
 // Combined coverage:

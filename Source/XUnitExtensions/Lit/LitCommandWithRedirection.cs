@@ -41,11 +41,24 @@ namespace XUnitExtensions.Lit {
         errorFile = config.ApplySubstitutions(argumentList[redirectErrorIndex + 1].Value).Single();
         argumentList.RemoveRange(redirectErrorIndex, 2);
       }
+      var redirectOutAndErrorIndex = argumentList.FindIndex(t => t.Value == "&>");
+      if (redirectOutAndErrorIndex >= 0) {
+        outputFile = config.ApplySubstitutions(argumentList[redirectOutAndErrorIndex + 1].Value).Single();
+        errorFile = outputFile;
+        argumentList.RemoveRange(redirectOutAndErrorIndex, 2);
+      }
       var redirectErrorAppendIndex = argumentList.FindIndex(t => t.Value == "2>>");
       if (redirectErrorAppendIndex >= 0) {
         errorFile = config.ApplySubstitutions(argumentList[redirectErrorAppendIndex + 1].Value).Single();
         appendOutput = true;
         argumentList.RemoveRange(redirectErrorAppendIndex, 2);
+      }
+      var redirectOutAndErrorAppendIndex = argumentList.FindIndex(t => t.Value == "&>>");
+      if (redirectOutAndErrorAppendIndex >= 0) {
+        outputFile = config.ApplySubstitutions(argumentList[redirectOutAndErrorAppendIndex + 1].Value).Single();
+        errorFile = outputFile;
+        appendOutput = true;
+        argumentList.RemoveRange(redirectOutAndErrorAppendIndex, 2);
       }
 
       ILitCommand CreateCommand() {
@@ -82,19 +95,21 @@ namespace XUnitExtensions.Lit {
     public async Task<int> Execute(TextReader inputReader, TextWriter outWriter, TextWriter errWriter) {
       var outputWriters = new List<TextWriter> { outWriter };
       var writersToClose = new List<StreamWriter>();
+      var errorWriters = new List<TextWriter> { errWriter };
       if (OutputFile != null) {
         var outputStreamWriter = new StreamWriter(OutputFile, Append);
         writersToClose.Add(outputStreamWriter);
         outputWriters.Add(outputStreamWriter);
-      }
-      inputReader = InputFile != null ? new StreamReader(InputFile) : inputReader;
-
-      var errorWriters = new List<TextWriter> { errWriter };
-      if (ErrorFile != null) {
+        if (OutputFile == ErrorFile) {
+          errorWriters.Add(outputStreamWriter);
+        }
+      } else if (ErrorFile != null) {
         var errorStreamWriter = new StreamWriter(ErrorFile, Append);
         writersToClose.Add(errorStreamWriter);
         errorWriters.Add(errorStreamWriter);
       }
+      inputReader = InputFile != null ? new StreamReader(InputFile) : inputReader;
+
       var result = await Command.Execute(inputReader,
         new CombinedWriter(outWriter.Encoding, outputWriters),
         new CombinedWriter(errWriter.Encoding, errorWriters));

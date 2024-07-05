@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `dyn for<'a, 'b> Fn(&'a Rc<Expr>, &'b Rc<Expr>) -> Rc<Expr>: Default` is not satisfied

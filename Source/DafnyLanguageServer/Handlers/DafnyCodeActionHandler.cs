@@ -158,6 +158,6 @@ public class DafnyCodeActionInput : IDafnyCodeActionInput {
   public Node Program => IdeState.Program;
   public IdeState IdeState { get; }
 
-  public IEnumerable<Diagnostic> Diagnostics => IdeState.GetDiagnosticsForUri(uri);
+  public IEnumerable<FileDiagnostic> Diagnostics => IdeState.GetAllDiagnostics();
   public VerificationTree? VerificationTree => IdeState.VerificationTrees.GetValueOrDefault(uri);
 }

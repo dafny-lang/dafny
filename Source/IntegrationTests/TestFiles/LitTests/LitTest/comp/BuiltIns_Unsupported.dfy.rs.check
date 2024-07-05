@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `dyn for<'a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q> Fn(&'a bool, &'b bool, &'c bool, &'d bool, &'e bool, &'f bool, &'g bool, &'h bool, &'i bool, &'j bool, &'k bool, &'l bool, &'m bool, &'n bool, &'o bool, &'p bool, &'q bool) -> DafnyInt: Default` is not satisfied

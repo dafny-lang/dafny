@@ -23,7 +23,7 @@ using Location = OmniSharp.Extensions.LanguageServer.Protocol.Models.Location;
 namespace Microsoft.Dafny.LanguageServer.Workspace;
 
 public delegate ProjectManager CreateProjectManager(
-  CustomStackSizePoolTaskScheduler scheduler,
+  TaskScheduler scheduler,
   VerificationResultCache verificationCache,
   DafnyProject project);
 
@@ -32,7 +32,7 @@ public delegate ProjectManager CreateProjectManager(
 /// Handles operation on a single document.
 /// Handles migration of previously published document state
 /// </summary>
-public class ProjectManager : IDisposable {
+public class ProjectManager {
 
   public const int DefaultThrottleTime = 100;
   public static readonly Option<int> UpdateThrottling = new("--update-throttling", () => DefaultThrottleTime,
@@ -46,6 +46,11 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     ArgumentHelpName = "event"
   };
 
+  public static readonly Option<bool> ReuseSolvers = new("--reuse-solvers",
+    @"(experimental) Reuse solver for different verification of different document versions. Reduces verification latency but may reduce reliability of verification.".TrimStart()) {
+    ArgumentHelpName = "event"
+  };
+
   private readonly CreateMigrator createMigrator;
   public DafnyProject Project { get; }
 
@@ -54,6 +59,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private IDisposable observerSubscription;
   private readonly EventLoopScheduler ideStateUpdateScheduler = new();
   private readonly ILogger<ProjectManager> logger;
+
+  private readonly VerificationResultCache cache;
+  private readonly TaskScheduler scheduler;
 
   /// <summary>
   /// The version of this project.
@@ -73,7 +81,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
   private readonly CreateCompilation createCompilation;
-  private readonly ExecutionEngine boogieEngine;
+  private ExecutionEngine? boogieEngine;
   private readonly IFileSystem fileSystem;
   private readonly TelemetryPublisherBase telemetryPublisher;
   private readonly IProjectDatabase projectDatabase;
@@ -90,7 +98,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     IProjectDatabase projectDatabase,
     CreateCompilation createCompilation,
     CreateIdeStateObserver createIdeStateObserver,
-    CustomStackSizePoolTaskScheduler scheduler,
+    TaskScheduler scheduler,
     VerificationResultCache cache,
     DafnyProject project) {
     Project = project;
@@ -104,13 +112,14 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
     options = DetermineProjectOptions(project, serverOptions);
     options.Printer = new OutputLogger(logger);
-    boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    this.cache = cache;
+    this.scheduler = scheduler;
     var compilationInput = new CompilationInput(options, version, Project);
     var initialIdeState = IdeState.InitialIdeState(compilationInput);
     latestIdeState = initialIdeState;
 
     observer = createIdeStateObserver(initialIdeState);
-    Compilation = createCompilation(boogieEngine, compilationInput);
+    Compilation = this.createCompilation(GetBoogie(), compilationInput);
 
     observerSubscription = Disposable.Empty;
   }
@@ -118,48 +127,21 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private const int MaxRememberedChanges = 100;
 
   public void UpdateDocument(DidChangeTextDocumentParams documentChange) {
-    var migrator = createMigrator(documentChange, CancellationToken.None);
-
-    var upcomingVersion = version + 1;
-    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
-    observer.Migrate(options, migrator, upcomingVersion);
-    latestIdeState = latestIdeState.Migrate(options, migrator, upcomingVersion, false);
-    StartNewCompilation();
-
-    lock (RecentChanges) {
-      var newChanges = documentChange.ContentChanges.Where(c => c.Range != null).
-        Select(contentChange => new Location {
-          Range = contentChange.Range!,
-          Uri = documentChange.TextDocument.Uri
-        });
-      var migratedChanges = RecentChanges.Select(location => {
-        if (location.Uri != documentChange.TextDocument.Uri) {
-          return location;
-        }
-
-        var newRange = migrator.MigrateRange(location.Range);
-        if (newRange == null) {
-          return null;
-        }
-        return new Location {
-          Range = newRange,
-          Uri = location.Uri
-        };
-      }).Where(r => r != null);
-      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
-    }
-    TriggerVerificationForFile(documentChange.TextDocument.Uri.ToUri());
+    StartNewCompilation(documentChange.TextDocument.Uri.ToUri(), documentChange);
   }
 
-  private void StartNewCompilation() {
-    ++version;
-    logger.LogDebug("Clearing result for workCompletedForCurrentVersion");
-
+  private void StartNewCompilation(Uri triggeringFile, DidChangeTextDocumentParams? changes) {
     observerSubscription.Dispose();
+    version += 1;
+
+    var input = new CompilationInput(options, version, Project);
+    IMigrator migrator = changes == null ? new NoopMigrator(triggeringFile) : createMigrator(changes, CancellationToken.None);
+    // If we migrate the observer before accessing latestIdeState, we can be sure it's migrated before it receives new events.
+    observer.Migrate(options, migrator, version);
+    latestIdeState = latestIdeState.Migrate(options, migrator, version, false);
 
     Compilation.Dispose();
-    var input = new CompilationInput(options, version, Project);
-    Compilation = createCompilation(boogieEngine, input);
+    Compilation = createCompilation(GetBoogie(), input);
     var migratedUpdates = GetStates(Compilation);
     states = new ReplaySubject<IdeState>(1);
     var statesSubscription = observerSubscription =
@@ -172,25 +154,72 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     observerSubscription = new CompositeDisposable(statesSubscription, throttledSubscription);
 
     Compilation.Start();
+
+    if (changes != null) {
+      UpdateRecentChanges(changes, migrator);
+    }
+    TriggerVerificationForFile(triggeringFile);
+  }
+
+  private ExecutionEngine GetBoogie() {
+    if (options.Get(ReuseSolvers)) {
+      boogieEngine ??= new ExecutionEngine(options, cache, scheduler);
+    } else {
+      boogieEngine?.Dispose();
+      boogieEngine = new ExecutionEngine(options, cache, scheduler);
+    }
+    return boogieEngine;
+  }
+
+  private void UpdateRecentChanges(DidChangeTextDocumentParams changes, IMigrator? migrator) {
+    lock (RecentChanges) {
+      var newChanges = changes.ContentChanges.Where(c => c.Range != null).
+        Select(contentChange => new Location {
+          Range = contentChange.Range!,
+          Uri = changes.TextDocument.Uri
+        });
+      var migratedChanges = RecentChanges.Select(location => {
+        if (location.Uri != changes.TextDocument.Uri) {
+          return location;
+        }
+
+        var newRange = migrator!.MigrateRange(location.Range);
+        if (newRange == null) {
+          return null;
+        }
+        return new Location {
+          Range = newRange,
+          Uri = location.Uri
+        };
+      }).Where(r => r != null);
+      RecentChanges = newChanges.Concat(migratedChanges).Take(MaxRememberedChanges).ToList()!;
+    }
   }
 
   private IObservable<IdeState> GetStates(Compilation compilation) {
     var initialState = latestIdeState;
-    var latestCompilationState = initialState with {
+    var previousIdeState = initialState with {
       Input = compilation.Input,
     };
 
-    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).SelectMany(ev => Update(ev).ToObservable());
+    return compilation.Updates.ObserveOn(ideStateUpdateScheduler).Select(ev => Update(ev));
 
-    async Task<IdeState> Update(ICompilationEvent ev) {
+    IdeState Update(ICompilationEvent ev) {
       if (ev is InternalCompilationException compilationException) {
         logger.LogError(compilationException.Exception, "error while handling document event");
         telemetryPublisher.PublishUnhandledException(compilationException.Exception);
       }
 
-      var newState = await latestCompilationState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev);
-      latestCompilationState = newState;
-      return newState;
+      try {
+#pragma warning disable VSTHRD002
+        previousIdeState = previousIdeState.UpdateState(options, logger, telemetryPublisher, projectDatabase, ev).Result;
+#pragma warning restore VSTHRD002
+        return previousIdeState;
+      } catch (Exception e) {
+        logger.LogError(e, "error while updating IDE state");
+        telemetryPublisher.PublishUnhandledException(e);
+        throw;
+      }
     }
   }
 
@@ -246,7 +275,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public void CloseAsync() {
     Compilation.Dispose();
     try {
-      observer.OnCompleted();
+      observer.Clear();
     } catch (OperationCanceledException) {
     }
     Dispose();
@@ -267,58 +296,52 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
 
   public async Task VerifyEverythingAsync(Uri? uri) {
     var compilation = Compilation;
-    try {
-      var resolution = await compilation.Resolution;
-
-      var canVerifies = resolution.CanVerifies?.ToList();
-      if (canVerifies == null) {
-        return;
-      }
-
-      if (uri != null) {
-        canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
-      }
-
-      List<FilePosition> changedVerifiables;
-      lock (RecentChanges) {
-        changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
-      }
-
-      int GetPriorityAttribute(ISymbol symbol) {
-        if (symbol is IAttributeBearingDeclaration hasAttributes &&
-            hasAttributes.HasUserAttribute("priority", out var attribute) &&
-            attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
-          return (int)priority;
-        }
-        return 0;
-      }
-
-      int TopToBottomPriority(ISymbol symbol) {
-        return symbol.Tok.pos;
-      }
-      var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
-      var orderedVerifiables = canVerifies
-        .OrderByDescending(GetPriorityAttribute)
-        .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
-        .ThenBy(TopToBottomPriority).ToList();
-      logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NameToken.val))}");
-
-      var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NameToken.GetFilePosition()).ToList();
-      if (GutterIconTesting) {
-        foreach (var canVerify in orderedVerifiableLocations) {
-          await compilation.VerifyLocation(canVerify, true);
-        }
-
-        logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
-      }
-
-      foreach (var canVerify in orderedVerifiableLocations) {
-        // Wait for each task to try and run, so the order is respected.
-        await compilation.VerifyLocation(canVerify);
-      }
+    var resolution = await compilation.Resolution;
+    var canVerifies = resolution?.CanVerifies?.ToList();
+    if (canVerifies == null) {
+      return;
     }
-    finally {
-      logger.LogDebug("Setting result for workCompletedForCurrentVersion");
+
+    if (uri != null) {
+      canVerifies = canVerifies.Where(d => d.Tok.Uri == uri).ToList();
+    }
+
+    List<FilePosition> changedVerifiables;
+    lock (RecentChanges) {
+      changedVerifiables = GetChangedVerifiablesFromRanges(canVerifies, RecentChanges).ToList();
+    }
+
+    int GetPriorityAttribute(ISymbol symbol) {
+      if (symbol is IAttributeBearingDeclaration hasAttributes &&
+          hasAttributes.HasUserAttribute("priority", out var attribute) &&
+          attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+        return (int)priority;
+      }
+      return 0;
+    }
+
+    int TopToBottomPriority(ISymbol symbol) {
+      return symbol.Tok.pos;
+    }
+    var implementationOrder = changedVerifiables.Select((v, i) => (v, i)).ToDictionary(k => k.v, k => k.i);
+    var orderedVerifiables = canVerifies
+      .OrderByDescending(GetPriorityAttribute)
+      .ThenBy(t => implementationOrder.GetOrDefault(t.Tok.GetFilePosition(), () => int.MaxValue))
+      .ThenBy(TopToBottomPriority).ToList();
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationToken.val))}");
+
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
+    if (GutterIconTesting) {
+      foreach (var canVerify in orderedVerifiableLocations) {
+        await compilation.VerifyLocation(canVerify, true);
+      }
+
+      logger.LogDebug($"Finished translation in VerifyEverything for {Project.Uri}");
+    }
+
+    foreach (var canVerify in orderedVerifiableLocations) {
+      // Wait for each task to try and run, so the order is respected.
+      await compilation.VerifyLocation(canVerify);
     }
   }
 
@@ -330,7 +353,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
           intervalTree.Add(
             canVerify.RangeToken.StartToken.GetLspPosition(),
             canVerify.RangeToken.EndToken.GetLspPosition(true),
-            canVerify.NameToken.GetLspPosition());
+            canVerify.NavigationToken.GetLspPosition());
         }
       }
       return intervalTree;
@@ -349,13 +372,15 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     openFiles.TryAdd(uri, 1);
 
     if (triggerCompilation) {
-      StartNewCompilation();
-      TriggerVerificationForFile(uri);
+      StartNewCompilation(uri, null);
     }
   }
 
+  public bool IsDisposed { get; private set; }
+
   public void Dispose() {
-    boogieEngine.Dispose();
+    IsDisposed = true;
+    boogieEngine?.Dispose();
     Compilation.Dispose();
     observerSubscription.Dispose();
     // Dispose the update scheduler after the observer subscription, to prevent accessing a disposed object.

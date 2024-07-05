@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --allow-warnings --relax-definite-assignment
 
 /*
 *  This file contains a collection of tests for features modified or introduced in PR 458

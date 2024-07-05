@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny.Plugins;
 
@@ -21,11 +22,11 @@ public class NoExecutableBackend : IExecutableBackend {
   public override bool SupportsInMemoryCompilation => throw new NotSupportedException();
   public override string ModuleSeparator => ".";
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
     throw new NotSupportedException();
   }
 
-  public override bool OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
     throw new NotSupportedException();
   }
 
@@ -33,12 +34,14 @@ public class NoExecutableBackend : IExecutableBackend {
     throw new NotSupportedException();
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+  public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText, string callToMain,
+    string targetFilename,
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
     throw new NotSupportedException();
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string pathsFilename,
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter) {

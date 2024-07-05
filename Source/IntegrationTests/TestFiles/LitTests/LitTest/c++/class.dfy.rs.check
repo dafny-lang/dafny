@@ -1,0 +1,1 @@
+// CHECK-L: error[E0599]: no method named `borrow` found for type `u32` in the current scope

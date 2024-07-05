@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
           if (!DetectUnderspecificationVisitor.IsDetermined(dd.Var.PreType)) {
-            ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+            ReportError(dd, $"base type of {dd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
           }
           CheckExpression(dd.Constraint, context);
           if (dd.Witness != null) {
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           if (dd.Var != null) {
             if (!DetectUnderspecificationVisitor.IsDetermined(dd.BasePreType)) {
-              ReportError(dd, $"{dd.WhatKind}'s base type is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
+              ReportError(dd, $"base type of {dd.WhatKindAndName} is not fully determined; add an explicit type for bound variable '{dd.Var.Name}'");
             }
             CheckExpression(dd.Constraint, context);
             if (dd.Witness != null) {
@@ -143,13 +143,13 @@ namespace Microsoft.Dafny {
           CheckStatement(method.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (method is ExtremeLemma extremeLemma) {
-            CheckMember(extremeLemma.PrefixLemma);
+          if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+            CheckMember(prefixLemma);
           }
         }
 
       } else if (member is Function function) {
-        CheckParameterDefaultValues(function.Formals, context);
+        CheckParameterDefaultValues(function.Ins, context);
         function.Req.ForEach(e => CheckExpression(e.E, context));
         function.Ens.ForEach(e => CheckExpression(e.E, context));
         CheckSpecFrameExpression(function.Reads, context);
@@ -158,8 +158,8 @@ namespace Microsoft.Dafny {
           CheckExpression(function.Body, context);
         }
         if (errorCount == ErrorCount) {
-          if (function is ExtremePredicate extremePredicate) {
-            CheckMember(extremePredicate.PrefixPredicate);
+          if (function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+            CheckMember(prefixPredicate);
           } else if (function.ByMethodDecl != null) {
             CheckMember(function.ByMethodDecl);
           }
@@ -339,7 +339,7 @@ namespace Microsoft.Dafny {
               ? e.Function.EnclosingClass.TypeArgs[i]
               : e.Function.TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p)) {
-            var hint = e.Name.StartsWith("reveal_") ? ". If you are making an opaque function, make sure that the function can be called." : "";
+            var hint = e.Name.StartsWith(RevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
             cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
           } else {
             CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");

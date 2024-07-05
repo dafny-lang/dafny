@@ -5,10 +5,13 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using DafnyCore.Options;
+using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 
-namespace Microsoft.Dafny.Compilers;
+namespace Microsoft.Dafny;
 
 public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
@@ -24,10 +27,31 @@ public abstract class ExecutableBackend : IExecutableBackend {
 
   public override string ModuleSeparator => CodeGenerator.ModuleSeparator;
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
+
     CodeGenerator.Compile(dafnyProgram, output);
+  }
+
+  protected void ProcessTranslationRecords(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    // Process --translation-record options, since translation may need that data to translate correctly.
+    dafnyProgram.Compilation.AlreadyTranslatedRecord = TranslationRecord.Empty(dafnyProgram);
+    var records = dafnyProgram.Options.Get(TranslationRecords);
+    if (records != null) {
+      foreach (var path in records) {
+        TranslationRecord.ReadValidateAndMerge(dafnyProgram, path.FullName, Token.Cli);
+      }
+    }
+
+    // Write out the translation record for THIS translation before compiling,
+    // in case the compilation process mutates the program.
+    var translationRecord = new TranslationRecord(dafnyProgram);
+    var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+    var dtrFilePath = dafnyProgram.Options.Get(TranslationRecordOutput)?.FullName ?? $"{baseName}-{TargetId}.dtr";
+    var dtrWriter = output.NewFile(dtrFilePath);
+    translationRecord.Write(dtrWriter);
   }
 
   protected void CheckInstantiationReplaceableModules(Program dafnyProgram) {
@@ -39,7 +63,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
         }
       }
 
-      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && compiledModule.Replacement == null) {
+      if (compiledModule.ModuleKind == ModuleKindEnum.Replaceable && dafnyProgram.Replacements.GetValueOrDefault(compiledModule) == null) {
         if (compiledModule.ShouldCompile(dafnyProgram.Compilation)) {
           Reporter!.Error(MessageSource.Compiler, compiledModule.Tok,
             $"when producing executable code, replaceable modules must be replaced somewhere in the program. For example, `module {compiledModule.Name}Impl replaces {compiledModule.Name} {{ ... }}`");
@@ -49,17 +73,27 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   protected void ProcessOuterModules(Program dafnyProgram) {
-    var outerModules = GetOuterModules();
-    ModuleDefinition rootUserModule = null;
-    foreach (var outerModule in outerModules) {
-      var newRoot = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
-        ModuleKindEnum.Concrete, false,
-        null, null, null);
-      newRoot.EnclosingModule = rootUserModule;
-      rootUserModule = newRoot;
+    // Apply the --outer-module option from any translation records for libraries,
+    // but only to top-level modules.
+    var outerModules = new Dictionary<string, ModuleDefinition>();
+    foreach (var module in dafnyProgram.CompileModules) {
+      if (module.EnclosingModule is not DefaultModuleDefinition) {
+        continue;
+      }
+
+      var recordedOuterModuleName = (string)dafnyProgram.Compilation.AlreadyTranslatedRecord.Get(null, module.FullDafnyName, OuterModule);
+      if (recordedOuterModuleName == null) {
+        continue;
+      }
+
+      var outerModule = outerModules.GetOrCreate(recordedOuterModuleName, () => CreateOuterModule(recordedOuterModuleName));
+      module.EnclosingModule = outerModule;
     }
 
-    if (rootUserModule != null) {
+    // Apply the local --output-module option if there is one
+    var outerModuleName = Options.Get(OuterModule);
+    if (outerModuleName != null) {
+      var rootUserModule = outerModules.GetOrCreate(outerModuleName, () => CreateOuterModule(outerModuleName));
       dafnyProgram.DefaultModuleDef.NameNode = rootUserModule.NameNode;
       dafnyProgram.DefaultModuleDef.EnclosingModule = rootUserModule.EnclosingModule;
     }
@@ -67,6 +101,22 @@ public abstract class ExecutableBackend : IExecutableBackend {
     foreach (var module in dafnyProgram.CompileModules) {
       module.ClearNameCache();
     }
+  }
+
+  private static ModuleDefinition CreateOuterModule(string moduleName) {
+    var outerModules = moduleName.Split(".");
+
+    ModuleDefinition module = null;
+    foreach (var outerModule in outerModules) {
+      var thisModule = new ModuleDefinition(RangeToken.NoToken, new Name(outerModule), new List<IToken>(),
+        ModuleKindEnum.Concrete, false,
+        null, null, null) {
+        EnclosingModule = module
+      };
+      module = thisModule;
+    }
+
+    return module;
   }
 
   public override void OnPreCompile(ErrorReporter reporter, ReadOnlyCollection<string> otherFileNames) {
@@ -84,9 +134,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override bool OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     CodeGenerator.Coverage.WriteLegendFile();
-    return true;
+    return Task.FromResult(true);
   }
 
   protected abstract SinglePassCodeGenerator CreateCodeGenerator();
@@ -111,38 +161,40 @@ public abstract class ExecutableBackend : IExecutableBackend {
     return psi;
   }
 
-  public int RunProcess(ProcessStartInfo psi,
+  public Task<int> RunProcess(ProcessStartInfo psi,
     TextWriter outputWriter,
     TextWriter errorWriter,
     string errorMessage = null) {
-    return StartProcess(psi, outputWriter) is { } process ?
-      WaitForExit(process, outputWriter, errorWriter, errorMessage) : -1;
-  }
-
-  public int WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
-
-    var errorProcessing = Task.Run(() => {
-      PassthroughBuffer(process.StandardError, errorWriter);
-    });
-    PassthroughBuffer(process.StandardOutput, outputWriter);
-    process.WaitForExit();
-    if (process.ExitCode != 0 && errorMessage != null) {
-      outputWriter.WriteLine("{0} Process exited with exit code {1}", errorMessage, process.ExitCode);
+    if (OutputWriterEncoding != null) {
+      psi.StandardOutputEncoding = OutputWriterEncoding;
     }
 
-#pragma warning disable VSTHRD002
-    errorProcessing.Wait();
-#pragma warning restore VSTHRD002
+    return StartProcess(psi, outputWriter) is { } process ?
+      WaitForExit(process, outputWriter, errorWriter, errorMessage) : Task.FromResult(-1);
+  }
+
+  public virtual Encoding OutputWriterEncoding => null;
+
+  public async Task<int> WaitForExit(Process process, TextWriter outputWriter, TextWriter errorWriter, string errorMessage = null) {
+
+    var errorTask = PassthroughBuffer(process.StandardError, errorWriter);
+    var outputTask = PassthroughBuffer(process.StandardOutput, outputWriter);
+    await process.WaitForExitAsync();
+    await errorTask;
+    await outputTask;
+    if (process.ExitCode != 0 && errorMessage != null) {
+      await outputWriter.WriteLineAsync($"{errorMessage} Process exited with exit code {process.ExitCode}");
+    }
+
     return process.ExitCode;
   }
 
 
-  // We read character by character because we did not find a way to ensure
-  // final newlines are kept when reading line by line
-  protected static void PassthroughBuffer(TextReader input, TextWriter output) {
-    int current;
-    while ((current = input.Read()) != -1) {
-      output.Write((char)current);
+  protected static async Task PassthroughBuffer(TextReader input, TextWriter output) {
+    char[] buffer = new char[256];
+    int readCount;
+    while ((readCount = await input.ReadBlockAsync(buffer)) > 0) {
+      await output.WriteAsync(buffer, 0, readCount);
     }
   }
 
@@ -162,9 +214,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
     return null;
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename,
+  public override Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename, /*?*/
     ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+    bool runAfterCompile, TextWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
@@ -173,11 +227,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Contract.Requires(!runAfterCompile || callToMain != null);
     Contract.Requires(outputWriter != null);
 
-    compilationResult = null;
-    return true;
+    return Task.FromResult((true, (object)null));
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+  public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
     Contract.Requires(dafnyProgramName != null);
@@ -185,7 +239,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     Contract.Requires(otherFileNames != null);
     Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
     Contract.Requires(outputWriter != null);
-    return true;
+    return Task.FromResult(true);
   }
 
   public override void InstrumentCompiler(CompilerInstrumenter instrumenter, Program dafnyProgram) {
@@ -201,7 +255,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     SinglePassCodeGenerator.WriteFromStream(rd, outputWriter);
   }
 
-  protected bool RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
+  protected async Task<bool> RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -223,7 +277,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
       .Prepend("run")
       .Prepend(dafny);
     var psi = PrepareProcessStartInfo("dotnet", args);
-    Console.Out.WriteLine(string.Join(", ", psi.ArgumentList));
+    await Console.Out.WriteLineAsync(string.Join(", ", psi.ArgumentList));
     /*
      * When this code was written, the Dafny compiler cannot be made completely silent.
      * This is a problem for this specific compiler and the integration tests because the second
@@ -244,26 +298,26 @@ public abstract class ExecutableBackend : IExecutableBackend {
       process.Start();
       process.BeginOutputReadLine();
       process.BeginErrorReadLine();
-      process.WaitForExit();
+      await process.WaitForExitAsync();
       process.CancelOutputRead();
       process.CancelErrorRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
-        outputWriter.WriteLine(outputBuilder[i]);
+        await outputWriter.WriteLineAsync(outputBuilder[i]);
       }
 
       for (int i = 0; i < errorBuilder.Count - 1; i++) {
-        errorWriter.WriteLine(errorBuilder[i]);
+        await errorWriter.WriteLineAsync(errorBuilder[i]);
       }
 
       if (process.ExitCode != 0) {
-        outputWriter.WriteLine("{0} Process exited with exit code {1}", "", process.ExitCode);
+        await outputWriter.WriteLineAsync($"Process exited with exit code {process.ExitCode}");
         return false;
       }
 
     } catch (System.ComponentModel.Win32Exception e) {
       string additionalInfo = $": {e.Message}";
-      outputWriter.WriteLine($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      await outputWriter.WriteLineAsync($"Error: Unable to start {psi.FileName}{additionalInfo}");
       return false;
     }
 

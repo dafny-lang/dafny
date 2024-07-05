@@ -1,5 +1,4 @@
 TypeInstantiations.dfy(33,7): Error: to redeclare and refine declaration 'B' from module 'M0', you must use the refining (`...`) notation
-TypeInstantiations.dfy(36,13): Error: a type declaration that requires equality support cannot be replaced by a codatatype
 TypeInstantiations.dfy(40,7): Error: type 'G' is declared with a different number of type parameters (1 instead of 0) than the corresponding type in the module it refines
 TypeInstantiations.dfy(41,7): Error: type 'H' is declared with a different number of type parameters (1 instead of 2) than the corresponding type in the module it refines
 TypeInstantiations.dfy(42,7): Error: type 'J' is declared with a different number of type parameters (0 instead of 1) than the corresponding type in the module it refines
@@ -13,9 +12,10 @@ TypeInstantiations.dfy(53,8): Error: class 'T' is declared with a different numb
 TypeInstantiations.dfy(55,7): Error: abstract type 'TP0' is declared with a different number of type parameters (1 instead of 0) than the corresponding abstract type in the module it refines
 TypeInstantiations.dfy(56,7): Error: abstract type 'TP1' is declared with a different number of type parameters (0 instead of 1) than the corresponding abstract type in the module it refines
 TypeInstantiations.dfy(57,15): Error: type parameters are not allowed to be renamed from the names given in the abstract type in the module being refined (expected 'Y1', found 'E1')
-TypeInstantiations.dfy(34,11): Error: type 'C', which does not support equality, is used to refine an abstract type with equality support
-TypeInstantiations.dfy(35,7): Error: type 'D', which does not support equality, is used to refine an abstract type with equality support
-TypeInstantiations.dfy(48,7): Error: type 'N', which does not support equality, is used to refine an abstract type with equality support
+TypeInstantiations.dfy(34,11): Error: to be a refinement of abstract type 'M0.C' declared with (==), datatype 'M1.C' must support equality
+TypeInstantiations.dfy(35,7): Error: to be a refinement of abstract type 'M0.D' declared with (==), type synonym 'M1.D' must support equality
+TypeInstantiations.dfy(36,13): Error: to be a refinement of abstract type 'M0.E' declared with (==), codatatype 'M1.E' must support equality
+TypeInstantiations.dfy(48,7): Error: to be a refinement of abstract type 'M0.N' declared with (==), type synonym 'M1.N' must support equality
 TypeInstantiations.dfy(69,29): Error: RHS (of type List<int>) not assignable to LHS (of type MyList.List<real>) (non-variant type parameter would require real = int)
 TypeInstantiations.dfy(81,8): Error: the type of this variable is underspecified
 TypeInstantiations.dfy(82,8): Error: the type of this variable is underspecified

@@ -68,16 +68,16 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     }
 
     private (ISymbol? symbol, string? symbolHoverContent) GetStaticHoverContent(HoverParams request, IdeState state) {
-      IDeclarationOrUsage? declarationOrUsage =
-        state.ResolvedProgram.FindNode<IDeclarationOrUsage>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
+      IHasNavigationToken? declarationOrUsage =
+        state.ResolvedProgram.FindNode<IHasNavigationToken>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
       ISymbol? symbol;
 
-      if (declarationOrUsage is IHasUsages usage) {
-        symbol = state.SymbolTable.UsageToDeclaration.GetValueOrDefault(usage) as ISymbol;
+      if (declarationOrUsage is IHasReferences usage) {
+        symbol = state.SymbolTable.ReferenceToNode.GetValueOrDefault(usage) as ISymbol;
       } else {
         // If we hover over a usage, display the information of the declaration
         symbol = declarationOrUsage as ISymbol;
-        if (symbol != null && !symbol.NameToken.ToRange().ToLspRange().Contains(request.Position)) {
+        if (symbol != null && !symbol.NavigationToken.ToRange().ToLspRange().Contains(request.Position)) {
           symbol = null;
         }
       }
@@ -100,25 +100,20 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     private string? GetDiagnosticsHover(IdeState state, Uri uri, Position position, out bool areMethodStatistics) {
       areMethodStatistics = false;
-      var uriDiagnostics = state.GetDiagnosticsForUri(uri).ToList();
-      foreach (var diagnostic in uriDiagnostics) {
-        if (diagnostic.Range.Contains(position)) {
-          string? detail = ErrorRegistry.GetDetail(diagnostic.Code);
+      foreach (var diagnostic in state.GetAllDiagnostics()) {
+        if (diagnostic.Uri == uri && diagnostic.Diagnostic.Range.Contains(position)) {
+          string? detail = ErrorRegistry.GetDetail(diagnostic.Diagnostic.Code);
           if (detail is not null) {
             return detail;
           }
         }
       }
 
-      return GetVerificationHoverContent(state, uri, position, ref areMethodStatistics, uriDiagnostics);
+      return GetVerificationHoverContent(state, uri, position, ref areMethodStatistics);
     }
 
-    private string? GetVerificationHoverContent(IdeState state, Uri uri, Position position, ref bool areMethodStatistics,
-      List<Diagnostic> uriDiagnostics) {
-      if (uriDiagnostics.Any(diagnostic =>
-            diagnostic.Severity == DiagnosticSeverity.Error && (
-              diagnostic.Source == MessageSource.Parser.ToString() ||
-              diagnostic.Source == MessageSource.Resolver.ToString()))) {
+    private string? GetVerificationHoverContent(IdeState state, Uri uri, Position position, ref bool areMethodStatistics) {
+      if (state.Status != CompilationStatus.ResolutionSucceeded) {
         return null;
       }
 

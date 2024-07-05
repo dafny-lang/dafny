@@ -137,7 +137,10 @@ public class ParseErrors {
     p_deprecated_statement_refinement,
     p_internal_exception,
     p_file_has_no_code,
-    p_general_traits_beta,
+    p_general_traits_datatype,
+    p_general_traits_full,
+    p_decreases_without_to,
+    p_binding_in_decreases_to,
   }
 
   static ParseErrors() {
@@ -153,9 +156,16 @@ Such repetition would be superfluous even if allowed.
 Only modules may be declared abstract.
 ".TrimStart(), Remove(true));
 
-    Add(ErrorId.p_general_traits_beta,
+    Add(ErrorId.p_general_traits_datatype,
       @"
-Use of traits as non-reference types is a beta feature. To engage, use /generalTraits:datatype.
+A newtype extending a trait is not generally supported. The option --general-traits=full causes
+Dafny to allow them in the input, but is not recommended.
+".TrimStart(), Remove(true));
+
+    Add(ErrorId.p_general_traits_full,
+      @"
+Use of traits as non-reference types is supported, but is not yet the default. Until it becomes the
+default, use --general--traits=datatype to enable it.
 ".TrimStart(), Remove(true));
 
     Add(ErrorId.p_no_ghost_for_by_method,

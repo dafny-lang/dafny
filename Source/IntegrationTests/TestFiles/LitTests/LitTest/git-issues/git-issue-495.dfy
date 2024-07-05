@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny "%s" > "%t"
+// RUN: %exits-with 4 %build "%s" --relax-definite-assignment > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Dt = Make(d: int)

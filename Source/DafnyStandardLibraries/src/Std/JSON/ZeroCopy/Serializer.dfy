@@ -59,7 +59,7 @@ module Std.JSON.ZeroCopy.Serializer {
     .Append(js.after)
   }
 
-  opaque function {:vcs_split_on_every_assert} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
+  opaque function {:isolate_assertions} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
     decreases v, 4
     ensures wr.Bytes() == writer.Bytes() + Spec.Value(v)
   {
@@ -122,7 +122,7 @@ module Std.JSON.ZeroCopy.Serializer {
     .Append(str.rq)
   }
 
-  lemma {:vcs_split_on_every_assert} NumberHelper1(num: jnumber, writer: Writer)
+  lemma {:isolate_assertions} NumberHelper1(num: jnumber, writer: Writer)
     ensures
       if num.exp.NonEmpty? then (
                                   if num.frac.NonEmpty? then
@@ -151,11 +151,11 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  lemma {:vcs_split_on_every_assert} NumberHelper2a(num: jnumber, writer: Writer)
+  lemma {:isolate_assertions} NumberHelper2a(num: jnumber, writer: Writer)
     ensures Spec.Number(num) == num.minus.Bytes() + num.num.Bytes() + Spec.Maybe(num.frac, Spec.Frac) + Spec.Maybe(num.exp, Spec.Exp)
   {}
 
-  lemma {:vcs_split_on_every_assert} {:resource_limit 10000000} NumberHelper2(num: jnumber, writer: Writer)
+  lemma {:isolate_assertions} {:resource_limit 10000000} NumberHelper2(num: jnumber, writer: Writer)
     ensures
       if num.exp.NonEmpty? then (
                                   if num.frac.NonEmpty? then writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.frac.t.period.Bytes() + num.frac.t.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes() else writer.Bytes() + Spec.Number(num) == writer.Bytes() + num.minus.Bytes() + num.num.Bytes() + num.exp.t.e.Bytes() + num.exp.t.sign.Bytes() + num.exp.t.num.Bytes()
@@ -217,7 +217,7 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function {:vcs_split_on_every_assert} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  opaque function {:isolate_assertions} Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
@@ -266,7 +266,7 @@ module Std.JSON.ZeroCopy.Serializer {
   }
 
   // DISCUSS: Can't be opaque, due to the lambda
-  function {:vcs_split_on_every_assert} StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
+  function {:isolate_assertions} StructuralView(st: Structural<View>, writer: Writer) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.Structural(st, Spec.View)
   {
     writer.Append(st.before).Append(st.t).Append(st.after)
@@ -397,9 +397,9 @@ module Std.JSON.ZeroCopy.Serializer {
   }
 
 
-  ghost function {:vcs_split_on_every_assert} SequenceSpec<T>(v: Value, items: seq<T>,
-                                                              spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
-                                                              writer: Writer)
+  ghost function {:isolate_assertions} SequenceSpec<T>(v: Value, items: seq<T>,
+                                                       spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
+                                                       writer: Writer)
     : (wr: Writer)
     requires SequenceSpecRequires(v, items, spec, impl, writer)
     decreases v, 1, items
@@ -485,7 +485,7 @@ module Std.JSON.ZeroCopy.Serializer {
     assert wr == MembersSpec(obj, members, writer);
   }
 
-  method {:vcs_split_on_every_assert} ItemsImpl(arr: jarray, writer: Writer) returns (wr: Writer)
+  method {:isolate_assertions} ItemsImpl(arr: jarray, writer: Writer) returns (wr: Writer)
     decreases arr, 1
     ensures wr == ItemsSpec(arr, arr.data, writer)
   {

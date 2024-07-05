@@ -594,7 +594,7 @@ lemma P2_alt(n: Nat, xs: List, ys: List)
 
 // ---------
 
-lemma {:vcs_split_on_every_assert} Lemma_RevConcat(xs: List, ys: List)
+lemma {:isolate_assertions} Lemma_RevConcat(xs: List, ys: List)
   ensures reverse(concat(xs, ys)) == concat(reverse(ys), reverse(xs));
 {
   match (xs) {

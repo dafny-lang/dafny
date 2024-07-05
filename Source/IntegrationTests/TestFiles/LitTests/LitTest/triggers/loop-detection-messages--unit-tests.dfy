@@ -1,4 +1,4 @@
-// RUN: %verify --show-inference "%s" > "%t"
+// RUN: %verify --show-hints --allow-warnings "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This file is a series of basic tests for loop detection, focusing on the

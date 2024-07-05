@@ -140,8 +140,8 @@ public class AutoReqFunctionRewriter : IRewriter {
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
       Dictionary<TypeParameter, Type> typeMap = TypeParameter.SubstitutionMap(f.TypeArgs, typeArguments);
 
-      for (int i = 0; i < f.Formals.Count; i++) {
-        substMap.Add(f.Formals[i], args[i]);
+      for (int i = 0; i < f.Ins.Count; i++) {
+        substMap.Add(f.Ins[i], args[i]);
       }
 
       foreach (var req in f.Req) {

@@ -21,7 +21,7 @@ public class LegacyTextVerificationLogger {
 
   public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
     foreach (var (implementation, result) in verificationResults.OrderBy(vr => (vr.Implementation.Tok.filename, vr.Implementation.Tok.line, vr.Implementation.Tok.col))) {
-      var taskResults = result.VCResults.Select(r => new VerificationTaskResult(null!, LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult(r))).ToList();
+      var taskResults = result.VCResults.Select(LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult).ToList();
       var scopeResult = new VerificationScopeResult(new VerificationScope(implementation.Name, implementation.Tok), taskResults);
       TextVerificationLogger.LogResults(depManager, outWriter, scopeResult);
     }

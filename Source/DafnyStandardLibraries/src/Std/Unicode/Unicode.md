@@ -1,4 +1,4 @@
-## The `Unicode` module
+# The `Unicode` module
 
 This module defines concepts from the core specification
 of the [Unicode Standard 15.1.0](https://www.unicode.org/versions/Unicode15.1.0/):

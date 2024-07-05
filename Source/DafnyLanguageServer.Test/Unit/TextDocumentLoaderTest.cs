@@ -1,9 +1,8 @@
-﻿using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Language.Symbols;
-using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using Microsoft.Dafny.LanguageServer.Workspace;
 using Moq;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Threading;
@@ -76,13 +75,13 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Unit {
       var versionedTextDocumentIdentifier = CreateTestDocumentId();
       var uri = versionedTextDocumentIdentifier.Uri.ToUri();
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, ""));
-      var file = DafnyFile.CreateAndValidate(new ErrorReporterSink(DafnyOptions.Default), fs, DafnyOptions.Default, uri, Token.NoToken);
+      var file = DafnyFile.HandleDafnyFile(fs, new ErrorReporterSink(DafnyOptions.Default), DafnyOptions.Default, uri, Token.NoToken, false);
       var input = new CompilationInput(DafnyOptions.Default, 0, ProjectManagerDatabase.ImplicitProject(uri));
       var engine = new ExecutionEngine(DafnyOptions.Default, new VerificationResultCache(),
         CustomStackSizePoolTaskScheduler.Create(0, 0));
       var compilation = new Compilation(new Mock<ILogger<Compilation>>().Object, new Mock<IFileSystem>().Object, textDocumentLoader,
         new Mock<IProgramVerifier>().Object, engine, input);
-      compilation.RootFiles = new[] { file };
+      compilation.RootFiles = Task.FromResult<IReadOnlyList<DafnyFile>>(new[] { file });
       return compilation;
     }
 

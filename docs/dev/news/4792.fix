@@ -1,1 +1,0 @@
-The command line and the language server now use the same counterexample-related Z3 options.

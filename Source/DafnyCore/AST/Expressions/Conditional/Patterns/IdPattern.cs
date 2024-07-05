@@ -1,29 +1,30 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
-public class IdPattern : ExtendedPattern, IHasUsages {
+public class IdPattern : ExtendedPattern, IHasReferences {
   public bool HasParenthesis { get; }
   public String Id;
   public PreType PreType;
-  public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-  public IVariable BoundVar { get; set; }
+  public Type Type; // This is the syntactic type, ExtendedPatterns disappear during resolution.
+
+  public IVariable BoundVar { get; set; } // Only set if there are no arguments
+
   public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
   public LiteralExpr ResolvedLit; // null if just an identifier
   [FilledInDuringResolution]
   public DatatypeCtor Ctor;
 
   public bool IsWildcardPattern =>
-    Arguments == null && Id.StartsWith("_");
+    Arguments == null && Id.StartsWith(WildcardString);
 
   public bool IsWildcardExact =>
-    Arguments == null && Id == "_";
+    Arguments == null && Id == WildcardString;
+
+  public const string WildcardString = "_";
 
   public void MakeAConstructor() {
     this.Arguments = new List<ExtendedPattern>();
@@ -108,8 +109,9 @@ public class IdPattern : ExtendedPattern, IHasUsages {
         };
         BoundVar = localVariable;
       } else {
-        var boundVar = new BoundVar(Tok, Id, Type);
-        boundVar.IsGhost = isGhost;
+        var boundVar = new BoundVar(Tok, Id, Type) {
+          IsGhost = isGhost
+        };
         BoundVar = boundVar;
       }
 
@@ -128,11 +130,11 @@ public class IdPattern : ExtendedPattern, IHasUsages {
     }
   }
 
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return new IDeclarationOrUsage[] { Ctor }.Where(x => x != null);
+  public IEnumerable<IHasNavigationToken> GetReferences() {
+    return new ISymbol[] { Ctor }.Where(x => x != null);
   }
 
-  public IToken NameToken => Tok;
+  public IToken NavigationToken => Tok;
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (Arguments != null) {

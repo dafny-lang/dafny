@@ -27,6 +27,9 @@ namespace DafnyTestGeneration {
       lock (program.Options.ProverOptions) {
         program.Options.ProcessSolverOptions(new ConsoleErrorReporter(program.Options), Token.Cli);
       }
+      if (program.Options.Printer is NullPrinter) {
+        program.Options.Printer = new DafnyConsolePrinter(program.Options);
+      }
 
       program.Reporter.Options.PrintMode = PrintModes.Everything;
 
@@ -63,12 +66,12 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
-      if (!firstPass.IsOk(code, uri)) {
+      if (!(await firstPass.IsOk(code, uri))) {
         SetNonZeroExitCode = true;
         yield break;
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
-      var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      var program = await Utils.Parse(new BatchErrorReporter(options), code, false, uri);
       if (report != null) {
         report.RegisterFiles(program); // do this here prior to modifying the program
       }
@@ -103,7 +106,7 @@ namespace DafnyTestGeneration {
       var success = Inlining.InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
       dafnyInfo = null;
       if (!success) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
+        options.ErrorWriter.WriteLine(
           $"*** Error: Failed at resolving or translating the inlined Dafny code.");
         SetNonZeroExitCode = true;
         return new List<ProgramModification>();
@@ -180,6 +183,10 @@ namespace DafnyTestGeneration {
     /// </summary>
     /// <returns></returns>
     public static async IAsyncEnumerable<TestMethod> GetTestMethodsForProgram(Program program, Modifications cache = null) {
+      if (program.Options.Printer is NullPrinter) {
+        program.Options.Printer = new DafnyConsolePrinter(program.Options);
+      }
+
       lock (program.Options.ProverOptions) {
         program.Options.ProcessSolverOptions(new ConsoleErrorReporter(program.Options), Token.Cli);
       }
@@ -212,12 +219,12 @@ namespace DafnyTestGeneration {
       options.PrintMode = PrintModes.Everything;
       var code = await source.ReadToEndAsync();
       var firstPass = new FirstPass(options);
-      if (!firstPass.IsOk(code, uri)) {
+      if (!(await firstPass.IsOk(code, uri))) {
         SetNonZeroExitCode = true;
         yield break;
       }
       SetNonZeroExitCode = firstPass.NonZeroExitCode;
-      var program = Utils.Parse(new BatchErrorReporter(options), code, false, uri);
+      var program = await Utils.Parse(new BatchErrorReporter(options), code, false, uri);
       var rawName = Regex.Replace(uri?.AbsolutePath ?? "", "[^a-zA-Z0-9_]", "");
 
       string EscapeDafnyStringLiteral(string str) {
@@ -257,7 +264,7 @@ namespace DafnyTestGeneration {
       PopulateCoverageReport(report, program, cache);
 
       if (methodsGenerated == 0) {
-        options.Printer.ErrorWriteLine(options.ErrorWriter,
+        await options.ErrorWriter.WriteLineAsync(
           "*** Error: No tests were generated, because no code points could be " +
           "proven reachable (do you have a false assumption in the program?)");
         SetNonZeroExitCode = true;

@@ -1,0 +1,1 @@
+// CHECK-L: error[E0609]: no field `0` on type `DafnyInt`

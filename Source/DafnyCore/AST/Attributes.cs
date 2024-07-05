@@ -44,7 +44,7 @@ public class Attributes : TokenNode {
 
   public override string ToString() {
     string result = Prev?.ToString() + "{:" + Name;
-    if (Args == null || Args.Count() == 0) {
+    if (Args == null || !Args.Any()) {
       return result + "}";
     } else {
       var exprs = String.Join(", ", Args.Select(e => e.ToString()));

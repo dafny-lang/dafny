@@ -122,18 +122,34 @@ public class SystemModuleManager {
     CreateArrowTypeDecl(1);
 
     valuetypeDecls = new[] {
-        new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
-        new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-        new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
-        new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-        new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType, null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied
-        new ValuetypeDecl("map", SystemModule,
-          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict , TypeParameter.TPVarianceSyntax.Covariant_Strict },
-          t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
-        new ValuetypeDecl("imap", SystemModule,
-          new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive , TypeParameter.TPVarianceSyntax.Covariant_Strict },
-          t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
-      };
+      new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
+      new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
+      new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
+      new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
+      new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
+      new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
+        null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
+      new ValuetypeDecl("set", SystemModule,
+        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        t => t.AsSetType is { Finite: true }, typeArgs => new SetType(true, typeArgs[0])),
+      new ValuetypeDecl("iset", SystemModule,
+        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Permissive },
+        t => t.IsISetType, typeArgs => new SetType(false, typeArgs[0])),
+      new ValuetypeDecl("seq", SystemModule,
+        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        t => t.AsSeqType != null, typeArgs => new SeqType(typeArgs[0])),
+      new ValuetypeDecl("multiset", SystemModule,
+        new List<TypeParameter.TPVarianceSyntax>() { TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        t => t.AsMultiSetType != null, typeArgs => new MultiSetType(typeArgs[0])),
+      new ValuetypeDecl("map", SystemModule,
+        new List<TypeParameter.TPVarianceSyntax>()
+          { TypeParameter.TPVarianceSyntax.Covariant_Strict, TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
+      new ValuetypeDecl("imap", SystemModule,
+        new List<TypeParameter.TPVarianceSyntax>()
+          { TypeParameter.TPVarianceSyntax.Covariant_Permissive, TypeParameter.TPVarianceSyntax.Covariant_Strict },
+        t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
+    };
     SystemModule.SourceDecls.AddRange(valuetypeDecls);
     // Resolution error handling relies on being able to get to the 0-tuple declaration
     TupleType(Token.NoToken, 0, true);
@@ -389,12 +405,12 @@ public class SystemModuleManager {
     Contract.Requires(typeArgumentsClass.Count == f.EnclosingClass.TypeArgs.Count);
     Contract.Requires(typeArgumentsMember.Count == f.TypeArgs.Count);
 
-    var atd = ArrowTypeDecls[f.Formals.Count];
+    var atd = ArrowTypeDecls[f.Ins.Count];
 
     var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
     var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
     var typeMap = TypeParameter.SubstitutionMap(formals, actuals);
-    return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
+    return new ArrowType(f.tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
   public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {
@@ -531,10 +547,15 @@ declared: {allDeclaredArities.Comma()}");
 
 enum ValuetypeVariety {
   Bool = 0,
+  Char,
   Int,
   Real,
   BigOrdinal,
   Bitvector,
+  Set,
+  ISet,
+  Seq,
+  Multiset,
   Map,
   IMap,
   None

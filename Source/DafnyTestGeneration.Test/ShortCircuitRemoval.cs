@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using DafnyCore.Test;
 using DafnyTestGeneration.Inlining;
 using Microsoft.Dafny;
@@ -30,11 +31,11 @@ public class ShortCircuitRemoval : Setup {
   /// <summary>
   /// Perform shared checks and return the target method for further testing on a case by case basis
   /// </summary>
-  private Method ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
+  private async Task<Method> ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
     var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
-    var program = Utils.Parse(new BatchErrorReporter(options), source, false);
+    var program = await Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);
     var method = program.DefaultModuleDef.Children
@@ -53,18 +54,18 @@ public class ShortCircuitRemoval : Setup {
   }
 
   [Fact]
-  public void FunctionToFunctionByMethod() {
+  public async Task FunctionToFunctionByMethod() {
     var source = @"
 function {:testEntry} Identity(i:int):int {
   i
 }
 ".TrimStart();
     var expected = "{ return i; }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void And() {
+  public async Task And() {
     var source = @"
 predicate {:testEntry} And(a:bool, b:bool) {
   a && b
@@ -80,11 +81,11 @@ predicate {:testEntry} And(a:bool, b:bool) {
     #tmp0 := #tmp0; 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void Or() {
+  public async Task Or() {
     var source = @"
 predicate {:testEntry} Or(a:bool, b:bool) {
   a || b
@@ -100,11 +101,11 @@ predicate {:testEntry} Or(a:bool, b:bool) {
     #tmp0 := #tmp0; 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void Imp() {
+  public async Task Imp() {
     var source = @"
 predicate {:testEntry} Imp(a:bool, b:bool) {
   a ==> b
@@ -121,11 +122,11 @@ predicate {:testEntry} Imp(a:bool, b:bool) {
     #tmp0 := true; 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void Exp() {
+  public async Task Exp() {
     var source = @"
 predicate {:testEntry} Exp(a:bool, b:bool) {
   a <== b
@@ -141,11 +142,11 @@ predicate {:testEntry} Exp(a:bool, b:bool) {
     #tmp0 := true; 
   return #tmp0;
  }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void IfThenElse() {
+  public async Task IfThenElse() {
     var source = @"
 function {:testEntry} IfThenElse(a:bool):int {
   if a then 1 else 2
@@ -160,11 +161,11 @@ function {:testEntry} IfThenElse(a:bool):int {
     #tmp0 := 2; 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void Let() {
+  public async Task Let() {
     var source = @"
 function {:testEntry} Let(a:bool):int {
   var a:int := 7; a
@@ -179,11 +180,11 @@ function {:testEntry} Let(a:bool):int {
   }
   return #tmp0;
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void NestedLet() {
+  public async Task NestedLet() {
     var source = @"
 function {:testEntry} NestedLet(a:bool):int {
   var a:real := 7.5; var a:int := 4; a
@@ -202,11 +203,11 @@ function {:testEntry} NestedLet(a:bool):int {
     #tmp0 := #tmp1; 
   } 
 return #tmp0; }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void IfInsideLet() {
+  public async Task IfInsideLet() {
     var source = @"
 function {:testEntry} Let(a:bool):int {
   var a := false; if a then 5 else 7
@@ -226,11 +227,11 @@ function {:testEntry} Let(a:bool):int {
   } 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void InElseBranch() {
+  public async Task InElseBranch() {
     var source = @"
 function {:testEntry} NestedIfTheElse(a:bool, b:bool):int {
   if a then 5 else if b then 3 else 1
@@ -251,11 +252,11 @@ function {:testEntry} NestedIfTheElse(a:bool, b:bool):int {
   } 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void StmtExpression() {
+  public async Task StmtExpression() {
     var source = @"
 function {:testEntry} StmtExpression(a:int):int {
   if (var a := true; a) then 5 else 3
@@ -272,11 +273,11 @@ function {:testEntry} StmtExpression(a:int):int {
     #tmp0 := 3; 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void Match() {
+  public async Task Match() {
     var source = @"
 datatype Option = None | Some
 function {:testEntry} IsNone(o: Option): bool {
@@ -293,11 +294,11 @@ function {:testEntry} IsNone(o: Option): bool {
     case {:split false} Some() =>  #tmp0 := false; 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void MatchWithDestructors() {
+  public async Task MatchWithDestructors() {
     var source = @"
 datatype Option = None | Some(val:int)
 function {:testEntry} UnBoxOrZero(o: Option): int {
@@ -314,11 +315,11 @@ function {:testEntry} UnBoxOrZero(o: Option): int {
     case {:split false} Some(r) =>  #tmp0 := r; 
   return #tmp0;
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void FunctionCall() {
+  public async Task FunctionCall() {
     var source = @"
 function {:testEntry} Max(a:int, b:int):int {
   -Min(-a, -b)
@@ -331,11 +332,11 @@ function Min(a:int, b:int):int { if a < b then a else b }
   #tmp0 := Min(-a, -b); 
   return -#tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void NestedFunctionCall() {
+  public async Task NestedFunctionCall() {
     var source = @"
 function {:testEntry} Max(a:int, b:int):int {
   Negate(Min(Negate(a), Negate(b)))
@@ -355,11 +356,11 @@ function Min(a:int, b:int):int { if a < b then a else b }
   #tmp0 := Negate(#tmp1); 
   return #tmp0; 
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void FunctionCallWithShortCircuitingArgs() {
+  public async Task FunctionCallWithShortCircuitingArgs() {
     var source = @"
 function {:testEntry} Arguments(a:bool, b:bool):bool {
   IsTrue(a || b)
@@ -378,11 +379,11 @@ function IsTrue(a:bool):bool { a }
   #tmp0 := IsTrue(#tmp1);
   return #tmp0;
 }";
-    ShortCircuitRemovalTest(source, expected);
+    await ShortCircuitRemovalTest(source, expected);
   }
 
   [Fact]
-  public void Constructor() {
+  public async Task Constructor() {
     var source = @"
 class C {
   var i:int
@@ -409,11 +410,11 @@ class C {
     #tmp1 := 1;
   i := #tmp1;
 }";
-    ShortCircuitRemovalTest(source, expected, isByMethod: false);
+    await ShortCircuitRemovalTest(source, expected, isByMethod: false);
   }
 
   [Fact]
-  public void While() {
+  public async Task While() {
     var source = @"
 method {:testEntry} Sum(n:int) returns (s:int)
   requires n >= 0
@@ -444,11 +445,11 @@ method {:testEntry} Sum(n:int) returns (s:int)
   } 
   return s;
 }";
-    ShortCircuitRemovalTest(source, expected, false);
+    await ShortCircuitRemovalTest(source, expected, false);
   }
 
   [Fact]
-  public void LetOrFail() {
+  public async Task LetOrFail() {
     var source = @"
 datatype Result<T> = Success(value:T) | Failure {
   predicate IsFailure() {true}
@@ -468,7 +469,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
   return #tmp0;
 }";
-    var resultingMethod = ShortCircuitRemovalTest(source, expected);
+    var resultingMethod = await ShortCircuitRemovalTest(source, expected);
     Assert.True(resultingMethod.Body.Body[1] is BlockStmt);
     var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
     Assert.True(blockStmt.Body[0] is AssignOrReturnStmt);
@@ -479,7 +480,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
 
   [Fact]
-  public void LetOrFailWithAssignment() {
+  public async Task LetOrFailWithAssignment() {
     var source = @"
 datatype Result<T> = Success(value:T) | Failure {
   predicate IsFailure() {true}
@@ -500,7 +501,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
   return #tmp0;
 }";
-    var resultingMethod = ShortCircuitRemovalTest(source, expected);
+    var resultingMethod = await ShortCircuitRemovalTest(source, expected);
     Assert.True(resultingMethod.Body.Body[1] is BlockStmt);
     var blockStmt = resultingMethod.Body.Body[1] as BlockStmt;
     Assert.True(blockStmt.Body[0] is VarDeclStmt);
@@ -511,7 +512,7 @@ function {:testEntry} EntryLetOrFail():Result<bool> {
   }
 
   [Fact]
-  public void TypeRhs() {
+  public async Task TypeRhs() {
     var source = @"
 class A { 
   constructor () {}
@@ -524,11 +525,11 @@ method {:testEntry} allocateA() {
 {
   var a := new A();
 }";
-    ShortCircuitRemovalTest(source, expected, false);
+    await ShortCircuitRemovalTest(source, expected, false);
   }
 
   [Fact]
-  public void Print() {
+  public async Task Print() {
     var source = @"
 method {:testEntry} Print(b:bool) {
   print if b then ['a', 'b', 'c'] else [];
@@ -543,11 +544,11 @@ method {:testEntry} Print(b:bool) {
     #tmp0 := [];
   print #tmp0;
 }";
-    ShortCircuitRemovalTest(source, expected, false);
+    await ShortCircuitRemovalTest(source, expected, false);
   }
 
   [Fact]
-  public void ForLoop() {
+  public async Task ForLoop() {
     var source = @"
 method {:testEntry} Sum(n:int) returns (s:int)
   requires n >= 0
@@ -569,11 +570,11 @@ method {:testEntry} Sum(n:int) returns (s:int)
   }
   return s;
 }";
-    ShortCircuitRemovalTest(source, expected, false);
+    await ShortCircuitRemovalTest(source, expected, false);
   }
 
   [Fact]
-  public void CallStmt() {
+  public async Task CallStmt() {
     var source = @"
 method callee(a:int) {}
 method {:testEntry} caller() {
@@ -589,11 +590,11 @@ method {:testEntry} caller() {
     #tmp0 := 1;
   callee(#tmp0);
 }";
-    ShortCircuitRemovalTest(source, expected, false);
+    await ShortCircuitRemovalTest(source, expected, false);
   }
 
   [Fact]
-  public void CallStmtWithUpdate() {
+  public async Task CallStmtWithUpdate() {
     var source = @"
 method callee(a:int) returns (i:int) { return a; }
 method {:testEntry} caller() {
@@ -609,7 +610,7 @@ method {:testEntry} caller() {
     #tmp0 := 1;
   var x := callee(#tmp0);
 }";
-    ShortCircuitRemovalTest(source, expected, false);
+    await ShortCircuitRemovalTest(source, expected, false);
   }
 
 }

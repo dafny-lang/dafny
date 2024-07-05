@@ -26,7 +26,7 @@ static class CoverageReportCommand {
     ReportsArgument = new("reports", r => {
       return r.Tokens.Where(t => !string.IsNullOrEmpty(t.Value)).Select(t => new FileInfo(t.Value)).ToList();
     }, true, "directories with coverage reports to be merged");
-    DooFile.RegisterNoChecksNeeded(OnlyLabelOption);
+    DooFile.RegisterNoChecksNeeded(OnlyLabelOption, false);
   }
 
   // FilesArgument is intended for Dafny files, so CoverageReportCommand adds its own argument instead
@@ -43,11 +43,11 @@ static class CoverageReportCommand {
       result.AddOption(option);
     }
 
-    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => {
+    DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, async (options, _) => {
       var coverageReporter = new CoverageReporter(options);
-      coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName),
+      await coverageReporter.Merge(options.Get(ReportsArgument).ConvertAll(fileInfo => fileInfo.FullName),
         options.Get(OutDirArgument));
-      return Task.FromResult(0);
+      return 0;
     });
     return result;
   }

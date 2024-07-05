@@ -80,78 +80,68 @@ module Q refines P {
 
 A submodule M within a module that is refining some base module must refine some submodule M in the base module.
 
-## **Error: type declaration '_name_' is not allowed to change the requirement of supporting equality** {#ref_mismatched_equality}
-
-<!-- TODO -->
-
-## **Error: type declaration '_name_' is not allowed to change the requirement of supporting auto-initialization** {#ref_mismatched_auto_init}
-
-<!-- TODO -->
-
-## **Error: type declaration '_name_' is not allowed to change the requirement of being nonempty** {#ref_mismatched_nonempty}
-
-<!-- TODO -->
-
-## **Error: a type declaration that requires equality support cannot be replaced by this trait** {#ref_trait_mismatched_equality}
-
-<!-- TODO -->
-
-## **Error: a type declaration that requires equality support cannot be replaced by a codatatype** {#ref_equality_support_precludes_codatatype}
+## **Error: to be a refinement of _kind_ '_name_' declared with (==), _kind_ '_name_' must support equality {#ref_mismatched_type_characteristics_equality}
 
 ```dafny
 module P {
   type T(==)
 }
 module Q refines P {
-  codatatype T = A
+  type T = AlwaysAndForeverMore
+  codatatype AlwaysAndForeverMore = Cons(int, AlwaysAndForeverMore)
 }
 ```
 
-Codatatypes do not generally support equality and so cannot be refinements of an abstract type that declares that it supports equality.
+The abstract type `T` in module `P` says it supports equality, but its attempted refinement in module `Q` does not.
+Codatatypes do not generally support equality and so cannot be refinements of equality-supporting abstract types.
 
-## **Error: type '_name_', which does not support equality, is used to refine an abstract type with equality support** {#ref_mismatched_type_equality_support}
+## **Error: to be a refinement of _kind_ '_name_' declared with (!new), _kind_ '_name_' must contain no references {#ref_mismatched_type_characteristics_noreferences}
 
 ```dafny
 module P {
-  type T(==)
+  type T(!new)
 }
 module Q refines P {
-  codatatype A = B | C
-  type T = A
+  type T = (int, bool, array<real>)
 }
 ```
 
-A refining type must be declared to support equality (with `(==)`) if the base declaration is declared to support equality.
+The abstract type `T` in module `P` says it contains no reference, but its attempted refinement in module `Q` does.
+A refining type must support the type characteristics declared of the refined type.
 
-
-## **Error: type '_name_', which does not support auto-initialization, is used to refine an abstract type that expects auto-initialization** {#ref_mismatched_type_auto_init}
-
-```dafny
-module P {
-  type T(0)
-}
-module Q refines P {
-  class A{}
-  type T = A
-}
-```
-
-A refining type must be declared to be auto-initializing (with `(0)`) if the base declaration is declared auto-initializing.
-
-
-## **Error: type '_name_', which may be empty, is used to refine an abstract type expected to be nonempty** {#ref_mismatched_type_nonempty}
+## **Error: to be a refinement of _kind_ '_name_' declared with (00), _kind_ '_name_' must be nonempty {#ref_mismatched_type_characteristics_nonempty}
 
 ```dafny
 module P {
   type T(00)
 }
 module Q refines P {
-  class A{}
   type T = A
+  class A { }
 }
 ```
 
-A refining type must be declared to be non-empty (with `(00)`) if the base declaration is declared non-empty.
+The abstract type `T` in module `P` uses the type characteristic `(00)` to say that it is nonempty. However, a class type is
+not generally known to be nonempty, so `A` cannot be used as a refinement for `T` in `Q`.
+
+For this particular situation, a possible remedy would be to instead use `type T = A?`, since the nullable type `A?` is known to be nonempty.
+
+## **Error: to be a refinement of _kind_ '_name_' declared with (0), _kind_ '_name_' must support auto-initialization {#ref_mismatched_type_characteristics_autoinit}
+
+```dafny
+module P {
+  type T(0)
+}
+module Q refines P {
+  type T = A
+  class A { }
+}
+```
+
+The abstract type `T` in module `P` uses the type characteristic `(00)` to say that it can be auto-initialized. However, a class type does
+not support auto-initialization, so `A` cannot be used as a refinement for `T` in `Q`.
+
+For this particular situation, a possible remedy would be to instead use `type T = A?`, since the nullable type `A?` does support auto-initialization.
 
 ## **Error: a _kind_ (_name_) cannot declare members, so it cannot refine an abstract type with members** {#ref_mismatched_type_with_members}
 

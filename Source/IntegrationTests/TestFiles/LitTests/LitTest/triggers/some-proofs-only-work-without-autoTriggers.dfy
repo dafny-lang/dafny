@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --allow-axioms --show-inference "%s" > "%t"
+// RUN: %exits-with 4 %verify --allow-axioms --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The examples below work nicely with /autoTriggers:0, but break when we use

@@ -154,18 +154,18 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures |ret.values| as size_t == size
       ensures forall i | 0 <= i < size :: ret.values[i] == values[i].value
 
-    static method {:extern} Make<T>(length: size_t) returns (ret: NativeArray<T>)
+    static method {:axiom} {:extern} Make<T>(length: size_t) returns (ret: NativeArray<T>)
       ensures ret.Valid()
       ensures fresh(ret.Repr)
       ensures ret.Length() == length
 
-    static method {:extern} MakeWithInit<T>(length: size_t, initFn: size_t -> T) returns (ret: NativeArray<T>)
+    static method {:axiom} {:extern} MakeWithInit<T>(length: size_t, initFn: size_t -> T) returns (ret: NativeArray<T>)
       ensures ret.Valid()
       ensures fresh(ret.Repr)
       ensures ret.Length() == length
       ensures ret.values == seq(length, ((i: nat) requires 0 <= i < length as nat => Set(initFn(i as size_t))))
 
-    static method {:extern} Copy<T>(other: ImmutableArray<T>) returns (ret: NativeArray<T>)
+    static method {:axiom} {:extern} Copy<T>(other: ImmutableArray<T>) returns (ret: NativeArray<T>)
       ensures ret.Valid()
       ensures fresh(ret.Repr)
       ensures ret.values == other.CellValues()
@@ -362,12 +362,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     ghost predicate Valid()
 
-    static method {:extern} Make(ghost inv: T -> bool, t: T) returns (ret: AtomicBox<T>)
+    static method {:axiom} {:extern} Make(ghost inv: T -> bool, t: T) returns (ret: AtomicBox<T>)
       requires inv(t)
       ensures ret.Valid()
       ensures ret.inv == inv
 
-    method {:extern} Get() returns (t: T)
+    method {:axiom} {:extern} Get() returns (t: T)
       requires Valid()
       ensures inv(t)
 
@@ -487,7 +487,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     // targets, too) relies on the method being an instance method, there's a mismatch.
     // Thus, for now, the best way to proceed seems to be to include the additional type
     // parameter X here.
-    function {:extern} UniqueElements<X(==)>(ghost f: T -> X): set<X>
+    function {:axiom} {:extern} UniqueElements<X(==)>(ghost f: T -> X): set<X>
       requires Valid() /* AND X==T AND f is the identity function, see above */
       ensures UniqueElements(f) == set t | t in Value() :: f(t)
 
@@ -746,7 +746,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     }
   }
 
-  method {:tailrecursion} {:vcs_split_on_every_assert} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
+  method {:tailrecursion} {:isolate_assertions} AppendOptimized<T>(builder: Vector<T>, e: Sequence<T>, stack: Vector<Sequence<T>>)
     requires e.Valid()
     requires builder.Valid()
     requires stack.Valid()

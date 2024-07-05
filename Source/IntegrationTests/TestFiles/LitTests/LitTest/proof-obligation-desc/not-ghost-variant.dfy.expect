@@ -1,0 +1,6 @@
+not-ghost-variant.dfy(8,7): Error: in a compiled context, discriminator 'C0?' cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+ Asserted expression: !(d.G0? || d.G1?)
+not-ghost-variant.dfy(15,7): Error: in a compiled context, equality cannot be applied to a datatype value of a ghost variant (ghost constructor 'G0' or 'G1')
+ Asserted expression: !(d.G0? || d.G1?)
+
+Dafny program verifier finished with 0 verified, 2 errors

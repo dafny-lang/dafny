@@ -153,7 +153,7 @@ public class InferDecreasesClause {
       Contract.Assert(fe != null);
       Expression e = new Cloner(false, true).CloneExpr(fe.E); // keep only fe.E, drop any fe.Field designation
       Contract.Assert(e.Type != null); // fe.E should have been resolved already, and the clone should still have that type
-      var eType = e.Type.NormalizeExpand();
+      var eType = e.Type.NormalizeToAncestorType();
       if (eType.IsRefType) {
         // e represents a singleton set
         if (singletons == null) {
@@ -161,7 +161,7 @@ public class InferDecreasesClause {
         }
         singletons.Add(e);
 
-      } else if (eType is SeqType || eType is MultiSetType || LiteralExpr.IsEmptySet(e)) {
+      } else if (eType is SeqType or MultiSetType || LiteralExpr.IsEmptySet(e)) {
         // e represents a sequence or multiset
         var collectionType = (CollectionType)eType;
         var resolvedOpcode = collectionType.ResolvedOpcodeForIn;

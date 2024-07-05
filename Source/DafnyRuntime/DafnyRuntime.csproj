@@ -25,8 +25,26 @@
   <ItemGroup>
     <Folder Include="DafnyRuntimeJava\build\libs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafny.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafny_test.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafnyFromDafny.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\System_\System_.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\go.mod">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <PropertyGroup>
-    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.4.0.jar</DafnyRuntimeJar>
+    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.6.0.jar</DafnyRuntimeJar>
   </PropertyGroup>
   <Target Name="BuildDafnyRuntimeJar" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFile);@(DafnyRuntimeJavaInputFile)" Outputs="$(DafnyRuntimeJar)">
     

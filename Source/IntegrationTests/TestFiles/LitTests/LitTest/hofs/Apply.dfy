@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /print:"%t.print" "%s" > "%t"
+// RUN: %exits-with 4 %build --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 
@@ -51,7 +51,7 @@ method AllocationTest(oldcell: Cell)
 
   var j := (c: Cell, b) => if b then c else oldcell;
   var k := (c: Cell?, b) reads c, oldcell requires b ==> c != null => (if b then c else oldcell).data;
-  var b;
+  var b := *;
   if {
     case true =>  assert j(y, b).data < 50;
     case true =>  assert old(j(y, false).data) == 48;  // error: argument y is not allocated in old state

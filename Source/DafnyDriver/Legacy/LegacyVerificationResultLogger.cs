@@ -77,7 +77,7 @@ namespace Microsoft.Dafny {
 
       foreach (var ((verbName, currentFile), vcResults) in verificationResults) {
         var scopeResult = new VerificationScopeResult(new VerificationScope(verbName, currentFile),
-          vcResults.Select(r => new VerificationTaskResult(null, LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult(r))).ToList());
+          vcResults.Select(LegacyJsonVerificationLogger.VCResultLogEntryToPartialVerificationRunResult).ToList());
         testResults.AddRange(VerificationResultLogger.VerificationToTestResults(scopeResult));
       }
 

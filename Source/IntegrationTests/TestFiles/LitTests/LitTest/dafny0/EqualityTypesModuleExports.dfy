@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %dafny /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This module contains checks that (==) types are inferred and required as they should.

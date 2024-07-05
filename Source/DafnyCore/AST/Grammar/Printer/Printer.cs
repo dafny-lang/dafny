@@ -36,9 +36,7 @@ namespace Microsoft.Dafny {
         options.PrintMode = value;
       });
 
-      DooFile.RegisterNoChecksNeeded(new Option[] {
-        PrintMode
-      });
+      DooFile.RegisterNoChecksNeeded(PrintMode, false);
     }
 
     public static readonly Option<PrintModes> PrintMode = new("--print-mode", () => PrintModes.Everything, @"
@@ -889,7 +887,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (field.IsGhost) {
         wr.Write("ghost ");
       }
-      if (field is ConstantField) {
+      if (!field.IsMutable) {
         wr.Write("const");
       } else {
         wr.Write("var");
@@ -906,12 +904,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           wr.Write(" := ");
           PrintExpression(c.Rhs, true);
         }
-      } else if (field.IsUserMutable) {
-        // nothing more to say
-      } else if (field.IsMutable) {
+      } else if (!field.IsUserMutable && field.IsMutable) {
         wr.Write("  // non-assignable");
-      } else {
-        wr.Write("  // immutable");
       }
       wr.WriteLine();
     }
@@ -928,7 +922,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (f is ExtremePredicate) {
           PrintKTypeIndication(((ExtremePredicate)f).TypeOfK);
         }
-        PrintFormals(f.Formals, f, f.Name);
+        PrintFormals(f.Ins, f, f.Name);
         if (f.Result != null || (f is not Predicate && f is not ExtremePredicate && f is not TwoStatePredicate && f is not PrefixPredicate)) {
           wr.Write(": ");
           if (f.Result != null) {
@@ -980,7 +974,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost) {
         bool verify = true;
         if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify) { return true; }
-        if (name.Contains("INTERNAL") || name.StartsWith("reveal_")) { return true; }
+        if (name.Contains("INTERNAL") || name.StartsWith(RevealStmt.RevealLemmaPrefix)) { return true; }
       }
       return false;
     }
@@ -1176,10 +1170,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(prefix != null);
       Contract.Requires(ty != null);
       if (options.DafnyPrintResolvedFile != null) {
-        ty = AdjustableType.NormalizeSansAdjustableType(ty);
+        ty = TypeRefinementWrapper.NormalizeSansRefinementWrappers(ty);
       }
       string s = ty.TypeName(options, null, true);
-      if (ty is AdjustableType or not TypeProxy && !s.StartsWith("_")) {
+      if (ty is TypeRefinementWrapper or not TypeProxy && !s.StartsWith("_")) {
         wr.Write("{0}{1}", prefix, s);
       }
     }

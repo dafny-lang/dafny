@@ -141,7 +141,7 @@ lemma EqualElementsMakeEqualLists<T(00)>(xs: List, ys: List)
 
 // here is the theorem, but applied to the ith element
 
-lemma {:vcs_split_on_every_assert} ExtractorLemma<T(00)>(i: int, xs: List)
+lemma {:isolate_assertions} ExtractorLemma<T(00)>(i: int, xs: List)
   requires 0 <= i < length(xs);
   ensures nth(i, xtr(nats(length(xs)), xs)) == nth(i, rev(xs));
 {

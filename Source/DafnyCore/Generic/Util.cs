@@ -26,6 +26,12 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
+    public static Task WaitForComplete<T>(this IObservable<T> observable) {
+      var result = new TaskCompletionSource();
+      observable.Subscribe(_ => { }, e => result.SetException(e), () => result.SetResult());
+      return result.Task;
+    }
+
     public static string CapitaliseFirstLetter(this string input) {
       if (input.Length > 0) {
         return char.ToUpper(input[0]) + input.Substring(1);
@@ -275,8 +281,12 @@ namespace Microsoft.Dafny {
     public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F_]+)\}");
     private static readonly Regex NullEscape = new Regex(@"\\0");
 
-    private static string ToUtf16Escape(char c) {
-      return $"\\u{(int)c:x4}";
+    private static string ToUtf16Escape(char c, bool addBraces = false) {
+      if (addBraces) {
+        return $"\\u{{{(int)c:x4}}}";
+      } else {
+        return $"\\u{(int)c:x4}";
+      }
     }
 
     public static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
@@ -316,6 +326,10 @@ namespace Microsoft.Dafny {
       return ReplaceTokensWithEscapes(s, NullEscape, match => "\\u0000");
     }
 
+    public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
+      return UnescapedCharacters(options.Get(CommonOptionBag.UnicodeCharacters), p, isVerbatimString);
+    }
+
     /// <summary>
     /// Returns the characters of the well-parsed string p, replacing any
     /// escaped characters by the actual characters.
@@ -324,8 +338,7 @@ namespace Microsoft.Dafny {
     /// if --unicode-char is enabled - these are synthesized by the parser when
     /// reading the original UTF-8 source, but don't represent the true character values.
     /// </summary>
-    public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
-      var unicodeChars = options.Get(CommonOptionBag.UnicodeCharacters);
+    public static IEnumerable<int> UnescapedCharacters(bool unicodeChars, string p, bool isVerbatimString) {
       if (isVerbatimString) {
         foreach (var s in TokensWithEscapes(p, true)) {
           if (s == "\"\"") {
@@ -896,7 +909,7 @@ namespace Microsoft.Dafny {
           return true;
         }
       } else if (memberDeclaration is Function f) {
-        if (f.Formals.Any(Traverse)) {
+        if (f.Ins.Any(Traverse)) {
           return true;
         }
         if (f.Result != null && f.Result.DefaultValue != null && Traverse(f.Result.DefaultValue, "Result.DefaultValue", f)) {

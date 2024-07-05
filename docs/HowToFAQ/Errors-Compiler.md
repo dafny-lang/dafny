@@ -121,7 +121,7 @@ Consequently an explicit constructor is required.
 
 ## **Error: The method '_name_' is not permitted as a main method (_reason_).** {#c_method_may_not_be_main_method}
 
-<!-- %check-legacy %options -compile:2 -Main:mmm -->
+<!-- %check-run %options --main-method:mmm -->
 ```dafny
 method mmm(i: int) {}
 ```
@@ -140,7 +140,7 @@ Most commonly and for clarity, the intended main method is marked with the attri
 
 ## **Error: Could not find the method named by the -Main option: _name_** {#c_could_not_find_stipulated_main_method}
 
-<!-- %check-legacy %options /compile:2 -Main:m -->
+<!-- %check-run %options --main-method:m -->
 ```dafny
 class A { static method mm() {} }
 ```

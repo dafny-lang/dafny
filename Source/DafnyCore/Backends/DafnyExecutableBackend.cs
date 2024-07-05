@@ -1,15 +1,14 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Diagnostics.Contracts;
-using System.IO;
-using System.Linq;
 using Dafny;
 
 namespace Microsoft.Dafny.Compilers;
 
 public abstract class DafnyExecutableBackend : ExecutableBackend {
+
+  protected virtual bool PreventShadowing => true;
+  protected virtual bool CanEmitUncompilableCode => true;
+
+  protected virtual string InternalFieldPrefix => "_i_";
 
   protected DafnyWrittenCodeGenerator DafnyCodeGenerator;
 
@@ -18,7 +17,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
     // becomes this.compiler
-    return new DafnyCodeGenerator(Options, Reporter);
+    return new DafnyCodeGenerator(Options, Reporter, InternalFieldPrefix, PreventShadowing, CanEmitUncompilableCode);
   }
 
   protected abstract DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler();
@@ -28,9 +27,11 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
     DafnyCodeGenerator = CreateDafnyWrittenCompiler();
   }
 
-  public override void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+  public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);
+
     ((DafnyCodeGenerator)codeGenerator).Start();
     codeGenerator.Compile(dafnyProgram, new ConcreteSyntaxTree());
     var dast = ((DafnyCodeGenerator)codeGenerator).Build();

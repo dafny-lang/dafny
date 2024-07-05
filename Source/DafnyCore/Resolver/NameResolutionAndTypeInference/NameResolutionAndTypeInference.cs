@@ -16,7 +16,6 @@ using System.Reflection;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -376,7 +375,7 @@ namespace Microsoft.Dafny {
       rr.TypeApplication_AtEnclosingClass = typeApplication;
       rr.TypeApplication_JustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();
-      for (int i = 0; i < f.Formals.Count; i++) {
+      for (int i = 0; i < f.Ins.Count; i++) {
         args.Add(new IntType());
       }
       rr.Type = new ArrowType(f.tok, args, new IntType());
@@ -757,6 +756,10 @@ namespace Microsoft.Dafny {
               var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)resolutionContext.CodeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
+            break;
+          case UnaryOpExpr.Opcode.Assigned:
+            // the argument is allowed to have any type
+            expr.Type = Type.Bool;
             break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
@@ -1165,6 +1168,12 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr nestedMatchExpr) {
         ResolveNestedMatchExpr(nestedMatchExpr, resolutionContext);
+      } else if (expr is DecreasesToExpr decreasesToExpr) {
+        foreach (var subexpr in decreasesToExpr.SubExpressions) {
+          ResolveExpression(subexpr, resolutionContext);
+        }
+
+        decreasesToExpr.Type = Type.Bool;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -3040,7 +3049,7 @@ namespace Microsoft.Dafny {
         ConstrainSubtypeRelation(ResolvedArrayType(ll.Seq.tok, 1, new InferredTypeProxy(), resolutionContext, true), ll.Seq.Type, ll.Seq,
           "LHS of array assignment must denote an array element (found {0})", ll.Seq.Type);
         if (!ll.SelectOne) {
-          reporter.Error(MessageSource.Resolver, ll.Seq, "cannot assign to a range of array elements (try the 'forall' statement)");
+          reporter.Error(MessageSource.Resolver, ll, "cannot assign to a range of array elements (try the 'forall' statement)");
         }
       } else if (lhs is MultiSelectExpr) {
         // nothing to check; this can only denote an array element
@@ -3535,7 +3544,7 @@ namespace Microsoft.Dafny {
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
               if (methodCallInfo == null) {
-                reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
+                // error has already been reported
               } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
               } else if (methodCallInfo.Callee.AtLabel != null) {
@@ -3664,9 +3673,9 @@ namespace Microsoft.Dafny {
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Tok, local.OptionalType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.OptionalType;
+            local.type = local.SyntacticType;
           } else {
             local.type = new InferredTypeProxy();
           }
@@ -3701,9 +3710,9 @@ namespace Microsoft.Dafny {
         VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Tok, local.OptionalType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.OptionalType;
+            local.type = local.SyntacticType;
           } else {
             local.type = new InferredTypeProxy();
           }
@@ -4550,7 +4559,7 @@ namespace Microsoft.Dafny {
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
-            reporter.Error(MessageSource.Resolver, tok, "member '{0}' does not exist in {2} '{1}'", memberName, cd.Name, cd.WhatKind);
+            ReportMemberNotFoundError(tok, memberName, cd);
           }
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
@@ -4565,6 +4574,31 @@ namespace Microsoft.Dafny {
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);
       tentativeReceiverType = null;
       return null;
+    }
+
+    private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
+      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+        var members = receiverDecl is TopLevelDeclWithMembers topLevelDeclWithMembers ? GetClassMembers(topLevelDeclWithMembers) : null;
+        if (members == null) {
+          reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (!members.TryGetValue(nameToBeRevealed, out var member)) {
+          reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else if (member is not (ConstantField or Function)) {
+          Contract.Assert(!member.IsOpaque);
+          reporter.Error(MessageSource.Resolver, tok,
+            $"a {member.WhatKind} ('{nameToBeRevealed}') cannot be revealed; only opaque constants and functions can be revealed");
+        } else if (!member.IsOpaque) {
+          reporter.Error(MessageSource.Resolver, tok, $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it is not opaque");
+        } else if (member is Function { Body: null }) {
+          reporter.Error(MessageSource.Resolver, tok,
+            $"{member.WhatKind} '{nameToBeRevealed}' cannot be revealed, because it has no body in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+        } else {
+          reporter.Error(MessageSource.Resolver, tok, $"cannot reveal '{nameToBeRevealed}'");
+        }
+      } else {
+        reporter.Error(MessageSource.Resolver, tok, $"member '{memberName}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
+      }
     }
 
     /// <summary>
@@ -5041,8 +5075,7 @@ namespace Microsoft.Dafny {
           if (lax) {
             // we have to be careful about uses of the type being defined
             var cg = enclosingTypeDefinition.EnclosingModuleDefinition.CallGraph;
-            var t0 = resolvedClass as ICallable;
-            if (t0 != null && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative((ICallable)enclosingTypeDefinition)) {
+            if (resolvedClass is ICallable t0 && enclosingTypeDefinition is ICallable t1 && cg.GetSCCRepresentative(t0) == cg.GetSCCRepresentative(t1)) {
               reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
             }
           }
@@ -5301,7 +5334,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       // For 3:
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -5397,11 +5430,7 @@ namespace Microsoft.Dafny {
       } else {
         // ----- None of the above
         if (complain) {
-          if (resolutionContext.InReveal) {
-            reporter.Error(MessageSource.Resolver, expr.tok, "cannot reveal '{0}' because no constant, assert label, or requires label in the current scope is named '{0}'", expr.Name);
-          } else {
-            reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
-          }
+          ReportUnresolvedIdentifierError(expr.tok, expr.Name, resolutionContext);
         } else {
           expr.ResolvedExpression = null;
           return null;
@@ -5418,6 +5447,17 @@ namespace Microsoft.Dafny {
         expr.Type = nt;
       }
       return rWithArgs;
+    }
+
+    private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
+      if (resolutionContext.InReveal) {
+        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        reporter.Error(MessageSource.Resolver, tok,
+          "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
+          nameToReport);
+      } else {
+        reporter.Error(MessageSource.Resolver, tok, "unresolved identifier: {0}", name);
+      }
     }
 
     public static Expression GetReceiver(TopLevelDeclWithMembers container, MemberDecl member, IToken token) {
@@ -5631,7 +5671,7 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
-      var name = resolutionContext.InReveal ? "reveal_" + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       if (!expr.Lhs.WasResolved()) {
         return null;
       }
@@ -5693,7 +5733,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
-          reporter.Error(MessageSource.Resolver, expr.tok, "unresolved identifier: {0}", name);
+          ReportUnresolvedIdentifierError(expr.tok, name, resolutionContext);
         }
 
       } else if (lhs != null && lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
@@ -5735,7 +5775,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.Decl.Name, ri.Decl.WhatKind);
+          ReportMemberNotFoundError(expr.tok, name, ri.Decl);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
@@ -5957,17 +5997,17 @@ namespace Microsoft.Dafny {
               TypeApplication_JustFunction = mse.TypeApplication_JustMember
             };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
-            ResolveActualParameters(rr.Bindings, callee.Formals, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
+            ResolveActualParameters(rr.Bindings, callee.Ins, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);
             rr.Type = callee.ResultType.Subst(typeMap);
             if (errorCount == reporter.Count(ErrorLevel.Error)) {
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
-              Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
+              Contract.Assert(callee.Ins.Count == rr.Args.Count);  // this should have been checked already
             }
             r = rr;
           } else {
             List<Formal> formals;
             if (callee != null) {
-              formals = callee.Formals;
+              formals = callee.Ins;
             } else {
               formals = new List<Formal>();
               for (var i = 0; i < fnType.Args.Count; i++) {
@@ -6096,7 +6136,7 @@ namespace Microsoft.Dafny {
         Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
 
         // type check the arguments
-        ResolveActualParameters(e.Bindings, function.Formals, e.tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
+        ResolveActualParameters(e.Bindings, function.Ins, e.tok, function, resolutionContext, subst, function.IsStatic ? null : e.Receiver);
 
         e.Type = function.ResultType.Subst(subst).NormalizeExpand();
       }

@@ -8,17 +8,19 @@ using VC;
 
 namespace Microsoft.Dafny;
 
+public record VerificationTaskResult(IVerificationTask Task, VerificationRunResult Result);
+
 public class ProofDependencyWarnings {
 
 
-  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<(IVerificationTask Task, Completed Result)> parts,
+  public static void ReportSuspiciousDependencies(DafnyOptions options, IEnumerable<VerificationTaskResult> parts,
     ErrorReporter reporter, ProofDependencyManager manager) {
     foreach (var resultsForScope in parts.GroupBy(p => p.Task.ScopeId)) {
       WarnAboutSuspiciousDependenciesForImplementation(options,
         reporter,
         manager,
         resultsForScope.Key,
-        resultsForScope.Select(p => p.Result.Result).ToList());
+        resultsForScope.Select(p => p.Result).ToList());
     }
   }
 

@@ -75,7 +75,7 @@ public static class DafnyBackwardsCompatibleCli {
     if (!keywordForNewMode.Contains(first)) {
       if (first.Length > 0 && first[0] != '/' && first[0] != '-' && !File.Exists(first) &&
           first.IndexOf('.') == -1) {
-        dafnyOptions.Printer.ErrorWriteLine(dafnyOptions.OutputWriter,
+        dafnyOptions.OutputWriter.WriteLine(
           "*** Error: '{0}': The first input must be a command or a legacy option or file with supported extension",
           first);
         return new ExitImmediately(ExitValue.PREPROCESSING_ERROR);
@@ -86,6 +86,11 @@ public static class DafnyBackwardsCompatibleCli {
             // If requested, print version number, help, attribute help, etc. and exit.
             if (oldOptions.ProcessInfoFlags()) {
               return new ExitImmediately(ExitValue.SUCCESS);
+            }
+
+            if (oldOptions.DeprecationNoise != 0) {
+              oldOptions.OutputWriter.WriteLine(
+                "Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format");
             }
 
             return new ParsedOptions(oldOptions);

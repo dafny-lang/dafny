@@ -8,6 +8,7 @@
     <OutputPath>..\..\Binaries\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <TargetFramework>net6.0</TargetFramework>
+<RollForward>Major</RollForward>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
@@ -89,7 +90,7 @@
       <LinkBase>DafnyRuntimeJava</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.4.0.jar">
+    <EmbeddedResource Include="..\DafnyRuntime\DafnyRuntimeJava\build\libs\DafnyRuntime-4.6.0.jar">
       <LogicalName>DafnyRuntime.jar</LogicalName>
       <Link>DafnyRuntime.jar</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

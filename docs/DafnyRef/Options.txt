@@ -1,5 +1,5 @@
 ```
-Use 'dafny --help' to see help for a newer Dafny CLI format.
+Use 'dafny --help' to see help for the new Dafny CLI format.
 Usage: dafny [ option ... ] [ filename ... ]
 
   ---- General options -------------------------------------------------------
@@ -86,10 +86,6 @@ Usage: dafny [ option ... ] [ filename ... ]
       1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
       See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
       Not compatible with the /unicodeChar:0 option.
-
-  /unicodeChar:<value>
-      0 - The char type represents any UTF-16 code unit.
-      1 (default) - The char type represents any Unicode scalar value.
 
   /noIncludes
       Ignore include directives.
@@ -183,6 +179,11 @@ Usage: dafny [ option ... ] [ filename ... ]
   
   /verifyAllModules
       Verify modules that come from an include directive.
+  
+  /emitUncompilableCode
+      Allow compilers to emit uncompilable code that usually contain useful
+      information about what feature is missing, rather than
+      stopping on the first problem
   
   /separateModuleOutput
       Output verification results for each module separately, rather than
@@ -645,6 +646,11 @@ Usage: dafny [ option ... ] [ filename ... ]
                 assignments, and calls can be labeled for inclusion in this
                 report. This generalizes and replaces the previous
                 (undocumented) `/printNecessaryAssertions` option.
+
+  /keepQuantifier
+                If pool-based quantifier instantiation creates instances of a quantifier
+                then keep the quantifier along with the instances. By default, the quantifier
+                is dropped if any instances are created.
 
   ---- Verification-condition splitting --------------------------------------
 

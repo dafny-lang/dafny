@@ -12,7 +12,21 @@ public abstract class ErrorReporter {
 
   public bool ErrorsOnly { get; set; }
 
-  public bool FailCompilation => HasErrors || (WarningCount > 0 && Options.FailOnWarnings);
+  public bool FailCompilation => FailCompilationMessage != null;
+
+  public string FailCompilationMessage {
+    get {
+      if (HasErrors) {
+        return "errors were found";
+      }
+
+      if (WarningCount > 0 && Options.FailOnWarnings) {
+        return "warnings were found and --allow-warnings was not specified";
+      }
+      return null;
+    }
+  }
+
   public int ErrorCount => Count(ErrorLevel.Error);
 
   public bool HasErrors => ErrorCount > 0;
@@ -138,6 +152,16 @@ public abstract class ErrorReporter {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
     Message(source, ErrorLevel.Warning, errorId, tok, msg);
+  }
+
+  public void Deprecated(MessageSource source, string errorId, IToken tok, string msg) {
+    Contract.Requires(tok != null);
+    Contract.Requires(msg != null);
+    if (Options.DeprecationNoise != 0) {
+      Warning(source, errorId, tok, msg);
+    } else {
+      Info(source, tok, msg, errorId);
+    }
   }
 
   public void Deprecated(MessageSource source, Enum errorId, IToken tok, string msg) {

@@ -24,14 +24,6 @@ public enum ImplementationKind {
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
-
-  /// <summary>
-  /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
-  /// and use it to set this field. 
-  /// </summary>
-  [FilledInDuringResolution]
-  public ModuleDefinition Replacement { get; set; }
-
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -389,7 +381,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return TopLevelDecls.All(decl => decl.IsEssentiallyEmpty());
   }
 
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).
     Concat(DefaultClasses).
@@ -1057,7 +1049,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     return Enumerable.Empty<ISymbol>();
   });
 
-  public SymbolKind Kind => SymbolKind.Namespace;
+  public SymbolKind? Kind => SymbolKind.Namespace;
   public string GetDescription(DafnyOptions options) {
     return $"module {Name}";
   }

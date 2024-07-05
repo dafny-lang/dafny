@@ -1085,9 +1085,10 @@ same name.
 
 #### 5.5.3.4. Other Sequence Expressions {#sec-other-sequence-expressions}
 In addition, for any sequence `s` of type `seq<T>`, expression `e`
-of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
-integer-based numerics `lo` and `hi` satisfying
-`0 <= lo <= hi <= |s|`, sequences support the following operations:
+of type `T`, integer-based numeric index `i` satisfying `0 <= i < |s|`, and
+integer-based numeric bounds `lo` and `hi` satisfying
+`0 <= lo <= hi <= |s|`, noting that bounds can equal the length of the sequence,
+sequences support the following operations:
 
  expression         | precedence | result type | description
  -------------------|:---:|:---:|----------------------------------------
@@ -1293,7 +1294,7 @@ The `-` operator implements a map difference operator. Here the LHS
 is a `map<K,V>` or `imap<K,V>` and the RHS is a `set<K>` (but not an `iset`); the operation removes
 from the LHS all the (key,value) pairs whose key is a member of the RHS set.
 
-To avoid cuasing circular reasoning chains or providing too much informatino that might
+To avoid causing circular reasoning chains or providing too much information that might
 complicate Dafny's prover finding proofs, not all properties of maps are known by the prover by default.
 For example, the following does not prove:
 <!-- %check-verify Types.25.expect -->
@@ -1859,7 +1860,7 @@ the newtype operations are defined only if the result satisfies the
 predicate `Q`, and likewise for the literals of the
 newtype.
 
-For example, suppose `lo` and `hi` are integer-based numerics that
+For example, suppose `lo` and `hi` are integer-based numeric bounds that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
 <!-- %no-check -->
 ```dafny
@@ -1936,7 +1937,7 @@ Furthermore, for the compiler to be able to make an appropriate choice of
 representation, the constants in the defining expression as shown above must be
 known constants at compile-time. They need not be numeric literals; combinations
 of basic operations and symbolic constants are also allowed as described
-in [Section 9.37](#sec-compile-time-constants).
+in [Section 9.39](#sec-compile-time-constants).
 
 ### 5.7.1. Conversion operations {#sec-conversion}
 
@@ -2408,8 +2409,9 @@ an error message is generated.
 
 One-dimensional arrays support operations that convert a stretch of
 consecutive elements into a sequence.  For any array `a` of type
-`array<T>`, integer-based numerics `lo` and `hi` satisfying
-`0 <= lo <= hi <= a.Length`, the following operations each yields a
+`array<T>`, integer-based numeric bounds `lo` and `hi` satisfying
+`0 <= lo <= hi <= a.Length`, noting that bounds can equal the array's length,
+the following operations each yields a
 `seq<T>`:
 
  expression          | description

@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
@@ -19,12 +20,8 @@ public static class DafnyCommands {
     }, false, "Dafny input files and/or a Dafny project file");
   }
 
-  public static IEnumerable<Option> FormatOptions => new Option[] {
-    CommonOptionBag.Check,
-    CommonOptionBag.FormatPrint,
-  }.Concat(ParserOptions);
-
-  public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> VerificationOptions = new Option[] {
+    CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
@@ -47,18 +44,20 @@ public static class DafnyCommands {
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
-    CommonOptionBag.ShowInference,
-    CommonOptionBag.ManualTriggerOption
+    CommonOptionBag.ManualTriggerOption,
+    CommonOptionBag.ShowProofObligationExpressions
   }.ToList();
 
-  public static IReadOnlyList<Option> TranslationOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
+    BoogieOptionBag.HiddenNoVerify,
     CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
     CommonOptionBag.AddCompileSuffix,
-    CommonOptionBag.SystemModule
+    CommonOptionBag.SystemModule,
+    IExecutableBackend.TranslationRecords,
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -75,6 +74,7 @@ public static class DafnyCommands {
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.AllowWarnings,
+    CommonOptionBag.WarnAsErrors
   });
 
   public static readonly IReadOnlyList<Option> ParserOptions = new List<Option>(new Option[] {
@@ -89,21 +89,25 @@ public static class DafnyCommands {
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
     CommonOptionBag.UseBaseFileName,
+    CommonOptionBag.EmitUncompilableCode,
     CommonOptionBag.GeneralTraits,
     CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
-    CommonOptionBag.ReadsClausesOnMethods,
+    Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {
+    CommonOptionBag.ShowHints,
     CommonOptionBag.WarnShadowing,
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
     CommonOptionBag.AllowAxioms,
+    MethodOrFunction.AllowExternalContracts,
+    DafnyProject.FindProjectOption
   }).Concat(ParserOptions).ToList();
 }

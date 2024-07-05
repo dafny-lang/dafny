@@ -96,7 +96,7 @@ These commands are described in [Section 13.6.1](#sec-dafny-commands).
 [^fn-duplicate-files]: Files may be included more than once or both included and listed on the command line. Duplicate inclusions are detected and each file processed only once.
 For the purpose of detecting duplicates, file names are considered equal if they have the same absolute path, compared as case-sensitive strings (regardless of whether the underlying file-system is case sensitive).  Using symbolic links may make the same file have a different absolute path; this will generally cause duplicate declaration errors.
 
-### 13.3.1. Dafny Build Artifacts: the Library Backend and .doo Files {#sec-doo-files}
+### 13.3.1. Dafny Verification Artifacts: the Library Backend and .doo Files {#sec-doo-files}
 
 As of Dafny 4.1, `dafny` now supports outputting a single file containing
 a fully-verified program along with metadata about how it was verified.
@@ -130,6 +130,33 @@ A `.doo` file is a compressed archive of multiple files, similar to the `.jar` f
 The exact file format is internal and may evolve over time to support additional features.
 
 Note that the library backend only supports the [newer command-style CLI interface](#sec-dafny-commands).
+
+### 13.3.2. Dafny Translation Artifacts: .dtr Files {#sec-dtr-files}
+
+Some options, such as `--outer-module` or `--optimize-erasable-datatype-wrapper`,
+affect what target language code the same Dafny code is translated to.
+In order to translate Dafny libaries separately from their consuming codebases,
+the translation process for consuming code needs to be aware
+of what options were used when translating the library.
+
+For example, if a library defines a `Foo()` function in an `A` module,
+but `--outer-module org.coolstuff.foolibrary.dafnyinternal` is specified when translating the library to Java,
+then a reference to `A.Foo()` in a consuming Dafny project
+needs to be translated to `org.coolstuff.foolibrary.dafnyinternal.A.Foo()`,
+independently of what value of `--outer-module` is used for the consuming project.
+
+To meet this need,
+`dafny translate` also outputs a `<program-name>-<target id>.dtr` Dafny Translation Record file.
+Like `.doo` files, `.dtr` files record all the relevant options that were used,
+in this case relevant to translation rather than verification.
+These files can be provided to future calls to `dafny translate` using the `--translation-record` option,
+in order to provide the details of how various libraries provided with the `--library` flag were translated.
+
+Currently `--outer-module` is the only option recorded in `.dtr` files,
+but more relevant options will be added in the future.
+A later version of Dafny will also require `.dtr` files that cover all modules
+that are defined in `--library` options,
+to support checking that all relevant options are compatible.
 
 ## 13.4. Dafny Standard Libraries
 
@@ -280,12 +307,12 @@ Various options control the verification process, in addition to all those descr
    - `--relax-definite-assignment`
    - `--track-print-effects`
    - `--disable-nonlinear-arithmetic`
+   - `--filter-symbol`
 
 - Control of the proof engine
    - `--manual-lemma-induction`
    - `--verification-time-limit`
    - `--boogie`
-   - `--boogie-filter`
    - `--solver-path`
 
 
@@ -825,6 +852,8 @@ Here's an example of a Dafny project file:
 includes = ["src/**/*.dfy"]
 excludes = ["**/ignore.dfy"]
 
+base = ["../commonOptions.dfyconfig.toml"]
+
 [options]
 enforce-determinism = true
 warn-shadowing = true
@@ -839,6 +868,8 @@ The `excludes` does not remove any files that are listed explicitly on the comma
 - When executing a `dafny` command using a project file, any options specified in the file that can be applied to the command, will be. Options that can't be applied are ignored; options that are invalid for any dafny command trigger warnings.
 - Options specified on the command-line take precedence over any specified in the project file, no matter the order of items on the command-line.
 - When using a Dafny IDE based on the `dafny server` command, the IDE will search for project files by traversing up the file tree looking for the closest `dfyconfig.toml` file to the dfy being parsed that it can find. Options from the project file will override options passed to `dafny server`.
+
+- The field 'base' can be used to let one project file inherit options from another. If an option is specified in both, then the value specified in the inheriting project is used. Includes from the inheritor override excludes from the base.
 
 It's not possible to use Dafny project files in combination with the legacy CLI UI.
 
@@ -1012,6 +1043,13 @@ This list is not exhaustive but can definitely be useful to provide the next ste
   `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br><br><br>&nbsp;&nbsp;`  var x := m(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  assert forall x :: B(k, x) ==> P(x);`<br>&nbsp;&nbsp;`  var x := m(k);`<br>&nbsp;&nbsp;`  assert P(x);`
   `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br><br><br><br><br>&nbsp;&nbsp;`  var x := m_mod(a);`<br>&nbsp;&nbsp;`  assert P(x);` | `method m_mod(i) returns (j: T)`<br>&nbsp;&nbsp;`  requires A(i)`<br>&nbsp;&nbsp;`  modifies this, i`<br>&nbsp;&nbsp;`  ensures B(i, j)`<br>`{`<br>&nbsp;&nbsp;`  ...`<br>`}`<br><br>`method n_mod() {`<br>&nbsp;&nbsp;`  ...`<br>&nbsp;&nbsp;`  assert A(k);`<br>&nbsp;&nbsp;`  modify this, i; // Temporarily`<br>&nbsp;&nbsp;`  var x: T;     // Temporarily`<br>&nbsp;&nbsp;`  assume B(k, x);`<br>&nbsp;&nbsp;`//  var x := m_mod(k);`<br>&nbsp;&nbsp;`  assert P(x);`
   <br>`modify x, y;`<br>`assert P(x, y, z);` | `assert x != z && y != z;`<br>`modify x, y;`<br>`assert P(x, y, z);`
+
+#### 13.7.1.4. Counterexamples {#sec-counterexamples}
+
+When verification fails, we can rerun Dafny with `--extract-counterexample` flag to get a counterexample that can potentially explain the proof failure.
+Note that Danfy cannot guarantee that the counterexample it reports provably violates the assertion it was generated for (see [^smt-encoding])
+The counterexample takes the form of assumptions that can be inserted into the code to describe the potential conditions under which the given assertion is violated. 
+This output should be inspected manually and treated as a hint.
 
 ### 13.7.2. Verification debugging when verification is slow {#sec-verification-debugging-slow}
 
@@ -1434,7 +1472,7 @@ The fundamental unit of verification in `dafny` is an _assertion batch_, which c
 * If the verifier says it is correct,[^smt-encoding] it means that all the assertions hold.
 * If the verifier returns a counterexample, this counterexample is used to determine both the failing assertion and the failing path.
   In order to retrieve additional failing assertions, `dafny` will again query the verifier after turning previously failed assertions into assumptions.[^example-assertion-turned-into-assumption] [^caveat-about-assertion-and-assumption]
-* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, `dafny` may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:vcs_split_on_every_assert}` attribute](#sec-vcs_split_on_every_assert), which causes `dafny` to make one batch for each assertion.
+* If the verifier returns `unknown` or times out, or even preemptively for difficult assertions or to reduce the chance that the verifier will ‘be confused’ by the many assertions in a large batch, `dafny` may partition the assertions into smaller batches[^smaller-batches]. An extreme case is the use of the `/vcsSplitOnEveryAssert` command-line option or the [`{:isolate_assertions}` attribute](#sec-isolate_assertions), which causes `dafny` to make one batch for each assertion.
 
 [^smt-encoding]: The formula sent to the underlying SMT solver is the negation of the formula that the verifier wants to prove - also called a VC or verification condition. Hence, if the SMT solver returns "unsat", it means that the SMT formula is always false, meaning the verifier's formula is always true. On the other side, if the SMT solver returns "sat", it means that the SMT formula can be made true with a special variable assignment, which means that the verifier's formula is false under that same variable assignment, meaning it's a counter-example for the verifier. In practice and because of quantifiers, the SMT solver will usually return "unknown" instead of "sat", but will still provide a variable assignment that it couldn't prove that it does not make the formula true. `dafny` reports it as a "counter-example" but it might not be a real counter-example, only provide hints about what `dafny` knows.
 
@@ -1450,7 +1488,7 @@ Here is how you can control how `dafny` partitions assertions into batches.
 
 * [`{:focus}`](#sec-focus) on an assert generates a separate assertion batch for the assertions of the enclosing block.
 * [`{:split_here}`](#sec-split_here) on an assert generates a separate assertion batch for assertions after this point.
-* [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) on a function or a method generates one assertion batch per assertion
+* [`{:isolate_assertions}`](#sec-isolate_assertions) on a function or a method generates one assertion batch per assertion
 
 We discourage the use of the following _heuristics attributes_ to partition assertions into batches.
 The effect of these attributes may vary, because they are low-level attributes and tune low-level heuristics, and will result in splits that could be manually controlled anyway.
@@ -2316,6 +2354,12 @@ and what information it produces about the verification process.
 
 * `--isolate-assertions` - verify assertions individually
 
+* `--extract-counterexample` - if verification fails, report a potential
+  counterexample as a set of assumptions that can be inserted into the code.
+  Note that Danfy cannot guarantee that the counterexample
+  it reports provably violates the assertion or that the assumptions are not
+  mutually inconsistent (see [^smt-encoding]), so this output should be inspected manually and treated as a hint.
+
 Controlling the proof engine:
 
 * `--cores:<n>` - sets the number or percent of the available cores to be used for verification
@@ -2468,13 +2512,6 @@ Legacy options:
 
   * `1` (default) - in the body of prefix lemmas, rewrite any use of a
     focal predicate `P` to `P#[_k-1]`.
-
-* `-extractCounterexample` - control generation of counterexamples. If
-  verification fails, report a detailed counterexample for the first
-  failing assertion. Requires specifying the `-mv` option, to specify
-  where to write the counterexample, as well as the
-  `-proverOpt:O:model_compress=false` and
-  `-proverOpt:O:model.completion=true` options.
 
 ### 13.9.8. Controlling compilation {#sec-controlling-compilation}
 
@@ -2643,8 +2680,6 @@ terminology.
 
 * `--solver-plugin` - specifies a plugin to use as the SMT solver, instead of an external pdafny translaterocess
 
-* `--boogie-filter` - restricts the set of verification tasks (for debugging) 
-
 * `--boogie` - arguments to send to boogie
 
 Legacy options:
@@ -2681,7 +2716,7 @@ Legacy options:
 
 * `-vcsSplitOnEveryAssert` - prove each (explicit or implicit) assertion
   in each procedure separately. See also the attribute
-  [`{:vcs_split_on_every_assert}`](#sec-vcs_split_on_every_assert) for
+  [`{:isolate_assertions}`](#sec-isolate_assertions) for
   restricting this option on specific procedures. By default, Boogie
   attempts to prove that every assertion in a given procedure holds all
   at once, in a single query to an SMT solver. This usually performs

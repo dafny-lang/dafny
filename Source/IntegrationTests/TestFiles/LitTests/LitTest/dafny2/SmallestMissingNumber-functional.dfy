@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --allow-warnings --relax-definite-assignment
 
 // Smallest missing number problem, functional version without duplicates.
 // A purely functional solution to the programming problem in Richard Bird's
@@ -216,7 +216,7 @@ ghost function IntRange(lo: nat, len: nat): set<nat>
 
 // ----- Proofs of alternative versions
 
-lemma {:vcs_split_on_every_assert} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:isolate_assertions} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)
@@ -251,7 +251,7 @@ lemma {:vcs_split_on_every_assert} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   }
 }
 
-lemma {:vcs_split_on_every_assert} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
+lemma {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
   requires forall x :: x in Elements(xs) ==> n <= x
   requires len == Length(xs)

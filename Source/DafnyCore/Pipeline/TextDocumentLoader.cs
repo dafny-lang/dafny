@@ -31,26 +31,28 @@ namespace Microsoft.Dafny {
     public async Task<Program> ParseAsync(Compilation compilation, CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => parser.Parse(compilation, cancellationToken), cancellationToken
+        () => parser.Parse(compilation, cancellationToken), cancellationToken
 #pragma warning restore CS1998
       );
     }
 
-    public async Task<ResolutionResult> ResolveAsync(Compilation compilation,
+    public async Task<ResolutionResult?> ResolveAsync(Compilation compilation,
       Program program,
       CancellationToken cancellationToken) {
 #pragma warning disable CS1998
       return await await DafnyMain.LargeStackFactory.StartNew(
-        async () => ResolveInternal(compilation, program, cancellationToken), cancellationToken);
+        () => ResolveInternal(compilation, program, cancellationToken), cancellationToken);
 #pragma warning restore CS1998
     }
 
-    private ResolutionResult ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
+    private async Task<ResolutionResult?> ResolveInternal(Compilation compilation, Program program, CancellationToken cancellationToken) {
       if (program.HasParseErrors) {
-        throw new TaskCanceledException();
+        return null;
       }
 
-      symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
+      await symbolResolver.ResolveSymbols(compilation, program, cancellationToken);
+
+      compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
 
       List<ICanVerify>? verifiables;
       if (compilation.HasErrors) {

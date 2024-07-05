@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:datatype /generalNewtypes:0 "%s" > "%t"
-// RUN: %exits-with 2 %dafny /typeSystemRefresh:1 /generalTraits:datatype /generalNewtypes:1 "%s" >> "%t"
+// RUN: %exits-with 2 %build --type-system-refresh --general-traits datatype --general-newtypes false "%s" > "%t"
+// RUN: %exits-with 2 %build --type-system-refresh --general-traits datatype --general-newtypes true "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module VariousBaseTypes {
@@ -29,7 +29,7 @@ module VariousBaseTypes {
   newtype NotNumeric1 = b | !b // error: cannot base newtype on bool
   newtype NotNumeric2 = b: bool | true // error: cannot base newtype on bool
 
-  // The following are always errors
+  // The following are always errors (more tests like these in ArrowBaseTypes below)
 
   newtype MyOrdinal = ORDINAL // error: cannot base newtype on ORDINAL
 
@@ -534,5 +534,165 @@ module ForallStatementRegression {
       a[i] := i as int;
     }
     print a[..], "\n";
+  }
+}
+
+module Collections {
+  newtype IntSet = s: set<int> | true
+
+  method TestSet() {
+    var s: IntSet := {};
+    var u: set<int> := {};
+    u := s; // error: needs "as"
+    s := u; // error: needs "as"
+    u := s as set<int>; // like this!
+    s := u as IntSet; // like this!
+  }
+}
+
+module ArrowBaseTypes {
+  newtype GeneralArrow = f: int ~> real | true // error: cannot base newtype on arrow type
+  newtype PartialArrow = f: (bv8, bv9, char) ~> (ghost int, ghost bv2) | true // error: cannot base newtype on arrow type
+  newtype TotalArrow = f: () -> bool | true // error: cannot base newtype on arrow type
+
+  type ArrowSubsetType = f: (int) --> int | true
+  newtype NewtypeOnArrowSubsetType = g: ArrowSubsetType | true // error: cannot base newtype on any arrow type
+
+  trait Trait { const u: int }
+  type SmallTrait = t: Trait | t.u == 18
+  newtype NewSmallTrait = st: SmallTrait | true // error: cannot base newtype on any kind of trait
+
+  type RestrictedOrdinal = o: ORDINAL | true
+  newtype NewRestrictedOrdinal = st: SmallTrait | true // error: cannot base newtype on any kind of ORDINAL
+}
+
+module SubSequences {
+  newtype MySequence = s: seq<int> | true
+  newtype AnotherSequence = s: seq<int> | true
+
+  method FromSeqToMySequence(s: seq<int>) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2]; // error: cannot assign seq to MySequence (without a cast)
+    r := s[2..]; // error: cannot assign seq to MySequence (without a cast)
+    r := s[1..3]; // error: cannot assign seq to MySequence (without a cast)
+    r := s[..]; // error: cannot assign seq to MySequence (without a cast)
+  }
+
+  method FromSeqToMySequenceWithCasts(s: seq<int>) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2] as MySequence;
+    r := s[2..] as MySequence;
+    r := s[1..3] as MySequence;
+    r := s[..] as MySequence;
+  }
+
+  method FromAnotherSequenceToMySequence(s: AnotherSequence) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+    r := s[2..]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+    r := s[1..3]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+    r := s[..]; // error: cannot assign AnotherSequence to MySequence (without a cast)
+  }
+
+  method FromAnotherSequenceToMySequenceWithCasts(s: AnotherSequence) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2] as MySequence;
+    r := s[2..] as MySequence;
+    r := s[1..3] as MySequence;
+    r := s[..] as MySequence;
+  }
+
+  method FromMySequenceToMySequence(s: MySequence) returns (r: MySequence)
+    requires |s| == 4
+  {
+    r := s[..2];
+    r := s[2..];
+    r := s[1..3];
+    r := s[..];
+  }
+
+  method FromMySequenceToSeq(s: MySequence) returns (r: seq<int>)
+    requires |s| == 4
+  {
+    r := s[..2]; // error: cannot assign MySequence to seq (without a cast)
+    r := s[2..]; // error: cannot assign MySequence to seq (without a cast)
+    r := s[1..3]; // error: cannot assign MySequence to seq (without a cast)
+    r := s[..]; // error: cannot assign MySequence to seq (without a cast)
+  }
+
+  method FromMySequenceToSeqWithCasts(s: MySequence) returns (r: seq<int>)
+    requires |s| == 4
+  {
+    r := s[..2] as seq<int>;
+    r := s[2..] as seq<int>;
+    r := s[1..3] as seq<int>;
+    r := s[..] as seq<int>;
+  }
+
+  method FromArrayToMySequence(arr: array<int>) returns (r: MySequence)
+    requires arr.Length == 4
+  {
+    r := arr[..2];
+    r := arr[2..];
+    r := arr[1..3];
+    r := arr[..];
+  }
+}
+
+module TLAStyleOperators {
+  newtype MyBool = bool
+
+  function A(): MyBool {
+    && true
+  }
+
+  function B(b: MyBool): MyBool {
+    && b
+  }
+
+  function C(b: bool): MyBool {
+    && b // error: got bool, expected MyBool
+  }
+
+  function D(x: int): MyBool {
+    && x // error: got int, expected MyBool
+  }
+
+  function E(): MyBool {
+    && true
+    && false
+  }
+
+  function F(b: bool): MyBool {
+    && true
+    && b // error: got bool, expected MyBool
+  }
+
+  predicate P(b: MyBool) {
+    b // error: got bool, expected MyBool
+  }
+
+  predicate Q(b: MyBool) {
+    && b // error: got bool, expected MyBool
+  }
+
+  predicate R(b: MyBool) {
+    && b && b // error: got bool, expected MyBool
+  }
+
+  predicate S(b: MyBool) {
+    && b as bool
+  }
+
+  predicate T(b: MyBool) {
+    && (b as bool) // same as in S
+  }
+
+  predicate U(b: MyBool) {
+    (&& b) as bool
   }
 }

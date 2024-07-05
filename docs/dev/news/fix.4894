@@ -1,1 +1,0 @@
-Fixed a crash that could occur when a case body of a match that was inside a loop, had a continue or break statement.  

@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %dafny /env:0 /dprint:- /noVerify "%s" > "%t"
-// RUN: %exits-with 2 %dafny /env:0 /dprint:- /noVerify /typeSystemRefresh:1 "%s" > "%t.refresh"
+// RUN: %exits-with 2 %build --print:- --no-verify "%s" > "%t"
+// RUN: %exits-with 2 %build --print:- --no-verify --type-system-refresh "%s" > "%t.refresh"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %diff "%s.expect" "%t.refresh"
 

@@ -1931,7 +1931,7 @@ it cannot be verified that `Random` actually satisfies this specification.
 
 To mitigate this situation somewhat, we can define a wrapper function, `Random'`,
 that calls `Random` but in which we can put some run-time checks:
-<!-- %check-resolve -->
+<!-- %check-resolve %options --allow-external-contracts -->
 ```dafny
 method {:extern} Random(n: nat) returns (r: nat)
 

@@ -8,7 +8,7 @@ git-issue-2197.dfy(10,10): Related location: this is the postcondition that coul
 10 |   ensures Test(y)
    |           ^^^^^^^
 
-git-issue-2197.dfy(6,2): Related location
+git-issue-2197.dfy(6,2): Related location: this proposition could not be proved
   |
 6 |   y >= 1
   |   ^^^^^^

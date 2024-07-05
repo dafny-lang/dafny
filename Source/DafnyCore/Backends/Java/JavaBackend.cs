@@ -6,6 +6,9 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using DafnyCore;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -25,6 +28,19 @@ public class JavaBackend : ExecutableBackend {
 
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
+
+  public static readonly Option<bool> LegacyDataConstructors = new("--legacy-data-constructors",
+    @"
+Generate unsafe, deprecated data constructor methods that do not take type descriptors, 
+for backwards compatibility with Java code generated with Dafny versions earlier than 4.3.".TrimStart()) {
+    IsHidden = true
+  };
+  static JavaBackend() {
+    DafnyOptions.RegisterLegacyUi(LegacyDataConstructors, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyDataConstructors", defaultValue: false);
+    DooFile.RegisterNoChecksNeeded(LegacyDataConstructors, false);
+  }
+
+  public override IEnumerable<Option> SupportedOptions => new List<Option> { LegacyDataConstructors };
 
   public override void CleanSourceDirectory(string sourceDirectory) {
     try {
@@ -52,16 +68,17 @@ public class JavaBackend : ExecutableBackend {
     outStream.Close();
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    compilationResult = null;
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename, /*?*/
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".java") {
-        outputWriter.WriteLine($"Unrecognized file as extra input for Java compilation: {otherFileName}");
-        return false;
+        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Java compilation: {otherFileName}");
+        return (false, null);
       }
       if (!CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
-        return false;
+        return (false, null);
       }
     }
 
@@ -76,8 +93,8 @@ public class JavaBackend : ExecutableBackend {
     var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-    if (0 != RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
-      return false;
+    if (0 != await RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
+      return (false, null);
     }
 
     var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
@@ -85,12 +102,12 @@ public class JavaBackend : ExecutableBackend {
 
     var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
     var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
-    if (!CreateJar(callToMain == null ? null : simpleProgramName,
+    if (!await CreateJar(callToMain == null ? null : simpleProgramName,
                    jarPath,
                    Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
                    classFiles,
                    outputWriter)) {
-      return false;
+      return (false, null);
     }
 
     // Keep the build artifacts if --spill-translation is true
@@ -106,24 +123,24 @@ public class JavaBackend : ExecutableBackend {
     if (Options.Verbose) {
       // For the sake of tests, just write out the filename and not the directory path
       var fileKind = callToMain != null ? "executable" : "library";
-      outputWriter.WriteLine($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
+      await outputWriter.WriteLineAsync($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
     }
 
-    return true;
+    return (true, null);
   }
 
 
-  public bool CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
+  public async Task<bool> CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
     Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
     var args = entryPointName == null ? // If null, then no entry point is added
         new List<string> { "cf", jarPath }
         : new List<string> { "cfe", jarPath, entryPointName };
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
-    return 0 == RunProcess(jarCreationProcess, outputWriter, outputWriter, "Error while creating jar file: " + jarPath);
+    return 0 == await RunProcess(jarCreationProcess, outputWriter, outputWriter, "Error while creating jar file: " + jarPath);
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string targetFilename, /*?*/
     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
     TextWriter errorWriter) {
@@ -133,7 +150,7 @@ public class JavaBackend : ExecutableBackend {
         .Concat(Options.MainArgs));
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
+    return 0 == await RunProcess(psi, outputWriter, errorWriter);
   }
 
   private string GetClassPath(string targetFilename) {

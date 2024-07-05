@@ -27,29 +27,31 @@ public class JavaScriptBackend : ExecutableBackend {
     return new JavaScriptCodeGenerator(Options, Reporter);
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-    compilationResult = null;
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter) {
     if (runAfterCompile) {
       Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
                                             // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
                                             // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
                                             // will run the program.
-      return true;
+      return (true, null);
     } else {
       // compile now
-      return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
+      return (await SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter), null);
     }
   }
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain /*?*/,
+  public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
 
     return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
   }
 
-  bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+  async Task<bool> SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
     TextWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
@@ -65,26 +67,22 @@ public class JavaScriptBackend : ExecutableBackend {
       foreach (var filename in otherFileNames) {
         WriteFromFile(filename, nodeProcess.StandardInput);
       }
-      nodeProcess.StandardInput.Write(targetProgramText);
+      await nodeProcess.StandardInput.WriteAsync(targetProgramText);
       if (callToMain != null && Options.RunAfterCompile) {
-        nodeProcess.StandardInput.WriteLine("require('process').stdout.setEncoding(\"utf-8\");");
-        nodeProcess.StandardInput.WriteLine("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", Options.MainArgs.Select(((JavaScriptCodeGenerator)codeGenerator).ToStringLiteral)) + "];");
-        nodeProcess.StandardInput.Write(callToMain);
+        await nodeProcess.StandardInput.WriteLineAsync("require('process').stdout.setEncoding(\"utf-8\");");
+        await nodeProcess.StandardInput.WriteLineAsync("require('process').argv = [\"node\",\"stdin\", " + string.Join(",", Options.MainArgs.Select(((JavaScriptCodeGenerator)codeGenerator).ToStringLiteral)) + "];");
+        await nodeProcess.StandardInput.WriteAsync(callToMain);
       }
-      nodeProcess.StandardInput.Flush();
+      await nodeProcess.StandardInput.FlushAsync();
       nodeProcess.StandardInput.Close();
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
-      var errorProcessing = Task.Run(() => {
-        PassthroughBuffer(nodeProcess.StandardError, Options.ErrorWriter);
-      });
-      PassthroughBuffer(nodeProcess.StandardOutput, Options.OutputWriter);
-      nodeProcess.WaitForExit();
-#pragma warning disable VSTHRD002
-      errorProcessing.Wait();
-#pragma warning restore VSTHRD002
+      await PassthroughBuffer(nodeProcess.StandardError, Options.ErrorWriter);
+      await PassthroughBuffer(nodeProcess.StandardOutput, Options.OutputWriter);
+      await nodeProcess.WaitForExitAsync();
+#pragma warning disable VSTHRD00
       return nodeProcess.ExitCode == 0;
     } catch (System.ComponentModel.Win32Exception e) {
-      outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
+      await outputWriter.WriteLineAsync($"Error: Unable to start node.js ({psi.FileName}): {e.Message}");
       return false;
     }
   }

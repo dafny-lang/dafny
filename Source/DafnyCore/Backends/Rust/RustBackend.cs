@@ -1,16 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
 public class RustBackend : DafnyExecutableBackend {
+  protected override bool PreventShadowing => false;
+  protected override string InternalFieldPrefix => "_i_";
 
   public override IReadOnlySet<string> SupportedExtensions => new HashSet<string> { ".rs" };
   public override string TargetName => "Rust";
@@ -21,6 +24,9 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
 
+  public override IReadOnlySet<string> SupportedNativeTypes =>
+    new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
+
   public override string TargetBasename(string dafnyProgramName) =>
     Regex.Replace(base.TargetBasename(dafnyProgramName), "[^_A-Za-z0-9]", "_");
 
@@ -28,7 +34,7 @@ public class RustBackend : DafnyExecutableBackend {
     $"{Path.GetFileNameWithoutExtension(dafnyProgramName)}-rust/src";
 
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
-    return new RustCodeGenerator();
+    return new RustCodeGenerator(Options);
   }
 
   private string ComputeExeName(string targetFilename) {
@@ -40,9 +46,10 @@ public class RustBackend : DafnyExecutableBackend {
     }
   }
 
-  public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText,
-      string /*?*/ callToMain, string /*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
-      bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+  public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
+    string targetProgramText,
+    string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
+    bool runAfterCompile, TextWriter outputWriter) {
     var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
     var runtimeDirectory = Path.Combine(targetDirectory, "runtime");
     if (Directory.Exists(runtimeDirectory)) {
@@ -75,35 +82,34 @@ public class RustBackend : DafnyExecutableBackend {
       stream.CopyTo(outFile);
     });
 
-    using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
-      using var cargoTomlWriter = new StreamWriter(cargoToml);
-      cargoTomlWriter.WriteLine("[package]");
+    await using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
+      await using var cargoTomlWriter = new StreamWriter(cargoToml);
+      await cargoTomlWriter.WriteLineAsync("[package]");
       var packageName = Path.GetFileNameWithoutExtension(targetFilename);
       // package name cannot start with a digit
       if (char.IsDigit(packageName[0])) {
         packageName = "_" + packageName;
       }
-      cargoTomlWriter.WriteLine("name = \"{0}\"", packageName);
-      cargoTomlWriter.WriteLine("version = \"0.1.0\"");
-      cargoTomlWriter.WriteLine("edition = \"2021\"");
-      cargoTomlWriter.WriteLine();
-      cargoTomlWriter.WriteLine("[dependencies]");
-      cargoTomlWriter.WriteLine("dafny_runtime = { path = \"runtime\" }");
-      cargoTomlWriter.WriteLine();
+      await cargoTomlWriter.WriteLineAsync($"name = \"{packageName}\"");
+      await cargoTomlWriter.WriteLineAsync("version = \"0.1.0\"");
+      await cargoTomlWriter.WriteLineAsync("edition = \"2021\"");
+      await cargoTomlWriter.WriteLineAsync();
+      await cargoTomlWriter.WriteLineAsync("[dependencies]");
+      await cargoTomlWriter.WriteLineAsync("dafny_runtime = { path = \"runtime\" }");
+      await cargoTomlWriter.WriteLineAsync();
 
       if (callToMain == null) {
-        cargoTomlWriter.WriteLine("[lib]");
-        cargoTomlWriter.WriteLine("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
-        cargoTomlWriter.WriteLine();
+        await cargoTomlWriter.WriteLineAsync("[lib]");
+        await cargoTomlWriter.WriteLineAsync("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
+        await cargoTomlWriter.WriteLineAsync();
       } else {
-        cargoTomlWriter.WriteLine("[[bin]]");
-        cargoTomlWriter.WriteLine("name = \"{0}\"", Path.GetFileNameWithoutExtension(targetFilename));
-        cargoTomlWriter.WriteLine("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
-        cargoTomlWriter.WriteLine();
+        await cargoTomlWriter.WriteLineAsync("[[bin]]");
+        await cargoTomlWriter.WriteLineAsync($"name = \"{Path.GetFileNameWithoutExtension(targetFilename)}\"");
+        await cargoTomlWriter.WriteLineAsync("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
+        await cargoTomlWriter.WriteLineAsync();
       }
     }
 
-    compilationResult = null;
     var args = new List<string> {
       "build",
       "--quiet"
@@ -118,14 +124,17 @@ public class RustBackend : DafnyExecutableBackend {
 
     var psi = PrepareProcessStartInfo("cargo", args);
     psi.WorkingDirectory = targetDirectory;
-    return 0 == RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files.");
+    return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
   }
+  public override Encoding OutputWriterEncoding => Encoding.UTF8;
 
-  public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain,
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain, /*?*/
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
+    TextWriter errorWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == RunProcess(psi, outputWriter, errorWriter);
+    return 0 == await RunProcess(psi, outputWriter, errorWriter);
   }
 
   public RustBackend(DafnyOptions options) : base(options) {

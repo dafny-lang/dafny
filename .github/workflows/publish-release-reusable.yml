@@ -35,7 +35,7 @@ env:
 jobs:
 
   publish-release:
-    runs-on: macos-latest   # Put back 'ubuntu-20.04' if macos-latest fails in any way
+    runs-on: macos-13   # Put back 'ubuntu-20.04' if macos-latest fails in any way
     steps:
     - name: Print version
       run: echo ${{ inputs.name }}
@@ -147,7 +147,7 @@ jobs:
 
     - name: Create GitHub release (release)
       if: ${{ !inputs.prerelease }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}
@@ -162,7 +162,7 @@ jobs:
     # This step is separate from the release one because the refman is omitted
     - name: Create GitHub release (prerelease)
       if: ${{ inputs.prerelease }}
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: Dafny ${{ inputs.name }}
         tag_name: ${{ inputs.tag_name }}

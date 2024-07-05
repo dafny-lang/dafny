@@ -8,8 +8,6 @@ using VC;
 namespace Microsoft.Dafny {
   public record AssertionBatchResult(Implementation Implementation, VerificationRunResult Result);
 
-  public record ProgramVerificationTasks(IReadOnlyList<IVerificationTask> Tasks);
-
   /// <summary>
   /// Implementations of this interface are responsible to verify the correctness of a program.
   /// </summary>

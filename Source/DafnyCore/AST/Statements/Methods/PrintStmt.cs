@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
@@ -17,8 +18,8 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     });
 
     DooFile.RegisterLibraryChecks(
-      checks: new Dictionary<Option, DooFile.OptionCheck> {
-        { TrackPrintEffectsOption, DooFile.CheckOptionLocalImpliesLibrary }
+      checks: new Dictionary<Option, OptionCompatibility.OptionCheck> {
+        { TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary }
       });
   }
 

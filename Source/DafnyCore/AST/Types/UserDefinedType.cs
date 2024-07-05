@@ -6,13 +6,13 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class UserDefinedType : NonProxyType, IHasUsages {
+public class UserDefinedType : NonProxyType, IHasReferences {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(tok != null);
     Contract.Invariant(Name != null);
     Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(NamePath is NameSegment || NamePath is ExprDotName);
+    Contract.Invariant(NamePath is NameSegment or ExprDotName);
     Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
   }
 
@@ -522,8 +522,8 @@ public class UserDefinedType : NonProxyType, IHasUsages {
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 
-  public IToken NameToken => tok;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
+  public IToken NavigationToken => tok;
+  public IEnumerable<IHasNavigationToken> GetReferences() {
     return new[] { ResolvedClass };
   }
 

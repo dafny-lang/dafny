@@ -1,9 +1,10 @@
-## The `Relations` module
+# The `Relations` module
 
-The `Relations` module defines a number of properties on relations, 
+The `Relations` module defines a number of properties on relations,
 where the relation is defined by a predicate that takes two values of the same type.
 
 Example properties:
+
 - Reflexive: `R(x,x)` is true
 - Irreflexive: `R(x,x)` is false
 - AntiSymmetric: `R(x,y) && R(y,x) ==> x==y`
