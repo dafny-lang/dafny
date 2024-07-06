@@ -24,6 +24,10 @@ module RAST
     | Mod(name: string, body: seq<ModDecl>)
     | ExternMod(name: string)
   {
+    function Fold<T>(acc: T, accBuilder: (T, ModDecl) -> T): T {
+      if ExternMod? then acc else
+      Std.Collections.Seq.FoldLeft(accBuilder, acc, body)
+    }
     function ToString(ind: string): string
       decreases this
     {
@@ -31,11 +35,19 @@ module RAST
         case ExternMod(name) =>
           "pub mod " + name + ";"
         case Mod(name, body) =>
-          "pub mod " + name + " {" + "\n" + ind + IND +
+          /* If the module does not start with "use", just separate declarations by one blank line
+             If the module starts with "use", add blank lines only after use declarations */
+          var startWithUse := |body| > 0 && body[0].UseDecl?;
+          var prefixIfNotUseDecl := if startWithUse then "\n" + ind + IND else "";
+          var prefixIfUseDecl := if startWithUse then ind + IND else "";
+          var infixDecl := if startWithUse then "\n" else "\n\n" + ind + IND;
+          var initialIdent := if startWithUse then "" else ind + IND;
+          "pub mod " + name + " {" + "\n" + initialIdent +
           SeqToString(
             body,
             (modDecl: ModDecl) requires modDecl < this =>
-              modDecl.ToString(ind + IND), "\n\n" + ind + IND)
+              (if modDecl.UseDecl? then prefixIfUseDecl else prefixIfNotUseDecl) +
+              modDecl.ToString(ind + IND), infixDecl)
           + "\n" + ind + "}"
       }
     }
@@ -47,7 +59,6 @@ module RAST
     f(s[0]) + (if |s| > 1 then separator + SeqToString(s[1..], f, separator) else "")
   }
   datatype ModDecl =
-    | RawDecl(body: string)
     | ModDecl(mod: Mod)
     | StructDecl(struct: Struct)
     | TypeDecl(tpe: TypeSynonym)
@@ -69,8 +80,7 @@ module RAST
       else if ConstDecl? then c.ToString(ind)
       else if TraitDecl? then tr.ToString(ind)
       else if TopFnDecl? then fn.ToString(ind)
-      else if UseDecl? then use.ToString(ind)
-      else assert RawDecl?; body
+      else assert UseDecl?; use.ToString(ind)
     }
   }
   datatype Use = Use(visibility: Visibility, path: Path) {
@@ -354,8 +364,11 @@ module RAST
       || (IntersectionType? && right.EndsWithNameThatCanAcceptGenerics())
       || (TSynonym? && display.EndsWithNameThatCanAcceptGenerics())
     }
-    function Replace(mapping: map<Type, Type>): Type {
-      if this in mapping then mapping[this] else
+    function ReplaceMap(mapping: map<Type, Type>): Type {
+      Replace((t: Type) => if t in mapping then mapping[t] else t)
+    }
+    function Replace(mapping: Type -> Type): Type {
+      var r :=
       match this {
         case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | Bool => this
         case TIdentifier(_) => this
@@ -384,8 +397,46 @@ module RAST
           this.(underlying := underlying.Replace(mapping))
         case TSynonym(display, base) =>
           this.(display := display.Replace(mapping), base := base.Replace(mapping))
+      };
+      mapping(r)
+    }
+    
+    function Fold<T>(acc: T, f: (T, Type) -> T): T
+      // Traverses all types in a random order
+    {
+      var newAcc := f(acc, this);
+      match this {
+        case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | Bool => newAcc
+        case TIdentifier(_) => newAcc
+        case TypeFromPath(path) => newAcc
+        case TypeApp(baseName, arguments) =>
+          Std.Collections.Seq.FoldLeft(
+            (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
+            baseName.Fold(newAcc, f),
+            arguments)
+        case Borrowed(underlying) => underlying.Fold(newAcc, f)
+        case BorrowedMut(underlying) => underlying.Fold(newAcc, f)
+        case Pointer(underlying) => underlying.Fold(newAcc, f)
+        case PointerMut(underlying) => underlying.Fold(newAcc, f)
+        case ImplType(underlying) => underlying.Fold(newAcc, f)
+        case DynType(underlying) => underlying.Fold(newAcc, f)
+        case TupleType(arguments) =>
+          Std.Collections.Seq.FoldLeft(
+            (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
+            newAcc, arguments)
+        case FnType(arguments, returnType) =>
+          returnType.Fold(
+            Std.Collections.Seq.FoldLeft(
+            (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
+            newAcc, arguments),
+            f)
+        case IntersectionType(left, right) =>
+          right.Fold(left.Fold(newAcc, f), f)
+        case Array(underlying, size) => underlying.Fold(newAcc, f)
+        case TSynonym(display, base) => display.Fold(newAcc, f)
       }
     }
+
     predicate CanReadWithoutClone() {
       U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || Bool?
       || Pointer? || PointerMut? || (TSynonym? && base.CanReadWithoutClone())
@@ -1439,6 +1490,8 @@ module RAST
 }
 
 module {:extern "DCOMP"} DafnyToRustCompiler {
+  import FactorPathsOptimization
+
   import opened DAST
   import Strings = Std.Strings
   import Std
@@ -1789,6 +1842,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const ObjectType: ObjectType
 
     var error: Option<string>
+    
+    var optimizations: seq<R.Mod -> R.Mod>
 
     static const DAFNY_EXTERN_MODULE := "_dafny_externs"
 
@@ -1796,6 +1851,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.UnicodeChars := unicodeChars;
       this.ObjectType := objectType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
+      this.optimizations := [FactorPathsOptimization.apply];
       new;
       if objectType.RawPointers? {
         this.error := Some("Raw pointers need to be wrapped in a newtype so that their equality has the semantics of Dafny (e.g. a class pointer and a trait pointer are equal), not Rust."); 
@@ -2570,7 +2626,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var formalTpe := GenType(formalType, GenTypeContext.default());
 
           var newFormalType := formalType.Replace(coerceMap);
-          var newFormalTpe := formalTpe.Replace(rCoerceMap);
+          var newFormalTpe := formalTpe.ReplaceMap(rCoerceMap);
 
           var upcastConverter := UpcastConversionLambda(formalType, formalTpe, newFormalType, newFormalTpe, coerceMapToArg);
           if upcastConverter.Success? {
@@ -5382,6 +5438,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       for i := 0 to |p| {
         var m := GenModule(p[i], []);
+        for j := 0 to |optimizations| {
+          m := optimizations[j](m);
+        }
         s := s + "\n";
         s := s + m.ToString("");
       }

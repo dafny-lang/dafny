@@ -153,14 +153,59 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case ExpectStmt expectStmt: {
-            var s = expectStmt;
             // TODO there's potential here to use target-language specific features such as exceptions
             // to make it more target-language idiomatic and improve performance
-            ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
-            var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
-            negated.Type = Type.Bool;
-            EmitExpr(negated, false, guardWriter, wStmts);
-            EmitHalt(s.Tok, s.Message, bodyWriter);
+            if (expectStmt.Expr is BinaryExpr { Op: BinaryExpr.Opcode.Eq, ResolvedOp: var resolvedOp, E0: var e0, E1: var e1 }) {
+              // If it finds "expect a == b", it will rewrite the code to
+              // var _e0 = a;
+              // var _e1 = b;
+              // if _e0 != _e1 {
+              //   print "Left:"
+              //   print _e0;
+              //   print "Right:"
+              //   print _e1;
+              //   <Halt statement>
+              // }
+              var e0Name = ProtectedFreshId("_e0");
+              var e1Name = ProtectedFreshId("_e1");
+              var e0Var = new LocalVariable(new RangeToken(Token.NoToken, Token.NoToken), e0Name, e0.Type, false);
+              var e1Var = new LocalVariable(new RangeToken(Token.NoToken, Token.NoToken), e1Name, e0.Type, false);
+              DeclareLocalVar(IdName(e0Var), null, e0.Tok, e0, false, wr);
+              DeclareLocalVar(IdName(e1Var), null, e1.tok, e1, false, wr);
+              var e0Ident = new IdentifierExpr(e0.tok, e0Name) {
+                Type = e0.Type,
+                Var = e0Var
+              };
+              var e1Ident = new IdentifierExpr(e1.tok, e0Name) {
+                Type = e1.Type,
+                Var = e1Var
+              };
+
+              ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
+              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not, 
+                new BinaryExpr(expectStmt.Expr.tok, BinaryExpr.Opcode.Eq,
+                  e0Ident,
+                  e1Ident) {
+                  ResolvedOp = resolvedOp,
+                  Type = Type.Bool
+                }) {
+                Type = Type.Bool
+              };
+              EmitExpr(negated, false, guardWriter, wStmts);
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, "Left:\\n", false) { Type = Type.String()});
+              EmitPrintStmt(bodyWriter, e0Ident);
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, "Right:\\n", false) { Type = Type.String()});
+              EmitPrintStmt(bodyWriter, e1Ident);
+
+              EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
+            } else {
+              ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
+              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not, expectStmt.Expr) { Type = Type.Bool };
+              EmitExpr(negated, false, guardWriter, wStmts);
+
+              EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
+            }
+
             break;
           }
         case CallStmt callStmt: {

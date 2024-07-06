@@ -6,6 +6,14 @@ module DafnyToRustCompilerCoverage {
     import opened Std.Wrappers
     import opened DAST.Format
     import Strings = Std.Strings
+    import FactorPathsOptimizationTest
+
+    method TestExpr() {
+      TestOptimizeToString();
+      TestPrintingInfo();
+      TestNoExtraSemicolonAfter();
+      FactorPathsOptimizationTest.TestApply();
+    }
 
     method TestNoOptimize(e: Expr)
       //requires e.Optimize() == e // Too expensive
@@ -162,12 +170,6 @@ module DafnyToRustCompilerCoverage {
       AssertCoverage(BinaryOp(">>=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft));
       AssertCoverage(BinaryOp("?!?", x, y, bnf).printingInfo == PrecedenceAssociativity(0, RequiresParentheses));
       AssertCoverage(Break(None).printingInfo == UnknownPrecedence());
-    }
-
-    method TestExpr() {
-      TestOptimizeToString();
-      TestPrintingInfo();
-      TestNoExtraSemicolonAfter();
     }
 
     method AssertCoverage(x: bool)
