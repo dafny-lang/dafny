@@ -610,21 +610,18 @@ namespace Microsoft.Dafny.Compilers {
         var right = new ConcreteSyntaxTree();
         EmitExpr(litExpression, false, right, writer);
         EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
-        writer = thenWriter;
+        return thenWriter;
 
       } else if (pattern is IdPattern idPattern) {
-        if (idPattern.BoundVar != null) {
-          if (idPattern.BoundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
-            return writer;
-          }
-
-          var boundVar = idPattern.BoundVar;
+        if (idPattern.BoundVar == null) {
+          return EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
+        }
+        var boundVar = idPattern.BoundVar;
+        if (!boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
           var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
           valueWriter.Write(sourceName);
-          return writer;
-        } else {
-          writer = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
         }
+        return writer;
 
       } else if (pattern is DisjunctivePattern disjunctivePattern) {
         if (lastCase) {
@@ -639,12 +636,11 @@ namespace Microsoft.Dafny.Compilers {
         }
         writer = EmitIf(out var guardWriter, false, writer);
         guardWriter.Write(disjunctiveMatch);
+        return writer;
 
       } else {
         throw new Exception();
       }
-
-      return writer;
     }
 
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,
