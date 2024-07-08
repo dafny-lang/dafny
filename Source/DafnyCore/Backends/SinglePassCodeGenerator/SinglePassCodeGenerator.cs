@@ -573,11 +573,12 @@ namespace Microsoft.Dafny.Compilers {
     }
     protected abstract void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg);
     protected abstract void EmitReturn(List<Formal> outParams, ConcreteSyntaxTree wr);
-    protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
+    protected void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
-      var w = EmitReturnExpr(wr);
-      w = EmitCoercionIfNecessary(expr.Type, resultType, expr.tok, w);
-      EmitExpr(expr, inLetExprBody, w, wStmts);
+      wr = EmitReturnExpr(wr);
+      var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
+      wr = EmitCoercionIfNecessary(fromType, resultType, expr.tok, wr);
+      EmitExpr(expr, inLetExprBody, wr, wStmts);
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);

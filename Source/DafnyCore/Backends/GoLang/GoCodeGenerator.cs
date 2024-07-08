@@ -1985,14 +1985,6 @@ namespace Microsoft.Dafny.Compilers {
       EmitReturnWithCoercions(outParams, null, null, wr);
     }
 
-    protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
-      var w = EmitReturnExpr(wr);
-      var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-      w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
-      EmitExpr(expr, inLetExprBody, w, wStmts);
-    }
-
     protected void EmitReturnWithCoercions(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, Dictionary<TypeParameter, Type>/*?*/ typeMap, ConcreteSyntaxTree wr) {
       wr.Write("return");
       var sep = " ";
