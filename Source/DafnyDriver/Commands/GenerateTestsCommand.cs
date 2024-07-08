@@ -125,7 +125,7 @@ Path - Generate tests targeting path-coverage.");
   }
 
   public static readonly Option<bool> IgnoreWarnings = new("--ignore-warnings",
-    "Ignore warnings in error messages.");
+    "Ignore warnings when generating tests.");
 
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.");
