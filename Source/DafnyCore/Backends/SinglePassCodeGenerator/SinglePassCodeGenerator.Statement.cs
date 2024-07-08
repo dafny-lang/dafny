@@ -542,25 +542,29 @@ namespace Microsoft.Dafny.Compilers {
     /// Else, emit:
     /// 
     ///   BLOCK {
-    ///     var unmatched = true;
-    ///     if (unmatched && a is X) {
-    ///       var x1 = ((X)a).1;
-    ///       if (x1 is Y) {
-    ///         var b = ((Y)x1).1;
+    ///     {  // this defines the scope for any new local variables in the case
+    ///       if (a is X) {
+    ///         var x0 = ((X)a).0;
+    ///         if (x0 is Y) {
+    ///           var b = ((Y)x0).0;
     /// 
-    ///         var x2 = ((X)a).2; 
-    ///         if (x2 is Z) {
-    ///           var x4 = ((Z)x2).1;
-    ///           if (x4 is W) {
-    ///             var c = ((W)x4).1;
-    ///             body1;
+    ///           var x1 = ((X)a).1; 
+    ///           if (x1 is Z) {
+    ///             var xz0 = ((Z)x1).0;
+    ///             if (xz0 is W) {
+    ///               var c = ((W)xz0).0;
+    /// 
+    ///               body1;
+    ///               break BLOCK;
     ///           }
     ///         }
     ///       }
-    ///       break BLOCK; 
     ///     }
-    ///     var r = a;
-    ///     body2;
+    /// 
+    ///     {
+    ///       var r = a;
+    ///       body2;
+    ///     }
     ///   }
     /// 
     /// </summary>
@@ -582,7 +586,9 @@ namespace Microsoft.Dafny.Compilers {
         for (var index = 0; index < match.Cases.Count; index++) {
           var myCase = match.Cases[index];
           var lastCase = index == match.Cases.Count - 1;
-          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, output, lastCase);
+
+          var caseBlock = EmitBlock(output);
+          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, caseBlock, lastCase);
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
 
           emitBody(index, innerWriter);
