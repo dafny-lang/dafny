@@ -594,12 +594,8 @@ namespace Microsoft.Dafny.Compilers {
         writer = thenWriter;
       } else if (pattern is IdPattern idPattern) {
         if (idPattern.BoundVar != null) {
-          if (idPattern.BoundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
-            return writer;
-          }
-
           var boundVar = idPattern.BoundVar;
-          if (boundVar.Tok.val.StartsWith("_")) {
+          if (boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
             return writer;
           }
 
