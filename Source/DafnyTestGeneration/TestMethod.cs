@@ -284,10 +284,10 @@ namespace DafnyTestGeneration {
             var element = variable?[i];
             if (element == null) {
               getDefaultValueParams = new();
-              elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
+              elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)) + " as " + seqType.Arg.ToString());
               continue;
             }
-            elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
+            elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)) + " as " + seqType.Arg.ToString());
           }
 
           //
