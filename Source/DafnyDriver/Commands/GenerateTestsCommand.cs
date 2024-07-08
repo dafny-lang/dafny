@@ -18,6 +18,7 @@ static class GenerateTestsCommand {
   public static IEnumerable<Option> Options {
     get {
       return new Option[] {
+        IgnoreWarnings,
         LoopUnroll,
         SequenceLengthLimit,
         BoogieOptionBag.SolverLog,
@@ -123,6 +124,9 @@ Path - Generate tests targeting path-coverage.");
     dafnyOptions.TestGenOptions.Mode = mode;
   }
 
+  public static readonly Option<bool> IgnoreWarnings = new("--ignore-warnings",
+    "Ignore warnings in error messages.");
+
   public static readonly Option<uint> SequenceLengthLimit = new("--length-limit",
     "Add an axiom that sets the length of all sequences to be no greater than <n>. 0 (default) indicates no limit.");
 
@@ -140,6 +144,9 @@ Path - Generate tests targeting path-coverage.");
   public static readonly Option<bool> ForcePrune = new("--force-prune",
     "Enable axiom pruning that Dafny uses to speed up verification. This may negatively affect the quality of tests.");
   static GenerateTestsCommand() {
+    DafnyOptions.RegisterLegacyBinding(IgnoreWarnings, (options, value) => {
+      options.TestGenOptions.IgnoreWarnings = value;
+    });
     DafnyOptions.RegisterLegacyBinding(LoopUnroll, (options, value) => {
       options.LoopUnrollCount = value;
     });
@@ -161,5 +168,6 @@ Path - Generate tests targeting path-coverage.");
     DooFile.RegisterNoChecksNeeded(PrintBpl, false);
     DooFile.RegisterNoChecksNeeded(ExpectedCoverageReport, false);
     DooFile.RegisterNoChecksNeeded(ForcePrune, false);
+    DooFile.RegisterNoChecksNeeded(IgnoreWarnings, false);
   }
 }
