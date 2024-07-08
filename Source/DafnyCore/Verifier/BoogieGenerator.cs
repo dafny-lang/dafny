@@ -4557,13 +4557,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool apply_induction, out bool splitHappened) {
+    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool applyInduction, out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, apply_induction, etran);
+      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, applyInduction, etran);
       return splits;
     }
 
@@ -4573,9 +4573,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      var apply_induction = kind == MethodTranslationKind.Implementation;
-      bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
+      var applyInduction = kind == MethodTranslationKind.Implementation;
+      TrSplitExpr(expr, splits, true, int.MaxValue,
+        kind != MethodTranslationKind.Call, applyInduction, etran);
       return splits;
     }
 

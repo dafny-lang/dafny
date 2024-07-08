@@ -70,22 +70,8 @@ namespace Microsoft.Dafny {
         PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        wr.Write("reveal ");
-        var sep = "";
-        foreach (var e in s.Exprs) {
-          wr.Write(sep);
-          sep = ", ";
-          if (RevealStmt.SingleName(e) != null) {
-            // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
-            wr.Write(RevealStmt.SingleName(e));
-          } else {
-            PrintExpression(e, true);
-          }
-        }
-        wr.Write(";");
-
+      } else if (stmt is RevealStmt revealStmt) {
+        PrintRevealStmt(revealStmt);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -469,6 +455,22 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private void PrintRevealStmt(RevealStmt revealStmt) {
+      wr.Write("reveal ");
+      var sep = "";
+      foreach (var e in revealStmt.Exprs) {
+        wr.Write(sep);
+        sep = ", ";
+        if (RevealStmt.SingleName(e) != null) {
+          // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
+          wr.Write(RevealStmt.SingleName(e));
+        } else {
+          PrintExpression(e, true);
+        }
+      }
+      wr.Write(";");
     }
 
     private void PrintModifyStmt(int indent, ModifyStmt s, bool omitFrame) {
