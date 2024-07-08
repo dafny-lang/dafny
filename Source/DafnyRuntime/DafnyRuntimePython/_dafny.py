@@ -193,8 +193,13 @@ class Seq:
         return hash(tuple(self.Elements))
 
     def __eq__(self, other: object) -> bool:
-        return self.Elements == other.Elements
-
+        if isinstance(other, list):
+            return self.Elements == other
+        elif isinstance(other, str):
+            return self.Elements == SeqWithoutIsStrInference(map(CodePoint, other)).Elements
+        else:
+            return self.Elements == other.Elements
+    
     def __lt__(self, other):
         return len(self) < len(other) and self == other[:len(self)]
 
