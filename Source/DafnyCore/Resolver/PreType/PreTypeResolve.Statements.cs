@@ -13,14 +13,9 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver : INewOrOldResolver {
-    private Scope<Statement> enclosingStatementLabels;
-    private readonly Scope<Label> dominatingStatementLabels;
-    public Scope<Label> DominatingStatementLabels => dominatingStatementLabels;
+    public Scope<Label> DominatingStatementLabels { get; }
 
-    public Scope<Statement> EnclosingStatementLabels {
-      get => enclosingStatementLabels;
-      set => enclosingStatementLabels = value;
-    }
+    public Scope<Statement> EnclosingStatementLabels { get; set; }
 
     public List<Statement> LoopStack {
       get => loopStack;
@@ -70,10 +65,10 @@ namespace Microsoft.Dafny {
         } else {
           var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
           Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (dominatingStatementLabels.Find(lnode.Name) != null) {
+          if (DominatingStatementLabels.Find(lnode.Name) != null) {
             ReportError(lnode.Tok, "label shadows a dominating label");
           } else {
-            var rr = dominatingStatementLabels.Push(lnode.Name, lnode);
+            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
@@ -91,7 +86,7 @@ namespace Microsoft.Dafny {
       if (!resolutionContext.IsTwoState) {
         ReportError(tok, $"{expressionDescription} expressions are not allowed in this context");
       } else if (labelName != null) {
-        label = dominatingStatementLabels.Find(labelName);
+        label = DominatingStatementLabels.Find(labelName);
         if (label == null) {
           ReportError(tok, $"no label '{labelName}' in scope at this time");
         }
@@ -117,52 +112,8 @@ namespace Microsoft.Dafny {
           ResolveExpression(e, resolutionContext);
         }
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var expr in s.Exprs) {
-          var name = RevealStmt.SingleName(expr);
-          var labeledAssert = name == null ? null : dominatingStatementLabels.Find(name) as AssertLabel;
-          if (labeledAssert != null) {
-            s.LabeledAsserts.Add(labeledAssert);
-          } else {
-            var revealResolutionContext = resolutionContext with { InReveal = true };
-            if (expr is ApplySuffix applySuffix) {
-              var methodCallInfo = ResolveApplySuffix(applySuffix, revealResolutionContext, true);
-              if (methodCallInfo == null) {
-                // error has already been reported
-              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-                ReportError(methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-              } else if (methodCallInfo.Callee.AtLabel != null) {
-                Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                ReportError(methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
-              } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
-                s.ResolvedStatements.Add(call);
-              }
-            } else if (expr is NameSegment or ExprDotName) {
-              if (expr is NameSegment) {
-                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
-              } else {
-                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
-              }
-              var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
-              if (callee == null) {
-              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
-                //The revealed member is a function
-                ReportError(callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
-              } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-                s.ResolvedStatements.Add(call);
-              }
-            } else {
-              ResolveExpression(expr, revealResolutionContext);
-            }
-          }
-        }
-        foreach (var a in s.ResolvedStatements) {
-          ResolveStatement(a, resolutionContext);
-        }
-
+      } else if (stmt is RevealStmt revealStmt) {
+        revealStmt.ResolveRevealStmt(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -329,15 +280,15 @@ namespace Microsoft.Dafny {
             ScopePushAndReport(v, "bound-variable", false);
           }
         }
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         ResolveBlockStatement(s.Thn, resolutionContext);
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         scope.PopMarker();
 
         if (s.Els != null) {
-          dominatingStatementLabels.PushMarker();
+          DominatingStatementLabels.PushMarker();
           ResolveStatement(s.Els, resolutionContext);
-          dominatingStatementLabels.PopMarker();
+          DominatingStatementLabels.PopMarker();
         }
 
       } else if (stmt is AlternativeStmt) {
@@ -511,9 +462,9 @@ namespace Microsoft.Dafny {
 
       if (s.Body != null) {
         loopStack.Add(s); // push
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         ResolveStatement(s.Body, resolutionContext);
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         loopStack.RemoveAt(loopStack.Count - 1); // pop
       }
 
@@ -560,9 +511,9 @@ namespace Microsoft.Dafny {
         loopStack = new List<Statement>();
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {
-            dominatingStatementLabels.PushMarker();
+            DominatingStatementLabels.PushMarker();
             ResolveStatement(oneHint, resolutionContext);
-            dominatingStatementLabels.PopMarker();
+            DominatingStatementLabels.PopMarker();
           }
         }
         EnclosingStatementLabels = prevLblStmts;
@@ -1317,7 +1268,7 @@ namespace Microsoft.Dafny {
       }
       foreach (var alternative in alternatives) {
         scope.PushMarker();
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         if (alternative.IsBindingGuard) {
           var exists = (ExistsExpr)alternative.Guard;
           foreach (var v in exists.BoundVars) {
@@ -1328,7 +1279,7 @@ namespace Microsoft.Dafny {
         foreach (Statement ss in alternative.Body) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         scope.PopMarker();
       }
       if (loopToCatchBreaks != null) {

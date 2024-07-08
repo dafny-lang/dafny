@@ -10,7 +10,7 @@ using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
-    public class ExpressionTranslator {
+    public partial class ExpressionTranslator {
       private DafnyOptions options;
 
       // HeapExpr == null ==> translation of pure (no-heap) expression
@@ -1292,31 +1292,8 @@ namespace Microsoft.Dafny {
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
               }
             }
-          case LetExpr letExpr: {
-              var e = letExpr;
-              if (!e.Exact) {
-                var d = BoogieGenerator.LetDesugaring(e);
-                return TrExpr(d);
-              } else {
-                TrLetExprPieces(e, out var lhss, out var rhss);
-                // in the translation of body, treat a let-bound variable as IsLit if its RHS definition is IsLit
-                Contract.Assert(lhss.Count == rhss.Count);  // this is a postcondition of TrLetExprPieces
-                var previousCount = BoogieGenerator.letBoundVariablesWithLitRHS.Count;
-                for (var i = 0; i < lhss.Count; i++) {
-                  if (BoogieGenerator.IsLit(rhss[i])) {
-                    BoogieGenerator.letBoundVariablesWithLitRHS.Add(lhss[i].Name);
-                  }
-                  i++;
-                }
-                var body = TrExpr(e.Body);
-                foreach (var v in lhss) {
-                  BoogieGenerator.letBoundVariablesWithLitRHS.Remove(v.Name);
-                }
-                Contract.Assert(previousCount == BoogieGenerator.letBoundVariablesWithLitRHS.Count);
-                // in the following, use the token for Body instead of the token for the whole let expression; this gives better error locations
-                return new Boogie.LetExpr(GetToken(e.Body), lhss, rhss, null, body);
-              }
-            }
+          case LetExpr letExpr:
+            return TrLetExpr(letExpr);
           case QuantifierExpr quantifierExpr: {
               QuantifierExpr e = quantifierExpr;
 
@@ -1608,25 +1585,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
                 new Boogie.LambdaExpr(GetToken(e), new List<TypeVariable>(), bvars, null, rdbody))),
             layerIntraCluster != null ? layerIntraCluster.ToExpr() : layerInterCluster.ToExpr()),
           predef.HandleType);
-      }
-
-      public void TrLetExprPieces(LetExpr let, out List<Boogie.Variable> lhss, out List<Boogie.Expr> rhss) {
-        Contract.Requires(let != null);
-        var substMap = new Dictionary<IVariable, Expression>();
-        for (int i = 0; i < let.LHSs.Count; i++) {
-          var rhs = TrExpr(let.RHSs[i]);
-          var toType = let.LHSs[i].Var?.Type ?? let.LHSs[i].Expr.Type;
-          rhs = BoogieGenerator.AdaptBoxing(rhs.tok, rhs, let.RHSs[i].Type, toType);
-          BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], rhs, substMap);
-        }
-        lhss = new List<Boogie.Variable>();
-        rhss = new List<Boogie.Expr>();
-        foreach (var v in let.BoundVars) {
-          var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
-          var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.currentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
-          lhss.Add(bv);
-          rhss.Add(TrExpr(rhs));
-        }
       }
 
       public Expression DesugarMatchExpr(MatchExpr e) {
@@ -2285,63 +2243,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           var e = (TernaryExpr)expr;
           return BplAnd(CanCallAssumption(e.E0), BplAnd(CanCallAssumption(e.E1), CanCallAssumption(e.E2)));
 
-        } else if (expr is LetExpr) {
-          var e = (LetExpr)expr;
-          if (!e.Exact) {
-            // CanCall[[ var b0,b1 :| RHS(b0,b1,g); Body(b0,b1,g,h) ]] =
-            //   $let$canCall(g) &&
-            //   CanCall[[ Body($let$b0(g), $let$b1(g), h) ]]
-            BoogieGenerator.LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
-            var info = BoogieGenerator.letSuchThatExprInfo[e];
-            // $let$canCall(g)
-            var canCall = info.CanCallFunctionCall(BoogieGenerator, this);
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            foreach (var bv in e.BoundVars) {
-              // create a call to $let$x(g)
-              var args = info.SkolemFunctionArgs(bv, BoogieGenerator, this);
-              var call = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
-              call.Type = bv.Type;
-              substMap.Add(bv, call);
-            }
-            var p = Substitute(e.Body, null, substMap);
-            var cc = BplAnd(canCall, CanCallAssumption(p));
-            return cc;
-          } else {
-            // CanCall[[ var b := RHS(g); Body(b,g,h) ]] =
-            //   CanCall[[ RHS(g) ]] &&
-            //   (var lhs0,lhs1,... := rhs0,rhs1,...;  CanCall[[ Body ]])
-            Boogie.Expr canCallRHS = Boogie.Expr.True;
-            foreach (var rhs in e.RHSs) {
-              canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs));
-            }
-
-            var bodyCanCall = CanCallAssumption(e.Body);
-            // We'd like to compute the free variables if "bodyCanCall". It would be nice to use the Boogie
-            // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
-            // expression to be resolved. Instead, we do the cheesy thing of computing the set of names of
-            // free variables in "bodyCanCall".
-            var vis = new VariableNameVisitor();
-            vis.Visit(bodyCanCall);
-
-            List<Boogie.Variable> lhssAll;
-            List<Boogie.Expr> rhssAll;
-            TrLetExprPieces(e, out lhssAll, out rhssAll);
-            Contract.Assert(lhssAll.Count == rhssAll.Count);
-
-            // prune lhss,rhss to contain only those pairs where the LHS is used in the body
-            var lhssPruned = new List<Boogie.Variable>();
-            var rhssPruned = new List<Boogie.Expr>();
-            for (var i = 0; i < lhssAll.Count; i++) {
-              var bv = lhssAll[i];
-              if (vis.Names.Contains(bv.Name)) {
-                lhssPruned.Add(bv);
-                rhssPruned.Add(rhssAll[i]);
-              }
-            }
-            Boogie.Expr let = lhssPruned.Count == 0 ? bodyCanCall : new Boogie.LetExpr(e.tok, lhssPruned, rhssPruned, null, bodyCanCall);
-            return BplAnd(canCallRHS, let);
-          }
-
+        } else if (expr is LetExpr letExpr) {
+          return LetCanCallAssumption(letExpr);
         } else if (expr is LambdaExpr) {
           var e = (LambdaExpr)expr;
 
