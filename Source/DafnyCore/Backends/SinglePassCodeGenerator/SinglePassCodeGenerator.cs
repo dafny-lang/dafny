@@ -2870,7 +2870,7 @@ namespace Microsoft.Dafny.Compilers {
           var wStmts = wr.Fork();
           var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
-            w = EmitCoercionIfNecessary(rhs.Type, bv.Type, rhsTok, wr: w);
+            w = EmitCoercionIfNecessary(rhs.Type, bv.Type, rhsTok, w);
             w = EmitDowncastIfNecessary(rhs.Type, bv.Type, rhsTok, w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {

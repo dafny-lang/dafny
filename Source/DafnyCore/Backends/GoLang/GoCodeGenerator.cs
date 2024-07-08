@@ -1990,7 +1990,7 @@ namespace Microsoft.Dafny.Compilers {
       var w = EmitReturnExpr(wr);
       var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
-      w.Append(Expr(expr, inLetExprBody, wStmts));
+      EmitExpr(expr, inLetExprBody, w, wStmts);
     }
 
     protected void EmitReturnWithCoercions(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, Dictionary<TypeParameter, Type>/*?*/ typeMap, ConcreteSyntaxTree wr) {
