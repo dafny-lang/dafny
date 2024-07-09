@@ -3154,6 +3154,14 @@ impl <T: ?Sized> Object<T> {
         Object(Some(rcmut::from_rc(rc)))
     }
 }
+impl <T> Object<T> {
+    pub fn new(val: T) -> Object<T> {
+        Object(Some(rcmut::new(val)))
+    }
+    pub fn null() -> Object<T> {
+        Object(None)
+    }
+}
 impl<T: ?Sized> Eq for Object<T> {}
 
 impl<T: ?Sized> Clone for Object<T> {

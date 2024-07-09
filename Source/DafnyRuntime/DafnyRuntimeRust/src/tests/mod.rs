@@ -715,6 +715,12 @@ mod tests {
         let a3: Object<NodeRcMut> = cast_object!(z.clone(), NodeRcMut);
         assert_eq!(refcount!(x), 5);
         assert_eq!(rd!(a3).val, int!(42));
+
+        // Other way to create objects
+        let direct: Object<NodeRcMut> = Object::<NodeRcMut>::new(NodeRcMut {val: int!(1), next: Object::<NodeRcMut>::null()});
+        assert_eq!(rd!(direct).val, int!(1));
+        let tail: Object<NodeRcMut> = Object::<NodeRcMut>::null();
+        assert_eq!(tail, rd!(direct).next);
         
         let a: Object<[i32]> = rcmut::array_object_from_rc(Rc::new([42, 43, 44]));
         assert_eq!(rd!(a).len(), 3);
