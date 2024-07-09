@@ -12,6 +12,21 @@ using System.Collections;
 namespace RAST {
 
   public partial class __default {
+    public static __A FoldLeft<__A, __T>(Func<__A, __T, __A> f, __A init, Dafny.ISequence<__T> xs)
+    {
+    TAIL_CALL_START: ;
+      if ((new BigInteger((xs).Count)).Sign == 0) {
+        return init;
+      } else {
+        Func<__A, __T, __A> _in103 = f;
+        __A _in104 = Dafny.Helpers.Id<Func<__A, __T, __A>>(f)(init, (xs).Select(BigInteger.Zero));
+        Dafny.ISequence<__T> _in105 = (xs).Drop(BigInteger.One);
+        f = _in103;
+        init = _in104;
+        xs = _in105;
+        goto TAIL_CALL_START;
+      }
+    }
     public static Dafny.ISequence<Dafny.Rune> SeqToString<__T>(Dafny.ISequence<__T> s, Func<__T, Dafny.ISequence<Dafny.Rune>> f, Dafny.ISequence<Dafny.Rune> separator)
     {
       if ((new BigInteger((s).Count)).Sign == 0) {
@@ -88,31 +103,31 @@ namespace RAST {
         return Dafny.Sequence<Dafny.Rune>.Concat(_802___accumulator, raw);
       } else if ((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("[({")).Contains((raw).Select(BigInteger.Zero))) {
         _802___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_802___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in103 = (raw).Drop(BigInteger.One);
-        Dafny.ISequence<Dafny.Rune> _in104 = Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND);
-        raw = _in103;
-        ind = _in104;
+        Dafny.ISequence<Dafny.Rune> _in106 = (raw).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in107 = Dafny.Sequence<Dafny.Rune>.Concat(ind, RAST.__default.IND);
+        raw = _in106;
+        ind = _in107;
         goto TAIL_CALL_START;
       } else if (((Dafny.Sequence<Dafny.Rune>.UnicodeFromString("})]")).Contains((raw).Select(BigInteger.Zero))) && ((new BigInteger((ind).Count)) > (new BigInteger(2)))) {
         _802___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_802___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in105 = (raw).Drop(BigInteger.One);
-        Dafny.ISequence<Dafny.Rune> _in106 = (ind).Take((new BigInteger((ind).Count)) - (new BigInteger(2)));
-        raw = _in105;
-        ind = _in106;
+        Dafny.ISequence<Dafny.Rune> _in108 = (raw).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in109 = (ind).Take((new BigInteger((ind).Count)) - (new BigInteger(2)));
+        raw = _in108;
+        ind = _in109;
         goto TAIL_CALL_START;
       } else if (((raw).Select(BigInteger.Zero)) == (new Dafny.Rune('\n'))) {
         _802___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_802___accumulator, Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)), ind));
-        Dafny.ISequence<Dafny.Rune> _in107 = (raw).Drop(BigInteger.One);
-        Dafny.ISequence<Dafny.Rune> _in108 = ind;
-        raw = _in107;
-        ind = _in108;
+        Dafny.ISequence<Dafny.Rune> _in110 = (raw).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in111 = ind;
+        raw = _in110;
+        ind = _in111;
         goto TAIL_CALL_START;
       } else {
         _802___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_802___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((raw).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in109 = (raw).Drop(BigInteger.One);
-        Dafny.ISequence<Dafny.Rune> _in110 = ind;
-        raw = _in109;
-        ind = _in110;
+        Dafny.ISequence<Dafny.Rune> _in112 = (raw).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in113 = ind;
+        raw = _in112;
+        ind = _in113;
         goto TAIL_CALL_START;
       }
     }
@@ -322,7 +337,7 @@ namespace RAST {
       if ((this).is_ExternMod) {
         return acc;
       } else {
-        return Std.Collections.Seq.__default.FoldLeft<__T, RAST._IModDecl>(accBuilder, acc, (this).dtor_body);
+        return RAST.__default.FoldLeft<__T, RAST._IModDecl>(accBuilder, acc, (this).dtor_body);
       }
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
@@ -1789,10 +1804,10 @@ namespace RAST {
         return Dafny.Sequence<RAST._ITypeParamDecl>.Concat(_830___accumulator, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements());
       } else {
         _830___accumulator = Dafny.Sequence<RAST._ITypeParamDecl>.Concat(_830___accumulator, Dafny.Sequence<RAST._ITypeParamDecl>.FromElements(((typeParams).Select(BigInteger.Zero)).AddConstraints(constraints)));
-        Dafny.ISequence<RAST._ITypeParamDecl> _in111 = (typeParams).Drop(BigInteger.One);
-        Dafny.ISequence<RAST._IType> _in112 = constraints;
-        typeParams = _in111;
-        constraints = _in112;
+        Dafny.ISequence<RAST._ITypeParamDecl> _in114 = (typeParams).Drop(BigInteger.One);
+        Dafny.ISequence<RAST._IType> _in115 = constraints;
+        typeParams = _in114;
+        constraints = _in115;
         goto TAIL_CALL_START;
       }
     }
@@ -2288,8 +2303,8 @@ namespace RAST {
       _IType _this = this;
     TAIL_CALL_START: ;
       if ((_this).is_TSynonym) {
-        RAST._IType _in113 = (_this).dtor_base;
-        _this = _in113;
+        RAST._IType _in116 = (_this).dtor_base;
+        _this = _in116;
         ;
         goto TAIL_CALL_START;
       } else {
@@ -5951,20 +5966,20 @@ namespace RAST {
           return currentHashes;
         }
       } else if (((s).Subsequence(BigInteger.Zero, BigInteger.One)).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#"))) {
-        Dafny.ISequence<Dafny.Rune> _in114 = (s).Drop(BigInteger.One);
-        Dafny.ISequence<Dafny.Rune> _in115 = Dafny.Sequence<Dafny.Rune>.Concat(currentHashes, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#"));
-        Dafny.ISequence<Dafny.Rune> _in116 = mostHashes;
-        s = _in114;
-        currentHashes = _in115;
-        mostHashes = _in116;
-        goto TAIL_CALL_START;
-      } else {
         Dafny.ISequence<Dafny.Rune> _in117 = (s).Drop(BigInteger.One);
-        Dafny.ISequence<Dafny.Rune> _in118 = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
-        Dafny.ISequence<Dafny.Rune> _in119 = (((new BigInteger((currentHashes).Count)) < (new BigInteger((mostHashes).Count))) ? (mostHashes) : (currentHashes));
+        Dafny.ISequence<Dafny.Rune> _in118 = Dafny.Sequence<Dafny.Rune>.Concat(currentHashes, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("#"));
+        Dafny.ISequence<Dafny.Rune> _in119 = mostHashes;
         s = _in117;
         currentHashes = _in118;
         mostHashes = _in119;
+        goto TAIL_CALL_START;
+      } else {
+        Dafny.ISequence<Dafny.Rune> _in120 = (s).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.Rune> _in121 = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+        Dafny.ISequence<Dafny.Rune> _in122 = (((new BigInteger((currentHashes).Count)) < (new BigInteger((mostHashes).Count))) ? (mostHashes) : (currentHashes));
+        s = _in120;
+        currentHashes = _in121;
+        mostHashes = _in122;
         goto TAIL_CALL_START;
       }
     }
@@ -5975,13 +5990,13 @@ namespace RAST {
         return Dafny.Sequence<Dafny.Rune>.Concat(_1019___accumulator, s);
       } else if (((s).Subsequence(BigInteger.Zero, new BigInteger(2))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@""""""))) {
         _1019___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_1019___accumulator, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(@""""));
-        Dafny.ISequence<Dafny.Rune> _in120 = (s).Drop(new BigInteger(2));
-        s = _in120;
+        Dafny.ISequence<Dafny.Rune> _in123 = (s).Drop(new BigInteger(2));
+        s = _in123;
         goto TAIL_CALL_START;
       } else {
         _1019___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_1019___accumulator, (s).Subsequence(BigInteger.Zero, BigInteger.One));
-        Dafny.ISequence<Dafny.Rune> _in121 = (s).Drop(BigInteger.One);
-        s = _in121;
+        Dafny.ISequence<Dafny.Rune> _in124 = (s).Drop(BigInteger.One);
+        s = _in124;
         goto TAIL_CALL_START;
       }
     }

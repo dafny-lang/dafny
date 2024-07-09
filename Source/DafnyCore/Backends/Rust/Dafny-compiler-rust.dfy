@@ -19,14 +19,23 @@ module RAST
   // Default Indentation
   const IND := "  "
 
+  opaque function FoldLeft<A(!new), T>(f: (A, T) --> A, init: A, xs: seq<T>): A
+    requires forall t: T <- xs, a: A :: f.requires(a, t)
+  {
+    if |xs| == 0 then init
+    else FoldLeft(f, f(init, xs[0]), xs[1..])
+  }
+
   datatype Mod =
       // Rust modules
     | Mod(name: string, body: seq<ModDecl>)
     | ExternMod(name: string)
   {
-    function Fold<T>(acc: T, accBuilder: (T, ModDecl) -> T): T {
+    function Fold<T(!new)>(acc: T, accBuilder: (T, ModDecl) --> T): T
+      requires Mod? ==> forall modDecl: ModDecl <- body, t: T :: accBuilder.requires(t, modDecl)
+    {
       if ExternMod? then acc else
-      Std.Collections.Seq.FoldLeft(accBuilder, acc, body)
+      FoldLeft(accBuilder, acc, body)
     }
     function ToString(ind: string): string
       decreases this
@@ -1497,6 +1506,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   import Std
   import opened Std.Wrappers
   import R = RAST
+  import opened DafnyCompilerRustUtils
+
   const IND := R.IND
   type Type = DAST.Type
   type Formal = DAST.Formal
@@ -1857,18 +1868,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         this.error := Some("Raw pointers need to be wrapped in a newtype so that their equality has the semantics of Dafny (e.g. a class pointer and a trait pointer are equal), not Rust."); 
       }
     }
+    
+    static function ContainingPathToRust(containingPath: seq<Ident>): seq<string> {
+      Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
+    }
 
-    method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: R.Mod)
+    // Returns a top-level gathering module that can be merged with other gathering modules
+    method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: SeqMap<string, GatheringModule>)
       decreases mod, 1
       modifies this
     {
-      var modName := escapeName(mod.name);
+      var (innerPath, innerName) := DafnyNameToContainingPathAndName(mod.name);
+      var containingPath := containingPath + innerPath;
+      var modName := escapeName(innerName);
       if mod.body.None? {
-        s := R.ExternMod(modName);
+        s := GatheringModule.Wrap(ContainingPathToRust(containingPath), R.ExternMod(modName));
       } else {
         assume {:axiom} forall m: ModuleItem <- mod.body.value :: m < mod;
         var optExtern: ExternAttribute := ExtractExternMod(mod);
-        var body := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(mod.name)]);
+        var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
           if mod.requiresExterns {
             body := [R.UseDecl(R.Use(R.PUB, R.crate.MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
@@ -1878,23 +1896,28 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         } else if optExtern.UnsupportedExtern? {
           error := Some(optExtern.reason);
         }
-        s := R.Mod(modName, body);
+        s := GatheringModule.MergeSeqMap(
+          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(modName, body)),
+          allmodules);
       }
     }
 
-    method GenModuleBody(ghost parent: Module, body: seq<ModuleItem>, containingPath: seq<Ident>) returns (s: seq<R.ModDecl>)
+    method GenModuleBody(ghost parent: Module, body: seq<ModuleItem>, containingPath: seq<Ident>)
+      returns (s: seq<R.ModDecl>, allmodules: SeqMap<string, GatheringModule>)
       requires forall m: ModuleItem <- body :: m < parent
       decreases parent, 0
       modifies this
     {
       s := [];
+      allmodules := SeqMap.Empty();
       for i := 0 to |body| {
         var generated;
         match body[i] {
           case Module(m) =>
             assume {:axiom} m < parent;
             var mm := GenModule(m, containingPath);
-            generated := [R.ModDecl(mm)];
+            allmodules := GatheringModule.MergeSeqMap(allmodules, mm);
+            generated := [];
           case Class(c) =>
             generated := GenClass(c, containingPath + [Ident.Ident(c.name)]);
           case Trait(t) =>
@@ -2868,8 +2891,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           else
             R.Crate();
         for i := 0 to |p| {
-          var id := p[i].id;
-          r := r.MSel(if escape then escapeName(id) else ReplaceDotByDoubleColon(id.dafny_name));
+          var name := p[i].id;
+          if escape {
+            var (modules, finalName) := DafnyNameToContainingPathAndName(name);
+            for j := 0 to |modules| {
+              r := r.MSel(escapeName(modules[j].id));
+            }
+            r := r.MSel(escapeName(finalName));
+          } else {
+            // TODO: Try removing this else branch and the escape test.
+            r := r.MSel(ReplaceDotByDoubleColon(name.dafny_name));
+          }
         }
       }
     }
@@ -5436,13 +5468,22 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         s := s + R.Mod(DAFNY_EXTERN_MODULE, externUseDecls).ToString("") + "\n";
       }
 
+      var allModules := SeqMap<string, GatheringModule>.Empty();
       for i := 0 to |p| {
         var m := GenModule(p[i], []);
+        allModules := GatheringModule.MergeSeqMap(allModules, m);
+      }
+      for i := 0 to |allModules.keys| {
+        if allModules.keys[i] !in allModules.values { // Could be avoided with subset types
+          continue;
+        }
+        var m := allModules.values[allModules.keys[i]].ToRust();
         for j := 0 to |optimizations| {
           m := optimizations[j](m);
         }
         s := s + "\n";
         s := s + m.ToString("");
+
       }
     }
 
