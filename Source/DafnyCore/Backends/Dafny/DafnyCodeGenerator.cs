@@ -1618,7 +1618,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      foreach (var parentType in topLevel.ParentTypes(typeArgs)) {
+      foreach (var parentType in topLevel.ParentTypes(typeArgs, true)) {
         extendedTraits.Add(GenType(parentType));
       }
 
