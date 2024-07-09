@@ -207,6 +207,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool IncludeExternMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
+    protected virtual bool ClassMethodsAllowedToCallTraitMethods => true;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
       return CreateClass(moduleName, name, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
@@ -2174,13 +2175,13 @@ namespace Microsoft.Dafny.Compilers {
               EmitSetterParameter(sw);
             }
           } else if (member is Function fn) {
-            if (!Attributes.Contains(fn.Attributes, "extern")) {
+            if (!Attributes.Contains(fn.Attributes, "extern") && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
               Contract.Assert(fn.Body != null);
               var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true, false);
               EmitCallToInheritedFunction(fn, null, w);
             }
           } else if (member is Method method) {
-            if (!Attributes.Contains(method.Attributes, "extern")) {
+            if (!Attributes.Contains(method.Attributes, "extern") && (c is not ClassLikeDecl || ClassMethodsAllowedToCallTraitMethods)) {
               Contract.Assert(method.Body != null);
               var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
               var wBefore = w.Fork();
@@ -4885,7 +4886,7 @@ namespace Microsoft.Dafny.Compilers {
           toUdt.ResolvedClass is SubsetTypeDecl or NewtypeDecl) {
         var declWithConstraints = (RedirectingTypeDecl)toUdt.ResolvedClass;
         // check the constraints, by calling the _Is method
-        var wrArgument = EmitCallToIsMethod(declWithConstraints, toUdt.TypeArgs, wr);
+        var wrArgument = MaybeEmitCallToIsMethod(declWithConstraints, toUdt.TypeArgs, wr);
         var targetRepresentationOfFrom = new ConversionExpr(from.tok, from, toType) { Type = toType };
         EmitExpr(targetRepresentationOfFrom, false, wrArgument, wStmts);
       } else {
@@ -4988,14 +4989,15 @@ namespace Microsoft.Dafny.Compilers {
         if (!newtypeConversionsWereExplicit || declWithConstraints is not NewtypeDecl || RequiresAllVariablesToBeUsed) {
           var thenWriter = EmitIf(out var guardWriter, hasElse: isReturning, wr);
 
-          // Newtype conversions have to be explicit so we don't need to emit a call to their IsMethod 
-          EmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter).Write(IdName(boundVar));
+          var argumentWriter = MaybeEmitCallToIsMethod(declWithConstraints, udt.TypeArgs, guardWriter);
+
+          EmitIdentifier(IdName(boundVar), argumentWriter);
 
           if (isReturning) {
             var elseBranch = wr;
             elseBranch = EmitBlock(elseBranch);
-            elseBranch = EmitReturnExpr(elseBranch);
             var wStmts = elseBranch.Fork();
+            elseBranch = EmitReturnExpr(elseBranch);
             EmitExpr(Expression.CreateBoolLiteral(tok, elseReturnValue), inLetExprBody, elseBranch, wStmts);
           }
           wr = thenWriter;
@@ -5056,7 +5058,7 @@ namespace Microsoft.Dafny.Compilers {
         var thenWriter = EmitIf(out var guardWriter, hasElse: false, wr);
         ReturnBoolLiteral(wr, false);
 
-        var wrArgument = EmitCallToIsMethod((RedirectingTypeDecl)baseTypeUdt.ResolvedClass, baseTypeUdt.TypeArgs, guardWriter);
+        var wrArgument = MaybeEmitCallToIsMethod((RedirectingTypeDecl)baseTypeUdt.ResolvedClass, baseTypeUdt.TypeArgs, guardWriter);
         EmitExpr(baseTypeVar, false, wrArgument, wStmts);
 
         wr = thenWriter;
@@ -5071,7 +5073,19 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected ConcreteSyntaxTree EmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree EmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, Type type, ConcreteSyntaxTree wr) {
+      EmitTypeName_Companion(type, wr, wr, declWithConstraints.tok, null);
+      wr.Write(StaticClassAccessor);
+      wr.Write(IsMethodName);
+      var wrArguments = wr.ForkInParens();
+      var sep = "";
+      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass((TopLevelDecl)declWithConstraints, type.TypeArgs),
+        declWithConstraints.tok, wrArguments, ref sep);
+      wrArguments.Write(sep);
+      return wrArguments;
+    }
+
+    protected ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
       Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
       Contract.Requires(declWithConstraints.ConstraintIsCompilable);
@@ -5089,15 +5103,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // in mind that type parameters are not accessible in static methods in some target languages).
       var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints, typeArguments);
-      EmitTypeName_Companion(type, wr, wr, declWithConstraints.tok, null);
-      wr.Write(StaticClassAccessor);
-      wr.Write(IsMethodName);
-      var wrArguments = wr.ForkInParens();
-      var sep = "";
-      EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass((TopLevelDecl)declWithConstraints, type.TypeArgs),
-        declWithConstraints.tok, wrArguments, ref sep);
-      wrArguments.Write(sep);
-      return wrArguments;
+      return EmitCallToIsMethod(declWithConstraints, type, wr);
     }
 
     protected ConcreteSyntaxTree CaptureFreeVariables(Expression expr, bool captureOnlyAsRequiredByTargetLanguage,
