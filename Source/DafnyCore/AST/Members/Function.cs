@@ -96,6 +96,19 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public readonly Formal Result;
   public PreType ResultPreType;
   public readonly Type ResultType;
+  public Type OriginalResultTypeWithRenamings() {
+    if (OverriddenFunction == null) {
+      return ResultType;
+    }
+
+    Contract.Assert(TypeArgs.Count == OverriddenFunction.TypeArgs.Count);
+    var renamings = new Dictionary<TypeParameter, Type>();
+    for (var i = 0; i < TypeArgs.Count; i++) {
+      renamings.Add(OverriddenFunction.TypeArgs[i], new UserDefinedType(tok, TypeArgs[i]));
+    }
+    return OverriddenFunction.ResultType.Subst(renamings);
+
+  }
   public Expression Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
   public IToken /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;

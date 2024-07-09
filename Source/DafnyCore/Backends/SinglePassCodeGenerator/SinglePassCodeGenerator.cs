@@ -578,6 +578,7 @@ namespace Microsoft.Dafny.Compilers {
       wr = EmitReturnExpr(wr);
       var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
       wr = EmitCoercionIfNecessary(fromType, resultType, expr.tok, wr);
+      wr = EmitDowncastIfNecessary(fromType, resultType, expr.tok, wr);
       EmitExpr(expr, inLetExprBody, wr, wStmts);
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
@@ -2748,7 +2749,7 @@ namespace Microsoft.Dafny.Compilers {
         Coverage.Instrument(f.Body.tok, $"entry to function {f.FullName}", w);
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
-        CompileReturnBody(f.Body, f.Original.ResultType, w, accVar);
+        CompileReturnBody(f.Body, f.OriginalResultTypeWithRenamings(), w, accVar);
         Contract.Assert(enclosingFunction == f);
         enclosingFunction = null;
       }
