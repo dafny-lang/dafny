@@ -439,7 +439,7 @@ namespace Microsoft.Dafny {
       }
 
       var result =
-        await DafnyMain.BoogieOnce(errorReporter, options, output, engine, baseName, moduleName, program, programId);
+        await await DafnyMain.LargeStackFactory.StartNew(() => DafnyMain.BoogieOnce(errorReporter, options, output, engine, baseName, moduleName, program, programId));
 
       watch.Stop();
 

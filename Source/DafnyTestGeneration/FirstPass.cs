@@ -76,7 +76,7 @@ public class FirstPass {
         errorReporter.Error(MessageSource.TestGeneration, errorId, error.Token, error.Message);
       }
     }
-    if (Warnings.Count() != 0) {
+    if (Warnings.Count() != 0 && !options.TestGenOptions.IgnoreWarnings) {
       errorReporter.Warning(MessageSource.TestGeneration, "", program.StartToken,
         $"Test generation returned {Warnings.Count()} warnings:");
       foreach (var warning in Warnings) {
