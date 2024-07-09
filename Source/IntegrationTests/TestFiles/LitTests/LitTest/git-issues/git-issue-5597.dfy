@@ -1,5 +1,9 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
+// Note, these tests seem to be specific to the old type system. With the new type system,
+// assignments that, in some way, involve a conversion from Number to Integer require an
+// explicit "as" type conversion.
+
 method Main() {
   var n: set<Number> := {};
   var s: set<Integer>;
