@@ -21,7 +21,7 @@ module FactorPathsOptimizationTest {
           //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
         ])).ToString("") ==
       Mod("onemodule", [
-          UseDecl(Use(PRIV, std_any_Any)),
+          UseDecl(Use(PUB, std_any_Any)),
           StructDecl(Struct([], "test", [T_Decl_simp], NamedFields([Field(PUB, Formal("a", Any))]))),
           ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
           ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
@@ -34,7 +34,7 @@ module FactorPathsOptimizationTest {
                 TIdentifier("test").Apply([T]), "", []))
         ])).ToString("") ==
       Mod("onemodule", [
-          UseDecl(Use(PRIV, dafny_runtime.MSel("UpcastObject"))),
+          UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
           ImplDecl(
             ImplFor(
               [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
@@ -66,7 +66,7 @@ module FactorPathsOptimization {
     var pathsToRemove := mappings.ToFinalReplacement();
     var imports := mappings.ToUseStatements(pathsToRemove, SelfPath);
     var rewrittenDeclarations := 
-      mod.Fold([], (current, modDecl) =>
+      mod.Fold([], (current, modDecl) requires modDecl < mod =>
         current + [ReplaceModDecl(modDecl, pathsToRemove)]
       );
     var newBody: seq<ModDecl> :=
@@ -115,7 +115,7 @@ module FactorPathsOptimization {
       var toUse := Std.Collections.Seq.Filter(
         (key: string) => key in finalReplacement && finalReplacement[key] != SelfPath, keys);
       seq(|toUse|, i requires 0 <= i < |toUse| =>
-        UseDecl(Use(PRIV, finalReplacement[toUse[i]].MSel(toUse[i]))))
+        UseDecl(Use(PUB, finalReplacement[toUse[i]].MSel(toUse[i]))))
     }
   }
 
@@ -124,7 +124,7 @@ module FactorPathsOptimization {
   function GatherModMapping(prefix: Path, modDecl: ModDecl, current: Mapping): Mapping {
     match modDecl {
       case ModDecl(mod) =>
-        current.Add(mod.name, prefix)
+        current.Add(mod.name, prefix) // Modules must be handled independently 
       case StructDecl(struct) =>
         current.Add(struct.name, prefix)
       case TypeDecl(tpe) =>
@@ -165,7 +165,8 @@ module FactorPathsOptimization {
 
   function ReplaceModDecl(modDecl: ModDecl, replacement: FinalReplacement): ModDecl {
     match modDecl {
-      case ModDecl(mod) => modDecl // TODO
+      case ModDecl(mod) =>
+        ModDecl(apply(mod)) // We optimize independently submodules
       case StructDecl(struct) => StructDecl(ReplaceStruct(struct, replacement))
       case TypeDecl(tpe) => modDecl // TODO
       case ConstDecl(c) => modDecl // TODO
