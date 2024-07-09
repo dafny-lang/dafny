@@ -84,3 +84,5 @@ Source/IntegrationTests/TestFiles/LitTests/LitTest/comp/**/*.html
 Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.dtr
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/projectFile/libs/usesLibrary-lib
 /Source/IntegrationTests/TestFiles/LitTests/LitTest/cli/projectFile/libs/usesLibrary.doo
+Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.deps.json
+Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.csproj
