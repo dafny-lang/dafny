@@ -877,7 +877,7 @@ namespace Microsoft.Dafny {
               Error(ErrorId.ref_mismatched_type_parameter_variance, n.tok, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
             }
 
-            CheckAgreement_TypeBounds(tok, o, n, name, thing);
+            CheckAgreement_TypeBounds(n.tok, o, n, name, thing);
           }
         }
       }

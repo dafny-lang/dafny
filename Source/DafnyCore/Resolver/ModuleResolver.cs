@@ -2562,7 +2562,7 @@ namespace Microsoft.Dafny {
         for (var i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          CheckOverride_TypeBounds(tok, o, n, name, thing, typeMap);
+          CheckOverride_TypeBounds(n.tok, o, n, name, thing, typeMap);
         }
       }
       return typeMap;
