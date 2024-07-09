@@ -939,7 +939,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsObjectQ) {
         return true;
       } else {
-        return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
+        return from.ParentTypes(false).Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
 
@@ -2750,9 +2750,16 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
         CompileReturnBody(f.Body, f.OriginalResultTypeWithRenamings(), w, accVar);
+#if NEW_ATTEMPT
+        CompileReturnBody(f.Body, ResultTypeAsViewedByFunctionBody(f), w, accVar);
+#endif
         Contract.Assert(enclosingFunction == f);
         enclosingFunction = null;
       }
+    }
+
+    public virtual Type ResultTypeAsViewedByFunctionBody(Function f) {
+      return f.ResultType;
     }
 
     public const string STATIC_ARGS_NAME = "args";
@@ -3093,15 +3100,15 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void CompileReturnBody(Expression body, Type originalResultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
+    void CompileReturnBody(Expression body, Type resultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(body != null);
-      Contract.Requires(originalResultType != null);
+      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
       copyInstrWriters.Push(wr.Fork());
       var wStmts = wr.Fork();
       var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
-      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar, continuation);
+      TrExprOpt(body.Resolved, resultType, wr, wStmts, false, accumulatorVar, continuation);
       copyInstrWriters.Pop();
     }
 
@@ -4724,6 +4731,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
+      w = EmitDowncastIfNecessary(expr.Type, toType, expr.tok, w);
       EmitExpr(expr, inLetExprBody, w, wStmts);
       return result;
     }

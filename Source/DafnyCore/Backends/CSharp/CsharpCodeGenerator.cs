@@ -2748,18 +2748,24 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (resultCollectionType is SeqType or MapType) {
+      if (resultCollectionType is SeqType) {
         wr.Write(TypeHelperName(resultCollectionType, wr, source.tok) + ".Update");
         wr.Append(ParensList(
           Expr(source, inLetExprBody, wStmts),
           Expr(index, inLetExprBody, wStmts),
           CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
+      } else if (resultCollectionType is MapType resultMapType) {
+        wr.Write(TypeHelperName(resultCollectionType, wr, source.tok) + ".Update");
+        wr.Append(ParensList(
+          Expr(source, inLetExprBody, wStmts),
+          CoercedExpr(index, resultMapType.Domain, inLetExprBody, wStmts),
+          CoercedExpr(value, resultMapType.Range, inLetExprBody, wStmts)));
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".Update");
         wr.Append(ParensList(
-          Expr(index, inLetExprBody, wStmts),
-          CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
+          CoercedExpr(index, resultCollectionType.ValueArg, inLetExprBody, wStmts),
+          Expr(value, inLetExprBody, wStmts)));
       }
     }
 
@@ -2890,7 +2896,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || from.IsRefType == to.IsRefType);
+      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
+                      from.IsRefType == to.IsRefType ||
+                      (from.IsTypeParameter && to.IsTraitType));
 
       var w = new ConcreteSyntaxTree();
       if (from.IsTraitType && to.AsNewtype != null) {
