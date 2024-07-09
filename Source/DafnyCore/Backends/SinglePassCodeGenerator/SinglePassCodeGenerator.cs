@@ -576,7 +576,9 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {  // emits "return <expr>;" for function bodies
       var wStmts = wr.Fork();
       var w = EmitReturnExpr(wr);
-      EmitExpr(expr, inLetExprBody, EmitCoercionIfNecessary(expr.Type, resultType, null, w), wStmts);
+      w = EmitCoercionIfNecessary(expr.Type, resultType, expr.tok, w);
+      w = EmitDowncastIfNecessary(expr.Type, resultType, expr.tok, w);
+      EmitExpr(expr, inLetExprBody, w, wStmts);
     }
     protected virtual void EmitReturnExpr(string returnExpr, ConcreteSyntaxTree wr) {  // emits "return <returnExpr>;" for function bodies
       var w = EmitReturnExpr(wr);
@@ -936,7 +938,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsObjectQ) {
         return true;
       } else {
-        return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
+        return from.ParentTypes(false).Any(fromParentType => IsTargetSupertype(to, fromParentType));
       }
     }
 
@@ -2746,10 +2748,14 @@ namespace Microsoft.Dafny.Compilers {
         Coverage.Instrument(f.Body.tok, $"entry to function {f.FullName}", w);
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
-        CompileReturnBody(f.Body, f.Original.ResultType, w, accVar);
+        CompileReturnBody(f.Body, ResultTypeAsViewedByFunctionBody(f), w, accVar);
         Contract.Assert(enclosingFunction == f);
         enclosingFunction = null;
       }
+    }
+
+    public virtual Type ResultTypeAsViewedByFunctionBody(Function f) {
+      return f.ResultType;
     }
 
     public const string STATIC_ARGS_NAME = "args";
@@ -2869,6 +2875,7 @@ namespace Microsoft.Dafny.Compilers {
           var w = DeclareLocalVar(IdName(bv), bv.Type, rhsTok, wr);
           if (rhs != null) {
             w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok: rhsTok, wr: w);
+            w = EmitDowncastIfNecessary(rhs.Type, bv.Type, rhsTok, w);
             EmitExpr(rhs, inLetExprBody, w, wStmts);
           } else {
             emitRhs(w);
@@ -3134,14 +3141,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void CompileReturnBody(Expression body, Type originalResultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
+    void CompileReturnBody(Expression body, Type resultType, ConcreteSyntaxTree wr, [CanBeNull] IVariable accumulatorVar) {
       Contract.Requires(body != null);
-      Contract.Requires(originalResultType != null);
+      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
       Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
       copyInstrWriters.Push(wr.Fork());
       var wStmts = wr.Fork();
-      TrExprOpt(body.Resolved, originalResultType, wr, wStmts, false, accumulatorVar);
+      TrExprOpt(body.Resolved, resultType, wr, wStmts, false, accumulatorVar);
       copyInstrWriters.Pop();
     }
 
@@ -4758,6 +4765,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree CoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
       var result = new ConcreteSyntaxTree();
       var w = EmitCoercionIfNecessary(expr.Type, toType, expr.tok, result);
+      w = EmitDowncastIfNecessary(expr.Type, toType, expr.tok, w);
       EmitExpr(expr, inLetExprBody, w, wStmts);
       return result;
     }

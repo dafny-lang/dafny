@@ -367,7 +367,9 @@ namespace Microsoft.Dafny {
               "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
               nw.WhatKind, nw.Name);
           } else {
-            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", false);
+            // If there are any type bounds, then the names of the type parameters matter
+            var checkNames = d.TypeArgs.Concat(nw.TypeArgs).Any(typeParameter => typeParameter.TypeBounds.Count != 0);
+            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", checkNames);
           }
         }
       } else if (nw is AbstractTypeDecl) {
@@ -840,7 +842,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          if (o.Name != n.Name && checkNames) { // if checkNames is false, then just treat the parameters positionally.
+          if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
             Error(ErrorId.ref_mismatched_type_parameter_name, n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
           } else {
             // This explains what we want to do and why:
@@ -876,7 +878,27 @@ namespace Microsoft.Dafny {
               var nv = n.Variance == TypeParameter.TPVariance.Co ? "+" : n.Variance == TypeParameter.TPVariance.Contra ? "-" : "=";
               Error(ErrorId.ref_mismatched_type_parameter_variance, n.tok, "type parameter '{0}' is not allowed to change variance (here, from '{1}' to '{2}')", n.Name, ov, nv);
             }
+
+            CheckAgreement_TypeBounds(tok, o, n, name, thing);
           }
+        }
+      }
+    }
+
+    void CheckAgreement_TypeBounds(IToken tok, TypeParameter old, TypeParameter nw, string name, string thing) {
+      if (old.TypeBounds.Count != nw.TypeBounds.Count) {
+        Error(ErrorId.ref_mismatched_type_bounds_count, tok,
+          $"type parameter '{nw.Name}' of {thing} '{name}' is declared with a different number of type bounds than in the corresponding {thing}" +
+          $" in the module it refines (expected {old.TypeBounds.Count}, found {nw.TypeBounds.Count})");
+        return;
+      }
+      for (var i = 0; i < old.TypeBounds.Count; i++) {
+        var oldBound = old.TypeBounds[i];
+        var newBound = nw.TypeBounds[i];
+        if (!TypesAreSyntacticallyEqual(oldBound, newBound)) {
+          Error(ErrorId.ref_mismatched_type_parameter_bound, tok,
+            $"type bound for type parameter '{nw.Name}' of {thing} '{name}' is different from the corresponding type bound of the " +
+            $"corresponding type parameter of the corresponding {thing} in the module it refines (expected '{oldBound}', found '{newBound}')");
         }
       }
     }
