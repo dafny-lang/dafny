@@ -4211,14 +4211,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         else
           Success(R.dafny_runtime.MSel("rc_coerce").AsExpr().Apply1(lambda))
       else if SameTypesButDifferentTypeParameters(fromType, fromTpe, toType, toTpe) then
-        var lambdas :- SeqResultToResultSeq(seq(|fromTpe.arguments|, i requires 0 <= i < |fromTpe.arguments| =>
-                                              UpcastConversionLambda(
-                                                fromType.resolved.typeArgs[i],
-                                                fromTpe.arguments[i],
-                                                toType.resolved.typeArgs[i],
-                                                toTpe.arguments[i],
-                                                typeParams
-                                              )));
+        var indices :=
+             if fromType.UserDefined? && fromType.resolved.kind.Datatype? then
+               Std.Collections.Seq.Filter(i =>
+                 if 0 <= i < |fromType.resolved.kind.variances| then
+                   !fromType.resolved.kind.variances[i].Nonvariant?
+                 else
+                   true
+               , seq(|fromTpe.arguments|, i => i))
+             else
+               seq(|fromTpe.arguments|, i => i);
+        assert forall i <- indices :: 0 <= i < |fromTpe.arguments|;
+        var lambdas :- SeqResultToResultSeq(
+          seq(|indices|, j requires 0 <= j < |indices| =>
+             var i := indices[j];
+              UpcastConversionLambda(
+                fromType.resolved.typeArgs[i],
+                fromTpe.arguments[i],
+                toType.resolved.typeArgs[i],
+                toTpe.arguments[i],
+                typeParams
+              )));
         Success(R.ExprFromType(fromTpe.baseName).ApplyType(
                   seq(|fromTpe.arguments|, i requires 0 <= i < |fromTpe.arguments| =>
                     fromTpe.arguments[i])
