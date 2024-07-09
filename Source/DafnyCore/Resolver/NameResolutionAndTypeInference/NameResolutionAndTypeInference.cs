@@ -1676,7 +1676,7 @@ namespace Microsoft.Dafny {
         return polarities;
       }
 
-      foreach (var subParentType in sub.ParentTypes()) {
+      foreach (var subParentType in sub.ParentTypes(true)) {
         sub = subParentType;
         polarities = ConstrainTypeHead_Recursive(super, ref sub);
         if (polarities != null) {
@@ -5579,7 +5579,7 @@ namespace Microsoft.Dafny {
           // We have found a module name or a type name, neither of which is a type expression. However, the NameSegment we're
           // looking at may be followed by a further suffix that makes this into a type expresion. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-          // or verifier, just to have a placeholder where we can recorded what we have found.
+          // or verifier, just to have a placeholder where we can record what we have found.
           r = CreateResolver_IdentifierExpr(expr.tok, expr.Name, expr.OptTypeArguments, decl);
         }
 
@@ -5914,7 +5914,6 @@ namespace Microsoft.Dafny {
           subst.Add(m.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => f.Type.Subst(subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;

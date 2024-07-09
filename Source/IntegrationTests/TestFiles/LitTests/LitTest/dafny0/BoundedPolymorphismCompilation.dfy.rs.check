@@ -1,0 +1,1 @@
+// L-CHECK: error: `_` cannot be a raw identifier

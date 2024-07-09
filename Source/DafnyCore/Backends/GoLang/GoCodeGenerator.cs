@@ -2488,6 +2488,10 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string PrefixForForcedCapitalization => "Go_";
 
+    public override Type ResultTypeAsViewedByFunctionBody(Function f) {
+      return f.Original.ResultType;
+    }
+
     protected override string IdMemberName(MemberSelectExpr mse) {
       return Capitalize(mse.MemberName);
     }
@@ -3899,7 +3903,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
-      } else if (from != null && from.IsSubtypeOf(to, true, true)) {
+      } else if (from != null && !from.IsTypeParameter && from.IsSubtypeOf(to, true, true)) {
         // upcast
         return wr;
       } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {
@@ -3932,6 +3936,16 @@ namespace Microsoft.Dafny.Compilers {
         Error(GeneratorErrors.ErrorId.c_Go_infeasible_conversion, tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }
+    }
+
+    protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
+      if (to.IsTraitType) {
+        wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      }
+      return base.EmitDowncast(from, to, tok, wr);
     }
 
     protected override ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {
