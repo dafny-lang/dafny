@@ -124,7 +124,7 @@ namespace Microsoft.Dafny.Compilers {
             } else {
               var eRhs = (ExprRhs)s.Rhs;
               if (eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
-                TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
+                TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, wr);
               } else {
                 var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
                 var doAssignment = (Expression e, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wrAssignment) => {

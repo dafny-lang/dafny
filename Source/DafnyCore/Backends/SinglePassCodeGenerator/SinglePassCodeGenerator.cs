@@ -3014,57 +3014,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (expr is FunctionCallExpr fce && fce.Function == enclosingFunction && enclosingFunction.IsTailRecursive) {
         var e = fce;
         // compile call as tail-recursive
-
-        // assign the actual in-parameters to temporary variables
-        var inTmps = new List<string>();
-        var inTypes = new List<Type/*?*/>();
-        if (!e.Function.IsStatic) {
-          string inTmp = ProtectedFreshId("_in");
-          inTmps.Add(inTmp);
-          inTypes.Add(null);
-          DeclareLocalVar(inTmp, null, null, e.Receiver, inLetExprBody, wr);
-        }
-        for (int i = 0; i < e.Function.Ins.Count; i++) {
-          Formal p = e.Function.Ins[i];
-          if (!p.IsGhost) {
-            string inTmp = ProtectedFreshId("_in");
-            inTmps.Add(inTmp);
-            inTypes.Add(e.Args[i].Type);
-            DeclareLocalVar(inTmp, e.Args[i].Type, p.tok, e.Args[i], inLetExprBody, wr);
-          }
-        }
-        // Now, assign to the formals
-        int n = 0;
-        if (!e.Function.IsStatic) {
-          ConcreteSyntaxTree wRHS = EmitAssignment(IdentLvalue("_this"), null, null, wr, e.tok);
-          if (thisContext == null) {
-            wRHS = wr;
-          } else {
-            var instantiatedType = e.Receiver.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-
-            var contextType = UserDefinedType.FromTopLevelDecl(e.tok, thisContext);
-            if (contextType.ResolvedClass is ClassLikeDecl { NonNullTypeDecl: { } } cls) {
-              contextType = UserDefinedType.FromTopLevelDecl(e.tok, cls.NonNullTypeDecl);
-            }
-
-            wRHS = EmitCoercionIfNecessary(instantiatedType, contextType, e.tok, wRHS);
-          }
-          EmitIdentifier(inTmps[n], wRHS);
-          EndStmt(wr);
-          n++;
-        }
-        foreach (var p in e.Function.Ins) {
-          if (!p.IsGhost) {
-            EmitIdentifier(
-              inTmps[n],
-              EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, e.tok)
-            );
-            n++;
-          }
-        }
-        Contract.Assert(n == inTmps.Count);
-        // finally, the jump back to the head of the function
-        EmitJumpToTailCallStart(wr);
+        Contract.Assert(!inLetExprBody); // a tail call had better not sit inside a target-code lambda
+        TrTailCall(e.tok, e.Function.IsStatic, e.Function.Ins, e.Receiver, e.Args, wr);
 
       } else if (expr is BinaryExpr bin
                  && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None
@@ -4374,13 +4325,18 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    /// <summary>
+    /// Emit translation of a call statement.
+    /// The "receiverReplacement" parameter is allowed to be "null". It must be null for tail recursive calls.
+    /// </summary>
     protected virtual void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
 
       if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
         // compile call as tail-recursive
-        TrTailCallStmt(s.Tok, s.Method, s.Receiver, s.Args, receiverReplacement, wr);
+        Contract.Assert(receiverReplacement == null); // "receiverReplacement" is expected to be "null" for tail recursive calls
+        TrTailCallStmt(s.Tok, s.Method, s.Receiver, s.Args, wr);
       } else {
         // compile call as a regular call
         var lvalues = new List<ILvalue>();  // contains an entry for each non-ghost formal out-parameter, but the entry is null if the actual out-parameter is ghost
@@ -4576,29 +4532,30 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    void TrTailCallStmt(IToken tok, Method method, Expression receiver, List<Expression> args, string receiverReplacement, ConcreteSyntaxTree wr) {
+    void TrTailCallStmt(IToken tok, Method method, Expression receiver, List<Expression> args, ConcreteSyntaxTree wr) {
       Contract.Requires(tok != null);
       Contract.Requires(method != null);
       Contract.Requires(receiver != null);
       Contract.Requires(args != null);
       Contract.Requires(method.IsTailRecursive);
       Contract.Requires(wr != null);
+      TrTailCall(tok, method.IsStatic, method.Ins, receiver, args, wr);
+    }
 
+    void TrTailCall(IToken tok, bool isStatic, List<Formal> inParameters, Expression receiver, List<Expression> args, ConcreteSyntaxTree wr) {
       // assign the actual in-parameters to temporary variables
       var inTmps = new List<string>();
-      var inTypes = new List<Type/*?*/>();
-      if (receiverReplacement != null) {
-        // TODO:  What to do here?  When does this happen, what does it mean?
-      } else if (!method.IsStatic) {
-        string inTmp = ProtectedFreshId("_in");
+      var inTypes = new List<Type>();
+      if (!isStatic) {
+        var inTmp = ProtectedFreshId("_in");
         inTmps.Add(inTmp);
         inTypes.Add(null);
         DeclareLocalVar(inTmp, null, null, receiver, false, wr);
       }
-      for (int i = 0; i < method.Ins.Count; i++) {
-        Formal p = method.Ins[i];
+      for (int i = 0; i < inParameters.Count; i++) {
+        var p = inParameters[i];
         if (!p.IsGhost) {
-          string inTmp = ProtectedFreshId("_in");
+          var inTmp = ProtectedFreshId("_in");
           inTmps.Add(inTmp);
           inTypes.Add(args[i].Type);
           DeclareLocalVar(inTmp, args[i].Type, p.tok, args[i], false, wr);
@@ -4606,7 +4563,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       // Now, assign to the formals
       int n = 0;
-      if (!method.IsStatic) {
+      if (!isStatic) {
         ConcreteSyntaxTree wRHS = EmitAssignment(IdentLvalue("_this"), null, null, wr, tok);
         if (thisContext == null) {
           wRHS = wr;
@@ -4624,7 +4581,7 @@ namespace Microsoft.Dafny.Compilers {
         EndStmt(wr);
         n++;
       }
-      foreach (var p in method.Ins) {
+      foreach (var p in inParameters) {
         if (!p.IsGhost) {
           EmitIdentifier(
             inTmps[n],
