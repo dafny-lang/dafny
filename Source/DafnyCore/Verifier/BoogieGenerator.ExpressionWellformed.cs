@@ -701,7 +701,7 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
                 CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, ee, builder);
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, CondApplyBox(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, AdaptBoxing(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
                 if (!etran.UsesOldHeap) {
                   // the argument can't be assumed to be allocated for the old heap
@@ -1341,7 +1341,7 @@ namespace Microsoft.Dafny {
         var bResult = etran.TrExpr(expr);
         CheckSubrange(expr.tok, bResult, expr.Type, resultType, expr, builder);
         builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr,
-          e => Bpl.Expr.Eq(result, CondApplyBox(expr.tok, e, expr.Type, resultType)),
+          e => Bpl.Expr.Eq(result, AdaptBoxing(expr.tok, e, expr.Type, resultType)),
           resultDescription));
         builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
