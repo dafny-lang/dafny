@@ -594,11 +594,11 @@ namespace Microsoft.Dafny.Compilers {
         writer = thenWriter;
       } else if (pattern is IdPattern idPattern) {
         if (idPattern.BoundVar != null) {
-          if (idPattern.BoundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
+          var boundVar = idPattern.BoundVar;
+          if (boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
             return writer;
           }
 
-          var boundVar = idPattern.BoundVar;
           var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
           valueWriter.Write(sourceName);
           return writer;
