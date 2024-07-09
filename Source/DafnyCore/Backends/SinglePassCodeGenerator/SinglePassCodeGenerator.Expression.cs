@@ -722,7 +722,7 @@ namespace Microsoft.Dafny.Compilers {
 
       EmitNestedMatchGeneric(match, continuation.PreventCaseFallThrough, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody, accumulatorVar: null, continuation);
       }, inLetExprBody, wr);
     }
 
