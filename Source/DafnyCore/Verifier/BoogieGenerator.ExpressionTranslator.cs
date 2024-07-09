@@ -724,7 +724,7 @@ namespace Microsoft.Dafny {
                 Type t = dtv.Ctor.Formals[i].Type;
                 var bArg = TrExpr(arg);
                 argsAreLit = argsAreLit && BoogieGenerator.IsLit(bArg);
-                args.Add(BoogieGenerator.CondApplyBox(GetToken(value), bArg, cce.NonNull(arg.Type), t));
+                args.Add(BoogieGenerator.AdaptBoxing(GetToken(value), bArg, cce.NonNull(arg.Type), t));
               }
               Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(GetToken(dtv), dtv.Ctor.FullName, predef.DatatypeType);
               Boogie.Expr ret = new Boogie.NAryExpr(GetToken(dtv), new Boogie.FunctionCall(id), args);
@@ -1459,8 +1459,8 @@ namespace Microsoft.Dafny {
           case ITEExpr iteExpr: {
               ITEExpr e = iteExpr;
               var g = BoogieGenerator.RemoveLit(TrExpr(e.Test));
-              var thn = BoogieGenerator.RemoveLit(TrExpr(e.Thn));
-              var els = BoogieGenerator.RemoveLit(TrExpr(e.Els));
+              var thn = BoogieGenerator.AdaptBoxing(e.Thn.tok, BoogieGenerator.RemoveLit(TrExpr(e.Thn)), e.Thn.Type, e.Type);
+              var els = BoogieGenerator.AdaptBoxing(e.Els.tok, BoogieGenerator.RemoveLit(TrExpr(e.Els)), e.Els.Type, e.Type);
               return new NAryExpr(GetToken(iteExpr), new IfThenElse(GetToken(iteExpr)), new List<Boogie.Expr> { g, thn, els });
             }
           case MatchExpr matchExpr: {
@@ -1746,7 +1746,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
           Type t = e.Function.Ins[i].Type;
           Expr tr_ee = TrExpr(ee);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
-          args.Add(BoogieGenerator.CondApplyBox(GetToken(e), tr_ee, cce.NonNull(ee.Type), t));
+          args.Add(BoogieGenerator.AdaptBoxing(GetToken(e), tr_ee, cce.NonNull(ee.Type), t));
         }
         return args;
       }
