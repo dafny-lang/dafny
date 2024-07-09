@@ -195,7 +195,7 @@ namespace Microsoft.Dafny {
     public TypeParameter CloneTypeParam(TypeParameter tp) {
       return (TypeParameter)typeParameterClones.GetOrCreate(tp,
         () => new TypeParameter(Range(tp.RangeToken), tp.NameNode.Clone(this), tp.VarianceSyntax,
-          CloneTPChar(tp.Characteristics)));
+          CloneTPChar(tp.Characteristics), tp.TypeBounds.ConvertAll(CloneType)));
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member, bool isReference) {

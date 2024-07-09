@@ -1030,7 +1030,9 @@ public partial class BoogieGenerator {
     Contract.Requires(toType != null);
     toType = toType.NormalizeToAncestorType();
     fromType = fromType.NormalizeToAncestorType();
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
+    if (fromType.IsTypeParameter) {
+      return UnboxUnlessInherentlyBoxed(r, toType);
+    } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
       if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // do nothing
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -1152,6 +1154,11 @@ public partial class BoogieGenerator {
     } else if (fromType.IsTraitType) {
       // cast from a non-reference trait
       return UnboxUnlessInherentlyBoxed(r, toType);
+    } else if (fromType.IsSubtypeOf(toType, false, false)) {
+      return AdaptBoxing(r.tok, r, fromType, toType);
+    } else if (fromType is CollectionType && toType is CollectionType) {
+      // the Boogie representation of collection types is the same for all element types
+      return r;
     } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
       return r;
     } else {
@@ -1205,7 +1212,9 @@ public partial class BoogieGenerator {
       }
     }
 
-    Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || fromType.IsRefType == toType.IsRefType);
+    Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
+                    fromType.IsRefType == toType.IsRefType ||
+                    (fromType.IsTypeParameter && toType.IsTraitType));
     if (toType.IsRefType) {
       PutSourceIntoLocal();
       CheckSubrange(tok, o, fromType, toType, expr, builder, errorMsgPrefix);

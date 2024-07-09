@@ -104,7 +104,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     MembersBeforeResolution = Members.ToImmutableList();
   }
 
-  public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
+  private List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
@@ -115,7 +115,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     });
   }
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return RawTraitsWithArgument(typeArgs);
   }
 

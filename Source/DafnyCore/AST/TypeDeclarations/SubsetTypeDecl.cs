@@ -56,7 +56,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   WKind RedirectingTypeDecl.WitnessKind => WitnessKind;
   Expression RedirectingTypeDecl.Witness => Witness;
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return new List<Type> { RhsWithArgument(typeArgs) };
   }
   public bool ShouldVerify => true; // This could be made more accurate

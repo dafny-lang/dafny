@@ -663,7 +663,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(c != null);
 
       Indent(indent);
-      PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
+      PrintClassMethodHelper(c is TraitDecl ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       if (c.IsRefining) {
         wr.Write(" ...");
       } else {
@@ -778,7 +778,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public string TypeParamString(TypeParameter tp) {
       Contract.Requires(tp != null);
-      return TypeParamVariance(tp) + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      var paramString = TypeParamVariance(tp) + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      foreach (var typeBound in tp.TypeBounds) {
+        paramString += $" extends {typeBound.TypeName(options, null, true)}";
+      }
+      return paramString;
     }
 
     public static string TypeParamVariance(TypeParameter tp) {

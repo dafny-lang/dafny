@@ -190,6 +190,46 @@ module New {
   }
 }
 
+module BoundedPolymorphism {
+  function Function<K extends Trait>(k: K): int
+  {
+    2
+  }
+
+  method Method<L extends Trait>(l: L)
+  {
+  }
+
+  least predicate Least<M extends Trait>(m: M)
+  {
+    true
+  }
+
+  greatest lemma Greatest<N extends Trait>(n: N)
+  {
+  }
+
+  trait Trait { }
+
+  datatype DT<W extends Trait> = Dt(w: W)
+
+  type Syn<X extends Trait> = DT<X>
+
+  class Class<Y extends Trait> { }
+
+  trait AnotherTrait<Z extends Trait> { }
+
+  type Abstract<V extends Trait extends AnotherTrait<Trait>>
+
+  trait Generic<Q> { }
+
+  codatatype Mutual<A extends Generic<B>, B extends Generic<A>> = More(Mutual)
+
+  iterator Iter<O extends Trait>(o: O)
+  {
+  }
+}
+
 module SimpleNewtypeWitness {
   newtype A = x: int
     | 100 <= x

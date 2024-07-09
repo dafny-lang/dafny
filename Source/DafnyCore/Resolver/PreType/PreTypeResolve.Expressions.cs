@@ -1656,6 +1656,7 @@ namespace Microsoft.Dafny {
           subst.Add(function.TypeArgs[i], ta);
         }
         subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
+        AddTypeBoundConstraints(tok, function.TypeArgs, subst);
         var inParamTypes = function.Ins.ConvertAll(f => f.PreType.Substitute(subst));
         var resultType = Type2PreType(function.ResultType).Substitute(subst);
         rr.PreType = BuiltInArrowType(inParamTypes, resultType);
@@ -1683,9 +1684,22 @@ namespace Microsoft.Dafny {
           rr.PreTypeApplication_JustMember.Add(ta);
           subst.Add(method.TypeArgs[i], ta);
         }
+        subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
+        AddTypeBoundConstraints(tok, method.TypeArgs, subst);
         rr.PreType = new MethodPreType($"call to {method.WhatKind} {method.Name}");  // fill in this field, in order to make "rr" resolved
       }
       return rr;
+    }
+
+    void AddTypeBoundConstraints(IToken tok, List<TypeParameter> typeParameters, Dictionary<TypeParameter, PreType> subst) {
+      foreach (var typeParameter in typeParameters) {
+        foreach (var preTypeBound in TypeParameterBounds2PreTypes(typeParameter)) {
+          var preTypeBoundWithSubst = preTypeBound.Substitute(subst);
+          var actualPreType = subst[typeParameter];
+          AddSubtypeConstraint(preTypeBoundWithSubst, actualPreType, tok,
+            $"actual type parameter '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
+        }
+      }
     }
 
     public MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolutionContext resolutionContext, bool allowMethodCall) {

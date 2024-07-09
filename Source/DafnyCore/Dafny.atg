@@ -1070,40 +1070,41 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
 /*------------------------------------------------------------------------*/
 TypeVariableName<out Name name> = Name<out name> .
 
-GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
-= (. Contract.Requires(cce.NonNullElements(typeArgs));
-     TypeParameter.TypeParameterCharacteristics characteristics;
-     TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
-     characteristics = new TypeParameter.TypeParameterCharacteristics(false);
-     
-     Name name;
-  .)
+GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
+= (. Contract.Requires(cce.NonNullElements(typeParameters)); .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
   // (Only because we parse the new "<-" symbol as separate "<" "-" tokens precisely to avoid this issue :)
-  "<"   (. IToken startToken = t.Next; .)
-  [ Variance<out variance>  (.
-            if (!allowVariance) { SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); }  
-          .)
+  "<"
+  OneTypeParameter<typeParameters, allowVariance>
+  { ","
+    OneTypeParameter<typeParameters, allowVariance>
+  }
+  ">"
+  .
+
+OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
+= (. var variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict; // assignment is to please compiler
+     var characteristics = new TypeParameter.TypeParameterCharacteristics(false);
+     Name name;
+     Type typeBound;
+     var typeBounds = new List<Type>();
+     var startToken = t.Next;
+  .)
+  [ Variance<out variance>
+    (. if (!allowVariance) {
+         SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context");
+       }
+    .)
   ]
   TypeVariableName<out name>
   { TypeParameterCharacteristics<ref characteristics> }
-  (. typeArgs.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
-  { ","
-    (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
-       characteristics = new TypeParameter.TypeParameterCharacteristics(false);
-       startToken = t.Next; 
-    .)
-    [ Variance<out variance>  (. 
-            if (!allowVariance) { SemErr(ErrorId.p_type_parameter_variance_forbidden, t, "type-parameter variance is not allowed to be specified in this context"); } 
-        .)
-    ]
-    TypeVariableName<out name>
-    { TypeParameterCharacteristics<ref characteristics> }
-    (. typeArgs.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics)); .)
+  { "extends"
+    Type<out typeBound>
+    (. typeBounds.Add(typeBound); .)
   }
-  ">"
+  (. typeParameters.Add(new TypeParameter(new RangeToken(startToken, t), name, variance, characteristics, typeBounds)); .)
   .
 
 /*------------------------------------------------------------------------*/

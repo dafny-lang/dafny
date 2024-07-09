@@ -398,11 +398,14 @@ namespace Microsoft.Dafny {
         // object is at height 0
         return 0;
       }
+
       if (decl is TopLevelDeclWithMembers { ParentTraitHeads: { Count: > 0 } } topLevelDeclWithMembers) {
         // Note, if "decl" is a reference type, then its parents include "object", whether or not "object" is explicitly
         // included in "ParentTraitHeads". Since the "Max" in the following line will return a number 0 or
         // higher, the "Max" would be the same whether or not "object" is in the "ParentTraitHeads" list.
         return topLevelDeclWithMembers.ParentTraitHeads.Max(Height) + 1;
+      } else if (decl is TypeParameter { TypeBounds: { Count: > 0 } } typeParameter) {
+        return typeParameter.TypeBoundHeads.Max(Height) + 1;
       } else {
         // Other other declarations have height 1.
         // Note, an ostensibly parent-less reference type still has the implicit "object" as a parent trait, but
@@ -751,6 +754,15 @@ namespace Microsoft.Dafny {
         var arguments = GetTypeArgumentsForSuperType(super, parentPreType, false);
         if (arguments != null) {
           return arguments;
+        }
+      }
+
+      if (sub.Decl is TypeParameter typeParameter) {
+        foreach (var preTypeBound in PreTypeResolver.TypeParameterBounds2PreTypes(typeParameter)) {
+          var arguments = GetTypeArgumentsForSuperType(super, preTypeBound, allowBaseTypeCast);
+          if (arguments != null) {
+            return arguments;
+          }
         }
       }
 
