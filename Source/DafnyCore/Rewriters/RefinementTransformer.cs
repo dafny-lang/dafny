@@ -367,9 +367,7 @@ namespace Microsoft.Dafny {
               "a {0} ({1}) cannot declare members, so it cannot refine an abstract type with members",
               nw.WhatKind, nw.Name);
           } else {
-            // If there are any type bounds, then the names of the type parameters matter
-            var checkNames = d.TypeArgs.Concat(nw.TypeArgs).Any(typeParameter => typeParameter.TypeBounds.Count != 0);
-            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type", checkNames);
+            CheckAgreement_TypeParameters(nw.tok, d.TypeArgs, nw.TypeArgs, nw.Name, "type");
           }
         }
       } else if (nw is AbstractTypeDecl) {
@@ -648,7 +646,7 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
-      CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind, false);
+      CheckAgreement_TypeParameters(nw.tok, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
       prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(refinementCloner.CloneType(item)));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
@@ -830,7 +828,7 @@ namespace Microsoft.Dafny {
 
       return nw;
     }
-    void CheckAgreement_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing, bool checkNames = true) {
+    void CheckAgreement_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing) {
       Contract.Requires(tok != null);
       Contract.Requires(old != null);
       Contract.Requires(nw != null);
@@ -842,7 +840,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
+          if (o.Name != n.Name) {
             Error(ErrorId.ref_mismatched_type_parameter_name, n.tok, "type parameters are not allowed to be renamed from the names given in the {0} in the module being refined (expected '{1}', found '{2}')", thing, o.Name, n.Name);
           } else {
             // This explains what we want to do and why:

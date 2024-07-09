@@ -323,3 +323,95 @@ module VariousBounds {
     }
   }
 }
+
+module MoreRefinement {
+  module AA {
+    trait Trait { }
+    trait G<X> { }
+    trait H<X> { }
+
+    type AbstractType0<A extends G<A>, B>
+    type AbstractType1<A, B extends G<A>>
+    type AbstractType2<A extends G<A>, B extends G<A>>
+    type AbstractType3<A extends G<A>, B extends G<A>>
+
+    function F0<A, B extends G<A>>(): int
+    function F1<A, B extends G<A>>(): int
+    function F2<A, B>(): A
+    function F3<A, B>(a: A): int
+    function F4<A, B>(a: A): A
+
+    method M0<A, B extends G<A>>()
+    method M1<A, B extends G<A>>()
+    method M2<A, B>() returns (a: A)
+    method M3<A, B>(a: A)
+    method M4<A, B>(a: A) returns (r: A)
+  }
+
+  module BB refines AA {
+    type AbstractType0<B extends G<A>, A> // error: the type bounds are not the same (after renaming)
+    type AbstractType1<B, A extends G<A>> // error: the type bounds are not the same (after renaming)
+    type AbstractType2<B extends G<B>, A extends G<B>>
+    type AbstractType3<B extends G<B>, A extends H<B>> // error: the type bounds are not the same (after renaming)
+
+    function F0<B, A extends G<A>>(): int // error: the type bounds are not the same (after renaming)
+    function F1<B, A extends G<B>>(): int
+    function F2<B, A>(): A // error: mismatched result type
+    function F3<B, A>(a: A): int // error: mismatched in-parameter type
+    function F4<B, A>(b: B): B
+
+    method M0<B, A extends G<A>>() // error: the type bounds are not the same (after renaming)
+    method M1<B, A extends G<B>>()
+    method M2<B, A>() returns (a: A) // error: mismatched out-parameter type
+    method M3<B, A>(a: A) // error: mismatched in-parameter type
+    method M4<B, A>(b: B) returns (r: B)
+  }
+}
+
+module RefinementRegressions {
+  module AA {
+    datatype D<X> = D(x: X)
+  }
+
+  module BB refines AA {
+    type X = int
+    datatype D<Y> ... // error: not allowed to rename type parameter
+  }
+
+  abstract module XX {
+    type D<X>
+    class C<X> {
+      var x: X
+      constructor Orig(x: X) {
+        this.x := x;
+      }
+      method Print() {
+        print x, "\n";
+      }
+    }
+
+    method G() returns (r: C<char>) {
+      r := new C<char>.Orig('h');
+    }
+  }
+
+  module YY refines XX {
+    type D<Z> = X // error: not allowed to rename type parameter
+    type X = int
+    class C<Y> ... { // error: not allowed to rename type parameter
+      var y: Y
+      constructor Alt(y: Y) {
+        this.x := 15;
+        this.y := y;
+      }
+    }
+
+    method Test() {
+      var c := new C<real>.Alt(3.2);
+      var d := new C<real>.Orig(3);
+      c.Print();
+      d.Print();
+    }
+  }
+
+}

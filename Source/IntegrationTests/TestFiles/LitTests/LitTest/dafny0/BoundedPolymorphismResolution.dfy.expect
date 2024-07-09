@@ -81,4 +81,4 @@ BoundedPolymorphismResolution.dfy(319,13): Error: RHS (of type X) not assignable
 BoundedPolymorphismResolution.dfy(320,20): Error: type test for type 'XTrait' must be from an expression assignable to it (got 'Parent')
 BoundedPolymorphismResolution.dfy(321,13): Error: RHS (of type Y) not assignable to LHS (of type Parent)
 BoundedPolymorphismResolution.dfy(322,20): Error: type test for type 'YTrait' must be from an expression assignable to it (got 'Parent')
-83 resolution/type errors detected in BoundedPolymorphismResolution.dfy
+82 resolution/type errors detected in BoundedPolymorphismResolution.dfy

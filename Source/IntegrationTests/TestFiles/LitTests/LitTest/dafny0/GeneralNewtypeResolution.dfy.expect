@@ -169,6 +169,7 @@ GeneralNewtypeResolution.dfy(859,10): Error: a newtype ('B1') must be based on s
 GeneralNewtypeResolution.dfy(860,10): Error: a newtype ('B2') must be based on some numeric type (got NeedsNonempty<Z>)
 GeneralNewtypeResolution.dfy(861,10): Error: a newtype ('B3') must be based on some numeric type (got NeedsNoReferences<Z>)
 GeneralNewtypeResolution.dfy(881,10): Error: a newtype ('A0') must be based on some numeric type (got NeedsEq<Y>)
+GeneralNewtypeResolution.dfy(895,9): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'T', found 'U')
 GeneralNewtypeResolution.dfy(899,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(900,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(901,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
@@ -179,6 +180,7 @@ GeneralNewtypeResolution.dfy(905,4): Error: type parameter 'ZZ' is not allowed t
 GeneralNewtypeResolution.dfy(910,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
 GeneralNewtypeResolution.dfy(911,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
 GeneralNewtypeResolution.dfy(912,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
+GeneralNewtypeResolution.dfy(917,12): Error: type parameters are not allowed to be renamed from the names given in the newtype in the module being refined (expected 'T', found 'U')
 GeneralNewtypeResolution.dfy(921,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(922,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(923,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
@@ -193,7 +195,7 @@ GeneralNewtypeResolution.dfy(940,10): Error: recursive constraint dependency inv
 GeneralNewtypeResolution.dfy(945,10): Error: recursive constraint dependency involving a newtype: A -> A
 GeneralNewtypeResolution.dfy(950,7): Error: type-synonym cycle: A -> A
 GeneralNewtypeResolution.dfy(955,10): Error: recursive constraint dependency involving a newtype: A -> A
-195 resolution/type errors detected in GeneralNewtypeResolution.dfy
+197 resolution/type errors detected in GeneralNewtypeResolution.dfy
 GeneralNewtypeResolution.dfy(34,10): Error: a newtype ('MyOrdinal') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got ORDINAL)
 GeneralNewtypeResolution.dfy(40,10): Error: a newtype ('MyObject') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got object)
 GeneralNewtypeResolution.dfy(41,10): Error: a newtype ('MyTrait') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got Trait)
@@ -334,6 +336,7 @@ GeneralNewtypeResolution.dfy(863,15): Error: type parameter (X) passed to type N
 GeneralNewtypeResolution.dfy(864,15): Error: type parameter (X) passed to type NeedsAutoInit must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 864 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 GeneralNewtypeResolution.dfy(865,15): Error: type parameter (X) passed to type NeedsNonempty must be nonempty (got Y) (perhaps try declaring type parameter 'Y' on line 865 as 'Y(00)', which says it can only be instantiated with a nonempty type)
 GeneralNewtypeResolution.dfy(866,15): Error: type parameter (X) passed to type NeedsNoReferences must contain no references (got Y) (perhaps try declaring type parameter 'Y' on line 866 as 'Y(!new)', which says it can only be instantiated with a type that contains no references)
+GeneralNewtypeResolution.dfy(895,9): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'T', found 'U')
 GeneralNewtypeResolution.dfy(899,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(900,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(901,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
@@ -344,6 +347,7 @@ GeneralNewtypeResolution.dfy(905,4): Error: type parameter 'ZZ' is not allowed t
 GeneralNewtypeResolution.dfy(910,5): Error: type parameter 'A' is not allowed to change variance (here, from '+' to '-')
 GeneralNewtypeResolution.dfy(911,5): Error: type parameter 'B' is not allowed to change variance (here, from '=' to '+')
 GeneralNewtypeResolution.dfy(912,4): Error: type parameter 'C' is not allowed to change variance (here, from '-' to '=')
+GeneralNewtypeResolution.dfy(917,12): Error: type parameters are not allowed to be renamed from the names given in the newtype in the module being refined (expected 'T', found 'U')
 GeneralNewtypeResolution.dfy(921,4): Error: type parameter 'V' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(922,4): Error: type parameter 'W' is not allowed to change the requirement of supporting auto-initialization
 GeneralNewtypeResolution.dfy(923,4): Error: type parameter 'X' is not allowed to change the requirement of being nonempty
@@ -358,4 +362,4 @@ GeneralNewtypeResolution.dfy(940,10): Error: recursive constraint dependency inv
 GeneralNewtypeResolution.dfy(945,10): Error: recursive constraint dependency involving a newtype: A -> A
 GeneralNewtypeResolution.dfy(950,7): Error: type-synonym cycle: A -> A
 GeneralNewtypeResolution.dfy(955,10): Error: recursive constraint dependency involving a newtype: A -> A
-163 resolution/type errors detected in GeneralNewtypeResolution.dfy
+165 resolution/type errors detected in GeneralNewtypeResolution.dfy

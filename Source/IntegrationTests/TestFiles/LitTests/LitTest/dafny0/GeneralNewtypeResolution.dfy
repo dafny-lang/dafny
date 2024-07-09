@@ -892,7 +892,7 @@ module RefinementBase {
 }
 
 module RefinementSubsetTypes refines RefinementBase {
-  type A<U> = x: int | true // renaming is allowed when refining an abstract type
+  type A<U> = x: int | true // error: type-parameter renaming is not allowed in refinement
 
   type N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ> = x: int | true
   type O<
@@ -914,7 +914,7 @@ module RefinementSubsetTypes refines RefinementBase {
 }
 
 module RefinementNewtypes refines RefinementBase {
-  newtype A<U> = x: int | true // renaming is allowed when refining an abstract type
+  newtype A<U> = x: int | true // error: type-parameter renaming is not allowed in refinement
 
   newtype N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ> = x: int | true
   newtype O<
