@@ -195,13 +195,13 @@ module Refinement {
   }
 
   module BB refines AA {
-    type SoonSubsetType0<B> = int // here, the name is allowed to be changed
+    type SoonSubsetType0<B> = int // error: name change not allowed
     type SoonSubsetType1<B extends Trait> = int // error: name change not allowed
     type SoonSubsetType2<B> = int // error: name change not allowed
 
-    type AbstractType0<B> // error: name change not allowed
-    type AbstractType1<B> // error: name change not allowed
-    type AbstractType2<B extends Trait> // error: name change not allowed
+    type AbstractType0<A> // error: name change not allowed
+    type AbstractType1<A> // error: type bounds don't match the ones in AA.AbstractType1
+    type AbstractType2<A extends Trait> // error: type bounds don't match the ones in AAAbstractType2
 
     type AbstractType3<A extends Trait> // error: wrong number of type bounds
     type AbstractType4<A extends Trait extends object>
@@ -349,22 +349,22 @@ module MoreRefinement {
   }
 
   module BB refines AA {
-    type AbstractType0<B extends G<A>, A> // error: the type bounds are not the same (after renaming)
-    type AbstractType1<B, A extends G<A>> // error: the type bounds are not the same (after renaming)
-    type AbstractType2<B extends G<B>, A extends G<B>>
-    type AbstractType3<B extends G<B>, A extends H<B>> // error: the type bounds are not the same (after renaming)
+    type AbstractType0<A extends G<B>, B> // error: the type bounds are not the same
+    type AbstractType1<A, B extends G<B>> // error: the type bounds are not the same
+    type AbstractType2<A extends G<A>, B extends G<A>>
+    type AbstractType3<A extends G<A>, B extends H<A>> // error: the type bounds are not the same
 
-    function F0<B, A extends G<A>>(): int // error: the type bounds are not the same (after renaming)
-    function F1<B, A extends G<B>>(): int
-    function F2<B, A>(): A // error: mismatched result type
-    function F3<B, A>(a: A): int // error: mismatched in-parameter type
-    function F4<B, A>(b: B): B
+    function F0<A, B extends G<B>>(): int // error: the type bounds are not the same
+    function F1<A, B extends G<A>>(): int
+    function F2<A, B>(): B // error: mismatched result type
+    function F3<A, B>(b: B): int // error: mismatched in-parameter type
+    function F4<A, B>(a: A): A
 
-    method M0<B, A extends G<A>>() // error: the type bounds are not the same (after renaming)
-    method M1<B, A extends G<B>>()
-    method M2<B, A>() returns (a: A) // error: mismatched out-parameter type
-    method M3<B, A>(a: A) // error: mismatched in-parameter type
-    method M4<B, A>(b: B) returns (r: B)
+    method M0<A, B extends G<B>>() // error: the type bounds are not the same
+    method M1<A, B extends G<A>>()
+    method M2<A, B>() returns (b: B) // error: mismatched out-parameter type
+    method M3<A, B>(b: B) // error: mismatched in-parameter type
+    method M4<A, B>(a: A) returns (r: A)
   }
 }
 
@@ -391,7 +391,7 @@ module RefinementRegressions {
     }
 
     method G() returns (r: C<char>) {
-      r := new C<char>.Orig('h');
+      r := new C<char>.Orig('h'); // error (reported as part of YY): 'h' used when an 'int' is expected (strange error, caused by the renaming error in YY)
     }
   }
 
