@@ -284,10 +284,10 @@ namespace DafnyTestGeneration {
             var element = variable?[i];
             if (element == null) {
               getDefaultValueParams = new();
-              elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)) + " as " + seqType.Arg.ToString());
+              elements.Add(GetDefaultValue(seqType.Arg, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
               continue;
             }
-            elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)) + " as " + seqType.Arg.ToString());
+            elements.Add(ExtractVariable(element, asBasicSeqType?.TypeArgs?.FirstOrDefault((Type/*?*/)null)));
           }
 
           //
@@ -479,8 +479,8 @@ namespace DafnyTestGeneration {
     }
 
     private static string GetPrimitiveAsType(string value, Type/*?*/ asType) {
-      if ((asType is null or IntType or RealType or BoolType or CharType
-          or BitvectorType) || value is "[]" or "{}" or "map[]") {
+      if (!((asType is null or IntType or RealType or BoolType or CharType
+          or BitvectorType) || value is "[]" or "{}" or "map[]")) {
         return value;
       }
       var typeString = asType.ToString();
