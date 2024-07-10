@@ -2975,8 +2975,8 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
-      bool inLetExprBody, IVariable accumulatorVar) {
-      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+      bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
+      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
     }
 
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
