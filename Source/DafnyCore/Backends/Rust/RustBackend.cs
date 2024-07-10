@@ -41,26 +41,30 @@ public class RustBackend : DafnyExecutableBackend {
     Dictionary<string, string> importedFilesMapping = new();
     var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
     importedFilesMapping["dummy"] = baseName + ".rs";
+    var keyToRemove = "dummy to lower";
+    importedFilesMapping[keyToRemove] = baseName.ToLower() + ".rs";
+    var toRemove = new List<string> { "dummy", keyToRemove };
     if (OtherFileNames != null) {
       foreach (var otherFileFullPath in OtherFileNames) {
         var otherFileName = Path.GetFileName(otherFileFullPath);
-        if (importedFilesMapping.ContainsValue(otherFileName)) {
+        if (importedFilesMapping.ContainsValue(otherFileName) || importedFilesMapping.ContainsValue(otherFileName.ToLower())) {
           var newOtherFileBase = Path.GetFileNameWithoutExtension(otherFileName);
           var i = 0;
-          string newOtherFile;
           do {
             i++;
-            newOtherFile = newOtherFileBase + $"_{i}.rs";
-          } while (importedFilesMapping.ContainsValue(newOtherFile));
-
-          importedFilesMapping[otherFileFullPath] = newOtherFile;
-        } else {
-          importedFilesMapping[otherFileFullPath] = otherFileName;
+            otherFileName = newOtherFileBase + $"_{i}.rs";
+          } while (importedFilesMapping.ContainsValue(otherFileName) || importedFilesMapping.ContainsValue(otherFileName.ToLower()));
         }
+        // Ensures we don't have overwrites in case-insensitive systems such as Windows
+        importedFilesMapping[otherFileFullPath] = otherFileName;
+        importedFilesMapping["to lower " + otherFileFullPath] = otherFileName.ToLower();
+        toRemove.Add("to lower " + otherFileFullPath);
       }
     }
 
-    importedFilesMapping.Remove("dummy");
+    foreach (var path in toRemove) {
+      importedFilesMapping.Remove(path);
+    }
     return importedFilesMapping;
   }
 
