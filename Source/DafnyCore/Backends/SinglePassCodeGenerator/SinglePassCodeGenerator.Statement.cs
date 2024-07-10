@@ -155,7 +155,9 @@ namespace Microsoft.Dafny.Compilers {
         case ExpectStmt expectStmt: {
             // TODO there's potential here to use target-language specific features such as exceptions
             // to make it more target-language idiomatic and improve performance
-            if (expectStmt.Expr is BinaryExpr { Op: BinaryExpr.Opcode.Eq, ResolvedOp: var resolvedOp, E0: var e0, E1: var e1 }) {
+            if (
+              Options.Get(CommonOptionBag.Verbose) &&
+              expectStmt.Expr is BinaryExpr { Op: BinaryExpr.Opcode.Eq, ResolvedOp: var resolvedOp, E0: var e0, E1: var e1 }) {
               // If it finds "expect a == b", it will rewrite the code to
               // var _e0 = a;
               // var _e1 = b;

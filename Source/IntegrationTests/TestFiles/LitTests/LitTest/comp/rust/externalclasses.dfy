@@ -1,5 +1,5 @@
 // NONUNIFORM: Temporary development of the Rust compiler
-// RUN: %baredafny run --target=rs --input externalclasses.rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --input "%S/externalclasses.rs" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "External.Class.Container"} ExternalClassContainer {
