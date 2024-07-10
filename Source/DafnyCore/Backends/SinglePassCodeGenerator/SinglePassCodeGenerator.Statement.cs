@@ -622,6 +622,7 @@ namespace Microsoft.Dafny.Compilers {
         if (idPattern.BoundVar == null) {
           return EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
         }
+
         var boundVar = idPattern.BoundVar;
         if (!boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
           var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);

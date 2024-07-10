@@ -66,21 +66,47 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
 |                               | `f64`                       |
 | `string`                      | `Sequence<DafnyChar>`       |
 |                               | or `Sequence<DafnyCharUTF16>`  |
-| `C`, `C?` (for class, iterator C) | `*mut C`                |
-| (trait) `T`                   | (trait) `*mut dyn T`        |
 | datatype, codatatype `D`      | `Rc<D>`                     |
 |                               | or `D` with the option `{:rust_rc false}` |
 | subset type                   | same as base type           |
 | `newtype T = u: U`            | `struct T(U)`               |
 |                               | or optimized to `u8`..`i128`|
 | `(T1, T2...)`                 | `(T1, T2...)`               |
-| `array<T>`                    | `*mut [T]`                  |
-| `array2<T>`                   | `*mut array2<T>`            |
 | `seq<T>`                      | `Sequence<T: DafnyType>` (*)|
 | `set<T>`, `iset<T>`           | `Set<T: DafnyTypeEq>` (*)      |
 | `multiset<T>`                 | `MultiSet<T: DafnyTypeEq>` (*) |
 | `map<T,U>`, `imap<T,U>`       | `Map<T: DafnyTypeEq, U: DafnyTypeEq>` (*) |
 | function (arrow) types        | `Rc<dyn Fn(...) -> ...>`    |
+
+## With the option --raw-pointers=false (default)
+This version compiles classes to reference counting.
+However, it requires the nightly version to compile until the following feature
+is declared stable:
+- [trait Unsize](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html)
+
+To install and use the nightly, use 
+```
+rustup default nightly-x86_64-pc-windows-gnu
+```
+(to go back to the stable version, use `rustup default stable-x86_64-pc-windows-gnu`)
+
+|-------------------------------|-----------------------------|
+|  Dafny type                   |   Rust type                 |
+|-------------------------------|-----------------------------|
+| `C`, `C?` (for class, iterator C) | `object<C>`             |
+| (trait) `T`                   | (trait) `object<dyn T>`     |
+| `array<T>`                    | `object<[T]>`               |
+| `array2<T>`                   | `object<array2<T>>`         |
+
+## With the option --raw-pointers=true
+https://doc.rust-lang.org/book/appendix-07-nightly-rust.html
+|-------------------------------|-----------------------------|
+|  Dafny type                   |   Rust type                 |
+|-------------------------------|-----------------------------|
+| `C`, `C?` (for class, iterator C) | `*mut C`                |
+| (trait) `T`                   | (trait) `*mut dyn T`        |
+| `array<T>`                    | `*mut [T]`                  |
+| `array2<T>`                   | `*mut array2<T>`            |
 
 (*) Defined in the Dafny runtime
 
