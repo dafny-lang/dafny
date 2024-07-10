@@ -2751,16 +2751,9 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
         CompileReturnBody(f.Body, f.OriginalResultTypeWithRenamings(), w, accVar);
-#if NEW_ATTEMPT
-        CompileReturnBody(f.Body, ResultTypeAsViewedByFunctionBody(f), w, accVar);
-#endif
         Contract.Assert(enclosingFunction == f);
         enclosingFunction = null;
       }
-    }
-
-    public virtual Type ResultTypeAsViewedByFunctionBody(Function f) {
-      return f.ResultType;
     }
 
     public const string STATIC_ARGS_NAME = "args";

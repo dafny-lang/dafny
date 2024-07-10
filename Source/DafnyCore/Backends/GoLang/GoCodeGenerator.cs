@@ -2480,10 +2480,6 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string PrefixForForcedCapitalization => "Go_";
 
-    public override Type ResultTypeAsViewedByFunctionBody(Function f) {
-      return f.Original.ResultType;
-    }
-
     protected override string IdMemberName(MemberSelectExpr mse) {
       return Capitalize(mse.MemberName);
     }
