@@ -704,7 +704,8 @@ namespace Microsoft.Dafny.Compilers {
         var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
         foreach (MatchCaseExpr mc in e.Cases) {
           var wCase = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, w);
-          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null);
+          var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
+          TrExprOpt(mc.Body, mc.Body.Type, wCase, wStmts, inLetExprBody: true, accumulatorVar: null, continuation);
           i++;
         }
       }
@@ -715,18 +716,19 @@ namespace Microsoft.Dafny.Compilers {
 
     protected virtual void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts) {
       var lambdaBody = EmitAppliedLambda(output, wStmts, match.Tok, match.Type);
-      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null);
+      var continuation = new OptimizedExpressionContinuation(EmitReturnExpr, false);
+      TrOptNestedMatchExpr(match, match.Type, lambdaBody, wStmts, inLetExprBody, null, continuation);
     }
 
     protected virtual void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr,
-      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar) {
+      ConcreteSyntaxTree wStmts, bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
 
       wStmts = wr.Fork();
 
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+      EmitNestedMatchGeneric(match, continuation.PreventCaseFallThrough, (caseIndex, caseBody) => {
         var myCase = match.Cases[caseIndex];
-        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody: true, accumulatorVar: null);
-      }, wr, true);
+        TrExprOpt(myCase.Body, myCase.Body.Type, caseBody, wStmts, inLetExprBody, accumulatorVar: null, continuation);
+      }, inLetExprBody, wr);
     }
 
     private ConcreteSyntaxTree EmitAppliedLambda(ConcreteSyntaxTree output, ConcreteSyntaxTree wStmts,

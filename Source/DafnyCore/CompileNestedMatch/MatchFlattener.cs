@@ -510,8 +510,8 @@ public class MatchFlattener : IRewriter {
     LiteralExpr lit = null;
     if (head is LitPattern litPattern) {
       lit = litPattern.OptimisticallyDesugaredLit;
-    } else if (head is IdPattern id && id.ResolvedLit != null) {
-      lit = id.ResolvedLit;
+    } else if (head is IdPattern { ResolvedLit: { } resolvedLit }) {
+      lit = resolvedLit;
     }
 
     return lit;

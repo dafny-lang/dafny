@@ -3606,6 +3606,10 @@ namespace Microsoft.Dafny.Compilers {
         message = "unexpected control point";
       }
 
+      // Wrapping an "if (true) { ... }" around the "break" statement is a way to tell the Java compiler not to give
+      // errors for any (unreachable) code that may follow.  
+      wr = EmitIf(out var guardWriter, false, wr);
+      guardWriter.Write("true");
       wr.WriteLine($"throw new IllegalArgumentException(\"{message}\");");
     }
 
@@ -4369,16 +4373,28 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
       ConcreteSyntaxTree wStmts) {
-      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      if (match.Cases.Count == 0) {
+        base.EmitNestedMatchExpr(match, inLetExprBody, output, wStmts);
+      } else {
+        EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      }
     }
 
     protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
-      bool inLetExprBody, IVariable accumulatorVar) {
-      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+      bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
+      if (match.Cases.Count == 0) {
+        base.TrOptNestedMatchExpr(match, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      } else {
+        TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      }
     }
 
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      TrStmt(match.Flattened, writer);
+      if (match.Cases.Count == 0) {
+        base.EmitNestedMatchStmt(match, writer);
+      } else {
+        TrStmt(match.Flattened, writer);
+      }
     }
   }
 }
