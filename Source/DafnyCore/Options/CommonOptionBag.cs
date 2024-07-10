@@ -196,6 +196,13 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
     IsHidden = true
   };
 
+  public static readonly Option<bool> RawPointers = new("--raw-pointers", () => false,
+    @"
+false - All class instances are reference-counted or garbage collected
+true - All class instances are raw pointers and need to be manually deallocated".TrimStart()) {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
   };
@@ -602,6 +609,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DooFile.RegisterNoChecksNeeded(NewTypeInferenceDebug, false);
     DooFile.RegisterNoChecksNeeded(UseBaseFileName, false);
     DooFile.RegisterNoChecksNeeded(EmitUncompilableCode, false);
+    DooFile.RegisterNoChecksNeeded(RawPointers, false);
     DooFile.RegisterNoChecksNeeded(WarnMissingConstructorParenthesis, true);
     DooFile.RegisterNoChecksNeeded(IncludeRuntimeOption, false);
     DooFile.RegisterNoChecksNeeded(InternalIncludeRuntimeOptionForExecution, false);

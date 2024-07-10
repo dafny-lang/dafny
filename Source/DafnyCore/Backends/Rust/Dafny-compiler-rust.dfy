@@ -254,10 +254,6 @@ module RAST
 
   const SelfBorrowedMut := BorrowedMut(SelfOwned)
 
-  const SelfPointer := Pointer(SelfOwned)
-
-  const SelfPointerMut := PointerMut(SelfOwned)
-
   const RcPath := std.MSel("rc").MSel("Rc")
 
   const RcType := RcPath.AsType()
@@ -268,6 +264,14 @@ module RAST
 
   function ObjectType(underlying: Type): Type {
     ObjectPath.AsType().Apply([underlying])
+  }
+
+  const PtrPath: Path := dafny_runtime.MSel("Ptr")
+
+  const Ptr := PtrPath.AsExpr()
+
+  function PtrType(underlying: Type): Type {
+    PtrPath.AsType().Apply([underlying])
   }
 
   function Rc(underlying: Type): Type {
@@ -346,8 +350,6 @@ module RAST
     | TypeApp(baseName: Type, arguments: seq<Type>)
     | Borrowed(underlying: Type)
     | BorrowedMut(underlying: Type)
-    | Pointer(underlying: Type)
-    | PointerMut(underlying: Type)
     | ImplType(underlying: Type)
     | DynType(underlying: Type)
     | TupleType(arguments: seq<Type>)
@@ -366,8 +368,6 @@ module RAST
       || TIdentifier? || TypeFromPath?
       || (Borrowed? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (BorrowedMut? && underlying.EndsWithNameThatCanAcceptGenerics())
-      || (Pointer? && underlying.EndsWithNameThatCanAcceptGenerics())
-      || (PointerMut? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (ImplType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (DynType? && underlying.EndsWithNameThatCanAcceptGenerics())
       || (IntersectionType? && right.EndsWithNameThatCanAcceptGenerics())
@@ -388,8 +388,6 @@ module RAST
             t requires t in arguments => t.Replace(mapping), arguments))
         case Borrowed(underlying) => this.(underlying := underlying.Replace(mapping))
         case BorrowedMut(underlying) => this.(underlying := underlying.Replace(mapping))
-        case Pointer(underlying) => this.(underlying := underlying.Replace(mapping))
-        case PointerMut(underlying) => this.(underlying := underlying.Replace(mapping))
         case ImplType(underlying) => this.(underlying := underlying.Replace(mapping))
         case DynType(underlying) => this.(underlying := underlying.Replace(mapping))
         case TupleType(arguments) =>
@@ -425,8 +423,6 @@ module RAST
             arguments)
         case Borrowed(underlying) => underlying.Fold(newAcc, f)
         case BorrowedMut(underlying) => underlying.Fold(newAcc, f)
-        case Pointer(underlying) => underlying.Fold(newAcc, f)
-        case PointerMut(underlying) => underlying.Fold(newAcc, f)
         case ImplType(underlying) => underlying.Fold(newAcc, f)
         case DynType(underlying) => underlying.Fold(newAcc, f)
         case TupleType(arguments) =>
@@ -448,13 +444,7 @@ module RAST
 
     predicate CanReadWithoutClone() {
       U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || Bool?
-      || Pointer? || PointerMut? || (TSynonym? && base.CanReadWithoutClone())
-    }
-    predicate IsSelfPointer() {
-      || (Borrowed? && underlying.PointerMut? && underlying.underlying == SelfOwned)
-      || (PointerMut? && underlying == SelfOwned)
-      || (PointerMut? && underlying.TypeApp? && |underlying.arguments| == 0 && underlying.baseName == SelfOwned)
-      || (TSynonym? && base.IsSelfPointer())
+      || (TSynonym? && base.CanReadWithoutClone()) || IsPointer()
     }
     predicate IsRcOrBorrowedRc() {
       (TypeApp? && baseName == RcType) ||
@@ -492,8 +482,6 @@ module RAST
         case TypeFromPath(underlying) => underlying.ToString()
         case Borrowed(underlying) => "&" + underlying.ToString(ind)
         case BorrowedMut(underlying) => "&mut " + underlying.ToString(ind)
-        case Pointer(underlying) => "*const " + underlying.ToString(ind)
-        case PointerMut(underlying) => "*mut " + underlying.ToString(ind)
         case ImplType(underlying) => "impl " + underlying.ToString(ind)
         case DynType(underlying) => "dyn " + underlying.ToString(ind)
         case FnType(arguments, returnType) =>
@@ -554,16 +542,10 @@ module RAST
       requires IsObjectOrPointer()
     {
       assert Expand().IsObject() || Expand().IsPointer();
-      if Expand().IsObject() then Object.Apply1(std.MSel("option").MSel("Option").MSel("None").AsExpr()) else
-      assert !Expand().IsObject();
-      assert Expand().IsPointer();
-      var underlying := Expand().underlying;
-      var n := if Expand().PointerMut? then "null_mut" else "null";
-      if underlying.Array? && underlying.size.None? then // dynamic arrays
-        // Fat null pointer have a special syntax
-        std.MSel("ptr").MSel(n).AsExpr().ApplyType([Array(underlying.underlying, Some("0"))]).Apply([])
-      else
-        std.MSel("ptr").MSel(n).AsExpr().Apply([])
+      if Expand().IsObject() then 
+        Object.FSel("null").Apply([])
+     else 
+        Ptr.FSel("null").Apply([])
     }
 
     predicate IsMultiArray() {
@@ -596,10 +578,10 @@ module RAST
         var s := this.ObjectOrPointerUnderlying();
         if s.Array? && s.size.None? then
           var newUnderlying := Array(MaybeUninitType(s.underlying), None);
-          if this.IsObject() then ObjectType(newUnderlying) else PointerMut(newUnderlying)
+          if this.IsObject() then ObjectType(newUnderlying) else PtrType(newUnderlying)
         else if s.IsMultiArray() then
           var newUnderlying := TypeApp(s.Expand().baseName, [MaybeUninitType(s.Expand().arguments[0])]);
-          if this.IsObject() then ObjectType(newUnderlying) else PointerMut(newUnderlying)
+          if this.IsObject() then ObjectType(newUnderlying) else PtrType(newUnderlying)
         else
           this
       else
@@ -632,7 +614,12 @@ module RAST
       }
     }
     predicate IsPointer() {
-      Pointer? || PointerMut?
+      match this {
+        case TypeApp(TypeFromPath(o), elems1) =>
+          o == PtrPath &&
+          |elems1| == 1
+        case _ => false
+      }
     }
     predicate IsObjectOrPointer() {
       this.Expand().IsPointer() || this.Expand().IsObject()
@@ -643,17 +630,10 @@ module RAST
     function ObjectOrPointerUnderlying(): Type
       requires IsObjectOrPointer()
     {
-      if Expand().IsPointer() then Expand().underlying else
       match Expand() {
         case TypeApp(_, elems1) =>
           elems1[0]
       }
-    } by method {
-      var t := Expand();
-      if t.IsPointer() {
-        return t.underlying;
-      }
-      return t.arguments[0];
     }
 
     predicate IsBuiltinCollection() {
@@ -1830,7 +1810,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const modify_macro := R.dafny_runtime.MSel(if ObjectType.RawPointers? then "modify!" else "md!").AsExpr()
     const read_macro := R.dafny_runtime.MSel(if ObjectType.RawPointers? then "read!" else "rd!").AsExpr()
     function Object(underlying: R.Type): R.Type {
-      if ObjectType.RawPointers? then R.PointerMut(underlying) else R.ObjectType(underlying)
+      if ObjectType.RawPointers? then R.PtrType(underlying) else R.ObjectType(underlying)
     }
     const placebos_usize := if ObjectType.RawPointers? then "placebos_usize" else "placebos_usize_object"
     const update_field_if_uninit_macro :=
@@ -1864,9 +1844,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
       this.optimizations := [FactorPathsOptimization.apply];
       new;
-      if objectType.RawPointers? {
-        this.error := Some("Raw pointers need to be wrapped in a newtype so that their equality has the semantics of Dafny (e.g. a class pointer and a trait pointer are equal), not Rust."); 
-      }
     }
     
     static function ContainingPathToRust(containingPath: seq<Ident>): seq<string> {
@@ -3150,7 +3127,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         } else {
           var tpe := GenType(instanceType, GenTypeContext.default());
           if selfId == "this" {
-            tpe := R.Borrowed(tpe);
+            if ObjectType.RcMut? {
+              tpe := R.Borrowed(tpe);
+            }
+            // For raw pointers, no borrowing is necessary, because it implements the Copy type
           } else if selfId == "self" {
             if tpe.IsObjectOrPointer() { // For classes and traits
               if m.wasFunction {
@@ -4214,14 +4194,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var indices :=
              if fromType.UserDefined? && fromType.resolved.kind.Datatype? then
                Std.Collections.Seq.Filter(i =>
-                 if 0 <= i < |fromType.resolved.kind.variances| then
-                   !fromType.resolved.kind.variances[i].Nonvariant?
+                 if 0 <= i < |fromTpe.arguments| then
+                  (0 <= i < |fromType.resolved.kind.variances| ==>
+                    !fromType.resolved.kind.variances[i].Nonvariant?)
                  else
-                   true
+                   false
                , seq(|fromTpe.arguments|, i => i))
              else
                seq(|fromTpe.arguments|, i => i);
-        assert forall i <- indices :: 0 <= i < |fromTpe.arguments|;
         var lambdas :- SeqResultToResultSeq(
           seq(|indices|, j requires 0 <= j < |indices| =>
              var i := indices[j];
