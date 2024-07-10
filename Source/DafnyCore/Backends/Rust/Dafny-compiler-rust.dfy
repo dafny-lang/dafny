@@ -5303,10 +5303,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
           readIdents := recIdents;
           var valueTypeGen := GenType(tpe, GenTypeContext.default());
-          var bodyGen, _, bodyIdents := GenExpr(iifeBody, selfIdent, env, OwnershipOwned);
-          readIdents := readIdents + (bodyIdents - {escapeVar(name)});
+          var iifeVar := escapeVar(name);
+          var bodyGen, _, bodyIdents :=
+            GenExpr(iifeBody, selfIdent, env.AddAssigned(iifeVar, valueTypeGen), OwnershipOwned);
+          readIdents := readIdents + (bodyIdents - {iifeVar});
           r := R.Block(
-            R.DeclareVar(R.CONST, escapeVar(name), Some(valueTypeGen), Some(valueGen))
+            R.DeclareVar(R.CONST, iifeVar, Some(valueTypeGen), Some(valueGen))
             .Then(bodyGen));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
@@ -5337,12 +5339,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var expr, recOwned, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
           var fromType := GenType(fromType, GenTypeContext.default());
           var toType := GenType(toType, GenTypeContext.default());
-          if fromType.IsObject() && toType.IsObject() {
-            r := R.dafny_runtime.MSel("is_instance_of_object").AsExpr().ApplyType(
-              [fromType.ObjectOrPointerUnderlying(), toType.ObjectOrPointerUnderlying()]
-            ).Apply1(expr);
+          if fromType.IsObjectOrPointer() && toType.IsObjectOrPointer() {
+            r := expr.Sel("is_instance_of").ApplyType([toType.ObjectOrPointerUnderlying()]).Apply([]);
           } else {
-            error := Some("Source and/or target types of type test is/are not Object");
+            error := Some("Source and/or target types of type test is/are not Object or Ptr");
             r := R.RawExpr(error.value);
             readIdents := {};
           }

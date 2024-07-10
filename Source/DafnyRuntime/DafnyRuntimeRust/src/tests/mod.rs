@@ -738,6 +738,8 @@ mod tests {
         assert_eq!(read!(read!(x.clone()).next.clone()).val, int!(42));
         modify!(read!(x.clone()).next.clone()).next = Ptr::null();
         let y: Ptr<dyn Any> = upcast::<_, _>()(x);
+        assert!(y.is_instance_of::<NodeRawMut>());
+        assert!(!y.is_instance_of::<NodeRcMut>());
         let z: Ptr<dyn NodeRcMutTrait> = upcast::<_, _>()(x);
         let _a2: Ptr<NodeRawMut> = cast!(y, NodeRawMut);
         let _a3: Ptr<NodeRawMut> = cast!(z, NodeRawMut);

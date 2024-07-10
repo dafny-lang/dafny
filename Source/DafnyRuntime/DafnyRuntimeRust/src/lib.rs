@@ -1745,16 +1745,6 @@ impl<V: DafnyTypeEq> Hash for Multiset<V> {
     }
 }
 
-pub fn is_instance_of<C: ?Sized + Upcast<dyn Any>, U: 'static>(theobject: Ptr<C>) -> bool {
-    if theobject.is_null() {
-        false
-    } else {
-        read!(Upcast::<dyn Any>::upcast(read!(theobject)))
-            .downcast_ref::<U>()
-            .is_some()
-    }
-}
-
 pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
     euclidian_division(r.numer().clone(), r.denom().clone())
 }
@@ -2900,14 +2890,8 @@ pub mod array {
     pub fn placebos_usize_object<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
         super::rcmut::array_object_from_box(placebos_box_usize(n))
     }
-    pub fn placebos_usize_object<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
-        super::rcmut::array_object_from_box(placebos_box_usize(n))
-    }
     // Once all the elements have been initialized, transform the signature of the pointer
     pub fn construct<T>(p: Ptr<[MaybeUninit<T>]>) -> Ptr<[T]> {
-        unsafe { std::mem::transmute(p) }
-    }
-    pub fn construct_object<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
         unsafe { std::mem::transmute(p) }
     }
     pub fn construct_object<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
@@ -3157,6 +3141,18 @@ impl <T: ?Sized> Ptr<T> {
     }
 }
 
+impl <T: ?Sized + 'static + Upcast<dyn Any>> Ptr<T> {
+    pub fn is_instance_of<U: 'static>(self) -> bool {
+        if self.is_null() {
+            false
+        } else {
+            read!(Upcast::<dyn Any>::upcast(read!(self)))
+                .downcast_ref::<U>()
+                .is_some()
+        }
+    }
+}
+
 impl<T> NontrivialDefault for Ptr<T> {
     fn nontrivial_default() -> Self {
         // Create a null pointer
@@ -3286,6 +3282,14 @@ impl <T: ?Sized> Object<T> {
         self.0.is_none()
     }
 }
+impl <T: ?Sized + 'static + UpcastObject<dyn Any>> Object<T> {
+    pub fn is_instance_of<U: 'static>(self) -> bool {
+    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
+        rd!(UpcastObject::<dyn Any>::upcast(rd!(self)))
+            .downcast_ref::<U>()
+            .is_some()
+    }
+}
 impl <T> Object<T> {
     pub fn new(val: T) -> Object<T> {
         Object(Some(rcmut::new(val)))
@@ -3391,13 +3395,6 @@ pub fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTrac
     let res = allocate_object::<T>();
     allocation_tracker.allocations.push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
     res
-}
-
-pub fn is_instance_of_object<T: ?Sized + 'static + UpcastObject<dyn Any>, U: 'static>(theobject: Object<T>) -> bool {
-    // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    rd!(UpcastObject::<dyn Any>::upcast(rd!(theobject)))
-        .downcast_ref::<U>()
-        .is_some()
 }
 
 // Equivalent of update_field_nodrop but for rcmut

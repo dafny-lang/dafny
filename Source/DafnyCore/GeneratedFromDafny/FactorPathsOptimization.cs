@@ -291,7 +291,7 @@ namespace FactorPathsOptimization {
       return Std.Collections.Seq.__default.Map<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>>>((_1198_replacement) => ((System.Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>)((_1199_t) => {
         return Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_1199_t, _pat_let10_0 => Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_pat_let10_0, _1200_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(Std.Collections.Seq.__default.Map<RAST._IType, RAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_1201_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_1202_constraint) => {
           return FactorPathsOptimization.__default.ReplaceType(_1202_constraint, _1201_replacement);
-        })))(_1198_replacement), (_1199_t).dtor_constraints), _pat_let11_0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(_pat_let11_0, _1203_dt__update_hconstraints_h0 => RAST.TypeParamDecl.create((_1200_dt__update__tmp_h0).dtor_content, _1203_dt__update_hconstraints_h0)))));
+        })))(_1198_replacement), (_1199_t).dtor_constraints), _pat_let11_0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(_pat_let11_0, _1203_dt__update_hconstraints_h0 => RAST.TypeParamDecl.create((_1200_dt__update__tmp_h0).dtor_name, _1203_dt__update_hconstraints_h0)))));
       })))(replacement), typeParams);
     }
     public static RAST._IImpl ReplaceImplDecl(RAST._IImpl impl, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)

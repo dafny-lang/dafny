@@ -1727,38 +1727,38 @@ namespace RAST {
 
   public interface _ITypeParamDecl {
     bool is_TypeParamDecl { get; }
-    Dafny.ISequence<Dafny.Rune> dtor_content { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     Dafny.ISequence<RAST._IType> dtor_constraints { get; }
     _ITypeParamDecl DowncastClone();
     RAST._ITypeParamDecl AddConstraints(Dafny.ISequence<RAST._IType> constraints);
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
   }
   public class TypeParamDecl : _ITypeParamDecl {
-    public readonly Dafny.ISequence<Dafny.Rune> _content;
+    public readonly Dafny.ISequence<Dafny.Rune> _name;
     public readonly Dafny.ISequence<RAST._IType> _constraints;
-    public TypeParamDecl(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
-      this._content = content;
+    public TypeParamDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IType> constraints) {
+      this._name = name;
       this._constraints = constraints;
     }
     public _ITypeParamDecl DowncastClone() {
       if (this is _ITypeParamDecl dt) { return dt; }
-      return new TypeParamDecl(_content, _constraints);
+      return new TypeParamDecl(_name, _constraints);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.TypeParamDecl;
-      return oth != null && object.Equals(this._content, oth._content) && object.Equals(this._constraints, oth._constraints);
+      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._constraints, oth._constraints);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
-      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._content));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._constraints));
       return (int) hash;
     }
     public override string ToString() {
       string s = "RAST.TypeParamDecl.TypeParamDecl";
       s += "(";
-      s += this._content.ToVerbatimString(true);
+      s += this._name.ToVerbatimString(true);
       s += ", ";
       s += Dafny.Helpers.ToString(this._constraints);
       s += ")";
@@ -1772,16 +1772,16 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._ITypeParamDecl> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _ITypeParamDecl create(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
-      return new TypeParamDecl(content, constraints);
+    public static _ITypeParamDecl create(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IType> constraints) {
+      return new TypeParamDecl(name, constraints);
     }
-    public static _ITypeParamDecl create_TypeParamDecl(Dafny.ISequence<Dafny.Rune> content, Dafny.ISequence<RAST._IType> constraints) {
-      return create(content, constraints);
+    public static _ITypeParamDecl create_TypeParamDecl(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IType> constraints) {
+      return create(name, constraints);
     }
     public bool is_TypeParamDecl { get { return true; } }
-    public Dafny.ISequence<Dafny.Rune> dtor_content {
+    public Dafny.ISequence<Dafny.Rune> dtor_name {
       get {
-        return this._content;
+        return this._name;
       }
     }
     public Dafny.ISequence<RAST._IType> dtor_constraints {
@@ -1817,10 +1817,10 @@ namespace RAST {
     public RAST._ITypeParamDecl AddConstraints(Dafny.ISequence<RAST._IType> constraints) {
       RAST._ITypeParamDecl _831_dt__update__tmp_h0 = this;
       Dafny.ISequence<RAST._IType> _832_dt__update_hconstraints_h0 = Dafny.Sequence<RAST._IType>.Concat((this).dtor_constraints, constraints);
-      return RAST.TypeParamDecl.create((_831_dt__update__tmp_h0).dtor_content, _832_dt__update_hconstraints_h0);
+      return RAST.TypeParamDecl.create((_831_dt__update__tmp_h0).dtor_name, _832_dt__update_hconstraints_h0);
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind) {
-      return Dafny.Sequence<Dafny.Rune>.Concat((this).dtor_content, (((new BigInteger(((this).dtor_constraints).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": "), RAST.__default.SeqToString<RAST._IType>((this).dtor_constraints, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_833_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_834_t) => {
+      return Dafny.Sequence<Dafny.Rune>.Concat((this).dtor_name, (((new BigInteger(((this).dtor_constraints).Count)).Sign == 0) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(": "), RAST.__default.SeqToString<RAST._IType>((this).dtor_constraints, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>>>((_833_ind) => ((System.Func<RAST._IType, Dafny.ISequence<Dafny.Rune>>)((_834_t) => {
         return (_834_t)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_833_ind, RAST.__default.IND));
       })))(ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" + "))))));
     }
