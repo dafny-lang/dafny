@@ -3,43 +3,58 @@ module FactorPathsOptimizationTest {
   import opened RAST
   import opened FactorPathsOptimization
 
+  method ShouldBeEqual(a: Mod, b: Mod) {
+    var sA := a.ToString("");
+    var sB := b.ToString("");
+    if sA != sB {
+      print "Got:\n" + sA + "\n";
+      print "Expected:\n" + sB + "\n";
+      expect sA == sB;
+    }
+  }
+
   method TestApply() {
     var T_Decl := TypeParamDecl("T", [DafnyType]);
     var T_Decl_simp := TypeParamDecl("T", [TIdentifier("DafnyType")]);
     var T := TIdentifier("T");
     var std_any_Any := global.MSel("std").MSel("any").MSel("Any");
     var Any := TIdentifier("Any");
-    expect apply(
+    ShouldBeEqual(apply(
         Mod("onemodule", [
-              StructDecl(Struct([], "test", [T_Decl],
-                                NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
+              StructDecl(
+                Struct([], "test", [T_Decl],
+                       NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
               //                                   ::std::any::Any ==> Any
               ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
               ImplDecl(
                 ImplFor(
                   [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
               //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
-            ])).ToString("") ==
-           Mod("onemodule", [
-                 UseDecl(Use(PUB, std_any_Any)),
-                 StructDecl(Struct([], "test", [T_Decl_simp], NamedFields([Field(PUB, Formal("a", Any))]))),
-                 ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
-                 ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
-               ]).ToString("");
-    expect apply(
+            ])),
+        Mod("onemodule", [
+            UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
+            UseDecl(Use(PUB, std_any_Any)),
+            StructDecl(
+              Struct([], "test", [T_Decl_simp],
+                      NamedFields([Field(PUB, Formal("a", Any))]))),
+            ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
+            ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
+          ]));
+    ShouldBeEqual(apply(
         Mod("onemodule", [
               ImplDecl(
                 ImplFor(
                   [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
                   TIdentifier("test").Apply([T]), "", []))
-            ])).ToString("") ==
+            ])),
            Mod("onemodule", [
+            UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
                  UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
                  ImplDecl(
                    ImplFor(
                      [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
                      TIdentifier("test").Apply([T]), "", []))
-               ]).ToString("");
+               ]));
   }
 }
 
@@ -69,9 +84,7 @@ module FactorPathsOptimization {
       mod.Fold([], (current, modDecl) requires modDecl < mod =>
                  current + [ReplaceModDecl(modDecl, pathsToRemove)]
       );
-    var newBody: seq<ModDecl> :=
-      imports + rewrittenDeclarations;
-    mod.(body := newBody)
+    mod.(body := imports + rewrittenDeclarations)
   }
 
   opaque function UniqueElementOf<T>(s: set<T>): (r: T)
@@ -121,12 +134,33 @@ module FactorPathsOptimization {
 
   type FinalReplacement = map<string, Path>
 
+ function GatherTypeParams(typeParams: seq<TypeParamDecl>, current: Mapping): Mapping {
+    FoldLeft( (current: Mapping, t: TypeParamDecl) =>
+      FoldLeft( (current: Mapping, t: Type) =>
+        GatherTypeMapping(t, current),
+        current, t.constraints),
+      current, typeParams)
+  }
+
+  function GatherFields(fields: Fields, current: Mapping): Mapping {
+    match fields {
+      case NamedFields(sFields) =>
+        FoldLeft( (current: Mapping, f: Field) =>
+          GatherTypeMapping(f.formal.tpe, current),
+          current, sFields)
+      case NamelessFields(sFields) =>
+        FoldLeft( (current: Mapping, f: NamelessField) =>
+          GatherTypeMapping(f.tpe, current),
+          current, sFields)
+    }
+  }
+
   function GatherModMapping(prefix: Path, modDecl: ModDecl, current: Mapping): Mapping {
     match modDecl {
       case ModDecl(mod) =>
         current.Add(mod.name, prefix) // Modules must be handled independently
       case StructDecl(struct) =>
-        current.Add(struct.name, prefix)
+        GatherStructMapping(struct, current.Add(struct.name, prefix))
       case TypeDecl(tpe) =>
         current.Add(tpe.name, prefix)
       case ConstDecl(c) =>
@@ -144,6 +178,10 @@ module FactorPathsOptimization {
     }
   }
 
+  function GatherStructMapping(struct: Struct, current: Mapping): Mapping {
+    GatherTypeParams(struct.typeParams, current)
+  }
+
   function GatherTypeMapping(tpe: Type, current: Mapping): Mapping {
     tpe.Fold(current, (current: Mapping, t: Type) =>
                match t {
@@ -156,7 +194,9 @@ module FactorPathsOptimization {
   function GatherImplMapping(impl: Impl, current: Mapping): Mapping {
     match impl {
       case ImplFor(typeParams, tpe, forType, where, body) =>
-        GatherTypeMapping(forType, GatherTypeMapping(tpe, current))
+        var current := GatherTypeParams(typeParams, current);
+        var current := GatherTypeMapping(tpe, current);
+        GatherTypeMapping(forType, current)
       // TODO: Add body
       case Impl(typeParams, tpe, where, body) =>
         GatherTypeMapping(tpe, current)
@@ -212,7 +252,8 @@ module FactorPathsOptimization {
   function ReplaceStruct(struct: Struct, replacement: FinalReplacement): Struct {
     match struct {
       case Struct(attributes, name, typeParams, fields) =>
-        Struct(attributes, name, ReplaceTypeParams(typeParams, replacement),
+        Struct(attributes, name,
+               ReplaceTypeParams(typeParams, replacement),
                ReplaceFields(fields, replacement)
         )
     }
