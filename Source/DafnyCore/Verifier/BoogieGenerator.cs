@@ -3804,15 +3804,15 @@ namespace Microsoft.Dafny {
     }
 
     // Boxes, if necessary
-    Bpl.Expr MkIs(Bpl.Expr x, Type t) {
-      return MkIs(x, TypeToTy(t), ModeledAsBoxType(t));
+    Bpl.Expr MkIs(Bpl.Expr x, Type t, Bpl.IToken tok = null) {
+      return MkIs(x, TypeToTy(t), ModeledAsBoxType(t), tok);
     }
 
-    Bpl.Expr MkIs(Bpl.Expr x, Bpl.Expr t, bool box = false) {
+    Bpl.Expr MkIs(Bpl.Expr x, Bpl.Expr t, bool box = false, Bpl.IToken tok = null) {
       if (box) {
-        return FunctionCall(x.tok, BuiltinFunction.IsBox, null, x, t);
+        return FunctionCall(tok ?? x.tok, BuiltinFunction.IsBox, null, x, t);
       } else {
-        return FunctionCall(x.tok, BuiltinFunction.Is, null, x, t);
+        return FunctionCall(tok ?? x.tok, BuiltinFunction.Is, null, x, t);
       }
     }
 
@@ -3983,6 +3983,7 @@ namespace Microsoft.Dafny {
     public delegate Expression SubrangeCheckContext(Expression check);
 
     Bpl.Expr GetSubrangeCheck(
+      Bpl.IToken tok,
       Bpl.Expr bSource, Type sourceType, Type targetType,
       // allow null for checked expressions that cannot necessarily be named without side effects, such as method out-params
       [CanBeNull] Expression source,
@@ -4002,13 +4003,13 @@ namespace Microsoft.Dafny {
       Bpl.Expr cre;
       if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl &&
           ModeledAsBoxType((redirectingTypeDecl as NewtypeDecl)?.BaseType ?? redirectingTypeDecl.Var.Type)) {
-        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
+        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true, tok);
       } else if (ModeledAsBoxType(sourceType)) {
-        cre = MkIs(bSource, TypeToTy(targetType), true);
+        cre = MkIs(bSource, TypeToTy(targetType), true, tok);
       } else if (targetType is UserDefinedType targetUdt) {
-        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType);
+        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType, tok);
       } else {
-        cre = MkIs(bSource, targetType);
+        cre = MkIs(bSource, targetType, tok);
       }
 
       Expression dafnyCheck = null;
@@ -4055,7 +4056,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      var cre = GetSubrangeCheck(bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
+      var cre = GetSubrangeCheck(tok, bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
       if (cre != null) {
         builder.Add(Assert(tok, cre, desc));
       }

@@ -862,7 +862,7 @@ namespace Microsoft.Dafny {
             }
           case TypeTestExpr testExpr: {
               var e = testExpr;
-              return BoogieGenerator.GetSubrangeCheck(TrExpr(e.E), e.E.Type, e.ToType, e.E, null, out var _) ?? Boogie.Expr.True;
+              return BoogieGenerator.GetSubrangeCheck(e.tok, TrExpr(e.E), e.E.Type, e.ToType, e.E, null, out var _) ?? Boogie.Expr.True;
             }
           case BinaryExpr binaryExpr: {
               BinaryExpr e = binaryExpr;
