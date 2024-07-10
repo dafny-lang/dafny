@@ -177,10 +177,9 @@ namespace Microsoft.Dafny.Compilers {
             var s = assignOrReturnStmt;
             var stmts = s.ResolvedStatements.ToList();
             if (innerExtractIndex != -1 &&
-                enclosingVarDecl is
-                  { Update: var stmtUpdate, Locals: { Count: > 0 } locals }
+                enclosingVarDecl is { Update: var stmtUpdate, Locals: { Count: > 0 } locals }
                 && stmtUpdate == assignOrReturnStmt) {
-                // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
+              // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
               stmts[innerExtractIndex] =
                 new VarDeclStmt(enclosingVarDecl.RangeToken,
                   new List<LocalVariable>() { locals[0] },
@@ -497,7 +496,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasRhs = true;
                 }
               }
-              
+
               // The head variable of an elephant assignment will be declared by its desugaring
               if (i != 0 || indexExtract == -1) {
                 TrLocalVar(local, !hasRhs, wr);
@@ -505,7 +504,7 @@ namespace Microsoft.Dafny.Compilers {
 
               i++;
             }
-            
+
             enclosingVarDecl = s;
             innerExtractIndex = indexExtract;
             if (s.Update != null) {
