@@ -331,27 +331,13 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
 
     if (expectExtract) {
-      // "[var] y := temp.Extract();" depending on whether this came from a VarDeclStmt
+      // "y := temp.Extract();"
       var lhs = Lhss[0];
-      if (lhsExtract is IdentifierExpr { Var: LocalVariable yv } && !resolver.scope.ContainsDecl(yv)) {
-        ResolvedStatements.Add(
-          // New local variable here to avoid clashing compile names
-          new VarDeclStmt(RangeToken, new List<LocalVariable>() { new LocalVariable(RangeToken, yv.Name, yv.Type, yv.IsGhost) },
-            new UpdateStmt(RangeToken,
-              // Note: resolution flows type of local variable to LHS, so it needs to be unresolved
-              new List<Expression>() { new IdentifierExpr(RangeToken, yv.Name) },
-              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
-            )
-          )
-        );
-      } else {
-        ResolvedStatements.Add(
-          new UpdateStmt(RangeToken,
-            new List<Expression>() { lhsExtract },
-            new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
-          )
-        );
-      }
+      ResolvedStatements.Add(
+        new UpdateStmt(RangeToken,
+          new List<Expression>() { lhsExtract },
+          new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
+        ));
       // The following check is not necessary, because the ghost mismatch is caught later.
       // However the error message here is much clearer.
       var m = resolver.ResolveMember(Tok, firstType, "Extract", out _);

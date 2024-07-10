@@ -3694,9 +3694,9 @@ namespace Microsoft.Dafny {
           // resolve the whole thing
           s.Update.Resolve(this, resolutionContext);
         }
-        // Add the locals to the scope (the head variable of an elephant assignment is already in scope)
-        for (int i = s.Update is AssignOrReturnStmt ? 1 : 0; i < s.Locals.Count; i++) {
-          ScopePushAndReport(scope, s.Locals[i], "local-variable");
+        // Add the locals to the scope
+        foreach (var local in s.Locals) {
+          ScopePushAndReport(scope, local, "local-variable");
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals
         foreach (var local in s.Locals) {
