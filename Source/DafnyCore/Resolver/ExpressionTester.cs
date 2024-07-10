@@ -382,7 +382,8 @@ public class ExpressionTester {
   ///
   /// 0. If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
   /// is when "toType" is a non-null type and the nullable version of "toType" is a supertype of "from"; then,
-  /// the run-time type tests consists simply of a non-null check.
+  /// the run-time type tests consists simply of a non-null check. Else, if "toType" is a type parameter, then we
+  /// never allow the check in compiled code.
   ///
   /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
   ///
@@ -413,6 +414,10 @@ public class ExpressionTester {
     if (fromType.IsSubtypeOf(toType, false, true)) {
       // this requires no run-time work or a simple null comparison, so it can trivially be compiled
       return true;
+    }
+    if (toType.IsTypeParameter) {
+      // this is never allowed in compiled code
+      return false;
     }
 
     // part 1

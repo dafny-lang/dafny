@@ -5,13 +5,10 @@
 // SPDX-License-Identifier: MIT
 //
 //-----------------------------------------------------------------------------
-using System;
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using JetBrains.Annotations;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny {
   public record TypeConstraint(Type Super, Type Sub, TypeConstraint.ErrorMsg ErrMsg, bool KeepConstraints) {
@@ -47,7 +44,9 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, RemoveAmbiguity(err.MsgArgs));
         } else {
           var err = (ErrorMsgWithBase)this;
-          err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
+          if (!err.BaseMsg.reported) {
+            err.BaseMsg.Reporting(reporter, " (" + string.Format(err.Msg, RemoveAmbiguity(err.MsgArgs)) + ")" + suffix);
+          }
         }
         reported = true;
       }

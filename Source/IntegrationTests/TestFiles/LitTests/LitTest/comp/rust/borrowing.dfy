@@ -1,3 +1,7 @@
+// NONUNIFORM: Temporary development of the Rust compiler
+// RUN: %baredafny run --target=rs --emit-uncompilable-code "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 newtype U8 = x: int | 0 <= x <= 255
 
 datatype Test = Test() {

@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Microsoft.Dafny;
 
@@ -22,10 +19,12 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   public DatatypeCtor Ctor;
 
   public bool IsWildcardPattern =>
-    Arguments == null && Id.StartsWith("_");
+    Arguments == null && Id.StartsWith(WildcardString);
 
   public bool IsWildcardExact =>
-    Arguments == null && Id == "_";
+    Arguments == null && Id == WildcardString;
+
+  public const string WildcardString = "_";
 
   public void MakeAConstructor() {
     this.Arguments = new List<ExtendedPattern>();

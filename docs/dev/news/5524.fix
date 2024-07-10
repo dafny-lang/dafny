@@ -1,1 +1,0 @@
-Only guard `this` when eliminating tail calls, if possible

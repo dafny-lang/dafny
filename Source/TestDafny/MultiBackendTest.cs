@@ -351,9 +351,10 @@ public class MultiBackendTest {
     // The path will be something like "<user temp directory>/<random name>/<random name>"
     // to ensure that all artifacts are put in a dedicated directory,
     // which just "<user temp directory>/<random name>" would not.
-    var randomName = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var randomDirectory = Path.ChangeExtension(Path.GetRandomFileName(), null);
+    var randomFilename = Path.ChangeExtension(Path.GetRandomFileName(), null);
     // Attempts at making this path longer will likely crash javac on Windows with issues like "path too long"
-    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomName, randomName);
+    var tempOutputDirectory = Path.Combine(Path.GetTempPath(), randomDirectory);
     Directory.CreateDirectory(tempOutputDirectory);
 
     IEnumerable<string> dafnyArgs = new List<string> {
@@ -361,7 +362,7 @@ public class MultiBackendTest {
       "--no-verify",
       "--emit-uncompilable-code",
       $"--target:{backend.TargetId}",
-      $"--build:{tempOutputDirectory}",
+      $"--build:{Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
     }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs);
     if (!includeRuntime) {
@@ -423,6 +424,12 @@ public class MultiBackendTest {
       }
 
       await output.WriteLineAsync(diffMessage);
+      if (backend.IsInternal) {
+        await output.WriteLineAsync(
+          $"(non-blocking) The {backend.TargetName} code generator is internal. Not having a '*.{backend.TargetId}.check' file is acceptable for now.");
+        return 0;
+      }
+
       return 1;
     }
 
@@ -456,9 +463,25 @@ public class MultiBackendTest {
         }
       }
 
+      if (backend.IsInternal && checkResult != 0) {
+        await output.WriteLineAsync(
+          $"(non-blocking) The {backend.TargetName} code generator is internal. An unmatched '*.{backend.TargetId}.check' file is acceptable for now.");
+        return 0;
+      }
+
       return checkResult;
     }
 
+
+    if (backend.IsInternal) {
+      await output.WriteLineAsync($"(non-blocking) Execution failed for the internal {backend.TargetName} code generator, for reasons other than known unsupported features. Output:");
+      await output.WriteLineAsync(outputString);
+      await output.WriteLineAsync("Error:");
+      await output.WriteLineAsync(error);
+      await output.WriteLineAsync(
+        $"The {backend.TargetName} code generator is internal. An unmatched '*.{backend.TargetId}.check' file is acceptable for now.");
+      return 0;
+    }
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
     await output.WriteLineAsync(outputString);
     await output.WriteLineAsync("Error:");

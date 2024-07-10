@@ -103,6 +103,12 @@ module RAST
       visibility.ToString() + fn.ToString(ind)
     }
   }
+  datatype TopFnDecl = TopFn(attributes: seq<Attribute>, visibility: Visibility, fn: Fn) {
+    function ToString(ind: string): string {
+      Attribute.ToStringMultiple(attributes, ind) +
+      visibility.ToString() + fn.ToString(ind)
+    }
+  }
   datatype Attribute = RawAttribute(content: string) {
     static function ToStringMultiple(attributes: seq<Attribute>, ind: string): string {
       SeqToString(
@@ -350,6 +356,8 @@ module RAST
     | TypeApp(baseName: Type, arguments: seq<Type>)
     | Borrowed(underlying: Type)
     | BorrowedMut(underlying: Type)
+    | Pointer(underlying: Type)
+    | PointerMut(underlying: Type)
     | ImplType(underlying: Type)
     | DynType(underlying: Type)
     | TupleType(arguments: seq<Type>)
@@ -482,6 +490,8 @@ module RAST
         case TypeFromPath(underlying) => underlying.ToString()
         case Borrowed(underlying) => "&" + underlying.ToString(ind)
         case BorrowedMut(underlying) => "&mut " + underlying.ToString(ind)
+        case Pointer(underlying) => "*const " + underlying.ToString(ind)
+        case PointerMut(underlying) => "*mut " + underlying.ToString(ind)
         case ImplType(underlying) => "impl " + underlying.ToString(ind)
         case DynType(underlying) => "dyn " + underlying.ToString(ind)
         case FnType(arguments, returnType) =>
@@ -683,6 +693,7 @@ module RAST
   const DafnyTypeEq := dafny_runtime.MSel("DafnyTypeEq").AsType()
   const Eq := std.MSel("cmp").MSel("Eq").AsType()
   const Hash := std.MSel("hash").MSel("Hash").AsType()
+  const Hash := std_type.MSel("hash").MSel("Hash")
   const DafnyInt := dafny_runtime.MSel("DafnyInt").AsType()
 
   function SystemTuple(elements: seq<Expr>): Expr {
@@ -964,6 +975,7 @@ module RAST
           }
         case Select(underlying, name) => PrecedenceAssociativity(2, LeftToRight)
         case SelectIndex(underlying, range) => PrecedenceAssociativity(2, LeftToRight)
+        case SelectIndex(underlying, range) => PrecedenceAssociativity(2, LeftToRight)
         case ExprFromPath(underlying) => Precedence(2)
         case FunctionSelect(underlying, name) => PrecedenceAssociativity(2, LeftToRight)
         case CallType(_, _) => PrecedenceAssociativity(2, LeftToRight)
@@ -1072,6 +1084,8 @@ module RAST
                   SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height()))
         case Select(expression, name) =>
           1 + expression.Height()
+        case SelectIndex(expression, range) =>
+          1 + max(expression.Height(), range.Height())
         case SelectIndex(expression, range) =>
           1 + max(expression.Height(), range.Height())
         case ExprFromPath(underlying) =>
@@ -1344,6 +1358,10 @@ module RAST
           var (leftP, rightP) := LeftParentheses(expression);
           var rangeStr := range.ToString(ind + IND);
           leftP + expression.ToString(ind) + rightP + "[" + rangeStr + "]"
+        case SelectIndex(expression, range) =>
+          var (leftP, rightP) := LeftParentheses(expression);
+          var rangeStr := range.ToString(ind + IND);
+          leftP + expression.ToString(ind) + rightP + "[" + rangeStr + "]"
         case ExprFromPath(path) =>
           path.ToString()
         case FunctionSelect(expression, name) =>
@@ -1447,7 +1465,6 @@ module RAST
   const std_rc_Rc_new := std_rc_Rc.FSel("new")
 
   const std_Default_default := DefaultPath.FSel("default").Apply([])
-
   function RcNew(underlying: Expr): Expr {
     Call(std_rc_Rc_new, [underlying])
   }
@@ -1603,6 +1620,20 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       "_" + r
     else
       escapeIdent(f.dafny_name)
+  }
+
+  function escapeField(f: Name): string {
+    var r := f.dafny_name;
+    if r in reserved_fields then
+      "r#_" + r
+    else escapeName(f)
+  }
+
+  function escapeDtor(f: Name): string {
+    var r := f.dafny_name;
+    if r in reserved_fields then
+      r + ": r#_" + r
+    else escapeName(f)
   }
 
   datatype Ownership =
@@ -2537,6 +2568,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               coerceFormal,
               R.Rc(R.IntersectionType(R.ImplType(R.FnType([rTypeArg], rCoerceType)), R.StaticTrait)))
           ];
+          // Coercion arguments
+          if typeI < |variances| && variances[typeI].Nonvariant? {
+            coerceTypes := coerceTypes + [rTypeArg];
+            continue; // We ignore nonvariant arguments
+          }
+          var coerceTypeParam := typeParam.(name := Ident.Ident(Name("_T" + Strings.OfNat(typeI))));
+          var coerceTypeArg, rCoerceTypeParamDecl := GenTypeParam(coerceTypeParam);
+          coerceMap := coerceMap + map[typeArg := coerceTypeArg];
+          var rCoerceType := GenType(coerceTypeArg, GenTypeContext.default());
+          rCoerceMap := rCoerceMap + map[rTypeArg := rCoerceType];
+          coerceTypes := coerceTypes + [rCoerceType];
+          rCoerceTypeParams := rCoerceTypeParams + [rCoerceTypeParamDecl];
+          var coerceFormal := "f_" + Strings.OfNat(typeI);
+          coerceMapToArg := coerceMapToArg + map[
+            (rTypeArg, rCoerceType) := R.Identifier(coerceFormal).Clone()
+          ];
+          coerceArguments := coerceArguments + [
+            R.Formal(
+              coerceFormal,
+              R.Rc(R.IntersectionType(R.ImplType(R.FnType([rTypeArg], rCoerceType)), R.StaticTrait)))
+          ];
         }
         ctors := ctors + [
           R.EnumCase(
@@ -2597,7 +2649,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             isNumeric := true;
           }
           if isNumeric {
-            patternName := dtor.callName.GetOr("v" + Strings.OfNat(j));
+            fieldName := dtor.callName.GetOr("v" + Strings.OfNat(j));
           }
           hashRhs :=
             if formalType.Arrow? then
@@ -2605,7 +2657,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             else
               hashRhs.Then(R.std.MSel("hash").MSel("Hash").MSel("hash").AsExpr().Apply([R.Identifier(patternName), R.Identifier("_state")]));
 
-          ctorMatchInner := ctorMatchInner + patternName + ", ";
+          ctorMatchInner := ctorMatchInner + (if isNumeric then fieldName else patternName) + ", ";
 
           if (j > 0) {
             printRhs := printRhs.Then(R.RawExpr("write!(_formatter, \", \")?"));
@@ -2712,7 +2764,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   "",
                   Some(R.dafny_runtime
                        .MSel("DafnyPrint")
-                       .MSel("fmt_print").AsExpr()
+                       .MSel("fmt_print")
+                       .AsExpr()
                        .Apply(
                          [ R.self,
                            R.Identifier("f"),
@@ -3826,9 +3879,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case Literal(StringLiteral(l, verbatim)) => {
-          if verbatim {
-            error := Some("Verbatim strings prefixed by @ not supported yet.");
-          }
           r := R.dafny_runtime.MSel(string_of).AsExpr().Apply1(R.LiteralString(l, binary := false, verbatim := verbatim));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := {};
@@ -4639,9 +4689,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case NewUninitArray(dims, typ) => {
-          /*
-            let _result = Array3::<tpe>::placebos_usize(_n0, _n1, _n2); // NewArray generates this, array initialization;
-          */
           if 16 < |dims| {
             var msg := "Unsupported: Creation of arrays of more than 16 dimensions";
             if this.error.None? {
@@ -5370,6 +5417,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdentsLo + recIdentsHi;
+          return;
+        }
+        case UnboundedIntRange(start, up) => {
+          var start, _, recIdentStart := GenExpr(start, selfIdent, env, OwnershipOwned);
+          if up {
+            r := R.dafny_runtime.MSel("integer_range_unbounded").Apply1(start);
+          } else {
+            r := R.dafny_runtime.MSel("integer_range_down_unbounded").Apply1(start);
+          }
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          readIdents := recIdentStart;
           return;
         }
         case UnboundedIntRange(start, up) => {

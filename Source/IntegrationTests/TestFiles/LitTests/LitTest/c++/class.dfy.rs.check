@@ -1,1 +1,1 @@
-// CHECK-L: error[E0609]: no field `__i_d` on type `&mut MyClass`
+// CHECK-L: error[E0308]: arguments to this function are incorrect

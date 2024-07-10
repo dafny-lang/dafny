@@ -2900,8 +2900,14 @@ pub mod array {
     pub fn placebos_usize_object<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
         super::rcmut::array_object_from_box(placebos_box_usize(n))
     }
+    pub fn placebos_usize_object<T>(n: usize) -> super::Object<[MaybeUninit<T>]> {
+        super::rcmut::array_object_from_box(placebos_box_usize(n))
+    }
     // Once all the elements have been initialized, transform the signature of the pointer
     pub fn construct<T>(p: Ptr<[MaybeUninit<T>]>) -> Ptr<[T]> {
+        unsafe { std::mem::transmute(p) }
+    }
+    pub fn construct_object<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {
         unsafe { std::mem::transmute(p) }
     }
     pub fn construct_object<T>(p: super::Object<[MaybeUninit<T>]>) -> super::Object<[T]> {

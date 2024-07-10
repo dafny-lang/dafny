@@ -1,1 +1,0 @@
-The new `assigned` expression makes it possible to explicitly assert that a variable, constant, out-parameter, or object field is definitely assigned.

@@ -2360,6 +2360,26 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected override void EmitArrayIndexToInt(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wIndex) {
+      if (GetExprBuilder(wr, out var builder)) {
+        var binOp = builder.Builder.Wrapper((DAST.Expression nativeArrayIndex) =>
+          (DAST.Expression)DAST.Expression.create_ArrayIndexToInt(nativeArrayIndex));
+        wIndex = new BuilderSyntaxTree<ExprContainer>(binOp, this);
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
+    protected override void EmitArrayFinalize(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrArray, Type type) {
+      if (GetExprBuilder(wr, out var builder)) {
+        var binOp = builder.Builder.Wrapper((DAST.Expression arrayPointer) =>
+          (DAST.Expression)DAST.Expression.create_FinalizeNewArray(arrayPointer, GenType(type)));
+        wrArray = new BuilderSyntaxTree<ExprContainer>(binOp, this);
+      } else {
+        throw new InvalidOperationException();
+      }
+    }
+
     protected override void EmitBoolBoundedPool(bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprBuilder(wr, out var exprBuilder)) {
         exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_BoolBoundedPool());
