@@ -4341,17 +4341,14 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-<<<<<<< HEAD
     protected virtual void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
       wr.Write(qual);
     }
 
-=======
     /// <summary>
     /// Emit translation of a call statement.
     /// The "receiverReplacement" parameter is allowed to be "null". It must be null for tail recursive calls.
     /// </summary>
->>>>>>> master
     protected virtual void TrCallStmt(CallStmt s, string receiverReplacement, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
