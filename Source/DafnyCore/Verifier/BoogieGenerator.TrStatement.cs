@@ -798,7 +798,7 @@ namespace Microsoft.Dafny {
         var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
         var checkContext = MakeNumericBoundsSubrangeCheckContext(sourceBoundVar, dLo, dHi);
         var cre = GetSubrangeCheck(
-          x, Type.Int, indexVar.Type,
+          x.tok, x, Type.Int, indexVar.Type,
           new IdentifierExpr(Token.NoToken, sourceBoundVar),
           checkContext, out var desc);
 
