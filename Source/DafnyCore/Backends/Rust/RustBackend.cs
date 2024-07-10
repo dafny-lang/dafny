@@ -36,7 +36,7 @@ public class RustBackend : DafnyExecutableBackend {
   protected override DafnyWrittenCodeGenerator CreateDafnyWrittenCompiler() {
     return new RustCodeGenerator(Options);
   }
-  
+
   public override Dictionary<string, string> ImportFilesMapping(string dafnyProgramName) {
     Dictionary<string, string> importedFilesMapping = new();
     var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
@@ -68,7 +68,7 @@ public class RustBackend : DafnyExecutableBackend {
     return importedFilesMapping;
   }
 
-  
+
   public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
     foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
       var fullRustExternName = keyValue.Key;

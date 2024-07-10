@@ -15,7 +15,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   protected virtual string InternalFieldPrefix => "_i_";
 
   protected DafnyWrittenCodeGenerator DafnyCodeGenerator;
-  
+
   public List<string> ImportedFiles = new();
 
   protected DafnyExecutableBackend(DafnyOptions options) : base(options) {

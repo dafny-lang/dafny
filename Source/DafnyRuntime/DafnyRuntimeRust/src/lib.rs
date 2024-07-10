@@ -56,10 +56,6 @@ pub mod dafny_runtime_conversions {
     pub type DafnyBool = bool;
     pub type DafnyChar = crate::DafnyChar;
     pub type DafnyCharUTF16 = crate::DafnyCharUTF16;
-    pub type DafnyClass<T> = crate::Ptr<T>;
-    pub type DafnyArray<T> = crate::Ptr<[T]>;
-    pub type DafnyArray2<T> = crate::Ptr<crate::Array2<T>>;
-    pub type DafnyArray3<T> = crate::Ptr<crate::Array3<T>>;
 
     use num::BigInt;
     use num::ToPrimitive;
@@ -69,29 +65,74 @@ pub mod dafny_runtime_conversions {
     use std::hash::Hash;
     use std::rc::Rc;
 
-    // Conversion to and from Dafny classes. All these methods take ownership of the class.
-    pub unsafe fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
-        *dafny_class_to_boxed_struct(ptr)
-    }
-    pub unsafe fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
-        Box::from_raw(super::Ptr::into_raw(ptr))
-    }
-    pub fn struct_to_dafny_class<T>(t: T) -> DafnyClass<T> {
-        boxed_struct_to_dafny_class(Box::new(t))
-    }
-    pub fn boxed_struct_to_dafny_class<T>(t: Box<T>) -> DafnyClass<T> {
-        super::Ptr::from_raw_nonnull(Box::into_raw(t))
+    pub mod object {
+        pub type DafnyClass<T> = crate::Object<T>;
+        pub type DafnyArray<T> = crate::Object<[T]>;
+        pub type DafnyArray2<T> = crate::Object<crate::Array2<T>>;
+        pub type DafnyArray3<T> = crate::Object<crate::Array3<T>>;
+        // Conversion to and from Dafny reference-counted classes. All these methods take ownership of the class.
+        pub unsafe fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
+            let t: &T = crate::rd!(ptr);
+            t.clone()
+        }
+        pub unsafe fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
+            Box::new(dafny_class_to_struct(ptr))
+        }
+        pub unsafe fn dafny_class_to_rc_struct<T: Clone + ?Sized>(ptr: DafnyClass<T>) -> ::std::rc::Rc<T> {
+            crate::rcmut::to_rc(ptr.0.unwrap())
+        }
+        pub fn struct_to_dafny_class<T>(t: T) -> DafnyClass<T> {
+            crate::Object::new(t)
+        }
+        pub fn boxed_struct_to_dafny_class<T>(t: Box<T>) -> DafnyClass<T> {
+            struct_to_dafny_class(*t)
+        }
+        pub unsafe fn rc_struct_to_dafny_class<T>(t: ::std::rc::Rc<T>) -> DafnyClass<T> {
+            crate::Object::from_rc(t)
+        }
+        // Conversions to and from Dafny arrays. They all take ownership
+        pub unsafe fn dafny_array_to_vec<T: Clone>(ptr: DafnyArray<T>) -> Vec<T> {
+            ptr.as_ref().to_vec()
+        }
+        pub fn vec_to_dafny_array<T: Clone>(array: Vec<T>) -> DafnyArray<T> {
+            // SAFETY: We own the array
+            unsafe {
+              crate::Object::from_rc(::std::rc::Rc::from(array.into_boxed_slice()))
+            }
+        }
+        pub unsafe fn dafny_array2_to_vec<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
+            crate::rd!(ptr).to_vec()
+        }
     }
 
-    // Conversions to and from Dafny arrays. They all take ownership
-    pub unsafe fn dafny_array_to_vec<T: Clone>(ptr: DafnyArray<T>) -> Vec<T> {
-        ptr.as_ref().to_vec()
-    }
-    pub fn vec_to_dafny_array<T: Clone>(array: Vec<T>) -> DafnyArray<T> {
-        crate::Ptr::from_box(array.into_boxed_slice())
-    }
-    pub unsafe fn dafny_array2_to_vec<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
-        Box::from_raw(crate::Ptr::into_raw(ptr)).to_vec()
+    pub mod ptr {
+        pub type DafnyClass<T> = crate::Ptr<T>;
+        pub type DafnyArray<T> = crate::Ptr<[T]>;
+        pub type DafnyArray2<T> = crate::Ptr<crate::Array2<T>>;
+        pub type DafnyArray3<T> = crate::Ptr<crate::Array3<T>>;
+        // Conversion to and from Dafny reference-counted classes. All these methods take ownership of the class.
+        pub unsafe fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
+            *dafny_class_to_boxed_struct(ptr)
+        }
+        pub unsafe fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
+            Box::from_raw(crate::Ptr::into_raw(ptr))
+        }
+        pub fn struct_to_dafny_class<T>(t: T) -> DafnyClass<T> {
+            boxed_struct_to_dafny_class(Box::new(t))
+        }
+        pub fn boxed_struct_to_dafny_class<T>(t: Box<T>) -> DafnyClass<T> {
+            crate::Ptr::from_raw_nonnull(Box::into_raw(t))
+        }
+        // Conversions to and from Dafny arrays. They all take ownership
+        pub unsafe fn dafny_array_to_vec<T: Clone>(ptr: DafnyArray<T>) -> Vec<T> {
+            ptr.as_ref().to_vec()
+        }
+        pub fn vec_to_dafny_array<T: Clone>(array: Vec<T>) -> DafnyArray<T> {
+            crate::Ptr::from_box(array.into_boxed_slice())
+        }
+        pub unsafe fn dafny_array2_to_vec<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
+            Box::from_raw(crate::Ptr::into_raw(ptr)).to_vec()
+        }
     }
 
     pub fn dafny_int_to_bigint(i: &DafnyInt) -> BigInt {
@@ -3737,7 +3778,7 @@ macro_rules! UpcastObjectFn {
 
 
 
-// IT works only when there is no type parameters for $A...
+// It works only when there is no type parameters for $A...
 #[macro_export]
 macro_rules! UpcastDef {
     ($A:ty, $B:ty) => {

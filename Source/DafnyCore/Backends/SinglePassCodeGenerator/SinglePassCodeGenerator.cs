@@ -1517,7 +1517,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       EmitFooter(program, wrx);
     }
-    
+
     protected (bool classIsExtern, bool included) GetIsExternAndIncluded(ClassLikeDecl cl) {
       var include = true;
       var classIsExtern = false;
@@ -1536,7 +1536,7 @@ namespace Microsoft.Dafny.Compilers {
       return !memberDecl.IsGhost && (Options.DisallowExterns || !Attributes.Contains(memberDecl.Attributes, "extern"));
     }
 
-    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(DefaultClassDecl defaultClassDecl)  {
+    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(DefaultClassDecl defaultClassDecl) {
       var hasCompilationMaterial = defaultClassDecl.Members.Exists(HasCompilationMaterial);
       var include = hasCompilationMaterial;
       var classIsExtern = false;
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny.Compilers {
           include = false;
         }
       }
-      
+
       return (classIsExtern, include);
     }
 

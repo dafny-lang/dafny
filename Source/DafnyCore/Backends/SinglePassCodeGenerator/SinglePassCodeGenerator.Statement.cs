@@ -182,7 +182,7 @@ namespace Microsoft.Dafny.Compilers {
               };
 
               ConcreteSyntaxTree bodyWriter = EmitIf(out var guardWriter, false, wr);
-              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not, 
+              var negated = new UnaryOpExpr(expectStmt.Tok, UnaryOpExpr.Opcode.Not,
                 new BinaryExpr(expectStmt.Expr.tok, BinaryExpr.Opcode.Eq,
                   e0Ident,
                   e1Ident) {
@@ -192,9 +192,9 @@ namespace Microsoft.Dafny.Compilers {
                 Type = Type.Bool
               };
               EmitExpr(negated, false, guardWriter, wStmts);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, "Left:\\n", false) { Type = Type.String()});
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, "Left:\\n", false) { Type = Type.String() });
               EmitPrintStmt(bodyWriter, e0Ident);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, "Right:\\n", false) { Type = Type.String()});
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, "Right:\\n", false) { Type = Type.String() });
               EmitPrintStmt(bodyWriter, e1Ident);
 
               EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);
@@ -495,7 +495,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasRhs = true;
                 }
               }
-              
+
               // The head variable of an elephant assignment will be declared by its desugaring
               if (!(i == 0 && s.Update is AssignOrReturnStmt)) {
                 TrLocalVar(local, !hasRhs, wr);

@@ -3,21 +3,21 @@ module DafnyCompilerRustUtils {
   import opened Std.Wrappers
   import opened DAST
   import R = RAST
-  
+
   // Split a Dafny name along dots
   function DafnyNameToContainingPathAndName(n: Name, acc: seq<Ident> := []): (seq<Ident>, Name)
     decreases |n.dafny_name|
   {
     var s := n.dafny_name;
-    if |s| == 0 then 
+    if |s| == 0 then
       if |acc| == 0 then ([], Name("")) else (acc[0..|acc|-1], acc[|acc|-1].id)
     else
     if s[0] != '.' then
       if |acc| == 0 then DafnyNameToContainingPathAndName(Name(s[1..]), [Ident.Ident(Name(s[0..1]))]) else
       DafnyNameToContainingPathAndName(Name(s[1..]), acc[0..|acc|-1] + [Ident.Ident(Name(acc[|acc|-1].id.dafny_name + [s[0]]))])
     else
-      if |acc| == 0 then DafnyNameToContainingPathAndName(Name(s[1..]), []) else
-      DafnyNameToContainingPathAndName(Name(s[1..]), acc + [Ident.Ident(Name(""))])
+    if |acc| == 0 then DafnyNameToContainingPathAndName(Name(s[1..]), []) else
+    DafnyNameToContainingPathAndName(Name(s[1..]), acc + [Ident.Ident(Name(""))])
   }
 
   type ModWithBody = x: R.Mod | x.Mod? witness *
@@ -40,7 +40,7 @@ module DafnyCompilerRustUtils {
     ) |
     ExternMod(m: ExternMod)
   {
-    
+
     static function MergeSeqMap(m1: SeqMap<string, GatheringModule>, m2: SeqMap<string, GatheringModule>): SeqMap<string, GatheringModule>
       decreases m1
     {
@@ -54,7 +54,7 @@ module DafnyCompilerRustUtils {
             m2.values[k])
     }
 
-    
+
     static function MergeSeqMapAll(m1: SeqMap<string, GatheringModule>, m2s: seq<SeqMap<string, GatheringModule>>): SeqMap<string, GatheringModule>
       decreases |m2s|
     {
@@ -82,18 +82,18 @@ module DafnyCompilerRustUtils {
       else
         var enclosingModule := containingPath[0];
         SeqMap.Single(enclosingModule,
-          GatheringModule(R.Mod(enclosingModule, []), Wrap(containingPath[1..], rawDecl)))
+                      GatheringModule(R.Mod(enclosingModule, []), Wrap(containingPath[1..], rawDecl)))
     }
     function ToRust(): R.Mod {
       if ExternMod? then m else
       var keysWithContent := Std.Collections.Seq.Filter(key => key in submodules.values, submodules.keys);
       existingMod.(body :=
-        existingMod.body + 
-          seq(|keysWithContent|, i requires 0 <= i < |keysWithContent| =>
-            var moduleName := keysWithContent[i];
-            var submodule := submodules.values[moduleName].ToRust();
-            R.ModDecl(submodule)
-          )
+      existingMod.body +
+      seq(|keysWithContent|, i requires 0 <= i < |keysWithContent| =>
+        var moduleName := keysWithContent[i];
+        var submodule := submodules.values[moduleName].ToRust();
+        R.ModDecl(submodule)
+        )
       )
     }
   }

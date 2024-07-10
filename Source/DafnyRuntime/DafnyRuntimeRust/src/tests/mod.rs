@@ -772,4 +772,23 @@ mod tests {
     // Tests that we can compose Dafny types, like a sequence of maps
     fn _test<X: DafnyTypeEq, Y: DafnyType>(_input: Sequence<Map<X, Y>>) {
     }
+
+    #[derive(Clone)]
+    pub struct InternalOpaqueError {
+        pub message: String,
+    }
+
+    crate::UpcastDefObject!(InternalOpaqueError, dyn Any);
+
+    #[test]
+    fn test_native_string_upcast() {
+        let s = InternalOpaqueError { message: "Hello, World!".to_string() };
+        let o: Object<InternalOpaqueError> = Object::new(s);
+        let n: Object<dyn ::std::any::Any> = upcast_object::<InternalOpaqueError, dyn ::std::any::Any>()(o);
+        let x = cast_object!(n, InternalOpaqueError);
+        let s2 = unsafe {
+            crate::dafny_runtime_conversions::object::dafny_class_to_struct(x)
+        };
+        assert_eq!(s2.message, "Hello, World!");
+    }
 }

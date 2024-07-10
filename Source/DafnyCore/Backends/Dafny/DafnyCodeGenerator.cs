@@ -134,9 +134,9 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var requiresExternImport = enclosingModule.TopLevelDecls.Any((TopLevelDecl decl) =>
-          (decl is DefaultClassDecl defaultClassDecl && 
+          (decl is DefaultClassDecl defaultClassDecl &&
            GetIsExternAndIncluded(defaultClassDecl) is (_, included: false)
-           &&  defaultClassDecl.Members.Exists(NeedsExternalImport)
+           && defaultClassDecl.Members.Exists(NeedsExternalImport)
            ) ||
           (decl is ClassLikeDecl classLikeDecl &&
            GetIsExternAndIncluded(classLikeDecl) is (classIsExtern: true, _)) ||
@@ -975,7 +975,7 @@ namespace Microsoft.Dafny.Compilers {
           var callBuilder = stmtContainer.Builder.Call(parameters);
           if (s.Method.IsStatic) {
             // Need to emit the companion as an expression
-            
+
           }
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wrStmts, wrStmtsAfterCall);
         }
@@ -990,8 +990,8 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
       if (GetExprBuilder(wr, out var builder)) {
-        builder.Builder.AddExpr( (DAST.Expression)DAST.Expression.create_ExternCompanion(
-          Sequence<ISequence<Rune>>.FromArray(new [] {
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ExternCompanion(
+          Sequence<ISequence<Rune>>.FromArray(new[] {
             DCOMP.COMP.DAFNY__EXTERN__MODULE,
             Sequence<Rune>.UnicodeFromString(qual)
           })
@@ -1399,7 +1399,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         if (ctor == null) {
-          AddUnsupported("Creation of object of type "+type.ToString()+" requires a constructor");
+          AddUnsupported("Creation of object of type " + type.ToString() + " requires a constructor");
         }
 
         var typeArgs = type.TypeArgs.Select(GenType).ToArray();
@@ -2047,7 +2047,7 @@ namespace Microsoft.Dafny.Compilers {
       if (source.Type.IsArrayType) {
         collKind = DAST.CollKind.create_Array();
         indexType = Type.Int;
-      } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true} normalized) {
+      } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true } normalized) {
         collKind = DAST.CollKind.create_Map();
         indexType = normalized.AsMapType.Domain;
       } else {
@@ -2303,7 +2303,7 @@ namespace Microsoft.Dafny.Compilers {
         // Since this type becomes a type synonym at run-time, we simply inline the condition
         // We put it as a IIFE
         var constraint = subsetTypeDecl.Constraint;
-        
+
         var statementBuf = new NoStatementBuffer();
         ConcreteSyntaxTree sNoStmt = new BuilderSyntaxTree<StatementContainer>(statementBuf, this);
         CreateIIFE(GetCompileNameNotProtected(subsetTypeDecl.Var), subsetTypeDecl.Var.Type, subsetTypeDecl.Var.tok,

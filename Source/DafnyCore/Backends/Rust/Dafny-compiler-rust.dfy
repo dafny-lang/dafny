@@ -378,36 +378,36 @@ module RAST
     }
     function Replace(mapping: Type -> Type): Type {
       var r :=
-      match this {
-        case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | Bool => this
-        case TIdentifier(_) => this
-        case TypeFromPath(path) => this
-        case TypeApp(baseName, arguments) =>
-          this.(baseName := baseName.Replace(mapping),
-          arguments := Std.Collections.Seq.Map(
-            t requires t in arguments => t.Replace(mapping), arguments))
-        case Borrowed(underlying) => this.(underlying := underlying.Replace(mapping))
-        case BorrowedMut(underlying) => this.(underlying := underlying.Replace(mapping))
-        case ImplType(underlying) => this.(underlying := underlying.Replace(mapping))
-        case DynType(underlying) => this.(underlying := underlying.Replace(mapping))
-        case TupleType(arguments) =>
-          this.(
-          arguments := Std.Collections.Seq.Map(
-            t requires t in arguments => t.Replace(mapping), arguments))
-        case FnType(arguments, returnType) =>
-          this.(arguments := Std.Collections.Seq.Map(
-            t requires t in arguments => t.Replace(mapping), arguments),
-          returnType := returnType.Replace(mapping))
-        case IntersectionType(left, right) =>
-          this.(left := left.Replace(mapping), right := right.Replace(mapping))
-        case Array(underlying, size) =>
-          this.(underlying := underlying.Replace(mapping))
-        case TSynonym(display, base) =>
-          this.(display := display.Replace(mapping), base := base.Replace(mapping))
-      };
+        match this {
+          case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | Bool => this
+          case TIdentifier(_) => this
+          case TypeFromPath(path) => this
+          case TypeApp(baseName, arguments) =>
+            this.(baseName := baseName.Replace(mapping),
+            arguments := Std.Collections.Seq.Map(
+              t requires t in arguments => t.Replace(mapping), arguments))
+          case Borrowed(underlying) => this.(underlying := underlying.Replace(mapping))
+          case BorrowedMut(underlying) => this.(underlying := underlying.Replace(mapping))
+          case ImplType(underlying) => this.(underlying := underlying.Replace(mapping))
+          case DynType(underlying) => this.(underlying := underlying.Replace(mapping))
+          case TupleType(arguments) =>
+            this.(
+            arguments := Std.Collections.Seq.Map(
+              t requires t in arguments => t.Replace(mapping), arguments))
+          case FnType(arguments, returnType) =>
+            this.(arguments := Std.Collections.Seq.Map(
+              t requires t in arguments => t.Replace(mapping), arguments),
+            returnType := returnType.Replace(mapping))
+          case IntersectionType(left, right) =>
+            this.(left := left.Replace(mapping), right := right.Replace(mapping))
+          case Array(underlying, size) =>
+            this.(underlying := underlying.Replace(mapping))
+          case TSynonym(display, base) =>
+            this.(display := display.Replace(mapping), base := base.Replace(mapping))
+        };
       mapping(r)
     }
-    
+
     function Fold<T>(acc: T, f: (T, Type) -> T): T
       // Traverses all types in a random order
     {
@@ -432,8 +432,8 @@ module RAST
         case FnType(arguments, returnType) =>
           returnType.Fold(
             Std.Collections.Seq.FoldLeft(
-            (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
-            newAcc, arguments),
+              (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
+              newAcc, arguments),
             f)
         case IntersectionType(left, right) =>
           right.Fold(left.Fold(newAcc, f), f)
@@ -542,9 +542,9 @@ module RAST
       requires IsObjectOrPointer()
     {
       assert Expand().IsObject() || Expand().IsPointer();
-      if Expand().IsObject() then 
+      if Expand().IsObject() then
         Object.FSel("null").Apply([])
-     else 
+      else
         Ptr.FSel("null").Apply([])
     }
 
@@ -1595,7 +1595,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var r := replaceDots(i);
       "r#_" + r
   }
-  
+
   // To be used when escaping variables
   function escapeVar(f: VarName): string {
     var r := f.dafny_name;
@@ -1738,7 +1738,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     | SimpleExtern(overrideName: string)
     | AdvancedExtern(enclosingModule: string, overrideName: string)
     | UnsupportedExtern(reason: string)
-  
+
   opaque function OptExtern(attr: Attribute, dafnyName: Name): Option<ExternAttribute> {
     if attr.name == "extern" then
       Some(
@@ -1827,7 +1827,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const ObjectType: ObjectType
 
     var error: Option<string>
-    
+
     var optimizations: seq<R.Mod -> R.Mod>
 
     static const DAFNY_EXTERN_MODULE := "_dafny_externs"
@@ -1839,7 +1839,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.optimizations := [FactorPathsOptimization.apply];
       new;
     }
-    
+
     static function ContainingPathToRust(containingPath: seq<Ident>): seq<string> {
       Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
     }
@@ -1956,10 +1956,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     function GatherTypeParamNames(types: set<string>, typ: R.Type): set<string> {
       typ.Fold(types, (types: set<string>, currentType: R.Type) =>
-        if currentType.TIdentifier? then
-          types + {currentType.name}
-        else
-          types
+                 if currentType.TIdentifier? then
+                   types + {currentType.name}
+                 else
+                   types
       )
     }
 
@@ -2020,7 +2020,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       var extern := ExtractExtern(c.attributes, c.name);
-      
+
       var className;
       if extern.SimpleExtern? {
         className := extern.overrideName;
@@ -2048,17 +2048,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             c.attributes,
             [], [])),
         typeParamsSeq);
-      
+
       if extern.NoExtern? && className != "_default" {
         implBody := [
           R.FnDecl(
             R.PUB,
             R.Fn(allocate_fn,
-                [], [], Some(Object(R.SelfOwned)),
-                "",
-                Some(
-                  R.dafny_runtime.MSel(allocate).AsExpr().ApplyType1(R.SelfOwned).Apply([])
-                ))
+                 [], [], Some(Object(R.SelfOwned)),
+                 "",
+                 Some(
+                   R.dafny_runtime.MSel(allocate).AsExpr().ApplyType1(R.SelfOwned).Apply([])
+                 ))
           )
         ] + implBody;
       }
@@ -2120,11 +2120,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               }
               if |body| != |properMethods| {
                 error := Some("Error: In the class " + R.SeqToString(path, (s: Ident) => s.id.dafny_name, ".") + ", some proper methods of " +
-                 traitType.ToString("") + " are marked {:extern} and some are not." +
-                 " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Name) => s.dafny_name, ", ") +
-                 ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
-                 "or mark none of them as {:extern} and implement them in Dafny. " +
-                 "Alternatively, you can insert an intermediate trait that performs the partial implementation if feasible.");
+                              traitType.ToString("") + " are marked {:extern} and some are not." +
+                              " For the Rust compiler, please make all methods (" + R.SeqToString(properMethods, (s: Name) => s.dafny_name, ", ") +
+                              ")  bodiless and mark as {:extern} and implement them in a Rust file, "+
+                              "or mark none of them as {:extern} and implement them in Dafny. " +
+                              "Alternatively, you can insert an intermediate trait that performs the partial implementation if feasible.");
               }
             }
             if |body| == 0 {
@@ -3431,7 +3431,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               var rhs, _, _ := GenExpr(InitializationValue(field.typ), selfIdent, env, OwnershipOwned);
               readIdents := readIdents + {isAssignedVar};
               generated := generated.Then(R.dafny_runtime.MSel(update_field_if_uninit_macro).AsExpr().Apply([
-                                                                                                     R.Identifier("this"), R.Identifier(fieldName), R.Identifier(isAssignedVar), rhs]));
+                                                                                                              R.Identifier("this"), R.Identifier(fieldName), R.Identifier(isAssignedVar), rhs]));
               newEnv := newEnv.RemoveAssigned(isAssignedVar);
             }
           }
@@ -4214,26 +4214,26 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           Success(R.dafny_runtime.MSel("rc_coerce").AsExpr().Apply1(lambda))
       else if SameTypesButDifferentTypeParameters(fromType, fromTpe, toType, toTpe) then
         var indices :=
-             if fromType.UserDefined? && fromType.resolved.kind.Datatype? then
-               Std.Collections.Seq.Filter(i =>
-                 if 0 <= i < |fromTpe.arguments| then
-                  (0 <= i < |fromType.resolved.kind.variances| ==>
-                    !fromType.resolved.kind.variances[i].Nonvariant?)
-                 else
-                   false
-               , seq(|fromTpe.arguments|, i => i))
-             else
-               seq(|fromTpe.arguments|, i => i);
+          if fromType.UserDefined? && fromType.resolved.kind.Datatype? then
+            Std.Collections.Seq.Filter(i =>
+                                         if 0 <= i < |fromTpe.arguments| then
+                                           (0 <= i < |fromType.resolved.kind.variances| ==>
+                                              !fromType.resolved.kind.variances[i].Nonvariant?)
+                                         else
+                                           false
+                                      , seq(|fromTpe.arguments|, i => i))
+          else
+            seq(|fromTpe.arguments|, i => i);
         var lambdas :- SeqResultToResultSeq(
-          seq(|indices|, j requires 0 <= j < |indices| =>
-             var i := indices[j];
-              UpcastConversionLambda(
-                fromType.resolved.typeArgs[i],
-                fromTpe.arguments[i],
-                toType.resolved.typeArgs[i],
-                toTpe.arguments[i],
-                typeParams
-              )));
+                         seq(|indices|, j requires 0 <= j < |indices| =>
+                           var i := indices[j];
+                           UpcastConversionLambda(
+                             fromType.resolved.typeArgs[i],
+                             fromTpe.arguments[i],
+                             toType.resolved.typeArgs[i],
+                             toTpe.arguments[i],
+                             typeParams
+                           )));
         Success(R.ExprFromType(fromTpe.baseName).ApplyType(
                   seq(|fromTpe.arguments|, i requires 0 <= i < |fromTpe.arguments| =>
                     fromTpe.arguments[i])
@@ -4554,7 +4554,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     function GetMethodName(on: Expression, name: CallName): string {
-        match name {
+      match name {
         case CallName(ident, _, _, _, _) =>
           if on.ExternCompanion? then ident.dafny_name else escapeName(ident)
         case MapBuilderAdd() | SetBuilderAdd() => "add"
@@ -4580,7 +4580,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case ExternCompanion(path) => {
           r := GenPathExpr(path, false);
-          
+
           if expectedOwnership == OwnershipBorrowed {
             resultingOwnership := OwnershipBorrowed;
           } else if expectedOwnership == OwnershipOwned {
@@ -5023,7 +5023,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             s := s + "move |" + args + "| {\n";
             s := s + "callTarget." + escapeVar(field) +
-              (if isConstant then "()" else "") + "(" + args + ")\n";
+            (if isConstant then "()" else "") + "(" + args + ")\n";
             s := s + "}\n";
             s := s + "}";
           }
