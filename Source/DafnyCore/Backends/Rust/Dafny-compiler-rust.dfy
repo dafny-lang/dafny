@@ -225,7 +225,7 @@ module RAST
   type TypeParamConstraint = Type
 
   datatype TypeParamDecl =
-    | TypeParamDecl(content: string, constraints: seq<TypeParamConstraint>)
+    | TypeParamDecl(name: string, constraints: seq<TypeParamConstraint>)
   {
     static function ToStringMultiple(typeParams: seq<TypeParamDecl>, ind: string): string {
       if |typeParams| == 0 then "" else
@@ -242,7 +242,7 @@ module RAST
       this.(constraints := this.constraints + constraints)
     }
     function ToString(ind: string): string {
-      content + (
+      name + (
         if |constraints| == 0 then
           ""
         else
@@ -1954,6 +1954,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       && r1.typeArgs == r2.typeArgs
     }
 
+    function GatherTypeParamNames(types: set<string>, typ: R.Type): set<string> {
+      typ.Fold(types, (types: set<string>, currentType: R.Type) =>
+        if currentType.TIdentifier? then
+          types + {currentType.name}
+        else
+          types
+      )
+    }
+
     method GenClass(c: Class, path: seq<Ident>) returns (s: seq<R.ModDecl>)
       modifies this
     {
@@ -1962,9 +1971,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
       var fields: seq<R.Field> := [];
       var fieldInits: seq<R.AssignIdentifier> := [];
+      var usedTypeParams: set<string> := {};
       for fieldI := 0 to |c.fields| {
         var field := c.fields[fieldI];
         var fieldType := GenType(field.formal.typ, GenTypeContext.default());
+        usedTypeParams := GatherTypeParamNames(usedTypeParams, fieldType);
         var fieldRustName := escapeVar(field.formal.name);
         fields := fields + [R.Field(R.PUB, R.Formal(fieldRustName, fieldType))];
 
@@ -1995,6 +2006,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       for typeParamI := 0 to |c.typeParams| {
         var typeArg, typeParam := GenTypeParam(c.typeParams[typeParamI]);
         var rTypeArg := GenType(typeArg, GenTypeContext.default());
+        if typeParam.name in usedTypeParams {
+          continue;
+        }
         fields := fields + [
           R.Field(R.PRIV,
                   R.Formal("_phantom_type_param_" + Strings.OfNat(typeParamI),
@@ -2373,6 +2387,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var datatypeName := escapeName(c.name);
       var ctors: seq<R.EnumCase> := [];
       var variances := Std.Collections.Seq.Map((typeParamDecl: TypeArgDecl) => typeParamDecl.variance, c.typeParams);
+      var usedTypeParams: set<string> := {};
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
         var ctorArgs: seq<R.Field> := [];
@@ -2380,6 +2395,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
           var formalType := GenType(dtor.formal.typ, GenTypeContext.default());
+          usedTypeParams := GatherTypeParamNames(usedTypeParams, formalType);
           var formalName := escapeVar(dtor.formal.name);
           if j == 0 && "0" == formalName {
             isNumeric := true;
@@ -2405,6 +2421,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         ctors := ctors + [R.EnumCase(escapeName(ctor.name), namedFields)];
       }
+      var unusedTypeParams := (set tp <- rTypeParamsDecls :: tp.name) - usedTypeParams;
 
       var selfPath := [Ident.Ident(c.name)];
       var implBodyRaw, traitBodies :=
@@ -2474,7 +2491,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               cases := cases + [ctorMatch];
             }
 
-            if |c.typeParams| > 0 {
+            if |c.typeParams| > 0 && |unusedTypeParams| > 0 {
               cases := cases + [
                 R.MatchCase(R.RawPattern(datatypeName + "::_PhantomVariant(..)"), R.RawExpr(UnreachablePanicIfVerified("")))
               ];
@@ -2532,13 +2549,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               R.Rc(R.IntersectionType(R.ImplType(R.FnType([rTypeArg], rCoerceType)), R.StaticTrait)))
           ];
         }
-        ctors := ctors + [
-          R.EnumCase(
-            "_PhantomVariant",
-            R.NamelessFields(
-              Std.Collections.Seq.Map(
-                tpe => R.NamelessField(R.PRIV, tpe), types))
-          )];
+        if |unusedTypeParams| > 0 {
+          ctors := ctors + [
+            R.EnumCase(
+              "_PhantomVariant",
+              R.NamelessFields(
+                Std.Collections.Seq.Map(
+                  tpe => R.NamelessField(R.PRIV, tpe), types))
+            )];
+        }
       }
 
       var cIsEq := DatatypeIsEq(c);
@@ -2662,7 +2681,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         ];
       }
 
-      if |c.typeParams| > 0 {
+      if |c.typeParams| > 0 && |unusedTypeParams| > 0 {
         var extraCases := [
           R.MatchCase(R.RawPattern(datatypeName + "::_PhantomVariant(..)"), R.RawExpr("{"+UnreachablePanicIfVerified()+"}"))
         ];
