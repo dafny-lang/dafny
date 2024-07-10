@@ -116,13 +116,25 @@ namespace Microsoft.Dafny.Compilers {
               if (Options.ForbidNondeterminism) {
                 Error(ErrorId.c_nondeterminism_forbidden, s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
               }
-            } else if (s.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
-              TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, null, wr);
-            } else {
+            } else if (s.Rhs is TypeRhs typeRhs) {
               var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
               wStmts = wr.Fork();
-              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr, assignStmt.Tok);
-              TrRhs(s.Rhs, wRhs, wStmts);
+              var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(typeRhs), wr, assignStmt.Tok);
+              TrRhs(typeRhs, wRhs, wStmts);
+            } else {
+              var eRhs = (ExprRhs)s.Rhs;
+              if (eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+                TrTailCallStmt(s.Tok, fce.Function.ByMethodDecl, fce.Receiver, fce.Args, wr);
+              } else {
+                var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
+                var doAssignment = (Expression e, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wrAssignment) => {
+                  var wStmtsBeforeAssignment = wrAssignment.Fork();
+                  var wRhs = EmitAssignment(lvalue, resultType, e.Type, wrAssignment, assignStmt.Tok);
+                  EmitExpr(e, false, wRhs, wStmtsBeforeAssignment);
+                };
+                var continuation = new OptimizedExpressionContinuation(doAssignment, true);
+                TrExprOpt(eRhs.Expr, TypeOfLhs(s.Lhs), wr, wStmts, false, null, continuation);
+              }
             }
 
             break;
@@ -511,78 +523,91 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      EmitNestedMatchGeneric(match, (caseIndex, caseBody) => {
+      EmitNestedMatchGeneric(match, true, (caseIndex, caseBody) => {
         TrStmtList(match.Cases[caseIndex].Body, caseBody);
-      }, writer, false);
+      }, false, writer);
     }
 
     /// <summary>
-    ///
-    /// match a
+    /// Given
+    /// 
+    ///   match a
     ///   case X(Y(b),Z(W(c)) => body1
     ///   case r => body2
-    ///
-    /// var unmatched = true;
-    /// if (unmatched && a is X) {
-    ///   var x1 = ((X)a).1;
-    ///   if (x1 is Y) {
-    ///     var b = ((Y)x1).1;
     /// 
-    ///     var x2 = ((X)a).2; 
-    ///     if (x2 is Z) {
-    ///       var x4 = ((Z)x2).1;
-    ///       if (x4 is W) {
-    ///         var c = ((W)x4).1;
-    ///         body1;
+    /// If there are no cases, then emit:
+    ///
+    ///   throw ABSURD;
+    ///
+    /// Else, emit:
+    /// 
+    ///   BLOCK {
+    ///     {  // this defines the scope for any new local variables in the case
+    ///       if (a is X) {
+    ///         var x0 = ((X)a).0;
+    ///         if (x0 is Y) {
+    ///           var b = ((Y)x0).0;
+    /// 
+    ///           var x1 = ((X)a).1; 
+    ///           if (x1 is Z) {
+    ///             var xz0 = ((Z)x1).0;
+    ///             if (xz0 is W) {
+    ///               var c = ((W)xz0).0;
+    /// 
+    ///               body1;
+    ///               break BLOCK;
+    ///           }
+    ///         }
     ///       }
-    ///     } 
+    ///     }
+    /// 
+    ///     {
+    ///       var r = a;
+    ///       body2;
+    ///     }
     ///   }
-    /// }
-    /// if (unmatched) {
-    ///   var r = a;
-    ///   body2;
-    /// }
     /// 
     /// </summary>
-    private void EmitNestedMatchGeneric(INestedMatch match, Action<int, ConcreteSyntaxTree> emitBody,
-      ConcreteSyntaxTree output, bool bodyExpected) {
+    private void EmitNestedMatchGeneric(INestedMatch match, bool preventCaseFallThrough, Action<int, ConcreteSyntaxTree> emitBody,
+      bool inLetExprBody, ConcreteSyntaxTree output) {
       if (match.Cases.Count == 0) {
-        if (bodyExpected) {
-          // the verifier would have proved we never get here; still, we need some code that will compile
-          EmitAbsurd(null, output);
-        }
+        // the verifier would have proved we never get here; still, we need some code that will compile
+        EmitAbsurd(null, output);
       } else {
         string sourceName = ProtectedFreshId("_source");
-        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, false, output);
+        DeclareLocalVar(sourceName, match.Source.Type, match.Source.tok, match.Source, inLetExprBody, output);
 
-        string unmatched = ProtectedFreshId("unmatched");
-        DeclareLocalVar(unmatched, Type.Bool, match.Source.Tok, Expression.CreateBoolLiteral(match.Source.Tok, true), false, output);
+        var label = preventCaseFallThrough ? ProtectedFreshId("match") : null;
+        if (label != null) {
+          output = CreateLabeledCode(label, false, output);
+        }
 
         var sourceType = match.Source.Type.NormalizeExpand();
         for (var index = 0; index < match.Cases.Count; index++) {
           var myCase = match.Cases[index];
           var lastCase = index == match.Cases.Count - 1;
-          var result = EmitIf(out var guardWriter, false, output);
-          guardWriter.Write(unmatched);
-          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, result, lastCase);
+
+          var caseBlock = EmitBlock(output);
+          var innerWriter = EmitNestedMatchCaseConditions(sourceName, sourceType, myCase.Pat, caseBlock, lastCase);
           Coverage.Instrument(myCase.Tok, "case body", innerWriter);
-          EmitAssignment(unmatched, Type.Bool, False, Type.Bool, innerWriter);
 
           emitBody(index, innerWriter);
-        }
-
-        if (bodyExpected) {
-          EmitAbsurd(null, output);
+          if (label != null && !lastCase) {
+            EmitBreak(label, innerWriter);
+          }
         }
       }
     }
 
-    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName,
-      Type sourceType,
+    private ConcreteSyntaxTree EmitNestedMatchCaseConditions(string sourceName, Type sourceType,
       ExtendedPattern pattern, ConcreteSyntaxTree writer, bool lastCase) {
 
       var litExpression = MatchFlattener.GetLiteralExpressionFromPattern(pattern);
       if (litExpression != null) {
+        if (lastCase) {
+          return writer;
+        }
+
         var thenWriter = EmitIf(out var guardWriter, false, writer);
         CompileBinOp(BinaryExpr.ResolvedOpcode.EqCommon, sourceType, litExpression.Type, pattern.Tok, Type.Bool,
           out var opString, out var preOpString, out var postOpString, out var callString, out var staticCallString,
@@ -591,22 +616,25 @@ namespace Microsoft.Dafny.Compilers {
         var right = new ConcreteSyntaxTree();
         EmitExpr(litExpression, false, right, writer);
         EmitBinaryExprUsingConcreteSyntax(guardWriter, Type.Bool, preOpString, opString, new LineSegment(sourceName), right, callString, staticCallString, postOpString);
-        writer = thenWriter;
-      } else if (pattern is IdPattern idPattern) {
-        if (idPattern.BoundVar != null) {
-          var boundVar = idPattern.BoundVar;
-          if (boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
-            return writer;
-          }
+        return thenWriter;
 
-          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
-          valueWriter.Write(sourceName);
-          return writer;
-        } else {
-          writer = EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
+      } else if (pattern is IdPattern idPattern) {
+        if (idPattern.BoundVar == null) {
+          return EmitNestedMatchStmtCaseConstructor(sourceName, sourceType, idPattern, writer, lastCase);
         }
 
+        var boundVar = idPattern.BoundVar;
+        if (!boundVar.Tok.val.StartsWith(IdPattern.WildcardString)) {
+          var valueWriter = DeclareLocalVar(IdName(boundVar), boundVar.Type, idPattern.Tok, writer);
+          valueWriter.Write(sourceName);
+        }
+        return writer;
+
       } else if (pattern is DisjunctivePattern disjunctivePattern) {
+        if (lastCase) {
+          return writer;
+        }
+
         string disjunctiveMatch = ProtectedFreshId("disjunctiveMatch");
         DeclareLocalVar(disjunctiveMatch, Type.Bool, disjunctivePattern.Tok, Expression.CreateBoolLiteral(disjunctivePattern.Tok, false), false, writer);
         foreach (var alternative in disjunctivePattern.Alternatives) {
@@ -615,11 +643,11 @@ namespace Microsoft.Dafny.Compilers {
         }
         writer = EmitIf(out var guardWriter, false, writer);
         guardWriter.Write(disjunctiveMatch);
+        return writer;
+
       } else {
         throw new Exception();
       }
-
-      return writer;
     }
 
     private ConcreteSyntaxTree EmitNestedMatchStmtCaseConstructor(string sourceName, Type sourceType,

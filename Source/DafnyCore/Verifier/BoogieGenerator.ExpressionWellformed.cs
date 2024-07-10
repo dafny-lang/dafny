@@ -1666,7 +1666,7 @@ namespace Microsoft.Dafny {
       var apply = UnboxUnlessInherentlyBoxed(FunctionCall(tok, Apply(dims.Count), TrType(elementType), args), elementType);
 
       CheckElementInitReturnSubrangeCheck(dims, init, out var dafnySource, out var checkContext);
-      var cre = GetSubrangeCheck(apply, sourceType.Result, elementType, dafnySource, checkContext, out var subrangeDesc);
+      var cre = GetSubrangeCheck(apply.tok, apply, sourceType.Result, elementType, dafnySource, checkContext, out var subrangeDesc);
       if (cre != null) {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
