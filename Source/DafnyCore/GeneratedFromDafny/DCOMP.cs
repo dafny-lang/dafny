@@ -3839,9 +3839,6 @@ namespace DCOMP {
             bool _1847_verbatim = _h173.dtor_verbatim;
             unmatched96 = false;
             {
-              if (_1847_verbatim) {
-                (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Verbatim strings prefixed by @ not supported yet."));
-              }
               r = (((RAST.__default.dafny__runtime).MSel((this).string__of)).AsExpr()).Apply1(RAST.Expr.create_LiteralString(_1846_l, false, _1847_verbatim));
               RAST._IExpr _out217;
               DCOMP._IOwnership _out218;
@@ -5706,7 +5703,7 @@ namespace DCOMP {
                       goto after__ASSIGN_SUCH_THAT_3;
                     }
                   }
-                  throw new System.Exception("assign-such-that search produced no value (line 4721)");
+                  throw new System.Exception("assign-such-that search produced no value (line 4716)");
                 after__ASSIGN_SUCH_THAT_3: ;
                   _2095_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_2095_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), _2096_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _2096_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                   _2094_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_2094_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_2096_next));
@@ -7024,7 +7021,7 @@ namespace DCOMP {
                   goto after__ASSIGN_SUCH_THAT_4;
                 }
               }
-              throw new System.Exception("assign-such-that search produced no value (line 5223)");
+              throw new System.Exception("assign-such-that search produced no value (line 5218)");
             after__ASSIGN_SUCH_THAT_4: ;
               if ((!object.Equals(selfIdent, DCOMP.SelfInfo.create_NoSelf())) && ((_2339_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
                 RAST._IExpr _2340_selfCloned;

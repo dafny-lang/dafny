@@ -1677,7 +1677,7 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      foreach (var parentType in topLevel.ParentTypes(typeArgs)) {
+      foreach (var parentType in topLevel.ParentTypes(typeArgs, true)) {
         extendedTraits.Add(GenType(parentType));
       }
 
@@ -2335,26 +2335,6 @@ namespace Microsoft.Dafny.Compilers {
         lhs(new BuilderSyntaxTree<ExprContainer>(binOp, this));
 
         return new BuilderSyntaxTree<ExprContainer>(binOp, this);
-      } else {
-        throw new InvalidOperationException();
-      }
-    }
-
-    protected override void EmitArrayIndexToInt(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wIndex) {
-      if (GetExprBuilder(wr, out var builder)) {
-        var binOp = builder.Builder.Wrapper((DAST.Expression nativeArrayIndex) =>
-          (DAST.Expression)DAST.Expression.create_ArrayIndexToInt(nativeArrayIndex));
-        wIndex = new BuilderSyntaxTree<ExprContainer>(binOp, this);
-      } else {
-        throw new InvalidOperationException();
-      }
-    }
-
-    protected override void EmitArrayFinalize(ConcreteSyntaxTree wr, out ConcreteSyntaxTree wrArray, Type type) {
-      if (GetExprBuilder(wr, out var builder)) {
-        var binOp = builder.Builder.Wrapper((DAST.Expression arrayPointer) =>
-          (DAST.Expression)DAST.Expression.create_FinalizeNewArray(arrayPointer, GenType(type)));
-        wrArray = new BuilderSyntaxTree<ExprContainer>(binOp, this);
       } else {
         throw new InvalidOperationException();
       }
