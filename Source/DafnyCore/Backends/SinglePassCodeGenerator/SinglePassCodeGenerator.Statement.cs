@@ -18,6 +18,22 @@ using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
   public abstract partial class SinglePassCodeGenerator {
+    private VarDeclStmt enclosingVarDecl = null;
+    private int innerExtractIndex = -1;
+
+    private bool IsExtractStatement(Statement stmt, string expectedLeftName) {
+      return stmt is UpdateStmt updateStmt
+             && updateStmt.Rhss.Count() == 1
+             && updateStmt.Lhss.Count() == 1
+             && updateStmt.Lhss[0] is IdentifierExpr { Name: var leftName }
+             && leftName == expectedLeftName
+             && updateStmt.Rhss[0] is ExprRhs { Expr: ApplySuffix { Lhs: ExprDotName { SuffixName: "Extract" } } };
+    }
+
+    private int FindExtractStatement(List<Statement> stmts, string expectedLeftName) {
+      return stmts.FindIndex((stmt) => IsExtractStatement(stmt, expectedLeftName));
+    }
+
     protected void TrStmt(Statement stmt, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts = null) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
@@ -157,11 +173,21 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case AssignOrReturnStmt returnStmt: {
-            var s = returnStmt;
-            // TODO there's potential here to use target-language specific features such as exceptions
-            // to make it more target-language idiomatic and improve performance
-            TrStmtList(s.ResolvedStatements, wr);
+        case AssignOrReturnStmt assignOrReturnStmt: {
+            var s = assignOrReturnStmt;
+            var stmts = s.ResolvedStatements.ToList();
+            if (innerExtractIndex != -1 &&
+                enclosingVarDecl is
+                  { Update: var stmtUpdate, Locals: { Count: > 0 } locals }
+                && stmtUpdate == assignOrReturnStmt) {
+                // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
+              stmts[innerExtractIndex] =
+                new VarDeclStmt(enclosingVarDecl.RangeToken,
+                  new List<LocalVariable>() { locals[0] },
+                  (UpdateStmt)stmts[innerExtractIndex]);
+            }
+            TrStmtList(stmts, wr);
+
             break;
           }
         case ExpectStmt expectStmt: {
@@ -453,6 +479,15 @@ namespace Microsoft.Dafny.Compilers {
         case VarDeclStmt declStmt: {
             var s = declStmt;
             var i = 0;
+            // Optimization (especially useful for Rust) so that if we have
+            // var o :- B;
+            // We won't declare o until we assign it with o := tmp.Extract();
+            var indexExtract = -1;
+            if (s.Update is AssignOrReturnStmt { ResolvedStatements: var stmts }
+                && s.Locals.Count > 0) {
+              indexExtract = FindExtractStatement(stmts, s.Locals[0].Name);
+            }
+
             foreach (var local in s.Locals) {
               bool hasRhs = s.Update is AssignSuchThatStmt || s.Update is AssignOrReturnStmt;
               if (!hasRhs && s.Update is UpdateStmt u) {
@@ -464,15 +499,20 @@ namespace Microsoft.Dafny.Compilers {
               }
               
               // The head variable of an elephant assignment will be declared by its desugaring
-              if (!(i == 0 && s.Update is AssignOrReturnStmt)) {
+              if (i != 0 || indexExtract == -1) {
                 TrLocalVar(local, !hasRhs, wr);
               }
 
               i++;
             }
+            
+            enclosingVarDecl = s;
+            innerExtractIndex = indexExtract;
             if (s.Update != null) {
               TrStmt(s.Update, wr);
             }
+            enclosingVarDecl = null;
+            innerExtractIndex = -1;
 
             break;
           }
