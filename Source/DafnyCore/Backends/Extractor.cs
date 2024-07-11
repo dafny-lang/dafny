@@ -26,12 +26,23 @@ namespace Microsoft.Dafny.Compilers {
     public static Boogie.Program Extract(Program program) {
       var extractor = new Extractor();
       extractor.VisitDeclarations(program.DefaultModule.Signature.TopLevels.Values.ToList());
+      extractor.FixUpUsedByInformation();
       return extractor.extractedProgram;
     }
 
-    private readonly Boogie.Program extractedProgram = new Boogie.Program();
+    private readonly Boogie.Program extractedProgram = new();
+    private readonly Dictionary<Function, Boogie.Function> functionExtractions = new();
+    private readonly List<(Boogie.Axiom, Function)> axiomUsedBy = new();
 
     private Extractor() {
+    }
+
+    void FixUpUsedByInformation() {
+      foreach (var (axiom, function) in axiomUsedBy) {
+        var boogieFunction = functionExtractions[function]; // TODO: do error checking
+        boogieFunction.OtherDefinitionAxioms.Add(axiom);
+      }
+      axiomUsedBy.Clear();
     }
 
     public override IASTVisitorContext GetContext(IASTVisitorContext astVisitorContext, bool inFunctionPostcondition) {
@@ -59,7 +70,8 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var patterns = Attributes.FindAllExpressions(lemma.Attributes, "extract_pattern");
-      if (patterns == null) {
+      var usedByInfo = Attributes.Find(lemma.Attributes, "extract_used_by");
+      if (patterns == null & usedByInfo == null) {
         return;
       }
 
@@ -73,8 +85,9 @@ namespace Microsoft.Dafny.Compilers {
       );
 
       Boogie.Trigger? triggers = null;
-      for (var i = patterns.Count; 0 <= --i;) {
-        var terms = patterns[i].ConvertAll(ExtractExpr);
+      Contract.Assert(boundVars.Count != 0 || patterns == null);
+      for (var i = patterns == null ? 0 : patterns.Count; 0 <= --i;) {
+        var terms = patterns![i].ConvertAll(ExtractExpr);
         triggers = new Boogie.Trigger(tok, true, terms, triggers);
       }
 
@@ -84,6 +97,7 @@ namespace Microsoft.Dafny.Compilers {
 
       Boogie.QKeyValue kv = null;
       var extractAttributes = Attributes.FindAllExpressions(lemma.Attributes, "extract_attribute");
+      Contract.Assert(boundVars.Count != 0 || extractAttributes == null);
       if (extractAttributes != null) {
         for (var i = extractAttributes.Count; 0 <= --i;) {
           string? attrName = null;
@@ -100,11 +114,16 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      var quantifier = new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
-      var ax = new Boogie.Axiom(tok, quantifier, $"axiom generated from lemma {method.Name}");
-      extractedProgram.AddTopLevelDeclaration(ax);
+      var axiomBody = boundVars.Count == 0 ? body : new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+      var axiom = new Boogie.Axiom(tok, axiomBody, $"axiom generated from lemma {method.Name}");
+      extractedProgram.AddTopLevelDeclaration(axiom);
 
-      // TODO: look for {:extract_used_by Empty}
+      if (usedByInfo != null) {
+        Contract.Assert(usedByInfo.Args.Count == 1);
+        var argument = (MemberSelectExpr)usedByInfo.Args[0].Resolved; // TODO: do error checking
+        var function = (Function)argument.Member; // TODO: do error checking
+        axiomUsedBy.Add((axiom, function));
+      }
     }
 
     public override void VisitFunction(Function function) {
@@ -117,6 +136,7 @@ namespace Microsoft.Dafny.Compilers {
         var result = new Boogie.Formal(tok, new TypedIdent(tok, TypedIdent.NoName, ExtractType(function.ResultType)), false);
         var fn = new Boogie.Function(tok, extractName, inParams, result);
         extractedProgram.AddTopLevelDeclaration(fn);
+        functionExtractions.Add(function, fn);
       }
     }
 
