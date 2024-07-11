@@ -267,19 +267,6 @@ module {:extract} Sequences {
     }
   }
 
-  // boogie: function Seq#Index(Seq, int): Box;
-  function {:extract "Seq#Index"} Index(s: Seq, i: int): Box {
-    if 0 <= i < Length(s) then
-      s.At(i)
-    else
-      Boxes.arbitrary
-  }
-
-  // boogie: function Seq#Append(Seq, Seq): Seq;
-  function {:extract_name "Seq#Append"} Append(s0: Seq, s1: Seq): Seq {
-    s0.Append(s1)
-  }
-
   // boogie:
   // axiom (forall s0: Seq, s1: Seq :: { Seq#Length(Seq#Append(s0,s1)) }
   //   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
@@ -287,6 +274,14 @@ module {:extract} Sequences {
     ensures Length(Append(s0, s1)) == Length(s0) + Length(s1)
   {
     s0.LengthAppend(s1);
+  }
+
+  // boogie: function Seq#Index(Seq, int): Box;
+  function {:extract_name "Seq#Index"} Index(s: Seq, i: int): Box {
+    if 0 <= i < Length(s) then
+      s.At(i)
+    else
+      Boxes.arbitrary
   }
 
   // boogie:
@@ -412,6 +407,11 @@ module {:extract} Sequences {
     }
   }
 
+  // boogie: function Seq#Append(Seq, Seq): Seq;
+  function {:extract_name "Seq#Append"} Append(s0: Seq, s1: Seq): Seq {
+    s0.Append(s1)
+  }
+
   // boogie: function Seq#Contains(Seq, Box): bool;
   predicate {:extract_name "Seq#Contains"} Contains(s: Seq, val: Box) {
     exists i :: 0 <= i < Length(s) && Index(s, i) == val
@@ -512,6 +512,119 @@ module {:extract} Sequences {
       Contains(s, x) || Contains(valList, x);
       { reveal Ping, Pong; }
       v == x || Contains(s, x);
+    }
+  }
+
+  // boogie:
+  // axiom (forall s: Seq, n: int, x: Box ::
+  //   { Seq#Contains(Seq#Take(s, n), x) }
+  //   Seq#Contains(Seq#Take(s, n), x) <==>
+  //     (exists i: int :: { Seq#Index(s, i) }
+  //       0 <= i && i < n && i < Seq#Length(s) && Seq#Index(s, i) == x));
+  lemma {:extract_pattern Contains(Take(s, n), x)} TakeContains(s: Seq, n: int, x: Box)
+    ensures Contains(Take(s, n), x) <==>
+      exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < n && i < Length(s) && Index(s, i) == x
+  {
+    if
+    case n < 0 =>
+      calc {
+        Contains(Take(s, n), x);
+        { assert Take(s, n) == Empty(); }
+        Contains(Empty(), x);
+        false;
+        exists i :: 0 <= i < n && i < Length(s) && Index(s, i) == x;
+      }
+
+    case 0 <= n <= s.Length() =>
+      var (prefix, suffix) := s.Split(n);
+      var t := s.Take(n);
+      assert t == prefix;
+      assert t.Length() == n by {
+        s.LengthTakeDrop(n);
+      }
+      assert L: forall i :: 0 <= i < Length(t) ==> Index(t, i) == Index(s, i) by {
+        forall i | 0 <= i < Length(t)
+          ensures Index(t, i) == Index(s, i)
+        {
+          prefix.AppendAt(suffix, i);
+        }
+      }
+
+      calc {
+        Contains(t, x);
+        exists i :: 0 <= i < Length(t) && Index(t, i) == x;
+        { reveal L; }
+        exists i :: 0 <= i < n && i < Length(s) && Index(s, i) == x;
+      }
+
+    case s.Length() < n =>
+      calc {
+        Contains(Take(s, n), x);
+        Contains(s, x);
+        exists i :: 0 <= i < Length(s) && Index(s, i) == x;
+        { assert Length(s) < n; }
+        exists i :: 0 <= i < n && i < Length(s) && Index(s, i) == x;
+      }
+  }
+
+  // boogie:
+  // axiom (forall s: Seq, n: int, x: Box ::
+  //   { Seq#Contains(Seq#Drop(s, n), x) }
+  //   Seq#Contains(Seq#Drop(s, n), x) <==>
+  //     (exists i: int :: { Seq#Index(s, i) }
+  //       0 <= n && n <= i && i < Seq#Length(s) && Seq#Index(s, i) == x));
+  lemma {:extract_pattern Contains(Drop(s, n), x)} DropContains(s: Seq, n: int, x: Box)
+    ensures Contains(Drop(s, n), x) <==>
+      exists i: int {:extract_pattern Index(s, i)} :: 0 <= n <= i < Length(s) && Index(s, i) == x
+  {
+    if 0 <= n <= s.Length() {
+      var (prefix, suffix) := s.Split(n);
+      var t := s.Take(n);
+      assert t == prefix;
+      assert t.Length() == n by {
+        s.LengthTakeDrop(n);
+      }
+      assert L: forall i :: 0 <= i < Length(suffix) ==> Index(suffix, i) == Index(s, n + i) by {
+        forall i | 0 <= i < Length(suffix) {
+          calc {
+            Index(s, n + i);
+            { prefix.LengthAppend(suffix); }
+            s.At(n + i);
+            { prefix.AppendAt(suffix, n + i); }
+            suffix.At(i);
+            Index(suffix, i);
+          }
+        }
+      }
+
+      if Contains(Drop(s, n), x) {
+        var j :| 0 <= j < Length(suffix) && Index(suffix, j) == x;
+        var i := n + j;
+        assert 0 <= n <= i < Length(s) by {
+          prefix.LengthAppend(suffix);
+        }
+        assert Index(s, i) == x by {
+          reveal L;
+        }
+      }
+
+      if i :| 0 <= n <= i < Length(s) && Index(s, i) == x {
+        var j := i - n;
+        assert 0 <= j < Length(suffix) by {
+          prefix.LengthAppend(suffix);
+        }
+        assert Index(suffix, j) == x by {
+          reveal L;
+        }
+      }
+
+    } else {
+      calc {
+        Contains(Drop(s, n), x);
+        Contains(Empty(), x);
+        false;
+        exists i :: 0 <= n <= i < Length(s) && Index(s, i) == x;
+      }
     }
   }
 
@@ -660,119 +773,6 @@ module {:extract} Sequences {
   {
     if n != 0 {
       IndexDrop1(s.tail, n - 1, k - 1);
-    }
-  }
-
-  // boogie:
-  // axiom (forall s: Seq, n: int, x: Box ::
-  //   { Seq#Contains(Seq#Take(s, n), x) }
-  //   Seq#Contains(Seq#Take(s, n), x) <==>
-  //     (exists i: int :: { Seq#Index(s, i) }
-  //       0 <= i && i < n && i < Seq#Length(s) && Seq#Index(s, i) == x));
-  lemma {:extract_pattern Contains(Take(s, n), x)} TakeContains(s: Seq, n: int, x: Box)
-    ensures Contains(Take(s, n), x) <==>
-      exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < n && i < Length(s) && Index(s, i) == x
-  {
-    if
-    case n < 0 =>
-      calc {
-        Contains(Take(s, n), x);
-        { assert Take(s, n) == Empty(); }
-        Contains(Empty(), x);
-        false;
-        exists i :: 0 <= i < n && i < Length(s) && Index(s, i) == x;
-      }
-
-    case 0 <= n <= s.Length() =>
-      var (prefix, suffix) := s.Split(n);
-      var t := s.Take(n);
-      assert t == prefix;
-      assert t.Length() == n by {
-        s.LengthTakeDrop(n);
-      }
-      assert L: forall i :: 0 <= i < Length(t) ==> Index(t, i) == Index(s, i) by {
-        forall i | 0 <= i < Length(t)
-          ensures Index(t, i) == Index(s, i)
-        {
-          prefix.AppendAt(suffix, i);
-        }
-      }
-
-      calc {
-        Contains(t, x);
-        exists i :: 0 <= i < Length(t) && Index(t, i) == x;
-        { reveal L; }
-        exists i :: 0 <= i < n && i < Length(s) && Index(s, i) == x;
-      }
-
-    case s.Length() < n =>
-      calc {
-        Contains(Take(s, n), x);
-        Contains(s, x);
-        exists i :: 0 <= i < Length(s) && Index(s, i) == x;
-        { assert Length(s) < n; }
-        exists i :: 0 <= i < n && i < Length(s) && Index(s, i) == x;
-      }
-  }
-
-  // boogie:
-  // axiom (forall s: Seq, n: int, x: Box ::
-  //   { Seq#Contains(Seq#Drop(s, n), x) }
-  //   Seq#Contains(Seq#Drop(s, n), x) <==>
-  //     (exists i: int :: { Seq#Index(s, i) }
-  //       0 <= n && n <= i && i < Seq#Length(s) && Seq#Index(s, i) == x));
-  lemma {:extract_pattern Contains(Drop(s, n), x)} DropContains(s: Seq, n: int, x: Box)
-    ensures Contains(Drop(s, n), x) <==>
-      exists i: int {:extract_pattern Index(s, i)} :: 0 <= n <= i < Length(s) && Index(s, i) == x
-  {
-    if 0 <= n <= s.Length() {
-      var (prefix, suffix) := s.Split(n);
-      var t := s.Take(n);
-      assert t == prefix;
-      assert t.Length() == n by {
-        s.LengthTakeDrop(n);
-      }
-      assert L: forall i :: 0 <= i < Length(suffix) ==> Index(suffix, i) == Index(s, n + i) by {
-        forall i | 0 <= i < Length(suffix) {
-          calc {
-            Index(s, n + i);
-            { prefix.LengthAppend(suffix); }
-            s.At(n + i);
-            { prefix.AppendAt(suffix, n + i); }
-            suffix.At(i);
-            Index(suffix, i);
-          }
-        }
-      }
-
-      if Contains(Drop(s, n), x) {
-        var j :| 0 <= j < Length(suffix) && Index(suffix, j) == x;
-        var i := n + j;
-        assert 0 <= n <= i < Length(s) by {
-          prefix.LengthAppend(suffix);
-        }
-        assert Index(s, i) == x by {
-          reveal L;
-        }
-      }
-
-      if i :| 0 <= n <= i < Length(s) && Index(s, i) == x {
-        var j := i - n;
-        assert 0 <= j < Length(suffix) by {
-          prefix.LengthAppend(suffix);
-        }
-        assert Index(suffix, j) == x by {
-          reveal L;
-        }
-      }
-
-    } else {
-      calc {
-        Contains(Drop(s, n), x);
-        Contains(Empty(), x);
-        false;
-        exists i :: 0 <= n <= i < Length(s) && Index(s, i) == x;
-      }
     }
   }
 
