@@ -247,7 +247,7 @@ namespace Microsoft.Dafny.Compilers {
         case UnaryOpExpr unaryOpExpr: {
             Contract.Assert(unaryOpExpr.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot); // TODO: fail more gently
             var e = ExtractExpr(unaryOpExpr.E);
-            return Boogie.Expr.Neg(e);
+            return Boogie.Expr.Not(e);
           }
 
         case QuantifierExpr quantifierExpr: {
