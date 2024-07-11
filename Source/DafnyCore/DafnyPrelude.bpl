@@ -970,9 +970,8 @@ function Seq#Empty() : Seq
 uses {
 axiom Seq#Length(Seq#Empty()) == 0;
 }
-axiom (forall s: Seq :: { Seq#Length(s) }
-  (Seq#Length(s) == 0 ==> s == Seq#Empty())
-  );
+
+axiom (forall s: Seq :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#Empty());
 // The following would be a nice fact to include, because it would enable verifying the
 // GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
 // slows down performance on some other tests, including running seemingly forever on
@@ -988,18 +987,21 @@ axiom (forall s: Seq :: { Seq#Length(s) }
 function Seq#Build(s: Seq, val: Box) : Seq;
 
 function Seq#Build_inv0(s: Seq) : Seq;
+
 function Seq#Build_inv1(s: Seq) : Box;
+
 axiom (forall s: Seq, val: Box ::
   { Seq#Build(s, val) }
-  Seq#Build_inv0(Seq#Build(s, val)) == s &&
-  Seq#Build_inv1(Seq#Build(s, val)) == val);
+  Seq#Build_inv0(Seq#Build(s, val)) == s
+     && Seq#Build_inv1(Seq#Build(s, val)) == val);
 
 axiom (forall s: Seq, v: Box ::
   { Seq#Build(s,v) }
   Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
+
 axiom (forall s: Seq, i: int, v: Box :: { Seq#Index(Seq#Build(s,v), i) }
-  (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == v) &&
-  (i != Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == Seq#Index(s, i)));
+  (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == v)
+     && (i != Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == Seq#Index(s, i)));
 
 // Build preserves $Is
 axiom (forall s: Seq, bx: Box, t: Ty :: { $Is(Seq#Build(s,bx),TSeq(t)) }
