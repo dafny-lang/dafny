@@ -1038,9 +1038,9 @@ axiom (forall s: Seq, i: int, v: Box ::
 
 axiom (forall s: Seq, i: int, v: Box, n: int ::
   { Seq#Index(Seq#Update(s, i, v), n) }
-  0 <= n && n < Seq#Length(s) ==>
-    (i == n ==> Seq#Index(Seq#Update(s, i, v), n) == v) &&
-    (i != n ==> Seq#Index(Seq#Update(s, i, v), n) == Seq#Index(s, n)));
+  0 <= n && n < Seq#Length(s)
+     ==> (i == n ==> Seq#Index(Seq#Update(s, i, v), n) == v)
+       && (i != n ==> Seq#Index(Seq#Update(s, i, v), n) == Seq#Index(s, n)));
 
 function Seq#Append(s0: Seq, s1: Seq) : Seq;
 
@@ -1062,7 +1062,8 @@ axiom (forall s0: Seq, s1: Seq, x: Box ::
   Seq#Contains(Seq#Append(s0, s1), x)
      <==> Seq#Contains(s0, x) || Seq#Contains(s1, x));
 
-axiom (forall s: Seq, v: Box, x: Box ::  // needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
+// needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
+axiom (forall s: Seq, v: Box, x: Box ::
   { Seq#Contains(Seq#Build(s, v), x) }
     Seq#Contains(Seq#Build(s, v), x) <==> (v == x || Seq#Contains(s, x)));
 
