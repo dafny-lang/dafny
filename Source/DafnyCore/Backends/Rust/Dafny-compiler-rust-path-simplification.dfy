@@ -20,41 +20,41 @@ module FactorPathsOptimizationTest {
     var std_any_Any := global.MSel("std").MSel("any").MSel("Any");
     var Any := TIdentifier("Any");
     ShouldBeEqual(apply(
-        Mod("onemodule", [
-              StructDecl(
-                Struct([], "test", [T_Decl],
-                       NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
-              //                                   ::std::any::Any ==> Any
-              ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
-              ImplDecl(
-                ImplFor(
-                  [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
-              //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
-            ])),
-        Mod("onemodule", [
-            UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
-            UseDecl(Use(PUB, std_any_Any)),
-            StructDecl(
-              Struct([], "test", [T_Decl_simp],
-                      NamedFields([Field(PUB, Formal("a", Any))]))),
-            ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
-            ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
-          ]));
+                    Mod("onemodule", [
+                          StructDecl(
+                            Struct([], "test", [T_Decl],
+                                   NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
+                          //                                   ::std::any::Any ==> Any
+                          ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
+                          ImplDecl(
+                            ImplFor(
+                              [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
+                          //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
+                        ])),
+                  Mod("onemodule", [
+                        UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
+                        UseDecl(Use(PUB, std_any_Any)),
+                        StructDecl(
+                          Struct([], "test", [T_Decl_simp],
+                                 NamedFields([Field(PUB, Formal("a", Any))]))),
+                        ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
+                        ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
+                      ]));
     ShouldBeEqual(apply(
-        Mod("onemodule", [
-              ImplDecl(
-                ImplFor(
-                  [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
-                  TIdentifier("test").Apply([T]), "", []))
-            ])),
-           Mod("onemodule", [
-            UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
-                 UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
-                 ImplDecl(
-                   ImplFor(
-                     [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
-                     TIdentifier("test").Apply([T]), "", []))
-               ]));
+                    Mod("onemodule", [
+                          ImplDecl(
+                            ImplFor(
+                              [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
+                              TIdentifier("test").Apply([T]), "", []))
+                        ])),
+                  Mod("onemodule", [
+                        UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
+                        UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
+                        ImplDecl(
+                          ImplFor(
+                            [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
+                            TIdentifier("test").Apply([T]), "", []))
+                      ]));
   }
 }
 
@@ -72,8 +72,11 @@ module FactorPathsOptimization {
   }*/
 
   function apply(mod: Mod): Mod {
+    applyPrefix(mod, crate.MSel(mod.name))
+  }
+
+  function applyPrefix(mod: Mod, SelfPath: Path): Mod {
     if mod.ExternMod? then mod else
-    var SelfPath := crate.MSel(mod.name);
     var initialMapping: Mapping := Mapping(map[], []);
     var mappings: Mapping :=
       mod.Fold(initialMapping, (current, modDecl) => GatherModMapping(SelfPath, modDecl, current));
@@ -82,7 +85,7 @@ module FactorPathsOptimization {
     var imports := mappings.ToUseStatements(pathsToRemove, SelfPath);
     var rewrittenDeclarations :=
       mod.Fold([], (current, modDecl) requires modDecl < mod =>
-                 current + [ReplaceModDecl(modDecl, pathsToRemove)]
+                 current + [ReplaceModDecl(modDecl, SelfPath, pathsToRemove)]
       );
     mod.(body := imports + rewrittenDeclarations)
   }
@@ -134,24 +137,24 @@ module FactorPathsOptimization {
 
   type FinalReplacement = map<string, Path>
 
- function GatherTypeParams(typeParams: seq<TypeParamDecl>, current: Mapping): Mapping {
+  function GatherTypeParams(typeParams: seq<TypeParamDecl>, current: Mapping): Mapping {
     FoldLeft( (current: Mapping, t: TypeParamDecl) =>
-      FoldLeft( (current: Mapping, t: Type) =>
-        GatherTypeMapping(t, current),
-        current, t.constraints),
-      current, typeParams)
+                FoldLeft( (current: Mapping, t: Type) =>
+                            GatherTypeMapping(t, current),
+                          current, t.constraints),
+              current, typeParams)
   }
 
   function GatherFields(fields: Fields, current: Mapping): Mapping {
     match fields {
       case NamedFields(sFields) =>
         FoldLeft( (current: Mapping, f: Field) =>
-          GatherTypeMapping(f.formal.tpe, current),
-          current, sFields)
+                    GatherTypeMapping(f.formal.tpe, current),
+                  current, sFields)
       case NamelessFields(sFields) =>
         FoldLeft( (current: Mapping, f: NamelessField) =>
-          GatherTypeMapping(f.tpe, current),
-          current, sFields)
+                    GatherTypeMapping(f.tpe, current),
+                  current, sFields)
     }
   }
 
@@ -203,10 +206,10 @@ module FactorPathsOptimization {
     }
   }
 
-  function ReplaceModDecl(modDecl: ModDecl, replacement: FinalReplacement): ModDecl {
+  function ReplaceModDecl(modDecl: ModDecl, SelfPath: Path, replacement: FinalReplacement): ModDecl {
     match modDecl {
       case ModDecl(mod) =>
-        ModDecl(apply(mod)) // We optimize independently submodules
+        ModDecl(applyPrefix(mod, SelfPath.MSel(mod.name))) // We optimize independently submodules
       case StructDecl(struct) => StructDecl(ReplaceStruct(struct, replacement))
       case TypeDecl(tpe) => modDecl // TODO
       case ConstDecl(c) => modDecl // TODO

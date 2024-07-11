@@ -26,16 +26,16 @@ pub mod External {
         }
       }
 
-      impl crate::_External_dClass_dContainer::GetValueHolder
+      impl crate::External::Class::Container::GetValueHolder
         for ExternalPartialClass {
         fn GetValue(&self) -> dafny_runtime::DafnyInt {
           ::dafny_runtime::int!(2)
         }
       }
 
-      impl ::dafny_runtime::UpcastObject<dyn crate::_External_dClass_dContainer::GetValueHolder>
+      impl ::dafny_runtime::UpcastObject<dyn crate::External::Class::Container::GetValueHolder>
         for ExternalPartialClass {
-        ::dafny_runtime::UpcastObjectFn!(dyn crate::_External_dClass_dContainer::GetValueHolder);
+        ::dafny_runtime::UpcastObjectFn!(dyn crate::External::Class::Container::GetValueHolder);
       }
 
       pub struct ExternalPartialClass2 {}

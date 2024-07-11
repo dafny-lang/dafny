@@ -12,24 +12,27 @@ using System.Collections;
 namespace FactorPathsOptimization {
 
   public partial class __default {
-    public static RAST._IMod apply(RAST._IMod mod) {
+    public static RAST._IMod applyPrefix(RAST._IMod mod, RAST._IPath SelfPath)
+    {
       if ((mod).is_ExternMod) {
         return mod;
       } else {
-        RAST._IPath _1148_SelfPath = (RAST.__default.crate).MSel((mod).dtor_name);
-        FactorPathsOptimization._IMapping _1149_initialMapping = FactorPathsOptimization.Mapping.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.FromElements(), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
-        FactorPathsOptimization._IMapping _1150_mappings = (mod).Fold<FactorPathsOptimization._IMapping>(_1149_initialMapping, Dafny.Helpers.Id<Func<RAST._IPath, Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>>>((_1151_SelfPath) => ((System.Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>)((_1152_current, _1153_modDecl) => {
-          return FactorPathsOptimization.__default.GatherModMapping(_1151_SelfPath, _1153_modDecl, _1152_current);
-        })))(_1148_SelfPath));
-        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> _1154_pathsToRemove = (_1150_mappings).ToFinalReplacement();
-        Dafny.ISequence<RAST._IModDecl> _1155_imports = (_1150_mappings).ToUseStatements(_1154_pathsToRemove, _1148_SelfPath);
-        Dafny.ISequence<RAST._IModDecl> _1156_rewrittenDeclarations = (mod).Fold<Dafny.ISequence<RAST._IModDecl>>(Dafny.Sequence<RAST._IModDecl>.FromElements(), Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, RAST._IMod, Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>>>((_1157_pathsToRemove, _1158_mod) => ((System.Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>)((_1159_current, _1160_modDecl) => {
-          return Dafny.Sequence<RAST._IModDecl>.Concat(_1159_current, Dafny.Sequence<RAST._IModDecl>.FromElements(FactorPathsOptimization.__default.ReplaceModDecl(_1160_modDecl, _1157_pathsToRemove)));
-        })))(_1154_pathsToRemove, mod));
+        FactorPathsOptimization._IMapping _1148_initialMapping = FactorPathsOptimization.Mapping.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.FromElements(), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
+        FactorPathsOptimization._IMapping _1149_mappings = (mod).Fold<FactorPathsOptimization._IMapping>(_1148_initialMapping, Dafny.Helpers.Id<Func<RAST._IPath, Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>>>((_1150_SelfPath) => ((System.Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>)((_1151_current, _1152_modDecl) => {
+          return FactorPathsOptimization.__default.GatherModMapping(_1150_SelfPath, _1152_modDecl, _1151_current);
+        })))(SelfPath));
+        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> _1153_pathsToRemove = (_1149_mappings).ToFinalReplacement();
+        Dafny.ISequence<RAST._IModDecl> _1154_imports = (_1149_mappings).ToUseStatements(_1153_pathsToRemove, SelfPath);
+        Dafny.ISequence<RAST._IModDecl> _1155_rewrittenDeclarations = (mod).Fold<Dafny.ISequence<RAST._IModDecl>>(Dafny.Sequence<RAST._IModDecl>.FromElements(), Dafny.Helpers.Id<Func<RAST._IPath, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, RAST._IMod, Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>>>((_1156_SelfPath, _1157_pathsToRemove, _1158_mod) => ((System.Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>)((_1159_current, _1160_modDecl) => {
+          return Dafny.Sequence<RAST._IModDecl>.Concat(_1159_current, Dafny.Sequence<RAST._IModDecl>.FromElements(FactorPathsOptimization.__default.ReplaceModDecl(_1160_modDecl, _1156_SelfPath, _1157_pathsToRemove)));
+        })))(SelfPath, _1153_pathsToRemove, mod));
         RAST._IMod _1161_dt__update__tmp_h0 = mod;
-        Dafny.ISequence<RAST._IModDecl> _1162_dt__update_hbody_h0 = Dafny.Sequence<RAST._IModDecl>.Concat(_1155_imports, _1156_rewrittenDeclarations);
+        Dafny.ISequence<RAST._IModDecl> _1162_dt__update_hbody_h0 = Dafny.Sequence<RAST._IModDecl>.Concat(_1154_imports, _1155_rewrittenDeclarations);
         return RAST.Mod.create_Mod((_1161_dt__update__tmp_h0).dtor_name, _1162_dt__update_hbody_h0);
       }
+    }
+    public static RAST._IMod apply(RAST._IMod mod) {
+      return FactorPathsOptimization.__default.applyPrefix(mod, (RAST.__default.crate).MSel((mod).dtor_name));
     }
     public static __T UniqueElementOf<__T>(Dafny.ISet<__T> s) {
       return Dafny.Helpers.Let<int, __T>(0, _let_dummy_9 =>  {
@@ -40,7 +43,7 @@ namespace FactorPathsOptimization {
             goto after__ASSIGN_SUCH_THAT_2;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 102)");
+        throw new System.Exception("assign-such-that search produced no value (line 105)");
       after__ASSIGN_SUCH_THAT_2: ;
         return _1163_e;
       }
@@ -176,13 +179,13 @@ namespace FactorPathsOptimization {
         return FactorPathsOptimization.__default.GatherTypeMapping(_1195_tpe, current);
       }
     }
-    public static RAST._IModDecl ReplaceModDecl(RAST._IModDecl modDecl, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
+    public static RAST._IModDecl ReplaceModDecl(RAST._IModDecl modDecl, RAST._IPath SelfPath, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
       RAST._IModDecl _source61 = modDecl;
       {
         if (_source61.is_ModDecl) {
           RAST._IMod _1198_mod = _source61.dtor_mod;
-          return RAST.ModDecl.create_ModDecl(FactorPathsOptimization.__default.apply(_1198_mod));
+          return RAST.ModDecl.create_ModDecl(FactorPathsOptimization.__default.applyPrefix(_1198_mod, (SelfPath).MSel((_1198_mod).dtor_name)));
         }
       }
       {

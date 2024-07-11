@@ -87,11 +87,16 @@ clean:
 update-cs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module)
 
+update-rs-module:
+	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module-rs)
+
 update-go-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
 
 update-runtime-dafny:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+
+pr-nogeneration: format-dfy format update-runtime-dafny update-cs-module update-rs-module update-go-module
 
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
@@ -100,4 +105,7 @@ update-runtime-dafny:
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
-pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module
+pr: exe dfy-to-cs-exe pr-nogeneration
+
+# Same as `make pr` but useful when resolving conflicts, to take the last compiled version of Dafny first
+pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
