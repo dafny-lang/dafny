@@ -10,6 +10,7 @@ using DafnyCore;
 using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -20,6 +21,13 @@ public static class VerifyCommand {
     // they can't be specified when building a doo file.
     DooFile.RegisterNoChecksNeeded(FilterSymbol, false);
     DooFile.RegisterNoChecksNeeded(FilterPosition, false);
+    DooFile.RegisterNoChecksNeeded(ExtractTarget, false);
+
+    DafnyOptions.RegisterLegacyBinding(ExtractTarget, (options, f) => {
+      options.BoogieExtractionTargetFile = f;
+      options.ExpandFilename(options.BoogieExtractionTargetFile, x => options.BoogieExtractionTargetFile = x, options.LogPrefix,
+        options.FileTimestamp);
+    });
   }
 
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
@@ -27,6 +35,13 @@ public static class VerifyCommand {
 
   public static readonly Option<string> FilterPosition = new("--filter-position",
     @"Filter what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number. For example, `dafny verify dfyconfig.toml --filter-position=source1.dfy:5` will only verify things that range over line 5 in the file `source1.dfy`. In combination with `--isolate-assertions`, individual assertions can be verified by filtering on the line that contains them. When processing a single file, the filename can be skipped, for example: `dafny verify MyFile.dfy --filter-position=:23`");
+
+  public static readonly Option<string> ExtractTarget = new("--extract", @"
+Extract Dafny types, functions, and lemmas to Boogie.
+(use - as <file> to output to console.)".TrimStart()) {
+    IsHidden = true,
+    ArgumentHelpName = "file",
+  };
 
   public static Command Create() {
     var result = new Command("verify", "Verify the program.");
@@ -42,6 +57,7 @@ public static class VerifyCommand {
     new Option[] {
         FilterSymbol,
         FilterPosition,
+        ExtractTarget,
         DafnyFile.DoNotVerifyDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
