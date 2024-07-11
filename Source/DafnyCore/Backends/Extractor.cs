@@ -7,19 +7,12 @@
 
 #nullable enable
 
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.IO;
 using System.Diagnostics.Contracts;
-using DafnyCore;
-using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
-using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using static Microsoft.Dafny.GeneratorErrors;
 
 namespace Microsoft.Dafny.Compilers {
   public class Extractor : ASTVisitor<IASTVisitorContext> {
@@ -84,6 +77,31 @@ namespace Microsoft.Dafny.Compilers {
         (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, formal.Name, ExtractType(formal.Type)))
       );
 
+      var triggers = GetTriggers(tok, boundVars, patterns);
+
+      var ante = BoogieGenerator.BplAnd(lemma.Req.ConvertAll(req => ExtractExpr(req.E)));
+      var post = BoogieGenerator.BplAnd(lemma.Ens.ConvertAll(ens => ExtractExpr(ens.E)));
+      var body = BoogieGenerator.BplImp(ante, post);
+
+      Boogie.Expr axiomBody;
+      if (boundVars.Count == 0) {
+        axiomBody = body;
+      } else {
+        var kv = GetKeyValues(tok, lemma.Attributes);
+        axiomBody = new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+      }
+      var axiom = new Boogie.Axiom(tok, axiomBody, $"axiom generated from lemma {method.Name}");
+      extractedProgram.AddTopLevelDeclaration(axiom);
+
+      if (usedByInfo != null) {
+        Contract.Assert(usedByInfo.Args.Count == 1);
+        var argument = (MemberSelectExpr)usedByInfo.Args[0].Resolved; // TODO: do error checking
+        var function = (Function)argument.Member; // TODO: do error checking
+        axiomUsedBy.Add((axiom, function));
+      }
+    }
+
+    private Trigger? GetTriggers(IToken tok, List<Variable> boundVars, List<List<Expression>>? patterns) {
       Boogie.Trigger? triggers = null;
       Contract.Assert(boundVars.Count != 0 || patterns == null);
       for (var i = patterns == null ? 0 : patterns.Count; 0 <= --i;) {
@@ -91,13 +109,12 @@ namespace Microsoft.Dafny.Compilers {
         triggers = new Boogie.Trigger(tok, true, terms, triggers);
       }
 
-      var ante = BoogieGenerator.BplAnd(lemma.Req.ConvertAll(req => ExtractExpr(req.E)));
-      var post = BoogieGenerator.BplAnd(lemma.Ens.ConvertAll(ens => ExtractExpr(ens.E)));
-      var body = BoogieGenerator.BplImp(ante, post);
+      return triggers;
+    }
 
+    private QKeyValue? GetKeyValues(IToken tok, Attributes attributes) {
       Boogie.QKeyValue kv = null;
-      var extractAttributes = Attributes.FindAllExpressions(lemma.Attributes, "extract_attribute");
-      Contract.Assert(boundVars.Count != 0 || extractAttributes == null);
+      var extractAttributes = Attributes.FindAllExpressions(attributes, "extract_attribute");
       if (extractAttributes != null) {
         for (var i = extractAttributes.Count; 0 <= --i;) {
           string? attrName = null;
@@ -109,21 +126,13 @@ namespace Microsoft.Dafny.Compilers {
               parameters.Add(ExtractExpr(argument));
             }
           }
+
           Contract.Assert(attrName != null); // TODO: fail more gently
           kv = new Boogie.QKeyValue(tok, attrName, parameters, kv);
         }
       }
 
-      var axiomBody = boundVars.Count == 0 ? body : new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
-      var axiom = new Boogie.Axiom(tok, axiomBody, $"axiom generated from lemma {method.Name}");
-      extractedProgram.AddTopLevelDeclaration(axiom);
-
-      if (usedByInfo != null) {
-        Contract.Assert(usedByInfo.Args.Count == 1);
-        var argument = (MemberSelectExpr)usedByInfo.Args[0].Resolved; // TODO: do error checking
-        var function = (Function)argument.Member; // TODO: do error checking
-        axiomUsedBy.Add((axiom, function));
-      }
+      return kv;
     }
 
     public override void VisitFunction(Function function) {
@@ -165,6 +174,86 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private Boogie.Expr ExtractExpr(Expression expr) {
+      expr = expr.Resolved;
+      var tok = expr.tok;
+      switch (expr) {
+        case LiteralExpr literalExpr: {
+            if (literalExpr.Value is bool boolValue) {
+              return new Boogie.LiteralExpr(tok, boolValue);
+            } else if (literalExpr.Value is BigInteger intValue) {
+              var n = BigNum.FromBigInt(intValue);
+              return Boogie.Expr.Literal(n);
+            }
+            break;
+          }
+
+        case IdentifierExpr identifierExpr:
+          return new Boogie.IdentifierExpr(tok, identifierExpr.Name);
+
+        case FunctionCallExpr functionCallExpr: {
+            var function = functionCallExpr.Function;
+            var functionName = GetExtractName(function.Attributes) ?? function.Name;
+            Contract.Assert(function.IsStatic);
+            var arguments = functionCallExpr.Args.ConvertAll(ExtractExpr);
+            return new Boogie.NAryExpr(tok, new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, functionName)), arguments);
+          }
+
+        case BinaryExpr binaryExpr: {
+            var e0 = ExtractExpr(binaryExpr.E0);
+            var e1 = ExtractExpr(binaryExpr.E1);
+            switch (binaryExpr.ResolvedOp) {
+              case BinaryExpr.ResolvedOpcode.EqCommon:
+                return Boogie.Expr.Eq(e0, e1);
+              case BinaryExpr.ResolvedOpcode.NeqCommon:
+                return Boogie.Expr.Neq(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Iff:
+                return BoogieGenerator.BplIff(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Imp:
+                return BoogieGenerator.BplImp(e0, e1);
+              case BinaryExpr.ResolvedOpcode.And:
+                return BoogieGenerator.BplAnd(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Or:
+                return BoogieGenerator.BplOr(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Le:
+                return Boogie.Expr.Le(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Lt:
+                return Boogie.Expr.Lt(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Add:
+                return Boogie.Expr.Add(e0, e1);
+              case BinaryExpr.ResolvedOpcode.Sub:
+                return Boogie.Expr.Sub(e0, e1);
+              default:
+                break;
+            }
+            break;
+          }
+
+        case UnaryOpExpr unaryOpExpr: {
+            Contract.Assert(unaryOpExpr.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot); // TODO: fail more gently
+            var e = ExtractExpr(unaryOpExpr.E);
+            return Boogie.Expr.Neg(e);
+          }
+
+        case QuantifierExpr quantifierExpr: {
+            // TODO: look for :extract_pattern
+
+            var boundVars = quantifierExpr.BoundVars.ConvertAll(boundVar =>
+              (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, boundVar.Name, ExtractType(boundVar.Type)))
+            );
+
+            var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, "extract_pattern");
+            Contract.Assert(patterns.Count != 0); // don't support pattern-less quantifiers // TODO: fail more gracefully
+            var triggers = GetTriggers(tok, boundVars, patterns);
+
+            var kv = GetKeyValues(tok, quantifierExpr.Attributes);
+            var body = ExtractExpr(quantifierExpr.LogicalBody());
+            return new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+          }
+
+        default:
+          break;
+      }
+      Contract.Assert(false, $"ExtractExpr TODO: {expr.GetType()}: {expr}"); // TODO: fail more gently
       return Boogie.Expr.True;
     }
   }
