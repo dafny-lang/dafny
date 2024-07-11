@@ -117,7 +117,7 @@ axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) )
 
 #if UNICODE_CHAR
 function {:inline} char#IsChar(n: int): bool {
-  (0                  <= n && n < 55296   /* 0xD800 */) || 
+  (0                  <= n && n < 55296   /* 0xD800 */) ||
   (57344 /* 0xE000 */ <= n && n < 1114112 /* 0x11_0000 */ )
 }
 #else
@@ -263,7 +263,7 @@ axiom (forall v: Map, t0: Ty, t1: Ty ::
       Map#Domain(v)[bx] ==>
         $IsBox(Map#Elements(v)[bx], t1) &&
         $IsBox(bx, t0)));
-            
+
 axiom (forall v: Map, t0: Ty, t1: Ty ::
   { $Is(v, TMap(t0, t1)) }
   $Is(v, TMap(t0, t1)) ==>
@@ -291,9 +291,9 @@ axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
 axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
 axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));
-    
+
 axiom (forall v: Bv0, h: Heap :: { $IsAlloc(v, TBitvector(0), h) } $IsAlloc(v, TBitvector(0), h));
- 
+
 axiom (forall v: Set, t0: Ty, h: Heap :: { $IsAlloc(v, TSet(t0), h) }
   $IsAlloc(v, TSet(t0), h) <==>
   (forall bx: Box :: { v[bx] }
@@ -320,7 +320,7 @@ axiom (forall v: Map, t0: Ty, t1: Ty, h: Heap ::
       Map#Domain(v)[bx] ==>
         $IsAllocBox(Map#Elements(v)[bx], t1, h) &&
         $IsAllocBox(bx, t0, h)));
-        
+
 axiom (forall v: IMap, t0: Ty, t1: Ty, h: Heap ::
   { $IsAlloc(v, TIMap(t0, t1), h) }
   $IsAlloc(v, TIMap(t0, t1), h)
