@@ -958,7 +958,7 @@ axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
 // -- Axiomatization of sequences --------------------------------
 // ---------------------------------------------------------------
 
-#include "PreludeSeq.bpl"
+#include "Sequences.bpl"
 
 // ---------------------------------------------------------------
 // -- Axiomatization of Maps -------------------------------------

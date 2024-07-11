@@ -2,15 +2,15 @@ DAFNY=../../../Scripts/dafny
 
 all: DafnyPrelude.bpl
 
-DafnyPrelude.bpl: PreludeSeq.bpl
+DafnyPrelude.bpl: Sequences.bpl
 	# cpp is allergic to primes, so we have to do a song and dance around it
-	sed -e "s|'|PRIME|g" -i "" DafnyPreludeCore.bpl PreludeSeq.bpl
+	sed -e "s|'|PRIME|g" -i "" PreludeCore.bpl Sequences.bpl
 	# also, we need to disable preprocessing of Boogie things
-	sed -e "s|^#if|//#if|" -i "" DafnyPreludeCore.bpl
-	sed -e "s|^#e|//#e|" -i "" DafnyPreludeCore.bpl
-	cpp -C -P DafnyPreludeCore.bpl DafnyPrelude.bpl
-	sed -e "s|^//#|#|" -i "" DafnyPreludeCore.bpl DafnyPrelude.bpl
-	sed -e "s|PRIME|'|g" -i "" DafnyPreludeCore.bpl PreludeSeq.bpl DafnyPrelude.bpl
+	sed -e "s|^#if|//#if|" -i "" PreludeCore.bpl
+	sed -e "s|^#e|//#e|" -i "" PreludeCore.bpl
+	cpp -C -P PreludeCore.bpl DafnyPrelude.bpl
+	sed -e "s|^//#|#|" -i "" PreludeCore.bpl DafnyPrelude.bpl
+	sed -e "s|PRIME|'|g" -i "" PreludeCore.bpl Sequences.bpl DafnyPrelude.bpl
 
-PreludeSeq.bpl: SequenceModel.dfy
-	$(DAFNY) verify SequenceModel.dfy --extract:PreludeSeq.bpl
+Sequences.bpl: Sequences.dfy
+	$(DAFNY) verify Sequences.dfy --extract:Sequences.bpl
