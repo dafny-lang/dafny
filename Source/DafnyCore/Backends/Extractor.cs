@@ -263,7 +263,12 @@ namespace Microsoft.Dafny.Compilers {
 
             var kv = GetKeyValues(tok, quantifierExpr.Attributes);
             var body = ExtractExpr(quantifierExpr.LogicalBody());
-            return new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+            if (quantifierExpr is ExistsExpr) {
+              return new Boogie.ExistsExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+            } else {
+              Contract.Assert(quantifierExpr is ForallExpr);
+              return new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
+            }
           }
 
         default:
