@@ -1024,10 +1024,6 @@ axiom (forall s0: Seq, s1: Seq ::
 
 function Seq#Index(s: Seq, i: int) : Box;
 
-axiom (forall t: Box ::
-  { Seq#Index(Seq#Singleton(t), 0) }
-  Seq#Index(Seq#Singleton(t), 0) == t);
-
 axiom (forall s0: Seq, s1: Seq, n: int ::
   { Seq#Index(Seq#Append(s0,s1), n) }
   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
