@@ -174,87 +174,6 @@ module {:extract} Sequences {
   {
   }
 
-  // boogie: function Seq#Index(Seq, int): Box;
-  function {:extract "Seq#Index"} Index(s: Seq, i: int): Box {
-    if 0 <= i < Length(s) then
-      s.At(i)
-    else
-      Boxes.arbitrary
-  }
-
-  // boogie: function Seq#Append(Seq, Seq): Seq;
-  function {:extract_name "Seq#Append"} Append(s0: Seq, s1: Seq): Seq {
-    s0.Append(s1)
-  }
-
-  // boogie:
-  // axiom (forall s0: Seq, s1: Seq :: { Seq#Length(Seq#Append(s0,s1)) }
-  //   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
-  lemma {:extract_pattern Length(Append(s0, s1))} LengthAppend(s0: Seq, s1: Seq)
-    ensures Length(Append(s0, s1)) == Length(s0) + Length(s1)
-  {
-    s0.LengthAppend(s1);
-  }
-
-  // boogie:
-  // axiom (forall s0: Seq, s1: Seq, n: int :: { Seq#Index(Seq#Append(s0,s1), n) }
-  //   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
-  //   (Seq#Length(s0) <= n ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s1, n - Seq#Length(s0))));
-  lemma {:extract_pattern Index(Append(s0, s1), n)} IndexAppend(s0: Seq, s1: Seq, n: int)
-    ensures n < Length(s0) ==> Index(Append(s0, s1), n) == Index(s0, n)
-    ensures Length(s0) <= n ==> Index(Append(s0, s1), n) == Index(s1, n - Length(s0))
-  {
-    if
-    case n < 0 =>
-
-    case 0 <= n < Length(s0) =>
-      if n == 0 {
-        calc {
-          Index(Append(s0, s1), 0);
-          Index(Cons(s0.head, Append(s0.tail, s1)), 0);
-          s0.head;
-          Index(Cons(s0.head, s0.tail), 0);
-          Index(s0, 0);
-        }
-      } else {
-        calc {
-          Index(Append(s0, s1), n);
-          // def. Append
-          Index(Cons(s0.head, Append(s0.tail, s1)), n);
-          // def. Index
-          Index(Append(s0.tail, s1), n - 1);
-          { IndexAppend(s0.tail, s1, n - 1); }
-          Index(s0.tail, n - 1);
-          // def. Index
-          Index(Cons(s0.head, s0.tail), n);
-          Index(s0, n);
-        }
-      }
-
-    case Length(s0) <= n =>
-      match s0
-      case Nil =>
-        calc {
-          Index(Append(s0, s1), n);
-          // def. Append
-          Index(s1, n);
-          // def. Length
-          Index(s1, n - Length(s0));
-        }
-      case Cons(x, tail) =>
-        calc {
-          Index(Append(s0, s1), n);
-          // def. Append
-          Index(Cons(s0.head, Append(s0.tail, s1)), n);
-          // def. Index
-          Index(Append(s0.tail, s1), n - 1);
-          { IndexAppend(s0.tail, s1, n - 1); }
-          Index(s1, n - 1 - Length(s0.tail));
-          // def. Length
-          Index(s1, n - Length(s0));
-        }
-  }
-
   // boogie: function Seq#Build(s: Seq, val: Box): Seq;
   function {:extract_name "Seq#Build"} Build(s: Seq, val: Box): Seq {
     s.Append(Cons(val, Nil))
@@ -346,6 +265,87 @@ module {:extract} Sequences {
         if i < Length(s) then s.At(i) else valList.At(0);
       }
     }
+  }
+
+  // boogie: function Seq#Index(Seq, int): Box;
+  function {:extract "Seq#Index"} Index(s: Seq, i: int): Box {
+    if 0 <= i < Length(s) then
+      s.At(i)
+    else
+      Boxes.arbitrary
+  }
+
+  // boogie: function Seq#Append(Seq, Seq): Seq;
+  function {:extract_name "Seq#Append"} Append(s0: Seq, s1: Seq): Seq {
+    s0.Append(s1)
+  }
+
+  // boogie:
+  // axiom (forall s0: Seq, s1: Seq :: { Seq#Length(Seq#Append(s0,s1)) }
+  //   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
+  lemma {:extract_pattern Length(Append(s0, s1))} LengthAppend(s0: Seq, s1: Seq)
+    ensures Length(Append(s0, s1)) == Length(s0) + Length(s1)
+  {
+    s0.LengthAppend(s1);
+  }
+
+  // boogie:
+  // axiom (forall s0: Seq, s1: Seq, n: int :: { Seq#Index(Seq#Append(s0,s1), n) }
+  //   (n < Seq#Length(s0) ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s0, n)) &&
+  //   (Seq#Length(s0) <= n ==> Seq#Index(Seq#Append(s0,s1), n) == Seq#Index(s1, n - Seq#Length(s0))));
+  lemma {:extract_pattern Index(Append(s0, s1), n)} IndexAppend(s0: Seq, s1: Seq, n: int)
+    ensures n < Length(s0) ==> Index(Append(s0, s1), n) == Index(s0, n)
+    ensures Length(s0) <= n ==> Index(Append(s0, s1), n) == Index(s1, n - Length(s0))
+  {
+    if
+    case n < 0 =>
+
+    case 0 <= n < Length(s0) =>
+      if n == 0 {
+        calc {
+          Index(Append(s0, s1), 0);
+          Index(Cons(s0.head, Append(s0.tail, s1)), 0);
+          s0.head;
+          Index(Cons(s0.head, s0.tail), 0);
+          Index(s0, 0);
+        }
+      } else {
+        calc {
+          Index(Append(s0, s1), n);
+          // def. Append
+          Index(Cons(s0.head, Append(s0.tail, s1)), n);
+          // def. Index
+          Index(Append(s0.tail, s1), n - 1);
+          { IndexAppend(s0.tail, s1, n - 1); }
+          Index(s0.tail, n - 1);
+          // def. Index
+          Index(Cons(s0.head, s0.tail), n);
+          Index(s0, n);
+        }
+      }
+
+    case Length(s0) <= n =>
+      match s0
+      case Nil =>
+        calc {
+          Index(Append(s0, s1), n);
+          // def. Append
+          Index(s1, n);
+          // def. Length
+          Index(s1, n - Length(s0));
+        }
+      case Cons(x, tail) =>
+        calc {
+          Index(Append(s0, s1), n);
+          // def. Append
+          Index(Cons(s0.head, Append(s0.tail, s1)), n);
+          // def. Index
+          Index(Append(s0.tail, s1), n - 1);
+          { IndexAppend(s0.tail, s1, n - 1); }
+          Index(s1, n - 1 - Length(s0.tail));
+          // def. Length
+          Index(s1, n - Length(s0));
+        }
   }
 
   // boogie: function Seq#Update(Seq, int, Box): Seq;
