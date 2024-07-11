@@ -84,6 +84,13 @@ Extract Dafny types, functions, and lemmas to Boogie.
       await verificationSummarized;
       await verificationResultsLogged;
       await proofDependenciesReported;
+
+      if (options.BoogieExtractionTargetFile != null) {
+        using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
+          var extractedProgram = Extractor.Extract(resolution.ResolvedProgram);
+          engine.PrintBplFile(options.BoogieExtractionTargetFile, extractedProgram, true, pretty: true);
+        }
+      }
     }
 
     return await compilation.GetAndReportExitCode();
