@@ -106,7 +106,7 @@ namespace Microsoft.Dafny.Compilers {
         var kv = GetKeyValues(tok, lemma.Attributes);
         axiomBody = new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
       }
-      var axiom = new Boogie.Axiom(tok, axiomBody, $"axiom generated from lemma {method.Name}");
+      var axiom = new Boogie.Axiom(tok, axiomBody);
       declarations.Add(axiom);
 
       if (usedByInfo != null) {
