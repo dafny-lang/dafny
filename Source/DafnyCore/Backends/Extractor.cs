@@ -18,12 +18,16 @@ namespace Microsoft.Dafny.Compilers {
   public class Extractor : ASTVisitor<IASTVisitorContext> {
     public static Boogie.Program Extract(Program program) {
       var extractor = new Extractor();
-      extractor.VisitDeclarations(program.DefaultModule.Signature.TopLevels.Values.ToList());
+      extractor.VisitModule(program.DefaultModule);
       extractor.FixUpUsedByInformation();
-      return extractor.extractedProgram;
+
+      var extractedProgram = new Boogie.Program();
+      extractedProgram.AddTopLevelDeclarations(extractor.allDeclarations);
+      return extractedProgram;
     }
 
-    private readonly Boogie.Program extractedProgram = new();
+    private List<Boogie.Declaration> declarations = new(); // for the current module
+    private List<Boogie.Declaration> allDeclarations = new(); // these are the declarations for all modules marked with {:extract} 
     private readonly Dictionary<Function, Boogie.Function> functionExtractions = new();
     private readonly List<(Boogie.Axiom, Function)> axiomUsedBy = new();
 
@@ -42,16 +46,27 @@ namespace Microsoft.Dafny.Compilers {
       return astVisitorContext;
     }
 
+    void VisitModule(ModuleDecl module) {
+      var previousDeclarations = declarations;
+      declarations = new();
+
+      VisitDeclarations(module.Signature.TopLevels.Values.ToList());
+
+      if (Attributes.Contains(module.Signature.ModuleDef.Attributes, "extract")) {
+        allDeclarations.AddRange(declarations);
+      }
+      declarations = previousDeclarations;
+    }
+
     protected override void VisitOneDeclaration(TopLevelDecl decl) {
       if (decl is ModuleDecl moduleDecl) {
-        // TODO: look for {:extract} attribute on module
-        VisitDeclarations(moduleDecl.Signature.TopLevels.Values.ToList());
+        VisitModule(moduleDecl);
         return;
       }
 
       if (GetExtractName(decl.Attributes) is { } extractName) {
         var ty = new Boogie.TypeCtorDecl(decl.tok, extractName, decl.TypeArgs.Count);
-        extractedProgram.AddTopLevelDeclaration(ty);
+        declarations.Add(ty);
       }
 
       base.VisitOneDeclaration(decl); // this will visit the declaration's members
@@ -91,7 +106,7 @@ namespace Microsoft.Dafny.Compilers {
         axiomBody = new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
       }
       var axiom = new Boogie.Axiom(tok, axiomBody, $"axiom generated from lemma {method.Name}");
-      extractedProgram.AddTopLevelDeclaration(axiom);
+      declarations.Add(axiom);
 
       if (usedByInfo != null) {
         Contract.Assert(usedByInfo.Args.Count == 1);
@@ -144,7 +159,7 @@ namespace Microsoft.Dafny.Compilers {
         );
         var result = new Boogie.Formal(tok, new TypedIdent(tok, TypedIdent.NoName, ExtractType(function.ResultType)), false);
         var fn = new Boogie.Function(tok, extractName, inParams, result);
-        extractedProgram.AddTopLevelDeclaration(fn);
+        declarations.Add(fn);
         functionExtractions.Add(function, fn);
       }
     }
