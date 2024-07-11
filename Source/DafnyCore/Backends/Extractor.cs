@@ -80,9 +80,10 @@ namespace Microsoft.Dafny.Compilers {
 
       var patterns = Attributes.FindAllExpressions(lemma.Attributes, "extract_pattern");
       var usedByInfo = Attributes.Find(lemma.Attributes, "extract_used_by");
-      if (patterns == null & usedByInfo == null) {
+      if (patterns == null && usedByInfo == null) {
         return;
       }
+      Contract.Assert((lemma.Ins.Count == 0) == (patterns == null)); // a parameterized lemma must have patterns // TODO: fail more gently
 
       Contract.Assert(lemma.TypeArgs.Count == 0); // TODO: fail more gently
       Contract.Assert(lemma.Outs.Count == 0); // TODO: fail more gently
@@ -93,7 +94,7 @@ namespace Microsoft.Dafny.Compilers {
         (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, formal.Name, ExtractType(formal.Type)))
       );
 
-      var triggers = GetTriggers(tok, boundVars, patterns);
+      var triggers = GetTriggers(tok, patterns);
 
       var ante = BoogieGenerator.BplAnd(lemma.Req.ConvertAll(req => ExtractExpr(req.E)));
       var post = BoogieGenerator.BplAnd(lemma.Ens.ConvertAll(ens => ExtractExpr(ens.E)));
@@ -117,10 +118,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private Trigger? GetTriggers(IToken tok, List<Variable> boundVars, List<List<Expression>>? patterns) {
+    private Trigger? GetTriggers(IToken tok, List<List<Expression>>? patterns) {
+      if (patterns == null) {
+        return null;
+      }
+
       Boogie.Trigger? triggers = null;
-      Contract.Assert(boundVars.Count != 0 || patterns == null);
-      for (var i = patterns == null ? 0 : patterns.Count; 0 <= --i;) {
+      for (var i = 0; i < patterns.Count; i++) {
         var terms = patterns![i].ConvertAll(ExtractExpr);
         triggers = new Boogie.Trigger(tok, true, terms, triggers);
       }
@@ -251,15 +255,13 @@ namespace Microsoft.Dafny.Compilers {
           }
 
         case QuantifierExpr quantifierExpr: {
-            // TODO: look for :extract_pattern
-
             var boundVars = quantifierExpr.BoundVars.ConvertAll(boundVar =>
               (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, boundVar.Name, ExtractType(boundVar.Type)))
             );
 
             var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, "extract_pattern");
             Contract.Assert(patterns.Count != 0); // don't support pattern-less quantifiers // TODO: fail more gracefully
-            var triggers = GetTriggers(tok, boundVars, patterns);
+            var triggers = GetTriggers(tok, patterns);
 
             var kv = GetKeyValues(tok, quantifierExpr.Attributes);
             var body = ExtractExpr(quantifierExpr.LogicalBody());
