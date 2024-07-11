@@ -53,6 +53,7 @@ namespace Microsoft.Dafny.Compilers {
       VisitDeclarations(module.Signature.TopLevels.Values.ToList());
 
       if (Attributes.Contains(module.Signature.ModuleDef.Attributes, "extract")) {
+        declarations.Sort((d0, d1) => d0.tok.pos - d1.tok.pos);
         allDeclarations.AddRange(declarations);
       }
       declarations = previousDeclarations;
