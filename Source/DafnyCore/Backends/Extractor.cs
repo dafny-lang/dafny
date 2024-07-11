@@ -82,11 +82,28 @@ namespace Microsoft.Dafny.Compilers {
       var post = BoogieGenerator.BplAnd(lemma.Ens.ConvertAll(ens => ExtractExpr(ens.E)));
       var body = BoogieGenerator.BplImp(ante, post);
 
-      var quantifier = new Boogie.ForallExpr(tok, boundVars, triggers, body);
+      Boogie.QKeyValue kv = null;
+      var extractAttributes = Attributes.FindAllExpressions(lemma.Attributes, "extract_attribute");
+      if (extractAttributes != null) {
+        for (var i = extractAttributes.Count; 0 <= --i;) {
+          string? attrName = null;
+          var parameters = new List<object>();
+          foreach (var argument in extractAttributes[i]) {
+            if (attrName == null) {
+              attrName = (string)((StringLiteralExpr)argument).Value; // TODO: do error checking
+            } else {
+              parameters.Add(ExtractExpr(argument));
+            }
+          }
+          Contract.Assert(attrName != null); // TODO: fail more gently
+          kv = new Boogie.QKeyValue(tok, attrName, parameters, kv);
+        }
+      }
+
+      var quantifier = new Boogie.ForallExpr(tok, new List<TypeVariable>(), boundVars, kv, triggers, body);
       var ax = new Boogie.Axiom(tok, quantifier, $"axiom generated from lemma {method.Name}");
       extractedProgram.AddTopLevelDeclaration(ax);
 
-      // TODO: look for {:extract_attribute "weight", 25}
       // TODO: look for {:extract_used_by Empty}
     }
 
