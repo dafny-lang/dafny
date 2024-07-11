@@ -996,12 +996,13 @@ axiom (forall s: Seq, val: Box ::
      && Seq#Build_inv1(Seq#Build(s, val)) == val);
 
 axiom (forall s: Seq, v: Box ::
-  { Seq#Build(s,v) }
-  Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
+  { Seq#Build(s, v) }
+  Seq#Length(Seq#Build(s, v)) == 1 + Seq#Length(s));
 
-axiom (forall s: Seq, i: int, v: Box :: { Seq#Index(Seq#Build(s,v), i) }
-  (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == v)
-     && (i != Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == Seq#Index(s, i)));
+axiom (forall s: Seq, i: int, v: Box ::
+  { Seq#Index(Seq#Build(s, v), i) }
+  (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s, v), i) == v)
+     && (i != Seq#Length(s) ==> Seq#Index(Seq#Build(s, v), i) == Seq#Index(s, i)));
 
 // Build preserves $Is
 axiom (forall s: Seq, bx: Box, t: Ty :: { $Is(Seq#Build(s,bx),TSeq(t)) }
@@ -1017,7 +1018,6 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
   $IsGoodHeap(heap) && 0 <= i && i < len ==>
   Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, ty, heap, init, $Box(i)));
 
-function Seq#Append(Seq, Seq): Seq;
 axiom (forall s0: Seq, s1: Seq :: { Seq#Length(Seq#Append(s0,s1)) }
   Seq#Length(Seq#Append(s0,s1)) == Seq#Length(s0) + Seq#Length(s1));
 
@@ -1035,7 +1035,10 @@ axiom (forall s: Seq, i: int, v: Box, n: int :: { Seq#Index(Seq#Update(s,i,v),n)
     (i == n ==> Seq#Index(Seq#Update(s,i,v),n) == v) &&
     (i != n ==> Seq#Index(Seq#Update(s,i,v),n) == Seq#Index(s,n)));
 
-function Seq#Contains(Seq, Box): bool;
+function Seq#Append(s0: Seq, s1: Seq) : Seq;
+
+function Seq#Contains(s: Seq, val: Box) : bool;
+
 axiom (forall s: Seq, x: Box :: { Seq#Contains(s,x) }
   Seq#Contains(s,x) <==>
     (exists i: int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && Seq#Index(s,i) == x));
