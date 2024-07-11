@@ -12,6 +12,9 @@ using System.Collections;
 namespace FactorPathsOptimization {
 
   public partial class __default {
+    public static RAST._IMod apply(RAST._IMod mod) {
+      return FactorPathsOptimization.__default.applyPrefix(mod, (RAST.__default.crate).MSel((mod).dtor_name));
+    }
     public static RAST._IMod applyPrefix(RAST._IMod mod, RAST._IPath SelfPath)
     {
       if ((mod).is_ExternMod) {
@@ -30,9 +33,6 @@ namespace FactorPathsOptimization {
         Dafny.ISequence<RAST._IModDecl> _1162_dt__update_hbody_h0 = Dafny.Sequence<RAST._IModDecl>.Concat(_1154_imports, _1155_rewrittenDeclarations);
         return RAST.Mod.create_Mod((_1161_dt__update__tmp_h0).dtor_name, _1162_dt__update_hbody_h0);
       }
-    }
-    public static RAST._IMod apply(RAST._IMod mod) {
-      return FactorPathsOptimization.__default.applyPrefix(mod, (RAST.__default.crate).MSel((mod).dtor_name));
     }
     public static __T UniqueElementOf<__T>(Dafny.ISet<__T> s) {
       return Dafny.Helpers.Let<int, __T>(0, _let_dummy_9 =>  {
