@@ -958,30 +958,35 @@ axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
 // -- Axiomatization of sequences --------------------------------
 // ---------------------------------------------------------------
 
+
+
 type Seq;
 
-function Seq#Length(Seq): int;
+function Seq#Length(s: Seq) : int;
+
 axiom (forall s: Seq :: { Seq#Length(s) } 0 <= Seq#Length(s));
 
-function Seq#Empty(): Seq uses {
-  axiom (Seq#Length(Seq#Empty(): Seq) == 0);
+function Seq#Empty() : Seq
+uses {
+axiom Seq#Length(Seq#Empty()) == 0;
 }
 axiom (forall s: Seq :: { Seq#Length(s) }
   (Seq#Length(s) == 0 ==> s == Seq#Empty())
+  );
 // The following would be a nice fact to include, because it would enable verifying the
 // GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
 // slows down performance on some other tests, including running seemingly forever on
 // some.
-//  && (Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)))
-  );
+//  axiom (forall s: Seq :: { Seq#Length(s) }
+//    (Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)))
+//    );
+
 
 // The empty sequence $Is any type
 //axiom (forall t: Ty :: {$Is(Seq#Empty(): Seq, TSeq(t))} $Is(Seq#Empty(): Seq, TSeq(t)));
 
-function Seq#Singleton(Box): Seq;
-axiom (forall t: Box :: { Seq#Length(Seq#Singleton(t)) } Seq#Length(Seq#Singleton(t)) == 1);
+function Seq#Build(s: Seq, val: Box) : Seq;
 
-function Seq#Build(s: Seq, val: Box): Seq;
 function Seq#Build_inv0(s: Seq) : Seq;
 function Seq#Build_inv1(s: Seq) : Box;
 axiom (forall s: Seq, val: Box ::
