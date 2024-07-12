@@ -2,7 +2,7 @@ DAFNY=../../../Scripts/dafny
 
 all: DafnyPrelude.bpl
 
-DafnyPrelude.bpl: Sequences.bpl
+DafnyPrelude.bpl: PreludeCore.bpl Sequences.bpl
 	# cpp is allergic to primes, so we have to do a song and dance around it
 	sed -e "s|'|PRIME|g" -i "" PreludeCore.bpl Sequences.bpl
 	# also, we need to disable preprocessing of Boogie things
