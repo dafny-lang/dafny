@@ -960,15 +960,12 @@ axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
 
 #include "Sequences.bpl"
 
-axiom (forall v: Seq, t0: Ty :: { $Is(v, TSeq(t0)) }
-  $Is(v, TSeq(t0)) <==>
-  (forall i : int :: { Seq#Index(v, i) }
-    0 <= i && i < Seq#Length(v) ==>
-    $IsBox(Seq#Index(v, i), t0)));
+// The empty sequence $Is any type
+//axiom (forall t: Ty :: {$Is(Seq#Empty(): Seq, TSeq(t))} $Is(Seq#Empty(): Seq, TSeq(t)));
 
 // Build preserves $Is
-axiom (forall s: Seq, bx: Box, t: Ty :: { $Is(Seq#Build(s,bx),TSeq(t)) }
-    $Is(s,TSeq(t)) && $IsBox(bx,t) ==> $Is(Seq#Build(s,bx),TSeq(t)));
+axiom (forall s: Seq, bx: Box, t: Ty :: { $Is(Seq#Build(s, bx), TSeq(t)) }
+    $Is(s, TSeq(t)) && $IsBox(bx, t) ==> $Is(Seq#Build(s, bx), TSeq(t)));
 
 function Seq#Create(ty: Ty, heap: Heap, len: int, init: HandleType): Seq;
 axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType ::
