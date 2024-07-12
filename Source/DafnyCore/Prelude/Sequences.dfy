@@ -50,6 +50,14 @@ module {:extract} Sequences {
   {
   }
 
+  // boogie:
+  // The following would be a nice fact to include, because it would enable verifying the
+  // GenericPick.SeqPick* methods in Test/dafny0/SmallTests.dfy.  However, it substantially
+  // slows down performance on some other tests, including running seemingly forever on
+  // some.
+  //  axiom (forall s: Seq :: { Seq#Length(s) }
+  //    Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)));
+
   // boogie: function Seq#Build(s: Seq, val: Box): Seq;
   function {:extract_name "Seq#Build"} Build(s: Seq, val: Box): Seq {
     s.Append(Cons(val, Nil))
@@ -361,8 +369,9 @@ module {:extract} Sequences {
     }
   }
 
+  // needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
   // boogie:
-  // axiom (forall s: Seq, v: Box, x: Box ::  // needed to prove things like '4 in [2,3,4]', see method TestSequences0 in SmallTests.dfy
+  // axiom (forall s: Seq, v: Box, x: Box ::
   //   { Seq#Contains(Seq#Build(s, v), x) }
   //   Seq#Contains(Seq#Build(s, v), x) <==> (v == x || Seq#Contains(s, x)));
   lemma {:extract_pattern Contains(Build(s, v), x)} BuildContains(s: Seq, v: Box, x: Box)
@@ -543,8 +552,9 @@ module {:extract} Sequences {
     }
   }
 
+  // extensionality axiom for sequences
   // boogie:
-  // axiom (forall a: Seq, b: Seq :: { Seq#Equal(a,b) }  // extensionality axiom for sequences
+  // axiom (forall a: Seq, b: Seq :: { Seq#Equal(a,b) }
   //   Seq#Equal(a,b) ==> a == b);
   lemma {:extract_pattern Equal(a, b)} Extensionality(a: Seq, b: Seq)
     requires Equal(a, b)
@@ -673,7 +683,7 @@ module {:extract} Sequences {
     s.AppendDrop(t);
   }
 
-  // Commutability of Take and Drop with Update.
+  // Commutativity of Take and Drop with Update.
 
   // boogie:
   // axiom (forall s: Seq, i: int, v: Box, n: int ::
@@ -728,7 +738,7 @@ module {:extract} Sequences {
     }
   }
 
-  // drop commutes with build.
+  // Drop commutes with build
 
   // boogie:
   // axiom (forall s: Seq, v: Box, n: int ::
