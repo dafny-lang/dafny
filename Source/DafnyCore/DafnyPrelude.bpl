@@ -980,10 +980,6 @@ axiom (forall s: Seq :: { Seq#Length(s) } Seq#Length(s) == 0 ==> s == Seq#Empty(
 //    (Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)))
 //    );
 
-
-// The empty sequence $Is any type
-//axiom (forall t: Ty :: {$Is(Seq#Empty(): Seq, TSeq(t))} $Is(Seq#Empty(): Seq, TSeq(t)));
-
 function Seq#Build(s: Seq, val: Box) : Seq;
 
 function Seq#Build_inv0(s: Seq) : Seq;
@@ -1142,30 +1138,11 @@ axiom (forall s: Seq, i: int, v: Box, n: int ::
   0 <= i && i < n && n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
 
-// Extension axiom, triggers only on Takes from arrays.
-axiom (forall h: Heap, a: ref, n0, n1: int ::
-        { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
-        n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field)) );
-
 // drop commutes with build.
 axiom (forall s: Seq, v: Box, n: int ::
   { Seq#Drop(Seq#Build(s, v), n) }
   0 <= n && n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v));
-
-function Seq#Rank(Seq): int;
-axiom (forall s: Seq, i: int ::
-        { DtRank($Unbox(Seq#Index(s, i)): DatatypeType) }
-        0 <= i && i < Seq#Length(s) ==> DtRank($Unbox(Seq#Index(s, i)): DatatypeType) < Seq#Rank(s) );
-axiom (forall s: Seq, i: int ::
-        { Seq#Rank(Seq#Drop(s, i)) }
-        0 < i && i <= Seq#Length(s) ==> Seq#Rank(Seq#Drop(s, i)) < Seq#Rank(s) );
-axiom (forall s: Seq, i: int ::
-        { Seq#Rank(Seq#Take(s, i)) }
-        0 <= i && i < Seq#Length(s) ==> Seq#Rank(Seq#Take(s, i)) < Seq#Rank(s) );
-axiom (forall s: Seq, i: int, j: int ::
-        { Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) }
-        0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
 
 // Additional axioms about common things
 axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) } n == 0 ==> Seq#Drop(s, n) == s);
@@ -1178,6 +1155,10 @@ axiom (forall s: Seq, m: int, n: int ::
   { Seq#Drop(Seq#Drop(s, m), n) }
   0 <= m && 0 <= n && m + n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m + n));
+
+
+// The empty sequence $Is any type
+//axiom (forall t: Ty :: {$Is(Seq#Empty(): Seq, TSeq(t))} $Is(Seq#Empty(): Seq, TSeq(t)));
 
 // Build preserves $Is
 axiom (forall s: Seq, bx: Box, t: Ty :: { $Is(Seq#Build(s, bx), TSeq(t)) }
@@ -1218,6 +1199,24 @@ axiom (forall h: Heap, i: int, v: Box, a: ref ::
   { Seq#FromArray(update(h, a, IndexField(i), v), a) }
     0 <= i && i < _System.array.Length(a) ==> Seq#FromArray(update(h, a, IndexField(i), v), a) == Seq#Update(Seq#FromArray(h, a), i, v) );
 
+// Extension axiom, triggers only on Takes from arrays.
+axiom (forall h: Heap, a: ref, n0, n1: int ::
+        { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
+        n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field)) );
+
+function Seq#Rank(Seq): int;
+axiom (forall s: Seq, i: int ::
+        { DtRank($Unbox(Seq#Index(s, i)): DatatypeType) }
+        0 <= i && i < Seq#Length(s) ==> DtRank($Unbox(Seq#Index(s, i)): DatatypeType) < Seq#Rank(s) );
+axiom (forall s: Seq, i: int ::
+        { Seq#Rank(Seq#Drop(s, i)) }
+        0 < i && i <= Seq#Length(s) ==> Seq#Rank(Seq#Drop(s, i)) < Seq#Rank(s) );
+axiom (forall s: Seq, i: int ::
+        { Seq#Rank(Seq#Take(s, i)) }
+        0 <= i && i < Seq#Length(s) ==> Seq#Rank(Seq#Take(s, i)) < Seq#Rank(s) );
+axiom (forall s: Seq, i: int, j: int ::
+        { Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) }
+        0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
 
 // ---------------------------------------------------------------
 // -- Axiomatization of Maps -------------------------------------
@@ -1547,3 +1546,4 @@ axiom (forall x, y, z: int ::
 #endif
 
 // -------------------------------------------------------------------------
+
