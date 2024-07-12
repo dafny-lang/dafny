@@ -7,6 +7,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -15,7 +16,16 @@ using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny.Compilers {
+  public class ExtractorError : Exception {
+    public ExtractorError(string message)
+      : base(message) {
+    }
+  }
+
   public class Extractor : ASTVisitor<IASTVisitorContext> {
+    /// <summary>
+    /// Throws an "ExtractorError" if the input is unexpected or unsupported.
+    /// </summary>
     public static Boogie.Program Extract(Program program) {
       var extractor = new Extractor();
       extractor.VisitModule(program.DefaultModule);
@@ -36,7 +46,9 @@ namespace Microsoft.Dafny.Compilers {
 
     void FixUpUsedByInformation() {
       foreach (var (axiom, function) in axiomUsedBy) {
-        var boogieFunction = functionExtractions[function]; // TODO: do error checking
+        if (!functionExtractions.TryGetValue(function, out var boogieFunction)) {
+          throw new ExtractorError($":extract_used_by attribute mentions non-extracted function: {function.Name}");
+        }
         boogieFunction.OtherDefinitionAxioms.Add(axiom);
       }
       axiomUsedBy.Clear();
@@ -83,10 +95,16 @@ namespace Microsoft.Dafny.Compilers {
       if (patterns == null && usedByInfo == null) {
         return;
       }
-      Contract.Assert((lemma.Ins.Count == 0) == (patterns == null)); // a parameterized lemma must have patterns // TODO: fail more gently
 
-      Contract.Assert(lemma.TypeArgs.Count == 0); // TODO: fail more gently
-      Contract.Assert(lemma.Outs.Count == 0); // TODO: fail more gently
+      if ((lemma.Ins.Count == 0) != (patterns == null)) {
+        throw new ExtractorError($"a parameterized lemma must specify at least one :extract_pattern: {lemma.Name}");
+      }
+      if (lemma.TypeArgs.Count != 0) {
+        throw new ExtractorError($"an extracted lemma is not allowed to have type parameters: {lemma.Name}");
+      }
+      if (lemma.Outs.Count != 0) {
+        throw new ExtractorError($"an extracted lemma is not allowed to have out-parameters: {lemma.Name}");
+      }
 
       var tok = lemma.tok;
 
@@ -111,10 +129,11 @@ namespace Microsoft.Dafny.Compilers {
       declarations.Add(axiom);
 
       if (usedByInfo != null) {
-        Contract.Assert(usedByInfo.Args.Count == 1);
-        var argument = (MemberSelectExpr)usedByInfo.Args[0].Resolved; // TODO: do error checking
-        var function = (Function)argument.Member; // TODO: do error checking
-        axiomUsedBy.Add((axiom, function));
+        if (usedByInfo.Args.Count == 1 && usedByInfo.Args[0].Resolved is MemberSelectExpr { Member: Function function }) {
+          axiomUsedBy.Add((axiom, function));
+        } else {
+          throw new ExtractorError($":extract_used_by argument on lemma '{lemma.Name}' is expected to be an extracted function");
+        }
       }
     }
 
@@ -136,18 +155,22 @@ namespace Microsoft.Dafny.Compilers {
       Boogie.QKeyValue kv = null;
       var extractAttributes = Attributes.FindAllExpressions(attributes, "extract_attribute");
       if (extractAttributes != null) {
+        if (extractAttributes.Count == 0) {
+          throw new ExtractorError($"first argument to :extract_attribute is expected to be a literal string; got no arguments");
+        }
         for (var i = extractAttributes.Count; 0 <= --i;) {
           string? attrName = null;
           var parameters = new List<object>();
           foreach (var argument in extractAttributes[i]) {
-            if (attrName == null) {
-              attrName = (string)((StringLiteralExpr)argument).Value; // TODO: do error checking
-            } else {
+            if (attrName != null) {
               parameters.Add(ExtractExpr(argument));
+            } else if (argument is StringLiteralExpr { Value: string name }) {
+              attrName = name;
+            } else {
+              throw new ExtractorError($"first argument to :extract_attribute is expected to be a literal string; got: {argument}");
             }
           }
 
-          Contract.Assert(attrName != null); // TODO: fail more gently
           kv = new Boogie.QKeyValue(tok, attrName, parameters, kv);
         }
       }
@@ -158,7 +181,9 @@ namespace Microsoft.Dafny.Compilers {
     public override void VisitFunction(Function function) {
       if (GetExtractName(function.Attributes) is { } extractName) {
         var tok = function.tok;
-        Contract.Assert(function.TypeArgs.Count == 0); // TODO: throw an exception or something more gentle
+        if (function.TypeArgs.Count != 0) {
+          throw new ExtractorError($"an extracted function is not allowed to have type parameters: {function.Name}");
+        }
         var inParams = function.Ins.ConvertAll(formal =>
           (Boogie.Variable)new Boogie.Formal(tok, new TypedIdent(tok, formal.Name, ExtractType(formal.Type)), true)
         );
@@ -170,17 +195,18 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private Boogie.Type ExtractType(Type type) {
-      if (type is IntType) {
-        return Boogie.Type.Int;
-      } else if (type is BoolType) {
-        return Boogie.Type.Bool;
-      } else if (type is UserDefinedType udt) {
-        var cl = udt.ResolvedClass;
-        var name = GetExtractName(cl.Attributes) ?? cl.Name;
-        return new Boogie.UnresolvedTypeIdentifier(Boogie.Token.NoToken, name, udt.TypeArgs.ConvertAll(ExtractType));
-      } else {
-        Contract.Assert(false); // TODO: fail more gently
-        return null; // to please compiler
+      switch (type) {
+        case IntType:
+          return Boogie.Type.Int;
+        case BoolType:
+          return Boogie.Type.Bool;
+        case UserDefinedType udt: {
+            var cl = udt.ResolvedClass;
+            var name = GetExtractName(cl.Attributes) ?? cl.Name;
+            return new Boogie.UnresolvedTypeIdentifier(Boogie.Token.NoToken, name, udt.TypeArgs.ConvertAll(ExtractType));
+          }
+        default:
+          throw new ExtractorError($"type not supported by extractor: {type}");
       }
     }
 
@@ -248,10 +274,12 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
 
-        case UnaryOpExpr unaryOpExpr: {
-            Contract.Assert(unaryOpExpr.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot); // TODO: fail more gently
+        case UnaryOpExpr unaryOpExpr:
+          if (unaryOpExpr.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
             var e = ExtractExpr(unaryOpExpr.E);
             return Boogie.Expr.Not(e);
+          } else {
+            throw new ExtractorError($"extractor does not support unary operator {unaryOpExpr.ResolvedOp}");
           }
 
         case QuantifierExpr quantifierExpr: {
@@ -260,7 +288,9 @@ namespace Microsoft.Dafny.Compilers {
             );
 
             var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, "extract_pattern");
-            Contract.Assert(patterns.Count != 0); // don't support pattern-less quantifiers // TODO: fail more gracefully
+            if (patterns.Count == 0) {
+              throw new ExtractorError("extraction expects every quantifier to specify at least one :extract_pattern");
+            }
             var triggers = GetTriggers(tok, patterns);
 
             var kv = GetKeyValues(tok, quantifierExpr.Attributes);
@@ -276,8 +306,8 @@ namespace Microsoft.Dafny.Compilers {
         default:
           break;
       }
-      Contract.Assert(false, $"ExtractExpr TODO: {expr.GetType()}: {expr}"); // TODO: fail more gently
-      return Boogie.Expr.True;
+
+      throw new ExtractorError($"extraction does not support expression of type {expr.GetType()}: {expr}");
     }
   }
 }
