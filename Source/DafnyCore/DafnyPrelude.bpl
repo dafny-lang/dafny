@@ -1163,24 +1163,34 @@ axiom (forall h: Heap, i: int, v: Box, a: ref ::
 // Commutability of Take and Drop with Update.
 axiom (forall s: Seq, i: int, v: Box, n: int ::
         { Seq#Take(Seq#Update(s, i, v), n) }
-        0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
+        0 <= i && i < n && n <= Seq#Length(s)
+           ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Update(Seq#Take(s, n), i, v) );
+
 axiom (forall s: Seq, i: int, v: Box, n: int ::
         { Seq#Take(Seq#Update(s, i, v), n) }
-        n <= i && i < Seq#Length(s) ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Take(s, n));
+        n <= i && i < Seq#Length(s)
+           ==> Seq#Take(Seq#Update(s, i, v), n) == Seq#Take(s, n));
+
 axiom (forall s: Seq, i: int, v: Box, n: int ::
         { Seq#Drop(Seq#Update(s, i, v), n) }
-        0 <= n && n <= i && i < Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
+        0 <= n && n <= i && i < Seq#Length(s)
+           ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Update(Seq#Drop(s, n), i-n, v) );
+
 axiom (forall s: Seq, i: int, v: Box, n: int ::
         { Seq#Drop(Seq#Update(s, i, v), n) }
-        0 <= i && i < n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
+        0 <= i && i < n && n <= Seq#Length(s)
+           ==> Seq#Drop(Seq#Update(s, i, v), n) == Seq#Drop(s, n));
+
 // Extension axiom, triggers only on Takes from arrays.
 axiom (forall h: Heap, a: ref, n0, n1: int ::
         { Seq#Take(Seq#FromArray(h, a), n0), Seq#Take(Seq#FromArray(h, a), n1) }
         n0 + 1 == n1 && 0 <= n0 && n1 <= _System.array.Length(a) ==> Seq#Take(Seq#FromArray(h, a), n1) == Seq#Build(Seq#Take(Seq#FromArray(h, a), n0), read(h, a, IndexField(n0): Field)) );
+
 // drop commutes with build.
 axiom (forall s: Seq, v: Box, n: int ::
         { Seq#Drop(Seq#Build(s, v), n) }
-        0 <= n && n <= Seq#Length(s) ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
+        0 <= n && n <= Seq#Length(s)
+           ==> Seq#Drop(Seq#Build(s, v), n) == Seq#Build(Seq#Drop(s, n), v) );
 
 function Seq#Rank(Seq): int;
 axiom (forall s: Seq, i: int ::
@@ -1197,13 +1207,16 @@ axiom (forall s: Seq, i: int, j: int ::
         0 <= i && i < j && j <= Seq#Length(s) ==> Seq#Rank(Seq#Append(Seq#Take(s, i), Seq#Drop(s, j))) < Seq#Rank(s) );
 
 // Additional axioms about common things
-axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) }
-        n == 0 ==> Seq#Drop(s, n) == s);
-axiom (forall s: Seq, n: int :: { Seq#Take(s, n) }
-        n == 0 ==> Seq#Take(s, n) == Seq#Empty());
-axiom (forall s: Seq, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
-        0 <= m && 0 <= n && m+n <= Seq#Length(s) ==>
-        Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m+n));
+axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) } n == 0 ==> Seq#Drop(s, n) == s);
+
+axiom (forall s: Seq, n: int ::
+  { Seq#Take(s, n) }
+  n == 0 ==> Seq#Take(s, n) == Seq#Empty());
+
+axiom (forall s: Seq, m, n: int ::
+  { Seq#Drop(Seq#Drop(s, m), n) }
+  0 <= m && 0 <= n && m+n <= Seq#Length(s)
+     ==> Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m + n));
 
 // ---------------------------------------------------------------
 // -- Axiomatization of Maps -------------------------------------
