@@ -225,7 +225,9 @@ namespace Microsoft.Dafny.Compilers {
       switch (expr) {
         case LiteralExpr literalExpr: {
             if (literalExpr.Value is bool boolValue) {
-              return new Boogie.LiteralExpr(tok, boolValue);
+              // use the specific literals, rather than Boogie.LiteralExpr(bool), in order for the
+              // peephole optimizations to kick in
+              return boolValue ? Boogie.Expr.True : Boogie.Expr.False;
             } else if (literalExpr.Value is BigInteger intValue) {
               var n = BigNum.FromBigInt(intValue);
               return Boogie.Expr.Literal(n);
