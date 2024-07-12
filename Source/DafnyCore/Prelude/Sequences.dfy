@@ -673,39 +673,6 @@ module {:extract} Sequences {
     s.AppendDrop(t);
   }
 
-  // Additional axioms about common things
-
-  // boogie:
-  // axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) }
-  //         n == 0 ==> Seq#Drop(s, n) == s);
-  lemma {:extract_pattern Drop(s, n)} DropNothing(s: Seq, n: int)
-    requires n == 0
-    ensures Drop(s, n) == s
-  {
-  }
-
-  // boogie:
-  // axiom (forall s: Seq, n: int :: { Seq#Take(s, n) }
-  //         n == 0 ==> Seq#Take(s, n) == Seq#Empty());
-  lemma {: extract_pattern Take(s, n)} TakeNothing(s: Seq, n: int)
-    requires n == 0
-    ensures Take(s, n) == Empty()
-  {
-  }
-
-  // boogie:
-  // axiom (forall s: Seq, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
-  //         0 <= m && 0 <= n && m+n <= Seq#Length(s) ==>
-  //         Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m+n));
-  lemma {:extract_pattern Drop(Drop(s, m), n)} DropDrop(s: Seq, m: int, n: int)
-    requires 0 <= m && 0 <= n && m + n <= Length(s)
-    ensures Drop(Drop(s, m), n) == Drop(s, m + n)
-  {
-    if m != 0 {
-      DropDrop(s.tail, m - 1, n);
-    }
-  }
-
   // Commutability of Take and Drop with Update.
 
   // boogie:
@@ -782,4 +749,38 @@ module {:extract} Sequences {
       }
     }
   }
+  
+  // Additional axioms about common things
+
+  // boogie:
+  // axiom (forall s: Seq, n: int :: { Seq#Drop(s, n) }
+  //         n == 0 ==> Seq#Drop(s, n) == s);
+  lemma {:extract_pattern Drop(s, n)} DropNothing(s: Seq, n: int)
+    requires n == 0
+    ensures Drop(s, n) == s
+  {
+  }
+
+  // boogie:
+  // axiom (forall s: Seq, n: int :: { Seq#Take(s, n) }
+  //         n == 0 ==> Seq#Take(s, n) == Seq#Empty());
+  lemma {: extract_pattern Take(s, n)} TakeNothing(s: Seq, n: int)
+    requires n == 0
+    ensures Take(s, n) == Empty()
+  {
+  }
+
+  // boogie:
+  // axiom (forall s: Seq, m, n: int :: { Seq#Drop(Seq#Drop(s, m), n) }
+  //         0 <= m && 0 <= n && m+n <= Seq#Length(s) ==>
+  //         Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m+n));
+  lemma {:extract_pattern Drop(Drop(s, m), n)} DropDrop(s: Seq, m: int, n: int)
+    requires 0 <= m && 0 <= n && m + n <= Length(s)
+    ensures Drop(Drop(s, m), n) == Drop(s, m + n)
+  {
+    if m != 0 {
+      DropDrop(s.tail, m - 1, n);
+    }
+  }
+
 }
