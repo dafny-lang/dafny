@@ -706,7 +706,7 @@ namespace Microsoft.Dafny.Compilers {
         return boxed ? "Boolean" : "boolean";
       } else if (xType is CharType) {
         return CharTypeName(boxed);
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "java.math.BigInteger";
       } else if (xType is RealType) {
         return DafnyBigRationalClass;
@@ -714,11 +714,11 @@ namespace Microsoft.Dafny.Compilers {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType, boxed) : "java.math.BigInteger";
       } else if (member == null && xType.AsNewtype != null) {
-        var nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
+        var newtypeDecl = xType.AsNewtype;
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType, boxed);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok, boxed, erased);
+        return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok, boxed, erased);
       } else if (xType.IsObjectQ) {
         return "Object";
       } else if (xType.IsArrayType) {
@@ -3188,7 +3188,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return UnicodeCharEnabled ? $"((int){CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "java.math.BigInteger.ZERO";
       } else if (xType is RealType) {
         return $"{DafnyBigRationalClass}.ZERO";
@@ -3228,7 +3228,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (td.NativeType != null) {
           return GetNativeDefault(td.NativeType);
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;

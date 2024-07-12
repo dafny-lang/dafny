@@ -696,3 +696,261 @@ module TLAStyleOperators {
     (&& b) as bool
   }
 }
+
+module TypeParametersForNewtypes {
+  newtype Wrapper<G> = g: G | true witness *  // (error under /generalNewtypes:0)
+
+  method Test0() {
+    var wb: Wrapper;
+    wb := true; // error: cannot assign bool to a Wrapper
+  }
+
+  method Test1(b: bool) {
+    var wb: Wrapper;
+    wb := b; // error: cannot assign bool to a Wrapper
+  }
+
+  method Test2(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b; // error: cannot assign bool to a Wrapper<bool>
+  }
+
+  method Test3(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper; // error: not enough is known about the target type to determine if this is legal
+  }
+
+  method Test4(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper;
+  }
+
+  method Test5(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper<bool>;
+  }
+
+  method Test6(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper<bool>;
+  }
+}
+
+module TypeParametersForSubsetTypes {
+  type Wrapper<G> = g: G | true witness *
+
+  method Test0() {
+    var wb: Wrapper;
+    wb := true;
+  }
+
+  method Test1(b: bool) {
+    var wb: Wrapper;
+    wb := b;
+  }
+
+  method Test2(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b;
+  }
+
+  method Test3(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper; // error: not enough is known about the target type to determine if this is legal
+  }
+
+  method Test4(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper;
+  }
+
+  method Test5(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper<bool>;
+  }
+
+  method Test6(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper<bool>;
+  }
+}
+
+module TypeParametersForTypeSynonyms {
+  type Wrapper<G> = G
+
+  method Test0() {
+    var wb: Wrapper;
+    wb := true;
+  }
+
+  method Test1(b: bool) {
+    var wb: Wrapper;
+    wb := b;
+  }
+
+  method Test2(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b;
+  }
+
+  method Test3(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper; // error: not enough is known about the target type to determine if this is legal
+  }
+
+  method Test4(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper;
+  }
+
+  method Test5(b: bool) {
+    var wb: Wrapper;
+    wb := b as Wrapper<bool>;
+  }
+
+  method Test6(b: bool) {
+    var wb: Wrapper<bool>;
+    wb := b as Wrapper<bool>;
+  }
+}
+
+module TypeVarianceIsUsedCorrectly {
+  datatype P0<X> = R(f: int -> X)
+  datatype P1<!X> = R(f: int -> X)
+  datatype P2<+X> = R(f: int -> X)
+  datatype P3<*X> = R(f: int -> X)
+  datatype P4<-X> = R(f: int -> X) // error
+
+  datatype M0<X> = R(f: X -> int) // error
+  datatype M1<!X> = R(f: X -> int)
+  datatype M2<+X> = R(f: X -> int) // error
+  datatype M3<*X> = R(f: X -> int) // error
+  datatype M4<-X> = R(f: X -> int)
+
+  newtype Co0<X> = s: seq<int -> X> | true
+  newtype Co1<!X> = s: seq<int -> X> | true
+  newtype Co2<+X> = s: seq<int -> X> | true
+  newtype Co3<*X> = s: seq<int -> X> | true
+  newtype Co4<-X> = s: seq<int -> X> | true // error: X is not used properly
+
+  newtype Contra0<X> = s: seq<X -> int> | true // error: X is not used properly
+  newtype Contra1<!X> = s: seq<X -> int> | true
+  newtype Contra2<+X> = s: seq<X -> int> | true // error: X is not used properly
+  newtype Contra3<*X> = s: seq<X -> int> | true // error: X is not used properly
+  newtype Contra4<-X> = s: seq<X -> int> | true
+}
+
+module TypeCharacteristicsAreUsedCorrectly {
+  export
+    provides A0, A1, A2, A3, B0, B1, B2, B3
+    provides G0, G1, G2, G3, H0, H1, H2, H3
+
+  type NeedsEq<X(==)>
+  type NeedsAutoInit<X(0)>
+  type NeedsNonempty<X(00)>
+  type NeedsNoReferences<X(!new)>
+
+  newtype A0<Y> = NeedsEq<Y> // error: Y does not support (==)
+  newtype A1<Y> = NeedsAutoInit<Y> // error: Y does not support (0)
+  newtype A2<Y> = NeedsNonempty<Y> // error: Y does not support (00)
+  newtype A3<Y> = NeedsNoReferences<Y> // error: Y does not support (!new)
+
+  newtype B0<Z(==)> = NeedsEq<Z>
+  newtype B1<Z(0)> = NeedsAutoInit<Z>
+  newtype B2<Z(00)> = NeedsNonempty<Z>
+  newtype B3<Z(!new)> = NeedsNoReferences<Z>
+
+  type G0<Y> = NeedsEq<Y> // error: Y does not support (==)
+  type G1<Y> = NeedsAutoInit<Y> // error: Y does not support (0)
+  type G2<Y> = NeedsNonempty<Y> // error: Y does not support (00)
+  type G3<Y> = NeedsNoReferences<Y> // error: Y does not support (!new)
+
+  type H0<Z(==)> = NeedsEq<Z>
+  type H1<Z(0)> = NeedsAutoInit<Z>
+  type H2<Z(00)> = NeedsNonempty<Z>
+  type H3<Z(!new)> = NeedsNoReferences<Z>
+}
+
+module EqualitySupportInference {
+  export
+    reveals *
+
+  type NeedsEq<X(==)>
+
+  type Z0<Y> = NeedsEq<Y> // no problem, because Y is inferred to be (==)
+  newtype A0<Y> = NeedsEq<Y> // no problem, because Y is inferred to be (==)
+}
+
+module RefinementBase {
+  type A<T>
+
+  type N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ>
+  type O<V, W(0), X(00), Y(==), YY, Z(!new), ZZ>
+
+  type V<+A, B, -C>
+  type W<+A, B, -C>
+}
+
+module RefinementSubsetTypes refines RefinementBase {
+  type A<U> = x: int | true // error: type-parameter renaming is not allowed in refinement
+
+  type N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ> = x: int | true
+  type O<
+    V(0), // error: refinement cannot change type characteristics
+    W(00), // error: refinement cannot change type characteristics
+    X, // error: refinement cannot change type characteristics
+    Y, // error: refinement cannot change type characteristics
+    YY(==), // error: refinement cannot change type characteristics
+    Z, // error: refinement cannot change type characteristics
+    ZZ(!new) // error: refinement cannot change type characteristics
+  > = x: int | true
+
+  type V<+A, B, -C> = x: int | true
+  type W<
+    -A, // error: refinement cannot change variance
+    +B, // error: refinement cannot change variance
+    C // error: refinement cannot change variance
+  > = x: int | true
+}
+
+module RefinementNewtypes refines RefinementBase {
+  newtype A<U> = x: int | true // error: type-parameter renaming is not allowed in refinement
+
+  newtype N<V, W(0), X(00), Y(==), YY, Z(!new), ZZ> = x: int | true
+  newtype O<
+    V(0), // error: refinement cannot change type characteristics
+    W(00), // error: refinement cannot change type characteristics
+    X, // error: refinement cannot change type characteristics
+    Y, // error: refinement cannot change type characteristics
+    YY(==), // error: refinement cannot change type characteristics
+    Z, // error: refinement cannot change type characteristics
+    ZZ(!new) // error: refinement cannot change type characteristics
+  > = x: int | true
+
+  newtype V<+A, B, -C> = x: int | true
+  newtype W<
+    -A, // error: refinement cannot change variance
+    +B, // error: refinement cannot change variance
+    C // error: refinement cannot change variance
+  > = x: int | true
+}
+
+module Cycle0 {
+  newtype W<X> = X
+  newtype A = w: W<A> | true // error: cycle: A -> A
+}
+
+module Cycle1 {
+  newtype W<X> = X
+  newtype A = W<A> // error: cycle: A -> A
+}
+
+module Cycle2 {
+  newtype W<X> = X
+  type A = W<A> // error: cycle: A -> A
+}
+
+module Cycle3 {
+  type W<X> = X
+  newtype A = W<A> // error: cycle: A -> A
+}

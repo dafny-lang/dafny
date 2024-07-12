@@ -22,7 +22,7 @@ ghost predicate Yes(six: NewSix) {
   4 <= six as int
 }
 
-newtype YetAnotherNewSix = NewSix
+newtype YetAnotherNewSix = NewSix witness 80
 
 // Now with some type parameters
 datatype List<G> = Nil | Cons(G, List<G>)

@@ -338,11 +338,10 @@ public abstract class Type : TokenNode {
       } else if (t.IsRealType) {
         return p == NumericPersuasion.Real;
       }
-      var d = t.AsNewtype;
-      if (d == null) {
+      if (t.AsNewtype is not { } newtypeDecl) {
         return false;
       }
-      t = d.BaseType;
+      t = newtypeDecl.RhsWithArgument(t.TypeArgs);
     }
   }
 

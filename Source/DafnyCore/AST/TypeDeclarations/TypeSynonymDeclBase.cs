@@ -64,6 +64,8 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   Attributes RedirectingTypeDecl.Attributes { get { return Attributes; } }
   ModuleDefinition RedirectingTypeDecl.Module { get { return EnclosingModuleDefinition; } }
   BoundVar RedirectingTypeDecl.Var { get { return null; } }
+  PreType RedirectingTypeDecl.BasePreType { get { return null; } }
+  Type RedirectingTypeDecl.BaseType { get { return null; } }
   Expression RedirectingTypeDecl.Constraint { get { return null; } }
 
   bool RedirectingTypeDecl.ConstraintIsCompilable {
