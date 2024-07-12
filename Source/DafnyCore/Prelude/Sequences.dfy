@@ -582,7 +582,7 @@ module {:extract} Sequences {
   // boogie:
   // axiom (forall s: Seq, n: int :: { Seq#Length(Seq#Take(s,n)) }
   //   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s,n)) == n);
-  lemma LengthTake(s: Seq, n: int)
+  lemma {:extract_pattern Length(Take(s, n))} LengthTake(s: Seq, n: int)
     requires 0 <= n <= Length(s)
     ensures Length(Take(s, n)) == n
   {
