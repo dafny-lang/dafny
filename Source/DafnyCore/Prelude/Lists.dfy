@@ -31,7 +31,7 @@ module Lists {
     lemma AppendAt(xs: List<X>, i: nat)
       requires i < Append(xs).Length()
       ensures Append(xs).At(i) ==
-        if i < Length() then At(i) else (LengthAppend(xs); xs.At(i - Length()))
+              if i < Length() then At(i) else (LengthAppend(xs); xs.At(i - Length()))
     {
     }
 
@@ -73,8 +73,8 @@ module Lists {
     lemma TakeFromAppend(xs: List<X>, n: nat)
       requires n <= Length() + xs.Length()
       ensures (LengthAppend(xs);
-        Append(xs).Take(n) ==
-          if n <= Length() then Take(n) else Append(xs.Take(n - Length())))
+               Append(xs).Take(n) ==
+               if n <= Length() then Take(n) else Append(xs.Take(n - Length())))
     {
       LengthAppend(xs);
     }
@@ -91,8 +91,8 @@ module Lists {
     lemma DropFromAppend(xs: List<X>, n: nat)
       requires n <= Length() + xs.Length()
       ensures (LengthAppend(xs);
-        Append(xs).Drop(n) ==
-          if n <= Length() then Drop(n).Append(xs) else xs.Drop(n - Length()))
+               Append(xs).Drop(n) ==
+               if n <= Length() then Drop(n).Append(xs) else xs.Drop(n - Length()))
     {
       LengthAppend(xs);
     }

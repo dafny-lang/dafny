@@ -307,7 +307,7 @@ module {:extract} Sequences {
   //     (exists i: int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && Seq#Index(s,i) == x));
   lemma {:extract_pattern Contains(s, x)} SeqContainsItsElements(s: Seq, x: Box)
     ensures Contains(s, x) <==>
-      exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < Length(s) && Index(s, i) == x
+            exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < Length(s) && Index(s, i) == x
   {
   }
 
@@ -408,7 +408,7 @@ module {:extract} Sequences {
   //       0 <= i && i < n && i < Seq#Length(s) && Seq#Index(s, i) == x));
   lemma {:extract_pattern Contains(Take(s, n), x)} TakeContains(s: Seq, n: int, x: Box)
     ensures Contains(Take(s, n), x) <==>
-      exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < n && i < Length(s) && Index(s, i) == x
+            exists i: int {:extract_pattern Index(s, i)} :: 0 <= i < n && i < Length(s) && Index(s, i) == x
   {
     if
     case n < 0 =>
@@ -460,7 +460,7 @@ module {:extract} Sequences {
   //       0 <= n && n <= i && i < Seq#Length(s) && Seq#Index(s, i) == x));
   lemma {:extract_pattern Contains(Drop(s, n), x)} DropContains(s: Seq, n: int, x: Box)
     ensures Contains(Drop(s, n), x) <==>
-      exists i: int {:extract_pattern Index(s, i)} :: 0 <= n <= i < Length(s) && Index(s, i) == x
+            exists i: int {:extract_pattern Index(s, i)} :: 0 <= n <= i < Length(s) && Index(s, i) == x
   {
     if 0 <= n <= s.Length() {
       var (prefix, suffix) := s.Split(n);
@@ -526,9 +526,9 @@ module {:extract} Sequences {
   //         0 <= j && j < Seq#Length(s0) ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
   lemma {:extract_pattern Equal(s0, s1)} AboutEqual(s0: Seq, s1: Seq)
     ensures Equal(s0, s1) <==>
-      && Length(s0) == Length(s1)
-      && forall j: int {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
-           0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j)
+            && Length(s0) == Length(s1)
+            && forall j: int {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
+                 0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j)
   {
     if Length(s0) == Length(s1) && forall j :: 0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j) {
       assert forall s, i :: 0 <= i < Length(s) ==> Index(s, i) == s.At(i);
@@ -574,8 +574,8 @@ module {:extract} Sequences {
   //         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
   lemma {:extract_pattern SameUntil(s0, s1, n)} AboutSameUntil(s0: Seq, s1: Seq, n: int)
     ensures SameUntil(s0, s1, n) <==>
-      forall j: int {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
-            0 <= j < n ==> Index(s0, j) == Index(s1, j)
+            forall j: int {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
+              0 <= j < n ==> Index(s0, j) == Index(s1, j)
   {
   }
 
@@ -607,7 +607,7 @@ module {:extract} Sequences {
   //   0 <= j && j < n && j < Seq#Length(s) ==>
   //     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
   lemma {:extract_attribute "weight", 25} {:extract_pattern Index(Take(s, n), j)} {:extract_pattern Index(s, j), Take(s, n)}
-    IndexTake(s: Seq, n: int, j: int)
+  IndexTake(s: Seq, n: int, j: int)
     requires 0 <= j < n && j < Length(s)
     ensures Index(Take(s, n), j) == Index(s, j)
   {
@@ -759,7 +759,7 @@ module {:extract} Sequences {
       }
     }
   }
-  
+
   // Additional axioms about common things
 
   // boogie:
