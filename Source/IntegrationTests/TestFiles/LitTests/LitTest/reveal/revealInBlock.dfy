@@ -30,6 +30,7 @@ method MatchStatementScope(x: int) {
     case _ =>
       assert P(0); // error
   }
+  assert P(0); // no error because the previous assertions create an assume
   assert P(1); // error
 }
 
@@ -39,6 +40,7 @@ method BlockScope() {
     reveal P;
     assert P(0);
   }
+  assert P(0); // no error because the previous assertion creates an assume
   assert P(1); // error
 }
 

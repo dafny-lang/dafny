@@ -1,8 +1,8 @@
 revealInBlock.dfy(21,10): Error: assertion might not hold
 revealInBlock.dfy(31,14): Error: assertion might not hold
-revealInBlock.dfy(33,10): Error: assertion might not hold
-revealInBlock.dfy(42,10): Error: assertion might not hold
-revealInBlock.dfy(55,10): Error: assertion might not hold
-revealInBlock.dfy(66,10): Error: assertion might not hold
+revealInBlock.dfy(34,10): Error: assertion might not hold
+revealInBlock.dfy(44,10): Error: assertion might not hold
+revealInBlock.dfy(57,10): Error: assertion might not hold
+revealInBlock.dfy(68,10): Error: assertion might not hold
 
-Dafny program verifier finished with 16 verified, 6 errors
+Dafny program verifier finished with 18 verified, 6 errors
