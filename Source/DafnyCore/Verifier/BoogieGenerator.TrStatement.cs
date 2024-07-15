@@ -604,6 +604,7 @@ namespace Microsoft.Dafny {
           }
           // hint:
           AddComment(b, stmt, "Hint" + i.ToString());
+
           TrStmt(stmt.Hints[i], b, locals, etran);
           if (i < stmt.Steps.Count - 1) {
             // non-dummy step

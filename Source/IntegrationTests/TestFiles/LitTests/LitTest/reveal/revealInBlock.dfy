@@ -68,8 +68,6 @@ method While() {
   assert P(1); // error
 }
 
-// Calc statement
-
 // If-alternative statement. Does anyone use that?
 method IfAlternative(x: int) {
   hide *;
@@ -80,6 +78,19 @@ method IfAlternative(x: int) {
     case x == 1 =>
       assert P(1); // error
     case true =>
+  }
+  assert P(2); // error
+}
+
+// Calc statement
+method Calc() {
+  hide *;
+  calc {
+    2;
+    { reveal P; assert P(0); }
+    1 + 1;
+    { assert P(1); } // error
+    1 + 1 + 0;
   }
   assert P(2); // error
 }
