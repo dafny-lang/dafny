@@ -6,7 +6,6 @@ public class Label {
   public readonly IToken Tok;
   public readonly string Name;
   string uniqueId = null;
-  public int ScopeDepth { get; set; }
 
   public string AssignUniqueId(FreshIdGenerator idGen) {
     if (uniqueId == null) {

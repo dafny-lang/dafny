@@ -14,6 +14,9 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder,
       List<Variable> locals, ExpressionTranslator etran) {
+
+      stmt.ScopeDepth = builder.Context.ScopeDepth;
+
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -41,7 +44,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         AddComment(builder, stmt, $"{s.Kind} statement");
-        foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - s.TargetStmt.Labels.Data.ScopeDepth)) {
+        foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - s.TargetStmt.ScopeDepth)) {
           builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
         }
         var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
@@ -65,6 +68,9 @@ namespace Microsoft.Dafny {
           AssumeCanCallForByMethodDecl(method2, builder);
         }
 
+        foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth)) {
+          builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+        }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
@@ -291,7 +297,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "alternative statement");
         var s = (AlternativeStmt)stmt;
         var elseCase = Assert(s.Tok, Bpl.Expr.False, new PODesc.AlternativeIsComplete());
-        TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost);
+        TrAlternatives(s.Alternatives, s.Tok, b => b.Add(elseCase), builder, locals, etran, stmt.IsGhost);
 
       } else if (stmt is WhileStmt whileStmt) {
         TrWhileStmt(whileStmt, builder, locals, etran);
@@ -302,7 +308,14 @@ namespace Microsoft.Dafny {
         var tru = Expression.CreateBoolLiteral(s.Tok, true);
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
-            TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
+            TrAlternatives(s.Alternatives, s.Tok,
+              b => {
+                foreach (var _ in Enumerable.Range(0, b.Context.ScopeDepth - builder.Context.ScopeDepth)) {
+                  b.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+                }
+                b.Add(new Bpl.BreakCmd(s.Tok, null));
+              },
+              bld, locals, e, stmt.IsGhost);
             InsertContinueTarget(s, bld);
           },
           builder, locals, etran);
@@ -1318,7 +1331,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      s.Labels.Data.ScopeDepth = builder.Context.ScopeDepth;
+      s.ScopeDepth = builder.Context.ScopeDepth;
 
       var suffix = CurrentIdGenerator.FreshId("loop#");
 
@@ -1580,20 +1593,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
+    void TrAlternatives(List<GuardedAlternative> alternatives, IToken elseToken, Action<BoogieStmtListBuilder> buildElseCase,
                         BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
       Contract.Requires(alternatives != null);
-      Contract.Requires((elseCase0 == null) != (elseCase1 == null));  // ugly way of doing a type union
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
       if (alternatives.Count == 0) {
-        if (elseCase0 != null) {
-          builder.Add(elseCase0);
-        } else {
-          builder.Add(elseCase1);
-        }
+        buildElseCase(builder);
         return;
       }
 
@@ -1608,14 +1616,9 @@ namespace Microsoft.Dafny {
         noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(g)));
       }
 
-      var elseTok = elseCase0 != null ? elseCase0.tok : elseCase1.tok;
-      b.Add(TrAssumeCmd(elseTok, noGuard));
-      if (elseCase0 != null) {
-        b.Add(elseCase0);
-      } else {
-        b.Add(elseCase1);
-      }
-      Bpl.StmtList els = b.Collect(elseTok);
+      b.Add(TrAssumeCmd(elseToken, noGuard));
+      buildElseCase(b);
+      Bpl.StmtList els = b.Collect(elseToken);
 
       Bpl.IfCmd elsIf = null;
       for (int i = alternatives.Count; 0 <= --i;) {
@@ -2807,10 +2810,6 @@ namespace Microsoft.Dafny {
           var heapAt = new Bpl.LocalVariable(ss.Tok, new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
           locals.Add(heapAt);
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
-        }
-
-        if (ss.Labels != null) {
-          ss.Labels.Data.ScopeDepth = builder.Context.ScopeDepth;
         }
 
         TrStmt(ss, innerBuilder, locals, etran);
