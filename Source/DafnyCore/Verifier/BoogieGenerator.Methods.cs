@@ -797,7 +797,7 @@ namespace Microsoft.Dafny {
       if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
         AssumeCanCallForByMethodDecl(m, builder);
       }
-      var stmts = builder.Collect(m.Body.RangeToken.StartToken); // TODO should this be EndToken?  the parameter name suggests it should be the closing curly
+      var stmts = builder.Collect(m.Body.RangeToken.EndToken);
       // tear down definite-assignment trackers
       m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
