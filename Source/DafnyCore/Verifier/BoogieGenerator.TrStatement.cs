@@ -820,7 +820,7 @@ namespace Microsoft.Dafny {
         var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
         var checkContext = MakeNumericBoundsSubrangeCheckContext(sourceBoundVar, dLo, dHi);
         var cre = GetSubrangeCheck(
-          x, Type.Int, indexVar.Type,
+          x.tok, x, Type.Int, indexVar.Type,
           new IdentifierExpr(Token.NoToken, sourceBoundVar),
           checkContext, out var desc);
 
@@ -1844,13 +1844,13 @@ namespace Microsoft.Dafny {
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
           CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
-          bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
+          bActual = AdaptBoxing(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
           dActual = actual;
         }
         directSubstMap.Add(formal, dActual);
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
-        ins.Add(CondApplyBox(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+        ins.Add(AdaptBoxing(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
       }
 
       // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -2592,13 +2592,13 @@ namespace Microsoft.Dafny {
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
-          var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, bRhs, e.Expr.Type, lhsType));
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, AdaptBoxing(tok, bRhs, e.Expr.Type, lhsType));
           proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
           builder.Add(cmd);
           return bGivenLhs;
         } else {
           // box from RHS type to tmp-var type, then do the assignment; then return LHS, boxed from tmp-var type to result type
-          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, CondApplyBox(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, AdaptBoxing(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
           proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
           builder.Add(cmd);
           return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);

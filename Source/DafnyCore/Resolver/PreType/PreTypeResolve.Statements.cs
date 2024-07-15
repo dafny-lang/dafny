@@ -798,6 +798,8 @@ namespace Microsoft.Dafny {
 
       if (tryToResolve) {
         var typeMap = s.MethodSelect.PreTypeArgumentSubstitutionsAtMemberDeclaration();
+        AddTypeBoundConstraints(s.Tok, callee.EnclosingClass.TypeArgs, typeMap);
+        AddTypeBoundConstraints(s.Tok, callee.TypeArgs, typeMap);
         // resolve arguments
         ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, resolutionContext, typeMap,
           callee.IsStatic ? null : s.Receiver);
@@ -816,25 +818,6 @@ namespace Microsoft.Dafny {
           CheckIsLvalue(lhs.Resolved, resolutionContext);
         }
 
-#if SOON
-        // Resolution termination check
-        ModuleDefinition callerModule = resolutionContext.EnclosingModule;
-        ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
-        if (callerModule == calleeModule) {
-          // intra-module call; add edge in module's call graph
-          var caller = CodeContextWrapper.Unwrap(resolutionContext) as ICallable;
-          if (caller == null) {
-            // don't add anything to the call graph after all
-          } else if (caller is IteratorDecl) {
-            callerModule.CallGraph.AddEdge(((IteratorDecl)caller).Member_MoveNext, callee);
-          } else {
-            callerModule.CallGraph.AddEdge(caller, callee);
-            if (caller == callee) {
-              callee.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-            }
-          }
-        }
-#endif
       }
       if (Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !resolutionContext.CodeContext.AllowsNontermination) {
         ReportError(s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");

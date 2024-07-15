@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
       var c = new DCOMP.COMP();
-      c.__ctor(Options.Get(CommonOptionBag.UnicodeCharacters));
+      c.__ctor(Options.Get(CommonOptionBag.UnicodeCharacters), ObjectType.create_RcMut());
       var s = c.Compile(program);
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
         throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));

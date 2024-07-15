@@ -280,7 +280,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
   public void VisitType(IToken tok, Type type, bool inGhostContext) {
     Contract.Requires(tok != null);
     Contract.Requires(type != null);
-    type = type.Normalize();  // we only do a .Normalize() here, because we want to keep stop at any type synonym or subset type
+    type = type.Normalize();  // we only do a .Normalize() here, because we want to stop at any type synonym or subset type
     if (type is BasicType) {
       // fine
     } else if (type is SetType) {
@@ -332,14 +332,24 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     Contract.Requires(actualTypeArgs != null);
     Contract.Requires(formalTypeArgs.Count == actualTypeArgs.Count);
 
+    var typeMap = TypeParameter.SubstitutionMap(formalTypeArgs, actualTypeArgs);
     for (var i = 0; i < formalTypeArgs.Count; i++) {
       var formal = formalTypeArgs[i];
       var actual = actualTypeArgs[i];
       if (!CheckCharacteristics(formal.Characteristics, actual, inGhostContext, out var whatIsNeeded, out var hint, out _)) {
-        reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must {4} (got {5}){6}",
-          actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsNeeded, actual, hint);
+        var index = actualTypeArgs.Count == 1 ? "" : " " + i;
+        reporter.Error(MessageSource.Resolver, tok,
+          $"type parameter{index} ({formal.Name}) passed to {what} {className} must {whatIsNeeded} (got {actual}){hint}");
       }
       VisitType(tok, actual, inGhostContext);
+      foreach (var typeBound in formal.TypeBounds) {
+        var bound = typeBound.Subst(typeMap);
+        if (!actual.IsSubtypeOf(bound, false, false)) {
+          var index = actualTypeArgs.Count == 1 ? "" : " " + i;
+          reporter.Error(MessageSource.Resolver, tok,
+            $"type parameter{index} ('{formal.Name}') passed to {what} '{className}' must meet type bound '{bound}' (got '{actual}')");
+        }
+      }
     }
   }
 

@@ -1,1 +1,1 @@
-CHECK: Errors compiling program into .*
+CHECK: Failed to compile C# source code .*
