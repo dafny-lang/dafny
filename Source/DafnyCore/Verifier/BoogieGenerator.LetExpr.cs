@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
           //   $let$canCall(g) &&
           //   CanCall[[ Body($let$b0(g), $let$b1(g), h) ]]
           LetDesugaring(expr);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
-          var info = letSuchThatExprInfo[expr];
+          var info = BoogieGenerator.letSuchThatExprInfo[expr];
           // $let$canCall(g)
           var canCall = info.CanCallFunctionCall(BoogieGenerator, this);
           Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
@@ -153,8 +153,8 @@ namespace Microsoft.Dafny {
             var orgExpr = expr.orgExpr;
             Expression d = LetDesugaring(orgExpr);
             e.SetTranslationDesugaring(BoogieGenerator, Substitute(d, null, expr.substMap, expr.typeMap));
-            var orgInfo = letSuchThatExprInfo[orgExpr];
-            letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, BoogieGenerator, expr.substMap, expr.typeMap));
+            var orgInfo = BoogieGenerator.letSuchThatExprInfo[orgExpr];
+            BoogieGenerator.letSuchThatExprInfo.Add(expr, new LetSuchThatExprInfo(orgInfo, BoogieGenerator, expr.substMap, expr.typeMap));
           } else {
             // First, determine "g" as a list of Dafny variables FVs plus possibly this, $Heap, and old($Heap),
             // and determine "tt*" as a list of Dafny type variables
@@ -173,9 +173,9 @@ namespace Microsoft.Dafny {
               }
 
               ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-              info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
+              info = new LetSuchThatExprInfo(e.tok, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
                 usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.currentDeclaration);
-              letSuchThatExprInfo.Add(e, info);
+              BoogieGenerator.letSuchThatExprInfo.Add(e, info);
             }
 
             foreach (var bv in e.BoundVars) {
@@ -278,9 +278,9 @@ namespace Microsoft.Dafny {
         ax = BplForall(gg, tr, ax);
         BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
       }
-
-      public Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new();
     }
+
+    public Dictionary<LetExpr, LetSuchThatExprInfo> letSuchThatExprInfo = new();
 
     public class LetSuchThatExprInfo {
       public readonly IToken Tok;

@@ -1544,7 +1544,7 @@ namespace Microsoft.Dafny {
         }
         // assume $let$canCall(g);
         etran.LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
-        var info = etran.letSuchThatExprInfo[e];
+        var info = letSuchThatExprInfo[e];
         builder.Add(new Bpl.AssumeCmd(e.tok, info.CanCallFunctionCall(this, etran)));
         // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
         if (result != null) {
