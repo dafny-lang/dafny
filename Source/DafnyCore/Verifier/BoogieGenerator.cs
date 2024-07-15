@@ -3489,11 +3489,11 @@ namespace Microsoft.Dafny {
 
       if (introduceScope) {
         CurrentIdGenerator.Push();
-        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Push));
+        builder.Add(new ChangeScope(block.RangeToken.StartToken, ChangeScope.Modes.Push));
       }
       TrStmt(block, builder, locals, etran);
       if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Pop));
+        builder.Add(new ChangeScope(block.RangeToken.EndToken, ChangeScope.Modes.Pop));
         CurrentIdGenerator.Pop();
       }
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"

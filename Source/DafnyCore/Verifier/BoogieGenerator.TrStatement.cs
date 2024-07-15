@@ -279,7 +279,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is BlockStmt blockStmt) {
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(blockStmt.Body, builder, locals, etran, true);
+        TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
         RemoveDefiniteAssignmentTrackers(blockStmt.Body, prevDefiniteAssignmentTrackerCount);
       } else if (stmt is IfStmt ifStmt) {
         TrIfStmt(ifStmt, builder, locals, etran);
@@ -1626,7 +1626,7 @@ namespace Microsoft.Dafny {
           b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(alternative.Body, b, locals, etran, true);
+        TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
         RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
         Bpl.StmtList thn = b.Collect(alternative.Tok);
         elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
@@ -2781,13 +2781,14 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool introduceScope = false) {
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, 
+      RangeToken scopeRange = null) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Push));
+      if (scopeRange != null) {
+        builder.Add(new ChangeScope(scopeRange.StartToken, ChangeScope.Modes.Push));
       }
       foreach (Statement ss in stmts) {
         for (var l = ss.Labels; l != null; l = l.Next) {
@@ -2800,8 +2801,8 @@ namespace Microsoft.Dafny {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
       }
-      if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Pop));
+      if (scopeRange != null) {
+        builder.Add(new ChangeScope(scopeRange.EndToken, ChangeScope.Modes.Pop));
       }
     }
 
