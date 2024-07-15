@@ -25,7 +25,7 @@ public partial class Parser {
     theModule = new FileModuleDefinition(scanner.FirstToken);
   }
 
-  bool IsReveal(IToken token) => (la.kind == _reveal || la.kind == _hide) && token.kind is _star or _ident;
+  bool IsReveal(IToken nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
 
   bool IsIdentifier(int kind) {
     return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
