@@ -946,7 +946,7 @@ namespace Microsoft.Dafny {
         IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
         CurrentIdGenerator.Pop();
       }
-      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, true);
+      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, stmt.Thn is not BlockStmt);
       Bpl.StmtList els;
       Bpl.IfCmd elsIf = null;
       b = new BoogieStmtListBuilder(this, options, builder.Context);
@@ -956,7 +956,7 @@ namespace Microsoft.Dafny {
       if (stmt.Els == null) {
         els = b.Collect(stmt.Tok);
       } else {
-        els = TrStmt2StmtList(b, stmt.Els, locals, etran, true);
+        els = TrStmt2StmtList(b, stmt.Els, locals, etran, stmt.Els is not BlockStmt);
         if (els.BigBlocks.Count == 1) {
           Bpl.BigBlock bb = els.BigBlocks[0];
           if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
