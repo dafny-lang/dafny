@@ -71,6 +71,18 @@ method While() {
 // Calc statement
 
 // If-alternative statement. Does anyone use that?
+method IfAlternative(x: int) {
+  hide *;
+  if {
+    case x == 0 => 
+      reveal P;
+      assert P(0);
+    case x == 1 =>
+      assert P(1); // error
+    case true =>
+  }
+  assert P(2); // error
+}
 
 // Check that we can still call a method hide
 method hide() 
