@@ -199,6 +199,7 @@ TOKENS
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
   reveal = "reveal".
+  hide = "hide".
   expect = "expect".
   sarrow = "->".
   qarrow = "~>".
@@ -2181,6 +2182,7 @@ OneStmt<out Statement/*!*/ s>
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+  | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
   | UpdateStmt<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
   | ReturnStmt<out s>
@@ -2197,7 +2199,6 @@ OneStmt<out Statement/*!*/ s>
   | MatchStmt<out s>
   | ModifyStmt<out s>
   | PrintStmt<out s>
-  | RevealStmt<out s>
   | SkeletonStmt<out s>
   | YieldStmt<out s>
   )
@@ -4546,6 +4547,8 @@ Ident<out IToken/*!*/ x>
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
   | "older"      (. t.kind = _ident; .) // convert it to an ident
   | "opaque"     (. t.kind = _ident; .) // convert it to an ident
+  | "hide"       (. t.kind = _ident; .) // convert it to an ident
+  | "reveal"     (. t.kind = _ident; .) // convert it to an ident
                  (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   )
   (. x = t; .)

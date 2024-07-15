@@ -71,3 +71,10 @@ method While() {
 // Calc statement
 
 // If-alternative statement. Does anyone use that?
+
+// Check that we can still call a method hide
+method hide() 
+  decreases *
+{
+  hide();  
+}

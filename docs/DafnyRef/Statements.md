@@ -2140,7 +2140,7 @@ method Foo() {
   hide *;
   
   var q3 := Q(P()); // error, precondition not satisfied
-  var q4 := Q(reveal P; Q()); // no error
+  var q4 := Q(reveal P; P()); // no error
   
   if (*) {
     reveal P;

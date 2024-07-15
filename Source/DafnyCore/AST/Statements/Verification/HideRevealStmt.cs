@@ -139,7 +139,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
             }
           }
         } else {
-          resolver.Reporter.Error(MessageSource.Resolver, Tok, "can't use parenthesis when revealing");
+          resolver.Reporter.Error(MessageSource.Resolver, Tok, "can't use parenthesis when hiding or revealing");
         }
       }
     }
