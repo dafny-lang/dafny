@@ -41,6 +41,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         AddComment(builder, stmt, $"{s.Kind} statement");
+        foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - s.TargetStmt.Labels.Data.ScopeDepth)) {
+          builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+        }
         var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
         builder.Add(new GotoCmd(s.Tok, new List<string> { lbl }));
       } else if (stmt is ReturnStmt) {
@@ -1314,6 +1317,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+
+      s.Labels.Data.ScopeDepth = builder.Context.ScopeDepth;
 
       var suffix = CurrentIdGenerator.FreshId("loop#");
 
@@ -2781,14 +2786,21 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, 
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
       RangeToken scopeRange = null) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
+
+      BoogieStmtListBuilder innerBuilder;
       if (scopeRange != null) {
         builder.Add(new ChangeScope(scopeRange.StartToken, ChangeScope.Modes.Push));
+        innerBuilder = builder.WithContext(builder.Context with {
+          ScopeDepth = builder.Context.ScopeDepth + 1
+        });
+      } else {
+        innerBuilder = builder;
       }
       foreach (Statement ss in stmts) {
         for (var l = ss.Labels; l != null; l = l.Next) {
@@ -2796,7 +2808,12 @@ namespace Microsoft.Dafny {
           locals.Add(heapAt);
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
         }
-        TrStmt(ss, builder, locals, etran);
+
+        if (ss.Labels != null) {
+          ss.Labels.Data.ScopeDepth = builder.Context.ScopeDepth;
+        }
+
+        TrStmt(ss, innerBuilder, locals, etran);
         if (ss.Labels != null) {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }

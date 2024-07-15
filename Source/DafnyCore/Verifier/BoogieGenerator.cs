@@ -3487,11 +3487,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
+      BoogieStmtListBuilder innerBuilder;
       if (introduceScope) {
         CurrentIdGenerator.Push();
         builder.Add(new ChangeScope(block.RangeToken.StartToken, ChangeScope.Modes.Push));
+        innerBuilder = builder.WithContext(builder.Context with {
+          ScopeDepth = builder.Context.ScopeDepth + 1
+        });
+      } else {
+        innerBuilder = builder;
       }
-      TrStmt(block, builder, locals, etran);
+      TrStmt(block, innerBuilder, locals, etran);
       if (introduceScope) {
         builder.Add(new ChangeScope(block.RangeToken.EndToken, ChangeScope.Modes.Pop));
         CurrentIdGenerator.Pop();
