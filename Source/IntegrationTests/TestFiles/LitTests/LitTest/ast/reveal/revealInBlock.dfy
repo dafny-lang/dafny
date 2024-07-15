@@ -1,6 +1,5 @@
-// echo ''
-// NORUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
-// NORUN: %diff "%s.expect" "%t"
+// RUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
+// RUN: %diff "%s.expect" "%t"
 
 function P(x: int): bool {
   true
