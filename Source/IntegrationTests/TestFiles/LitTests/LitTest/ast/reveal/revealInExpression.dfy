@@ -1,4 +1,4 @@
-// echo ''
+// echo 'turned off for the moment'
 // NORUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
 // NORUN: %diff "%s.expect" "%t"
 
