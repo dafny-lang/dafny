@@ -80,6 +80,10 @@ public partial class BoogieGenerator {
       req.Add(Requires(f.tok, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
     }
 
+    foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+      req.Add(Requires(f.tok, true, null, typeBoundAxiom, null, null, null));
+    }
+
     // modifies $Heap
     var mod = new List<Bpl.IdentifierExpr> {
       ordinaryEtran.HeapCastToIdentifierExpr,
@@ -453,6 +457,11 @@ public partial class BoogieGenerator {
         anteIsAlloc = BplAnd(anteIsAlloc, f.ReadsHeap ? heapSucc : Bpl.Expr.True);
       }
     }
+    // ante:  conditions on bounded type parameters
+    foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+      ante = BplAnd(ante, typeBoundAxiom);
+      anteIsAlloc = BplAnd(anteIsAlloc, typeBoundAxiom);
+    }
 
     if (!f.IsStatic) {
       var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(f)));
@@ -724,6 +733,11 @@ public partial class BoogieGenerator {
       ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
     }
 
+    // ante:  conditions on bounded type parameters
+    foreach (var typeBoundAxiom in TypeBoundAxioms(f.tok, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
+      ante = BplAnd(ante, typeBoundAxiom);
+    }
+
     Expression receiverReplacement = null;
     if (!f.IsStatic) {
       var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(f)));
@@ -885,7 +899,7 @@ public partial class BoogieGenerator {
       }
 
       var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
-      var trbody = CondApplyBox(f.tok, etranBody.TrExpr(bodyWithSubst), f.Body.Type, f.ResultType);
+      var trbody = AdaptBoxing(f.tok, etranBody.TrExpr(bodyWithSubst), f.Body.Type, f.ResultType);
       tastyVegetarianOption = BplAnd(etranBody.CanCallAssumption(bodyWithSubst),
         BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
     }

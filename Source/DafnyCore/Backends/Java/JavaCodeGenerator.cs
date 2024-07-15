@@ -1697,11 +1697,10 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
       if (source.Type.NormalizeToAncestorType().AsMultiSetType is { } multiSetType) {
-        wr = EmitCoercionIfNecessary(from: NativeObjectType, to: Type.Int, tok: source.tok, wr: wr);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(multiSetType.Arg, wr, Token.NoToken)}>multiplicity(");
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(JavaCoercedExpr(index, multiSetType.Arg, inLetExprBody, wStmts));
         wr.Write(")");
       } else if (source.Type.NormalizeToAncestorType().AsMapType is { } mapType) {
         wr = EmitCoercionIfNecessary(from: NativeObjectType, to: mapType.Range, tok: source.tok, wr: wr);
@@ -1731,21 +1730,31 @@ namespace Microsoft.Dafny.Compilers {
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
         TrExprAsInt(index, wr, inLetExprBody, wStmts);
+        wr.Write(", ");
+        wr.Append(JavaCoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+        wr.Write(")");
       } else if (resultCollectionType.AsMapType is { } mapType) {
         wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(JavaCoercedExpr(index, mapType.Domain, inLetExprBody, wStmts));
+        wr.Write(", ");
+        wr.Append(JavaCoercedExpr(value, mapType.Range, inLetExprBody, wStmts));
+        wr.Write(")");
       } else {
         Contract.Assert(resultCollectionType.AsMultiSetType != null);
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Token.NoToken)}>update(");
         wr.Append(Expr(source, inLetExprBody, wStmts));
         wr.Write(", ");
-        wr.Append(Expr(index, inLetExprBody, wStmts));
+        wr.Append(JavaCoercedExpr(index, resultCollectionType.ValueArg, inLetExprBody, wStmts));
+        wr.Write(", ");
+        wr.Append(Expr(value, inLetExprBody, wStmts));
+        wr.Write(")");
       }
-      wr.Write(", ");
-      wr.Append(CoercedExpr(value, NativeObjectType, inLetExprBody, wStmts));
-      wr.Write(")");
+    }
+
+    private ConcreteSyntaxTree JavaCoercedExpr(Expression expr, Type toType, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
+      return CoercedExpr(expr, expr.Type.IsTypeParameter ? toType : NativeObjectType, inLetExprBody, wStmts);
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, ConcreteSyntaxTree wr,
@@ -3597,6 +3606,10 @@ namespace Microsoft.Dafny.Compilers {
         message = "unexpected control point";
       }
 
+      // Wrapping an "if (true) { ... }" around the "break" statement is a way to tell the Java compiler not to give
+      // errors for any (unreachable) code that may follow.  
+      wr = EmitIf(out var guardWriter, false, wr);
+      guardWriter.Write("true");
       wr.WriteLine($"throw new IllegalArgumentException(\"{message}\");");
     }
 
@@ -4360,16 +4373,28 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitNestedMatchExpr(NestedMatchExpr match, bool inLetExprBody, ConcreteSyntaxTree output,
       ConcreteSyntaxTree wStmts) {
-      EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      if (match.Cases.Count == 0) {
+        base.EmitNestedMatchExpr(match, inLetExprBody, output, wStmts);
+      } else {
+        EmitExpr(match.Flattened, inLetExprBody, output, wStmts);
+      }
     }
 
     protected override void TrOptNestedMatchExpr(NestedMatchExpr match, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
-      bool inLetExprBody, IVariable accumulatorVar) {
-      TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar);
+      bool inLetExprBody, IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
+      if (match.Cases.Count == 0) {
+        base.TrOptNestedMatchExpr(match, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      } else {
+        TrExprOpt(match.Flattened, resultType, wr, wStmts, inLetExprBody, accumulatorVar, continuation);
+      }
     }
 
     protected override void EmitNestedMatchStmt(NestedMatchStmt match, ConcreteSyntaxTree writer) {
-      TrStmt(match.Flattened, writer);
+      if (match.Cases.Count == 0) {
+        base.EmitNestedMatchStmt(match, writer);
+      } else {
+        TrStmt(match.Flattened, writer);
+      }
     }
   }
 }

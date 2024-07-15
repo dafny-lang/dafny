@@ -290,7 +290,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var dd = (NewtypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
-          PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, new List<TypeParameter>());
+          PrintClassMethodHelper("newtype", dd.Attributes, dd.Name, dd.TypeArgs);
           PrintExtendsClause(dd);
           wr.Write(" = ");
           if (dd.Var == null) {
@@ -663,7 +663,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Contract.Requires(c != null);
 
       Indent(indent);
-      PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
+      PrintClassMethodHelper(c is TraitDecl ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       if (c.IsRefining) {
         wr.Write(" ...");
       } else {
@@ -795,7 +795,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
           Contract.Assert(false);  // unexpected VarianceSyntax
           throw new cce.UnreachableException();
       }
-      return variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      var paramString = variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      foreach (var typeBound in tp.TypeBounds) {
+        paramString += $" extends {typeBound.TypeName(options, null, true)}";
+      }
+      return paramString;
     }
 
     private void PrintArrowType(string arrow, string internalName, List<TypeParameter> typeArgs) {

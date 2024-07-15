@@ -188,6 +188,11 @@ namespace Microsoft.Dafny {
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
+
+      foreach (var typeBoundAxiom in TypeBoundAxioms(decl.tok, decl.EnclosingClass.TypeArgs)) {
+        req.Add(Requires(decl.tok, true, null, typeBoundAxiom, null, null, null));
+      }
+
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
