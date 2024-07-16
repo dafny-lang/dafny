@@ -1213,14 +1213,17 @@ namespace Microsoft.Dafny {
                   Contract.Assert(substMapPrime != null);
                   Contract.Assert(bodyLeftPrime != null);
                   Contract.Assert(bodyPrime != null);
+                  Bpl.Expr guardPrimeCanCall = null;
                   Bpl.Expr guardPrime = null;
                   if (guard != null) {
                     Contract.Assert(e.Range != null);
                     var rangePrime = Substitute(e.Range, null, substMapPrime);
+                    guardPrimeCanCall = comprehensionEtran.CanCallAssumption(rangePrime);
                     guardPrime = comprehensionEtran.TrExpr(rangePrime);
                   }
                   BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
-                    var canCalls = comprehensionEtran.CanCallAssumption(bodyLeft);
+                    var canCalls = guardPrimeCanCall ?? Bpl.Expr.True;
+                    canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(bodyLeft));
                     canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(bodyLeftPrime));
                     canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(body));
                     canCalls = BplAnd(canCalls, comprehensionEtran.CanCallAssumption(bodyPrime));
