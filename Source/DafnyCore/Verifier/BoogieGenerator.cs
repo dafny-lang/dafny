@@ -4597,8 +4597,13 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static IEnumerable<AttributedExpression> ConjunctsOf(List<AttributedExpression> attributedExpressions) {
       foreach (var attrExpr in attributedExpressions) {
-        foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
-          yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+        if (attrExpr.Label != null) {
+          // don't mess with labeled expressions
+          yield return attrExpr;
+        } else {
+          foreach (var conjunct in Expression.ConjunctsWithLetsOnOutside(attrExpr.E)) {
+            yield return new AttributedExpression(conjunct, attrExpr.Attributes);
+          }
         }
       }
     }
