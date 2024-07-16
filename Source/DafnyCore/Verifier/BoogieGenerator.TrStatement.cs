@@ -2798,6 +2798,20 @@ namespace Microsoft.Dafny {
 
       BoogieStmtListBuilder innerBuilder = builder;
       if (scopeRange != null && !builder.Context.ReturnPosition) {
+        /*
+         * Boogie's reports at which return location
+         * the postconditions of a procedure could not be satisfied.
+         *
+         * The return locations are the sinks of the Boogie control flow graph.
+         * However, adding a command to the end of a Boogie block, can cause previous sinks in the CFG to then lead
+         * to that new command, which changes the reported error location.
+         *
+         * Because of this reason, we need to make sure not to pop at points right before the implementation returns,
+         * which is why we check builder.Context.ReturnPosition
+         * 
+         * A more reliable way of Boogie error reporting would be not to rely on sinks in the CFG,
+         * By for example reporting all points at which a control flow decision was made.
+         */
         builder.Add(new ChangeScope(scopeRange.StartToken, ChangeScope.Modes.Push));
         innerBuilder = builder.WithContext(builder.Context with {
           ScopeDepth = builder.Context.ScopeDepth + 1
