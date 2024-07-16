@@ -30,7 +30,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
-  public record BodyTranslationContext(bool ContainsHide, int ScopeDepth = 0);
+  public record BodyTranslationContext(bool ContainsHide, int ScopeDepth = 0, bool ReturnPosition = true);
 
   public partial class BoogieGenerator {
 

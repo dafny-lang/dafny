@@ -9,6 +9,9 @@ namespace Microsoft.Dafny {
     public BoogieGenerator tran;
 
     public BoogieStmtListBuilder WithContext(BodyTranslationContext context) {
+      if (context == Context) {
+        return this;
+      }
       return new BoogieStmtListBuilder(builder, tran, Options, context);
     }
 

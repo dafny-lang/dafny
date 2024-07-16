@@ -2796,28 +2796,35 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
-      BoogieStmtListBuilder innerBuilder;
-      if (scopeRange != null) {
+      BoogieStmtListBuilder innerBuilder = builder;
+      if (scopeRange != null && !builder.Context.ReturnPosition) {
         builder.Add(new ChangeScope(scopeRange.StartToken, ChangeScope.Modes.Push));
         innerBuilder = builder.WithContext(builder.Context with {
           ScopeDepth = builder.Context.ScopeDepth + 1
         });
-      } else {
-        innerBuilder = builder;
       }
-      foreach (Statement ss in stmts) {
+
+      for (var index = 0; index < stmts.Count; index++) {
+        var ss = stmts[index];
+        var last = index == stmts.Count - 1;
+        var indexContext = innerBuilder.Context with {
+          ReturnPosition = innerBuilder.Context.ReturnPosition && last
+        };
+        var indexBuilder = innerBuilder.WithContext(indexContext);
         for (var l = ss.Labels; l != null; l = l.Next) {
-          var heapAt = new Bpl.LocalVariable(ss.Tok, new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
+          var heapAt = new Bpl.LocalVariable(ss.Tok,
+            new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
           locals.Add(heapAt);
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
         }
 
-        TrStmt(ss, innerBuilder, locals, etran);
+        TrStmt(ss, indexBuilder, locals, etran);
         if (ss.Labels != null) {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
       }
-      if (scopeRange != null) {
+
+      if (scopeRange != null && !builder.Context.ReturnPosition) {
         builder.Add(new ChangeScope(scopeRange.EndToken, ChangeScope.Modes.Pop));
       }
     }

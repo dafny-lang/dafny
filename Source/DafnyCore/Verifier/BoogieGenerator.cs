@@ -3487,19 +3487,21 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      BoogieStmtListBuilder innerBuilder;
+      BoogieStmtListBuilder innerBuilder = builder;
       if (introduceScope) {
         CurrentIdGenerator.Push();
-        builder.Add(new ChangeScope(block.RangeToken.StartToken, ChangeScope.Modes.Push));
-        innerBuilder = builder.WithContext(builder.Context with {
-          ScopeDepth = builder.Context.ScopeDepth + 1
-        });
-      } else {
-        innerBuilder = builder;
+        if (!builder.Context.ReturnPosition) {
+          builder.Add(new ChangeScope(block.RangeToken.StartToken, ChangeScope.Modes.Push));
+          innerBuilder = builder.WithContext(builder.Context with {
+            ScopeDepth = builder.Context.ScopeDepth + 1
+          });
+        }
       }
       TrStmt(block, innerBuilder, locals, etran);
       if (introduceScope) {
-        builder.Add(new ChangeScope(block.RangeToken.EndToken, ChangeScope.Modes.Pop));
+        if (!builder.Context.ReturnPosition) {
+          builder.Add(new ChangeScope(block.RangeToken.StartToken, ChangeScope.Modes.Pop));
+        }
         CurrentIdGenerator.Pop();
       }
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
