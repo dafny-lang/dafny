@@ -3258,7 +3258,7 @@ namespace Microsoft.Dafny {
         if (e is Bpl.NAryExpr { Fun: Bpl.TypeCoercion } coerce) {
           Contract.Assert(coerce.Args.Count == 1);
           Contract.Assert(Bpl.Type.Equals(((Bpl.TypeCoercion)coerce.Fun).Type, TrType(fromType)));
-          if (coerce.Args[0] is Bpl.NAryExpr { Fun: Bpl.FunctionCall { FunctionName: "$Unbox" } } call) {
+          if (coerce.Args[0] is Bpl.NAryExpr { Fun: Bpl.FunctionCall { FunctionName: UnboxFunctionName } } call) {
             Contract.Assert(call.Args.Count == 1);
             return call.Args[0];
           }
@@ -3311,7 +3311,7 @@ namespace Microsoft.Dafny {
     public Bpl.Expr ApplyBox(Bpl.IToken tok, Bpl.Expr e) {
       Contract.Assert(tok != null);
       Contract.Assert(e != null);
-      if (e.Type == predef.BoxType || e is NAryExpr { Fun.FunctionName: "$Box" }) {
+      if (e.Type == predef.BoxType || e is NAryExpr { Fun.FunctionName: BoxFunctionName }) {
         return e;
       }
       return FunctionCall(tok, BuiltinFunction.Box, null, e);
@@ -3366,6 +3366,17 @@ namespace Microsoft.Dafny {
       var res = t.IsTypeParameter || (t.IsTraitType && !t.IsRefType) || t.IsAbstractType || t.IsInternalTypeSynonym;
       Contract.Assert(t.IsArrowType ? !res : true);
       return res;
+    }
+
+    /// <summary>
+    /// This method returns "expr" are stripping off any type coercions and box/unbox functions.
+    /// </summary>
+    public static Boogie.Expr StripBoxAdjustments(Boogie.Expr expr) {
+      while (expr is Boogie.NAryExpr { Fun: Boogie.FunctionCall { FunctionName: BoxFunctionName or UnboxFunctionName } or Boogie.TypeCoercion } nAryExpr) {
+        Contract.Assert(nAryExpr.Args.Count == 1);
+        expr = nAryExpr.Args[0];
+      }
+      return expr;
     }
 
     // ----- Statement ----------------------------------------------------------------------------
@@ -4622,11 +4633,13 @@ namespace Microsoft.Dafny {
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
         List<Bpl.Expr> tt = new List<Bpl.Expr>();
         foreach (var arg in trigger) {
+          Bpl.Expr term;
           if (substMap == null) {
-            tt.Add(argsEtran.TrExpr(arg));
+            term = argsEtran.TrExpr(arg);
           } else {
-            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap)));
+            term = argsEtran.TrExpr(Substitute(arg, null, substMap));
           }
+          tt.Add(StripBoxAdjustments(term));
         }
         tr = new Bpl.Trigger(tok, true, tt, tr);
       }
@@ -4661,11 +4674,13 @@ namespace Microsoft.Dafny {
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger")) {
         List<Bpl.Expr> tt = new List<Bpl.Expr>();
         foreach (var arg in trigger.Args) {
+          Bpl.Expr term;
           if (substMap == null) {
-            tt.Add(argsEtran.TrExpr(arg));
+            term = argsEtran.TrExpr(arg);
           } else {
-            tt.Add(argsEtran.TrExpr(Substitute(arg, null, substMap, typeMap)));
+            term = argsEtran.TrExpr(Substitute(arg, null, substMap, typeMap));
           }
+          tt.Add(StripBoxAdjustments(term));
         }
         if (useHeapAsQuantifier) {
           tt.Add(FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, argsEtran.HeapExpr));
