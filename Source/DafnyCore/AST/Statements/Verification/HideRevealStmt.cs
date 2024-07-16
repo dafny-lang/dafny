@@ -115,27 +115,26 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
           }
         } else if (expr is ApplySuffix applySuffix) {
           // This else if is to provide backwards compatibility for the style of revealing an applied function 
-          var methodCallInfo = resolver.ResolveApplySuffix(applySuffix, resolutionContext, true);
-          if (methodCallInfo == null) {
+          var errors = resolver.Reporter.ErrorCount;
+          resolver.ResolveApplySuffix(applySuffix, resolutionContext, true);
+          var functionCallExpr = applySuffix.Resolved as FunctionCallExpr;
+          if (resolver.Reporter.ErrorCount != errors) {
             // error has already been reported
-          } else if (methodCallInfo.Callee.Member is not Function) {
-            resolver.Reporter.Error(MessageSource.Resolver, expr,
-              "only functions can be revealed");
-          } else if (methodCallInfo.Callee.Member is TwoStateLemma && !resolutionContext.IsTwoState) {
-            resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-          } else if (methodCallInfo.Callee.AtLabel != null) {
-            Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-            resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
+          } else if (functionCallExpr == null) {
+            resolver.Reporter.Error(MessageSource.Resolver, expr, "only functions can be revealed");
+          } else if (functionCallExpr.Function is TwoStateFunction && !resolutionContext.IsTwoState) {
+            resolver.Reporter.Error(MessageSource.Resolver, functionCallExpr.Function.Tok, "a two-state function can only be revealed in a two-state context");
+          } else if (functionCallExpr.AtLabel != null) {
+            Contract.Assert(functionCallExpr.Function is TwoStateFunction);
+            resolver.Reporter.Error(MessageSource.Resolver, functionCallExpr.Function.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
           } else {
-            OffsetMembers.Add(methodCallInfo.Callee.Member);
-            if (methodCallInfo.Callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
+            OffsetMembers.Add(functionCallExpr.Function);
+            if (functionCallExpr.Function.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
               var exprClone = (ApplySuffix)new Cloner().CloneExpr(applySuffix);
               var revealResolutionContext = resolutionContext with { InReveal = true };
               var revealMethodCallInfo = resolver.ResolveApplySuffix(exprClone, revealResolutionContext, true);
-              if (revealMethodCallInfo.Callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
-                var call = new CallStmt(RangeToken, new List<Expression>(), revealMethodCallInfo.Callee, revealMethodCallInfo.ActualParameters);
-                ResolvedStatements.Add(call);
-              }
+              var call = new CallStmt(RangeToken, new List<Expression>(), revealMethodCallInfo.Callee, revealMethodCallInfo.ActualParameters);
+              ResolvedStatements.Add(call);
             }
           }
         } else {
