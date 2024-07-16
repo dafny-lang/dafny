@@ -71,7 +71,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   }
 
   public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
-    ((MethodOrFunction)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
+    ((ICodeContainer)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
       return;
@@ -85,6 +85,9 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
       } else {
         Expression effectiveExpr = expr;
         if (expr is ApplySuffix applySuffix) {
+          if (applySuffix.AtTok != null) {
+            resolver.Reporter.Error(MessageSource.Resolver, expr.Tok, $"an @-label can not be used in a hide or reveal statement");
+          }
           effectiveExpr = applySuffix.Lhs;
         }
         if (effectiveExpr is NameSegment or ExprDotName) {

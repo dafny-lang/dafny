@@ -1,0 +1,25 @@
+git-issue-5017b.dfy(31,14): Error: fully defined predicate 'Valid' is inherited from trait 'B' and is not allowed to be re-declared
+git-issue-5017b.dfy(34,21): Error: fully defined predicate 'Valid' is inherited from trait 'B' and is not allowed to be re-declared
+git-issue-5017b.dfy(34,21): Error: static lemma 'reveal_Valid' is inherited from trait 'B' and is not allowed to be re-declared
+git-issue-5017b.dfy(38,14): Error: overridden predicate 'Valid' in 'M0' must be 'opaque' since the member is 'opaque' in trait 'C'
+git-issue-5017b.dfy(44,14): Error: overridden predicate 'Valid' in 'M2' must be 'opaque' since the member is 'opaque' in trait 'C'
+git-issue-5017b.dfy(66,14): Error: overridden predicate 'Valid' in 'Y0' must be 'opaque' since the member is 'opaque' in trait 'C'
+git-issue-5017b.dfy(69,14): Error: overridden predicate 'Valid' in 'Y1' must be 'opaque' since the member is 'opaque' in trait 'C'
+git-issue-5017b.dfy(94,13): Error: predicate 'Valid' cannot be revealed, because it has no body in trait 'A'
+git-issue-5017b.dfy(132,11): Error: unresolved identifier: x
+git-issue-5017b.dfy(133,13): Error: member 'UnknownFunction' does not exist in trait 'A'
+git-issue-5017b.dfy(134,13): Error: member 'UnknownFunction' does not exist in trait 'A'
+git-issue-5017b.dfy(135,13): Error: method ('Method') cannot be revealed; only opaque constants and functions can be revealed
+git-issue-5017b.dfy(136,13): Error: method ('Method') cannot be revealed; only opaque constants and functions can be revealed
+git-issue-5017b.dfy(140,13): Error: predicate 'Valid' cannot be revealed, because it has no body in trait 'A'
+git-issue-5017b.dfy(141,13): Error: predicate 'Valid' cannot be revealed, because it has no body in trait 'A'
+git-issue-5017b.dfy(143,13): Error: to reveal a function (WithBody), append parentheses
+git-issue-5017b.dfy(117,13): Error: cannot reveal 'UnknownFunction' because no revealable constant, function, assert label, or requires label in the current scope is named 'UnknownFunction'
+git-issue-5017b.dfy(118,13): Error: cannot reveal 'UnknownFunction' because no revealable constant, function, assert label, or requires label in the current scope is named 'UnknownFunction'
+git-issue-5017b.dfy(119,13): Error: cannot reveal 'Method' because no revealable constant, function, assert label, or requires label in the current scope is named 'Method'
+git-issue-5017b.dfy(120,13): Error: cannot reveal 'Method' because no revealable constant, function, assert label, or requires label in the current scope is named 'Method'
+git-issue-5017b.dfy(121,13): Error: cannot reveal 'm' because no revealable constant, function, assert label, or requires label in the current scope is named 'm'
+git-issue-5017b.dfy(124,13): Error: cannot reveal 'Valid' because no revealable constant, function, assert label, or requires label in the current scope is named 'Valid'
+git-issue-5017b.dfy(125,13): Error: cannot reveal 'Valid' because no revealable constant, function, assert label, or requires label in the current scope is named 'Valid'
+git-issue-5017b.dfy(127,13): Error: to reveal a function (WithBody), append parentheses
+25 resolution/type errors detected in git-issue-5017b.dfy

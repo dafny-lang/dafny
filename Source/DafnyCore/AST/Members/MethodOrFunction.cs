@@ -6,7 +6,7 @@ using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
-public abstract class MethodOrFunction : MemberDecl {
+public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public static readonly Option<bool> AllowExternalContracts = new("--allow-external-contracts",
     "Allow exporting callables with preconditions, and importing callables with postconditions");
 
