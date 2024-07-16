@@ -3487,13 +3487,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      if (introduceScope) {
-        CurrentIdGenerator.Push();
-      }
       TrStmtList(new List<Statement> { block }, builder, locals, etran, introduceScope ? block.RangeToken : null, processLabels: false);
-      if (introduceScope) {
-        CurrentIdGenerator.Pop();
-      }
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
