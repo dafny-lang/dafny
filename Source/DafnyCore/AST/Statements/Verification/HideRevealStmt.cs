@@ -83,13 +83,17 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
       if (labeledAssert != null) {
         LabeledAsserts.Add(labeledAssert);
       } else {
-        if (expr is NameSegment or ExprDotName) {
-          if (expr is NameSegment) {
-            resolver.ResolveNameSegment((NameSegment)expr, true, null, resolutionContext, true);
+        Expression effectiveExpr = expr;
+        if (expr is ApplySuffix applySuffix) {
+          effectiveExpr = applySuffix.Lhs;
+        }
+        if (effectiveExpr is NameSegment or ExprDotName) {
+          if (effectiveExpr is NameSegment) {
+            resolver.ResolveNameSegment((NameSegment)effectiveExpr, true, null, resolutionContext, true);
           } else {
-            resolver.ResolveDotSuffix((ExprDotName)expr, true, null, resolutionContext, true);
+            resolver.ResolveDotSuffix((ExprDotName)effectiveExpr, true, null, resolutionContext, true);
           }
-          var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+          var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)effectiveExpr).ResolvedExpression;
           if (callee == null) {
             // error from resolving child
           } else {
@@ -97,7 +101,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
               OffsetMembers.Add(callee.Member);
               if (callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
                 var revealResolutionContext = resolutionContext with { InReveal = true };
-                var exprClone = new Cloner().CloneExpr(expr);
+                var exprClone = new Cloner().CloneExpr(effectiveExpr);
                 if (exprClone is NameSegment) {
                   resolver.ResolveNameSegment((NameSegment)exprClone, true, null, revealResolutionContext, true);
                 } else {
@@ -105,36 +109,12 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
                 }
                 var call = new CallStmt(RangeToken, new List<Expression>(),
                   ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression),
-                  new List<ActualBinding>(), expr.tok);
+                  new List<ActualBinding>(), effectiveExpr.tok);
                 ResolvedStatements.Add(call);
               }
             } else {
-              resolver.Reporter.Error(MessageSource.Resolver, expr.Tok,
+              resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
                 "only functions can be revealed");
-            }
-          }
-        } else if (expr is ApplySuffix applySuffix) {
-          // This else if is to provide backwards compatibility for the style of revealing an applied function 
-          var errors = resolver.Reporter.ErrorCount;
-          resolver.ResolveApplySuffix(applySuffix, resolutionContext, true);
-          var functionCallExpr = applySuffix.Resolved as FunctionCallExpr;
-          if (resolver.Reporter.ErrorCount != errors) {
-            // error has already been reported
-          } else if (functionCallExpr == null) {
-            resolver.Reporter.Error(MessageSource.Resolver, expr, "only functions can be revealed");
-          } else if (functionCallExpr.Function is TwoStateFunction && !resolutionContext.IsTwoState) {
-            resolver.Reporter.Error(MessageSource.Resolver, functionCallExpr.Function.Tok, "a two-state function can only be revealed in a two-state context");
-          } else if (functionCallExpr.AtLabel != null) {
-            Contract.Assert(functionCallExpr.Function is TwoStateFunction);
-            resolver.Reporter.Error(MessageSource.Resolver, functionCallExpr.Function.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
-          } else {
-            OffsetMembers.Add(functionCallExpr.Function);
-            if (functionCallExpr.Function.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
-              var exprClone = (ApplySuffix)new Cloner().CloneExpr(applySuffix);
-              var revealResolutionContext = resolutionContext with { InReveal = true };
-              var revealMethodCallInfo = resolver.ResolveApplySuffix(exprClone, revealResolutionContext, true);
-              var call = new CallStmt(RangeToken, new List<Expression>(), revealMethodCallInfo.Callee, revealMethodCallInfo.ActualParameters);
-              ResolvedStatements.Add(call);
             }
           }
         } else {
