@@ -121,7 +121,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
               }
             } else {
               resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
-                "only functions can be revealed");
+                "only functions and constants can be revealed");
             }
           }
         } else {

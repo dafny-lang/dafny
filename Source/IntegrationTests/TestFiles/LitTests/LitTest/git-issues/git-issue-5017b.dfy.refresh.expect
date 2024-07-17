@@ -9,15 +9,15 @@ git-issue-5017b.dfy(94,13): Error: predicate 'Valid' cannot be revealed, because
 git-issue-5017b.dfy(132,11): Error: unresolved identifier: x
 git-issue-5017b.dfy(133,13): Error: member 'UnknownFunction' does not exist in trait 'A'
 git-issue-5017b.dfy(134,13): Error: member 'UnknownFunction' does not exist in trait 'A'
-git-issue-5017b.dfy(135,13): Error: only functions can be revealed
-git-issue-5017b.dfy(136,13): Error: only functions can be revealed
+git-issue-5017b.dfy(135,13): Error: only functions and constants can be revealed
+git-issue-5017b.dfy(136,13): Error: only functions and constants can be revealed
 git-issue-5017b.dfy(140,13): Error: predicate 'Valid' cannot be revealed, because it has no body in trait 'A'
 git-issue-5017b.dfy(141,13): Error: predicate 'Valid' cannot be revealed, because it has no body in trait 'A'
 git-issue-5017b.dfy(145,13): Error: accessing member 'WithBody' requires an instance expression
 git-issue-5017b.dfy(117,13): Error: unresolved identifier: UnknownFunction
 git-issue-5017b.dfy(118,13): Error: unresolved identifier: UnknownFunction
-git-issue-5017b.dfy(119,13): Error: only functions can be revealed
-git-issue-5017b.dfy(120,13): Error: only functions can be revealed
+git-issue-5017b.dfy(119,13): Error: only functions and constants can be revealed
+git-issue-5017b.dfy(120,13): Error: only functions and constants can be revealed
 git-issue-5017b.dfy(124,13): Error: cannot reveal 'Valid' because no revealable constant, function, assert label, or requires label in the current scope is named 'Valid'
 git-issue-5017b.dfy(125,13): Error: cannot reveal 'Valid' because no revealable constant, function, assert label, or requires label in the current scope is named 'Valid'
 22 resolution/type errors detected in git-issue-5017b.dfy
