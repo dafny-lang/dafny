@@ -2105,7 +2105,7 @@ By default, function bodies are revealed and available for constructing proofs o
 However, if a function body is not necessary for a proof, the runtime of the proof can be improved by hiding that body.
 To do this, use the hide statement. Here's an example:
 
-<!-- %check-verify -->
+<!-- %check-verify %options --isolate-assertions --type-system-refresh -->
 ```dafny
 // We are using the options --isolate-assertions and --type-system-refresh
 method Outer(x: int)
