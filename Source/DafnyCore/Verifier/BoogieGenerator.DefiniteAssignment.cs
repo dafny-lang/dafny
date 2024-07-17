@@ -20,13 +20,13 @@ namespace Microsoft.Dafny {
 
     #region Definite-assignment tracking
 
-    bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type, bool isFIeld) {
+    bool NeedsDefiniteAssignmentTracker(bool isGhost, Type type, bool isField) {
       Contract.Requires(type != null);
 
       if (options.DefiniteAssignmentLevel == 0) {
         return false;
       } else if (options.DefiniteAssignmentLevel == 1 ||
-                 (options.DefiniteAssignmentLevel == 4 && isFIeld && !options.ForbidNondeterminism)) {
+                 (options.DefiniteAssignmentLevel == 4 && isField && !options.ForbidNondeterminism)) {
         if (isGhost && type.IsNonempty) {
           return false;
         } else if (!isGhost && type.HasCompilableValue) {

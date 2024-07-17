@@ -2107,6 +2107,7 @@ To do this, use the hide statement. Here's an example:
 
 <!-- %check-verify -->
 ```dafny
+// We are using the options --isolate-assertions and --type-system-refresh
 method Outer(x: int)
   requires ComplicatedBody(x) 
 {
@@ -2117,7 +2118,6 @@ method Outer(x: int)
   
   // We reveal ComplicatedBody inside the following expression, to prove that we are not dividing by zero
   var z := (reveal ComplicatedBody; 10 / x);
-  ...
 }
 
 method Inner(x: int) returns (r: int)
@@ -2130,8 +2130,9 @@ predicate ComplicatedBody(x: int) {
 
 Here is a larger example that shows the rules for hide and reveal statements when used on functions:
 
-<!-- %check-verify -->
+<!-- %check-verify Statements.8b.expect %options --isolate-assertions --type-system-refresh -->
 ```dafny
+// We are using the options --isolate-assertions and --type-system-refresh
 predicate P() { true }
 predicate Q(x: bool) requires x
 
