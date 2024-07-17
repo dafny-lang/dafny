@@ -1589,9 +1589,13 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         ebody = BoogieGenerator.BoxIfNotNormallyBoxed(ebody.tok, ebody, e.Body.Type);
 
         var isBoxes = BplAnd(ves.Zip(e.BoundVars, (ve, bv) => BoogieGenerator.MkIsBox(ve, bv.Type)));
-        var reqbody = e.Range == null
-          ? isBoxes
-          : BplAnd(isBoxes, et.TrExpr(BoogieGenerator.Substitute(e.Range, null, subst)));
+        Bpl.Expr reqbody;
+        if (e.Range == null) {
+          reqbody = isBoxes;
+        } else {
+          var range = BoogieGenerator.Substitute(e.Range, null, subst);
+          reqbody = BplAnd(isBoxes, BplImp(et.CanCallAssumption(range), et.TrExpr(range)));
+        }
 
         var rdvars = new List<Boogie.Variable>();
         var o = BplBoundVar(varNameGen.FreshId("#o#"), predef.RefType, rdvars);
