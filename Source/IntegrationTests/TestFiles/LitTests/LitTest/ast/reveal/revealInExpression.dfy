@@ -1,5 +1,5 @@
 // echo 'turned off for the moment'
-// NOOP: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
+// NOOP: ! %verify --type-system-refresh --allow-axioms --isolate-assertions %s > %t
 // NOOP: %diff "%s.expect" "%t"
 
 function P(x: int): bool {

@@ -1,4 +1,4 @@
-// RUN: ! %verify --type-system-refresh --allow-axioms --bprint:%t.bpl --isolate-assertions --boogie "/printPruned:%S/pruned" %s > %t
+// RUN: ! %verify --type-system-refresh --allow-axioms --isolate-assertions %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 method MethodEnsuresAreHidden() {
