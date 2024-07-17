@@ -2227,8 +2227,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             Boogie.IdentifierExpr canCallFuncID = new Boogie.IdentifierExpr(expr.tok, e.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
             List<Boogie.Expr> args = FunctionInvocationArguments(e, null, null);
             Boogie.Expr canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncID), args);
-            bool makeAllowance = cco != null && (e.Function == cco.SelfCallsAllowance);
-            var add = makeAllowance ? Boogie.Expr.Or(TrExpr(MakeAllowance(e, cco)), canCallFuncAppl) : canCallFuncAppl;
+            var add = cco != null && cco.MakeAllowance(e.Function) ? Boogie.Expr.Or(TrExpr(MakeAllowance(e, cco)), canCallFuncAppl) : canCallFuncAppl;
             r = BplAnd(r, add);
           }
           return r;
@@ -2313,7 +2312,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
             case BinaryExpr.ResolvedOpcode.EqCommon:
             case BinaryExpr.ResolvedOpcode.NeqCommon: {
                 Boogie.Expr r = Boogie.Expr.True;
-                if (cco == null || !cco.skipIsA) {
+                if (cco?.SkipIsA == true) {
                   if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
                     var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.tok, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
                     r = BplAnd(r, new Boogie.NAryExpr(expr.tok, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
@@ -2552,24 +2551,23 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
     }
 
     public class CanCallOptions {
-      public readonly Function SelfCallsAllowance;
-      public readonly Function EnclosingFunction;
+      public bool SkipIsA;
 
-      public bool skipIsA;
+      public readonly Function EnclosingFunction; // self-call allowance is applied to the enclosing function
+      public readonly bool SelfCallAllowanceAlsoForOverride;
 
-      public CanCallOptions(Function f, bool skip = false) {
-        this.SelfCallsAllowance = f;
-        this.EnclosingFunction = f;
-        this.skipIsA = skip;
+      public bool MakeAllowance(Function f) {
+        return f == EnclosingFunction || (SelfCallAllowanceAlsoForOverride && f == EnclosingFunction.OverriddenFunction);
       }
 
-      public CanCallOptions(Function f, Function g, bool skip = false) {
-        Contract.Assert(f.Ins.Count() == g.Ins.Count());
-        this.SelfCallsAllowance = f;
-        this.EnclosingFunction = g;
-        this.skipIsA = skip;
+      public CanCallOptions(bool skipIsA, Function enclosingFunction, bool selfCallAllowanceAlsoForOverride = false) {
+        Contract.Assert(!selfCallAllowanceAlsoForOverride ||
+                        (enclosingFunction.OverriddenFunction != null &&
+                         enclosingFunction.Ins.Count == enclosingFunction.OverriddenFunction.Ins.Count));
+        this.SkipIsA = skipIsA;
+        this.EnclosingFunction = enclosingFunction;
+        this.SelfCallAllowanceAlsoForOverride = selfCallAllowanceAlsoForOverride;
       }
-
     }
   }
 }

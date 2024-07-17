@@ -1064,7 +1064,7 @@ namespace Microsoft.Dafny {
       Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Ins.Count <= implInParams.Count);
 
-      var cco = new CanCallOptions(f, true);
+      var cco = new CanCallOptions(true, f);
       //generating class post-conditions
       foreach (var en in ConjunctsOf(f.Ens)) {
         builder.Add(TrAssumeCmd(f.tok, etran.CanCallAssumption(en.E, cco)));
@@ -1108,7 +1108,7 @@ namespace Microsoft.Dafny {
         .Select(e => e.E)
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating trait post-conditions with class variables
-      cco = new CanCallOptions(f.OverriddenFunction, f, true);
+      cco = new CanCallOptions(true, f, true);
       FunctionCallSubstituter sub = null;
       foreach (var en in ConjunctsOf(f.OverriddenFunction.Ens)) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
@@ -1201,7 +1201,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
-      var cco = new CanCallOptions(f.OverriddenFunction, f, true);
+      var cco = new CanCallOptions(true, f, true);
       FunctionCallSubstituter sub = null;
       var subReqs = new List<Expression>();
       foreach (var req in ConjunctsOf(f.OverriddenFunction.Req)) {
@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny {
       var allTraitReqs = subReqs.Count == 0 ? null : subReqs
         .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
       //generating class pre-conditions
-      cco = new CanCallOptions(f, true);
+      cco = new CanCallOptions(true, f);
       foreach (var req in ConjunctsOf(f.Req)) {
         foreach (var s in TrSplitExpr(req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(f.tok, etran.CanCallAssumption(req.E, cco)));
