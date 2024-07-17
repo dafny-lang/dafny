@@ -803,14 +803,14 @@ namespace Microsoft.Dafny {
 
       filterOnlyMembers = false;
 
+      AddTraitParentAxioms();
+
       foreach (var c in tytagConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
-
-      AddTraitParentAxioms();
 
       if (InsertChecksums) {
         foreach (var impl in sink.Implementations) {
@@ -3231,6 +3231,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Bpl.Expr AdaptBoxing(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
+      if (fromType.IsTypeParameter) {
+        return CondApplyUnbox(tok, e, fromType, toType);
+      } else {
+        return CondApplyBox(tok, e, fromType, toType);
+      }
+    }
+
     public Bpl.Expr CondApplyBox(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
@@ -3796,15 +3804,15 @@ namespace Microsoft.Dafny {
     }
 
     // Boxes, if necessary
-    Bpl.Expr MkIs(Bpl.Expr x, Type t) {
-      return MkIs(x, TypeToTy(t), ModeledAsBoxType(t));
+    Bpl.Expr MkIs(Bpl.Expr x, Type t, Bpl.IToken tok = null) {
+      return MkIs(x, TypeToTy(t), ModeledAsBoxType(t), tok);
     }
 
-    Bpl.Expr MkIs(Bpl.Expr x, Bpl.Expr t, bool box = false) {
+    Bpl.Expr MkIs(Bpl.Expr x, Bpl.Expr t, bool box = false, Bpl.IToken tok = null) {
       if (box) {
-        return FunctionCall(x.tok, BuiltinFunction.IsBox, null, x, t);
+        return FunctionCall(tok ?? x.tok, BuiltinFunction.IsBox, null, x, t);
       } else {
-        return FunctionCall(x.tok, BuiltinFunction.Is, null, x, t);
+        return FunctionCall(tok ?? x.tok, BuiltinFunction.Is, null, x, t);
       }
     }
 
@@ -3866,7 +3874,7 @@ namespace Microsoft.Dafny {
       if (alwaysUseSymbolicName) {
         // go for the symbolic name
         isPred = MkIs(x, normType);
-      } else if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
+      } else if (normType is BoolType or IntType or RealType or BigOrdinalType) {
         // nothing to do
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
@@ -3975,6 +3983,7 @@ namespace Microsoft.Dafny {
     public delegate Expression SubrangeCheckContext(Expression check);
 
     Bpl.Expr GetSubrangeCheck(
+      Bpl.IToken tok,
       Bpl.Expr bSource, Type sourceType, Type targetType,
       // allow null for checked expressions that cannot necessarily be named without side effects, such as method out-params
       [CanBeNull] Expression source,
@@ -3994,13 +4003,13 @@ namespace Microsoft.Dafny {
       Bpl.Expr cre;
       if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl &&
           ModeledAsBoxType((redirectingTypeDecl as NewtypeDecl)?.BaseType ?? redirectingTypeDecl.Var.Type)) {
-        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
+        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true, tok);
       } else if (ModeledAsBoxType(sourceType)) {
-        cre = MkIs(bSource, TypeToTy(targetType), true);
+        cre = MkIs(bSource, TypeToTy(targetType), true, tok);
       } else if (targetType is UserDefinedType targetUdt) {
-        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType);
+        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType, tok);
       } else {
-        cre = MkIs(bSource, targetType);
+        cre = MkIs(bSource, targetType, tok);
       }
 
       Expression dafnyCheck = null;
@@ -4047,7 +4056,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      var cre = GetSubrangeCheck(bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
+      var cre = GetSubrangeCheck(tok, bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
       if (cre != null) {
         builder.Add(Assert(tok, cre, desc));
       }
@@ -4556,13 +4565,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool apply_induction, out bool splitHappened) {
+    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool applyInduction, out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, apply_induction, etran);
+      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, applyInduction, etran);
       return splits;
     }
 
@@ -4572,9 +4581,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      var apply_induction = kind == MethodTranslationKind.Implementation;
-      bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
+      var applyInduction = kind == MethodTranslationKind.Implementation;
+      TrSplitExpr(expr, splits, true, int.MaxValue,
+        kind != MethodTranslationKind.Call, applyInduction, etran);
       return splits;
     }
 

@@ -51,3 +51,27 @@ datatype Option<+T> = None | Some(value: T) {
     value
   }
 }
+
+// The following method includes an assignment whose RHS is a deeply nested expression.
+// We optimize such assignments, too. By including this test here, we make sure the Java
+// we generate doesn't contain any occurrences of "Let(".
+method DeepAssignment(x: int) returns (r: int) {
+  r :=
+    var x0 := x;
+    var x1 := x0;
+    var x2 := x1;
+    var x3 := x2;
+    var x4 := x3;
+    var x5 := x4;
+    var x6 := x5;
+    var x7 := x6;
+    if x0 == x7 then
+      var y0 := x;
+      var y1 := y0;
+      y1
+    else
+      var y2 := x;
+      var y3 := y2;
+      y3;
+  return r;
+}

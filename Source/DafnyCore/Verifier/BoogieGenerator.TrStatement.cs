@@ -529,161 +529,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(builder != null);
-      Contract.Requires(locals != null);
-      Contract.Requires(etran != null);
-
-      fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, fuelContext, reporter);
-      if (stmt is AssertStmt || options.DisallowSoundnessCheating) {
-        TrAssertStmt(stmt, builder, locals, etran);
-      } else if (stmt is ExpectStmt expectStmt) {
-        TrExpectStmt(builder, locals, etran, expectStmt);
-      } else if (stmt is AssumeStmt assumeStmt) {
-        TrAssumeStmt(assumeStmt, builder, locals, etran);
-      }
-      fuelContext = FuelSetting.PopFuelContext();
-    }
-
-    private void TrAssumeStmt(AssumeStmt assumeStmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      AddComment(builder, assumeStmt, "assume statement");
-      stmtContext = StmtType.ASSUME;
-      TrStmt_CheckWellformed(assumeStmt.Expr, builder, locals, etran, false);
-      builder.Add(TrAssumeCmdWithDependencies(etran, assumeStmt.Tok, assumeStmt.Expr, "assume statement", true,
-        etran.TrAttributes(assumeStmt.Attributes, null)));
-      stmtContext = StmtType.NONE; // done with translating assume stmt.
-      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        builder.AddCaptureState(assumeStmt);
-      }
-    }
-
-    private void TrExpectStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ExpectStmt expectStmt) {
-      AddComment(builder, expectStmt, "expect statement");
-      stmtContext = StmtType.ASSUME;
-      TrStmt_CheckWellformed(expectStmt.Expr, builder, locals, etran, false);
-
-      // Need to check the message is well-formed, assuming the expected expression
-      // does NOT hold:
-      //
-      // if Not(TrExpr[[ s.Expr ]]) {
-      //  CheckWellformed[[ s.Message ]]
-      //  assume false;
-      // }
-      BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this, options);
-      TrStmt_CheckWellformed(expectStmt.Message, thnBuilder, locals, etran, false);
-      thnBuilder.Add(TrAssumeCmd(expectStmt.Tok, new Bpl.LiteralExpr(expectStmt.Tok, false),
-        etran.TrAttributes(expectStmt.Attributes, null)));
-      Bpl.StmtList thn = thnBuilder.Collect(expectStmt.Tok);
-      builder.Add(new Bpl.IfCmd(expectStmt.Tok, Bpl.Expr.Not(etran.TrExpr(expectStmt.Expr)), thn, null, null));
-
-      stmtContext = StmtType.NONE; // done with translating expect stmt.
-    }
-
-    private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      var stmtBuilder = new BoogieStmtListBuilder(this, options);
-      var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
-      var b = defineFuel ? stmtBuilder : builder;
-      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
-      stmtContext = StmtType.ASSERT;
-      AddComment(b, stmt, "assert statement");
-      TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
-      IToken enclosingToken = null;
-      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
-        enclosingToken = stmt.Tok;
-      }
-
-      BoogieStmtListBuilder proofBuilder = null;
-      var assertStmt = stmt as AssertStmt;
-      if (assertStmt != null) {
-        if (assertStmt.Proof != null) {
-          proofBuilder = new BoogieStmtListBuilder(this, options);
-          AddComment(proofBuilder, stmt, "assert statement proof");
-          CurrentIdGenerator.Push();
-          TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
-          CurrentIdGenerator.Pop();
-        } else if (assertStmt.Label != null) {
-          proofBuilder = new BoogieStmtListBuilder(this, options);
-          AddComment(proofBuilder, stmt, "assert statement proof");
-        }
-      }
-
-      var splits = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
-      if (!splitHappened) {
-        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-        var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
-        (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
-          etran.TrAttributes(stmt.Attributes, null)));
-      } else {
-        foreach (var split in splits) {
-          if (split.IsChecked) {
-            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-            var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
-            (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
-              etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
-          }
-        }
-      }
-
-      if (proofBuilder != null) {
-        PathAsideBlock(stmt.Tok, proofBuilder, b);
-      }
-
-      stmtContext = StmtType.NONE; // done with translating assert stmt
-      if (splitHappened || proofBuilder != null) {
-        if (assertStmt != null && assertStmt.Label != null) {
-          // make copies of the variables used in the assertion
-          var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
-          var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
-          locals.Add(heapAt);
-          var h = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
-          b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
-          var substMap = new Dictionary<IVariable, Expression>();
-          foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr)) {
-            if (v is LocalVariable) {
-              var vcopy = new LocalVariable(stmt.RangeToken, string.Format("##{0}#{1}", name, v.Name), v.Type,
-                v.IsGhost);
-              vcopy.type = vcopy.SyntacticType; // resolve local here
-              IdentifierExpr ie = new IdentifierExpr(vcopy.Tok,
-                vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
-              ie.Var = vcopy;
-              ie.Type = ie.Var.Type; // resolve ie here
-              substMap.Add(v, ie);
-              locals.Add(new Bpl.LocalVariable(vcopy.Tok,
-                new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator),
-                  TrType(vcopy.Type))));
-              b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
-            }
-          }
-
-          var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
-          var etr = new ExpressionTranslator(etran, h);
-          assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
-        } else if (!defineFuel) {
-          // Adding the assume stmt, resetting the stmtContext
-          stmtContext = StmtType.ASSUME;
-          adjustFuelForExists = true;
-          b.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
-          stmtContext = StmtType.NONE;
-        }
-      }
-
-      if (defineFuel) {
-        var ifCmd = new Bpl.IfCmd(stmt.Tok, null, b.Collect(stmt.Tok), null,
-          null); // BUGBUG: shouldn't this first append "assume false" to "b"? (use PathAsideBlock to do this)  --KRML
-        builder.Add(ifCmd);
-        // Adding the assume stmt, resetting the stmtContext
-        stmtContext = StmtType.ASSUME;
-        adjustFuelForExists = true;
-        builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Tok, stmt.Expr, "assert statement", true));
-        stmtContext = StmtType.NONE;
-      }
-
-      if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-        builder.AddCaptureState(stmt);
-      }
-    }
-
     private void TrCalcStmt(CalcStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
@@ -953,7 +798,7 @@ namespace Microsoft.Dafny {
         var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
         var checkContext = MakeNumericBoundsSubrangeCheckContext(sourceBoundVar, dLo, dHi);
         var cre = GetSubrangeCheck(
-          x, Type.Int, indexVar.Type,
+          x.tok, x, Type.Int, indexVar.Type,
           new IdentifierExpr(Token.NoToken, sourceBoundVar),
           checkContext, out var desc);
 
@@ -1981,13 +1826,13 @@ namespace Microsoft.Dafny {
           // Check the subrange without boxing
           var beforeBox = etran.TrExpr(actual);
           CheckSubrange(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst), actual, builder);
-          bActual = CondApplyBox(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
+          bActual = AdaptBoxing(actual.tok, beforeBox, actual.Type, formal.Type.Subst(tySubst));
           dActual = actual;
         }
         directSubstMap.Add(formal, dActual);
         Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.tok, param, bActual);
         builder.Add(cmd);
-        ins.Add(CondApplyBox(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+        ins.Add(AdaptBoxing(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
       }
 
       // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -2729,13 +2574,13 @@ namespace Microsoft.Dafny {
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
-          var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, bRhs, e.Expr.Type, lhsType));
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, AdaptBoxing(tok, bRhs, e.Expr.Type, lhsType));
           proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
           builder.Add(cmd);
           return bGivenLhs;
         } else {
           // box from RHS type to tmp-var type, then do the assignment; then return LHS, boxed from tmp-var type to result type
-          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, CondApplyBox(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
+          var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, AdaptBoxing(tok, bRhs, e.Expr.Type, rhsTypeConstraint));
           proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.RangeToken));
           builder.Add(cmd);
           return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);

@@ -1985,14 +1985,6 @@ namespace Microsoft.Dafny.Compilers {
       EmitReturnWithCoercions(outParams, null, null, wr);
     }
 
-    protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, ConcreteSyntaxTree wr) {
-      var wStmts = wr.Fork();
-      var w = EmitReturnExpr(wr);
-      var fromType = thisContext == null ? expr.Type : expr.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-      w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
-      w.Append(Expr(expr, inLetExprBody, wStmts));
-    }
-
     protected void EmitReturnWithCoercions(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, Dictionary<TypeParameter, Type>/*?*/ typeMap, ConcreteSyntaxTree wr) {
       wr.Write("return");
       var sep = " ";
@@ -3899,7 +3891,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (to.IsTypeParameter || (from != null && EqualsUpToParameters(from, to))) {
         // do nothing
         return wr;
-      } else if (from != null && from.IsSubtypeOf(to, true, true)) {
+      } else if (from != null && !from.IsTypeParameter && from.IsSubtypeOf(to, true, true)) {
         // upcast
         return wr;
       } else if (from == null || from.IsTypeParameter || to.IsSubtypeOf(from, true, true)) {
@@ -3932,6 +3924,16 @@ namespace Microsoft.Dafny.Compilers {
         Error(GeneratorErrors.ErrorId.c_Go_infeasible_conversion, tok, "Cannot convert from {0} to {1}", wr, from, to);
         return wr;
       }
+    }
+
+    protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
+      if (to.IsTraitType) {
+        wr.Write("{0}.CastTo_(", TypeName_Companion(to.AsTraitType, wr, tok));
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      }
+      return base.EmitDowncast(from, to, tok, wr);
     }
 
     protected override ConcreteSyntaxTree EmitCoercionToNativeInt(ConcreteSyntaxTree wr) {
