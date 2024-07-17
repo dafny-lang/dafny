@@ -100,7 +100,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
           if (callee == null) {
             // error from resolving child
           } else {
-            if (callee.Member is Function) {
+            if (callee.Member is Function or ConstantField) {
               OffsetMembers.Add(callee.Member);
               if (callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
                 var revealResolutionContext = resolutionContext with { InReveal = true };
@@ -110,10 +110,14 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
                 } else {
                   resolver.ResolveDotSuffix((ExprDotName)exprClone, true, null, revealResolutionContext, true);
                 }
-                var call = new CallStmt(RangeToken, new List<Expression>(),
-                  ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression),
-                  new List<ActualBinding>(), effectiveExpr.tok);
-                ResolvedStatements.Add(call);
+
+                var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
+                if (revealCallee != null) {
+                  var call = new CallStmt(RangeToken, new List<Expression>(),
+                    revealCallee,
+                    new List<ActualBinding>(), effectiveExpr.tok);
+                  ResolvedStatements.Add(call);
+                }
               }
             } else {
               resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
