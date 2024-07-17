@@ -1,4 +1,4 @@
-// echo 'turned off for the moment'
+// RUN: echo 'turned off for the moment'
 // NOOP: ! %verify --type-system-refresh --allow-axioms --isolate-assertions %s > %t
 // NOOP: %diff "%s.expect" "%t"
 

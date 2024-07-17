@@ -2105,6 +2105,7 @@ By default, function bodies are revealed and available for constructing proofs o
 However, if a function body is not necessary for a proof, the runtime of the proof can be improved by hiding that body.
 To do this, use the hide statement. Here's an example:
 
+<!-- %check-verify -->
 ```dafny
 method Outer(x: int)
   requires ComplicatedBody(x) 
@@ -2123,12 +2124,13 @@ method Inner(x: int) returns (r: int)
   requires ComplicatedBody(x)
 
 predicate ComplicatedBody(x: int) {
-  x != 0 && ...
+  x != 0 && true // pretend true is complicated 
 }
 ```
 
 Here is a larger example that shows the rules for hide and reveal statements when used on functions:
 
+<!-- %check-verify -->
 ```dafny
 predicate P() { true }
 predicate Q(x: bool) requires x
