@@ -1608,11 +1608,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-          if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-            Error(ErrorId.c_iterators_are_not_deterministic, iter.tok,
-              "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option",
-              wr);
-          }
 
           var wIter = CreateIterator(iter, wr);
           if (iter.Body == null) {
@@ -1670,6 +1665,8 @@ namespace Microsoft.Dafny.Compilers {
               !classIsExtern &&
               !cl.Members.Exists(member => member is Constructor) &&
               cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+            // This check should be moved to the resolver once we have a language construct to indicate the type is imported
+            // Instead of the extern attribute
             Error(ErrorId.c_constructorless_class_forbidden, cl.tok,
               "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option",
               wr);

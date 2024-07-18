@@ -57,4 +57,51 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
       formatter.VisitAlternatives(Alternatives, indentBefore);
     });
   }
+
+  public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+    if (resolver.Options.ForbidNondeterminism && 2 <= Alternatives.Count) {
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_if_forbidden, Tok,
+        "case-based if statement forbidden by the --enforce-determinism option");
+    }
+    ResolveAlternatives(resolver, Alternatives, null, resolutionContext);
+  }
+
+
+  public static void ResolveAlternatives(INewOrOldResolver resolver, List<GuardedAlternative> alternatives,
+    AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
+    Contract.Requires(alternatives != null);
+    Contract.Requires(resolutionContext != null);
+
+    // first, resolve the guards
+    foreach (var alternative in alternatives) {
+      int prevErrorCount = resolver.Reporter.Count(ErrorLevel.Error);
+      resolver.ResolveExpression(alternative.Guard, resolutionContext);
+      Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
+      bool successfullyResolved = resolver.Reporter.Count(ErrorLevel.Error) == prevErrorCount;
+      resolver.ConstrainTypeExprBool(alternative.Guard, "condition is expected to be of type bool, but is {0}");
+    }
+
+    if (loopToCatchBreaks != null) {
+      resolver.LoopStack.Add(loopToCatchBreaks);  // push
+    }
+    foreach (var alternative in alternatives) {
+      resolver.Scope.PushMarker();
+      resolver.DominatingStatementLabels.PushMarker();
+      if (alternative.IsBindingGuard) {
+        var exists = (ExistsExpr)alternative.Guard;
+        foreach (var v in exists.BoundVars) {
+          resolver.ScopePushAndReport(resolver.Scope, v, "bound-variable");
+        }
+      }
+      resolver.ResolveAttributes(alternative, resolutionContext);
+      foreach (Statement ss in alternative.Body) {
+        resolver.ResolveStatementWithLabels(ss, resolutionContext);
+      }
+      resolver.DominatingStatementLabels.PopMarker();
+      resolver.Scope.PopMarker();
+    }
+    if (loopToCatchBreaks != null) {
+      resolver.LoopStack.RemoveAt(resolver.LoopStack.Count - 1);  // pop
+    }
+  }
 }
