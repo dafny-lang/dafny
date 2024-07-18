@@ -9,6 +9,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public override IToken Tok => PostLabelToken ?? StartToken;
   public IToken PostLabelToken { get; set; }
 
+  public int ScopeDepth { get; set; }
   public LList<Label> Labels;  // mutable during resolution
 
   private Attributes attributes;

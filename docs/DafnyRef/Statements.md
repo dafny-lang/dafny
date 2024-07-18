@@ -2105,7 +2105,9 @@ By default, function bodies are revealed and available for constructing proofs o
 However, if a function body is not necessary for a proof, the runtime of the proof can be improved by hiding that body.
 To do this, use the hide statement. Here's an example:
 
+<!-- %check-verify %options --isolate-assertions --type-system-refresh -->
 ```dafny
+// We are using the options --isolate-assertions and --type-system-refresh
 method Outer(x: int)
   requires ComplicatedBody(x) 
 {
@@ -2116,20 +2118,21 @@ method Outer(x: int)
   
   // We reveal ComplicatedBody inside the following expression, to prove that we are not dividing by zero
   var z := (reveal ComplicatedBody; 10 / x);
-  ...
 }
 
 method Inner(x: int) returns (r: int)
   requires ComplicatedBody(x)
 
 predicate ComplicatedBody(x: int) {
-  x != 0 && ...
+  x != 0 && true // pretend true is complicated 
 }
 ```
 
 Here is a larger example that shows the rules for hide and reveal statements when used on functions:
 
+<!-- %check-verify Statements.8b.expect %options --isolate-assertions --type-system-refresh -->
 ```dafny
+// We are using the options --isolate-assertions and --type-system-refresh
 predicate P() { true }
 predicate Q(x: bool) requires x
 

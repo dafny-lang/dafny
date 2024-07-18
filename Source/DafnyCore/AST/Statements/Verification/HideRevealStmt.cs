@@ -71,7 +71,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   }
 
   public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
-    ((MethodOrFunction)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
+    ((ICodeContainer)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
       return;
@@ -83,59 +83,45 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
       if (labeledAssert != null) {
         LabeledAsserts.Add(labeledAssert);
       } else {
-        if (expr is NameSegment or ExprDotName) {
-          if (expr is NameSegment) {
-            resolver.ResolveNameSegment((NameSegment)expr, true, null, resolutionContext, true);
-          } else {
-            resolver.ResolveDotSuffix((ExprDotName)expr, true, null, resolutionContext, true);
+        Expression effectiveExpr = expr;
+        if (expr is ApplySuffix applySuffix) {
+          if (applySuffix.AtTok != null) {
+            resolver.Reporter.Error(MessageSource.Resolver, expr.Tok, $"an @-label can not be used in a hide or reveal statement");
           }
-          var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
+          effectiveExpr = applySuffix.Lhs;
+        }
+        if (effectiveExpr is NameSegment or ExprDotName) {
+          if (effectiveExpr is NameSegment) {
+            resolver.ResolveNameSegment((NameSegment)effectiveExpr, true, null, resolutionContext, true);
+          } else {
+            resolver.ResolveDotSuffix((ExprDotName)effectiveExpr, true, null, resolutionContext, true);
+          }
+          var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)effectiveExpr).ResolvedExpression;
           if (callee == null) {
             // error from resolving child
           } else {
-            if (callee.Member is Function) {
+            if (callee.Member is Function or ConstantField) {
               OffsetMembers.Add(callee.Member);
               if (callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
                 var revealResolutionContext = resolutionContext with { InReveal = true };
-                var exprClone = new Cloner().CloneExpr(expr);
+                var exprClone = new Cloner().CloneExpr(effectiveExpr);
                 if (exprClone is NameSegment) {
                   resolver.ResolveNameSegment((NameSegment)exprClone, true, null, revealResolutionContext, true);
                 } else {
                   resolver.ResolveDotSuffix((ExprDotName)exprClone, true, null, revealResolutionContext, true);
                 }
-                var call = new CallStmt(RangeToken, new List<Expression>(),
-                  ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression),
-                  new List<ActualBinding>(), expr.tok);
-                ResolvedStatements.Add(call);
+
+                var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
+                if (revealCallee != null) {
+                  var call = new CallStmt(RangeToken, new List<Expression>(),
+                    revealCallee,
+                    new List<ActualBinding>(), effectiveExpr.tok);
+                  ResolvedStatements.Add(call);
+                }
               }
             } else {
-              resolver.Reporter.Error(MessageSource.Resolver, expr.Tok,
-                "only functions can be revealed");
-            }
-          }
-        } else if (expr is ApplySuffix applySuffix) {
-          // This else if is to provide backwards compatibility for the style of revealing an applied function 
-          var methodCallInfo = resolver.ResolveApplySuffix(applySuffix, resolutionContext, true);
-          if (methodCallInfo == null) {
-            // error has already been reported
-          } else if (methodCallInfo.Callee.Member is not Function) {
-            resolver.Reporter.Error(MessageSource.Resolver, expr,
-              "only functions can be revealed");
-          } else if (methodCallInfo.Callee.Member is TwoStateLemma && !resolutionContext.IsTwoState) {
-            resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-          } else if (methodCallInfo.Callee.AtLabel != null) {
-            Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-            resolver.Reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
-          } else {
-            OffsetMembers.Add(methodCallInfo.Callee.Member);
-            if (methodCallInfo.Callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
-              var exprClone = (ApplySuffix)new Cloner().CloneExpr(applySuffix);
-              var revealResolutionContext = resolutionContext with { InReveal = true };
-              var revealMethodCallInfo = resolver.ResolveApplySuffix(exprClone, revealResolutionContext, true);
-              if (revealMethodCallInfo.Callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
-                var call = new CallStmt(RangeToken, new List<Expression>(), revealMethodCallInfo.Callee, revealMethodCallInfo.ActualParameters);
-                ResolvedStatements.Add(call);
-              }
+              resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
+                "only functions and constants can be revealed");
             }
           }
         } else {

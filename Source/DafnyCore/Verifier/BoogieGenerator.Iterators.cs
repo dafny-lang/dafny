@@ -279,7 +279,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
 
-      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(iter.ContainsHide));
       var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().

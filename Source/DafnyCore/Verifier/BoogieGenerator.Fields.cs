@@ -119,7 +119,9 @@ namespace Microsoft.Dafny {
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
             if (!IsOpaque(cf)) {
-              sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+              var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
+              definitionAxiom.CanHide = true;
+              sink.AddTopLevelDeclaration(definitionAxiom);
             }
           }
           sink.AddTopLevelDeclaration(ff);

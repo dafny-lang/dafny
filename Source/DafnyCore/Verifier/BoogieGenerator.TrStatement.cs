@@ -14,6 +14,9 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder,
       List<Variable> locals, ExpressionTranslator etran) {
+
+      stmt.ScopeDepth = builder.Context.ScopeDepth;
+
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -41,6 +44,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         AddComment(builder, stmt, $"{s.Kind} statement");
+        foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - s.TargetStmt.ScopeDepth)) {
+          builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+        }
         var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
         builder.Add(new GotoCmd(s.Tok, new List<string> { lbl }));
       } else if (stmt is ReturnStmt) {
@@ -62,6 +68,9 @@ namespace Microsoft.Dafny {
           AssumeCanCallForByMethodDecl(method2, builder);
         }
 
+        foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth)) {
+          builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+        }
         builder.Add(new Bpl.ReturnCmd(stmt.Tok));
       } else if (stmt is YieldStmt) {
         var s = (YieldStmt)stmt;
@@ -279,7 +288,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is BlockStmt blockStmt) {
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(blockStmt.Body, builder, locals, etran, true);
+        TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
         RemoveDefiniteAssignmentTrackers(blockStmt.Body, prevDefiniteAssignmentTrackerCount);
       } else if (stmt is IfStmt ifStmt) {
         TrIfStmt(ifStmt, builder, locals, etran);
@@ -288,7 +297,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "alternative statement");
         var s = (AlternativeStmt)stmt;
         var elseCase = Assert(s.Tok, Bpl.Expr.False, new PODesc.AlternativeIsComplete());
-        TrAlternatives(s.Alternatives, elseCase, null, builder, locals, etran, stmt.IsGhost);
+        TrAlternatives(s.Alternatives, s.Tok, b => b.Add(elseCase), builder, locals, etran, stmt.IsGhost);
 
       } else if (stmt is WhileStmt whileStmt) {
         TrWhileStmt(whileStmt, builder, locals, etran);
@@ -299,7 +308,14 @@ namespace Microsoft.Dafny {
         var tru = Expression.CreateBoolLiteral(s.Tok, true);
         TrLoop(s, tru,
           delegate (BoogieStmtListBuilder bld, ExpressionTranslator e) {
-            TrAlternatives(s.Alternatives, null, new Bpl.BreakCmd(s.Tok, null), bld, locals, e, stmt.IsGhost);
+            TrAlternatives(s.Alternatives, s.Tok,
+              b => {
+                foreach (var _ in Enumerable.Range(0, b.Context.ScopeDepth - builder.Context.ScopeDepth)) {
+                  b.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+                }
+                b.Add(new Bpl.BreakCmd(s.Tok, null));
+              },
+              bld, locals, e, stmt.IsGhost);
             InsertContinueTarget(s, bld);
           },
           builder, locals, etran);
@@ -943,7 +959,9 @@ namespace Microsoft.Dafny {
         IntroduceAndAssignExistentialVars(exists, b, builder, locals, etran, stmt.IsGhost);
         CurrentIdGenerator.Pop();
       }
-      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, true);
+      CurrentIdGenerator.Push();
+      Bpl.StmtList thn = TrStmt2StmtList(b, stmt.Thn, locals, etran, stmt.Thn is not BlockStmt);
+      CurrentIdGenerator.Pop();
       Bpl.StmtList els;
       Bpl.IfCmd elsIf = null;
       b = new BoogieStmtListBuilder(this, options, builder.Context);
@@ -953,7 +971,9 @@ namespace Microsoft.Dafny {
       if (stmt.Els == null) {
         els = b.Collect(stmt.Tok);
       } else {
-        els = TrStmt2StmtList(b, stmt.Els, locals, etran, true);
+        CurrentIdGenerator.Push();
+        els = TrStmt2StmtList(b, stmt.Els, locals, etran, stmt.Els is not BlockStmt);
+        CurrentIdGenerator.Pop();
         if (els.BigBlocks.Count == 1) {
           Bpl.BigBlock bb = els.BigBlocks[0];
           if (bb.LabelName == null && bb.simpleCmds.Count == 0 && bb.ec is Bpl.IfCmd) {
@@ -1315,6 +1335,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
+      s.ScopeDepth = builder.Context.ScopeDepth;
+
       var suffix = CurrentIdGenerator.FreshId("loop#");
 
       var theDecreases = s.Decreases.Expressions;
@@ -1575,20 +1597,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrAlternatives(List<GuardedAlternative> alternatives, Bpl.Cmd elseCase0, Bpl.StructuredCmd elseCase1,
+    void TrAlternatives(List<GuardedAlternative> alternatives, IToken elseToken, Action<BoogieStmtListBuilder> buildElseCase,
                         BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool isGhost) {
       Contract.Requires(alternatives != null);
-      Contract.Requires((elseCase0 == null) != (elseCase1 == null));  // ugly way of doing a type union
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
 
       if (alternatives.Count == 0) {
-        if (elseCase0 != null) {
-          builder.Add(elseCase0);
-        } else {
-          builder.Add(elseCase1);
-        }
+        buildElseCase(builder);
         return;
       }
 
@@ -1603,14 +1620,9 @@ namespace Microsoft.Dafny {
         noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(g)));
       }
 
-      var elseTok = elseCase0 != null ? elseCase0.tok : elseCase1.tok;
-      b.Add(TrAssumeCmd(elseTok, noGuard));
-      if (elseCase0 != null) {
-        b.Add(elseCase0);
-      } else {
-        b.Add(elseCase1);
-      }
-      Bpl.StmtList els = b.Collect(elseTok);
+      b.Add(TrAssumeCmd(elseToken, noGuard));
+      buildElseCase(b);
+      Bpl.StmtList els = b.Collect(elseToken);
 
       Bpl.IfCmd elsIf = null;
       for (int i = alternatives.Count; 0 <= --i;) {
@@ -1626,7 +1638,7 @@ namespace Microsoft.Dafny {
           b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
         }
         var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
-        TrStmtList(alternative.Body, b, locals, etran, true);
+        TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
         RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
         Bpl.StmtList thn = b.Collect(alternative.Tok);
         elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
@@ -2781,27 +2793,59 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool introduceScope = false) {
+    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+      RangeToken scopeRange = null, bool processLabels = true) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
-      if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Push));
+
+      BoogieStmtListBuilder innerBuilder = builder;
+      if (scopeRange != null && !builder.Context.ReturnPosition) {
+        /*
+         * Boogie's reports at which return location
+         * the postconditions of a procedure could not be satisfied.
+         *
+         * The return locations are the sinks of the Boogie control flow graph.
+         * However, adding a command to the end of a Boogie block, can cause previous sinks in the CFG to then lead
+         * to that new command, which changes the reported error location.
+         *
+         * Because of this reason, we need to make sure not to pop at points right before the implementation returns,
+         * which is why we check builder.Context.ReturnPosition
+         * 
+         * A more reliable way of Boogie error reporting would be not to rely on sinks in the CFG,
+         * By for example reporting all points at which a control flow decision was made.
+         */
+        builder.Add(new ChangeScope(scopeRange.StartToken, ChangeScope.Modes.Push));
+        innerBuilder = builder.WithContext(builder.Context with {
+          ScopeDepth = builder.Context.ScopeDepth + 1
+        });
       }
-      foreach (Statement ss in stmts) {
-        for (var l = ss.Labels; l != null; l = l.Next) {
-          var heapAt = new Bpl.LocalVariable(ss.Tok, new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
-          locals.Add(heapAt);
-          builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
+
+      for (var index = 0; index < stmts.Count; index++) {
+        var ss = stmts[index];
+        var last = index == stmts.Count - 1;
+        var indexContext = innerBuilder.Context with {
+          ReturnPosition = innerBuilder.Context.ReturnPosition && last
+        };
+        var indexBuilder = innerBuilder.WithContext(indexContext);
+        if (processLabels) {
+          for (var l = ss.Labels; l != null; l = l.Next) {
+            var heapAt = new Bpl.LocalVariable(ss.Tok,
+              new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
+            locals.Add(heapAt);
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
+          }
         }
-        TrStmt(ss, builder, locals, etran);
-        if (ss.Labels != null) {
+
+        TrStmt(ss, indexBuilder, locals, etran);
+        if (processLabels && ss.Labels != null) {
           builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
       }
-      if (introduceScope) {
-        builder.Add(new ChangeScope(Token.NoToken, ChangeScope.Modes.Pop));
+
+      if (scopeRange != null && !builder.Context.ReturnPosition) {
+        builder.Add(new ChangeScope(scopeRange.EndToken, ChangeScope.Modes.Pop));
       }
     }
 

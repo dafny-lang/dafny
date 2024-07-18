@@ -4548,9 +4548,10 @@ Ident<out IToken/*!*/ x>
   | "greatest"   (. t.kind = _ident; .) // convert it to an ident
   | "older"      (. t.kind = _ident; .) // convert it to an ident
   | "opaque"     (. t.kind = _ident; .) // convert it to an ident
+                 (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   | "hide"       (. t.kind = _ident; .) // convert it to an ident
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
-                 (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
+                 
   )
   (. x = t; .)
   .
