@@ -797,7 +797,7 @@ namespace Microsoft.Dafny {
       if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
         AssumeCanCallForByMethodDecl(m, builder);
       }
-      var stmts = builder.Collect(m.Body.RangeToken.EndToken);
+      var stmts = builder.Collect(m.Body.RangeToken.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
       // tear down definite-assignment trackers
       m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
