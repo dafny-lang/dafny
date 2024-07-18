@@ -17,8 +17,8 @@ public class HavocRhs : AssignmentRhs, ICloneable<HavocRhs> {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
 
-  public void Resolve(INewOrOldResolver resolver) {
-    if (resolver.Options.ForbidNondeterminism) {
+  public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+    if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
       resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterminism_forbidden, Tok, "nondeterministic assignment forbidden by the --enforce-determinism option");
     }
   }

@@ -253,7 +253,7 @@ namespace Microsoft.Dafny {
           ResolveTypeRhs(rr, stmt, resolutionContext);
           AddSubtypeConstraint(lhsPreType, rr.PreType, stmt.Tok, "type {1} is not assignable to LHS (of type {0})");
         } else if (s.Rhs is HavocRhs havocRhs) {
-          havocRhs.Resolve(this);
+          havocRhs.Resolve(this, resolutionContext);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
@@ -277,7 +277,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        if (Options.ForbidNondeterminism) {
+        if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
           Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Tok,
             "case-based loop forbidden by the --enforce-determinism option");
         }
@@ -373,7 +373,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is ModifyStmt modifyStmt) {
         if (modifyStmt.Body == null) {
-          if (Options.ForbidNondeterminism) {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
             Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_bodyless_modify_statement_forbidden,
               modifyStmt.Tok, "modify statement without a body forbidden by the --enforce-determinism option");
           }
@@ -416,7 +416,7 @@ namespace Microsoft.Dafny {
           ResolveExpression(whileS.Guard, resolutionContext);
           ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
         } else {
-          if (Options.ForbidNondeterminism) {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
             Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Tok,
               "nondeterministic loop forbidden by the --enforce-determinism option");
           }

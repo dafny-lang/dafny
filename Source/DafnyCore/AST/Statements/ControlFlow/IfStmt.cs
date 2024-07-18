@@ -89,13 +89,13 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
 
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     if (Guard != null) {
-      if (IsBindingGuard && resolver.Options.ForbidNondeterminism) {
+      if (!resolutionContext.IsGhost && IsBindingGuard && resolver.Options.ForbidNondeterminism) {
         resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Tok, "binding if statement forbidden by the --enforce-determinism option");
       }
       resolver.ResolveExpression(Guard, resolutionContext);
       resolver.ConstrainTypeExprBool(Guard, "condition is expected to be of type bool, but is {0}");
     } else {
-      if (resolver.Options.ForbidNondeterminism) {
+      if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
         resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterministic_if_forbidden, Tok, "nondeterministic if statement forbidden by the --enforce-determinism option");
       }
     }

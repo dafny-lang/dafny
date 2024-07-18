@@ -59,7 +59,7 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
   }
 
   public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
-    if (resolver.Options.ForbidNondeterminism && 2 <= Alternatives.Count) {
+    if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism && 2 <= Alternatives.Count) {
       resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_if_forbidden, Tok,
         "case-based if statement forbidden by the --enforce-determinism option");
     }
