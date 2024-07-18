@@ -32,10 +32,6 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
   }
 
   public override void GenResolve(INewOrOldResolver resolver, ResolutionContext context) {
-    if (resolver.Options.ForbidNondeterminism) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden, Tok, "assign-such-that statement forbidden by the --enforce-determinism option");
-    }
-
     foreach (var lhs in Lhss) {
       var ec = resolver.Reporter.Count(ErrorLevel.Error);
       resolver.ResolveExpression(lhs, context);

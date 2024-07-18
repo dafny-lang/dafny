@@ -1661,17 +1661,6 @@ namespace Microsoft.Dafny.Compilers {
             }
           }
 
-          if (Options.ForbidNondeterminism &&
-              !classIsExtern &&
-              !cl.Members.Exists(member => member is Constructor) &&
-              cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
-            // This check should be moved to the resolver once we have a language construct to indicate the type is imported
-            // Instead of the extern attribute
-            Error(ErrorId.c_constructorless_class_forbidden, cl.tok,
-              "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option",
-              wr);
-          }
-
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
               classIsExtern, cl.FullName,

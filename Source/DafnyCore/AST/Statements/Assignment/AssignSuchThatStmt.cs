@@ -77,6 +77,10 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
+    if (resolver.Options.ForbidNondeterminism) {
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden,
+        Tok, "assign-such-that statement forbidden by the --enforce-determinism option");
+    }
     base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
