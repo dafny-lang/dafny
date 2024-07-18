@@ -2652,7 +2652,7 @@ namespace Microsoft.Dafny {
                 CheckSubrange(v.tok, EE_ii, v.Type, tRhs.EType, v, builder);
                 // assume nw[ii] == EE_ii;
                 var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
-                builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), EE_ii)));
+                builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), AdaptBoxing(tok, EE_ii, v.Type, tRhs.EType))));
                 ii++;
               }
             }
