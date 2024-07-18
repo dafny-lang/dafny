@@ -93,7 +93,6 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
         resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Tok, "binding if statement forbidden by the --enforce-determinism option");
       }
       resolver.ResolveExpression(Guard, resolutionContext);
-      Contract.Assert(Guard.Type != null);  // follows from postcondition of ResolveExpression
       resolver.ConstrainTypeExprBool(Guard, "condition is expected to be of type bool, but is {0}");
     } else {
       if (resolver.Options.ForbidNondeterminism) {
