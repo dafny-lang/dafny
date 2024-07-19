@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
+using Microsoft.Boogie;
+using VC;
 
 namespace Microsoft.Dafny;
 
@@ -13,6 +16,7 @@ static class MeasureComplexityCommand {
   public static IEnumerable<Option> Options => new Option[] {
     Iterations,
     RandomSeed,
+    TopX,
     VerifyCommand.FilterSymbol,
     VerifyCommand.FilterPosition,
   }.Concat(DafnyCommands.VerificationOptions).
@@ -24,12 +28,17 @@ static class MeasureComplexityCommand {
 
     DooFile.RegisterNoChecksNeeded(Iterations, false);
     DooFile.RegisterNoChecksNeeded(RandomSeed, false);
+    DooFile.RegisterNoChecksNeeded(TopX, false);
   }
+
+  private static readonly Option<uint> TopX = new("--top-x", () => 10U,
+    $"Configures the number of worst performing verification tasks that are reported.");
+
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
     $"Turn on randomization of the input that Dafny passes to the SMT solver and turn on randomization in the SMT solver itself. Certain Dafny proofs are complex in the sense that changes to the proof that preserve its meaning may cause its verification result to change. This option simulates meaning-preserving changes to the proofs without requiring the user to actually make those changes. The proof changes are renaming variables and reordering declarations in the SMT input passed to the solver, and setting solver options that have similar effects.");
 
-  private static readonly Option<uint> Iterations = new("--iterations", () => 10U,
+  private static readonly Option<uint> Iterations = new("--iterations", () => 1U,
     $"Attempt to verify each proof n times with n random seeds, each seed derived from the previous one. {RandomSeed.Name} can be used to specify the first seed, which will otherwise be 0.") {
     ArgumentHelpName = "n"
   };
@@ -62,7 +71,7 @@ static class MeasureComplexityCommand {
       // For error diagnostics, we should group duplicates and say how often they occur.
       // Performance data of individual verification tasks (VCs) should be grouped by VcNum (the assertion batch).
       VerifyCommand.ReportVerificationDiagnostics(compilation, verificationResults);
-      var summaryReported = VerifyCommand.ReportVerificationSummary(compilation, verificationResults);
+      var summaryReported = ReportResourceSummary(compilation, verificationResults);
       var proofDependenciesReported = VerifyCommand.ReportProofDependencies(compilation, resolution, verificationResults);
       var verificationResultsLogged = VerifyCommand.LogVerificationResults(compilation, resolution, verificationResults);
 
@@ -75,13 +84,42 @@ static class MeasureComplexityCommand {
     return await compilation.GetAndReportExitCode();
   }
 
+  public static async Task ReportResourceSummary(
+    CliCompilation cliCompilation,
+    IObservable<CanVerifyResult> verificationResults) {
+
+    PriorityQueue<VerificationTaskResult, int> worstPerformers = new();
+
+    var topX = cliCompilation.Options.Get(TopX);
+    verificationResults.Subscribe(result => {
+      foreach (var taskResult in result.Results) {
+        var runResult = taskResult.Result;
+        worstPerformers.Enqueue(taskResult, runResult.ResourceCount);
+        if (worstPerformers.Count > topX) {
+          worstPerformers.Dequeue();
+        }
+      }
+    });
+    await verificationResults.WaitForComplete();
+    var output = cliCompilation.Options.OutputWriter;
+    var decreasingWorst = new Stack<VerificationTaskResult>();
+    while (worstPerformers.Count > 0) {
+      decreasingWorst.Push(worstPerformers.Dequeue());
+    }
+
+    foreach (var performer in decreasingWorst) {
+      await output.WriteLineAsync($"Verification task on line {performer.Task.Token.line} in file {performer.Task.Token.filename} consumed {performer.Result.ResourceCount} resources");
+    }
+  }
+
   private static async Task RunVerificationIterations(DafnyOptions options, CliCompilation compilation,
     IObserver<CanVerifyResult> verificationResultsObserver) {
     int iterationSeed = (int)options.Get(RandomSeed);
     var random = new Random(iterationSeed);
-    foreach (var iteration in Enumerable.Range(0, (int)options.Get(Iterations))) {
+    var iterations = (int)options.Get(Iterations);
+    foreach (var iteration in Enumerable.Range(0, iterations)) {
       await options.OutputWriter.WriteLineAsync(
-        $"Starting verification of iteration {iteration} with seed {iterationSeed}");
+        $"Starting verification of iteration {iteration + 1}/{iterations} with seed {iterationSeed}");
       try {
         await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {
           verificationResultsObserver.OnNext(result);
