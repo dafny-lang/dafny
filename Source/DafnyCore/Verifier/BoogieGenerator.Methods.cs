@@ -1686,7 +1686,7 @@ namespace Microsoft.Dafny {
       if (m.EnclosingClass is IteratorDecl iter /*&& kind == MethodTranslationKind.Call*/) {
         if (m == iter.Member_MoveNext) {
           // Translation of Requires and YieldEnsures covered in the normal flow (at the right heaps)
-          Bpl.Expr yrOldHeapG = FunctionCall(m.Tok, "_YieldRequiresOldHeap_Global", predef.HeapType,
+          Bpl.Expr yrOldHeapG = FunctionCall(m.Tok, "_YieldRequiresOldHeap_Global_" + iter.Name, predef.HeapType,
             new Bpl.IdentifierExpr(m.Tok, "this"), etran.HeapExpr);
 
           ExpressionTranslator yrTran = new(this, predef, etran.HeapExpr, yrOldHeapG, m);
@@ -1698,7 +1698,7 @@ namespace Microsoft.Dafny {
             null, null, "coroutines: yield requires clause where old($Heap) == $_YieldRequiresOldHeap_Global"));
           }
 
-          Bpl.Expr ensuresOldHeapG = FunctionCall(m.Tok, "_EnsuresOldHeap_Global", predef.HeapType, new Bpl.IdentifierExpr(m.Tok, "this"));
+          Bpl.Expr ensuresOldHeapG = FunctionCall(m.Tok, "_EnsuresOldHeap_Global_" + iter.Name, predef.HeapType, new Bpl.IdentifierExpr(m.Tok, "this"));
 
           // Sets up value of $_EnsuresOldHeap_Global for Ensures clauses /
           // $_YieldRequiresOldHeap_Global for Yield Requires clause on re-entry
