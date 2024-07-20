@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %dafny /compile:0 /induction:3 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %exits-with 4 %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class IntegerInduction {
@@ -53,7 +53,7 @@ class IntegerInduction {
   }
 
   lemma DoItAllInOneGo()
-    ensures forall n {:split false} :: 0 <= n ==> // WISH reenable quantifier splitting here. This will only work once we generate induction hypotheses at the Dafny level.
+    ensures forall n {:induction} {:split false} :: 0 <= n ==> // WISH reenable quantifier splitting here. This will only work once we generate induction hypotheses at the Dafny level.
                 SumOfCubes(n) == Gauss(n) * Gauss(n) &&
                 2 * Gauss(n) == n*(n+1)
   {
@@ -86,7 +86,7 @@ class IntegerInduction {
     if n != 0 {
       Theorem2(n-1);
 
-      assert forall m :: 0 <= m ==> 2 * Gauss(m) == m*(m+1);
+      assert forall m {:induction} :: 0 <= m ==> 2 * Gauss(m) == m*(m+1);
     }
   }
 
@@ -118,7 +118,7 @@ class IntegerInduction {
   // Finally, with the postcondition of GaussWithPost, one can prove the entire theorem by induction
 
   lemma Theorem4()
-    ensures forall n :: 0 <= n ==>
+    ensures forall n {:induction} :: 0 <= n ==>
         SumOfCubes(n) == GaussWithPost(n) * GaussWithPost(n)
   {
     // look ma, no hints!
@@ -130,7 +130,7 @@ class IntegerInduction {
   {
     // the postcondition is a simple consequence of these quantified versions of the theorem:
     if * {
-      assert forall m :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m);
+      assert forall m {:induction} :: 0 <= m ==> SumOfCubes(m) == GaussWithPost(m) * GaussWithPost(m);
     } else {
       Theorem4();
     }
@@ -169,7 +169,7 @@ class DatatypeInduction<T> {
   method Theorem0(tree: Tree<T>)
     ensures 1 <= LeafCount(tree)
   {
-    assert forall t: Tree<T> :: 1 <= LeafCount(t);
+    assert forall t: Tree<T> {:induction} :: 1 <= LeafCount(t);
   }
 
   // see also Test/dafny0/DTypes.dfy for more variations of this example
