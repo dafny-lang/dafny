@@ -151,7 +151,7 @@ namespace Microsoft.Dafny {
         var call = FunctionCall(e.tok, info.SkolemFunctionName(bv), TrType(bv.Type), gExprs);
         tr = new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { call }, tr);
         substMap.Add(bv, new BoogieWrapper(call, bv.Type));
-        if (!(bv.Type.IsTypeParameter)) {
+        if (!bv.Type.IsTypeParameter) {
           Bpl.Expr wh = GetWhereClause(bv.tok, call, bv.Type, etranCC, NOALLOC);
           if (wh != null) {
             antecedent = BplAnd(antecedent, wh);
@@ -176,7 +176,8 @@ namespace Microsoft.Dafny {
 
       var canCall = FunctionCall(e.tok, info.CanCallFunctionName(), Bpl.Type.Bool, gExprs);
       var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
-      Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, etranCC.TrExpr(p)));
+      var canCallBody = etranCC.CanCallAssumption(p);
+      Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
       ax = BplForall(gg, tr, ax);
       AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.tok, ax));
     }
