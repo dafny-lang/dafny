@@ -6,6 +6,14 @@ namespace Microsoft.Dafny;
 
 public class DeveloperOptionBag {
 
+  public static readonly Option<string> SplitPrint = new("--sprint",
+    @"
+Print Boogie splits translated from Dafny
+(use - as <file> to print to console)".TrimStart()) {
+    IsHidden = true,
+    ArgumentHelpName = "file",
+  };
+  
   public static readonly Option<string> BoogiePrint = new("--bprint",
   @"
 Print Boogie program translated from Dafny
@@ -53,8 +61,15 @@ enabling necessary special handling.".TrimStart()) {
       options.ExpandFilename(options.PrintFile, x => options.PrintFile = x, options.LogPrefix,
         options.FileTimestamp);
     });
+    
+    DafnyOptions.RegisterLegacyBinding(SplitPrint, (options, f) => {
+      options.PrintSplitFile = f;
+      options.ExpandFilename(options.PrintSplitFile, x => options.PrintSplitFile = x, options.LogPrefix,
+        options.FileTimestamp);
+    });
 
     DooFile.RegisterNoChecksNeeded(BoogiePrint, false);
+    DooFile.RegisterNoChecksNeeded(SplitPrint, false);
     DooFile.RegisterNoChecksNeeded(PrintOption, false);
     DooFile.RegisterNoChecksNeeded(ResolvedPrint, false);
     DooFile.RegisterNoChecksNeeded(Bootstrapping, false);
