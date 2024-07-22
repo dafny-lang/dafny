@@ -1269,14 +1269,23 @@ namespace Microsoft.Dafny {
       // argsCF are the arguments to C.F (the overriding function)
       var forallFormals = new List<Boogie.Variable>();
       var argsJF = new List<Boogie.Expr>();
+      var argsJFCanCall = new List<Boogie.Expr>();
       var argsCF = new List<Boogie.Expr>();
+      var argsCFCanCall = new List<Boogie.Expr>();
 
       // Add type arguments
       forallFormals.AddRange(MkTyParamBinders(GetTypeParams(overridingFunction), out _));
-      argsJF.AddRange(GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy));
-      argsCF.AddRange(GetTypeArguments(overridingFunction, null).ConvertAll(TypeToTy));
+      {
+        var typeArguments = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
+        argsJF.AddRange(typeArguments);
+        argsJFCanCall.AddRange(typeArguments);
+        typeArguments = GetTypeArguments(overridingFunction, null).ConvertAll(TypeToTy);
+        argsCF.AddRange(typeArguments);
+        argsCFCanCall.AddRange(typeArguments);
+      }
 
-      var moreArgsCF = new List<Boogie.Expr>();
+      var moreArgsJF = new List<Boogie.Expr>(); // non-type-parameters, non-fuel, non-reveal arguments
+      var moreArgsCF = new List<Boogie.Expr>(); // non-type-parameters, non-fuel, non-reveal arguments
       Expr layer = null;
       Expr reveal = null;
 
@@ -1307,14 +1316,14 @@ namespace Microsoft.Dafny {
       if (f is TwoStateFunction) {
         Contract.Assert(bvPrevHeap != null);
         forallFormals.Add(bvPrevHeap);
-        argsJF.Add(etran.Old.HeapExpr);
+        moreArgsJF.Add(etran.Old.HeapExpr);
         moreArgsCF.Add(etran.Old.HeapExpr);
       }
       if (f.ReadsHeap || overridingFunction.ReadsHeap) {
         var heap = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
         forallFormals.Add(heap);
         if (f.ReadsHeap) {
-          argsJF.Add(new Boogie.IdentifierExpr(f.tok, heap));
+          moreArgsJF.Add(new Boogie.IdentifierExpr(f.tok, heap));
         }
         if (overridingFunction.ReadsHeap) {
           moreArgsCF.Add(new Boogie.IdentifierExpr(overridingFunction.tok, heap));
@@ -1326,7 +1335,7 @@ namespace Microsoft.Dafny {
       var bvThis = new Boogie.BoundVariable(f.tok, new Boogie.TypedIdent(f.tok, etran.This, TrType(thisType)));
       forallFormals.Add(bvThis);
       var bvThisExpr = new Boogie.IdentifierExpr(f.tok, bvThis);
-      argsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
+      moreArgsJF.Add(BoxifyForTraitParent(f.tok, bvThisExpr, f, thisType));
       moreArgsCF.Add(bvThisExpr);
       // $Is(this, C)
       var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
@@ -1341,7 +1350,7 @@ namespace Microsoft.Dafny {
         var bv = new Boogie.BoundVariable(p.tok, new Boogie.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         var jfArg = new Boogie.IdentifierExpr(p.tok, bv);
-        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.tok, jfArg, pType) : jfArg);
+        moreArgsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.tok, jfArg, pType) : jfArg);
         moreArgsCF.Add(new Boogie.IdentifierExpr(p.tok, bv));
       }
 
@@ -1362,7 +1371,10 @@ namespace Microsoft.Dafny {
         argsCF.Add(reveal);
       }
 
+      argsJF = Concat(argsJF, moreArgsJF);
+      argsJFCanCall = Concat(argsJFCanCall, moreArgsJF);
       argsCF = Concat(argsCF, moreArgsCF);
+      argsCFCanCall = Concat(argsCFCanCall, moreArgsCF);
 
       // ante := useViaCanCall || (useViaContext && this != null && $Is(this, C))
       ante = BplOr(useViaCanCall, BplAnd(useViaContext, ante));
@@ -1396,11 +1408,9 @@ namespace Microsoft.Dafny {
         ModeledAsBoxType(f.ResultType) ? BoxIfNotNormallyBoxed(overridingFunction.tok, overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
       // add overridingFunction#canCall ==> f#canCall to the axiom
       var callName = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      var callArgs = f.IsFuelAware() ? argsJF.TakeLast(argsJF.Count() - 1).ToList() : argsJF;
-      var canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
+      var canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsJFCanCall);
       callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      callArgs = overridingFunction.IsFuelAware() ? argsCF.TakeLast(argsCF.Count() - 1).ToList() : argsCF;
-      var canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), callArgs);
+      var canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsCFCanCall);
       var canCallImp = BplImp(canCallFunc, canCallOverridingFunc);
 
       // The axiom
