@@ -14,6 +14,14 @@ Print Boogie splits translated from Dafny
     ArgumentHelpName = "file",
   };
   
+  public static readonly Option<string> PassivePrint = new("--pprint",
+    @"
+Print passified Boogie program translated from Dafny
+(use - as <file> to print to console)".TrimStart()) {
+    IsHidden = true,
+    ArgumentHelpName = "file",
+  };
+  
   public static readonly Option<string> BoogiePrint = new("--bprint",
   @"
 Print Boogie program translated from Dafny
@@ -56,6 +64,12 @@ enabling necessary special handling.".TrimStart()) {
         options.FileTimestamp);
     });
 
+    DafnyOptions.RegisterLegacyBinding(PassivePrint, (options, f) => {
+      options.PrintPassiveFile = f;
+      options.ExpandFilename(options.PrintPassiveFile, x => options.PrintPassiveFile = x, options.LogPrefix,
+        options.FileTimestamp);
+    });
+
     DafnyOptions.RegisterLegacyBinding(BoogiePrint, (options, f) => {
       options.PrintFile = f;
       options.ExpandFilename(options.PrintFile, x => options.PrintFile = x, options.LogPrefix,
@@ -68,6 +82,7 @@ enabling necessary special handling.".TrimStart()) {
         options.FileTimestamp);
     });
 
+    DooFile.RegisterNoChecksNeeded(PassivePrint, false);
     DooFile.RegisterNoChecksNeeded(BoogiePrint, false);
     DooFile.RegisterNoChecksNeeded(SplitPrint, false);
     DooFile.RegisterNoChecksNeeded(PrintOption, false);

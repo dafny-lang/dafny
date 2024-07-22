@@ -72,6 +72,7 @@ public static class DafnyCommands {
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
     DeveloperOptionBag.SplitPrint,
+    DeveloperOptionBag.PassivePrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.AllowWarnings,
