@@ -23,9 +23,8 @@ namespace Microsoft.Dafny {
     Everything,
     Serialization, // Serializing the program to a file for lossless loading later
     NoIncludes,
-    NoGhost
+    NoGhostOrIncludes
   }
-
 
   public record PrintFlags(bool UseOriginalDafnyNames = false);
 
@@ -976,8 +975,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private bool PrintModeSkipFunctionOrMethod(bool IsGhost, Attributes attributes, string name) {
-      if (printMode == PrintModes.NoGhost && IsGhost) { return true; }
-      if (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost) {
+      if (printMode == PrintModes.NoGhostOrIncludes && IsGhost) { return true; }
+      if (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhostOrIncludes) {
         bool verify = true;
         if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify) { return true; }
         if (name.Contains("INTERNAL") || name.StartsWith(RevealStmt.RevealLemmaPrefix)) { return true; }
@@ -986,8 +985,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     private bool PrintModeSkipGeneral(DafnyProject project, IToken tok) {
-      return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhost)
-             && tok.Uri != null && project.ContainsSourceFile(tok.Uri);
+      return (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhostOrIncludes)
+             && tok.Uri != null && !project.ContainsSourceFile(tok.Uri);
     }
 
     public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
@@ -1112,7 +1111,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
-      if (printMode == PrintModes.NoGhost) { return; }
+      if (printMode == PrintModes.NoGhostOrIncludes) { return; }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);
@@ -1141,7 +1140,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     internal void PrintSpec(string kind, List<AttributedExpression> ee, int indent) {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
-      if (printMode == PrintModes.NoGhost) { return; }
+      if (printMode == PrintModes.NoGhostOrIncludes) { return; }
       foreach (AttributedExpression e in ee) {
         Contract.Assert(e != null);
         wr.WriteLine();
