@@ -9,7 +9,7 @@
 // RUN: ! %diff "%t.dfy" "%t4.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "./Input/included.dfy"
+include "./Inputs/included.dfy"
 
 abstract module S {
   class C {
