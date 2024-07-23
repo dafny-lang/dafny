@@ -105,7 +105,7 @@ static class MeasureComplexityCommand {
     while (worstPerformers.Count > 0) {
       decreasingWorst.Push(worstPerformers.Dequeue());
     }
-    
+
     await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
     foreach (var performer in decreasingWorst) {
       var location = ((IToken)performer.Task.Token).TokenToString(cliCompilation.Options);
