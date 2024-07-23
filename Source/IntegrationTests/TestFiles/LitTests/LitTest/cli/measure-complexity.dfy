@@ -1,6 +1,6 @@
-// RUN: %exits-with 4 %baredafny measure-complexity --isolate-assertions --top-x 100 "%s" > %t
+// RUN: %exits-with 4 %baredafny measure-complexity --isolate-assertions --worst-amount 100 "%s" > %t.raw
+// RUN: %sed 's#consumed \d+ resources#consumed <redacted> resources#g' %t.raw > %t
 // RUN: %diff "%s.expect" "%t"
-
 method Foo() {
   assert Ack(0,0) == 10;
   assert Ack(1,3) == 10;

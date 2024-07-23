@@ -31,9 +31,8 @@ static class MeasureComplexityCommand {
     DooFile.RegisterNoChecksNeeded(TopX, false);
   }
 
-  private static readonly Option<uint> TopX = new("--top-x", () => 10U,
-    $"Configures the number of worst performing verification tasks that are reported.");
-
+  private static readonly Option<uint> TopX = new("--worst-amount", () => 10U,
+    $"Configures the amount of worst performing verification tasks that are reported.");
 
   private static readonly Option<uint> RandomSeed = new("--random-seed", () => 0U,
     $"Turn on randomization of the input that Dafny passes to the SMT solver and turn on randomization in the SMT solver itself. Certain Dafny proofs are complex in the sense that changes to the proof that preserve its meaning may cause its verification result to change. This option simulates meaning-preserving changes to the proofs without requiring the user to actually make those changes. The proof changes are renaming variables and reordering declarations in the SMT input passed to the solver, and setting solver options that have similar effects.");
