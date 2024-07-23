@@ -1,5 +1,6 @@
 Starting verification of iteration 1/1 with seed 0
 measure-complexity.dfy(5,18): Error: assertion might not hold
+The total consumed resources are 180663
 The most demanding 100 verification tasks consumed these resources:
 measure-complexity.dfy(8,18): 9984
 measure-complexity.dfy(7,18): 9065
