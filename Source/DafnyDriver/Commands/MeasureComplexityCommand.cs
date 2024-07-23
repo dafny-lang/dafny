@@ -90,10 +90,12 @@ static class MeasureComplexityCommand {
 
     PriorityQueue<VerificationTaskResult, int> worstPerformers = new();
 
+    var totalResources = 0;
     var worstAmount = cliCompilation.Options.Get(TopX);
     verificationResults.Subscribe(result => {
       foreach (var taskResult in result.Results) {
         var runResult = taskResult.Result;
+        totalResources += runResult.ResourceCount;
         worstPerformers.Enqueue(taskResult, runResult.ResourceCount);
         if (worstPerformers.Count > worstAmount) {
           worstPerformers.Dequeue();
@@ -107,6 +109,7 @@ static class MeasureComplexityCommand {
       decreasingWorst.Push(worstPerformers.Dequeue());
     }
 
+    await output.WriteLineAsync($"The total consumed resources are {totalResources}");
     await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
     foreach (var performer in decreasingWorst) {
       var location = ((IToken)performer.Task.Token).TokenToString(cliCompilation.Options);

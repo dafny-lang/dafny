@@ -1,33 +1,32 @@
 Starting verification of iteration 1/1 with seed 0
-measure-complexity.dfy(5,9): Error: assertion might not hold
-  |
-5 |   assert Ack(0,0) == 10;
-  |          ^^^^^^^^^^^^^^
-
+measure-complexity.dfy(6,18): Error: assertion might not hold
+The total consumed resources are <redacted>
 The most demanding 100 verification tasks consumed these resources:
-measure-complexity.dfy(18,4): 7524
-measure-complexity.dfy(8,9): 6281
-measure-complexity.dfy(18,4): 6180
-measure-complexity.dfy(18,4): 6127
-measure-complexity.dfy(7,9): 5662
-measure-complexity.dfy(6,9): 5114
-measure-complexity.dfy(18,10): 4656
-measure-complexity.dfy(5,9): 4581
-measure-complexity.dfy(18,15): 4325
-measure-complexity.dfy(16,4): 4238
-measure-complexity.dfy(16,4): 3717
-measure-complexity.dfy(16,4): 3673
-measure-complexity.dfy(18,15): 3655
-measure-complexity.dfy(18,15): 3407
-measure-complexity.dfy(16,10): 1752
-measure-complexity.dfy(18,24): 1752
-measure-complexity.dfy(14,6): 1697
-measure-complexity.dfy(6,15): 1575
-measure-complexity.dfy(8,15): 1575
-measure-complexity.dfy(8,13): 1575
-measure-complexity.dfy(7,15): 1575
-measure-complexity.dfy(16,15): 1575
-measure-complexity.dfy(7,13): 1575
-measure-complexity.dfy(6,13): 1575
-measure-complexity.dfy(5,15): 1545
-measure-complexity.dfy(5,13): 1545
+measure-complexity.dfy(9,18): <redacted>
+measure-complexity.dfy(8,18): <redacted>
+measure-complexity.dfy(9,15): <redacted>
+measure-complexity.dfy(7,18): <redacted>
+measure-complexity.dfy(19,4): <redacted>
+measure-complexity.dfy(6,18): <redacted>
+measure-complexity.dfy(7,15): <redacted>
+measure-complexity.dfy(19,10): <redacted>
+measure-complexity.dfy(7,13): <redacted>
+measure-complexity.dfy(17,4): <redacted>
+measure-complexity.dfy(17,15): <redacted>
+measure-complexity.dfy(19,15): <redacted>
+measure-complexity.dfy(19,24): <redacted>
+measure-complexity.dfy(17,10): <redacted>
+measure-complexity.dfy(15,6): <redacted>
+measure-complexity.dfy(19,4): <redacted>
+measure-complexity.dfy(19,4): <redacted>
+measure-complexity.dfy(9,13): <redacted>
+measure-complexity.dfy(17,4): <redacted>
+measure-complexity.dfy(6,13): <redacted>
+measure-complexity.dfy(8,15): <redacted>
+measure-complexity.dfy(17,4): <redacted>
+measure-complexity.dfy(8,13): <redacted>
+measure-complexity.dfy(19,15): <redacted>
+measure-complexity.dfy(6,15): <redacted>
+measure-complexity.dfy(19,15): <redacted>
+measure-complexity.dfy(12,9): <redacted>
+measure-complexity.dfy(5,7): <redacted>
