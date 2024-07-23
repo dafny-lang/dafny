@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny measure-complexity --isolate-assertions --worst-amount 100 "%s" > %t.raw
+// RUN: %exits-with 4 %baredafny measure-complexity --use-basename-for-filename --isolate-assertions --worst-amount 100 "%s" > %t.raw
 // RUN: %sed 's#consumed \d+ resources#consumed <redacted> resources#g' %t.raw > %t
 // RUN: %diff "%s.expect" "%t"
 method Foo() {

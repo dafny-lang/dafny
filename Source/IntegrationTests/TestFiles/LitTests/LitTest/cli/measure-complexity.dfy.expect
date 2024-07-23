@@ -1,30 +1,31 @@
 Starting verification of iteration 1/1 with seed 0
-TestFiles/LitTests/LitTest/cli/measure-complexity.dfy(5,18): Error: assertion might not hold
-Verification task on line 8 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 7 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 8 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 6 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 5 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 6 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 6 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 16 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 16 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 16 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 14 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 8 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 16 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 5 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 7 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 16 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 7 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 5 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 18 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 11 in file measure-complexity.dfy consumed <redacted> resources
-Verification task on line 4 in file measure-complexity.dfy consumed <redacted> resources
+measure-complexity.dfy(5,18): Error: assertion might not hold
+The most demanding 100 verification tasks consumed these resources:
+measure-complexity.dfy(8,18): 9984
+measure-complexity.dfy(7,18): 9065
+measure-complexity.dfy(8,15): 8745
+measure-complexity.dfy(6,18): 8369
+measure-complexity.dfy(18,4): 7670
+measure-complexity.dfy(5,18): 7463
+measure-complexity.dfy(6,15): 7231
+measure-complexity.dfy(18,10): 7200
+measure-complexity.dfy(6,13): 6990
+measure-complexity.dfy(16,4): 6880
+measure-complexity.dfy(16,15): 6839
+measure-complexity.dfy(18,15): 6760
+measure-complexity.dfy(18,24): 6578
+measure-complexity.dfy(16,10): 6538
+measure-complexity.dfy(14,6): 6323
+measure-complexity.dfy(18,4): 6237
+measure-complexity.dfy(18,4): 6184
+measure-complexity.dfy(8,13): 6101
+measure-complexity.dfy(16,4): 6067
+measure-complexity.dfy(5,13): 6050
+measure-complexity.dfy(7,15): 6039
+measure-complexity.dfy(16,4): 6029
+measure-complexity.dfy(7,13): 6017
+measure-complexity.dfy(18,15): 5999
+measure-complexity.dfy(5,15): 5777
+measure-complexity.dfy(18,15): 5712
+measure-complexity.dfy(11,9): 951
+measure-complexity.dfy(4,7): 865
