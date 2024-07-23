@@ -20,7 +20,8 @@ static class MeasureComplexityCommand {
     VerifyCommand.FilterSymbol,
     VerifyCommand.FilterPosition,
   }.Concat(DafnyCommands.VerificationOptions).
-    Concat(DafnyCommands.ResolverOptions);
+    Concat(DafnyCommands.ResolverOptions).
+    Concat(DafnyCommands.ConsoleOutputOptions);
 
   static MeasureComplexityCommand() {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
