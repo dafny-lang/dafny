@@ -102,7 +102,7 @@ class GhostInterestVisitor {
       }
 
     } else if (stmt is HideRevealStmt hideRevealStmt) {
-      hideRevealStmt.ResolvedStatements.ForEach(ss => Visit(ss, true, "a reveal statement"));
+      hideRevealStmt.ResolvedStatements.ForEach(ss => Visit(ss, true, $"a {hideRevealStmt.Kind} statement"));
       hideRevealStmt.IsGhost = hideRevealStmt.ResolvedStatements.All(ss => ss.IsGhost);
     } else if (stmt is BreakStmt) {
       var s = (BreakStmt)stmt;

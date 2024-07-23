@@ -8,6 +8,8 @@ namespace Microsoft.Dafny;
 public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat {
   public const string RevealLemmaPrefix = "reveal_";
 
+  public string Kind => Mode == HideRevealCmd.Modes.Hide ? "hide" : "reveal";
+  public string KindVerb => Mode == HideRevealCmd.Modes.Hide ? "hidden" : "revealed";
   public readonly List<Expression> Exprs;
   [FilledInDuringResolution]
   public readonly List<AssertLabel> LabeledAsserts = new();  // to indicate that "Expr" denotes a labeled assertion
@@ -121,7 +123,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
               }
             } else {
               resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
-                "only functions and constants can be revealed");
+                $"only functions and constants can be ${KindVerb}");
             }
           }
         } else {

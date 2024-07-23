@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 method MethodEnsuresAreHidden() {
-  hide *;
+  hide Bar;
   var x := Bar();
   if (*) {
     reveal Bar;
