@@ -834,14 +834,6 @@ public partial class BoogieGenerator {
       return null;
     }
 
-    // useViaContext: fh < FunctionContextHeight
-    ModuleDefinition mod = f.EnclosingClass.EnclosingModuleDefinition;
-    Bpl.Expr useViaContext = !InVerificationScope(f)
-      ? Bpl.Expr.True
-      : Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-    // ante := (useViaContext && typeAnte && pre)
-    ante = BplAnd(useViaContext, BplAnd(ante, pre));
-
     // useViaCanCall: f#canCall(args)
     ante = useViaCanCall;
 

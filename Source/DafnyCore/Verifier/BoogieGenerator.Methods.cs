@@ -1231,8 +1231,9 @@ namespace Microsoft.Dafny {
     ///   axiom (forall $heap: HeapType, typeArgs: Ty, this: ref, x#0: int, fuel: LayerType ::
     ///     { J.F(fuel, $heap, G(typeArgs), this, x#0), C.F(fuel, $heap, typeArgs, this, x#0) }
     ///     { J.F(fuel, $heap, G(typeArgs), this, x#0), $Is(this, C) }
-    ///     C.F#canCall(args) || (fh < FunctionContextHeight && this != null && $Is(this, C))
+    ///     C.F#canCall(args) || (J.F#canCall(args) && $Is(this, C))
     ///     ==>
+    ///     (J.F#canCall(args) ==> C.F#canCall(args)) &&
     ///     J.F(fuel, $heap, G(typeArgs), this, x#0) == C.F(fuel, $heap, typeArgs, this, x#0));
     /// (without the other usual antecedents).  Essentially, the override gives a part of the body of the
     /// trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingFunction"
@@ -1341,8 +1342,6 @@ namespace Microsoft.Dafny {
       var isOfSubtype = GetWhereClause(overridingFunction.tok, bvThisExpr, thisType, f is TwoStateFunction ? etran.Old : etran,
         IsAllocType.NEVERALLOC, alwaysUseSymbolicName: true);
 
-      Bpl.Expr ante = BplAnd(ReceiverNotNull(bvThisExpr), isOfSubtype);
-
       // Add other arguments
       var typeMap = GetTypeArgumentSubstitutionMap(f, overridingFunction);
       foreach (Formal p in f.Ins) {
@@ -1353,15 +1352,6 @@ namespace Microsoft.Dafny {
         moreArgsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfNotNormallyBoxed(p.tok, jfArg, pType) : jfArg);
         moreArgsCF.Add(new Boogie.IdentifierExpr(p.tok, bv));
       }
-
-      // useViaContext: fh < FunctionContextHeight
-      Boogie.Expr useViaContext = !InVerificationScope(overridingFunction)
-        ? Boogie.Expr.True
-        : Boogie.Expr.Lt(Boogie.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(overridingFunction)), etran.FunctionContextHeight());
-
-      // useViaCanCall: C.F#canCall(args)
-      Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(argsCF, moreArgsCF));
 
       if (layer != null) {
         argsCF.Add(layer);
@@ -1376,8 +1366,19 @@ namespace Microsoft.Dafny {
       argsCF = Concat(argsCF, moreArgsCF);
       argsCFCanCall = Concat(argsCFCanCall, moreArgsCF);
 
-      // ante := useViaCanCall || (useViaContext && this != null && $Is(this, C))
-      ante = BplOr(useViaCanCall, BplAnd(useViaContext, ante));
+      Bpl.Expr canCallFunc, canCallOverridingFunc;
+      {
+        var callName = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsJFCanCall);
+        callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+        canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsCFCanCall);
+      }
+
+      // useViaCanCall: C.F#canCall(args)
+      Bpl.Expr useViaCanCall = canCallFunc;
+
+      // ante := C.F#canCall(args) || (J.F#canCall(args) && $Is(this, C))
+      var ante = BplOr(canCallOverridingFunc, BplAnd(canCallFunc, isOfSubtype));
 
       Boogie.Expr funcAppl;
       {
@@ -1407,17 +1408,13 @@ namespace Microsoft.Dafny {
         funcAppl,
         ModeledAsBoxType(f.ResultType) ? BoxIfNotNormallyBoxed(overridingFunction.tok, overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl);
       // add overridingFunction#canCall ==> f#canCall to the axiom
-      var callName = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      var canCallFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsJFCanCall);
-      callName = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      var canCallOverridingFunc = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(callName), argsCFCanCall);
       var canCallImp = BplImp(canCallFunc, canCallOverridingFunc);
 
       // The axiom
       Boogie.Expr ax = BplForall(f.tok, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
         BplImp(ante, BplAnd(canCallImp, synonyms)));
       var activate = AxiomActivation(overridingFunction, etran);
-      string comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
+      var comment = $"override axiom for {f.FullSanitizedName} in {overridingFunction.EnclosingClass.WhatKind} {overridingFunction.EnclosingClass.FullSanitizedName}";
       return new Boogie.Axiom(f.tok, BplImp(activate, ax), comment);
     }
 
