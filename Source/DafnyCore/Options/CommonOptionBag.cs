@@ -461,7 +461,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (ps.args[ps.i].Equals("NoIncludes")) {
           options.Set(option, PrintModes.NoIncludes);
         } else if (ps.args[ps.i].Equals("NoGhost")) {
-          options.Set(option, PrintModes.NoGhost);
+          options.Set(option, PrintModes.NoGhostOrIncludes);
         } else if (ps.args[ps.i].Equals("DllEmbed")) {
           // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
           // but it is now used by the LibraryBackend when building .doo files as well. 
