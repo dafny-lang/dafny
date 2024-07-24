@@ -70,8 +70,8 @@ namespace Microsoft.Dafny {
         PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
-      } else if (stmt is RevealStmt revealStmt) {
-        PrintRevealStmt(revealStmt);
+      } else if (stmt is HideRevealStmt revealStmt) {
+        PrintHideReveal(revealStmt);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -457,17 +457,21 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void PrintRevealStmt(RevealStmt revealStmt) {
-      wr.Write("reveal ");
-      var sep = "";
-      foreach (var e in revealStmt.Exprs) {
-        wr.Write(sep);
-        sep = ", ";
-        if (RevealStmt.SingleName(e) != null) {
-          // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
-          wr.Write(RevealStmt.SingleName(e));
-        } else {
-          PrintExpression(e, true);
+    private void PrintHideReveal(HideRevealStmt revealStmt) {
+      wr.Write(revealStmt.Mode == Bpl.HideRevealCmd.Modes.Hide ? "hide " : "reveal ");
+      if (revealStmt.Wildcard) {
+        wr.Write("*");
+      } else {
+        var sep = "";
+        foreach (var e in revealStmt.Exprs) {
+          wr.Write(sep);
+          sep = ", ";
+          if (HideRevealStmt.SingleName(e) != null) {
+            // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
+            wr.Write(HideRevealStmt.SingleName(e));
+          } else {
+            PrintExpression(e, true);
+          }
         }
       }
       wr.Write(";");

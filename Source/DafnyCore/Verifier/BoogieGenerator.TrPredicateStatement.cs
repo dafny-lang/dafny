@@ -11,7 +11,9 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
-    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+
+    private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder,
+      List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -52,7 +54,7 @@ namespace Microsoft.Dafny {
       //  CheckWellformed[[ s.Message ]]
       //  assume false;
       // }
-      BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this, options);
+      BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       TrStmt_CheckWellformed(expectStmt.Message, thnBuilder, locals, etran, false);
       thnBuilder.Add(TrAssumeCmd(expectStmt.Tok, new Bpl.LiteralExpr(expectStmt.Tok, false),
         etran.TrAttributes(expectStmt.Attributes, null)));
@@ -62,64 +64,49 @@ namespace Microsoft.Dafny {
       stmtContext = StmtType.NONE; // done with translating expect stmt.
     }
 
-    private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      var stmtBuilder = new BoogieStmtListBuilder(this, options);
+    private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+      ExpressionTranslator etran) {
+      var stmtBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
       var b = defineFuel ? stmtBuilder : builder;
-      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
       stmtContext = StmtType.ASSERT;
       AddComment(b, stmt, "assert statement");
       TrStmt_CheckWellformed(stmt.Expr, b, locals, etran, false);
-      IToken enclosingToken = null;
-      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
-        enclosingToken = stmt.Tok;
-      }
 
+      var hiddenProof = false;
       BoogieStmtListBuilder proofBuilder = null;
       var assertStmt = stmt as AssertStmt;
       if (assertStmt != null) {
         if (assertStmt.Proof != null) {
-          proofBuilder = new BoogieStmtListBuilder(this, options);
+          hiddenProof = true;
+          proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
           AddComment(proofBuilder, stmt, "assert statement proof");
           CurrentIdGenerator.Push();
           TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
           CurrentIdGenerator.Pop();
         } else if (assertStmt.Label != null) {
-          proofBuilder = new BoogieStmtListBuilder(this, options);
+          hiddenProof = true;
+          proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
           AddComment(proofBuilder, stmt, "assert statement proof");
         }
       }
+      proofBuilder ??= b;
 
-      var splits = TrSplitExpr(stmt.Expr, etran, true, out var splitHappened);
-      if (!splitHappened) {
-        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-        var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
-        (proofBuilder ?? b).Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
-          etran.TrAttributes(stmt.Attributes, null)));
-      } else {
-        foreach (var split in splits) {
-          if (split.IsChecked) {
-            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-            var desc = new PODesc.AssertStatementDescription(assertStmt, errorMessage, successMessage);
-            (proofBuilder ?? b).Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
-              etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
-          }
-        }
-      }
+      var splitHappened = TrAssertCondition(stmt, builder, etran, proofBuilder);
 
-      if (proofBuilder != null) {
+      if (hiddenProof) {
         PathAsideBlock(stmt.Tok, proofBuilder, b);
       }
 
       stmtContext = StmtType.NONE; // done with translating assert stmt
-      if (splitHappened || proofBuilder != null) {
-        if (assertStmt != null && assertStmt.Label != null) {
+      if (splitHappened || hiddenProof) {
+        if (assertStmt is { Label: not null }) {
           // make copies of the variables used in the assertion
           var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
           var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
           locals.Add(heapAt);
-          var h = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
-          b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
+          var heapReference = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
+          b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, heapReference, etran.HeapExpr));
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr)) {
             if (v is LocalVariable) {
@@ -139,7 +126,7 @@ namespace Microsoft.Dafny {
           }
 
           var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
-          var etr = new ExpressionTranslator(etran, h);
+          var etr = new ExpressionTranslator(etran, heapReference);
           assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
         } else if (!defineFuel) {
           // Adding the assume stmt, resetting the stmtContext
@@ -164,6 +151,34 @@ namespace Microsoft.Dafny {
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.AddCaptureState(stmt);
       }
+    }
+
+    private bool TrAssertCondition(PredicateStmt stmt, BoogieStmtListBuilder builder,
+      ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
+      IToken enclosingToken = null;
+      if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
+        enclosingToken = stmt.Tok;
+      }
+
+      var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
+      var splits = TrSplitExpr(builder.Context, stmt.Expr, etran, true, out var splitHappened);
+      if (!splitHappened) {
+        var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
+        var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
+        proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
+          etran.TrAttributes(stmt.Attributes, null)));
+      } else {
+        foreach (var split in splits) {
+          if (split.IsChecked) {
+            var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
+            var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
+            proofBuilder.Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
+              etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
+          }
+        }
+      }
+
+      return splitHappened;
     }
   }
 }

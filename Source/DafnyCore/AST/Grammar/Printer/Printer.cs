@@ -979,7 +979,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (printMode == PrintModes.NoIncludes || printMode == PrintModes.NoGhostOrIncludes) {
         bool verify = true;
         if (Attributes.ContainsBool(attributes, "verify", ref verify) && !verify) { return true; }
-        if (name.Contains("INTERNAL") || name.StartsWith(RevealStmt.RevealLemmaPrefix)) { return true; }
+        if (name.Contains("INTERNAL") || name.StartsWith(HideRevealStmt.RevealLemmaPrefix)) { return true; }
       }
       return false;
     }
