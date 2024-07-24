@@ -6,7 +6,7 @@ using DafnyCore.Options;
 
 namespace Microsoft.Dafny;
 
-public abstract class MethodOrFunction : MemberDecl {
+public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public static readonly Option<bool> AllowExternalContracts = new("--allow-external-contracts",
     "Allow exporting callables with preconditions, and importing callables with postconditions");
 
@@ -14,6 +14,8 @@ public abstract class MethodOrFunction : MemberDecl {
     DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
+  [FilledInDuringResolution]
+  public bool ContainsHide { get; set; }
   public readonly List<TypeParameter> TypeArgs;
   public readonly List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
@@ -39,6 +41,9 @@ public abstract class MethodOrFunction : MemberDecl {
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    if (cloner.CloneResolvedFields) {
+      this.ContainsHide = original.ContainsHide;
+    }
   }
 
   protected abstract bool Bodyless { get; }

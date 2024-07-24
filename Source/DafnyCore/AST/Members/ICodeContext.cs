@@ -46,6 +46,9 @@ public class CodeContextWrapper : ICodeContext {
   }
 }
 
+interface ICodeContainer {
+  bool ContainsHide { get; set; }
+}
 
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
