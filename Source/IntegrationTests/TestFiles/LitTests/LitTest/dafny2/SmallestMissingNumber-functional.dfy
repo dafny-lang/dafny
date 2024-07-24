@@ -214,11 +214,18 @@ ghost function IntRange(lo: nat, len: nat): set<nat>
   S
 }
 
+lemma BoundedSetSize(xs: set<nat>, lower: nat, upper: nat)
+  requires forall x <- xs :: lower <= x && x < upper
+  ensures |xs| <= upper - lower
+
 // ----- Proofs of alternative versions
 
 lemma {:isolate_assertions} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
   requires NoDuplicates(xs)
+// a
   requires forall x :: x in Elements(xs) ==> n <= x
+// b
+// c
   requires len == Length(xs)
   ensures var s := SMN'(xs, n, len);
     n <= s <= n + len &&
@@ -239,6 +246,16 @@ lemma {:isolate_assertions} SMN'_Correct(xs: List<nat>, n: nat, len: nat)
       SMN'_Correct(L, n, llen);
     } else {
       var s := SMN'(R, n + llen, len - llen);
+      // at worst the elements in L are consecutive, and then the lower bound of R is n + llen
+      // elements in R are bigger than those in L
+      // the biggest element in L is n + half
+      // assert llen >= half;
+
+      assert llen == half by {
+        BoundedSetSize(Elements(L), n, n + half);
+        assert |Elements(L)| <= (n + half) - n;
+        assert |Elements(L)| <= half;    
+      }
       SMN'_Correct(R, n + llen, len - llen);
       forall x | n <= x < s
         ensures x in Elements(xs)
@@ -274,6 +291,12 @@ lemma {:isolate_assertions} SMN''_Correct(xs: List<nat>, n: nat, len: nat)
       SMN''_Correct(L, n, llen);
     } else {
       var s := SMN''(R, n + llen, len - llen);
+
+      assert llen == half by {
+        BoundedSetSize(Elements(L), n, n + half);
+        assert |Elements(L)| <= (n + half) - n;
+        assert |Elements(L)| <= half;    
+      }
       SMN''_Correct(R, n + llen, len - llen);
       forall x | n <= x < s
         ensures x in Elements(xs)

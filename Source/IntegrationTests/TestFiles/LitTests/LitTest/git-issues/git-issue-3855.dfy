@@ -192,7 +192,7 @@ class Memory {
     twostate predicate {:opaque}     {:no_inline} Valid2()
         reads this`objects, objects, objects`fields
         ensures Valid2() ==> Valid()
-    { 
+    {
      reveal Valid();
      Valid()
        &&
