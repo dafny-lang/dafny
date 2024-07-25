@@ -1441,6 +1441,28 @@ namespace Microsoft.Dafny.Compilers {
         AddUnsupported("Expected ExprContainer, got " + wr.GetType());
       }
     }
+    
+    // Overriden from SinglePassCodeGenerator to return a BuilderSyntaxTree
+    // To avoid UnsupportedInvalidOperationException in EmitIdentifier by way of set comprehension (github issue 5644)
+    protected override ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+      Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
+      Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
+      Contract.Requires(declWithConstraints.ConstraintIsCompilable);
+      switch (declWithConstraints) {
+        case NonNullTypeDecl:
+          // Non-null types don't have a special target class, so we just do the non-null constraint check here.
+          return EmitNullTest(false, wr);
+        case NewtypeDecl { TargetTypeCoversAllBitPatterns: true }: {
+          EmitLiteralExpr(wr, Expression.CreateBoolLiteral(declWithConstraints.tok, true));
+          return new BuilderSyntaxTree<ExprContainer>(new ExprBuffer(null), this);
+        }
+        default: {
+          // in mind that type parameters are not accessible in static methods in some target languages).
+          var type = UserDefinedType.FromTopLevelDecl(declWithConstraints.tok, (TopLevelDecl)declWithConstraints, typeArguments);
+          return EmitCallToIsMethod(declWithConstraints, type, wr);
+        }
+      }
+    }
 
     protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
       if (GetExprBuilder(wr, out var builder)) {

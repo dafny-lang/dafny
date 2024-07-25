@@ -5105,7 +5105,7 @@ namespace Microsoft.Dafny.Compilers {
       return wrArguments;
     }
 
-    protected ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
       Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
       Contract.Requires(declWithConstraints.ConstraintIsCompilable);
