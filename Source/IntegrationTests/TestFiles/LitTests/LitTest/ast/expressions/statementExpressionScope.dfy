@@ -20,20 +20,28 @@ function StatementExpressionAndSubsetResult(): nat
 }
 
 method StatementExpressionAndSubsetLocal() 
-  // no error, since the statement expression can be used for the return type subset constraint
+  // no error, since the statement expression can be used for the local variable type subset constraint
 {
   var x: nat := assume -1 > 0; -1;
 }
 
-function ExpressionWFAndLet(): int 
+predicate P(x: int)
+method NeedsP(x: int) requires P(x)
+
+method StatementExpressionAndPrecondition(x: int) 
+{
+  NeedsP(assume P(x); x); // no error, since the statement expression can be used for the requires clause
+}
+
+function StatementExpressionAssumeDoesNotEscapeLetBinding(): int 
 {
   var x := assume false; 10; 
   assert false; // error, since the statement expression does not leak outside of the let.
   x
 }
 
-method StatementExpressionAssumeDoesNotEscapeExpression() {
+method StatementExpressionAssumeDoesNotEscapeAssignment() {
   var x := assume false; 3;
-  assert false; // error
+  assert false; // error, since the statement expression does not leak outside of the assignment.
 }
 
