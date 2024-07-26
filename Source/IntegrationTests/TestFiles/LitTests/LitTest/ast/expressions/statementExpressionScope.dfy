@@ -13,6 +13,12 @@ function StatementExpressionAssumeAndFunctionEnsures(): int
   assume false; 10
 }
 
+function StatementExpressionAssumeAndFunctionEnsures(): int 
+  ensures 10 == 11 // error, since the assume false does not leak
+{
+  var x := (assume false; 10); x
+}
+
 function StatementExpressionAndSubsetResult(): nat 
   // no error, since the statement expression can be used for the return type subset constraint
 {
