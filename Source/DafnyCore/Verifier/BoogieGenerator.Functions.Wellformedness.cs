@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
@@ -193,8 +194,11 @@ public partial class BoogieGenerator {
       } else {
         var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
         bodyCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          generator.CheckWellformedWithResult(f.Body, wfo, selfCall, f.ResultType, locals, bodyCheckBuilder, etran,
-            "function call result");
+          
+          Action<BoogieStmtListBuilder> checkPostcondition = b => {
+            generator.CheckSubsetType(etran, f.Body, selfCall, f.ResultType, b, "variable declaration RHS");
+          };
+          generator.CheckWellformedWithResult(f.Body, wfo, checkPostcondition, locals, bodyCheckBuilder, etran);
           if (f.Result != null) {
             var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
             generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));

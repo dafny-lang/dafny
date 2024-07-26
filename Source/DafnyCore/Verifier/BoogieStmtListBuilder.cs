@@ -2,7 +2,7 @@ using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  internal class BoogieStmtListBuilder {
+  public class BoogieStmtListBuilder {
     public DafnyOptions Options { get; }
     public StmtListBuilder builder;
     public BoogieGenerator tran;
