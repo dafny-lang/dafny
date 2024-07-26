@@ -41,12 +41,11 @@ public partial class BoogieGenerator {
       var mod = new List<Bpl.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
       };
-      var ensures = GetWellformnessProcedureEnsures(f, etran);
 
       var proc = new Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
         new List<TypeVariable>(),
         Concat(Concat(typeInParams, heapParameters), procedureParameters), outParams,
-        false, requires, mod, ensures, etran.TrAttributes(f.Attributes, null));
+        false, requires, mod, new List<Ensures>(), etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       generator.sink.AddTopLevelDeclaration(proc);
 
@@ -202,6 +201,20 @@ public partial class BoogieGenerator {
             bodyCheckBuilder.Add(cmd);
           }
         });
+        
+        foreach (AttributedExpression e in f.Ens) {
+          var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
+          var splits = new List<SplitExprInfo>();
+          bool splitHappened /*we actually don't care*/ =
+            generator.TrSplitExpr(e.E, splits, true, functionHeight, true, true, etran);
+          var (errorMessage, successMessage) = generator.CustomErrorMessage(e.Attributes);
+          foreach (var s in splits) {
+            if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
+              var ensures = generator.EnsuresWithDependencies(s.Tok, false, e.E, s.E, errorMessage, successMessage, null);
+              bodyCheckBuilder.Add(new AssertCmd(ensures.tok, ensures.Condition, ensures.Description, ensures.Attributes));
+            }
+          }
+        }
 
         // Enforce 'older' conditions
         var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
@@ -338,24 +351,6 @@ public partial class BoogieGenerator {
       }
 
       return outParams;
-    }
-
-    private List<Ensures> GetWellformnessProcedureEnsures(Function f, ExpressionTranslator etran) {
-      var ens = new List<Ensures>();
-      foreach (AttributedExpression p in f.Ens) {
-        var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
-        var splits = new List<SplitExprInfo>();
-        bool splitHappened /*we actually don't care*/ =
-          generator.TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
-        var (errorMessage, successMessage) = generator.CustomErrorMessage(p.Attributes);
-        foreach (var s in splits) {
-          if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
-            generator.AddEnsures(ens, generator.EnsuresWithDependencies(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));
-          }
-        }
-      }
-
-      return ens;
     }
 
     private List<Bpl.Requires> GetWellformednessProcedureRequires(Function f, ExpressionTranslator etran) {
