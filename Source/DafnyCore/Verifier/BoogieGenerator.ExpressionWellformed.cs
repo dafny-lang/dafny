@@ -1336,6 +1336,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
+      
       if (result != null) {
         Contract.Assert(resultType != null);
         var bResult = etran.TrExpr(expr);
