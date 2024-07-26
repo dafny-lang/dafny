@@ -524,6 +524,9 @@ namespace Dafny {
         hashCode = hashCode * (key + 3);
       }
       foreach (var kv in dict) {
+        if (kv.Value <= 0) {
+          continue;
+        }
         var key = Dafny.Helpers.GetHashCode(kv.Key);
         key = (key << 3) | (key >> 29) ^ kv.Value.GetHashCode();
         hashCode = hashCode * (key + 3);
