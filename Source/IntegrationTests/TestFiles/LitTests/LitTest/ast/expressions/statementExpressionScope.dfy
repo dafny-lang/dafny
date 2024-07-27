@@ -31,6 +31,14 @@ method StatementExpressionAndSubsetLocal()
   var x: nat := assume -1 > 0; -1;
 }
 
+method StatementExpressionAndSubsetLocal2() 
+  // no error, since the statement expression can be used for the local variable type subset constraint
+{
+  var x: nat := assume -1 > 0; -1;
+  assert x >= 0; // no error;
+  assert StatementExpressionAndSubsetResult() >= 0; // no error
+}
+
 predicate P(x: int)
 method NeedsP(x: int) requires P(x)
 
