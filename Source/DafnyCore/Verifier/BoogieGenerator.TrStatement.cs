@@ -530,15 +530,15 @@ namespace Microsoft.Dafny {
       locals.Add(boogieTupleLocal);
       var boogieTupleReference = new Bpl.IdentifierExpr(rhs.tok, boogieTupleLocal);
 
-      Action<BoogieStmtListBuilder> checkPostcondition = b => {
+      CheckPostcondition checkPostcondition = (b, body, adaptBoxing, prefix) => {
         Contract.Assert(pat.Expr.Type != null);
-        var bResult = etran.TrExpr(rhs);
+        var bResult = etran.TrExpr(body);
         CheckSubrange(rhs.tok, bResult, rhs.Type, pat.Expr.Type, rhs, b);
         b.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs,
-          e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type)),
-          "variable declaration RHS"));
+          e => Bpl.Expr.Eq(boogieTupleReference, adaptBoxing ? AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type) : e),
+          prefix));
       };
-      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), checkPostcondition, locals, builder, etran);
+      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), checkPostcondition, locals, builder, etran, "variable declaration RHS");
       builder.Add(TrAssumeCmd(rhs.tok, etran.CanCallAssumption(rhs)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));

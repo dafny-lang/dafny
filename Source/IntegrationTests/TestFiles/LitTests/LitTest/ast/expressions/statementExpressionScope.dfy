@@ -10,11 +10,11 @@ function StatementExpressionValueAndEnsures(): int
 function StatementExpressionAssumeAndFunctionEnsures(): int 
   ensures 10 == 11 // no error, since the statement expression can be used for the ensures clause
 {
-  assume false; 10
+  assume false; 42
 }
 
-function StatementExpressionAssumeAndFunctionEnsures(): int 
-  ensures 10 == 11 // error, since the assume false does not leak
+function StatementExpressionAssumeInLetAndFunctionEnsures(): int 
+  ensures 10 == 11 // error, since the assume false does not leak from a let
 {
   var x := (assume false; 10); x
 }
