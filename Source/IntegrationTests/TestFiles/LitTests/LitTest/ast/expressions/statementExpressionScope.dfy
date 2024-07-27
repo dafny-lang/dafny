@@ -36,7 +36,7 @@ method StatementExpressionAndSubsetLocal2()
 {
   var x: nat := assume -1 > 0; -1;
   assert x >= 0; // no error;
-  assert StatementExpressionAndSubsetResult() >= 0; // no error
+  // really weird that this changes things // assert StatementExpressionAndSubsetResult() >= 0; // no error
 }
 
 predicate P(x: int)

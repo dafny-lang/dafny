@@ -2585,10 +2585,14 @@ namespace Microsoft.Dafny {
       if (rhs is ExprRhs) {
         var e = (ExprRhs)rhs;
 
-        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true);
+        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, checkPostcondition:
+          (b, innerBody, adaptBoxing, prefix) => {
+            Bpl.Expr bRhs = etran.TrExpr(innerBody);
+            CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, b);
+          });
 
-        Bpl.Expr bRhs = etran.TrExpr(e.Expr);
-        CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, builder);
+        var bRhs = etran.TrExpr(e.Expr);
+        builder.Add(TrAssumeCmd(e.tok, MkIs(bRhs, lhsType)));
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
@@ -2798,7 +2802,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, bool subsumption, bool lValueContext = false) {
+    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals, 
+      ExpressionTranslator etran, bool subsumption, bool lValueContext = false, CheckPostcondition checkPostcondition = null) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -2823,7 +2828,7 @@ namespace Microsoft.Dafny {
       if (lValueContext) {
         options = options.WithLValueContext(true);
       }
-      CheckWellformed(expr, options, locals, builder, etran);
+      CheckWellformedWithResult(expr, options, checkPostcondition, locals, builder, etran);
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
 
