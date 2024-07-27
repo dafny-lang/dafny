@@ -1134,132 +1134,13 @@ namespace Microsoft.Dafny {
             break;
           }
         case LetExpr letExpr:
-          CheckWellformedLetExprWithResult(letExpr, wfOptions, checkPostcondition, resultType, locals, builder, etran, true);
+          CheckWellformedLetExprWithResult(letExpr, wfOptions, checkPostcondition, locals, builder, etran, true);
           checkPostcondition = null;
           break;
         case ComprehensionExpr comprehensionExpr: {
-            var e = comprehensionExpr;
-            var lam = e as LambdaExpr;
-            var mc = e as MapComprehension;
-            if (mc is { IsGeneralMapComprehension: false }) {
-              mc = null;  // mc will be non-null when "e" is a general map comprehension
-            }
-
-            // This is a WF check, so we look at the original quantifier, not the split one.
-            // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
-
-            builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
-            BplIfIf(e.tok, lam != null, null, builder, nextBuilder => {
-              var comprehensionEtran = etran;
-              if (lam != null) {
-                // Havoc heap
-                locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
-                comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
-                nextBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
-                nextBuilder.Add(new AssumeCmd(expr.tok, FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
-                nextBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
-              }
-
-              var substMap = SetupBoundVarsAsLocals(e.BoundVars, out var typeAntecedents, nextBuilder, locals, comprehensionEtran);
-              BplIfIf(e.tok, true, typeAntecedents, nextBuilder, newBuilder => {
-                var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
-                var body = Substitute(e.Term, null, substMap);
-                var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap) : null;
-                var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, newBuilder, locals, comprehensionEtran, "#prime") : null;
-                var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime) : null;
-                var bodyPrime = mc != null ? Substitute(e.Term, null, substMapPrime) : null;
-                List<FrameExpression> reads = null;
-
-                var newOptions = wfOptions;
-                if (lam != null) {
-                  // Set up a new frame
-                  var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
-                  reads = lam.Reads.Expressions.ConvertAll(s.SubstFrameExpr);
-                  comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName, lam);
-                  DefineFrame(e.tok, comprehensionEtran.ReadsFrame(e.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
-
-                  // Check frame WF and that it read covers itself
-                  var delayer = new ReadsCheckDelayer(comprehensionEtran, wfOptions.SelfCallsAllowance, locals, builder, newBuilder);
-                  delayer.DoWithDelayedReadsChecks(false, wfo => {
-                    CheckFrameWellFormed(wfo, reads, locals, newBuilder, comprehensionEtran);
-                  });
-
-                  // continue doing reads checks, but don't delay them
-                  newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
-                }
-
-                // check requires/range
-                Bpl.Expr guard = null;
-                if (e.Range != null) {
-                  var range = Substitute(e.Range, null, substMap);
-                  CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
-                  guard = comprehensionEtran.TrExpr(range);
-                }
-
-                if (mc != null) {
-                  Contract.Assert(bodyLeft != null);
-                  BplIfIf(e.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, comprehensionEtran); });
-                }
-                BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
-                  Bpl.Expr resultIe = null;
-                  Type rangeType = null;
-                  if (lam != null) {
-                    var resultName = CurrentIdGenerator.FreshId("lambdaResult#");
-                    var resultVar = new Bpl.LocalVariable(body.tok, new Bpl.TypedIdent(body.tok, resultName, TrType(body.Type)));
-                    locals.Add(resultVar);
-                    resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
-                    rangeType = lam.Type.AsArrowType.Result;
-                  }
-                  CheckWellformedWithResult(body, newOptions, resultIe, locals, b, comprehensionEtran);
-                });
-
-                if (mc != null) {
-                  Contract.Assert(substMapPrime != null);
-                  Contract.Assert(bodyLeftPrime != null);
-                  Contract.Assert(bodyPrime != null);
-                  Bpl.Expr guardPrime = null;
-                  if (guard != null) {
-                    Contract.Assert(e.Range != null);
-                    var rangePrime = Substitute(e.Range, null, substMapPrime);
-                    guardPrime = comprehensionEtran.TrExpr(rangePrime);
-                  }
-                  BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
-                    var different = BplOr(
-                      Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
-                      Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
-                    b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias(mc.BoundVars, mc.Range, mc.TermLeft, mc.Term)));
-                  });
-                }
-              });
-
-              if (lam != null) {
-                // assume false (heap was havoced inside an if)
-                Contract.Assert(nextBuilder != builder);
-                nextBuilder.Add(new AssumeCmd(e.tok, Bpl.Expr.False));
-              }
-            });
-
-            bool needTypeConstraintCheck;
-            if (lam == null) {
-              needTypeConstraintCheck = true;
-            } else {
-              // omit constraint check if the type is according to the syntax of the expression
-              var arrowType = (UserDefinedType)e.Type.NormalizeExpandKeepConstraints();
-              if (ArrowType.IsPartialArrowTypeName(arrowType.Name)) {
-                needTypeConstraintCheck = lam.Reads.Expressions.Count != 0;
-              } else if (ArrowType.IsTotalArrowTypeName(arrowType.Name)) {
-                needTypeConstraintCheck = lam.Reads.Expressions.Count != 0 || lam.Range != null;
-              } else {
-                needTypeConstraintCheck = true;
-              }
-            }
-            if (needTypeConstraintCheck) {
-              CheckResultToBeInType(e.tok, e, e.Type, locals, builder, etran);
-            }
-
-            builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
-            break;
-          }
+          CheckWellformedComprehensionExpression(wfOptions, locals, builder, etran, comprehensionExpr);
+          break;
+        }
         case StmtExpr stmtExpr:
           var bodyBuilder = new BoogieStmtListBuilder(this, builder.Options);
           PathAsideBlock(stmtExpr.tok, bodyBuilder, builder);
@@ -1277,7 +1158,7 @@ namespace Microsoft.Dafny {
               // has already been checked in e.Test
               var letExpr = (LetExpr)e.Thn;
               Contract.Assert(letExpr != null);
-              CheckWellformedLetExprWithResult(letExpr, wfOptions, checkPostcondition, resultType, locals, bThen, etran, false);
+              CheckWellformedLetExprWithResult(letExpr, wfOptions, checkPostcondition, locals, bThen, etran, false);
             } else {
               CheckWellformedWithResult(e.Thn, wfOptions, checkPostcondition, locals, bThen, etran);
             }
@@ -1287,8 +1168,8 @@ namespace Microsoft.Dafny {
             break;
           }
         case MatchExpr matchExpr:
-          checkPostcondition = TrMatchExpr(matchExpr, wfOptions, checkPostcondition, resultType, locals, builder, etran);
-          resultDescription = "match expression";
+          TrMatchExpr(matchExpr, wfOptions, checkPostcondition, locals, builder, etran);
+          checkPostcondition = null;
           break;
         case DatatypeUpdateExpr updateExpr: {
             var e = updateExpr;
@@ -1343,6 +1224,134 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void CheckWellformedComprehensionExpression(WFOptions wfOptions, List<Variable> locals,
+      BoogieStmtListBuilder builder, ExpressionTranslator etran, ComprehensionExpr expr) {
+      var lam = expr as LambdaExpr;
+      var mc = expr as MapComprehension;
+      if (mc is { IsGeneralMapComprehension: false }) {
+        mc = null;  // mc will be non-null when "e" is a general map comprehension
+      }
+
+      // This is a WF check, so we look at the original quantifier, not the split one.
+      // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
+
+      builder.Add(new Bpl.CommentCmd("Begin Comprehension WF check"));
+      BplIfIf(expr.tok, lam != null, null, builder, nextBuilder => {
+        var comprehensionEtran = etran;
+        if (lam != null) {
+          // Havoc heap
+          locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+          comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
+          nextBuilder.Add(new HavocCmd(expr.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
+          nextBuilder.Add(new AssumeCmd(expr.tok, FunctionCall(expr.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
+          nextBuilder.Add(new AssumeCmd(expr.tok, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
+        }
+
+        var substMap = SetupBoundVarsAsLocals(expr.BoundVars, out var typeAntecedents, nextBuilder, locals, comprehensionEtran);
+        BplIfIf(expr.tok, true, typeAntecedents, nextBuilder, newBuilder => {
+          var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+          var body = Substitute(expr.Term, null, substMap);
+          var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap) : null;
+          var substMapPrime = mc != null ? SetupBoundVarsAsLocals(expr.BoundVars, newBuilder, locals, comprehensionEtran, "#prime") : null;
+          var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime) : null;
+          var bodyPrime = mc != null ? Substitute(expr.Term, null, substMapPrime) : null;
+          List<FrameExpression> reads = null;
+
+          var newOptions = wfOptions;
+          if (lam != null) {
+            // Set up a new frame
+            var frameName = CurrentIdGenerator.FreshId("$_Frame#l");
+            reads = lam.Reads.Expressions.ConvertAll(s.SubstFrameExpr);
+            comprehensionEtran = comprehensionEtran.WithReadsFrame(frameName, lam);
+            DefineFrame(expr.tok, comprehensionEtran.ReadsFrame(expr.tok), reads, newBuilder, locals, frameName, comprehensionEtran);
+
+            // Check frame WF and that it read covers itself
+            var delayer = new ReadsCheckDelayer(comprehensionEtran, wfOptions.SelfCallsAllowance, locals, builder, newBuilder);
+            delayer.DoWithDelayedReadsChecks(false, wfo => {
+              CheckFrameWellFormed(wfo, reads, locals, newBuilder, comprehensionEtran);
+            });
+
+            // continue doing reads checks, but don't delay them
+            newOptions = new WFOptions(wfOptions.SelfCallsAllowance, true, false);
+          }
+
+          // check requires/range
+          Bpl.Expr guard = null;
+          if (expr.Range != null) {
+            var range = Substitute(expr.Range, null, substMap);
+            CheckWellformed(range, newOptions, locals, newBuilder, comprehensionEtran);
+            guard = comprehensionEtran.TrExpr(range);
+          }
+
+          if (mc != null) {
+            Contract.Assert(bodyLeft != null);
+            BplIfIf(expr.tok, guard != null, guard, newBuilder, b => { CheckWellformed(bodyLeft, newOptions, locals, b, comprehensionEtran); });
+          }
+          BplIfIf(expr.tok, guard != null, guard, newBuilder, b => {
+            Bpl.Expr resultIe = null;
+            Type rangeType = null;
+            if (lam != null) {
+              var resultName = CurrentIdGenerator.FreshId("lambdaResult#");
+              var resultVar = new Bpl.LocalVariable(body.tok, new Bpl.TypedIdent(body.tok, resultName, TrType(body.Type)));
+              locals.Add(resultVar);
+              resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
+              rangeType = lam.Type.AsArrowType.Result;
+            }
+
+            Action<BoogieStmtListBuilder> checkPostcondition = builder => {
+              CheckSubsetType(etran, body, resultIe, rangeType, builder);
+            };
+            CheckWellformedWithResult(body, newOptions, checkPostcondition, locals, b, comprehensionEtran);
+          });
+
+          if (mc != null) {
+            Contract.Assert(substMapPrime != null);
+            Contract.Assert(bodyLeftPrime != null);
+            Contract.Assert(bodyPrime != null);
+            Bpl.Expr guardPrime = null;
+            if (guard != null) {
+              Contract.Assert(expr.Range != null);
+              var rangePrime = Substitute(expr.Range, null, substMapPrime);
+              guardPrime = comprehensionEtran.TrExpr(rangePrime);
+            }
+            BplIfIf(expr.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
+              var different = BplOr(
+                Bpl.Expr.Neq(comprehensionEtran.TrExpr(bodyLeft), comprehensionEtran.TrExpr(bodyLeftPrime)),
+                Bpl.Expr.Eq(comprehensionEtran.TrExpr(body), comprehensionEtran.TrExpr(bodyPrime)));
+              b.Add(Assert(GetToken(mc.TermLeft), different, new PODesc.ComprehensionNoAlias(mc.BoundVars, mc.Range, mc.TermLeft, mc.Term)));
+            });
+          }
+        });
+
+        if (lam != null) {
+          // assume false (heap was havoced inside an if)
+          Contract.Assert(nextBuilder != builder);
+          nextBuilder.Add(new AssumeCmd(expr.tok, Bpl.Expr.False));
+        }
+      });
+
+      bool needTypeConstraintCheck;
+      if (lam == null) {
+        needTypeConstraintCheck = true;
+      } else {
+        // omit constraint check if the type is according to the syntax of the expression
+        var arrowType = (UserDefinedType)expr.Type.NormalizeExpandKeepConstraints();
+        if (ArrowType.IsPartialArrowTypeName(arrowType.Name)) {
+          needTypeConstraintCheck = lam.Reads.Expressions.Count != 0;
+        } else if (ArrowType.IsTotalArrowTypeName(arrowType.Name)) {
+          needTypeConstraintCheck = lam.Reads.Expressions.Count != 0 || lam.Range != null;
+        } else {
+          needTypeConstraintCheck = true;
+        }
+      }
+      if (needTypeConstraintCheck) {
+        CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
+      }
+
+      builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
+      return;
+    }
+
     public void CheckSubsetType(ExpressionTranslator etran, Expression expr, Bpl.Expr selfCall, Type resultType,
       BoogieStmtListBuilder builder, string resultDescription = null) {
       
@@ -1357,7 +1366,7 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, MkIs(selfCall, resultType)));
     }
 
-    private Expr TrMatchExpr(MatchExpr me, WFOptions wfOptions, Expr result, Type resultType, List<Variable> locals,
+    private void TrMatchExpr(MatchExpr me, WFOptions wfOptions, Action<BoogieStmtListBuilder> checkPostcondition, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       FillMissingCases(me);
 
@@ -1396,14 +1405,15 @@ namespace Microsoft.Dafny {
         BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
         Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
         // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-        CheckWellformedWithResult(mc.Body, wfOptions, result, locals, b, etran);
+        
+        // TODO: 
+        // resultDescription = "match expression";
+        CheckWellformedWithResult(mc.Body, wfOptions, checkPostcondition, locals, b, etran);
         ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
         els = null;
       }
 
       builder.Add(ifCmd);
-      result = null;
-      return result;
     }
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions options, Action<BoogieStmtListBuilder> checkPostcondition, List<Variable> locals,
@@ -1490,7 +1500,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, Bpl.Expr result, Type resultType, List<Bpl.Variable> locals,
+    void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, Action<BoogieStmtListBuilder> checkPostcondition, List<Bpl.Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs) {
       if (e.Exact) {
         var substMap = SetupBoundVarsAsLocals(e.BoundVars.ToList<BoundVar>(), builder, locals, etran, "#Z");
@@ -1503,12 +1513,16 @@ namespace Microsoft.Dafny {
           var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(pat.Expr.Type)));
           locals.Add(r);
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-          CheckWellformedWithResult(e.RHSs[i], wfOptions, rIe, locals, builder, etran);
+          var unModifiedI = i;
+          Action<BoogieStmtListBuilder> checkPostconditionForLhs = innerBuilder => {
+            CheckSubsetType(etran, e.RHSs[unModifiedI], rIe, pat.Expr.Type, innerBuilder, "let expression binding RHS well-formed");
+          };
+          CheckWellformedWithResult(e.RHSs[i], wfOptions, checkPostconditionForLhs, locals, builder, etran);
           CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
           builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
         }
-        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, result, locals, builder, etran);
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, checkPostcondition, locals, builder, etran);
 
       } else {
         // CheckWellformed(var b :| RHS(b); Body(b)) =
@@ -1561,14 +1575,15 @@ namespace Microsoft.Dafny {
         var info = letSuchThatExprInfo[e];
         builder.Add(new Bpl.AssumeCmd(e.tok, info.CanCallFunctionCall(this, etran)));
         // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
-        if (result != null) {
-          Contract.Assert(resultType != null);
-          var bResult = etran.TrExpr(letBody);
-          CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, letBody, builder);
-          builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, letBody, e => Expr.Eq(result, e), "let expression"));
-          builder.Add(TrAssumeCmd(letBody.tok, etran.CanCallAssumption(letBody)));
-          builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
-          builder.Add(TrAssumeCmd(letBody.tok, MkIs(result, resultType)));
+        if (checkPostcondition != null) {
+          checkPostcondition(builder);
+          // Contract.Assert(resultType != null);
+          // var bResult = etran.TrExpr(letBody);
+          // CheckSubrange(letBody.tok, bResult, letBody.Type, resultType, letBody, builder);
+          // builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, letBody, e => Expr.Eq(checkPostcondition, e), "let expression"));
+          // builder.Add(TrAssumeCmd(letBody.tok, etran.CanCallAssumption(letBody)));
+          // builder.Add(new CommentCmd("CheckWellformedWithResult: Let expression"));
+          // builder.Add(TrAssumeCmd(letBody.tok, MkIs(checkPostcondition, resultType)));
         }
       }
     }

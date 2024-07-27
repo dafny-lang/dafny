@@ -188,37 +188,43 @@ public partial class BoogieGenerator {
       var selfCall = GetSelfCall(f, etran, parameters);
       var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options);
       bodyCheckBuilder.Add(new CommentCmd("Check Wfness of body, result subset type constraint, and return to check the postcondition"));
-      if (f.Body == null || !generator.RevealedInScope(f)) {
-        // don't fall through to postcondition checks
-        bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Expr.False));
-      } else {
+      if (f.Body != null && generator.RevealedInScope(f)) {
         var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
         bodyCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          
           Action<BoogieStmtListBuilder> checkPostcondition = b => {
-            generator.CheckSubsetType(etran, f.Body, selfCall, f.ResultType, b, "variable declaration RHS");
+            Contract.Assert(f.ResultType != null);
+            var bResult = etran.TrExpr(f.Body);
+            generator.CheckSubrange(f.Body.tok, bResult, f.Body.Type, f.ResultType, f.Body, b);
           };
           generator.CheckWellformedWithResult(f.Body, wfo, checkPostcondition, locals, bodyCheckBuilder, etran);
+          bodyCheckBuilder.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, f.Body.tok, f.Body,
+            e => Bpl.Expr.Eq(selfCall, generator.AdaptBoxing(f.Body.tok, e, f.Body.Type, f.ResultType)),
+            "function call result"));
+          bodyCheckBuilder.Add(TrAssumeCmd(f.Body.tok, etran.CanCallAssumption(f.Body)));
+          bodyCheckBuilder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
+          bodyCheckBuilder.Add(TrAssumeCmd(f.Body.tok, generator.MkIs(selfCall, f.ResultType)));
           if (f.Result != null) {
             var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
             generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
             bodyCheckBuilder.Add(cmd);
           }
-        });
-        
-        foreach (AttributedExpression e in f.Ens) {
-          var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
-          var splits = new List<SplitExprInfo>();
-          bool splitHappened /*we actually don't care*/ =
-            generator.TrSplitExpr(e.E, splits, true, functionHeight, true, true, etran);
-          var (errorMessage, successMessage) = generator.CustomErrorMessage(e.Attributes);
-          foreach (var s in splits) {
-            if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
-              var ensures = generator.EnsuresWithDependencies(s.Tok, false, e.E, s.E, errorMessage, successMessage, null);
-              bodyCheckBuilder.Add(new AssertCmd(ensures.tok, ensures.Condition, ensures.Description, ensures.Attributes));
+
+          foreach (AttributedExpression e in f.Ens) {
+            var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
+            var splits = new List<SplitExprInfo>();
+            bool splitHappened /*we actually don't care*/ =
+              generator.TrSplitExpr(e.E, splits, true, functionHeight, true, true, etran);
+            var (errorMessage, successMessage) = generator.CustomErrorMessage(e.Attributes);
+            foreach (var s in splits) {
+              if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
+                var ensures =
+                  generator.EnsuresWithDependencies(s.Tok, false, e.E, s.E, errorMessage, successMessage, null);
+                bodyCheckBuilder.Add(new AssertCmd(ensures.tok, ensures.Condition, ensures.Description,
+                  ensures.Attributes));
+              }
             }
           }
-        }
+        });
 
         // Enforce 'older' conditions
         var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
