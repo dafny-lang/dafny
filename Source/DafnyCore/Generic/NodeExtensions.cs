@@ -129,7 +129,9 @@ public static class NodeExtensions {
         return node.FindNodeChain(position, parent, predicate);
       }
 
-      return null;
+      if (node.SingleFileToken) {
+        return null;
+      }
     }
 
     var newParent = new LList<INode>(node, parent);
