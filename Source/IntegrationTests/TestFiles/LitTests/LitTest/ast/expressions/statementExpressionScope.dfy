@@ -40,11 +40,13 @@ method StatementExpressionAndSubsetLocal2()
 }
 
 predicate P(x: int)
+method NeedsNat(x: nat)
 method NeedsP(x: int) requires P(x)
 
 method StatementExpressionAndPrecondition(x: int) 
 {
-  NeedsP(assume P(x); x); // no error, since the statement expression can be used for the requires clause
+  NeedsNat(assume x > 0; x); // error, altough it could be nice not to have it  
+  NeedsP(assume P(x); x); // error, since the statement expression can not be used for the requires clause
 }
 
 function StatementExpressionAssumeDoesNotEscapeLetBinding(): int 

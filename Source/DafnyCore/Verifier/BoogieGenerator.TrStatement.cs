@@ -510,8 +510,7 @@ namespace Microsoft.Dafny {
     }
 
     private void TranslateVariableDeclaration(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
-      VarDeclPattern varDeclPattern)
-    {
+      VarDeclPattern varDeclPattern) {
       foreach (var dafnyLocal in varDeclPattern.LocalVars) {
         var boogieLocal = new Bpl.LocalVariable(dafnyLocal.Tok, new Bpl.TypedIdent(dafnyLocal.Tok, dafnyLocal.AssignUniqueName(currentDeclaration.IdGenerator), TrType(dafnyLocal.Type)));
         locals.Add(boogieLocal);
@@ -542,7 +541,7 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(rhs.tok, etran.CanCallAssumption(rhs)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));
-      
+
       CheckCasePatternShape(pat, rhs, boogieTupleReference, rhs.tok, pat.Expr.Type, builder);
       builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, varDeclPattern.tok, pat.Expr, e => Expr.Eq(e, boogieTupleReference), "variable declaration"));
     }
@@ -1782,7 +1781,7 @@ namespace Microsoft.Dafny {
 
       // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
-      if (!method.IsStatic && !(method is Constructor)) {
+      if (!method.IsStatic && method is not Constructor) {
         if (bReceiver == null) {
           TrStmt_CheckWellformed(dafnyReceiver, builder, locals, etran, true);
           if (!(dafnyReceiver is ThisExpr)) {
@@ -2802,7 +2801,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals, 
+    void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals,
       ExpressionTranslator etran, bool subsumption, bool lValueContext = false, CheckPostcondition checkPostcondition = null) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);

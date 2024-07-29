@@ -37,7 +37,7 @@ public partial class BoogieGenerator {
       var outParams = GetWellformednessProcedureOutParameters(f, etran);
       var requires = GetWellformednessProcedureRequires(f, etran);
       requires.AddRange(additionalRequires);
-      
+
       // modifies $Heap
       var mod = new List<Bpl.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
@@ -123,15 +123,15 @@ public partial class BoogieGenerator {
       foreach (Expression p in f.Decreases.Expressions) {
         generator.CheckWellformed(p, new WFOptions(null, false), locals, builder, etran);
       }
-      
+
       var implementationParameters = Bpl.Formal.StripWhereClauses(procedureParameters);
       CheckBodyAndEnsuresClauses(f, etran, locals, implementationParameters, builderInitializationArea, builder);
-      
+
       if (generator.EmitImplementation(f.Attributes)) {
         var s0 = builderInitializationArea.Collect(f.tok);
         var s1 = builder.Collect(f.tok);
         var implBody = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), f.tok);
-        
+
         // emit the impl only when there are proof obligations.
         QKeyValue kv = etran.TrAttributes(f.Attributes, null);
         var parameters = Concat(Concat(Bpl.Formal.StripWhereClauses(typeInParams), heapParameters), implementationParameters);
@@ -150,8 +150,7 @@ public partial class BoogieGenerator {
     }
 
     // TODO should be moved so its injected
-    private void ConcurrentAttributeCheck(Function f, ExpressionTranslator etran, BoogieStmtListBuilder builder)
-    {
+    private void ConcurrentAttributeCheck(Function f, ExpressionTranslator etran, BoogieStmtListBuilder builder) {
       // If the function is marked as {:concurrent}, check that the reads clause is empty.
       if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
         var desc = new PODesc.ConcurrentFrameEmpty(f, "reads");
@@ -160,8 +159,7 @@ public partial class BoogieGenerator {
     }
 
     private void CheckBodyAndEnsuresClauses(Function f, ExpressionTranslator etran, List<Variable> locals, List<Variable> inParams,
-      BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder)
-    {
+      BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
       builder.Add(new CommentCmd("Check body and ensures clauses"));
       // Generate:
       //   if (*) {
@@ -183,8 +181,7 @@ public partial class BoogieGenerator {
 
     private BoogieStmtListBuilder GetBodyCheckBuilder(Function f, ExpressionTranslator etran,
       List<Variable> parameters,
-      List<Variable> locals, BoogieStmtListBuilder builderInitializationArea)
-    {
+      List<Variable> locals, BoogieStmtListBuilder builderInitializationArea) {
       var selfCall = GetSelfCall(f, etran, parameters);
       var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options);
       bodyCheckBuilder.Add(new CommentCmd("Check Wfness of body and result subset type constraint"));
@@ -239,8 +236,7 @@ public partial class BoogieGenerator {
       return bodyCheckBuilder;
     }
 
-    private Expr GetSelfCall(Function f, ExpressionTranslator etran, List<Variable> parameters)
-    {
+    private Expr GetSelfCall(Function f, ExpressionTranslator etran, List<Variable> parameters) {
       var funcId = new FunctionCall(new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName, generator.TrType(f.ResultType)));
       var args = new List<Expr>();
       foreach (var p in GetTypeParams(f)) {
@@ -271,11 +267,10 @@ public partial class BoogieGenerator {
       return funcAppl;
     }
 
-    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, List<Variable> locals)
-    {
+    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, List<Variable> locals) {
       var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options);
       postCheckBuilder.Add(new CommentCmd("Check Wfness of postcondition and assume false"));
-      
+
       // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
       var args = new List<Expr>();
       foreach (var p in GetTypeParams(f)) {
@@ -311,7 +306,7 @@ public partial class BoogieGenerator {
 
       var wh = generator.GetWhereClause(f.tok, funcAppl, f.ResultType, etran, NOALLOC);
       if (wh != null) {
-          postCheckBuilder.Add(TrAssumeCmd(f.tok, wh));
+        postCheckBuilder.Add(TrAssumeCmd(f.tok, wh));
       }
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
@@ -324,8 +319,7 @@ public partial class BoogieGenerator {
     }
 
     private ExpressionTranslator GetExpressionTranslator(Function f, ExpressionTranslator ordinaryEtran,
-      out List<Bpl.Requires> additionalRequires, out List<Variable> inParams_Heap)
-    {
+      out List<Bpl.Requires> additionalRequires, out List<Variable> inParams_Heap) {
       ExpressionTranslator etran;
       additionalRequires = new();
       inParams_Heap = new List<Variable>();
@@ -337,7 +331,7 @@ public partial class BoogieGenerator {
         Expr prevHeap = new Bpl.IdentifierExpr(f.tok, prevHeapVar);
         Expr currHeap = new Bpl.IdentifierExpr(f.tok, currHeapVar);
         etran = new ExpressionTranslator(generator, generator.predef, currHeap, prevHeap, f);
-        
+
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
         var a1 = generator.HeapSucc(prevHeap, currHeap);

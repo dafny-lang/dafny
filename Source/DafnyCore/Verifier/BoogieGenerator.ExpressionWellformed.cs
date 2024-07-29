@@ -1140,9 +1140,9 @@ namespace Microsoft.Dafny {
           checkPostcondition = null;
           break;
         case ComprehensionExpr comprehensionExpr: {
-          CheckWellformedComprehensionExpression(wfOptions, locals, builder, etran, comprehensionExpr);
-          break;
-        }
+            CheckWellformedComprehensionExpression(wfOptions, locals, builder, etran, comprehensionExpr);
+            break;
+          }
         case StmtExpr stmtExpr:
           var bodyBuilder = new BoogieStmtListBuilder(this, builder.Options);
           CheckWellformedStmtExpr(stmtExpr, wfOptions, checkPostcondition, locals, bodyBuilder, etran);
@@ -1220,7 +1220,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
-      
+
       if (checkPostcondition != null) {
         checkPostcondition(builder, expr, true, resultDescription);
       }
@@ -1356,7 +1356,7 @@ namespace Microsoft.Dafny {
 
     public void CheckSubsetType(ExpressionTranslator etran, Expression expr, Bpl.Expr selfCall, Type resultType,
       BoogieStmtListBuilder builder, bool adaptBoxing, string resultDescription = null) {
-      
+
       Contract.Assert(resultType != null);
       var bResult = etran.TrExpr(expr);
       CheckSubrange(expr.tok, bResult, expr.Type, resultType, expr, builder);
@@ -1407,7 +1407,7 @@ namespace Microsoft.Dafny {
         BoogieStmtListBuilder b = new BoogieStmtListBuilder(this, options);
         Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
         // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-        
+
         // TODO: 
         // resultDescription = "match expression";
         CheckWellformedWithResult(mc.Body, wfOptions, checkPostcondition, locals, b, etran, "match expression branch result");
@@ -1504,7 +1504,7 @@ namespace Microsoft.Dafny {
 
     delegate void CheckPostcondition(BoogieStmtListBuilder builder, Expression body, bool adaptBox,
       string errorMessagePrefix);
-    
+
     void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, CheckPostcondition checkPostcondition, List<Bpl.Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs) {
       if (e.Exact) {
