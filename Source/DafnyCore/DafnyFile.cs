@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
+using DafnyAssembly;
 using DafnyCore;
 using DafnyCore.Options;
 
@@ -29,7 +30,7 @@ public class DafnyFile {
   private static readonly Dictionary<Uri, Uri> ExternallyVisibleEmbeddedFiles = new();
 
   static DafnyFile() {
-    DooFile.RegisterLibraryCheck(UnsafeDependencies, OptionCompatibility.OptionLibraryImpliesLocalError);
+    DooFile.RegisterLibraryCheck(DoNotVerifyDependencies, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
   public static Uri ExposeInternalUri(string externalName, Uri internalUri) {
@@ -108,7 +109,7 @@ public class DafnyFile {
     }
   }
 
-  public static readonly Option<bool> UnsafeDependencies = new("--dont-verify-dependencies",
+  public static readonly Option<bool> DoNotVerifyDependencies = new("--dont-verify-dependencies",
     "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
 
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
@@ -141,7 +142,7 @@ public class DafnyFile {
       return null;
     }
 
-    if (!options.Get(UnsafeDependencies) && asLibrary && warnLibrary) {
+    if (!options.Get(DoNotVerifyDependencies) && asLibrary && warnLibrary) {
       reporter.Warning(MessageSource.Project, "", origin,
         $"The file '{options.GetPrintPath(filePath)}' was passed to --library. " +
         $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
@@ -298,26 +299,15 @@ public class DafnyFile {
     if (!File.Exists(dllPath)) {
       return null;
     }
-    using var dllFs = new FileStream(dllPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-    using var dllPeReader = new PEReader(dllFs);
-    var dllMetadataReader = dllPeReader.GetMetadataReader();
 
-    foreach (var attrHandle in dllMetadataReader.CustomAttributes) {
-      var attr = dllMetadataReader.GetCustomAttribute(attrHandle);
-      try {
-        /* The cast from EntityHandle to MemberReferenceHandle is overriden, uses private members, and throws
-         * an InvalidCastException if it fails. We have no other option than to use it and catch the exception.
-         */
-        var constructor = dllMetadataReader.GetMemberReference((MemberReferenceHandle)attr.Constructor);
-        var attrType = dllMetadataReader.GetTypeReference((TypeReferenceHandle)constructor.Parent);
-        if (dllMetadataReader.GetString(attrType.Name) == "DafnySourceAttribute") {
-          var decoded = attr.DecodeValue(new StringOnlyCustomAttributeTypeProvider());
-          return decoded.FixedArguments[0].Value as string;
-        }
-      } catch (InvalidCastException) {
-        // Ignore - the Handle casts are handled as custom explicit operators,
-        // and there's no way I can see to test if the cases will succeed ahead of time.
+    try {
+      var assembly = Assembly.LoadFile(dllPath);
+
+      foreach (DafnySourceAttribute attr in assembly.GetCustomAttributes(typeof(DafnySourceAttribute), true)) {
+        return attr.dafnySourceText;
       }
+    } catch (Exception) {
+      // ignored
     }
 
     return null;

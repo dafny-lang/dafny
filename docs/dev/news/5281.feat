@@ -1,1 +1,0 @@
-Improved error reporting when verification times out or runs out of resources, so that when using `--isolate-assertions`, the error message points to the problematic assertion.

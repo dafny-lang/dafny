@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
+    public virtual ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
       BlockStyle open = BlockStyle.SpaceBrace,
       BlockStyle close = BlockStyle.NewlineBrace) {
       Contract.Requires(header != null);

@@ -123,6 +123,30 @@ method Main() {
   var b6 := F2(A);
   var b7 := F2(B);
   expect 1 == b0 == b1 == b2 == b3 == b4 == b5 == b6 == b7;
+
+  MoreOrTests.Test();
   
   print "OK\n";
+}
+
+module MoreOrTests {
+  datatype Dt = A | B | C | D | E | F | G
+
+  method Test() {
+    M(A);
+    M(B);
+    M(C);
+    M(D);
+    M(E);
+    M(F);
+    M(G);
+  }
+
+  method M(d: Dt) {
+    match d
+    case A | B => print "AB\n";
+    case C => print "C\n";
+    case D | E => print "DE\n";
+    case F | G => print "FG\n";
+  }
 }

@@ -342,7 +342,8 @@ method Downcasts() {
   s, s' := DowncastM2(m);  // cast in, cast out
   s := var v: set<Integer> := m; v;  // regression test -- this once tripped up the compilation to Java, whereas the next line had not
   s' := var u: set<Number> := var v: set<Integer> := m; v; u;
-  var eq := s == m && m == s;
+  var s'' := DowncastFunction(a, b); // regression test -- the same error was later discovered in top-level function bodies
+  var eq := s == m && m == s && s == s'';
   print eq, "\n";  // true
 
   s := FId<Integer>(m);  // cast in
@@ -365,6 +366,12 @@ method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: m
 {
   m, n, o := {a, b}, multiset{a, b}, [a, b];
   p := map[a := b, b := a];
+}
+
+function DowncastFunction(a: Integer, b: Integer): set<Integer> {
+  var m: set<Number> := {a, b};
+  var v: set<Integer> := m;
+  v
 }
 
 function DowncastF(s: set<Integer>): set<Number> { s }

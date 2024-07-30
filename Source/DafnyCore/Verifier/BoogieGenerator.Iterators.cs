@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
             // don't include this precondition here, but record it for later use
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
-            foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+            foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
               if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
@@ -110,7 +110,8 @@ namespace Microsoft.Dafny {
         foreach (var p in iter.Ensures) {
           var canCalls = etran.CanCallAssumption(p.E);
           AddEnsures(ens, FreeEnsures(p.E.tok, canCalls, comment, true));
-          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+
+          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(false), p.E, etran, kind)) {
             if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
               // this postcondition was inherited into this module, so just ignore it
             } else {
@@ -148,7 +149,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
 
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
@@ -164,15 +165,16 @@ namespace Microsoft.Dafny {
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
       // check well-formedness of the preconditions, and then assume each one of them
+      var wfOptions = new WFOptions();
       foreach (var p in iter.Requires) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder, etran, "iterator requires clause");
+        CheckWellformedAndAssume(p.E, wfOptions, localVariables, builder, etran, "iterator requires clause");
       }
       // check well-formedness of the modifies and reads clauses
-      CheckFrameWellFormed(new WFOptions(), iter.Modifies.Expressions, localVariables, builder, etran);
-      CheckFrameWellFormed(new WFOptions(), iter.Reads.Expressions, localVariables, builder, etran);
+      CheckFrameWellFormed(wfOptions, iter.Modifies.Expressions, localVariables, builder, etran);
+      CheckFrameWellFormed(wfOptions, iter.Reads.Expressions, localVariables, builder, etran);
       // check well-formedness of the decreases clauses
       foreach (var p in iter.Decreases.Expressions) {
-        CheckWellformed(p, new WFOptions(), localVariables, builder, etran);
+        CheckWellformed(p, wfOptions, localVariables, builder, etran);
       }
 
       // Next, we assume about this.* whatever we said that the iterator constructor promises
@@ -223,8 +225,8 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(iter.tok, yeEtran.TrExpr(cond)));
 
       // check wellformedness of postconditions
-      var yeBuilder = new BoogieStmtListBuilder(this, options);
-      var endBuilder = new BoogieStmtListBuilder(this, options);
+      var yeBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
+      var endBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       // In the yield-ensures case:  assume this.Valid();
       yeBuilder.Add(TrAssumeCmdWithDependencies(yeEtran, iter.tok, validCall, "iterator validity"));
       Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
@@ -247,10 +249,10 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var p in iter.YieldEnsures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
+        CheckWellformedAndAssume(p.E, wfOptions, localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
       }
       foreach (var p in iter.Ensures) {
-        CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, yeEtran, "iterator ensures clause");
+        CheckWellformedAndAssume(p.E, wfOptions, localVariables, endBuilder, yeEtran, "iterator ensures clause");
       }
       builder.Add(new Bpl.IfCmd(iter.tok, null, yeBuilder.Collect(iter.tok), null, endBuilder.Collect(iter.tok)));
 
@@ -281,7 +283,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
 
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(iter.ContainsHide));
       var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().

@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
 
-      if (stmt.IsGhost && printMode == PrintModes.NoGhost) { return; }
+      if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) { return; }
       for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
         if (label.Data.Name != null) {
           wr.WriteLine("label {0}:", label.Data.Name);
@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
       }
 
       if (stmt is PredicateStmt) {
-        if (printMode == PrintModes.NoGhost) { return; }
+        if (printMode == PrintModes.NoGhostOrIncludes) { return; }
         Expression expr = ((PredicateStmt)stmt).Expr;
         var assertStmt = stmt as AssertStmt;
         var expectStmt = stmt as ExpectStmt;
@@ -70,22 +70,8 @@ namespace Microsoft.Dafny {
         PrintAttributeArgs(s.Args, true);
         wr.Write(";");
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        wr.Write("reveal ");
-        var sep = "";
-        foreach (var e in s.Exprs) {
-          wr.Write(sep);
-          sep = ", ";
-          if (RevealStmt.SingleName(e) != null) {
-            // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
-            wr.Write(RevealStmt.SingleName(e));
-          } else {
-            PrintExpression(e, true);
-          }
-        }
-        wr.Write(";");
-
+      } else if (stmt is HideRevealStmt revealStmt) {
+        PrintHideReveal(revealStmt);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -234,7 +220,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is CalcStmt) {
         CalcStmt s = (CalcStmt)stmt;
-        if (printMode == PrintModes.NoGhost) { return; }   // Calcs don't get a "ghost" attribute, but they are.
+        if (printMode == PrintModes.NoGhostOrIncludes) { return; }   // Calcs don't get a "ghost" attribute, but they are.
         wr.Write("calc");
         PrintAttributes(stmt.Attributes);
         wr.Write(" ");
@@ -388,7 +374,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhost) { return; }
+        if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhostOrIncludes) { return; }
         if (s.Locals.TrueForAll((v => v.IsGhost))) {
           // Emit the "ghost" modifier if all of the variables are ghost. If some are ghost, but not others,
           // then some of these ghosts are auto-converted to ghost, so we should not emit the "ghost" keyword.
@@ -469,6 +455,26 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private void PrintHideReveal(HideRevealStmt revealStmt) {
+      wr.Write(revealStmt.Mode == Bpl.HideRevealCmd.Modes.Hide ? "hide " : "reveal ");
+      if (revealStmt.Wildcard) {
+        wr.Write("*");
+      } else {
+        var sep = "";
+        foreach (var e in revealStmt.Exprs) {
+          wr.Write(sep);
+          sep = ", ";
+          if (HideRevealStmt.SingleName(e) != null) {
+            // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
+            wr.Write(HideRevealStmt.SingleName(e));
+          } else {
+            PrintExpression(e, true);
+          }
+        }
+      }
+      wr.Write(";");
     }
 
     private void PrintModifyStmt(int indent, ModifyStmt s, bool omitFrame) {

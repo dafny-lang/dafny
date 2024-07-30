@@ -29,6 +29,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
   public Name NameNode; // (Last segment of the) module name
 
+  public override bool SingleFileToken => !ResolvedPrefixNamedModules.Any();
   public override IToken Tok => NameNode.StartToken;
 
   public string Name => NameNode.Value;
@@ -130,11 +131,12 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
     // For cloning modules into their compiled variants, we don't want to copy resolved fields, but we do need to copy this.
     // We're hoping to remove the copying of modules into compiled variants altogether,
     // and then this can be moved to inside the `if (cloner.CloneResolvedFields)` block
-    foreach (var tup in original.ResolvedPrefixNamedModules) {
-      ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
-    }
 
     if (cloner.CloneResolvedFields) {
+      foreach (var tup in original.ResolvedPrefixNamedModules) {
+        ResolvedPrefixNamedModules.Add(cloner.CloneDeclaration(tup, this));
+      }
+
       Height = original.Height;
     }
   }

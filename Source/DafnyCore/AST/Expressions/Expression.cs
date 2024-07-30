@@ -106,6 +106,7 @@ public abstract class Expression : TokenNode {
 
     if (cloner.CloneResolvedFields && original.Type != null) {
       Type = original.Type;
+      PreType = original.PreType;
     }
   }
 

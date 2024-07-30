@@ -11,8 +11,6 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using Microsoft.CodeAnalysis.CSharp;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
 using Microsoft.Boogie;
@@ -2037,7 +2035,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHalt(IToken tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        exceptionMessage.Prepend(new LineSegment(SymbolDisplay.FormatLiteral(tok.TokenToString(Options) + ": ", true) + " + "));
+        exceptionMessage.Prepend(new LineSegment($"\"{tok.TokenToString(Options).Replace(@"\", @"\\")}: \" + "));
       }
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         exceptionMessage.Write(".ToVerbatimString(false)");
@@ -2750,18 +2748,24 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
         CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      if (resultCollectionType is SeqType or MapType) {
+      if (resultCollectionType is SeqType) {
         wr.Write(TypeHelperName(resultCollectionType, wr, source.tok) + ".Update");
         wr.Append(ParensList(
           Expr(source, inLetExprBody, wStmts),
           Expr(index, inLetExprBody, wStmts),
           CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
+      } else if (resultCollectionType is MapType resultMapType) {
+        wr.Write(TypeHelperName(resultCollectionType, wr, source.tok) + ".Update");
+        wr.Append(ParensList(
+          Expr(source, inLetExprBody, wStmts),
+          CoercedExpr(index, resultMapType.Domain, inLetExprBody, wStmts),
+          CoercedExpr(value, resultMapType.Range, inLetExprBody, wStmts)));
       } else {
         TrParenExpr(source, wr, inLetExprBody, wStmts);
         wr.Write(".Update");
         wr.Append(ParensList(
-          Expr(index, inLetExprBody, wStmts),
-          CoercedExpr(value, resultCollectionType.ValueArg, inLetExprBody, wStmts)));
+          CoercedExpr(index, resultCollectionType.ValueArg, inLetExprBody, wStmts),
+          Expr(value, inLetExprBody, wStmts)));
       }
     }
 
@@ -2892,12 +2896,14 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitDowncast(Type from, Type to, IToken tok, ConcreteSyntaxTree wr) {
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy || from.IsRefType == to.IsRefType);
+      Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
+                      from.IsRefType == to.IsRefType ||
+                      (from.IsTypeParameter && to.IsTraitType));
 
       var w = new ConcreteSyntaxTree();
       if (from.IsTraitType && to.AsNewtype != null) {
         wr.Format($"(({to.AsNewtype.GetFullCompileName(Options)})({w}))");
-      } else if (to.IsRefType || to.IsTraitType || from.IsTraitType) {
+      } else if (to.IsRefType || to.IsTraitType || from.IsTraitType || to.IsTypeParameter) {
         wr.Format($"(({TypeName(to, wr, tok)})({w}))");
       } else {
         Contract.Assert(Type.SameHead(from, to));

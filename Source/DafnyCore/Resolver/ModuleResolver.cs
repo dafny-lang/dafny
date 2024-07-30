@@ -548,7 +548,7 @@ namespace Microsoft.Dafny {
           var wr = Options.OutputWriter;
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
-          pr.PrintTopLevelDecls(compilation, exportView.TopLevelDecls, 0, null, null);
+          pr.PrintTopLevelDecls(compilation, exportView.TopLevelDecls, 0, null);
           wr.WriteLine("*/");
         }
 
@@ -1023,9 +1023,65 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // Now that non-null types and their base types are in place, resolve the bounds of type parameters
+      ResolveAllTypeParameterBounds(declarations);
+
       // perform acyclicity test on type synonyms
       foreach (var cycle in typeRedirectionDependencies.AllCycles()) {
         ReportCycleError(reporter, cycle, rtd => rtd.tok, rtd => rtd.Name, "cycle among redirecting types (newtypes, subset types, type synonyms)");
+      }
+    }
+
+    private void ResolveAllTypeParameterBounds(List<TopLevelDecl> declarations) {
+      foreach (var decl in declarations) {
+        allTypeParameters.PushMarker();
+        ResolveTypeParameterBounds(decl.tok, decl.TypeArgs, decl as ICodeContext ?? new NoContext(decl.EnclosingModuleDefinition));
+        if (decl is TopLevelDeclWithMembers topLevelDeclWithMembers) {
+          foreach (var member in topLevelDeclWithMembers.Members) {
+            if (member is Function function) {
+              var ec = reporter.Count(ErrorLevel.Error);
+              allTypeParameters.PushMarker();
+              ResolveTypeParameterBounds(function.tok, function.TypeArgs, function);
+              allTypeParameters.PopMarker();
+              if (reporter.Count(ErrorLevel.Error) == ec && function is ExtremePredicate { PrefixPredicate: { } prefixPredicate }) {
+                allTypeParameters.PushMarker();
+                ResolveTypeParameterBounds(prefixPredicate.tok, prefixPredicate.TypeArgs, prefixPredicate);
+                allTypeParameters.PopMarker();
+              }
+            } else if (member is Method m) {
+              var ec = reporter.Count(ErrorLevel.Error);
+              allTypeParameters.PushMarker();
+              ResolveTypeParameterBounds(m.tok, m.TypeArgs, m);
+              allTypeParameters.PopMarker();
+              if (reporter.Count(ErrorLevel.Error) == ec && m is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
+                allTypeParameters.PushMarker();
+                ResolveTypeParameterBounds(prefixLemma.tok, prefixLemma.TypeArgs, prefixLemma);
+                allTypeParameters.PopMarker();
+              }
+            }
+          }
+        }
+        allTypeParameters.PopMarker();
+      }
+    }
+
+    /// <summary>
+    /// This method pushes the typeParameters to "allTypeParameters" (reporting no errors for any duplicates) and then
+    /// type checks the type-bound types of each type parameter.
+    /// As a side effect, this method leaves "allTypeParameters" in the state after the pushes.
+    /// </summary>
+    void ResolveTypeParameterBounds(IToken tok, List<TypeParameter> typeParameters, ICodeContext context) {
+      foreach (var typeParameter in typeParameters) {
+        allTypeParameters.Push(typeParameter.Name, typeParameter);
+      }
+      foreach (var typeParameter in typeParameters) {
+        foreach (var typeBound in typeParameter.TypeBounds) {
+          var prevErrorCount = reporter.ErrorCount;
+          ResolveType(tok, typeBound, context, ResolveTypeOptionEnum.DontInfer, null);
+          if (reporter.ErrorCount == prevErrorCount && !typeBound.IsTraitType) {
+            reporter.Error(MessageSource.Resolver, tok, $"type bound must be a trait or a subset type based on a trait (got {typeBound})");
+          }
+        }
       }
     }
 
@@ -2462,7 +2518,8 @@ namespace Microsoft.Dafny {
       CheckOverride_ResolvedParameters(nw.tok, old.Outs, nw.Outs, nw.Name, "method", "out-parameter", typeMap);
     }
 
-    private Dictionary<TypeParameter, Type> CheckOverride_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing, Dictionary<TypeParameter, Type> classTypeMap) {
+    private Dictionary<TypeParameter, Type> CheckOverride_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw,
+      string name, string thing, Dictionary<TypeParameter, Type> classTypeMap) {
       Contract.Requires(tok != null);
       Contract.Requires(old != null);
       Contract.Requires(nw != null);
@@ -2473,26 +2530,61 @@ namespace Microsoft.Dafny {
         reporter.Error(MessageSource.Resolver, tok,
           "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than in the overridden {0}", thing, name, nw.Count, old.Count);
       } else {
-        for (int i = 0; i < old.Count; i++) {
+        var checkNames = old.Concat(nw).Any(typeParameter => typeParameter.TypeBounds.Count != 0);
+        for (var i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
           typeMap.Add(o, new UserDefinedType(tok, n));
-          // Check type characteristics
-          if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+          if (checkNames && o.Name != n.Name) { // if checkNames is false, then just treat the parameters positionally.
+            reporter.Error(MessageSource.Resolver, n.tok,
+              $"type parameters in this {thing} override are not allowed to be renamed from the names given in the the {thing} it overrides" +
+              $" (expected '{o.Name}', got '{n.Name}')");
+          } else {
+            // Check type characteristics
+            if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired &&
+                o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
+              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality",
+                n.Name);
+            }
+            if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
+              reporter.Error(MessageSource.Resolver, n.tok,
+                "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
+            } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
+              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty",
+                n.Name);
+            }
+            if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
+              reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement",
+                n.Name);
+            }
           }
-          if (o.Characteristics.HasCompiledValue != n.Characteristics.HasCompiledValue) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting auto-initialization", n.Name);
-          } else if (o.Characteristics.IsNonempty != n.Characteristics.IsNonempty) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of being nonempty", n.Name);
-          }
-          if (o.Characteristics.ContainsNoReferenceTypes != n.Characteristics.ContainsNoReferenceTypes) {
-            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
-          }
-
+        }
+        for (var i = 0; i < old.Count; i++) {
+          var o = old[i];
+          var n = nw[i];
+          CheckOverride_TypeBounds(tok, o, n, name, thing, typeMap);
         }
       }
       return typeMap;
+    }
+
+    void CheckOverride_TypeBounds(IToken tok, TypeParameter old, TypeParameter nw, string name, string thing, Dictionary<TypeParameter, Type> typeMap) {
+      if (old.TypeBounds.Count != nw.TypeBounds.Count) {
+        reporter.Error(MessageSource.Resolver, tok,
+          $"type parameter '{nw.Name}' of {thing} '{name}' is declared with a different number of type bounds than in the " +
+          $"{thing} it overrides (expected {old.TypeBounds.Count}, found {nw.TypeBounds.Count})");
+        return;
+      }
+
+      for (var i = 0; i < old.TypeBounds.Count; i++) {
+        var oldBound = old.TypeBounds[i].NormalizeExpandKeepConstraints();
+        var newBound = nw.TypeBounds[i].NormalizeExpandKeepConstraints();
+        if (!oldBound.Subst(typeMap).Equals(newBound, true)) {
+          reporter.Error(MessageSource.Resolver, tok,
+            $"type bound for type parameter '{nw.Name}' of {thing} '{name}' is different from the corresponding type bound of the " +
+            $"corresponding type parameter of the {thing} it overrides (expected '{oldBound}', found '{newBound}')");
+        }
+      }
     }
 
     private void CheckOverride_ResolvedParameters(IToken tok, List<Formal> old, List<Formal> nw, string name, string thing, string parameterKind, Dictionary<TypeParameter, Type> typeMap) {
@@ -2987,7 +3079,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(initiallyNoTypeArguments);
         Contract.Assert(iter.NonNullTypeDecl.TypeArgs.Count == 0);
         var nnt = iter.NonNullTypeDecl;
-        nnt.TypeArgs.AddRange(iter.TypeArgs.ConvertAll(tp => new TypeParameter(tp.RangeToken, tp.NameNode, tp.VarianceSyntax, tp.Characteristics)));
+        nnt.TypeArgs.AddRange(TypeParameter.CloneTypeParameters(iter.TypeArgs));
         var varUdt = (UserDefinedType)nnt.Var.Type;
         Contract.Assert(varUdt.TypeArgs.Count == 0);
         varUdt.TypeArgs = nnt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));

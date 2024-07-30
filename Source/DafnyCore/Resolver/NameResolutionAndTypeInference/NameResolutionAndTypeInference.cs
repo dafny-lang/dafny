@@ -16,7 +16,6 @@ using System.Reflection;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
@@ -1677,7 +1676,7 @@ namespace Microsoft.Dafny {
         return polarities;
       }
 
-      foreach (var subParentType in sub.ParentTypes()) {
+      foreach (var subParentType in sub.ParentTypes(true)) {
         sub = subParentType;
         polarities = ConstrainTypeHead_Recursive(super, ref sub);
         if (polarities != null) {
@@ -3532,13 +3531,12 @@ namespace Microsoft.Dafny {
         var s = (PrintStmt)stmt;
         s.Args.ForEach(e => ResolveExpression(e, resolutionContext));
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var expr in s.Exprs) {
-          var name = RevealStmt.SingleName(expr);
+      } else if (stmt is HideRevealStmt hideRevealStmt) {
+        foreach (var expr in hideRevealStmt.Exprs) {
+          var name = HideRevealStmt.SingleName(expr);
           var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
           if (labeledAssert != null) {
-            s.LabeledAsserts.Add(labeledAssert);
+            hideRevealStmt.LabeledAsserts.Add(labeledAssert);
           } else {
             var revealResolutionContext = resolutionContext with { InReveal = true };
             if (expr is ApplySuffix) {
@@ -3552,8 +3550,8 @@ namespace Microsoft.Dafny {
                 Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
                 reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
-                s.ResolvedStatements.Add(call);
+                var call = new CallStmt(hideRevealStmt.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+                hideRevealStmt.ResolvedStatements.Add(call);
               }
             } else if (expr is NameSegment or ExprDotName) {
               if (expr is NameSegment) {
@@ -3567,15 +3565,15 @@ namespace Microsoft.Dafny {
                 //The revealed member is a function
                 reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
               } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-                s.ResolvedStatements.Add(call);
+                var call = new CallStmt(hideRevealStmt.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
+                hideRevealStmt.ResolvedStatements.Add(call);
               }
             } else {
               ResolveExpression(expr, revealResolutionContext);
             }
           }
         }
-        foreach (var a in s.ResolvedStatements) {
+        foreach (var a in hideRevealStmt.ResolvedStatements) {
           ResolveStatement(a, resolutionContext);
         }
       } else if (stmt is BreakStmt) {
@@ -4578,8 +4576,8 @@ namespace Microsoft.Dafny {
     }
 
     private void ReportMemberNotFoundError(IToken tok, string memberName, TopLevelDecl receiverDecl) {
-      if (memberName.StartsWith(RevealStmt.RevealLemmaPrefix)) {
-        var nameToBeRevealed = memberName[RevealStmt.RevealLemmaPrefix.Length..];
+      if (memberName.StartsWith(HideRevealStmt.RevealLemmaPrefix)) {
+        var nameToBeRevealed = memberName[HideRevealStmt.RevealLemmaPrefix.Length..];
         var members = receiverDecl is TopLevelDeclWithMembers topLevelDeclWithMembers ? GetClassMembers(topLevelDeclWithMembers) : null;
         if (members == null) {
           reporter.Error(MessageSource.Resolver, tok, $"member '{nameToBeRevealed}' does not exist in {receiverDecl.WhatKind} '{receiverDecl.Name}'");
@@ -5335,7 +5333,7 @@ namespace Microsoft.Dafny {
       // For 2 and 5:
       // For 3:
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.Name : expr.Name;
       v = scope.Find(name);
       if (v != null) {
         // ----- 0. local variable, parameter, or bound variable
@@ -5452,7 +5450,7 @@ namespace Microsoft.Dafny {
 
     private void ReportUnresolvedIdentifierError(IToken tok, string name, ResolutionContext resolutionContext) {
       if (resolutionContext.InReveal) {
-        var nameToReport = name.StartsWith(RevealStmt.RevealLemmaPrefix) ? name[RevealStmt.RevealLemmaPrefix.Length..] : name;
+        var nameToReport = name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? name[HideRevealStmt.RevealLemmaPrefix.Length..] : name;
         reporter.Error(MessageSource.Resolver, tok,
           "cannot reveal '{0}' because no revealable constant, function, assert label, or requires label in the current scope is named '{0}'",
           nameToReport);
@@ -5580,7 +5578,7 @@ namespace Microsoft.Dafny {
           // We have found a module name or a type name, neither of which is a type expression. However, the NameSegment we're
           // looking at may be followed by a further suffix that makes this into a type expresion. We postpone the rest of the
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
-          // or verifier, just to have a placeholder where we can recorded what we have found.
+          // or verifier, just to have a placeholder where we can record what we have found.
           r = CreateResolver_IdentifierExpr(expr.tok, expr.Name, expr.OptTypeArguments, decl);
         }
 
@@ -5672,7 +5670,7 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
       MemberDecl member = null;
 
-      var name = resolutionContext.InReveal ? RevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
+      var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
       if (!expr.Lhs.WasResolved()) {
         return null;
       }
@@ -5915,7 +5913,6 @@ namespace Microsoft.Dafny {
           subst.Add(m.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
-        rr.ResolvedOutparameterTypes = m.Outs.ConvertAll(f => f.Type.Subst(subst));
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
       return rr;

@@ -25,7 +25,7 @@ jobs:
         - os:  'ubuntu-20.04'
           osn: 'ubuntu-20.04'
         - os:  'macos-13'
-          osn: 'x64-macos-11'
+          osn: 'x64-macos-13'
         - os:  'windows-2019'
           osn: 'windows-2019'
     # There is no hosted environment for Ubuntu 14.04 or for debian

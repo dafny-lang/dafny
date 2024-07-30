@@ -1,1 +1,1 @@
-// CHECK: .*use of undeclared crate or module `num`.*
+// CHECK-L: error[E0061]: this function takes 1 argument but 0 arguments were supplied

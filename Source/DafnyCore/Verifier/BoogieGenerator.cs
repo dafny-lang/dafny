@@ -803,14 +803,14 @@ namespace Microsoft.Dafny {
 
       filterOnlyMembers = false;
 
+      AddTraitParentAxioms();
+
       foreach (var c in tytagConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
       foreach (var c in fieldConstants.Values) {
         sink.AddTopLevelDeclaration(c);
       }
-
-      AddTraitParentAxioms();
 
       if (InsertChecksums) {
         foreach (var impl in sink.Implementations) {
@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
-          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, RevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, HideRevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
         sink.AddTopLevelDeclaration(revealTrigger);
         Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
         this.functionReveals[f] = revealTrigger_expr;
@@ -2344,7 +2344,7 @@ namespace Microsoft.Dafny {
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
       builder.AddCaptureState(ctor.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
@@ -2354,7 +2354,8 @@ namespace Microsoft.Dafny {
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
+        CheckWellformed(e, new WFOptions(null, true,
+          false, true), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
@@ -3247,6 +3248,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Bpl.Expr AdaptBoxing(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
+      if (fromType.IsTypeParameter) {
+        return CondApplyUnbox(tok, e, fromType, toType);
+      } else {
+        return CondApplyBox(tok, e, fromType, toType);
+      }
+    }
+
     public Bpl.Expr CondApplyBox(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
@@ -3505,7 +3514,8 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran) {
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder,
+      Statement block, List<Variable> locals, ExpressionTranslator etran, bool introduceScope = false) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -3513,7 +3523,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      TrStmt(block, builder, locals, etran);
+      TrStmtList(new List<Statement> { block }, builder, locals, etran, introduceScope ? block.RangeToken : null, processLabels: false);
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
@@ -3832,15 +3842,15 @@ namespace Microsoft.Dafny {
     }
 
     // Boxes, if necessary
-    Bpl.Expr MkIs(Bpl.Expr x, Type t) {
-      return MkIs(x, TypeToTy(t), ModeledAsBoxType(t));
+    Bpl.Expr MkIs(Bpl.Expr x, Type t, Bpl.IToken tok = null) {
+      return MkIs(x, TypeToTy(t), ModeledAsBoxType(t), tok);
     }
 
-    Bpl.Expr MkIs(Bpl.Expr x, Bpl.Expr t, bool box = false) {
+    Bpl.Expr MkIs(Bpl.Expr x, Bpl.Expr t, bool box = false, Bpl.IToken tok = null) {
       if (box) {
-        return FunctionCall(x.tok, BuiltinFunction.IsBox, null, x, t);
+        return FunctionCall(tok ?? x.tok, BuiltinFunction.IsBox, null, x, t);
       } else {
-        return FunctionCall(x.tok, BuiltinFunction.Is, null, x, t);
+        return FunctionCall(tok ?? x.tok, BuiltinFunction.Is, null, x, t);
       }
     }
 
@@ -3902,7 +3912,7 @@ namespace Microsoft.Dafny {
       if (alwaysUseSymbolicName) {
         // go for the symbolic name
         isPred = MkIs(x, normType);
-      } else if (normType is BoolType || normType is IntType || normType is RealType || normType is BigOrdinalType) {
+      } else if (normType is BoolType or IntType or RealType or BigOrdinalType) {
         // nothing to do
       } else if (normType is BitvectorType) {
         var t = (BitvectorType)normType;
@@ -4011,6 +4021,7 @@ namespace Microsoft.Dafny {
     public delegate Expression SubrangeCheckContext(Expression check);
 
     Bpl.Expr GetSubrangeCheck(
+      Bpl.IToken tok,
       Bpl.Expr bSource, Type sourceType, Type targetType,
       // allow null for checked expressions that cannot necessarily be named without side effects, such as method out-params
       [CanBeNull] Expression source,
@@ -4030,13 +4041,13 @@ namespace Microsoft.Dafny {
       Bpl.Expr cre;
       if (udt?.ResolvedClass is RedirectingTypeDecl redirectingTypeDecl &&
           ModeledAsBoxType((redirectingTypeDecl as NewtypeDecl)?.BaseType ?? redirectingTypeDecl.Var.Type)) {
-        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true);
+        cre = MkIs(BoxIfNecessary(bSource.tok, bSource, sourceType), TypeToTy(targetType), true, tok);
       } else if (ModeledAsBoxType(sourceType)) {
-        cre = MkIs(bSource, TypeToTy(targetType), true);
+        cre = MkIs(bSource, TypeToTy(targetType), true, tok);
       } else if (targetType is UserDefinedType targetUdt) {
-        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType);
+        cre = MkIs(BoxifyForTraitParent(bSource.tok, bSource, udt.ResolvedClass, sourceType), targetType, tok);
       } else {
-        cre = MkIs(bSource, targetType);
+        cre = MkIs(bSource, targetType, tok);
       }
 
       Expression dafnyCheck = null;
@@ -4083,7 +4094,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetType != null);
       Contract.Requires(builder != null);
 
-      var cre = GetSubrangeCheck(bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
+      var cre = GetSubrangeCheck(tok, bSource, sourceType, targetType, source, null, out var desc, errorMsgPrefix);
       if (cre != null) {
         builder.Add(Assert(tok, cre, desc));
       }
@@ -4608,25 +4619,26 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool apply_induction, out bool splitHappened) {
+    List<SplitExprInfo> /*!*/ TrSplitExpr(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
+      out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, apply_induction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, true, applyInduction, etran);
       return splits;
     }
 
-    List<SplitExprInfo> TrSplitExprForMethodSpec(Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
+    List<SplitExprInfo> TrSplitExprForMethodSpec(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      var apply_induction = kind == MethodTranslationKind.Implementation;
+      var applyInduction = kind == MethodTranslationKind.Implementation;
       bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, apply_induction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, applyInduction, etran);
       return splits;
     }
 

@@ -547,7 +547,7 @@ public class AssertStatementDescription : ProofObligationDescriptionCustomMessag
     return AssertStatement.Expr;
   }
 
-  public AssertStmt AssertStatement { get; }
+  public PredicateStmt AssertStatement { get; }
 
   // We provide a way to mark an assertion as an intentional element of a
   // proof by contradiction with the `{:contradiction}` attribute. Dafny
@@ -555,7 +555,7 @@ public class AssertStatementDescription : ProofObligationDescriptionCustomMessag
   // assumptions.
   public bool IsIntentionalContradiction => Attributes.Contains(AssertStatement.Attributes, "contradiction");
 
-  public AssertStatementDescription(AssertStmt assertStmt, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
+  public AssertStatementDescription(PredicateStmt assertStmt, [CanBeNull] string customErrMsg, [CanBeNull] string customSuccessMsg)
     : base(customErrMsg, customSuccessMsg) {
     this.AssertStatement = assertStmt;
   }

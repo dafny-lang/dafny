@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -341,8 +340,7 @@ public class CsharpSynthesizer {
         return result;
       }
     }";
-    var memberDeclaration = SyntaxFactory.ParseMemberDeclaration(multiMatcher);
-    dafnyNamespace.WriteLine(memberDeclaration.ToFullString());
+    dafnyNamespace.WriteLine(multiMatcher);
   }
 
   internal static void EmitImports(ConcreteSyntaxTree wr) {

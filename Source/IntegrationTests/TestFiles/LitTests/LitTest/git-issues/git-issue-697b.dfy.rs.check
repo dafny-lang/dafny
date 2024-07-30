@@ -1,1 +1,1 @@
-// CHECK: .*<i>Coercion</i>.*
+// CHECK: .*<i>Unsupported:\ <i>Cannot\ assign\ null\ value\ to\ variable</i>.*
