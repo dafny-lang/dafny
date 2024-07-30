@@ -1027,6 +1027,12 @@ public partial class BoogieGenerator {
       }
 
       var constraintCanCall = etran.CanCallAssumption(condition);
+      if (ArrowType.IsPartialArrowTypeName(dd.Name)) {
+        // Hack for now. TODO: The resolver currently sets up the constraint of a partial arrow as being
+        // a total arrow such that "forall bx: Box :: f(bx) == {}". However, it ought to be
+        // "forall bx: Box :: f.requires(bx) ==> f(bx) == {}". When that gets fixed, the hack here is no longer needed.
+        constraintCanCall = Bpl.Expr.True;
+      }
       var canCallIsJustTrue = constraintCanCall == Bpl.Expr.True;
       var constraint = etran.TrExpr(condition);
       var comment = $"$Is axiom{(canCallIsJustTrue ? "" : "s")} for {dd.WhatKind} {fullName}";
