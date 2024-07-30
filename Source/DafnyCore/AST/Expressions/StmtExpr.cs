@@ -61,7 +61,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
     } else if (S is CalcStmt) {
       var s = (CalcStmt)S;
       return s.Result;
-    } else if (S is RevealStmt) {
+    } else if (S is HideRevealStmt) {
       return CreateBoolLiteral(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
     } else if (S is UpdateStmt) {
       return CreateBoolLiteral(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)

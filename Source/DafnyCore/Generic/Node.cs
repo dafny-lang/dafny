@@ -10,6 +10,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public interface INode {
+  bool SingleFileToken { get; }
   public IToken StartToken => RangeToken.StartToken;
   public IToken EndToken => RangeToken.EndToken;
   IEnumerable<IToken> OwnedTokens { get; }
@@ -33,6 +34,7 @@ public abstract class Node : INode {
 
   protected IReadOnlyList<IToken> OwnedTokensCache;
 
+  public virtual bool SingleFileToken => true;
   public IToken StartToken => RangeToken?.StartToken;
 
   public IToken EndToken => RangeToken?.EndToken;

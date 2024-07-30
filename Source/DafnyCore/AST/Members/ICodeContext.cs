@@ -46,6 +46,9 @@ public class CodeContextWrapper : ICodeContext {
   }
 }
 
+interface ICodeContainer {
+  bool ContainsHide { get; set; }
+}
 
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
@@ -91,6 +94,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   public bool AllowsAllocation => CwInner.AllowsAllocation;
 
+  public bool SingleFileToken => CwInner.SingleFileToken;
   public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
   public RangeToken RangeToken => CwInner.RangeToken;
   public IToken NavigationToken => CwInner.NavigationToken;
@@ -99,41 +103,6 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
     return CwInner.GetDescription(options);
   }
 
-  public string Designator => WhatKind;
-}
-
-
-public class DontUseICallable : ICallable {
-  public string WhatKind { get { throw new cce.UnreachableException(); } }
-  public bool IsGhost { get { throw new cce.UnreachableException(); } }
-  public List<TypeParameter> TypeArgs { get { throw new cce.UnreachableException(); } }
-  public List<Formal> Ins { get { throw new cce.UnreachableException(); } }
-  public ModuleDefinition EnclosingModule { get { throw new cce.UnreachableException(); } }
-  public bool MustReverify { get { throw new cce.UnreachableException(); } }
-  public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
-  public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public IEnumerable<INode> Children => throw new cce.UnreachableException();
-  public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
-
-  public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
-  public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
-  public bool InferredDecreases {
-    get { throw new cce.UnreachableException(); }
-    set { throw new cce.UnreachableException(); }
-  }
-  public bool AllowsAllocation => throw new cce.UnreachableException();
-  public IEnumerable<INode> GetConcreteChildren() {
-    throw new cce.UnreachableException();
-  }
-
-  public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
-  public RangeToken RangeToken => throw new cce.UnreachableException();
-  public IToken NavigationToken => throw new cce.UnreachableException();
-  public SymbolKind? Kind => throw new cce.UnreachableException();
-  public string GetDescription(DafnyOptions options) {
-    throw new cce.UnreachableException();
-  }
   public string Designator => WhatKind;
 }
 
