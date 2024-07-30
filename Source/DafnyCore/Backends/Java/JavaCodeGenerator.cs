@@ -1961,7 +1961,7 @@ namespace Microsoft.Dafny.Compilers {
           dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
           dt is CoDatatypeDecl, $"{wDefaultTypeArguments}", args, wDefault);
 
-        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+        if (dt.TypeArgs.Any() && Options.Get(JavaBackend.LegacyDataConstructors)) {
           var nullTypeDescriptorArgs = Enumerable.Repeat("null", defaultMethodTypeDescriptorCount).Comma();
           EmitDatatypeValue(dt, groundingCtor,
             dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
@@ -1981,7 +1981,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.NewBlock(")")
           .WriteLine($"return new {DtCtorDeclarationName(ctor, dt.TypeArgs)}({wCallArguments}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
 
-        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+        if (dt.TypeArgs.Any() && Options.Get(JavaBackend.LegacyDataConstructors)) {
           wr.WriteLine("@Deprecated()");
           wr.Write($"public static{justTypeArgs} {DtT_protected} {DtCreateName(ctor)}(");
           var nullTypeDescriptorArgs = Enumerable.Repeat("null", typeDescriptorCount).Comma();
@@ -2006,7 +2006,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.NewBlock(")")
           .WriteLine($"return create({wCallArguments}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
 
-        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+        if (dt.TypeArgs.Any() && Options.Get(JavaBackend.LegacyDataConstructors)) {
           wr.WriteLine("@Deprecated()");
           wr.Write($"public static{justTypeArgs} {DtT_protected} create_{ctor.GetCompileName(Options)}(");
           var nullTypeDescriptorArgs = Enumerable.Repeat("null", typeDescriptorCount).Comma();
@@ -2046,30 +2046,34 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var ctor in dt.Ctors) {
         foreach (var dtor in ctor.Destructors.Where(dtor => dtor.EnclosingCtors[0] == ctor)) {
           var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
-          if (compiledConstructorCount != 0) {
-            var arg = dtor.CorrespondingFormals[0];
-            if (!arg.IsGhost && arg.HasName) {
-              var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()");
-              if (dt.IsRecordType) {
-                wDtor.WriteLine($"return this.{FieldName(arg, 0)};");
-              } else {
-                wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
-                var compiledConstructorsProcessed = 0;
-                for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
-                  var ctor_i = dtor.EnclosingCtors[i];
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                  if (ctor_i.IsGhost) {
-                    continue;
-                  }
-                  if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
-                    wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.GetCompileName(Options),
-                      ctor_i.GetCompileName(Options), DtT_TypeArgs, FieldName(arg, i));
-                  } else {
-                    wDtor.WriteLine($"return (({dt.GetCompileName(Options)}_{ctor_i.GetCompileName(Options)}{DtT_TypeArgs})d).{FieldName(arg, 0)};");
-                  }
-                  compiledConstructorsProcessed++;
-                }
+          if (compiledConstructorCount == 0) {
+            continue;
+          }
+
+          var arg = dtor.CorrespondingFormals[0];
+          if (arg.IsGhost || !arg.HasName) {
+            continue;
+          }
+
+          var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()");
+          if (dt.IsRecordType) {
+            wDtor.WriteLine($"return this.{FieldName(arg, 0)};");
+          } else {
+            wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
+            var compiledConstructorsProcessed = 0;
+            for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
+              var ctor_i = dtor.EnclosingCtors[i];
+              Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+              if (ctor_i.IsGhost) {
+                continue;
               }
+              if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
+                wDtor.WriteLine("if (d instanceof {0}_{1}) {{ return (({0}_{1}{2})d).{3}; }}", dt.GetCompileName(Options),
+                  ctor_i.GetCompileName(Options), DtT_TypeArgs, FieldName(arg, i));
+              } else {
+                wDtor.WriteLine($"return (({dt.GetCompileName(Options)}_{ctor_i.GetCompileName(Options)}{DtT_TypeArgs})d).{FieldName(arg, 0)};");
+              }
+              compiledConstructorsProcessed++;
             }
           }
         }
