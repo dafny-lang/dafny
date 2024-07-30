@@ -1860,7 +1860,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
           if mod.requiresExterns {
-            body := [R.UseDecl(R.Use(R.PUB, R.crate.MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
+            body := [R.UseDecl(R.Use(R.PUB, R.crate.MSel("_root").MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
           }
         } else if optExtern.AdvancedExtern? {
           error := Some("Externs on modules can only have 1 string argument");
@@ -2880,7 +2880,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           else if p[0].id.dafny_name == "_System" then
             R.dafny_runtime
           else
-            R.Crate();
+            R.Crate().MSel("_root"); // assumes pub use [module name] as _root; in lib.rs
         for i := 0 to |p| {
           var name := p[i].id;
           if escape {
@@ -5470,7 +5470,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           error := Some("Unrecognized external file " + externalFile + ". External file must be *.rs files");
         }
         var externMod := R.ExternMod(externalMod);
-        s := s + externMod.ToString("") + "\n";
+        //s := s + externMod.ToString("") + "\n";
         externUseDecls := externUseDecls + [
           R.UseDecl(R.Use(R.PUB, R.crate.MSel(externalMod).MSel("*")))
         ];
