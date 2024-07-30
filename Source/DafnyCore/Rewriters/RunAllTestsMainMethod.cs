@@ -93,7 +93,7 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-    var tok = program.GetStartOfFirstFileToken();
+    var tok = program.GetStartOfFirstFileToken() ?? Token.NoToken;
     List<Statement> mainMethodStatements = new();
     var idGenerator = new FreshIdGenerator();
 

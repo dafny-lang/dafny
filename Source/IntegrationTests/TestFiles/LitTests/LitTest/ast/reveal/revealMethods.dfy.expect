@@ -1,0 +1,3 @@
+revealMethods.dfy(5,7): Error: only functions and constants can be hidden
+revealMethods.dfy(8,11): Error: only functions and constants can be revealed
+2 resolution/type errors detected in revealMethods.dfy

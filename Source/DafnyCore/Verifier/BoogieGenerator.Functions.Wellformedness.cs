@@ -57,9 +57,10 @@ public partial class BoogieGenerator {
       Contract.Assert(proc.InParams.Count == typeInParams.Count + heapParameters.Count + procedureParameters.Count);
       // Changed the next line to strip from inParams instead of proc.InParams
       // They should be the same, but hence the added contract
+      var context = new BodyTranslationContext(f.ContainsHide);
       var locals = new List<Variable>();
-      var builder = new BoogieStmtListBuilder(generator, generator.options);
-      var builderInitializationArea = new BoogieStmtListBuilder(generator, generator.options);
+      var builder = new BoogieStmtListBuilder(generator, generator.options, context);
+      var builderInitializationArea = new BoogieStmtListBuilder(generator, generator.options, context);
       if (f is TwoStateFunction) {
         // $Heap := current$Heap;
         var heap = ordinaryEtran.HeapCastToIdentifierExpr;
@@ -183,7 +184,8 @@ public partial class BoogieGenerator {
       List<Variable> parameters,
       List<Variable> locals, BoogieStmtListBuilder builderInitializationArea) {
       var selfCall = GetSelfCall(f, etran, parameters);
-      var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options);
+      var context = new BodyTranslationContext(f.ContainsHide);
+      var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
       bodyCheckBuilder.Add(new CommentCmd("Check Wfness of body and result subset type constraint"));
       if (f.Body != null && generator.RevealedInScope(f)) {
         var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
@@ -206,11 +208,12 @@ public partial class BoogieGenerator {
               b.Add(cmd);
             }
 
+            var context = new BodyTranslationContext(f.ContainsHide);
             foreach (AttributedExpression e in f.Ens) {
               var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
               var splits = new List<SplitExprInfo>();
               bool splitHappened /*we actually don't care*/ =
-                generator.TrSplitExpr(e.E, splits, true, functionHeight, true, true, etran);
+                generator.TrSplitExpr(context, e.E, splits, true, functionHeight, true, true, etran);
               var (errorMessage, successMessage) = generator.CustomErrorMessage(e.Attributes);
               foreach (var s in splits) {
                 if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
@@ -268,7 +271,8 @@ public partial class BoogieGenerator {
     }
 
     private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, List<Variable> locals) {
-      var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options);
+      var context = new BodyTranslationContext(f.ContainsHide);
+      var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
       postCheckBuilder.Add(new CommentCmd("Check Wfness of postcondition and assume false"));
 
       // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
