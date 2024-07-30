@@ -10,4 +10,6 @@ module {:options "--function-syntax:4"} LibraryModule {
   // Record type
   datatype Pair<+T, +U> = Pair(first: T, second: U)
 
+  datatype NoTypeArgs = Success2 | Failure2
+
 }

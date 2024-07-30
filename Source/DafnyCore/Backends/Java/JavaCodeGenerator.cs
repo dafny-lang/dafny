@@ -1961,7 +1961,7 @@ namespace Microsoft.Dafny.Compilers {
           dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
           dt is CoDatatypeDecl, $"{wDefaultTypeArguments}", args, wDefault);
 
-        if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+        if (wLegacyDefault != null && Options.Get(JavaBackend.LegacyDataConstructors)) {
           var nullTypeDescriptorArgs = Enumerable.Repeat("null", defaultMethodTypeDescriptorCount).Comma();
           EmitDatatypeValue(dt, groundingCtor,
             dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
