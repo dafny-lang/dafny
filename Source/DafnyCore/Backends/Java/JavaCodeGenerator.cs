@@ -1925,7 +1925,7 @@ namespace Microsoft.Dafny.Compilers {
       var wDefaultTypeArguments = new ConcreteSyntaxTree();
       var defaultMethodTypeDescriptorCount = 0;
       var usedTypeArgs = UsedTypeParameters(dt);
-      ConcreteSyntaxTree wDefault;
+      IConcreteSyntaxTree wDefault;
       ConcreteSyntaxTree wLegacyDefault = null;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {

@@ -21,7 +21,11 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class ConcreteSyntaxTree : ICanRender {
+  interface IConcreteSyntaxTree {
+    IConcreteSyntaxTree Write(string value);
+  }
+  
+  public class ConcreteSyntaxTree : ICanRender, IConcreteSyntaxTree {
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
     }
@@ -58,7 +62,7 @@ namespace Microsoft.Dafny {
       return node;
     }
 
-    public ConcreteSyntaxTree Write(string value) {
+    public IConcreteSyntaxTree Write(string value) {
       _nodes.Add(new LineSegment(value));
       return this;
     }
