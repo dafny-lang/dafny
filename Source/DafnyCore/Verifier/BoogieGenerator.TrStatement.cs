@@ -2625,14 +2625,18 @@ namespace Microsoft.Dafny {
       if (rhs is ExprRhs) {
         var e = (ExprRhs)rhs;
 
-        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, checkPostcondition:
-          (b, innerBody, adaptBoxing, prefix) => {
-            Bpl.Expr bRhs = etran.TrExpr(innerBody);
-            CheckSubrange(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, b);
-          });
-
         var bRhs = etran.TrExpr(e.Expr);
-        builder.Add(TrAssumeCmd(e.tok, MkIs(bRhs, e.Expr.Type)));
+        var cre = GetSubrangeCheck(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, null, out var desc, "");
+        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, checkPostcondition:
+          (b, _, _, _) => {
+            if (cre != null) {
+              b.Add(Assert(tok, cre, desc));
+            }
+          });
+        if (cre != null) {
+          builder.Add(new AssumeCmd(tok, cre)); //e.tok, MkIs(bRhs, rhsTypeConstraint)));
+        }
+
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment
