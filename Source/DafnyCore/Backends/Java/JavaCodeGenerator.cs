@@ -1925,7 +1925,7 @@ namespace Microsoft.Dafny.Compilers {
       var wDefaultTypeArguments = new ConcreteSyntaxTree();
       var defaultMethodTypeDescriptorCount = 0;
       var usedTypeArgs = UsedTypeParameters(dt);
-      IConcreteSyntaxTree wDefault;
+      ConcreteSyntaxTree wDefault;
       ConcreteSyntaxTree wLegacyDefault = null;
       wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
@@ -1967,12 +1967,11 @@ namespace Microsoft.Dafny.Compilers {
         EmitDatatypeValue(dt, groundingCtor,
           dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
           dt is CoDatatypeDecl, $"{wDefaultTypeArguments}", args, wDefault);
+      }
 
-        if (dt.TypeArgs.Any() && Options.Get(JavaBackend.LegacyDataConstructors)) {
-          var nullTypeDescriptorArgs = Enumerable.Repeat("null", defaultMethodTypeDescriptorCount).Comma();
-          EmitDatatypeValue(dt, groundingCtor,
-            dt.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(dt.tok, tp)),
-            dt is CoDatatypeDecl, nullTypeDescriptorArgs, args, wLegacyDefault);
+      if (wLegacyDefault != null) {
+        foreach (var node in wDefault.Nodes) {
+          wLegacyDefault.Append(node);
         }
       }
 
