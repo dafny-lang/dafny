@@ -386,28 +386,6 @@ namespace Microsoft.Dafny {
     private void TranslateVariableDeclaration(BoogieStmtListBuilder builder, List<Variable> locals,
       ExpressionTranslator etran,
       VarDeclPattern varDeclPattern) {
-
-      // var s = (VarDeclPattern)stmt;
-      // foreach (var local in s.LocalVars) {
-      //   Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
-      //   locals.Add(bvar);
-      //   var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
-      //   builder.Add(new Bpl.HavocCmd(local.Tok, new List<Bpl.IdentifierExpr> { bIe }));
-      //   Bpl.Expr wh = GetWhereClause(local.Tok, bIe, local.Type, etran, isAllocContext.Var(stmt.IsGhost, local));
-      //   if (wh != null) {
-      //     builder.Add(TrAssumeCmd(local.Tok, wh));
-      //   }
-      // }
-      // var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
-      // var pat = s.LHS;
-      // var rhs = s.RHS;
-      // var nm = varNameGen.FreshId(string.Format("#{0}#", 0));
-      // var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(rhs.Type)));
-      // locals.Add(r);
-      // var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-      // CheckWellformedWithResult(rhs, new WFOptions(null, false, false), rIe, pat.Expr.Type, locals, builder, etran, "variable declaration RHS");
-      // CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
-      // builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, s.tok, pat.Expr, e => Expr.Eq(e, rIe), "variable declaration"));
       foreach (var dafnyLocal in varDeclPattern.LocalVars) {
         var boogieLocal = new Bpl.LocalVariable(dafnyLocal.Tok,
           new Bpl.TypedIdent(dafnyLocal.Tok, dafnyLocal.AssignUniqueName(currentDeclaration.IdGenerator),
@@ -483,56 +461,6 @@ namespace Microsoft.Dafny {
     }
 
     void TrVarDeclStmt(VarDeclStmt varDeclStmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
-      // var newLocalIds = new List<Bpl.IdentifierExpr>();
-      // int i = 0;
-      // foreach (var local in s.Locals) {
-      //   Bpl.Type varType = TrType(local.Type);
-      //   Bpl.Expr wh = GetWhereClause(local.Tok,
-      //     new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType),
-      //     local.Type, etran, isAllocContext.Var(stmt.IsGhost, local));
-      //   // if needed, register definite-assignment tracking for this local
-      //   var needDefiniteAssignmentTracking = s.Update == null || s.Update is AssignSuchThatStmt;
-      //   if (s.Update is UpdateStmt) {
-      //     // there is an initial assignment, but we need to look out for "*" being that assignment
-      //     var us = (UpdateStmt)s.Update;
-      //     if (i < us.Rhss.Count && us.Rhss[i] is HavocRhs) {
-      //       needDefiniteAssignmentTracking = true;
-      //     }
-      //   }
-      //   if (!local.Type.IsNonempty) {
-      //     // This prevents generating an unsatisfiable where clause for possibly empty types
-      //     needDefiniteAssignmentTracking = true;
-      //   }
-      //   if (needDefiniteAssignmentTracking) {
-      //     var defassExpr = AddDefiniteAssignmentTracker(local, locals);
-      //     if (wh != null && defassExpr != null) {
-      //       // make the "where" expression be "defass ==> wh", because we don't want to assume anything
-      //       // before the variable has been assigned (for a variable that needs definite-assignment tracking
-      //       // in the first place)
-      //       wh = BplImp(defassExpr, wh);
-      //     }
-      //   }
-      //   // create the variable itself (now that "wh" may mention the definite-assignment tracker)
-      //   Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
-      //   var.Attributes = etran.TrAttributes(local.Attributes, null);
-      //   newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
-      //   locals.Add(var);
-      //   i++;
-      // }
-      // if (s.Update == null) {
-      //   // it is necessary to do a havoc here in order to give the variable the correct allocation state
-      //   builder.Add(new HavocCmd(s.Tok, newLocalIds));
-      // }
-      // // processing of "assumption" variables happens after the variable is possibly havocked above
-      // foreach (var local in s.Locals) {
-      //   if (Attributes.Contains(local.Attributes, "assumption")) {
-      //     Bpl.Type varType = TrType(local.Type);
-      //     builder.Add(new AssumeCmd(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType), new QKeyValue(local.Tok, "assumption_variable_initialization", new List<object>(), null)));
-      //   }
-      // }
-      // if (s.Update != null) {
-      //   TrStmt(s.Update, builder, locals, etran);
-      // }
 
       var newLocalIds = new List<Bpl.IdentifierExpr>();
       int i = 0;
@@ -2704,7 +2632,7 @@ namespace Microsoft.Dafny {
           });
 
         var bRhs = etran.TrExpr(e.Expr);
-        builder.Add(TrAssumeCmd(e.tok, MkIs(bRhs, lhsType)));
+        builder.Add(TrAssumeCmd(e.tok, MkIs(bRhs, e.Expr.Type)));
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
           // box the RHS, then do the assignment

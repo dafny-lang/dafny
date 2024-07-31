@@ -1301,7 +1301,9 @@ namespace Microsoft.Dafny {
             }
 
             CheckPostcondition checkPostcondition = (innerBuilder, innerBody, adaptBox, prefix) => {
-              CheckSubsetType(etran, innerBody, resultIe, rangeType, innerBuilder, adaptBox, prefix);
+              if (rangeType != null) {
+                CheckSubsetType(etran, innerBody, resultIe, rangeType, innerBuilder, adaptBox, prefix);
+              }
             };
             CheckWellformedWithResult(body, newOptions, checkPostcondition, locals, b, comprehensionEtran);
           });
