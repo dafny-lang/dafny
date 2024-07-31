@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
       return ConcreteSyntaxTree.Create($"({canRender})");
     }
   }
-  
+
   public class ConcreteSyntaxTree : ICanRender {
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
