@@ -23,6 +23,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using System.Diagnostics;
+using Dafny;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
 using VC;
@@ -114,7 +115,7 @@ namespace Microsoft.Dafny {
         await outputWriter.WriteLineAsync(options.Environment);
       }
 
-      ISet<String> filesSeen = new HashSet<string>();
+      System.Collections.Generic.ISet<String> filesSeen = new HashSet<string>();
       var libraryFiles = CommonOptionBag.SplitOptionValueIntoFiles(options.LibraryFiles).ToHashSet();
       foreach (var file in options.CliRootSourceUris.Where(u => u.IsFile).Select(u => u.LocalPath).
                  Concat(libraryFiles)) {
@@ -672,6 +673,10 @@ namespace Microsoft.Dafny {
       var otherFiles = new Dictionary<string, string>();
       {
         var output = new ConcreteSyntaxTree();
+
+        if (compiler is RustBackend { DafnyCodeGenerator: RustCodeGenerator rcg }) {
+          rcg.ModuleName = Sequence<Rune>.UnicodeFromString(Path.GetFileNameWithoutExtension(dafnyProgramName));
+        }
 
         await DafnyMain.LargeStackFactory.StartNew(() => compiler.Compile(dafnyProgram, dafnyProgramName, output));
 

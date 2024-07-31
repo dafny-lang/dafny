@@ -1829,12 +1829,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     var error: Option<string>
 
     var optimizations: seq<R.Mod -> R.Mod>
+    
+    const ModuleName: string
 
     static const DAFNY_EXTERN_MODULE := "_dafny_externs"
 
-    constructor(unicodeChars: bool, objectType: ObjectType) {
+    constructor(unicodeChars: bool, objectType: ObjectType, moduleName: string) {
       this.UnicodeChars := unicodeChars;
       this.ObjectType := objectType;
+      this.ModuleName := moduleName;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
       this.optimizations := [FactorPathsOptimization.apply];
       new;
@@ -1860,7 +1863,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
           if mod.requiresExterns {
-            body := [R.UseDecl(R.Use(R.PUB, R.crate.MSel("_root").MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
+            // @siva: relative to crate::file b/c that's where _dafny_externs is defined
+            body := [R.UseDecl(R.Use(R.PUB, R.crate.MSel(ModuleName).MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
           }
         } else if optExtern.AdvancedExtern? {
           error := Some("Externs on modules can only have 1 string argument");
@@ -2067,6 +2071,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if extern.NoExtern? || extern.UnsupportedExtern? {
         selfTypeForImpl := R.TIdentifier(className);
       } else if extern.AdvancedExtern? {
+        // @siva: make sure this is right
         selfTypeForImpl := R.crate.MSel(extern.enclosingModule).MSel(extern.overrideName).AsType();
       } else if extern.SimpleExtern? {
         selfTypeForImpl := R.TIdentifier(extern.overrideName);
@@ -2870,7 +2875,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    static method GenPath(p: seq<Ident>, escape: bool := true) returns (r: R.Path) {
+    method GenPath(p: seq<Ident>, escape: bool := true) returns (r: R.Path) {
       if |p| == 0 {
         return R.Self();
       } else {
@@ -2880,7 +2885,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           else if p[0].id.dafny_name == "_System" then
             R.dafny_runtime
           else
-            R.Crate().MSel("_root"); // assumes pub use [module name] as _root; in lib.rs
+            R.Crate().MSel(ModuleName);
         for i := 0 to |p| {
           var name := p[i].id;
           if escape {
@@ -2897,12 +2902,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    static method GenPathType(p: seq<Ident>) returns (t: R.Type) {
+    method GenPathType(p: seq<Ident>) returns (t: R.Type) {
       var p := GenPath(p, true);
       t := p.AsType();
     }
 
-    static method GenPathExpr(p: seq<Ident>, escape: bool := true) returns (e: R.Expr) {
+    method GenPathExpr(p: seq<Ident>, escape: bool := true) returns (e: R.Expr) {
       if |p| == 0 {
         return R.self;
       }
@@ -5472,6 +5477,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var externMod := R.ExternMod(externalMod);
         //s := s + externMod.ToString("") + "\n";
         externUseDecls := externUseDecls + [
+          // @siva: *not* relative to crate::file b/c module lives in lib.rs
           R.UseDecl(R.Use(R.PUB, R.crate.MSel(externalMod).MSel("*")))
         ];
       }
