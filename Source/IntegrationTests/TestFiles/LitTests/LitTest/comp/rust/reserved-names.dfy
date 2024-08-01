@@ -5,6 +5,7 @@
 datatype X =
 | X(fn: int, self: int, Self: int)
 | None(None: int)
+| H(hash: int)
 
 method Main()
 {
@@ -14,4 +15,6 @@ method Main()
   expect None(3).None == 3;
   var None := 0;
   expect None == 0;
+  var hash := H(3).hash;
+  expect hash == 3;
 }

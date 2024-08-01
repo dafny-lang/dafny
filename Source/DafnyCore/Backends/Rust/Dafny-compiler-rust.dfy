@@ -1504,7 +1504,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
 
-  const reserved_vars := { "None" }
+  const reserved_vars := { "None", "hash" }
 
   const reserved_rust_need_prefix := {"u8", "u16", "u32", "u64", "u128","i8", "i16", "i32", "i64", "i128"}
 
