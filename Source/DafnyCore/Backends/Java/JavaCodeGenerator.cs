@@ -950,7 +950,9 @@ namespace Microsoft.Dafny.Compilers {
       // make sure the (static fields associated with the) type method come after the Witness static field
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
-      if (cls is DefaultClassDecl or (ClassLikeDecl and not ArrayClassDecl)) {
+      if (cls is DefaultClassDecl || (
+            (cls is ClassLikeDecl and not ArrayClassDecl) &&
+            !Options.Get(JavaBackend.LegacyDataConstructors))) {
         // don't emit a type-descriptor method
       } else {
         EmitTypeDescriptorMethod(cls, typeParameters, null, null, wTypeMethod);
@@ -3370,6 +3372,9 @@ namespace Microsoft.Dafny.Compilers {
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
 
+      if (Options.Get(JavaBackend.LegacyDataConstructors)) {
+        EmitTypeDescriptorMethod(null, typeParameters, name + typeParamString, initializer: null, wr: staticMemberWriter);
+      }
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
