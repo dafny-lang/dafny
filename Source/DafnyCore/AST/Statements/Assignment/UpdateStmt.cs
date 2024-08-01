@@ -8,6 +8,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
+  public readonly BlockStmt Proof;
 
   public override IToken Tok {
     get {
@@ -45,26 +46,29 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
+    Proof = cloner.CloneBlockStmt(original.Proof);
     if (cloner.CloneResolvedFields) {
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
+  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, BlockStmt proof = null)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
+    Proof = proof;
   }
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate, BlockStmt proof = null)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = mutate;
+    Proof = proof;
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
@@ -123,6 +127,18 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
       resolver.ResolveAttributes(rhs, resolutionContext);
     }
 
+    // resolve proof
+    if (Proof != null) {
+      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+      var prevLblStmts = resolver.EnclosingStatementLabels;
+      var prevLoopStack = resolver.LoopStack;
+      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+      resolver.LoopStack = new List<Statement>();
+      resolver.ResolveStatement(Proof, resolutionContext);
+      resolver.EnclosingStatementLabels = prevLblStmts;
+      resolver.LoopStack = prevLoopStack;
+    }
+
     // figure out what kind of UpdateStmt this is
     if (firstEffectfulRhs == null) {
       if (Lhss.Count == 0) {
@@ -178,7 +194,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok, Proof);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }

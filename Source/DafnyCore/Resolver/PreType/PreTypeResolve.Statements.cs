@@ -650,6 +650,18 @@ namespace Microsoft.Dafny {
         ResolveAttributes(rhs, resolutionContext, false);
       }
 
+      // resolve proof
+      if (update.Proof != null) {
+        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+        var prevLblStmts = resolver.EnclosingStatementLabels;
+        var prevLoopStack = resolver.LoopStack;
+        resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+        resolver.LoopStack = new List<Statement>();
+        resolver.ResolveStatement(update.Proof, resolutionContext);
+        resolver.EnclosingStatementLabels = prevLblStmts;
+        resolver.LoopStack = prevLoopStack;
+      }
+
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
         if (update.Lhss.Count == 0) {
@@ -703,7 +715,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok, update.Proof);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -929,6 +941,17 @@ namespace Microsoft.Dafny {
         return;
       }
 
+      if (s.Proof != null) {
+        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+        var prevLblStmts = resolver.EnclosingStatementLabels;
+        var prevLoopStack = resolver.LoopStack;
+        resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+        resolver.LoopStack = new List<Statement>();
+        resolver.ResolveStatement(s.Proof, resolutionContext);
+        resolver.EnclosingStatementLabels = prevLblStmts;
+        resolver.LoopStack = prevLoopStack;
+      }
+
       Expression lhsExtract = null;
       if (expectExtract) {
         if (enclosingMethod.Outs.Count == 0 && s.KeywordToken == null) {
@@ -991,7 +1014,7 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2);
+      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2, s.Proof);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
