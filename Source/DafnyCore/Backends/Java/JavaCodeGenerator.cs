@@ -951,7 +951,7 @@ namespace Microsoft.Dafny.Compilers {
       var wTypeMethod = wBody;
       var wRestOfBody = wBody.Fork();
       if (cls is DefaultClassDecl || (
-            (cls is ClassLikeDecl and not ArrayClassDecl) && 
+            (cls is ClassLikeDecl and not ArrayClassDecl) &&
             !Options.Get(JavaBackend.LegacyDataConstructors))) {
         // don't emit a type-descriptor method
       } else {
