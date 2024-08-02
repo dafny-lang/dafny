@@ -2,7 +2,7 @@
 
 namespace CompilerBuilder;
 
-using static GrammarBuilder;
+using static ParserBuilder;
 
 class Person() {
   public string FirstName { get; set; }
