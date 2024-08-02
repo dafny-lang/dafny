@@ -27,7 +27,7 @@ class WithRange<T, U>(Grammar<T> grammar, Func<RangeToken, T, U> map) : Grammar<
 
 class Value<T>(T value) : Grammar<T>;
 
-class Sequence<TContainer>(Grammar<TContainer> left, Grammar<Builder<TContainer>> right) : Grammar<TContainer>;
+class Sequence<TContainer>(Grammar<TContainer> left, Grammar<Action<TContainer>> right) : Grammar<TContainer>;
 
 public static class GrammarExtensions {
   public static Grammar<T> InBraces<T>(this Grammar<T> grammar) {
@@ -55,7 +55,7 @@ public static class GrammarExtensions {
   
   public static Grammar<TContainer> Then<TContainer>(
     this Grammar<TContainer> left,
-    Grammar<Builder<TContainer>> right) {
+    Grammar<Action<TContainer>> right) {
     return new Sequence<TContainer>(left, right);
   }
   
@@ -63,12 +63,10 @@ public static class GrammarExtensions {
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
     Action<TContainer, TValue> set) {
-    return containerGrammar.Then(value.Map(v => 
-      new Builder<TContainer>(container => set(container, v))));
+    return containerGrammar.Then(value.Map<TValue, Action<TContainer>>(v => 
+      container => set(container, v)));
   }
 }
-
-public class Builder<T>(Action<T> modify);
 
 public static class GrammarBuilder {
 
