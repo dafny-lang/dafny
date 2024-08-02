@@ -9,7 +9,7 @@ public abstract class Grammar {
   public static implicit operator Grammar(string keyword) => new Text(keyword);
 }
 
-public abstract class Grammar<T>;
+public interface Grammar<T>;
 
 class Many<T>(Grammar<T> one) : Grammar<List<T>>;
 
@@ -27,7 +27,7 @@ class WithRange<T, U>(Grammar<T> grammar, Func<RangeToken, T, U> map) : Grammar<
 
 class Value<T>(T value) : Grammar<T>;
 
-class Sequence<TContainer>(Grammar<Action<TContainer>> left, Grammar<Action<TContainer>> right) : Grammar<Action<TContainer>>;
+class Sequence<TContainer>(Grammar<TContainer> left, Grammar<Builder<TContainer>> right) : Grammar<TContainer>;
 
 public static class GrammarExtensions {
   public static Grammar<T> InBraces<T>(this Grammar<T> grammar) {
@@ -53,31 +53,26 @@ public static class GrammarExtensions {
     return new WithRange<T, U>(grammar, (_, original) => map(original));
   }
   
-  public static Grammar<Action<TContainer>> Then<TContainer>(
-    this Grammar<Action<TContainer>> left,
-    Grammar<Action<TContainer>> right) {
+  public static Grammar<TContainer> Then<TContainer>(
+    this Grammar<TContainer> left,
+    Grammar<Builder<TContainer>> right) {
     return new Sequence<TContainer>(left, right);
   }
-
-  public static Grammar<T> Build<T>(this Grammar<Action<T>> grammar, T value) {
-    return grammar.Map(builder => {
-      builder(value);
-      return value;
-    });
-  }
   
-  public static Grammar<Action<TContainer>> Then<TContainer, TValue>(
-    this Grammar<Action<TContainer>> containerGrammar, 
+  public static Grammar<TContainer> Then<TContainer, TValue>(
+    this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
     Action<TContainer, TValue> set) {
-    return containerGrammar.Then(value.Map<TValue, Action<TContainer>>(v => container => set(container, v)));
+    return containerGrammar.Then(value.Map(v => 
+      new Builder<TContainer>(container => set(container, v))));
   }
 }
+
+public class Builder<T>(Action<T> modify);
 
 public static class GrammarBuilder {
 
   public static Grammar<T> Value<T>(T value) => new Value<T>(value);
-  public static Grammar<Action<T>> Builder<T>() => new Value<Action<T>>(_ => { });
   public static Grammar Keyword(string keyword) => new Text(keyword);
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();

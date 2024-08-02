@@ -12,7 +12,7 @@ class Person() {
 
 class Test {
   void ParseExample() {
-    var g = Builder<Person>()
+    var g = Value(new Person())
       .Then(Identifier, (p, v) => p.FirstName = v)
       .Then(Number, (p, v) => p.Age = v)
       .Then(Identifier, (p, v) => p.LastName = v);

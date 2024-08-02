@@ -23,14 +23,13 @@ class Test {
   }
   
   Grammar<ClassDecl> Class() {
-    var header = Builder<ClassDeclData>().
+    var header = Value(new ClassDeclData()).
       Then("class").
       Then(NameGrammar, (cl, name) => cl.Name = name);
     
     var body = Member().Many().InBraces();
     var dataGrammar = header.
-      Then(body, (data, members) => data.Members = members).
-      Build(new ClassDeclData());
+      Then(body, (data, members) => data.Members = members);
     
     return dataGrammar.Map((token, data) => new ClassDecl(token, data.Name, 
       module, typeArgs, data.Members, attributes, isRefining, traits));
