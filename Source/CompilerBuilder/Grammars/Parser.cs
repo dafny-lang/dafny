@@ -29,6 +29,8 @@ class ValueR<T>(T value) : Parser<T>;
 
 class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> right) : Parser<TContainer>;
 
+class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T>;
+
 public static class ParserExtensions {
   public static Parser<T> InBraces<T>(this Parser<T> parser) {
     return ParserBuilder.Keyword("{").Then(parser).Then("}");

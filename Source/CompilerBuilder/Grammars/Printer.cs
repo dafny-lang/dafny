@@ -1,18 +1,24 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Net.Http.Headers;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
 public interface Printer<T>;
+
+class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T>;
+
+class Cast<T, U>(Printer<T> printer) : Printer<U>;
+
 public interface Printer;
 
 class Empty : Printer;
 
 class Verbatim : Printer<string>;
 
-class MapW<T, U>(Printer<T> printer, Func<U, T> map) : Printer<U>;
+class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U>;
 
 class Ignore<T>(Printer printer) : Printer<T>;
 
@@ -28,7 +34,7 @@ class SequenceW<TContainer>(Printer<TContainer> left, Printer<TContainer> right)
 
 
 public static class PrinterExtensions {
-  public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U,T> map) {
+  public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U,T?> map) {
     return new MapW<T, U>(printer, map);
   }
 }

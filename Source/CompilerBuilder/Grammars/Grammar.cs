@@ -17,6 +17,8 @@ public interface Grammar<T> {
   public Parser<T> ToParser();
 }
 
+public class Recursive<T>(Func<Grammar<T>> get) : Grammar<T>;
+
 class ManyG<T>(Grammar<T> one) : Grammar<List<T>> {
   public Printer<List<T>> ToPrinter() {
     return new ManyW<T>(one.ToPrinter());
@@ -78,13 +80,24 @@ internal class IdentifierG : Grammar<string> {
   }
 }
 
-class WithRangeG<T, U>(Grammar<T> grammar, Func<RangeToken, T, U> map, Func<U, T> destruct) : Grammar<U> {
+class WithRangeG<T, U>(Grammar<T> grammar, Func<RangeToken, T, U> map, Func<U, T?> destruct) : Grammar<U> {
   public Printer<U> ToPrinter() {
     return grammar.ToPrinter().Map(destruct);
   }
 
   public Parser<U> ToParser() {
     return new WithRangeR<T, U>(grammar.ToParser(), map);
+  }
+}
+
+class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
+  public Printer<T> ToPrinter() {
+    // Reverse order, on purpose. Needs testing.
+    return new ChoiceW<T>(second.ToPrinter(), first.ToPrinter());
+  }
+
+  public Parser<T> ToParser() {
+    return new ChoiceR<T>(first.ToParser(), second.ToParser());
   }
 }
 
@@ -111,8 +124,22 @@ class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> ri
 }
 
 public static class GrammarExtensions {
-  public static Grammar<T> InBraces<T>(this Grammar<T> Grammar) {
-    return GrammarBuilder.Keyword("{").Then(Grammar).Then("}");
+  public static Grammar<T> Default<T>(this Grammar<T> grammar, T value) {
+    return grammar.Or(GrammarBuilder.Value(value));
+  }
+  
+  public static Grammar<T> Or<T, U>(this Grammar<T> grammar, Grammar<U> other) 
+    where U : T
+  {
+    return new Choice<T>(grammar, other.UpCast<U, T>());
+  }
+  
+  public static Grammar<T> InParens<T>(this Grammar<T> grammar) {
+    return GrammarBuilder.Keyword("(").Then(grammar).Then(")");
+  }  
+  
+  public static Grammar<T> InBraces<T>(this Grammar<T> grammar) {
+    return GrammarBuilder.Keyword("{").Then(grammar).Then("}");
   }  
   
   public static Grammar<T> Then<T>(this Grammar<T> left, Grammar right) {
@@ -126,19 +153,31 @@ public static class GrammarExtensions {
     return new ManyG<T>(one);
   }
   
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<RangeToken, T,U> construct, Func<U, T> destruct) {
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<RangeToken, T,U> construct, 
+    Func<U, T?> destruct) {
     return new WithRangeG<T, U>(grammar, construct, destruct);
   }
   
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U> construct, Func<U, T> destruct) {
+  public static Grammar<TSuper> UpCast<TSub, TSuper>(this Grammar<TSub> grammar)
+    where TSub : TSuper
+  {
+    return grammar.Map<TSub, TSuper>(t => t, u => u is TSub t ? t : default);
+  }
+  
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U> construct, Func<U, T?> destruct) {
     return new WithRangeG<T, U>(grammar, (_, original) => construct(original), destruct);
+  }
+  
+  public static Grammar<List<T>> OptionToList<T>(this Grammar<T?> grammar) {
+    return grammar.Map(o => o == null ? new List<T>() : new List<T>() { o },
+      l => l.FirstOrDefault());
   }
   
   public static Grammar<TContainer> Then<TContainer, TValue>(
     this Grammar<TContainer> containerGrammar, 
-    Grammar<TValue> value, 
-    Action<TContainer, TValue> set,
-    Func<TContainer, TValue> get) {
+    Grammar<TValue> value,
+    Func<TContainer, TValue> get,
+    Action<TContainer, TValue> set) {
     return new SequenceG<TContainer, TValue>(containerGrammar, value, set, get);
   }
   
@@ -156,12 +195,18 @@ public static class GrammarExtensions {
       return v;
     }, x => x);
   }
+
+  public static Grammar<T?> Option<T>(this Grammar<T> grammar, Grammar fallback) {
+    var r = fallback.Then(GrammarBuilder.Value<T?>(default));
+    return grammar.Map<T, T?>(t => t, t => t).Or(r);
+  }
 }
 
 public static class GrammarBuilder {
 
   public static Grammar<T> Value<T>(T value) => new Value<T>(value);
   public static Grammar Keyword(string keyword) => new TextG(keyword);
+  public static Grammar<T> Fail<T>() => new TextG(keyword);
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
 }
