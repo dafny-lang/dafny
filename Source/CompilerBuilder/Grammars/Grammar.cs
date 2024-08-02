@@ -149,6 +149,13 @@ public static class GrammarExtensions {
     throw new Exception("magic");
     //return new SequenceG<TContainer, TValue>(containerGrammar, value, set, get);
   }
+
+  public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Action<T, RangeToken> set) {
+    return grammar.Map((t, v) => {
+      set(v, t);
+      return v;
+    }, x => x);
+  }
 }
 
 public static class GrammarBuilder {
