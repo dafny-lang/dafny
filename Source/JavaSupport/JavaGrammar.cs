@@ -18,7 +18,7 @@ class JavaGrammar {
     var body = Member().Many().InBraces();
 
     return header.
-      Then(body, cl => cl.Members).
+      Then(body, cl => cl.Members, Orientation.Vertical).
       SetRange((cl, t) => cl.RangeToken = t);
   }
 
@@ -45,7 +45,7 @@ class JavaGrammar {
       Then(outs, m => m.Outs).
       Then(Name, m => m.NameNode).
       Then(parameters, m => m.Ins).
-      Then(Block(), m => m.Body);
+      Then(Block(), m => m.Body, Orientation.Vertical);
   }
 
   Grammar<BlockStmt> Block() {

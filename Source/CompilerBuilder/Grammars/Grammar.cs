@@ -29,9 +29,18 @@ class ManyG<T>(Grammar<T> one) : Grammar<List<T>> {
   }
 }
 
-class SkipLeftG<T>(Grammar left, Grammar<T> right) : Grammar<T> {
+public enum Orientation {
+  Horizontal,
+  Vertical
+};
+
+class SkipLeftG<T>(Grammar left, Grammar<T> right, Orientation mode) : Grammar<T> {
   public Printer<T> ToPrinter() {
-    return new SequenceW<T>(new Ignore<T>(left.ToPrinter()), right.ToPrinter());
+    var first = new Ignore<T>(left.ToPrinter());
+    var second = right.ToPrinter();
+    return mode == Orientation.Horizontal 
+      ? new LeftRight<T>(first, second) 
+      : new TopBottom<T>(first, second);
   }
 
   public Parser<T> ToParser() {
@@ -39,10 +48,13 @@ class SkipLeftG<T>(Grammar left, Grammar<T> right) : Grammar<T> {
   }
 }
 
-class SkipRightG<T>(Grammar<T> left, Grammar right) : Grammar<T> {
-  
+class SkipRightG<T>(Grammar<T> left, Grammar right, Orientation mode) : Grammar<T> {
   public Printer<T> ToPrinter() {
-    return new SequenceW<T>(left.ToPrinter(), new Ignore<T>(right.ToPrinter()));
+    var leftPrinter = left.ToPrinter();
+    var rightPrinter = new Ignore<T>(right.ToPrinter());
+    return mode == Orientation.Horizontal 
+      ? new LeftRight<T>(leftPrinter, rightPrinter) 
+      : new TopBottom<T>(leftPrinter, rightPrinter);
   }
 
   public Parser<T> ToParser() {
@@ -111,10 +123,14 @@ class Value<T>(T value) : Grammar<T> {
   }
 }
 
-class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> right, 
+class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> right, Orientation mode, 
   Action<TContainer, TValue> setter, Func<TContainer, TValue> getter) : Grammar<TContainer> {
   public Printer<TContainer> ToPrinter() {
-    return new SequenceW<TContainer>(left.ToPrinter(), right.ToPrinter().Map(getter));
+    var first = left.ToPrinter();
+    var second = right.ToPrinter().Map(getter);
+    return mode == Orientation.Horizontal 
+      ? new LeftRight<TContainer>(first, second) 
+      : new TopBottom<TContainer>(first, second);
   }
 
   public Parser<TContainer> ToParser() {
@@ -139,16 +155,17 @@ public static class GrammarExtensions {
   }  
   
   public static Grammar<T> InBraces<T>(this Grammar<T> grammar) {
-    return GrammarBuilder.Keyword("{").Then(grammar).Then("}");
+    return GrammarBuilder.Keyword("{").Then(grammar, Orientation.Vertical).Then("}", Orientation.Vertical);
   }  
   
-  public static Grammar<T> Then<T>(this Grammar<T> left, Grammar right) {
-    return new SkipRightG<T>(left, right);
+  public static Grammar<T> Then<T>(this Grammar<T> left, Grammar right, Orientation mode = Orientation.Horizontal) {
+    return new SkipRightG<T>(left, right, Orientation.Horizontal);
   }  
   
-  public static Grammar<T> Then<T>(this Grammar left, Grammar<T> right) {
-    return new SkipLeftG<T>(left, right);
+  public static Grammar<T> Then<T>(this Grammar left, Grammar<T> right, Orientation mode = Orientation.Horizontal) {
+    return new SkipLeftG<T>(left, right, Orientation.Horizontal);
   }
+  
   public static Grammar<List<T>> Many<T>(this Grammar<T> one) {
     return new ManyG<T>(one);
   }
@@ -178,15 +195,16 @@ public static class GrammarExtensions {
     Grammar<TValue> value,
     Func<TContainer, TValue> get,
     Action<TContainer, TValue> set) {
-    return new SequenceG<TContainer, TValue>(containerGrammar, value, set, get);
+    return new SequenceG<TContainer, TValue>(containerGrammar, value, Orientation.Horizontal, set, get);
   }
   
   public static Grammar<TContainer> Then<TContainer, TValue>(
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
-    Expression<Func<TContainer, TValue>> get) {
-    throw new Exception("magic");
-    //return new SequenceG<TContainer, TValue>(containerGrammar, value, set, get);
+    Expression<Func<TContainer, TValue>> get, Orientation mode = Orientation.Horizontal) {
+    Func<TContainer, TValue> getter = null; 
+    Action<TContainer, TValue> setter = null;
+    return containerGrammar.Then(value, getter, setter);
   }
 
   public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Action<T, RangeToken> set) {
@@ -202,11 +220,21 @@ public static class GrammarExtensions {
   }
 }
 
+class Fail<T> : Grammar<T> {
+  public Printer<T> ToPrinter() {
+    throw new NotImplementedException();
+  }
+
+  public Parser<T> ToParser() {
+    throw new NotImplementedException();
+  }
+}
+
 public static class GrammarBuilder {
 
   public static Grammar<T> Value<T>(T value) => new Value<T>(value);
   public static Grammar Keyword(string keyword) => new TextG(keyword);
-  public static Grammar<T> Fail<T>() => new TextG(keyword);
+  public static Grammar<T> Fail<T>() => new Fail<T>();
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
 }

@@ -30,8 +30,8 @@ internal class NumberW : Printer<int>;
 
 internal class IdentifierW : Printer<string>;
 
-class SequenceW<TContainer>(Printer<TContainer> left, Printer<TContainer> right) : Printer<TContainer>;
-
+class LeftRight<TContainer>(Printer<TContainer> left, Printer<TContainer> right) : Printer<TContainer>;
+class TopBottom<TContainer>(Printer<TContainer> left, Printer<TContainer> right) : Printer<TContainer>;
 
 public static class PrinterExtensions {
   public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U,T?> map) {
