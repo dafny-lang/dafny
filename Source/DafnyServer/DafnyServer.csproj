@@ -5,7 +5,7 @@
       <AssemblyName>DafnyServer</AssemblyName>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE</DefineConstants>
-      <TargetFramework>net6.0</TargetFramework>
+      <TargetFramework>net8.0</TargetFramework>
 <RollForward>Major</RollForward>
       <OutputPath>..\..\Binaries\</OutputPath>
       <PackageLicenseExpression>MIT</PackageLicenseExpression>
