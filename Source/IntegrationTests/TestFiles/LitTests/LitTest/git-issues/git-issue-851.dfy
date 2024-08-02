@@ -43,7 +43,7 @@ module ExampleB {
   export
     provides Test
 
-  trait D {
+  trait D extends object {
     lemma False()
       ensures false
   }
@@ -134,7 +134,7 @@ module OtherBindersInStatements {
     lemma False()
       ensures false
   }
-  trait C {
+  trait C extends object {
     lemma False()
       ensures false
   }

@@ -45,4 +45,6 @@ TypeInferenceRefreshErrors.dfy(261,15): Error: type of - must be of a numeric ty
 TypeInferenceRefreshErrors.dfy(262,15): Error: type of - must be of a numeric type, a bitvector type, ORDINAL, char, or a set-like or map-like type (instead got seq<int>)
 TypeInferenceRefreshErrors.dfy(269,15): Error: arguments to >= must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got seq<int>)
 TypeInferenceRefreshErrors.dfy(268,15): Error: arguments to > must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got bool)
-44 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(275,34): Error: array-allocation initialization expression expected to have type 'nat ~> bool' (instead got 'nat -> nat') (covariant type parameter 'R' would require bool :> nat)
+TypeInferenceRefreshErrors.dfy(279,35): Error: integer literal used as if it had type bool
+46 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

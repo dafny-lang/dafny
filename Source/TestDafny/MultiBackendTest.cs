@@ -141,7 +141,7 @@ public class MultiBackendTest {
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(
         "legacy",
-        new string[] { },
+        new string[] { "--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false" },
         new string[] { ".verifier.expect" },
         0)
     };
@@ -281,9 +281,11 @@ public class MultiBackendTest {
     }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(OptionAppliesToVerifyCommand)).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
-      new("legacy", new string[] { }, new string[] { ".expect" },
+      new("legacy", new string[] { "--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false" },
+        new string[] { ".expect" },
         options.ExpectExitCode ?? 0),
-      new("refresh", new string[] { "--type-system-refresh" }, new string[] { ".refresh.expect", ".expect" },
+      new("refresh", new string[] { "--type-system-refresh" },
+        new string[] { ".refresh.expect", ".expect" },
         options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
