@@ -97,7 +97,7 @@ class TailRecursion {
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
     if (stmt is PrintStmt) {
-    } else if (stmt is RevealStmt) {
+    } else if (stmt is HideRevealStmt) {
     } else if (stmt is BreakStmt) {
     } else if (stmt is ReturnStmt) {
       var s = (ReturnStmt)stmt;

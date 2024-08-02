@@ -90,14 +90,15 @@ public partial class BoogieGenerator {
     };
     // check that postconditions hold
     var ens = new List<Bpl.Ensures>();
-    foreach (AttributedExpression p in f.Ens) {
+    var context = new BodyTranslationContext(f.ContainsHide);
+    foreach (AttributedExpression ensures in f.Ens) {
       var functionHeight = currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
       var splits = new List<SplitExprInfo>();
-      bool splitHappened /*we actually don't care*/ = TrSplitExpr(p.E, splits, true, functionHeight, true, true, etran);
-      var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
+      bool splitHappened /*we actually don't care*/ = TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, true, etran);
+      var (errorMessage, successMessage) = CustomErrorMessage(ensures.Attributes);
       foreach (var s in splits) {
         if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, currentModule)) {
-          AddEnsures(ens, EnsuresWithDependencies(s.Tok, false, p.E, s.E, errorMessage, successMessage, null));
+          AddEnsures(ens, EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));
         }
       }
     }
@@ -117,8 +118,8 @@ public partial class BoogieGenerator {
     var implInParams = Bpl.Formal.StripWhereClauses(inParams);
     var implOutParams = Bpl.Formal.StripWhereClauses(outParams);
     var locals = new List<Variable>();
-    var builder = new BoogieStmtListBuilder(this, options);
-    var builderInitializationArea = new BoogieStmtListBuilder(this, options);
+    var builder = new BoogieStmtListBuilder(this, options, context);
+    var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
     builder.Add(new CommentCmd("AddWellformednessCheck for function " + f));
     if (f is TwoStateFunction) {
       // $Heap := current$Heap;
@@ -181,7 +182,8 @@ public partial class BoogieGenerator {
 
     // check well-formedness of the decreases clauses (including termination, but no reads checks)
     foreach (Expression p in f.Decreases.Expressions) {
-      CheckWellformed(p, new WFOptions(null, false), locals, builder, etran);
+      CheckWellformed(p, new WFOptions(null, false),
+        locals, builder, etran);
     }
     // Generate:
     //   if (*) {
@@ -192,7 +194,7 @@ public partial class BoogieGenerator {
     //     // fall through to check the postconditions themselves
     //   }
     // Here go the postconditions (termination checks included, but no reads checks)
-    BoogieStmtListBuilder postCheckBuilder = new BoogieStmtListBuilder(this, options);
+    BoogieStmtListBuilder postCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
     {
       var args = new List<Bpl.Expr>();
@@ -232,7 +234,7 @@ public partial class BoogieGenerator {
       CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
     }
     // Here goes the body (and include both termination checks and reads checks)
-    BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this, options);
+    BoogieStmtListBuilder bodyCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     if (f.Body == null || !RevealedInScope(f)) {
       // don't fall through to postcondition checks
       bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Bpl.Expr.False));
@@ -925,7 +927,9 @@ public partial class BoogieGenerator {
     } else {
       comment += " (opaque)";
     }
-    return new Axiom(f.tok, BplImp(activate, ax), comment);
+    return new Axiom(f.tok, BplImp(activate, ax), comment) {
+      CanHide = true
+    };
   }
 
 
@@ -948,39 +952,6 @@ public partial class BoogieGenerator {
     return e;
   }
 
-  Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
-    if (stmt is CallStmt) {
-      var call = (CallStmt)stmt;
-      var m = call.Method;
-      if (IsOpaqueRevealLemma(m)) {
-        List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
-        if (args != null) {
-          MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
-          if (selectExpr != null) {
-            Function f = selectExpr.Member as Function;
-            FuelConstant fuelConstant = this.functionFuel.Find(x => x.f == f);
-            if (fuelConstant != null) {
-              Bpl.Expr startFuel = fuelConstant.startFuel;
-              Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-              Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
-              Bpl.Expr layer = etran.layerInterCluster.LayerN(1, moreFuel_expr);
-              Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(2, moreFuel_expr);
-
-              e = BplAnd(e, Bpl.Expr.Eq(startFuel, layer));
-              e = BplAnd(e, Bpl.Expr.Eq(startFuelAssert, layerAssert));
-              e = BplAnd(e, Bpl.Expr.Eq(this.FunctionCall(f.tok, BuiltinFunction.AsFuelBottom, null, moreFuel_expr), moreFuel_expr));
-            }
-          }
-        }
-      }
-    } else if (stmt is RevealStmt) {
-      var reveal = (RevealStmt)stmt;
-      foreach (var s in reveal.ResolvedStatements) {
-        e = BplAnd(e, TrFunctionSideEffect(s, etran));
-      }
-    }
-    return e;
-  }
 
 
   public string FunctionHandle(Function f) {

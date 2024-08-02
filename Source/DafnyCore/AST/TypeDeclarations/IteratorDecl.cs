@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
+public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeContainer {
   public override string WhatKind { get { return "iterator"; } }
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
@@ -514,4 +514,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public string Designator => WhatKind;
+
+  [FilledInDuringResolution]
+  public bool ContainsHide { get; set; }
 }
