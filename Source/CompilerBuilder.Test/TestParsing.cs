@@ -66,4 +66,12 @@ public class TestParsing {
     var badResult = persons.Parse("123124Jan12313Henk12");
     Assert.Null(badResult.Success);
   }
+
+  [Fact]
+  public void LeftRecursive() {
+    var parser = Recursive<int>(self => Number.Or(self.Then("^")));
+    var result = parser.Parse("13^^^");
+    Assert.Equal(13, result.Success!.Value);
+  }
+  
 }
