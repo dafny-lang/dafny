@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Numerics;
+using System.Reflection.Emit;
 using CompilerBuilder;
 using Microsoft.Dafny;
 using static CompilerBuilder.GrammarBuilder;
@@ -68,8 +69,11 @@ class JavaGrammar {
       Then("?").Then(expressionRef, e => e.Thn).
       Then(":").Then(expressionRef, e => e.Els);
 
+    var opCode = 
+      Keyword("<").Then(Value(BinaryExpr.Opcode.Le)).Or(
+      Keyword("/").Then(Value(BinaryExpr.Opcode.Div)));
     var less = Value(new BinaryExpr()).Then(expressionRef, b => b.E0).
-      Then(Keyword("<").Then(Value(BinaryExpr.Opcode.Le)), b => b.Op).
+      Then(opCode, b => b.Op).
       Then(expressionRef, b => b.E1);
 
     var variableRef = Identifier.Map((r, v) => new IdentifierExpr(r, v), ie => ie.Name);
@@ -103,6 +107,11 @@ class JavaGrammar {
     Identifier.Map((t, value) => new Name(t, value), n => n.Value);
 }
 
+// class Div {
+//   int Foo(int x) {
+//     return 3 / x;
+//   }
+// }
 // class Fib {
 //   static int FibonacciSpec(int n) {
 //     return n < 2 ? n : FibonacciSpec(n - 1) + FibonacciSpec(n - 2);
