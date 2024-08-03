@@ -19,7 +19,7 @@ public interface Grammar<T> : IGrammar {
   public Parser<T> ToParser(Func<IGrammar, Parser> recurse);
 }
 
-public class Recursive<T>(Func<Grammar<T>> get) : Grammar<T> {
+public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
   public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
     return new RecursiveW<T>(() => (Printer<T>)recurse(get()));
   }
@@ -35,7 +35,8 @@ class ManyG<T>(Grammar<T> one) : Grammar<List<T>> {
   }
 
   public Parser<List<T>> ToParser(Func<IGrammar, Parser> recurse) {
-    return new ManyR<T>((Parser<T>)recurse(one));
+    var oneParser = (Parser<T>)recurse(one);
+    return oneParser.Many();
   }
 }
 
@@ -102,7 +103,7 @@ internal class IdentifierG : Grammar<string> {
   }
 }
 
-class WithRangeG<T, U>(Grammar<T> grammar, Func<RangeToken, T, U> map, Func<U, T?> destruct) : Grammar<U> {
+class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U> map, Func<U, T?> destruct) : Grammar<U> {
   public Printer<U> ToPrinter(Func<IGrammar, IPrinter> recurse) {
     return ((Printer<T>)recurse(grammar)).Map(destruct);
   }
@@ -181,7 +182,7 @@ public static class GrammarExtensions {
     return new ManyG<T>(one);
   }
   
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<RangeToken, T,U> construct, 
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
     Func<U, T?> destruct) {
     return new WithRangeG<T, U>(grammar, construct, destruct);
   }
@@ -218,7 +219,7 @@ public static class GrammarExtensions {
     return containerGrammar.Then(value, getter, setter);
   }
 
-  public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Action<T, RangeToken> set) {
+  public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Action<T, ParseRange> set) {
     return grammar.Map((t, v) => {
       set(v, t);
       return v;
@@ -243,6 +244,14 @@ class Fail<T> : Grammar<T> {
 
 public static class GrammarBuilder {
 
+  
+  public static Grammar<T> Recursive<T>(Func<Grammar<T>, Grammar<T>> build) {
+    Grammar<T>? result = null;
+    // ReSharper disable once AccessToModifiedClosure
+    result = new RecursiveG<T>(() => build(result!));
+    return result;
+  }
+  
   public static Grammar<T> Value<T>(T value) => new Value<T>(value);
   public static VoidGrammar Keyword(string keyword) => new TextG(keyword);
   public static Grammar<T> Fail<T>() => new Fail<T>();

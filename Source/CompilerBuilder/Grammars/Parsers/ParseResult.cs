@@ -1,15 +1,17 @@
 namespace CompilerBuilder;
 
-interface ParseResult;
+public interface ParseResult;
 
-interface ParseResult<T> : ParseResult {
-  ParseResult<TU> Continue<TU>(Func<ConcreteSuccess<T>, ParseResult<TU>> f);
+public interface ParseResult<T> : ParseResult {
+  internal ParseResult<TU> Continue<TU>(Func<ConcreteSuccess<T>, ParseResult<TU>> f);
 
-  ConcreteSuccess<T>? Success { get; }
-  FailureR<T>? Failure { get; }
-  IEnumerable<IFoundRecursion<T>> Recursions { get; }
+  internal ConcreteResult<T>? Concrete => Success as ConcreteResult<T> ?? Failure;
+
+  public ConcreteSuccess<T>? Success { get; }
+  public FailureR<T>? Failure { get; }
+  internal IEnumerable<IFoundRecursion<T>> Recursions { get; }
   
-  ParseResult<T> Combine(ParseResult<T> other) {
+  internal ParseResult<T> Combine(ParseResult<T> other) {
     ConcreteSuccess<T>? concreteSuccess = null;
     if (Success != null && other.Success != null) {
       concreteSuccess = Success.Remainder.Offset > other.Success.Remainder.Offset ? Success : other.Success;
@@ -29,24 +31,9 @@ interface ParseResult<T> : ParseResult {
 
     return new Aggregate<T>(concreteResult, recursions);
   }
-  
-  internal ParseResult<U> CastFailure<U>() {
-    if (this is FailureR<T> failure) {
-      return new FailureR<U>(failure.Message, failure.Location);
-    }
-
-    throw new InvalidOperationException();
-  }
 }
 
-// interface SuccessResult<T>(ConcreteSuccess<T>? Concrete, FoundRecursion<T, T>? Recursion) {
-//   OneSuccessResult<U> Bind<U>(Func<ConcreteSuccess<T>, OneSuccessResult<U>> f) {
-//     
-//   }
-//
-// }
-
-interface ConcreteResult<T> : ParseResult<T> {
+public interface ConcreteResult<T> : ParseResult<T> {
   
 }
 interface SuccessResult<T> : ParseResult<T> {
@@ -68,14 +55,14 @@ internal record Aggregate<T>(ConcreteResult<T>? Concrete, IEnumerable<IFoundRecu
   public FailureR<T>? Failure => Concrete as FailureR<T>;
 }
 
-record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResult<T> {
+public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResult<T> {
   public ParseResult<TB> Continue<TB>(Func<ConcreteSuccess<T>, ParseResult<TB>> f) {
     return f(this);
   }
 
   public ConcreteSuccess<T>? Success => this;
   public FailureR<T>? Failure => null;
-  public IEnumerable<IFoundRecursion<T>> Recursions => Enumerable.Empty<IFoundRecursion<T>>();
+  IEnumerable<IFoundRecursion<T>> ParseResult<T>.Recursions => [];
 }
 
 interface IFoundRecursion<T> : ParseResult<T> {
@@ -86,11 +73,7 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   public ParseResult<TC> Continue<TC>(Func<ConcreteSuccess<TB>, ParseResult<TC>> f) {
     return new FoundRecursion<TA, TC>(concrete => {
       var inner = Recursion(concrete);
-      if (inner is SuccessResult<TB> innerSuccess) {
-        return innerSuccess.Continue(f);
-      }
-
-      return inner.CastFailure<TC>();
+      return inner.Continue(f);
     });
   }
 
@@ -103,13 +86,13 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   }
 }
 
-record FailureR<T>(string Message, ITextPointer Location) : ConcreteResult<T> {
+public record FailureR<T>(string Message, ITextPointer Location) : ConcreteResult<T> {
   public ParseResult<TU> Continue<TU>(Func<ConcreteSuccess<T>, ParseResult<TU>> f) {
     return new FailureR<TU>(Message, Location);
   }
 
   public ConcreteSuccess<T>? Success => null;
   public FailureR<T> Failure => this;
-  
-  public IEnumerable<IFoundRecursion<T>> Recursions => [];
+
+  IEnumerable<IFoundRecursion<T>> ParseResult<T>.Recursions => [];
 }

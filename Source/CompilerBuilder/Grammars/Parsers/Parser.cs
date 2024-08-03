@@ -1,33 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Collections.Immutable;
-using Microsoft.Dafny;
+using System.Net.Mime;
 
 namespace CompilerBuilder;
-
-// trait TextPointer extends OffsetPointer {
-//   def safeIncrement: TextPointer = if (atEnd()) this else drop(1)
-//   def atEnd(): Boolean = offset == length
-//   def head: Char = charAt(offset)
-//   def charAt(index: Int): Char
-//     def length: Int
-//     def end(): TextPointer = drop(length - offset)
-//   def charSequence: CharSequence
-//     def subSequence(from: Int, until: Int): CharSequence
-//     def drop(amount: Int): TextPointer
-//     def cache: mutable.HashMap[Any, Any]
-//
-//   def printRange(end: TextPointer) = subSequence(offset, end.offset).toString
-//
-// override def toString: String = {
-// s"(${lineCharacter.line}, ${lineCharacter.character})" +
-// subSequence(Math.max(0, offset - 10), offset) + " | " + subSequence(offset, Math.min(length, offset + 10))
-// }
-// }
-// case class FixPointState(offset: Int, // TODO try to remove this offset, since we can also clear the callStack whenever we move forward.
-// stackDepth: Int,
-// callStack: Set[BuiltParser[Any]])
-
 
 record Unit;
 public abstract class VoidParser : Parser {
@@ -47,27 +23,51 @@ public abstract class Parser {
 
 public abstract class Parser<T> : Parser {
   internal abstract ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
+  
+  public ConcreteResult<T> Parse(string text) {
+    ITextPointer pointer = new PointerFromString(text);
+    return Parse(pointer, ImmutableHashSet<Parser>.Empty).Concrete!;
+  }
+}
+
+class PointerFromString(string text) : ITextPointer {
+  public PointerFromString(string text, int offset, int line, int column) : this(text) {
+    Offset = offset;
+    Line = line;
+    Column = column;
+  }
+
+  public int Offset { get; }
+  public int Line { get; }
+  public int Column { get; }
+  public ITextPointer Drop(int amount) {
+    var sequence = SubSequence(amount);
+    var lines = sequence.Split("\n");
+    return new PointerFromString(text, Offset + amount, Line + lines.Length - 1, lines.Last().Length);
+  }
+
+  public char First => At(0);
+  public int Length => text.Length - Offset;
+
+  public char At(int offset) {
+    return text[Offset + offset];
+  }
+
+  public string SubSequence(int length) {
+    return text.Substring(Offset, Math.Min(Length, length));
+  }
 }
 
 class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> right) : Parser<TContainer> {
   internal override ParseResult<TContainer> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
-    if (leftResult is SuccessResult<TContainer> leftSuccess) {
-      return leftSuccess.Continue(leftConcrete => {
-
-        var rightResult = right.Parse(leftConcrete.Remainder, recursives);
-        if (rightResult is SuccessResult<Action<TContainer>> rightSuccess) {
-          return rightSuccess.Continue(rightConcrete => {
-            rightConcrete.Value(leftConcrete.Value);
-            return leftConcrete with { Remainder = rightConcrete.Remainder };
-          });
-        }
-
-        return rightResult.CastFailure<TContainer>();
+    return leftResult.Continue(leftConcrete => {
+      var rightResult = right.Parse(leftConcrete.Remainder, recursives);
+      return rightResult.Continue(rightConcrete => {
+        rightConcrete.Value(leftConcrete.Value);
+        return leftConcrete with { Remainder = rightConcrete.Remainder };
       });
-    }
-
-    return leftResult.CastFailure<TContainer>();
+    });
   }
 
   internal override void Schedule(ParseState state) {
@@ -81,16 +81,8 @@ class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> 
 class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
   internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var firstResult = first.Parse(text, recursives);
-    if (firstResult is not FailureR<T> firstFailure) {
-      return firstResult;
-    }
-
     var secondResult = second.Parse(text, recursives);
-    if (secondResult is not FailureR<T> secondFailure) {
-      return secondResult;
-    }
-
-    return firstFailure.Location.Offset > secondFailure.Location.Offset ? firstFailure : secondFailure;
+    return firstResult.Combine(secondResult);
   }
 
   internal override void Schedule(ParseState state) {
@@ -152,13 +144,22 @@ class PositionR : Parser<IPosition> {
   }
 }
 
-class WithRangeR<T, U>(Parser<T> parser, Func<RangeToken, T, U> map) : Parser<U> {
+class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U> map) : Parser<U> {
+  internal override ParseResult<U> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var start = text;
+    var innerResult = parser.Parse(text, recursives);
+    return innerResult.Continue(success => {
+      var end = success.Remainder;
+      return new ConcreteSuccess<U>(map(new ParseRange(start, end), success.Value), success.Remainder);
+    });
+  }
+
   internal override void Schedule(ParseState state) {
     state.Todos.Push(() => {
-      var end = (IToken)state.Results.Pop();
+      var end = (IPosition)state.Results.Pop();
       var result = (T)state.Results.Pop();
-      var start = (IToken)state.Results.Pop();
-      var range = new RangeToken(start, end);
+      var start = (IPosition)state.Results.Pop();
+      var range = new ParseRange(start, end);
       state.Results.Push(map(range, result)!);
     });
     state.Todos.Push(PositionR.Instance);
@@ -203,59 +204,58 @@ class TextR(string value) : VoidParser {
       return new ConcreteSuccess<Unit>(new Unit(), text.Drop(value.Length));
     }
 
-    return new FailureR<Unit>($"Expected {value} but found {actual}", text);
+    return new FailureR<Unit>($"Expected '{value}' but found '{actual}'", text);
   }
 }
 
-internal class NumberR : Parser<int>;
+internal class NumberR : Parser<int> {
+  internal override ParseResult<int> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var offset = 0;
+    while (text.Length > offset) {
+      var c = text.At(offset);
+      if (Char.IsDigit(c)) {
+        offset++;
+      } else {
+        break;
+      }
+    }
 
-internal class IdentifierR : Parser<string>;
+    if (offset > 0) {
+      var sequence = text.SubSequence(offset);
+      if (int.TryParse(sequence, out var parsed))
+      {
+        return new ConcreteSuccess<int>(parsed, text.Drop(offset));
+      }
+      return new FailureR<int>($"{sequence} is not a number", text);
+    }
+
+    return new FailureR<int>($"{text.First} is not a digit", text);
+  }
+}
+
+internal class IdentifierR : Parser<string> {
+  internal override ParseResult<string> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var offset = 0;
+    while (text.Length > offset) {
+      var c = text.At(offset);
+      if (Char.IsLetter(c)) {
+        offset++;
+      } else {
+        break;
+      }
+    }
+
+    if (offset > 0) {
+      var sequence = text.SubSequence(offset);
+      return new ConcreteSuccess<string>(sequence, text.Drop(offset));
+    }
+
+    return new FailureR<string>($"{text.First} is not an identifier", text);
+  }
+}
 
 class ValueR<T>(T value) : Parser<T> {
   internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     return new ConcreteSuccess<T>(value, text);
   }
-}
-
-class ManyR<T>(Parser<T> one) : Parser<List<T>>;
-
-public static class ParserExtensions {
-  public static Parser<T> InBraces<T>(this Parser<T> parser) {
-    return ParserBuilder.Keyword("{").Then(parser).Then("}");
-  }  
-  
-  public static Parser<T> Then<T>(this Parser<T> left, VoidParser right) {
-    return new SkipRight<T>(left, right);
-  }  
-  
-  public static Parser<T> Then<T>(this VoidParser left, Parser<T> right) {
-    return new SkipLeft<T>(left, right);
-  }
-  public static Parser<List<T>> Many<T>(this Parser<T> one) {
-    return new ManyR<T>(one);
-  }
-  
-  public static Parser<U> Map<T, U>(this Parser<T> parser, Func<RangeToken, T,U> map) {
-    return new WithRangeR<T, U>(parser, map);
-  }
-  
-  public static Parser<U> Map<T, U>(this Parser<T> parser, Func<T,U> map) {
-    return new WithRangeR<T, U>(parser, (_, original) => map(original));
-  }
-
-  public static Parser<TContainer> Then<TContainer, TValue>(
-    this Parser<TContainer> containerParser, 
-    Parser<TValue> value, 
-    Action<TContainer, TValue> set) {
-    var right = value.Map<TValue, Action<TContainer>>(v => container => set(container, v));
-    return new SequenceR<TContainer>(containerParser, right);
-  }
-}
-
-public static class ParserBuilder {
-
-  public static Parser<T> Value<T>(T value) => new ValueR<T>(value);
-  public static VoidParser Keyword(string keyword) => new TextR(keyword);
-  public static readonly Parser<string> Identifier = new IdentifierR();
-  public static readonly Parser<int> Number = new NumberR();
 }

@@ -47,6 +47,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompilerBuilder", "Compiler
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JavaSupport", "JavaSupport\JavaSupport.csproj", "{78FD5A82-DA93-4840-82C6-052E0EA5C67A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompilerBuilder.Test", "CompilerBuilder.Test\CompilerBuilder.Test.csproj", "{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}"
+EndProject
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -142,6 +144,10 @@ Global
 		{78FD5A82-DA93-4840-82C6-052E0EA5C67A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{78FD5A82-DA93-4840-82C6-052E0EA5C67A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{78FD5A82-DA93-4840-82C6-052E0EA5C67A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
