@@ -44,7 +44,7 @@ public class TestParsing {
   [Fact]
   public void TestSequence() {
     var person =
-      Value(new Person()).
+      Value(() => new Person()).
         Then(Number, (p, v) => p.Age = v).
         Then(Identifier, (p, v) => p.Name = v);
     var result = person.Parse("123124Jan");
@@ -56,7 +56,7 @@ public class TestParsing {
   [Fact]
   public void TestMany() {
     var person =
-      Value(new Person()).
+      Value(() => new Person()).
         Then(Number, (p, v) => p.Age = v).
         Then(Identifier, (p, v) => p.Name = v);
     var persons = person.Many();
@@ -72,6 +72,39 @@ public class TestParsing {
     var parser = Recursive<int>(self => Number.Or(self.Then("^")));
     var result = parser.Parse("13^^^");
     Assert.Equal(13, result.Success!.Value);
+  }
+
+  struct PersonWithTrivia {
+    public int Age;
+    public string Name;
+    public List<string> Trivia = new();
+
+    public PersonWithTrivia() {
+      Age = 0;
+      Name = null;
+    }
+  }
+  
+  [Fact]
+  public void ManualTrivia() {
+    var trivia = SlashSlashLineComment.Or(Whitespace).Many();
+    var person =
+      Value(() => new PersonWithTrivia()).
+        Then(Number, (p, v) => p.Age = v).
+        Then(trivia, (p, newTrivia) => p.Trivia.AddRange(newTrivia)).
+        Then(Identifier, (p, v) => p.Name = v);
+    var input = "123  Remy";
+    var result = person.Parse(input);
+    Assert.NotNull(result.Success);
+    Assert.Equal("  ", result.Success?.Value.Trivia[0]);
+
+    var input2 = @"123// line comment
+  
+// another linecomment
+Remy";
+    var result2 = person.Parse(input2);
+    Assert.NotNull(result2.Success);
+    Assert.Equal("// another linecomment", result2.Success?.Value.Trivia[2]);
   }
   
 }

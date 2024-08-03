@@ -34,7 +34,7 @@ class JavaGrammar {
   }
   
   Grammar<ClassDecl> Class() {
-    var header = Value(new ClassDecl()).
+    var header = Value(() => new ClassDecl()).
       Then("class").
       Then(name, cl => cl.NameNode);
     
@@ -51,19 +51,19 @@ class JavaGrammar {
 
   Grammar<Method> Method() {
     // Need something special for a unordered bag of keywords
-    var staticc = Keyword("static").Then(Value(true)).Default(false);
+    var staticc = Keyword("static").Then(Constant(true)).Default(() => false);
     var type = Type();
     var returnParameter = type.Map(
       t => new Formal(Token.NoToken,"_returnName", t, false, false, null), 
       f=> f.Type);
     var outs = returnParameter.Option(Keyword("void")).OptionToList();
 
-    var parameter = Value(new Formal()).
+    var parameter = Value(() => new Formal()).
       Then(type, f => f.Type).
       Then(Identifier, f => f.Name);
     var parameters = parameter.Many().InParens();
 
-    return Value(new Method()).
+    return Value(() => new Method()).
       Then(staticc, m => m.IsStatic).
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
@@ -84,15 +84,15 @@ class JavaGrammar {
   }
 
   Grammar<Expression> GetExpressionGrammar(Grammar<Expression> self) {
-    var ternary = Value(new ITEExpr()).
+    var ternary = Value(() => new ITEExpr()).
       Then(self, e => e.Test).
       Then("?").Then(self, e => e.Thn).
       Then(":").Then(self, e => e.Els);
 
     var opCode = 
-      Keyword("<").Then(Value(BinaryExpr.Opcode.Le)).Or(
-      Keyword("/").Then(Value(BinaryExpr.Opcode.Div)));
-    var less = Value(new BinaryExpr()).Then(self, b => b.E0).
+      Keyword("<").Then(Constant(BinaryExpr.Opcode.Le)).Or(
+      Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
+    var less = Value(() => new BinaryExpr()).Then(self, b => b.E0).
       Then(opCode, b => b.Op).
       Then(self, b => b.E1);
 
@@ -100,7 +100,7 @@ class JavaGrammar {
     var number = Number.Map((r, v) => new LiteralExpr(Convert(r), v), l => throw new NotImplementedException());
     var nonGhostBinding = self.Map(e => new ActualBinding(null, e), a => a.Actual);
     var nonGhostBindings = nonGhostBinding.Many().Map(b => new ActualBindings(b), a => a.ArgumentBindings);
-    var call = Value(new ApplySuffix()).Then(self, s => s.Lhs)
+    var call = Value(() => new ApplySuffix()).Then(self, s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings);
     
     return Fail<Expression>().Or(ternary).Or(less).Or(variableRef).Or(number).Or(call);

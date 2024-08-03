@@ -20,11 +20,8 @@ public static class ParserExtensions {
   }
 
   public static Parser<List<T>> Many<T>(this Parser<T> one) {
-    Parser<List<T>>? many = null;
-    many = new RecursiveR<List<T>>(() => {
-      return ParserBuilder.Value(new List<T>()).Or(many!.Then(one, (l, e) => l.Add(e)));
-    });
-    return many;
+    return ParserBuilder.Recursive<List<T>>(self => 
+      ParserBuilder.Value(() => new List<T>()).Or(self.Then(one, (l, e) => l.Add(e))));
   }
   
   public static Parser<U> Map<T, U>(this Parser<T> parser, Func<ParseRange, T,U> map) {

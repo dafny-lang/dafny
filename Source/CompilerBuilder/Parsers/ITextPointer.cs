@@ -18,4 +18,8 @@ public interface ITextPointer : IPosition {
   int Length { get; }
   char At(int offset);
   string SubSequence(int length);
+
+  FailureR<T> Fail<T>(string expected) {
+    return new FailureR<T>($"'{LocationDescription}' is not {expected}", this);
+  }
 }

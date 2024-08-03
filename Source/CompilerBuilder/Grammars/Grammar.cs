@@ -5,36 +5,36 @@ using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
-public interface IGrammar;
+public interface Grammar;
 
-public abstract class VoidGrammar : IGrammar {
+public abstract class VoidGrammar : Grammar {
   public static implicit operator VoidGrammar(string keyword) => new TextG(keyword);
 
   public abstract VoidPrinter ToPrinter();
   public abstract VoidParser ToParser();
 }
 
-public interface Grammar<T> : IGrammar {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse);
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse);
+public interface Grammar<T> : Grammar {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse);
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse);
 }
 
 public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new RecursiveW<T>(() => (Printer<T>)recurse(get()));
   }
 
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new RecursiveR<T>(() => (Parser<T>)recurse(get()));
   }
 }
 
 class ManyG<T>(Grammar<T> one) : Grammar<List<T>> {
-  public Printer<List<T>> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<List<T>> ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new ManyW<T>((Printer<T>)recurse(one));
   }
 
-  public Parser<List<T>> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<List<T>> ToParser(Func<Grammar, Parser> recurse) {
     var oneParser = (Parser<T>)recurse(one);
     return oneParser.Many();
   }
@@ -46,7 +46,7 @@ public enum Orientation {
 };
 
 class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = new Ignore<T>((VoidPrinter)recurse(left));
     var second = (Printer<T>)recurse(right);
     return mode == Orientation.Horizontal 
@@ -54,13 +54,13 @@ class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode) : Gramm
       : new TopBottom<T>(first, second);
   }
 
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new SkipLeft<T>((VoidParser)recurse(left), (Parser<T>)recurse(right));
   }
 }
 
 class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     var leftPrinter = (Printer<T>)recurse(left);
     var rightPrinter = new Ignore<T>((VoidPrinter)recurse(right));
     return mode == Orientation.Horizontal 
@@ -68,7 +68,7 @@ class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode) : Gram
       : new TopBottom<T>(leftPrinter, rightPrinter);
   }
 
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new SkipRight<T>((Parser<T>)recurse(left), (VoidParser)recurse(right));
   }
 }
@@ -84,59 +84,59 @@ class TextG(string value) : VoidGrammar {
 }
 
 internal class NumberG : Grammar<int> {
-  public Printer<int> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<int> ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new NumberW();
   }
 
-  public Parser<int> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<int> ToParser(Func<Grammar, Parser> recurse) {
     return new NumberR();
   }
 }
 
 internal class IdentifierG : Grammar<string> {
-  public Printer<string> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<string> ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new Verbatim();
   }
 
-  public Parser<string> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<string> ToParser(Func<Grammar, Parser> recurse) {
     return new IdentifierR();
   }
 }
 
 class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U> map, Func<U, T?> destruct) : Grammar<U> {
-  public Printer<U> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<U> ToPrinter(Func<Grammar, IPrinter> recurse) {
     return ((Printer<T>)recurse(grammar)).Map(destruct);
   }
 
-  public Parser<U> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<U> ToParser(Func<Grammar, Parser> recurse) {
     return new WithRangeR<T, U>((Parser<T>)recurse(grammar), map);
   }
 }
 
 class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     // Reverse order, on purpose. Needs testing.
     return new ChoiceW<T>((Printer<T>)recurse(second), (Printer<T>)recurse(first));
   }
 
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new ChoiceR<T>((Parser<T>)recurse(first), (Parser<T>)recurse(second));
   }
 }
 
-class Value<T>(T value) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+class Value<T>(Func<T> value) : Grammar<T> {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new Ignore<T>(new Empty());
   }
 
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new ValueR<T>(value);
   }
 }
 
 class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> right, Orientation mode, 
   Action<TContainer, TValue> setter, Func<TContainer, TValue> getter) : Grammar<TContainer> {
-  public Printer<TContainer> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<TContainer> ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = (Printer<TContainer>)recurse(left);
     var second = ((Printer<TValue>)recurse(right)).Map(getter);
     return mode == Orientation.Horizontal 
@@ -144,7 +144,7 @@ class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> ri
       : new TopBottom<TContainer>(first, second);
   }
 
-  public Parser<TContainer> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<TContainer> ToParser(Func<Grammar, Parser> recurse) {
     return new SequenceR<TContainer>((Parser<TContainer>)recurse(left), 
       ((Parser<TValue>)recurse(right)).Map<TValue, Action<TContainer>>(v =>
       container => setter(container, v)));
@@ -152,7 +152,7 @@ class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> ri
 }
 
 public static class GrammarExtensions {
-  public static Grammar<T> Default<T>(this Grammar<T> grammar, T value) {
+  public static Grammar<T> Default<T>(this Grammar<T> grammar, Func<T> value) {
     return grammar.Or(GrammarBuilder.Value(value));
   }
   
@@ -233,11 +233,11 @@ public static class GrammarExtensions {
 }
 
 class Fail<T> : Grammar<T> {
-  public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse) {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     throw new NotImplementedException();
   }
 
-  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     throw new NotImplementedException();
   }
 }
@@ -252,7 +252,8 @@ public static class GrammarBuilder {
     return result;
   }
   
-  public static Grammar<T> Value<T>(T value) => new Value<T>(value);
+  public static Grammar<T> Value<T>(Func<T> value) => new Value<T>(value);
+  public static Grammar<T> Constant<T>(T value) => new Value<T>(() => value);
   public static VoidGrammar Keyword(string keyword) => new TextG(keyword);
   public static Grammar<T> Fail<T>() => new Fail<T>();
   public static readonly Grammar<string> Identifier = new IdentifierG();

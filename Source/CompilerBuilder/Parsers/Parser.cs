@@ -1,7 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using System.Collections.Immutable;
-using System.Net.Mime;
 
 namespace CompilerBuilder;
 
@@ -172,6 +171,48 @@ class TextR(string value) : VoidParser {
   }
 }
 
+internal class Whitespace : Parser<string> {
+  public ParseResult<string> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var offset = 0;
+    while (text.Length > offset) {
+      var c = text.At(offset);
+      if (Char.IsWhiteSpace(c)) {
+        offset++;
+      } else {
+        break;
+      }
+    }
+
+    if (offset > 0) {
+      var result = text.SubSequence(offset);
+      return new ConcreteSuccess<string>(result, text.Drop(offset));
+    }
+
+    return text.Fail<string>("whitespace");
+  }
+}
+
+internal class LineComment : Parser<string> {
+  public ParseResult<string> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var start = text.SubSequence(2);
+    if (!start.Equals("//")) {
+      return text.Fail<string>("a // line comment");
+    }
+
+    var offset = 2;
+    while (text.Length > offset) {
+      var c = text.At(offset);
+      if (c != '\n') {
+        offset++;
+      } else {
+        break;
+      }
+    }
+
+    var comment = text.SubSequence(offset);
+    return new ConcreteSuccess<string>(comment, text.Drop(offset + 1));
+  }
+}
 internal class NumberR : Parser<int> {
   public ParseResult<int> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var offset = 0;
@@ -193,7 +234,7 @@ internal class NumberR : Parser<int> {
       return new FailureR<int>($"'{sequence}' is not a number", text);
     }
 
-    return new FailureR<int>($"'{text.LocationDescription}' is not a digit", text);
+    return text.Fail<int>("a digit");
   }
 }
 
@@ -214,12 +255,12 @@ internal class IdentifierR : Parser<string> {
       return new ConcreteSuccess<string>(sequence, text.Drop(offset));
     }
 
-    return new FailureR<string>($"'{text.LocationDescription}' is not an identifier", text);
+    return text.Fail<string>("an identifier");
   }
 }
 
-class ValueR<T>(T value) : Parser<T> {
+class ValueR<T>(Func<T> value) : Parser<T> {
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    return new ConcreteSuccess<T>(value, text);
+    return new ConcreteSuccess<T>(value(), text);
   }
 }
