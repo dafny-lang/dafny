@@ -12,17 +12,10 @@ public abstract class VoidParser : Parser {
   internal abstract ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
 }
 
-public abstract class Parser {
-  
-  internal virtual void Schedule(ParseState state) {
-    throw new NotImplementedException();
-  }
+public interface Parser {
 }
-
-
-
-public abstract class Parser<T> : Parser {
-  internal abstract ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
+public interface Parser<T> : Parser {
+  internal ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
   
   public ConcreteResult<T> Parse(string text) {
     ITextPointer pointer = new PointerFromString(text);
@@ -59,7 +52,7 @@ class PointerFromString(string text) : ITextPointer {
 }
 
 class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> right) : Parser<TContainer> {
-  internal override ParseResult<TContainer> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<TContainer> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
     return leftResult.Continue(leftConcrete => {
       var rightResult = right.Parse(leftConcrete.Remainder, recursives);
@@ -69,33 +62,20 @@ class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> 
       });
     });
   }
-
-  internal override void Schedule(ParseState state) {
-    state.Plan(left, right, (container, value) => {
-      value(container);
-      state.Store(container!);
-    });
-  }
 }
 
 class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
-  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var firstResult = first.Parse(text, recursives);
     var secondResult = second.Parse(text, recursives);
     return firstResult.Combine(secondResult);
-  }
-
-  internal override void Schedule(ParseState state) {
-    state.Plan(first, () => {
-      state.Todos.Push(second);
-    });
   }
 }
 
 class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
   private Parser<T>? inner;
-  
-  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     inner ??= get();
 
     if (recursives.Contains(this)) {
@@ -135,17 +115,13 @@ class PositionR : Parser<IPosition> {
   {
   }
 
-  internal override ParseResult<IPosition> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<IPosition> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     return new ConcreteSuccess<IPosition>(text, text);
-  }
-
-  internal override void Schedule(ParseState state) {
-    state.Results.Push(state.Location);
   }
 }
 
 class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U> map) : Parser<U> {
-  internal override ParseResult<U> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<U> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var start = text;
     var innerResult = parser.Parse(text, recursives);
     return innerResult.Continue(success => {
@@ -153,51 +129,24 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U> map) : Parser<U>
       return new ConcreteSuccess<U>(map(new ParseRange(start, end), success.Value), success.Remainder);
     });
   }
-
-  internal override void Schedule(ParseState state) {
-    state.Todos.Push(() => {
-      var end = (IPosition)state.Results.Pop();
-      var result = (T)state.Results.Pop();
-      var start = (IPosition)state.Results.Pop();
-      var range = new ParseRange(start, end);
-      state.Results.Push(map(range, result)!);
-    });
-    state.Todos.Push(PositionR.Instance);
-    state.Todos.Push(parser);
-    state.Todos.Push(PositionR.Instance);
-  }
 }
 
 class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
-  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
     return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, recursives));
-  }
-
-  internal override void Schedule(ParseState state) {
-    state.Todos.Push(left);
-    state.Todos.Push(right);
   }
 }
 
 class SkipRight<T>(Parser<T> left, VoidParser right) : Parser<T> {
-  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
     return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, recursives).
       Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
   }
-
-  internal override void Schedule(ParseState state) {
-    state.Todos.Push(right);
-    state.Todos.Push(left);
-  }
 }
 
 class TextR(string value) : VoidParser {
-  internal override void Schedule(ParseState state) {
-    throw new NotImplementedException();
-  }
-
   internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var actual = text.SubSequence(value.Length);
     if (actual.Equals(value)) {
@@ -209,7 +158,7 @@ class TextR(string value) : VoidParser {
 }
 
 internal class NumberR : Parser<int> {
-  internal override ParseResult<int> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<int> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var offset = 0;
     while (text.Length > offset) {
       var c = text.At(offset);
@@ -234,7 +183,7 @@ internal class NumberR : Parser<int> {
 }
 
 internal class IdentifierR : Parser<string> {
-  internal override ParseResult<string> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<string> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var offset = 0;
     while (text.Length > offset) {
       var c = text.At(offset);
@@ -255,7 +204,7 @@ internal class IdentifierR : Parser<string> {
 }
 
 class ValueR<T>(T value) : Parser<T> {
-  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     return new ConcreteSuccess<T>(value, text);
   }
 }

@@ -34,7 +34,6 @@ class ParseState {
     while (Todos.Any()) {
       var current = Todos.Pop();
       if (current is Parser parser) {
-        parser.Schedule(this);
       } else if (current is Action action) {
         action();
       }
