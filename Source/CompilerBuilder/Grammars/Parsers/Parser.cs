@@ -5,7 +5,11 @@ using System.Net.Mime;
 
 namespace CompilerBuilder;
 
-record Unit;
+record Unit {
+  public static readonly Unit Instance = new();
+
+  private Unit() { }
+}
 public abstract class VoidParser : Parser {
   public static implicit operator VoidParser(string keyword) => new TextR(keyword);
   
@@ -19,7 +23,18 @@ public interface Parser<T> : Parser {
   
   public ConcreteResult<T> Parse(string text) {
     ITextPointer pointer = new PointerFromString(text);
-    return Parse(pointer, ImmutableHashSet<Parser>.Empty).Concrete!;
+    var withEnd = this.Then(new EndOfText());
+    return withEnd.Parse(pointer, ImmutableHashSet<Parser>.Empty).Concrete!;
+  }
+}
+
+class EndOfText : VoidParser {
+  internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    if (text.Length > 0) {
+      return new FailureR<Unit>("End of text not reached", text);
+    }
+
+    return new ConcreteSuccess<Unit>(Unit.Instance, text);
   }
 }
 
@@ -150,7 +165,7 @@ class TextR(string value) : VoidParser {
   internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var actual = text.SubSequence(value.Length);
     if (actual.Equals(value)) {
-      return new ConcreteSuccess<Unit>(new Unit(), text.Drop(value.Length));
+      return new ConcreteSuccess<Unit>(Unit.Instance, text.Drop(value.Length));
     }
 
     return new FailureR<Unit>($"Expected '{value}' but found '{actual}'", text);
@@ -175,10 +190,10 @@ internal class NumberR : Parser<int> {
       {
         return new ConcreteSuccess<int>(parsed, text.Drop(offset));
       }
-      return new FailureR<int>($"{sequence} is not a number", text);
+      return new FailureR<int>($"'{sequence}' is not a number", text);
     }
 
-    return new FailureR<int>($"{text.First} is not a digit", text);
+    return new FailureR<int>($"'{text.LocationDescription}' is not a digit", text);
   }
 }
 
@@ -199,7 +214,7 @@ internal class IdentifierR : Parser<string> {
       return new ConcreteSuccess<string>(sequence, text.Drop(offset));
     }
 
-    return new FailureR<string>($"{text.First} is not an identifier", text);
+    return new FailureR<string>($"'{text.LocationDescription}' is not an identifier", text);
   }
 }
 

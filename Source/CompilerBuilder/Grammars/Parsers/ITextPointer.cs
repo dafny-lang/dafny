@@ -11,6 +11,8 @@ public record ParseRange(IPosition From, IPosition Until);
 public interface ITextPointer : IPosition {
 
   ITextPointer Drop(int amount);
+
+  string LocationDescription => Length == 0 ? "end of text" : SubSequence(5);
   
   char First { get; }
   int Length { get; }

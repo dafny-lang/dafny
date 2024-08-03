@@ -21,7 +21,7 @@ public interface ParseResult<T> : ParseResult {
     var recursions = Recursions.Concat(other.Recursions);
 
     ConcreteResult<T>? concreteResult = concreteSuccess;
-    if (concreteResult != null) {
+    if (concreteResult == null) {
       if (Failure != null && other.Failure != null) {
         concreteResult = Failure.Location.Offset > other.Failure.Location.Offset ? Failure : other.Failure;
       }
