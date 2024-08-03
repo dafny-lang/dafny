@@ -5,8 +5,6 @@ using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
-
-
 // trait TextPointer extends OffsetPointer {
 //   def safeIncrement: TextPointer = if (atEnd()) this else drop(1)
 //   def atEnd(): Boolean = offset == length
@@ -30,56 +28,6 @@ namespace CompilerBuilder;
 // stackDepth: Int,
 // callStack: Set[BuiltParser[Any]])
 
-interface IPosition {
-  int Offset { get; }
-  int Line { get; }
-  int Column { get; }
-}
-
-interface ITextPointer : IPosition {
-
-  ITextPointer Drop(int amount);
-  
-  char First { get; }
-  string SubSequence(int length);
-}
-
-interface ParseResult;
-
-interface ParseResult<T> : ParseResult {
-  internal ParseResult<U> CastFailure<U>() {
-    if (this is Failure<T> failure) {
-      return new Failure<U>(failure.Message, failure.Location);
-    }
-
-    throw new InvalidOperationException();
-  }
-}
-
-interface SuccessResult<T>(T Value, ITextPointer Remainder) : ParseResult<T> {
-  ParseResult<U> Bind<U>(Func<ConcreteSuccess<T>, ParseResult<U>> f);
-}
-
-record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : SuccessResult<T> {
-  public ParseResult<U> Bind<U>(Func<ConcreteSuccess<T>, ParseResult<U>> f) {
-    return f(this);
-  }
-}
-
-record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursion) : SuccessResult<TB> {
-  public ParseResult<TC> Bind<TC>(Func<ConcreteSuccess<TB>, ParseResult<TC>> f) {
-    return new FoundRecursion<TA, TC>(concrete => {
-      var inner = Recursion(concrete);
-      if (inner is SuccessResult<TB> innerSuccess) {
-        return innerSuccess.Bind(f);
-      }
-
-      return inner.CastFailure<TC>();
-    });
-  }
-}
-
-record Failure<T>(string Message, ITextPointer Location) : SuccessResult<T>;
 
 record Unit;
 public abstract class VoidParser : Parser {
@@ -105,11 +53,11 @@ class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> 
   internal override ParseResult<TContainer> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
     if (leftResult is SuccessResult<TContainer> leftSuccess) {
-      return leftSuccess.Bind(leftConcrete => {
+      return leftSuccess.Continue(leftConcrete => {
 
         var rightResult = right.Parse(leftConcrete.Remainder, recursives);
         if (rightResult is SuccessResult<Action<TContainer>> rightSuccess) {
-          return rightSuccess.Bind(rightConcrete => {
+          return rightSuccess.Continue(rightConcrete => {
             rightConcrete.Value(leftConcrete.Value);
             return leftConcrete with { Remainder = rightConcrete.Remainder };
           });
@@ -133,12 +81,12 @@ class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> 
 class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
   internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var firstResult = first.Parse(text, recursives);
-    if (firstResult is not Failure<T> firstFailure) {
+    if (firstResult is not FailureR<T> firstFailure) {
       return firstResult;
     }
 
     var secondResult = second.Parse(text, recursives);
-    if (secondResult is not Failure<T> secondFailure) {
+    if (secondResult is not FailureR<T> secondFailure) {
       return secondResult;
     }
 
@@ -159,29 +107,32 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
     inner ??= get();
 
     if (recursives.Contains(this)) {
-      return new FoundRecursion<T>()
+      return new FoundRecursion<T, T>(s => s);
     }
     
     var innerResult = inner.Parse(text, recursives.Add(this));
-    if (innerResult is not SuccessResult<T> innerSuccess) {
+    if (innerResult.Success == null) {
       return innerResult;
     }
 
-    var recurse = innerSuccess.Recursion;
-    if (recurse == null) {
-      return innerSuccess;
-    }
+    ConcreteSuccess<T> bestResult = innerResult.Success;
+    foreach (var recursion in innerResult.Recursions) {
+      var currentBase = innerResult.Success;
+      while (true) {
+        var recursiveResult = recursion.Apply(currentBase.Value!, currentBase.Remainder);
+        if (recursiveResult.Success != null) {
+          currentBase = recursiveResult.Success;
+        } else {
+          break;
+        }
+      }
 
-    var baseResult = innerSuccess;
-    while (true) {
-      var recursiveResult = recurse(baseResult);
-      if (recursiveResult is SuccessResult<T> recursiveSuccess) {
-        baseResult = recursiveSuccess;
-      } else {
-        break;
+      if (currentBase.Remainder.Offset > bestResult.Remainder.Offset) {
+        bestResult = currentBase;
       }
     }
-    return baseResult;
+
+    return bestResult;
   }
 }
 
@@ -193,7 +144,7 @@ class PositionR : Parser<IPosition> {
   }
 
   internal override ParseResult<IPosition> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    return new SuccessResult<IPosition>(text, text);
+    return new ConcreteSuccess<IPosition>(text, text);
   }
 
   internal override void Schedule(ParseState state) {
@@ -219,11 +170,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<RangeToken, T, U> map) : Parser<U>
 class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
   internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
-    if (leftResult is SuccessResult<Unit> leftSuccess) {
-      return right.Parse(leftSuccess.Remainder, recursives);
-    }
-
-    return leftResult.CastFailure<T>();
+    return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, recursives));
   }
 
   internal override void Schedule(ParseState state) {
@@ -233,6 +180,12 @@ class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
 }
 
 class SkipRight<T>(Parser<T> left, VoidParser right) : Parser<T> {
+  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var leftResult = left.Parse(text, recursives);
+    return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, recursives).
+      Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
+  }
+
   internal override void Schedule(ParseState state) {
     state.Todos.Push(right);
     state.Todos.Push(left);
@@ -243,13 +196,27 @@ class TextR(string value) : VoidParser {
   internal override void Schedule(ParseState state) {
     throw new NotImplementedException();
   }
+
+  internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var actual = text.SubSequence(value.Length);
+    if (actual.Equals(value)) {
+      return new ConcreteSuccess<Unit>(new Unit(), text.Drop(value.Length));
+    }
+
+    return new FailureR<Unit>($"Expected {value} but found {actual}", text);
+  }
 }
 
 internal class NumberR : Parser<int>;
 
 internal class IdentifierR : Parser<string>;
 
-class ValueR<T>(T value) : Parser<T>;
+class ValueR<T>(T value) : Parser<T> {
+  internal override ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    return new ConcreteSuccess<T>(value, text);
+  }
+}
+
 class ManyR<T>(Parser<T> one) : Parser<List<T>>;
 
 public static class ParserExtensions {
