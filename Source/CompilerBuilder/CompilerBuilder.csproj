@@ -9,6 +9,7 @@
     
     <ItemGroup>
         <PackageReference Include="Boogie.ExecutionEngine" Version="3.2.2" />
+        <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="5.0.0" />
     </ItemGroup>
 
 </Project>

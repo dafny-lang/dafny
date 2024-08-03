@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using DafnyCore.Generic;
 
 namespace Microsoft.Dafny;
 

@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using DafnyCore.AST.Grammar;
 using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.RefinementErrors;
 

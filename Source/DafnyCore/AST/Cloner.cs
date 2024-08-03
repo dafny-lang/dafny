@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
     T Clone(Cloner cloner);
   }
 
-  public class Cloner {
+  public class Cloner : ICloner {
     public bool CloneResolvedFields { get; }
     private readonly Dictionary<Statement, Statement> statementClones = new();
     private readonly Dictionary<IVariable, IVariable> clones = new();
