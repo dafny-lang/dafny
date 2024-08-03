@@ -16,7 +16,7 @@ public abstract class VoidGrammar : IGrammar {
 
 public interface Grammar<T> : IGrammar {
   public Printer<T> ToPrinter(Func<IGrammar, IPrinter> recurse);
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse);
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse);
 }
 
 public class Recursive<T>(Func<Grammar<T>> get) : Grammar<T> {
@@ -24,7 +24,7 @@ public class Recursive<T>(Func<Grammar<T>> get) : Grammar<T> {
     return new RecursiveW<T>(() => (Printer<T>)recurse(get()));
   }
 
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
     return new RecursiveR<T>(() => (Parser<T>)recurse(get()));
   }
 }
@@ -34,7 +34,7 @@ class ManyG<T>(Grammar<T> one) : Grammar<List<T>> {
     return new ManyW<T>((Printer<T>)recurse(one));
   }
 
-  public Parser<List<T>> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<List<T>> ToParser(Func<IGrammar, Parser> recurse) {
     return new ManyR<T>((Parser<T>)recurse(one));
   }
 }
@@ -53,7 +53,7 @@ class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode) : Gramm
       : new TopBottom<T>(first, second);
   }
 
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
     return new SkipLeft<T>((VoidParser)recurse(left), (Parser<T>)recurse(right));
   }
 }
@@ -67,7 +67,7 @@ class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode) : Gram
       : new TopBottom<T>(leftPrinter, rightPrinter);
   }
 
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
     return new SkipRight<T>((Parser<T>)recurse(left), (VoidParser)recurse(right));
   }
 }
@@ -87,7 +87,7 @@ internal class NumberG : Grammar<int> {
     return new NumberW();
   }
 
-  public Parser<int> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<int> ToParser(Func<IGrammar, Parser> recurse) {
     return new NumberR();
   }
 }
@@ -97,7 +97,7 @@ internal class IdentifierG : Grammar<string> {
     return new Verbatim();
   }
 
-  public Parser<string> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<string> ToParser(Func<IGrammar, Parser> recurse) {
     return new IdentifierR();
   }
 }
@@ -107,7 +107,7 @@ class WithRangeG<T, U>(Grammar<T> grammar, Func<RangeToken, T, U> map, Func<U, T
     return ((Printer<T>)recurse(grammar)).Map(destruct);
   }
 
-  public Parser<U> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<U> ToParser(Func<IGrammar, Parser> recurse) {
     return new WithRangeR<T, U>((Parser<T>)recurse(grammar), map);
   }
 }
@@ -118,7 +118,7 @@ class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
     return new ChoiceW<T>((Printer<T>)recurse(second), (Printer<T>)recurse(first));
   }
 
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
     return new ChoiceR<T>((Parser<T>)recurse(first), (Parser<T>)recurse(second));
   }
 }
@@ -128,7 +128,7 @@ class Value<T>(T value) : Grammar<T> {
     return new Ignore<T>(new Empty());
   }
 
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
     return new ValueR<T>(value);
   }
 }
@@ -143,7 +143,7 @@ class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> ri
       : new TopBottom<TContainer>(first, second);
   }
 
-  public Parser<TContainer> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<TContainer> ToParser(Func<IGrammar, Parser> recurse) {
     return new SequenceR<TContainer>((Parser<TContainer>)recurse(left), 
       ((Parser<TValue>)recurse(right)).Map<TValue, Action<TContainer>>(v =>
       container => setter(container, v)));
@@ -236,7 +236,7 @@ class Fail<T> : Grammar<T> {
     throw new NotImplementedException();
   }
 
-  public Parser<T> ToParser(Func<IGrammar, IParser> recurse) {
+  public Parser<T> ToParser(Func<IGrammar, Parser> recurse) {
     throw new NotImplementedException();
   }
 }
