@@ -34,8 +34,12 @@ internal class NumberW : Printer<int>;
 
 internal class IdentifierW : Printer<string>;
 
-class LeftRight<TContainer>(Printer<TContainer> left, Printer<TContainer> right) : Printer<TContainer>;
-class TopBottom<TContainer>(Printer<TContainer> left, Printer<TContainer> right) : Printer<TContainer>;
+class SequenceW<TLeft, TRight, T>(Printer<TLeft> left, Printer<TRight> right, 
+  Func<T, (TLeft, TRight)> destruct, Orientation mode) : Printer<T>;
+
+class SkipLeftW<T>(VoidPrinter left, Printer<T> right, Orientation mode) : Printer<T>;
+
+class SkipRightW<T>(Printer<T> left, VoidPrinter right, Orientation mode) : Printer<T>;
 
 public static class PrinterExtensions {
   public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U,T?> map) {

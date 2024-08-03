@@ -47,11 +47,9 @@ public enum Orientation {
 
 class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode) : Grammar<T> {
   public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var first = new Ignore<T>((VoidPrinter)recurse(left));
+    var first = (VoidPrinter)recurse(left);
     var second = (Printer<T>)recurse(right);
-    return mode == Orientation.Horizontal 
-      ? new LeftRight<T>(first, second) 
-      : new TopBottom<T>(first, second);
+    return new SkipLeftW<T>(first, second, mode);
   }
 
   public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
@@ -61,11 +59,9 @@ class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode) : Gramm
 
 class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode) : Grammar<T> {
   public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var leftPrinter = (Printer<T>)recurse(left);
-    var rightPrinter = new Ignore<T>((VoidPrinter)recurse(right));
-    return mode == Orientation.Horizontal 
-      ? new LeftRight<T>(leftPrinter, rightPrinter) 
-      : new TopBottom<T>(leftPrinter, rightPrinter);
+    var first = (Printer<T>)recurse(left);
+    var second = (VoidPrinter)recurse(right);
+    return new SkipRightW<T>(first, second, mode);
   }
 
   public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
@@ -134,20 +130,18 @@ class Value<T>(Func<T> value) : Grammar<T> {
   }
 }
 
-class SequenceG<TContainer, TValue>(Grammar<TContainer> left, Grammar<TValue> right, Orientation mode, 
-  Action<TContainer, TValue> setter, Func<TContainer, TValue> getter) : Grammar<TContainer> {
-  public Printer<TContainer> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var first = (Printer<TContainer>)recurse(left);
-    var second = ((Printer<TValue>)recurse(right)).Map(getter);
-    return mode == Orientation.Horizontal 
-      ? new LeftRight<TContainer>(first, second) 
-      : new TopBottom<TContainer>(first, second);
+class SequenceG<TLeft, TRight, T>(Grammar<TLeft> left, Grammar<TRight> right, Orientation mode, 
+  Func<TLeft, TRight, T> construct, Func<T, (TLeft, TRight)> destruct) : Grammar<T> {
+  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
+    var first = (Printer<TLeft>)recurse(left);
+    var second = (Printer<TRight>)recurse(right);
+    return new SequenceW<TLeft,TRight,T>(first, second, destruct, mode);
   }
 
-  public Parser<TContainer> ToParser(Func<Grammar, Parser> recurse) {
-    return new SequenceR<TContainer>((Parser<TContainer>)recurse(left), 
-      ((Parser<TValue>)recurse(right)).Map<TValue, Action<TContainer>>(v =>
-      container => setter(container, v)));
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
+    var leftParser = (Parser<TLeft>)recurse(left);
+    var rightParser = (Parser<TRight>)recurse(right);
+    return new SequenceR<TLeft, TRight, T>(leftParser, rightParser, construct);
   }
 }
 
@@ -219,7 +213,11 @@ public static class GrammarExtensions {
     Grammar<TValue> value,
     Func<TContainer, TValue> get,
     Action<TContainer, TValue> set) {
-    return new SequenceG<TContainer, TValue>(containerGrammar, value, Orientation.Horizontal, set, get);
+    return new SequenceG<TContainer, TValue, TContainer>(containerGrammar, value, Orientation.Horizontal,
+      (c, v) => {
+        set(c, v);
+        return c;
+      }, c => (c, get(c)));
   }
   
   public static Grammar<TContainer> Then<TContainer, TValue>(

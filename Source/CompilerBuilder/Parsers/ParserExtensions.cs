@@ -36,7 +36,9 @@ public static class ParserExtensions {
     this Parser<TContainer> containerParser, 
     Parser<TValue> value, 
     Action<TContainer, TValue> set) {
-    var right = value.Map<TValue, Action<TContainer>>(v => container => set(container, v));
-    return new SequenceR<TContainer>(containerParser, right);
+    return new SequenceR<TContainer, TValue, TContainer>(containerParser, value, (c, v) => {
+      set(c, v);
+      return c;
+    });
   }
 }

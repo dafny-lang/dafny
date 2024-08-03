@@ -13,6 +13,7 @@ public static class Comments {
    */
   public static Grammar<T> AddJavaComments<T>(Grammar<T> grammar) {
     var grammars = new GrammarPathRoot(grammar).SelfAndDescendants;
-    foreach(var sequence in grammars.OfType<SequenceG<>>())
+    //foreach(var sequence in grammars.OfType<SequenceG<>>())
+    throw new NotImplementedException();
   }
 }
