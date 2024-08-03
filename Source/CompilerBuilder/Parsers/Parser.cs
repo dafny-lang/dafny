@@ -65,6 +65,9 @@ class PointerFromString(string text) : ITextPointer {
   }
 }
 
+// TODO maybe change the right to an aggregate function of TLeft and TRight
+// And leave the container concept for the extensions
+
 class SequenceR<TContainer>(Parser<TContainer> left, Parser<Action<TContainer>> right) : Parser<TContainer> {
   public ParseResult<TContainer> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);

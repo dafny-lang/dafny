@@ -179,7 +179,19 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<List<T>> Many<T>(this Grammar<T> one) {
-    return new ManyG<T>(one);
+    return GrammarBuilder.Recursive<List<T>>(self => 
+      GrammarBuilder.Value(() => new List<T>()).Or(self.Then(one,
+        l => {
+          // TODO Printing now destroys the object by clearing the lists, which obviously we don't want. 
+          // TODO The getter used for printing should be a 'pop' that returns a new container
+          // And we need to use a linked list here
+          var index = l.Count - 1;
+          var result = l[index];
+          l.RemoveAt(index);
+          return result;
+        },
+        (l, e) => l.Add(e)
+      )));
   }
   
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
