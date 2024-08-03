@@ -9,6 +9,11 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
   public readonly Expression Thn;
   public readonly Expression Els;
 
+  /// <summary>
+  /// Constructor for the parser
+  /// </summary>
+  public ITEExpr() : base(Token.Parsing) { }
+  
   public ITEExpr(Cloner cloner, ITEExpr original) : base(cloner, original) {
     IsBindingGuard = original.IsBindingGuard;
     Test = cloner.CloneExpr(original.Test);

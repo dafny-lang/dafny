@@ -15,6 +15,10 @@ public class Formal : NonglobalVariable {
   public readonly bool IsOlder;
   public readonly string NameForCompilation;
 
+  public Formal() : base(Token.Parsing, null, null, null)
+  {
+  }
+
   public Formal(IToken tok, string name, Type type, bool inParam, bool isGhost, Expression defaultValue,
     Attributes attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string nameForCompilation = null)

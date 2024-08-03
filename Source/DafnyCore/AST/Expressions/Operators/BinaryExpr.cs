@@ -315,6 +315,8 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     return new BinaryExpr(cloner, this);
   }
 
+  public BinaryExpr() : base(Token.Parsing) { }
+
   public BinaryExpr(Cloner cloner, BinaryExpr original) : base(cloner, original) {
     this.Op = original.Op;
     this.E0 = cloner.CloneExpr(original.E0);

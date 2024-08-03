@@ -201,7 +201,7 @@ public abstract class TokenNode : Node {
   // Contains tokens that did not make it in the AST but are part of the expression,
   // Enables ranges to be correct.
   // TODO: Re-add format tokens where needed until we put all the formatting to replace the tok of every expression
-  internal IToken[] FormatTokens = null;
+  public IToken[] FormatTokens = null;
 
   protected RangeToken rangeToken = null;
 

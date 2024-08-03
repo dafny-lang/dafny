@@ -119,6 +119,11 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     Contract.Invariant(Decreases != null);
   }
 
+  public Method() 
+    : base(null, null, false, false, null, false)
+  {
+  }
+
   public Method(Cloner cloner, Method original) : base(cloner, original) {
     if (original.Outs != null) {
       this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));

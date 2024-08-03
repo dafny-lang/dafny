@@ -15,6 +15,11 @@ public class ClassDecl : ClassLikeDecl {
     Contract.Invariant(ParentTraits != null);
   }
 
+  public ClassDecl() 
+    : base(null, null, null, null, null, null, false, null)
+  {
+  }
+
   public ClassDecl(RangeToken rangeToken, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
     : base(rangeToken, name, module, typeArgs, members, attributes, isRefining, traits) {

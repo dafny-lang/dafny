@@ -27,6 +27,9 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     return new ApplySuffix(cloner, this);
   }
 
+  public ApplySuffix() : base(Token.Parsing, null) {
+  }
+
   public ApplySuffix(Cloner cloner, ApplySuffix original) :
     base(cloner, original) {
     AtTok = original.AtTok == null ? null : cloner.Tok(original.AtTok);
