@@ -3,7 +3,7 @@ using System.Linq;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 
-namespace DafnyCore.Generic;
+namespace Microsoft.Dafny;
 
 // Class to traverse a program top-down, especially aimed at identifying expressions and statements,
 // and in their context

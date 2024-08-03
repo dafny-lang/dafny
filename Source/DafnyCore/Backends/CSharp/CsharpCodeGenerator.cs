@@ -2222,7 +2222,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
         if (UnicodeCharEnabled) {
-          var codePoint = Util.UnescapedCharacters(Options, v, false).Single();
+          var codePoint = DafnyUtils.UnescapedCharacters(Options, v, false).Single();
           if (codePoint > char.MaxValue) {
             // C# supports \U, but doesn't allow values that require two UTF-16 code units in character literals.
             // For such values we construct the Rune value directly from the unescaped codepoint.

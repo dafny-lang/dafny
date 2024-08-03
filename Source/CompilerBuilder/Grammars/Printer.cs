@@ -6,23 +6,27 @@ using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
-public interface Printer<T>;
+public interface Printer<T>: IPrinter;
+
+class RecursiveW<T>(Func<Printer<T>> get) : Printer<T>;
 
 class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T>;
 
 class Cast<T, U>(Printer<T> printer) : Printer<U>;
 
-public interface Printer;
+public interface IPrinter;
 
-class Empty : Printer;
+public interface VoidPrinter : IPrinter;
+
+class Empty : VoidPrinter;
 
 class Verbatim : Printer<string>;
 
 class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U>;
 
-class Ignore<T>(Printer printer) : Printer<T>;
+class Ignore<T>(VoidPrinter printer) : Printer<T>;
 
-internal class TextW(string value) : Printer;
+internal class TextW(string value) : VoidPrinter;
 
 internal class ManyW<T>(Printer<T> one) : Printer<List<T>>;
   

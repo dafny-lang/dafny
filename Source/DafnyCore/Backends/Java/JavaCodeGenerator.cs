@@ -1133,7 +1133,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
         if (UnicodeCharEnabled && Util.MightContainNonAsciiCharacters(v, false)) {
-          wr.Write($"{Util.UnescapedCharacters(Options, v, false).Single()}");
+          wr.Write($"{DafnyUtils.UnescapedCharacters(Options, v, false).Single()}");
         } else {
           wr.Write($"'{TranslateEscapes(v)}'");
         }

@@ -5,19 +5,23 @@ using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
-public abstract class Parser {
-  public static implicit operator Parser(string keyword) => new TextR(keyword);
+public abstract class VoidParser : IParser {
+  public static implicit operator VoidParser(string keyword) => new TextR(keyword);
 }
 
-public interface Parser<T>;
+public interface IParser;
+
+public interface Parser<T> : IParser;
+
+class RecursiveR<T>(Func<Parser<T>> get) : Parser<T>;
 
 class ManyR<T>(Parser<T> one) : Parser<List<T>>;
 
-class SkipLeft<T>(Parser left, Parser<T> right) : Parser<T>;
+class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T>;
 
-class SkipRight<T>(Parser<T> left, Parser right) : Parser<T>;
+class SkipRight<T>(Parser<T> left, VoidParser right) : Parser<T>;
   
-class TextR(string value) : Parser;
+class TextR(string value) : VoidParser;
 
 internal class NumberR : Parser<int>;
 
@@ -36,11 +40,11 @@ public static class ParserExtensions {
     return ParserBuilder.Keyword("{").Then(parser).Then("}");
   }  
   
-  public static Parser<T> Then<T>(this Parser<T> left, Parser right) {
+  public static Parser<T> Then<T>(this Parser<T> left, VoidParser right) {
     return new SkipRight<T>(left, right);
   }  
   
-  public static Parser<T> Then<T>(this Parser left, Parser<T> right) {
+  public static Parser<T> Then<T>(this VoidParser left, Parser<T> right) {
     return new SkipLeft<T>(left, right);
   }
   public static Parser<List<T>> Many<T>(this Parser<T> one) {
@@ -67,7 +71,7 @@ public static class ParserExtensions {
 public static class ParserBuilder {
 
   public static Parser<T> Value<T>(T value) => new ValueR<T>(value);
-  public static Parser Keyword(string keyword) => new TextR(keyword);
+  public static VoidParser Keyword(string keyword) => new TextR(keyword);
   public static readonly Parser<string> Identifier = new IdentifierR();
   public static readonly Parser<int> Number = new NumberR();
 }

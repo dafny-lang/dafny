@@ -16,7 +16,7 @@ public class SystemModuleManager {
   public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new();
   public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new();  // same keys as arrowTypeDecl
   public readonly Dictionary<int, SubsetTypeDecl> TotalArrowTypeDecls = new();  // same keys as arrowTypeDecl
-  readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new Dafny.IEnumerableComparer<bool>());
+  readonly Dictionary<List<bool>, TupleTypeDecl> tupleTypeDecls = new(new IEnumerableComparer<bool>());
 
   internal readonly ValuetypeDecl[] valuetypeDecls;
 

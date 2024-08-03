@@ -20,7 +20,7 @@ public class Name : RangeNode {
   }
   public string Value { get; set; }
 
-  public Name(ICloner cloner, Name original) : base(cloner, original) {
+  public Name(Cloner cloner, Name original) : base(cloner, original) {
     Value = original.Value;
   }
 

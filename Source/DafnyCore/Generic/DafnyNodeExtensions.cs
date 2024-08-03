@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny;
 
-namespace DafnyCore.Generic;
+namespace Microsoft.Dafny;
 
 public static class DafnyNodeExtensions {
   

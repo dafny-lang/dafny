@@ -2,7 +2,7 @@ using System.IO;
 using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace DafnyCore.AST.Grammar;
+namespace Microsoft.Dafny;
 
 
 public interface ICanFormat : INode {

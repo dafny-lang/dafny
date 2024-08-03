@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using DafnyCore.Generic;
 using Microsoft.Dafny;
 
 namespace DafnyCore;
@@ -49,7 +50,7 @@ public class Snippets {
         // an in-memory version of each file it parses.
         var file = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ErrorReporterSink(options), options, uri, Token.NoToken);
         using var reader = file.GetContent();
-        lines = Util.Lines(reader).ToList();
+        lines = DafnyUtils.Lines(reader).ToList();
       } catch (Exception) {
         lines = new List<string>();
       }

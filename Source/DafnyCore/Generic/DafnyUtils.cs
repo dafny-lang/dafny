@@ -10,65 +10,10 @@ using Microsoft.Dafny;
 
 using static Microsoft.Dafny.GenericErrors;
 
-namespace DafnyCore.Generic;
+namespace Microsoft.Dafny;
 
 public static class DafnyUtils {
 
-  public static string ExpandUnicodeEscapes(string s, bool lowerCaseU) {
-    return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
-      var hexDigits = Util.RemoveUnderscores(match.Groups[1].Value);
-      var padChars = 8 - hexDigits.Length;
-      return (lowerCaseU ? "\\u" : "\\U") + new string('0', padChars) + hexDigits;
-    });
-  }
-
-  public static string UnicodeEscapesToLowercase(string s) {
-    return ReplaceTokensWithEscapes(s, UnicodeEscape, match =>
-      $"\\u{{{Util.RemoveUnderscores(match.Groups[1].Value)}}}");
-  }
-
-  public static string UnicodeEscapesToUtf16Escapes(string s) {
-    return ReplaceTokensWithEscapes(s, UnicodeEscape, match => {
-      var utf16CodeUnits = new char[2];
-      var hexDigits = Util.RemoveUnderscores(match.Groups[1].Value);
-      var codePoint = new Rune(Convert.ToInt32(hexDigits, 16));
-      var codeUnits = codePoint.EncodeToUtf16(utf16CodeUnits);
-      if (codeUnits == 2) {
-        return ToUtf16Escape(utf16CodeUnits[0]) + ToUtf16Escape(utf16CodeUnits[1]); ;
-      } else {
-        return ToUtf16Escape(utf16CodeUnits[0]);
-      }
-    });
-  }
-
-  public static readonly Regex Utf16Escape = new Regex(@"\\u([0-9a-fA-F]{4})");
-  public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F_]+)\}");
-  private static readonly Regex NullEscape = new Regex(@"\\0");
-
-  private static string ToUtf16Escape(char c, bool addBraces = false) {
-    if (addBraces) {
-      return $"\\u{{{(int)c:x4}}}";
-    } else {
-      return $"\\u{(int)c:x4}";
-    }
-  }
-
-  public static string ReplaceNullEscapesWithCharacterEscapes(string s) {
-    return ReplaceTokensWithEscapes(s, NullEscape, match => "\\u0000");
-  }
-
-  public static string ReplaceTokensWithEscapes(string s, Regex pattern, MatchEvaluator evaluator) {
-    return string.Join("",
-      TokensWithEscapes(s, false)
-        .Select(token => pattern.Replace(token, evaluator)));
-  }
-
-  public static bool MightContainNonAsciiCharacters(string s, bool isVerbatimString) {
-    // This is conservative since \u and \U escapes could be ASCII characters,
-    // but that's fine since this method is just used as a conservative guard.
-    return TokensWithEscapes(s, isVerbatimString).Any(e =>
-      e.Any(c => !char.IsAscii(c)) || e.StartsWith(@"\u") || e.StartsWith(@"\U"));
-  }
 
   /// <summary>
   /// Replaced any escaped characters in s by the actual character that the escaping represents.
@@ -90,60 +35,12 @@ public static class DafnyUtils {
   }
   
     public static IEnumerable<int> UnescapedCharacters(DafnyOptions options, string p, bool isVerbatimString) {
-      return UnescapedCharacters(options.Get(CommonOptionBag.UnicodeCharacters), p, isVerbatimString);
-    }
-
-    /// <summary>
-    /// Returns the characters of the well-parsed string p, replacing any
-    /// escaped characters by the actual characters.
-    /// 
-    /// It also converts surrogate pairs to their equivalent code points
-    /// if --unicode-char is enabled - these are synthesized by the parser when
-    /// reading the original UTF-8 source, but don't represent the true character values.
-    /// </summary>
-    public static IEnumerable<int> UnescapedCharacters(bool unicodeChars, string p, bool isVerbatimString) {
-      if (isVerbatimString) {
-        foreach (var s in TokensWithEscapes(p, true)) {
-          if (s == "\"\"") {
-            yield return '"';
-          } else {
-            foreach (var c in s) {
-              yield return c;
-            }
-          }
-        }
-      } else {
-        foreach (var s in TokensWithEscapes(p, false)) {
-          switch (s) {
-            case @"\'": yield return '\''; break;
-            case @"\""": yield return '"'; break;
-            case @"\\": yield return '\\'; break;
-            case @"\0": yield return '\0'; break;
-            case @"\n": yield return '\n'; break;
-            case @"\r": yield return '\r'; break;
-            case @"\t": yield return '\t'; break;
-            case { } when s.StartsWith(@"\u"):
-              yield return Convert.ToInt32(s[2..], 16);
-              break;
-            case { } when s.StartsWith(@"\U"):
-              yield return Convert.ToInt32(Util.RemoveUnderscores(s[3..^1]), 16);
-              break;
-            case { } when unicodeChars && char.IsHighSurrogate(s[0]):
-              yield return char.ConvertToUtf32(s[0], s[1]);
-              break;
-            default:
-              foreach (var c in s) {
-                yield return c;
-              }
-              break;
-          }
-        }
-      }
+      return Util.UnescapedCharacters(options.Get(CommonOptionBag.UnicodeCharacters), p, isVerbatimString);
     }
     
   public static void ValidateEscaping(DafnyOptions options, IToken t, string s, bool isVerbatimString, Errors errors) {
     if (options.Get(CommonOptionBag.UnicodeCharacters)) {
-      foreach (var token in TokensWithEscapes(s, isVerbatimString)) {
+      foreach (var token in Util.TokensWithEscapes(s, isVerbatimString)) {
         if (token.StartsWith("\\u")) {
           errors.SemErr(ErrorId.g_no_old_unicode_char, t, "\\u escape sequences are not permitted when Unicode chars are enabled");
         }
@@ -164,65 +61,13 @@ public static class DafnyUtils {
         }
       }
     } else {
-      foreach (var token2 in TokensWithEscapes(s, isVerbatimString)) {
+      foreach (var token2 in Util.TokensWithEscapes(s, isVerbatimString)) {
         if (token2.StartsWith("\\U")) {
           errors.SemErr(ErrorId.g_U_unicode_chars_are_disallowed, t, "\\U escape sequences are not permitted when Unicode chars are disabled");
         }
       }
     }
   }
-  
-
-    /// <summary>
-    /// Enumerates the sequence of regular characters and escape sequences in the given well-parsed string.
-    /// For example, "ab\tuv\u12345" may be broken up as ["a", "b", "\t", "u", "v", "\u1234", "5"].
-    /// Consecutive non-escaped characters may or may not be enumerated as a single string.
-    /// </summary>
-    public static IEnumerable<string> TokensWithEscapes(string p, bool isVerbatimString) {
-      Contract.Requires(p != null);
-      if (isVerbatimString) {
-        var skipNext = false;
-        foreach (var ch in p) {
-          if (skipNext) {
-            skipNext = false;
-          } else {
-            if (ch == '"') {
-              skipNext = true;
-              yield return "\"";
-            } else {
-              yield return ch.ToString();
-            }
-          }
-        }
-      } else {
-        var i = 0;
-        while (i < p.Length) {
-          if (p[i] == '\\') {
-            switch (p[i + 1]) {
-              case 'u':
-                yield return p[i..(i + 6)];
-                i += 6;
-                break;
-              case 'U':
-                var escapeEnd = p.IndexOf('}', i + 2) + 1;
-                yield return p[i..escapeEnd];
-                i = escapeEnd;
-                continue;
-              default:
-                yield return p[i..(i + 2)];
-                i += 2;
-                break;
-            }
-          } else if (char.IsHighSurrogate(p[i])) {
-            yield return p[i..(i + 2)];
-            i += 2;
-          } else {
-            yield return p[i].ToString();
-            i++;
-          }
-        }
-      }
-    }
 
     /// <summary>
     /// Converts a hexadecimal digit to an integer.

@@ -2295,7 +2295,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"{CharTypeName}(");
       // See comment in TrStringLiteral for why we can't just translate directly sometimes.
       if (!UnicodeCharEnabled && Util.MightContainNonAsciiCharacters(v, false)) {
-        var c = Util.UnescapedCharacters(Options, v, false).Single();
+        var c = DafnyUtils.UnescapedCharacters(Options, v, false).Single();
         wr.Write($"{c}");
       } else {
         wr.Write("'{0}'", TranslateEscapes(v, isChar: true));
@@ -2323,7 +2323,7 @@ namespace Microsoft.Dafny.Compilers {
         if (Util.MightContainNonAsciiCharacters(s, false)) {
           wr.Write($"_dafny.SeqOfChars(");
           var comma = "";
-          foreach (var c in Util.UnescapedCharacters(Options, s, str.IsVerbatim)) {
+          foreach (var c in DafnyUtils.UnescapedCharacters(Options, s, str.IsVerbatim)) {
             wr.Write(comma);
             wr.Write($"{c}");
             comma = ", ";

@@ -332,10 +332,10 @@ namespace Microsoft.Dafny {
       }
 
       if (err == null && dafnyProgram != null && options.PrintStats) {
-        Util.PrintStats(dafnyProgram);
+        DafnyUtils.PrintStats(dafnyProgram);
       }
       if (err == null && dafnyProgram != null && options.PrintFunctionCallGraph) {
-        Util.PrintFunctionCallGraph(dafnyProgram);
+        DafnyUtils.PrintFunctionCallGraph(dafnyProgram);
       }
       if (dafnyProgram != null && options.ExtractCounterexample && exitValue == ExitValue.VERIFICATION_ERROR) {
         PrintCounterexample(options);

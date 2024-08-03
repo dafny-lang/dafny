@@ -219,8 +219,8 @@ Dafny
                                  Uri parsedFile = scanner.Uri;
                                  bool isVerbatimString;
                                  string includedFile = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                 Util.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
-                                 includedFile = Util.RemoveEscaping(theOptions, includedFile, isVerbatimString);
+                                 DafnyUtils.ValidateEscaping(theOptions, t, includedFile, isVerbatimString, errors);
+                                 includedFile = DafnyUtils.RemoveEscaping(theOptions, includedFile, isVerbatimString);
                                  if (!Path.IsPathRooted(includedFile)) {
                                    string basePath = parsedFile.Scheme == "stdin" ? "" : Path.GetDirectoryName(parsedFile.LocalPath);
                                    includedFile = Path.Combine(basePath, includedFile);
@@ -1324,8 +1324,8 @@ ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs,
                                                    mod = mod ?? new List<FrameExpression>();
                                                 .)
   { Attribute<ref attrs> }
-  FrameExpression<out fe, false, allowLambda>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
-  { "," FrameExpression<out fe, false, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  FrameExpression<out fe, false, allowLambda>         (. DafnyUtils.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
+  { "," FrameExpression<out fe, false, allowLambda>   (. DafnyUtils.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   }
   OldSemi
   .
@@ -3713,14 +3713,14 @@ LiteralExpression<out Expression e>
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
-                                                  Util.ValidateEscaping(theOptions, t, s, false, errors);
-                                                  if (Util.UnescapedCharacters(theOptions, s, false).Count() > 1) {
+                                                  DafnyUtils.ValidateEscaping(theOptions, t, s, false, errors);
+                                                  if (DafnyUtils.UnescapedCharacters(theOptions, s, false).Count() > 1) {
                                                     errors.SemErr(ErrorId.p_invalid_char_literal, t, "too many characters in character literal");
                                                   }
                                                   e = new CharLiteralExpr(t, s); .)
   | stringToken                                (. bool isVerbatimString;
                                                   string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                                  Util.ValidateEscaping(theOptions, t, s, isVerbatimString, errors);
+                                                  DafnyUtils.ValidateEscaping(theOptions, t, s, isVerbatimString, errors);
                                                   e = new StringLiteralExpr(t, s, isVerbatimString);
                                                .)
   ) (. e.RangeToken = new RangeToken(t, t); .)

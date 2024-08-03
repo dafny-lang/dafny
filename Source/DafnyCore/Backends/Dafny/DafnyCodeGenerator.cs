@@ -1389,7 +1389,7 @@ namespace Microsoft.Dafny.Compilers {
 
         switch (e) {
           case CharLiteralExpr c:
-            var codePoint = Util.UnescapedCharacters(Options, (string)c.Value, false).Single();
+            var codePoint = DafnyUtils.UnescapedCharacters(Options, (string)c.Value, false).Single();
             if (Rune.IsRune(new BigInteger(codePoint))) { // More readable version in the generated code.
               baseExpr = (DAST.Expression)DAST.Expression.create_Literal(DAST.Literal.create_CharLiteral(
                 new Rune(codePoint)

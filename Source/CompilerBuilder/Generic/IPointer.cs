@@ -10,7 +10,7 @@ public interface IPointer<T> {
   void Set(T value);
 }
 
-record Pointer<T>(Func<T> Get, Action<T> Set) : IPointer<T> {
+public record Pointer<T>(Func<T> Get, Action<T> Set) : IPointer<T> {
   T IPointer<T>.Get() {
     return Get();
   }
