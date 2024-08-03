@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Collections;
 using System.Linq.Expressions;
 using Microsoft.Dafny;
 
@@ -150,10 +151,15 @@ public static class GrammarExtensions {
     return grammar.Or(GrammarBuilder.Value(value));
   }
   
-  public static Grammar<T> Or<T, U>(this Grammar<T> grammar, Grammar<U> other) 
+  public static Grammar<T> OrCast<T, U>(this Grammar<T> grammar, Grammar<U> other)
     where U : T
   {
     return new Choice<T>(grammar, other.UpCast<U, T>());
+  }
+  
+  public static Grammar<T> Or<T>(this Grammar<T> grammar, Grammar<T> other)
+  {
+    return new Choice<T>(grammar, other);
   }
   
   public static Grammar<T> InParens<T>(this Grammar<T> grammar) {
@@ -171,20 +177,24 @@ public static class GrammarExtensions {
   public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Horizontal) {
     return new SkipLeftG<T>(left, right, Orientation.Horizontal);
   }
+
+  record Prepend<T>(T Head, IEnumerable<T> Tail) : IEnumerable<T> {
+    public IEnumerator<T> GetEnumerator() {
+      throw new NotImplementedException();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+  }
   
-  public static Grammar<List<T>> Many<T>(this Grammar<T> one) {
-    return GrammarBuilder.Recursive<List<T>>(self => 
-      GrammarBuilder.Value(() => new List<T>()).Or(self.Then(one,
-        l => {
-          // TODO Printing now destroys the object by clearing the lists, which obviously we don't want. 
-          // TODO The getter used for printing should be a 'pop' that returns a new container
-          // And we need to use a linked list here
-          var index = l.Count - 1;
-          var result = l[index];
-          l.RemoveAt(index);
-          return result;
-        },
-        (l, e) => l.Add(e)
+  public static Grammar<IEnumerable<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Horizontal) {
+    return GrammarBuilder.Recursive<IEnumerable<T>>(self => 
+      GrammarBuilder.Value<IEnumerable<T>>(() => []).Or(one.Then(self, orientation,
+        
+        (head, tail) => (IEnumerable<T>)new Prepend<T>(head, tail),
+        // ReSharper disable once PossibleMultipleEnumeration
+        l => (l.First(), l.Skip(1))
       )));
   }
   
@@ -206,6 +216,15 @@ public static class GrammarExtensions {
   public static Grammar<List<T>> OptionToList<T>(this Grammar<T?> grammar) {
     return grammar.Map(o => o == null ? new List<T>() : new List<T>() { o },
       l => l.FirstOrDefault());
+  }
+  
+  public static Grammar<T> Then<TLeft, TRight, T>(
+    this Grammar<TLeft> left, 
+    Grammar<TRight> right,
+    Orientation mode,
+    Func<TLeft, TRight, T> construct,
+    Func<T, (TLeft, TRight)> destruct) {
+    return new SequenceG<TLeft, TRight, T>(left, right, mode, construct, destruct);
   }
   
   public static Grammar<TContainer> Then<TContainer, TValue>(

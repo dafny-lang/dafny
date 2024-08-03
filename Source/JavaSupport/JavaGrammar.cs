@@ -73,14 +73,15 @@ class JavaGrammar {
 
   Grammar<BlockStmt> Block() {
     return Statement().Many().InBraces().Map(
-      (r, ss) => new BlockStmt(Convert(r), ss), b => b.Body);
+      (r, ss) => new BlockStmt(Convert(r), ss.ToList()), 
+      b => b.Body);
   }
   
   Grammar<Statement> Statement() {
     var returnExpression = Keyword("return").Then(expression).Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
 
-    return Fail<Statement>().Or(returnExpression);
+    return Fail<Statement>().OrCast(returnExpression);
   }
 
   Grammar<Expression> GetExpressionGrammar(Grammar<Expression> self) {
@@ -99,11 +100,12 @@ class JavaGrammar {
     var variableRef = Identifier.Map((r, v) => new IdentifierExpr(Convert(r), v), ie => ie.Name);
     var number = Number.Map((r, v) => new LiteralExpr(Convert(r), v), l => throw new NotImplementedException());
     var nonGhostBinding = self.Map(e => new ActualBinding(null, e), a => a.Actual);
-    var nonGhostBindings = nonGhostBinding.Many().Map(b => new ActualBindings(b), a => a.ArgumentBindings);
+    var nonGhostBindings = nonGhostBinding.Many().
+      Map(b => new ActualBindings(b.ToList()), a => a.ArgumentBindings);
     var call = Value(() => new ApplySuffix()).Then(self, s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings);
     
-    return Fail<Expression>().Or(ternary).Or(less).Or(variableRef).Or(number).Or(call);
+    return Fail<Expression>().OrCast(ternary).OrCast(less).OrCast(variableRef).OrCast(number).OrCast(call);
   }
 
   private Grammar<Type> Type()
