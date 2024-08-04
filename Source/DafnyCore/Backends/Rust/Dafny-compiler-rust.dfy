@@ -5379,13 +5379,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
-        case IntRange(lo, hi, up) => {
+        case IntRange(typ, lo, hi, up) => {
           var lo, _, recIdentsLo := GenExpr(lo, selfIdent, env, OwnershipOwned);
           var hi, _, recIdentsHi := GenExpr(hi, selfIdent, env, OwnershipOwned);
           if up {
             r := R.dafny_runtime.MSel("integer_range").AsExpr().Apply([lo, hi]);
           } else {
             r := R.dafny_runtime.MSel("integer_range_down").AsExpr().Apply([hi, lo]);
+          }
+          if !typ.Primitive? {
+            var tpe := GenType(typ, GenTypeContext.default());
+            r := r.Sel("map").Apply1(R.std.MSel("convert").MSel("Into").AsExpr().ApplyType([tpe]).FSel("into"));
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdentsLo + recIdentsHi;

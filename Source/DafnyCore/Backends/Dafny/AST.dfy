@@ -313,7 +313,7 @@ module {:extern "DAST"} DAST {
     SetBoundedPool(of: Expression) |
     MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
-    IntRange(lo: Expression, hi: Expression, up: bool) |
+    IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |
     Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
 

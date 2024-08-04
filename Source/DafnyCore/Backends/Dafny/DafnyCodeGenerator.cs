@@ -1268,6 +1268,7 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var loHiBuilder = ((ExprContainer)foreachBuilder).BinOp("int_range", (DAST.Expression lo, DAST.Expression hi) =>
              (DAST.Expression)DAST.Expression.create_IntRange(
+               GenType(loopIndex.Type),
                lo,
                hi,
                goingUp
@@ -3054,6 +3055,7 @@ namespace Microsoft.Dafny.Compilers {
 
         if (GetExprBuilder(wr, out var builder)) {
           builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_IntRange(
+            GenType(result),
             loBuf.Finish(),
             hiBuf.Finish(),
             true
