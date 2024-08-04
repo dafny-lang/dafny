@@ -80,46 +80,6 @@ public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
 
   public IEnumerable<Grammar> Children => [Inner];
 }
-
-public enum Orientation {
-  Horizontal,
-  Vertical
-};
-
-class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Orientation mode = Orientation.Horizontal) : Grammar<T> {
-  public VoidGrammar First { get; set; } = first;
-  public Grammar<T> Second { get; set; } = second;
-
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var first = (VoidPrinter)recurse(First);
-    var second = (Printer<T>)recurse(Second);
-    return new SkipLeftW<T>(first, second, mode);
-  }
-
-  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
-    return new SkipLeft<T>((VoidParser)recurse(First), (Parser<T>)recurse(Second));
-  }
-
-  public IEnumerable<Grammar> Children => [First, Second];
-}
-
-class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Orientation mode = Orientation.Horizontal) : Grammar<T> {
-  
-  public Grammar<T> First { get; set; } = first;
-  public VoidGrammar Second { get; set; } = second;
-  
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var firstParser = (Printer<T>)recurse(First);
-    var secondParser = (VoidPrinter)recurse(Second);
-    return new SkipRightW<T>(firstParser, secondParser, mode);
-  }
-
-  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
-    return new SkipRight<T>((Parser<T>)recurse(First), (VoidParser)recurse(Second));
-  }
-
-  public IEnumerable<Grammar> Children => [First, Second];
-}
   
 class TextG(string value) : VoidGrammar {
   public string Value => value;
@@ -218,29 +178,6 @@ class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
   }
 
   public override IEnumerable<Grammar> Children => grammar.Children;
-}
-
-class SequenceG<TLeft, TRight, T>(Grammar<TLeft> first, Grammar<TRight> second, Orientation mode, 
-  Func<TLeft, TRight, T> construct, Func<T, (TLeft, TRight)?> destruct) : Grammar<T> {
-
-  public Grammar<TLeft> First { get; set; } = first;
-  public Grammar<TRight> Second { get; set; } = second;
-
-  public Orientation Mode => mode;
-
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var firstPrinter = (Printer<TLeft>)recurse(First);
-    var secondPrinter = (Printer<TRight>)recurse(Second);
-    return new SequenceW<TLeft,TRight,T>(firstPrinter, secondPrinter, destruct, mode);
-  }
-
-  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
-    var leftParser = (Parser<TLeft>)recurse(First);
-    var rightParser = (Parser<TRight>)recurse(Second);
-    return new SequenceR<TLeft, TRight, T>(leftParser, rightParser, construct);
-  }
-
-  public IEnumerable<Grammar> Children => [First, Second];
 }
 
 public static class GrammarExtensions {
