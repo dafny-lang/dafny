@@ -29,18 +29,31 @@ public interface Parser<T> : Parser {
   
   public ConcreteResult<T> Parse(string text) {
     ITextPointer pointer = new PointerFromString(text);
-    var withEnd = this.Then(new EndOfText());
+    var withEnd = new EndOfText<T>(this);
     return withEnd.Parse(pointer, ImmutableHashSet<Parser>.Empty).Concrete!;
   }
 }
 
-class EndOfText : VoidParser {
-  internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    if (text.Length > 0) {
-      return text.Fail<Unit>("the end of the text");
+class EndOfText<T>(Parser<T> inner) : Parser<T> {
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    var innerResult = inner.Parse(text, recursives);
+    if (innerResult.Success == null) {
+      return innerResult;
     }
 
-    return new ConcreteSuccess<Unit>(Unit.Instance, text);
+    var end = innerResult.Success.Remainder;
+    if (end.Length <= 0) {
+      return innerResult.Success;
+    }
+
+    var endFail = end.Fail<T>("the end of the text");
+    if (innerResult.Failure != null) {
+      return innerResult.Failure.Location.Offset > innerResult.Success.Remainder.Offset
+        ? innerResult.Failure
+        : end.Fail<T>("the end of the text");
+    }
+
+    return endFail;
   }
 }
 
@@ -197,7 +210,7 @@ class TextR(string value) : VoidParser {
       return new ConcreteSuccess<Unit>(Unit.Instance, text.Drop(value.Length));
     }
 
-    return new FailureR<Unit>($"Expected '{value}' but found '{actual}'", text);
+    return new FailureResult<Unit>($"Expected '{value}' but found '{actual}'", text);
   }
 }
 
@@ -262,7 +275,7 @@ internal class NumberR : Parser<int> {
       {
         return new ConcreteSuccess<int>(parsed, text.Drop(offset));
       }
-      return new FailureR<int>($"'{sequence}' is not a number", text);
+      return new FailureResult<int>($"'{sequence}' is not a number", text);
     }
 
     return text.Fail<int>("a digit");

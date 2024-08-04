@@ -34,6 +34,8 @@ public class TestParsing {
     Assert.Equal(123124, numberOrIdentifier.Parse("123124").Success!.Value);
     Assert.Equal("abcefg", numberOrIdentifier.Parse("abcefg").Success!.Value);
     Assert.Null(numberOrIdentifier.Parse("!@!@$#").Success);
+    
+    Assert.Equal("'!@#!@' is not the end of the text", numberOrIdentifier.Parse("123124!@#!@#").Failure!.Message);
   }
 
   record Person {
@@ -51,6 +53,8 @@ public class TestParsing {
     Assert.Equal(123124, result.Success!.Value.Age);
     Assert.Equal("Jan", result.Success!.Value.Name);
     Assert.Null(person.Parse("1231").Success);
+    
+    Assert.Equal("'!@#!@' is not an identifier", person.Parse("123124!@#!@#").Failure!.Message);
   }
   
   [Fact]

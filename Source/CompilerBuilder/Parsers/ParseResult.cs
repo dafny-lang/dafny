@@ -18,7 +18,7 @@ public interface ParseResult<T> : ParseResult {
     }
   }
   
-  public FailureR<T>? Failure { get; }
+  public FailureResult<T>? Failure { get; }
   internal IEnumerable<IFoundRecursion<T>> Recursions { get; }
   
   internal ParseResult<T> Combine(ParseResult<T> other) {
@@ -28,41 +28,34 @@ public interface ParseResult<T> : ParseResult {
     }
 
     concreteSuccess ??= Success ?? other.Success;
-    var recursions = Recursions.Concat(other.Recursions);
 
-    ConcreteResult<T>? concreteResult = concreteSuccess;
-    if (concreteResult == null) {
-      if (Failure != null && other.Failure != null) {
-        concreteResult = Failure.Location.Offset > other.Failure.Location.Offset ? Failure : other.Failure;
-      }
-
-      concreteResult ??= Failure ?? other.Failure;
+    FailureResult<T>? failure = null;
+    if (Failure != null && other.Failure != null) {
+      failure = Failure.Location.Offset > other.Failure.Location.Offset ? Failure : other.Failure;
     }
 
-    return new Aggregate<T>(concreteResult, recursions);
+    failure ??= Failure ?? other.Failure;
+
+    return new Aggregate<T>(concreteSuccess, failure, Recursions.Concat(other.Recursions));
   }
 }
 
-public interface ConcreteResult<T> : ParseResult<T> {
-  
-}
-interface SuccessResult<T> : ParseResult<T> {
-}
+public interface ConcreteResult<T> : ParseResult<T>;
 
-internal record Aggregate<T>(ConcreteResult<T>? Concrete, IEnumerable<IFoundRecursion<T>> Recursions) : SuccessResult<T> {
+internal record Aggregate<T>(ConcreteSuccess<T>? Success, 
+  FailureResult<T>? Failure, 
+  IEnumerable<IFoundRecursion<T>> Recursions) : ParseResult<T> {
   public ParseResult<U> Continue<U>(Func<ConcreteSuccess<T>, ParseResult<U>> f) {
     var newRecursions = Recursions.Select(r => (IFoundRecursion<U>)r.Continue(f));
-    var noConcrete = new Aggregate<U>(null, newRecursions);
-    if (Concrete != null) {
-      var concreteResult = Concrete.Continue(f);
+    var newFailure = Failure == null ? null : new FailureResult<U>(Failure.Message, Failure.Location);
+    var noConcrete = new Aggregate<U>(null, newFailure, newRecursions);
+    if (Success != null) {
+      var concreteResult = Success.Continue(f);
       return concreteResult.Combine(noConcrete);
     }
 
     return noConcrete;
   }
-
-  public ConcreteSuccess<T>? Success => Concrete as ConcreteSuccess<T>;
-  public FailureR<T>? Failure => Concrete as FailureR<T>;
 }
 
 public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResult<T> {
@@ -72,7 +65,7 @@ public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResu
   }
 
   public ConcreteSuccess<T>? Success => this;
-  public FailureR<T>? Failure => null;
+  public FailureResult<T>? Failure => null;
   IEnumerable<IFoundRecursion<T>> ParseResult<T>.Recursions => [];
 }
 
@@ -90,7 +83,7 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   }
 
   public ConcreteSuccess<TB>? Success => null;
-  public FailureR<TB>? Failure => null;
+  public FailureResult<TB>? Failure => null;
   public IEnumerable<IFoundRecursion<TB>> Recursions => new IFoundRecursion<TB>[]{ this };
 
   public ParseResult<TB> Apply(object value, ITextPointer remainder) {
@@ -98,18 +91,22 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   }
 }
 
-public record FailureR<T> : ConcreteResult<T> {
-  public FailureR(string Message, ITextPointer Location) {
+public record FailureResult<T> : ConcreteResult<T> {
+  public FailureResult(string Message, ITextPointer Location) {
     this.Message = Message;
     this.Location = Location;
   }
 
+  public FailureResult<U> Cast<U>() {
+    return new FailureResult<U>(Message, Location);
+  }
+
   public ParseResult<TU> Continue<TU>(Func<ConcreteSuccess<T>, ParseResult<TU>> f) {
-    return new FailureR<TU>(Message, Location);
+    return new FailureResult<TU>(Message, Location);
   }
 
   public ConcreteSuccess<T>? Success => null;
-  public FailureR<T> Failure => this;
+  public FailureResult<T> Failure => this;
 
   IEnumerable<IFoundRecursion<T>> ParseResult<T>.Recursions => [];
   public string Message { get; init; }
