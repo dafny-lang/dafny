@@ -15,6 +15,13 @@ public abstract class VoidParser : Parser {
   internal abstract ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
 }
 
+class IgnoreR<T>(Parser<T> parser) : VoidParser {
+  internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
+    return parser.Parse(text, recursives).Continue(
+      s => new ConcreteSuccess<Unit>(Unit.Instance, s.Remainder));
+  }
+}
+
 public interface Parser {
 }
 public interface Parser<T> : Parser {

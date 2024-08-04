@@ -18,13 +18,17 @@ public interface IPrinter;
 
 public interface VoidPrinter : IPrinter;
 
-class Empty : VoidPrinter;
+class Empty : VoidPrinter {
+  public static readonly Empty Instance = new();
+
+  private Empty() { }
+}
 
 class Verbatim : Printer<string>;
 
 class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U>;
 
-class Ignore<T>(VoidPrinter printer) : Printer<T>;
+class IgnoreW<T>(VoidPrinter printer) : Printer<T>;
 
 internal class TextW(string value) : VoidPrinter;
 

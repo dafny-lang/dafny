@@ -12,7 +12,7 @@ public abstract class VoidGrammar : Grammar {
   public static implicit operator VoidGrammar(string keyword) => new TextG(keyword);
 
   public abstract VoidPrinter ToPrinter();
-  public abstract VoidParser ToParser();
+  public abstract VoidParser ToParser(Func<Grammar, Parser> recurse);
 }
 
 public interface Grammar<T> : Grammar {
@@ -46,7 +46,7 @@ public enum Orientation {
   Vertical
 };
 
-class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode) : Grammar<T> {
+class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Horizontal) : Grammar<T> {
   public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = (VoidPrinter)recurse(left);
     var second = (Printer<T>)recurse(right);
@@ -75,7 +75,7 @@ class TextG(string value) : VoidGrammar {
     return new TextW(value);
   }
 
-  public override VoidParser ToParser() {
+  public override VoidParser ToParser(Func<Grammar, Parser> recurse) {
     return new TextR(value);
   }
 }
@@ -123,7 +123,7 @@ class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
 
 class Value<T>(Func<T> value) : Grammar<T> {
   public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    return new Ignore<T>(new Empty());
+    return new IgnoreW<T>(Empty.Instance);
   }
 
   public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
@@ -131,8 +131,36 @@ class Value<T>(Func<T> value) : Grammar<T> {
   }
 }
 
+interface SequenceG {
+  Grammar Left { get; set; }
+  Grammar Right { get; set; }
+}
+
+class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
+  public override VoidPrinter ToPrinter() {
+    return Empty.Instance;
+  }
+
+  public override VoidParser ToParser(Func<Grammar, Parser> recurse) {
+    return new IgnoreR<T>(grammar.ToParser(recurse));
+  }
+}
+
 class SequenceG<TLeft, TRight, T>(Grammar<TLeft> left, Grammar<TRight> right, Orientation mode, 
   Func<TLeft, TRight, T> construct, Func<T, (TLeft, TRight)> destruct) : Grammar<T> {
+  
+  public Grammar<TLeft> Left {
+    get => left;
+    set => left = value;
+  }
+
+  public Grammar<TRight> Right {
+    get => right;
+    set => right = value;
+  }
+
+  public Orientation Mode => mode;
+
   public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = (Printer<TLeft>)recurse(left);
     var second = (Printer<TRight>)recurse(right);
