@@ -21,9 +21,4 @@ class GrammarPathChild(GrammarPath parent, Property<Grammar, Grammar> property) 
   public IEnumerable<GrammarPath> SelfAndDescendants => throw new NotImplementedException();
 }
 
-interface Property<in TContainer, TValue>
-{
-  Type ValueType { get; }
-  TValue Get(TContainer container);
-  void Set(TContainer container, TValue value);
-}
+public record Property<TContainer, TValue>(Func<TContainer, TValue> Get, Action<TContainer, TValue> Set);

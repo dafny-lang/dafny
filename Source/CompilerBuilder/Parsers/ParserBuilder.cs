@@ -12,7 +12,7 @@ public static class ParserBuilder {
   public static Parser<T> Value<T>(Func<T> value) => new ValueR<T>(value);
   
   // TODO should this exist? Could be dangerous
-  public static Parser<T> Value<T>(T value) => new ValueR<T>(() => value);
+  public static Parser<T> Constant<T>(T value) => new ValueR<T>(() => value);
   public static VoidParser Keyword(string keyword) => new TextR(keyword);
   public static readonly Parser<string> Identifier = new IdentifierR();
   public static readonly Parser<int> Number = new NumberR();

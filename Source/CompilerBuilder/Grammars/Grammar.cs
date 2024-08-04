@@ -2,40 +2,64 @@
 
 using System.Collections;
 using System.Linq.Expressions;
+using CompilerBuilder.Generic;
 using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
-public interface Grammar;
+public interface Grammar {
+  internal Parser ToGenParser(Func<Grammar, Parser> recurse);
+}
 
 public abstract class VoidGrammar : Grammar {
   public static implicit operator VoidGrammar(string keyword) => new TextG(keyword);
 
   public abstract VoidPrinter ToPrinter();
   public abstract VoidParser ToParser(Func<Grammar, Parser> recurse);
+  public Parser ToGenParser(Func<Grammar, Parser> recurse) {
+    return ToParser(recurse);
+  }
 }
 
 public interface Grammar<T> : Grammar {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse);
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse);
+  internal Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse);
+
+  public Parser<T> ToParser() {
+    var map = new Dictionary<Grammar, Parser>();
+    Func<Grammar, Parser>? recurse = null;
+    recurse = grammar => {
+      return map.GetOrCreate(grammar, () => grammar.ToGenParser(recurse!));
+    };
+    return (Parser<T>)recurse(this);
+  }
+  
+  internal Parser<T> ToParser(Func<Grammar, Parser> recurse);
+
+  Parser Grammar.ToGenParser(Func<Grammar, Parser> recurse) {
+    return ToParser(recurse);
+  }
 }
 
 public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    return new RecursiveW<T>(() => (Printer<T>)recurse(get()));
+  private Grammar<T>? inner;
+
+  public Grammar<T> Inner => inner ??= get();
+
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+    return new RecursiveW<T>(() => (Printer<T>)recurse(Inner));
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
-    return new RecursiveR<T>(() => (Parser<T>)recurse(get()));
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+    return new RecursiveR<T>(() => (Parser<T>)recurse(Inner));
   }
 }
 
 class ManyG<T>(Grammar<T> one) : Grammar<List<T>> {
-  public Printer<List<T>> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<List<T>> Grammar<List<T>>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new ManyW<T>((Printer<T>)recurse(one));
   }
 
-  public Parser<List<T>> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<List<T>> Grammar<List<T>>.ToParser(Func<Grammar, Parser> recurse) {
     var oneParser = (Parser<T>)recurse(one);
     return oneParser.Many();
   }
@@ -47,25 +71,25 @@ public enum Orientation {
 };
 
 class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Horizontal) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = (VoidPrinter)recurse(left);
     var second = (Printer<T>)recurse(right);
     return new SkipLeftW<T>(first, second, mode);
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
     return new SkipLeft<T>((VoidParser)recurse(left), (Parser<T>)recurse(right));
   }
 }
 
 class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = (Printer<T>)recurse(left);
     var second = (VoidPrinter)recurse(right);
     return new SkipRightW<T>(first, second, mode);
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
     return new SkipRight<T>((Parser<T>)recurse(left), (VoidParser)recurse(right));
   }
 }
@@ -81,59 +105,62 @@ class TextG(string value) : VoidGrammar {
 }
 
 internal class NumberG : Grammar<int> {
-  public Printer<int> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<int> Grammar<int>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new NumberW();
   }
 
-  public Parser<int> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<int> Grammar<int>.ToParser(Func<Grammar, Parser> recurse) {
     return new NumberR();
   }
 }
 
 internal class IdentifierG : Grammar<string> {
-  public Printer<string> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    return new Verbatim();
+  Printer<string> Grammar<string>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+    return Verbatim.Instance;
   }
 
-  public Parser<string> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<string> Grammar<string>.ToParser(Func<Grammar, Parser> recurse) {
     return new IdentifierR();
   }
 }
 
 class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U> map, Func<U, T?> destruct) : Grammar<U> {
-  public Printer<U> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    return ((Printer<T>)recurse(grammar)).Map(destruct);
+
+  public Grammar<T> Grammar { get; set; } = grammar;
+
+  Printer<U> Grammar<U>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+    return ((Printer<T>)recurse(Grammar)).Map(destruct);
   }
 
-  public Parser<U> ToParser(Func<Grammar, Parser> recurse) {
-    return new WithRangeR<T, U>((Parser<T>)recurse(grammar), map);
+  Parser<U> Grammar<U>.ToParser(Func<Grammar, Parser> recurse) {
+    return new WithRangeR<T, U>((Parser<T>)recurse(Grammar), map);
   }
 }
 
 class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  public Grammar<T> First { get; set; } = first;
+  public Grammar<T> Second { get; set; } = second;
+  
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     // Reverse order, on purpose. Needs testing.
-    return new ChoiceW<T>((Printer<T>)recurse(second), (Printer<T>)recurse(first));
+    return new ChoiceW<T>((Printer<T>)recurse(Second), (Printer<T>)recurse(First));
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
-    return new ChoiceR<T>((Parser<T>)recurse(first), (Parser<T>)recurse(second));
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+    return new ChoiceR<T>((Parser<T>)recurse(First), (Parser<T>)recurse(Second));
   }
 }
 
 class Value<T>(Func<T> value) : Grammar<T> {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  public T Evaluated => value();
+
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     return new IgnoreW<T>(Empty.Instance);
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
     return new ValueR<T>(value);
   }
-}
-
-interface SequenceG {
-  Grammar Left { get; set; }
-  Grammar Right { get; set; }
 }
 
 class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
@@ -148,28 +175,21 @@ class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
 
 class SequenceG<TLeft, TRight, T>(Grammar<TLeft> left, Grammar<TRight> right, Orientation mode, 
   Func<TLeft, TRight, T> construct, Func<T, (TLeft, TRight)> destruct) : Grammar<T> {
-  
-  public Grammar<TLeft> Left {
-    get => left;
-    set => left = value;
-  }
 
-  public Grammar<TRight> Right {
-    get => right;
-    set => right = value;
-  }
+  public Grammar<TLeft> Left { get; set; } = left;
+  public Grammar<TRight> Right { get; set; } = right;
 
   public Orientation Mode => mode;
 
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
-    var first = (Printer<TLeft>)recurse(left);
-    var second = (Printer<TRight>)recurse(right);
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+    var first = (Printer<TLeft>)recurse(Left);
+    var second = (Printer<TRight>)recurse(Right);
     return new SequenceW<TLeft,TRight,T>(first, second, destruct, mode);
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
-    var leftParser = (Parser<TLeft>)recurse(left);
-    var rightParser = (Parser<TRight>)recurse(right);
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+    var leftParser = (Parser<TLeft>)recurse(Left);
+    var rightParser = (Parser<TRight>)recurse(Right);
     return new SequenceR<TLeft, TRight, T>(leftParser, rightParser, construct);
   }
 }
@@ -216,14 +236,16 @@ public static class GrammarExtensions {
     }
   }
   
-  public static Grammar<IEnumerable<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Horizontal) {
-    return GrammarBuilder.Recursive<IEnumerable<T>>(self => 
+  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Horizontal) {
+    var numerable = GrammarBuilder.Recursive<IEnumerable<T>>(self => 
       GrammarBuilder.Value<IEnumerable<T>>(() => []).Or(one.Then(self, orientation,
         
         (head, tail) => (IEnumerable<T>)new Prepend<T>(head, tail),
+        // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
         // ReSharper disable once PossibleMultipleEnumeration
         l => (l.First(), l.Skip(1))
       )));
+    return numerable.Map(e => e.ToList(), l => l);
   }
   
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
@@ -271,9 +293,8 @@ public static class GrammarExtensions {
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
     Expression<Func<TContainer, TValue>> get, Orientation mode = Orientation.Horizontal) {
-    Func<TContainer, TValue> getter = null; 
-    Action<TContainer, TValue> setter = null;
-    return containerGrammar.Then(value, getter, setter);
+    var property = get.GetProperty();
+    return containerGrammar.Then(value, property.Get, property.Set);
   }
 
   public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Action<T, ParseRange> set) {
@@ -287,15 +308,29 @@ public static class GrammarExtensions {
     var r = fallback.Then(GrammarBuilder.Value<T?>(default));
     return grammar.Map<T, T?>(t => t, t => t).Or(r);
   }
+
+  public static VoidGrammar Ignore<T>(this Grammar<T> grammar) {
+    return new ParseOnly<T>(grammar);
+  }
 }
 
 class Fail<T> : Grammar<T> {
-  public Printer<T> ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     throw new NotImplementedException();
   }
 
-  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
     throw new NotImplementedException();
+  }
+}
+
+class ExplicitGrammar<T>(Parser<T> parser, Printer<T> printer) : Grammar<T> {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+    return printer;
+  }
+
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+    return parser;
   }
 }
 
@@ -305,7 +340,10 @@ public static class GrammarBuilder {
   public static Grammar<T> Recursive<T>(Func<Grammar<T>, Grammar<T>> build) {
     Grammar<T>? result = null;
     // ReSharper disable once AccessToModifiedClosure
-    result = new RecursiveG<T>(() => build(result!));
+    result = new RecursiveG<T>(() => {
+      var builtInner = build(result!);
+      return builtInner;
+    });
     return result;
   }
   
@@ -315,4 +353,5 @@ public static class GrammarBuilder {
   public static Grammar<T> Fail<T>() => new Fail<T>();
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
+  public static readonly Grammar<string> Whitespace = new ExplicitGrammar<string>(ParserBuilder.Whitespace, Verbatim.Instance);
 }

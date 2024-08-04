@@ -25,7 +25,7 @@ class IgnoreR<T>(Parser<T> parser) : VoidParser {
 public interface Parser {
 }
 public interface Parser<T> : Parser {
-  internal ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
+  public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives);
   
   public ConcreteResult<T> Parse(string text) {
     ITextPointer pointer = new PointerFromString(text);
@@ -37,7 +37,7 @@ public interface Parser<T> : Parser {
 class EndOfText : VoidParser {
   internal override ParseResult<Unit> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     if (text.Length > 0) {
-      return new FailureR<Unit>("End of text not reached", text);
+      return text.Fail<Unit>("the end of the text");
     }
 
     return new ConcreteSuccess<Unit>(Unit.Instance, text);
@@ -75,11 +75,15 @@ class PointerFromString(string text) : ITextPointer {
 // TODO maybe change the right to an aggregate function of TLeft and TRight
 // And leave the container concept for the extensions
 
-class SequenceR<TLeft, TRight, T>(Parser<TLeft> left, Parser<TRight> right, Func<TLeft, TRight, T> combine) : Parser<T> {
+public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> second, Func<TLeft, TRight, T> combine) : Parser<T> {
+  
+  public Parser<TLeft> First { get; set; } = first;
+  public Parser<TRight> Second { get; set; } = second;
+  
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    var leftResult = left.Parse(text, recursives);
+    var leftResult = First.Parse(text, recursives);
     return leftResult.Continue(leftConcrete => {
-      var rightResult = right.Parse(leftConcrete.Remainder, recursives);
+      var rightResult = Second.Parse(leftConcrete.Remainder, ImmutableHashSet<Parser>.Empty);
       return rightResult.Continue(rightConcrete => {
         var value = combine(leftConcrete.Value, rightConcrete.Value);
         return new ConcreteSuccess<T>(value, rightConcrete.Remainder);
@@ -89,9 +93,13 @@ class SequenceR<TLeft, TRight, T>(Parser<TLeft> left, Parser<TRight> right, Func
 }
 
 class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
+
+  public Parser<T> First { get; set; } = first;
+  public Parser<T> Second { get; set; } = second;
+  
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    var firstResult = first.Parse(text, recursives);
-    var secondResult = second.Parse(text, recursives);
+    var firstResult = First.Parse(text, recursives);
+    var secondResult = Second.Parse(text, recursives);
     return firstResult.Combine(secondResult);
   }
 }
@@ -99,14 +107,19 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
 class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
   private Parser<T>? inner;
 
+  public Parser<T> Inner => inner ??= get();
+
+  public static T Identity<T>(T value) {
+    return value;
+  }
+  
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    inner ??= get();
 
     if (recursives.Contains(this)) {
-      return new FoundRecursion<T, T>(s => s);
+      return new FoundRecursion<T, T>(Identity);
     }
     
-    var innerResult = inner.Parse(text, recursives.Add(this));
+    var innerResult = Inner.Parse(text, recursives.Add(this));
     if (innerResult.Success == null) {
       return innerResult;
     }
@@ -145,9 +158,12 @@ class PositionR : Parser<IPosition> {
 }
 
 class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U> map) : Parser<U> {
+
+  public Parser<T> Parser { get; set; } = parser;
+  
   public ParseResult<U> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var start = text;
-    var innerResult = parser.Parse(text, recursives);
+    var innerResult = Parser.Parse(text, recursives);
     return innerResult.Continue(success => {
       var end = success.Remainder;
       return new ConcreteSuccess<U>(map(new ParseRange(start, end), success.Value), success.Remainder);
@@ -223,6 +239,7 @@ internal class LineComment : Parser<string> {
     return new ConcreteSuccess<string>(comment, text.Drop(offset + 1));
   }
 }
+
 internal class NumberR : Parser<int> {
   public ParseResult<int> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var offset = 0;
@@ -270,6 +287,9 @@ internal class IdentifierR : Parser<string> {
 }
 
 class ValueR<T>(Func<T> value) : Parser<T> {
+
+  public T Evaluated => value();
+  
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     return new ConcreteSuccess<T>(value(), text);
   }

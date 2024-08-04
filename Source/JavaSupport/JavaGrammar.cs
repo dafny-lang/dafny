@@ -1,23 +1,34 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using CompilerBuilder;
+using CompilerBuilder.Grammars;
 using Microsoft.Dafny;
 using static CompilerBuilder.GrammarBuilder;
+using Expression = Microsoft.Dafny.Expression;
+using Formal = Microsoft.Dafny.Formal;
+using Method = Microsoft.Dafny.Method;
 using Name = Microsoft.Dafny.Name;
+using Statement = Microsoft.Dafny.Statement;
 using Type = Microsoft.Dafny.Type;
 
 namespace JavaSupport;
 
-class JavaGrammar {
+public class JavaGrammar {
 
   private readonly Grammar<Expression> expression;
   private readonly Grammar<Name> name;
-  private Uri uri;
+  private readonly Uri uri;
 
   public JavaGrammar(Uri uri) {
     this.uri = uri;
     name = GetNameGrammar();
     expression = Recursive<Expression>(GetExpressionGrammar);
+  }
+
+  public Grammar<FileModuleDefinition> GetFinalGrammar()
+  {
+    var result = File();
+    return Comments.AddTrivia(result, Comments.JavaTrivia());
   }
 
   public IToken Convert(IPosition position) {
@@ -31,6 +42,14 @@ class JavaGrammar {
   
   public RangeToken Convert(ParseRange parseRange) {
     return new RangeToken(Convert(parseRange.From), Convert(parseRange.Until));
+  }
+
+  public Grammar<FileModuleDefinition> File() {
+    return Class().Many().Map(c => {
+      var result = new FileModuleDefinition(Token.NoToken);
+      result.SourceDecls.AddRange(c);
+      return result;
+    }, m => m.SourceDecls.OfType<ClassDecl>().ToList());
   }
   
   Grammar<ClassDecl> Class() {
@@ -73,7 +92,7 @@ class JavaGrammar {
 
   Grammar<BlockStmt> Block() {
     return Statement().Many().InBraces().Map(
-      (r, ss) => new BlockStmt(Convert(r), ss.ToList()), 
+      (r, ss) => new BlockStmt(Convert(r), ss), 
       b => b.Body);
   }
   
@@ -101,7 +120,7 @@ class JavaGrammar {
     var number = Number.Map((r, v) => new LiteralExpr(Convert(r), v), l => throw new NotImplementedException());
     var nonGhostBinding = self.Map(e => new ActualBinding(null, e), a => a.Actual);
     var nonGhostBindings = nonGhostBinding.Many().
-      Map(b => new ActualBindings(b.ToList()), a => a.ArgumentBindings);
+      Map(b => new ActualBindings(b), a => a.ArgumentBindings);
     var call = Value(() => new ApplySuffix()).Then(self, s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings);
     

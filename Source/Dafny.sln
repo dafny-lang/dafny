@@ -49,6 +49,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JavaSupport", "JavaSupport\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompilerBuilder.Test", "CompilerBuilder.Test\CompilerBuilder.Test.csproj", "{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JavaSupport.Test", "JavaSupport.Test\JavaSupport.Test.csproj", "{C3615FE2-46B3-487F-9925-9965E7DEBC94}"
+EndProject
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -148,6 +150,10 @@ Global
 		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A1F4A6C3-F0DE-4D4E-B37B-2F5DFC0541A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3615FE2-46B3-487F-9925-9965E7DEBC94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3615FE2-46B3-487F-9925-9965E7DEBC94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3615FE2-46B3-487F-9925-9965E7DEBC94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3615FE2-46B3-487F-9925-9965E7DEBC94}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

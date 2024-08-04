@@ -8,6 +8,16 @@ public interface ParseResult<T> : ParseResult {
   internal ConcreteResult<T>? Concrete => Success as ConcreteResult<T> ?? Failure;
 
   public ConcreteSuccess<T>? Success { get; }
+  public ConcreteSuccess<T> ForceSuccess {
+    get {
+      if (Success != null) {
+        return Success;
+      }
+
+      throw new InvalidOperationException(Failure!.Message);
+    }
+  }
+  
   public FailureR<T>? Failure { get; }
   internal IEnumerable<IFoundRecursion<T>> Recursions { get; }
   
@@ -57,7 +67,8 @@ internal record Aggregate<T>(ConcreteResult<T>? Concrete, IEnumerable<IFoundRecu
 
 public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResult<T> {
   public ParseResult<TB> Continue<TB>(Func<ConcreteSuccess<T>, ParseResult<TB>> f) {
-    return f(this);
+    var result = f(this);
+    return result;
   }
 
   public ConcreteSuccess<T>? Success => this;
@@ -73,7 +84,8 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   public ParseResult<TC> Continue<TC>(Func<ConcreteSuccess<TB>, ParseResult<TC>> f) {
     return new FoundRecursion<TA, TC>(concrete => {
       var inner = Recursion(concrete);
-      return inner.Continue(f);
+      var continued = inner.Continue(f);
+      return continued;
     });
   }
 

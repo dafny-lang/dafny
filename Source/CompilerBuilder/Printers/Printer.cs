@@ -24,7 +24,11 @@ class Empty : VoidPrinter {
   private Empty() { }
 }
 
-class Verbatim : Printer<string>;
+class Verbatim : Printer<string> {
+  public static readonly Printer<string> Instance = new Verbatim();
+
+  private Verbatim() { }
+}
 
 class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U>;
 
@@ -33,7 +37,7 @@ class IgnoreW<T>(VoidPrinter printer) : Printer<T>;
 internal class TextW(string value) : VoidPrinter;
 
 internal class ManyW<T>(Printer<T> one) : Printer<List<T>>;
-  
+
 internal class NumberW : Printer<int>;
 
 internal class IdentifierW : Printer<string>;

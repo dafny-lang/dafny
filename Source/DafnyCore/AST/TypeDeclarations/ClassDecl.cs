@@ -16,7 +16,7 @@ public class ClassDecl : ClassLikeDecl {
   }
 
   public ClassDecl() 
-    : base(null, null, null, null, null, null, false, null)
+    : base(null, null, null, null, new(), null, false, null)
   {
   }
 
