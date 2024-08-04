@@ -10,6 +10,10 @@ public record ParseRange(IPosition From, IPosition Until);
 
 public interface ITextPointer : IPosition {
 
+  bool SeenHere(Parser parser);
+  ITextPointer Add(Parser parser);
+  ITextPointer Remove(Parser parser);
+  
   ITextPointer Drop(int amount);
 
   string LocationDescription => Length == 0 ? "end of text" : SubSequence(5);

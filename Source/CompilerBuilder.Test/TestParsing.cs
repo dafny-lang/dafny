@@ -112,4 +112,12 @@ Remy";
     Assert.Equal("// another linecomment", result2.Success?.Value.Trivia[2]);
   }
   
+  // There were a lot of issues in the following that this file should test, but did not.
+  // Things like nested recursive things
+  // And not dropping intermediate results when growing a seed.
+  // class Div {
+  //   int Foo(int x) {
+  //     return 3 / x;
+  //   }
+  // }
 }

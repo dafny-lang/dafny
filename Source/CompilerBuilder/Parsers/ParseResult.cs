@@ -14,7 +14,7 @@ public interface ParseResult<T> : ParseResult {
         return Success;
       }
 
-      throw new InvalidOperationException(Failure!.Message);
+      throw new InvalidOperationException(Failure!.Message + $", at offset { Failure.Location.Offset }");
     }
   }
   
@@ -35,6 +35,9 @@ public interface ParseResult<T> : ParseResult {
     }
 
     failure ??= Failure ?? other.Failure;
+    if (concreteSuccess != null && failure != null && failure.Location.Offset <= concreteSuccess.Remainder.Offset) {
+      failure = null;
+    }
 
     return new Aggregate<T>(concreteSuccess, failure, Recursions.Concat(other.Recursions));
   }

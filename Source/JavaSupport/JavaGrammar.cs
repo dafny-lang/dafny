@@ -97,7 +97,8 @@ public class JavaGrammar {
   }
   
   Grammar<Statement> Statement() {
-    var returnExpression = Keyword("return").Then(expression).Map((r, e) =>
+    var returnExpression = Keyword("return").Then(expression).Then(";").
+      Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
 
     return returnExpression.UpCast<ReturnStmt, Statement>();

@@ -14,6 +14,9 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
+    public static T Identity<T>(T value) {
+      return value;
+    }
   
     public static readonly Regex Utf16Escape = new Regex(@"\\u([0-9a-fA-F]{4})");
     public static readonly Regex UnicodeEscape = new Regex(@"\\U\{([0-9a-fA-F_]+)\}");
