@@ -11,10 +11,19 @@ public static class ExpressionTreeExtensions {
     
     if (expr.Body is MemberExpression { Member: FieldInfo field }) {
       memberExpression = Expression.Field(instanceExpr, field);
+      if (field.IsInitOnly) {
+        throw new ArgumentException($"Field {field.Name} is not writeable");
+      }
     }
     
     if (expr.Body is MemberExpression { Member: PropertyInfo property }) {
       memberExpression = Expression.Property(instanceExpr, property);
+      if (!property.CanRead) {
+        throw new ArgumentException($"Property {property.Name} is not readable");
+      }
+      if (!property.CanWrite) {
+        throw new ArgumentException($"Property {property.Name} is not writeable");
+      }
     }
 
     if (memberExpression == null) {

@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class NonglobalVariable : TokenNode, IVariable {
-  readonly string name;
+  string name;
 
   protected NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
     Contract.Requires(tok != null);
@@ -30,6 +30,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       Contract.Ensures(Contract.Result<string>() != null);
       return name;
     }
+    set => name = value;
   }
   public string DafnyName => RangeToken == null || tok.line == 0 ? Name : RangeToken.PrintOriginal();
   public string DisplayName =>
@@ -108,6 +109,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
       Contract.Ensures(Contract.Result<Type>() != null);
       return type.Normalize();
     }
+    set => type = value;
   }
 
   /// <summary>

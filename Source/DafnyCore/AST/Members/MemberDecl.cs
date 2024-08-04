@@ -16,6 +16,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     get {
       return HasStaticKeyword || EnclosingClass is DefaultClassDecl;
     }
+    set => hasStaticKeyword = value;
   }
 
   public virtual bool IsOpaque => false;

@@ -34,7 +34,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
-  public readonly List<Formal> Outs;
+  public List<Formal> Outs;
   public readonly Specification<FrameExpression> Mod;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
