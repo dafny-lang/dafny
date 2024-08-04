@@ -77,7 +77,7 @@ public class TestGrammars {
     Assert.Equal(13, result.Success!.Value);
   }
 
-  struct PersonWithTrivia {
+  record PersonWithTrivia {
     public int Age;
     public string Name;
     public List<string> Trivia = new();

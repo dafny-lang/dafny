@@ -74,7 +74,7 @@ public class TestParsing {
     Assert.Equal(13, result.Success!.Value);
   }
 
-  struct PersonWithTrivia {
+  class PersonWithTrivia {
     public int Age;
     public string Name;
     public List<string> Trivia = new();
@@ -96,6 +96,7 @@ public class TestParsing {
     var input = "123  Remy";
     var result = person.Parse(input);
     Assert.NotNull(result.Success);
+    Assert.Equal(123, result.Success?.Value.Age);
     Assert.Equal("  ", result.Success?.Value.Trivia[0]);
 
     var input2 = @"123// line comment

@@ -174,7 +174,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U> map) : Parser<U>
 class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
     var leftResult = left.Parse(text, recursives);
-    return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, recursives));
+    return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, ImmutableHashSet<Parser>.Empty));
   }
 }
 
