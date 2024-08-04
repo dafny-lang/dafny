@@ -42,7 +42,11 @@ public static class Comments {
           c => (c, c.Trivia)
         );
       } else {
-        sequence.First = GrammarExtensions.Then((dynamic)sequence.First, voidTrivia);
+        if (sequence.FirstType == typeof(Unit)) {
+          sequence.Second = GrammarExtensions.Then(voidTrivia, (dynamic)sequence.Second);
+        } else {
+          sequence.First = GrammarExtensions.Then((dynamic)sequence.First, voidTrivia);
+        }
       }
     }
 
