@@ -132,29 +132,22 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
       return new FoundRecursion<T, T>(Identity);
     }
     
-    var innerResult = Inner.Parse(text, recursives.Add(this));
-    if (innerResult.Success == null) {
-      return innerResult;
+    var seedResult = Inner.Parse(text, recursives.Add(this));
+    if (seedResult.Success == null) {
+      return seedResult;
     }
 
-    ConcreteSuccess<T> bestResult = innerResult.Success;
-    foreach (var recursion in innerResult.Recursions) {
-      var currentBase = innerResult.Success;
-      while (true) {
-        var recursiveResult = recursion.Apply(currentBase.Value!, currentBase.Remainder);
-        if (recursiveResult.Success != null) {
-          currentBase = recursiveResult.Success;
-        } else {
-          break;
-        }
+    ParseResult<T> combinedResult = seedResult;
+    foreach (var recursion in seedResult.Recursions) {
+      var current = seedResult;
+      while (current.Success != null) {
+        current = recursion.Apply(current.Success.Value!, current.Success.Remainder);
       }
 
-      if (currentBase.Remainder.Offset > bestResult.Remainder.Offset) {
-        bestResult = currentBase;
-      }
+      combinedResult = combinedResult.Combine(current);
     }
 
-    return bestResult;
+    return combinedResult;
   }
 }
 
