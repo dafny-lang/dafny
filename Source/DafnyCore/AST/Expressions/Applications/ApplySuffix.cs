@@ -10,7 +10,7 @@ namespace Microsoft.Dafny;
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
   public readonly IToken/*?*/ AtTok;
   public readonly IToken CloseParen;
-  public readonly ActualBindings Bindings;
+  public ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   [FilledInDuringResolution] public MethodCallInformation MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
 

@@ -98,7 +98,12 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   }
 }
 
-public record FailureR<T>(string Message, ITextPointer Location) : ConcreteResult<T> {
+public record FailureR<T> : ConcreteResult<T> {
+  public FailureR(string Message, ITextPointer Location) {
+    this.Message = Message;
+    this.Location = Location;
+  }
+
   public ParseResult<TU> Continue<TU>(Func<ConcreteSuccess<T>, ParseResult<TU>> f) {
     return new FailureR<TU>(Message, Location);
   }
@@ -107,4 +112,11 @@ public record FailureR<T>(string Message, ITextPointer Location) : ConcreteResul
   public FailureR<T> Failure => this;
 
   IEnumerable<IFoundRecursion<T>> ParseResult<T>.Recursions => [];
+  public string Message { get; init; }
+  public ITextPointer Location { get; init; }
+
+  public void Deconstruct(out string Message, out ITextPointer Location) {
+    Message = this.Message;
+    Location = this.Location;
+  }
 }

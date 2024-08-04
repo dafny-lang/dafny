@@ -178,10 +178,14 @@ class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
   }
 }
 
-class SkipRight<T>(Parser<T> left, VoidParser right) : Parser<T> {
+class SkipRight<T>(Parser<T> first, VoidParser second) : Parser<T> {
+
+  public Parser<T> First { get; set; } = first;
+  public VoidParser Second { get; set; } = second;
+  
   public ParseResult<T> Parse(ITextPointer text, ImmutableHashSet<Parser> recursives) {
-    var leftResult = left.Parse(text, recursives);
-    return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder, recursives).
+    var leftResult = First.Parse(text, recursives);
+    return leftResult.Continue(leftConcrete => Second.Parse(leftConcrete.Remainder, ImmutableHashSet<Parser>.Empty).
       Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
   }
 }

@@ -23,12 +23,11 @@ public static class Comments {
    * If the type of the left side can carry trivia, insert them there
    */
   public static Grammar<T> AddTrivia<T>(Grammar<T> root, Grammar<List<string>> triviaGrammar) {
-    var grammars = new GrammarPathRoot(root).SelfAndDescendants;
+    var grammars = root.SelfAndDescendants;
     var voidTrivia = new ParseOnly<List<string>>(triviaGrammar);
-    foreach (var grammarPath in grammars) {
-      var grammar = grammarPath.Current;
+    foreach (var grammar in grammars) {
       if (grammar is SequenceG<ITriviaContainer, dynamic, ITriviaContainer> sequence) {
-        sequence.Left = new SequenceG<ITriviaContainer, List<string>, ITriviaContainer>(sequence.Left, triviaGrammar,
+        sequence.First = new SequenceG<ITriviaContainer, List<string>, ITriviaContainer>(sequence.First, triviaGrammar,
           sequence.Mode,
           (c, trivia) => {
             c.Trivia = trivia.ToList();
@@ -37,7 +36,11 @@ public static class Comments {
           c => (c, c.Trivia)
         );
       } else if (grammar is SequenceG<dynamic, dynamic, dynamic> nonContainerSequence) {
-        nonContainerSequence.Left = nonContainerSequence.Left.Then(voidTrivia);
+        nonContainerSequence.First = nonContainerSequence.First.Then(voidTrivia);
+      } else if (grammar is SkipRightG<dynamic> skipRight) {
+        skipRight.First = skipRight.First.Then(voidTrivia);
+      } else if (grammar is SkipLeftG<dynamic> skipLeft) {
+        skipLeft.Second = voidTrivia.Then(skipLeft.Second);
       }
     }
 

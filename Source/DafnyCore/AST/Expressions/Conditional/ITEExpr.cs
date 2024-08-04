@@ -5,9 +5,9 @@ namespace Microsoft.Dafny;
 
 public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
   public readonly bool IsBindingGuard;
-  public readonly Expression Test;
-  public readonly Expression Thn;
-  public readonly Expression Els;
+  public Expression Test;
+  public Expression Thn;
+  public Expression Els;
 
   /// <summary>
   /// Constructor for the parser

@@ -36,8 +36,6 @@ class IgnoreW<T>(VoidPrinter printer) : Printer<T>;
 
 internal class TextW(string value) : VoidPrinter;
 
-internal class ManyW<T>(Printer<T> one) : Printer<List<T>>;
-
 internal class NumberW : Printer<int>;
 
 internal class IdentifierW : Printer<string>;
