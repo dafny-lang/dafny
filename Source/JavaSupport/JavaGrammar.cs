@@ -100,7 +100,7 @@ public class JavaGrammar {
     var returnExpression = Keyword("return").Then(expression).Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
 
-    return Fail<Statement>().OrCast(returnExpression);
+    return returnExpression.UpCast<ReturnStmt, Statement>();
   }
 
   Grammar<Expression> GetExpressionGrammar(Grammar<Expression> self) {
@@ -124,7 +124,7 @@ public class JavaGrammar {
     var call = Value(() => new ApplySuffix()).Then(self, s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings);
     
-    return Fail<Expression>().OrCast(ternary).OrCast(less).OrCast(variableRef).OrCast(number).OrCast(call);
+    return ternary.UpCast<ITEExpr, Expression>().OrCast(less).OrCast(variableRef).OrCast(number).OrCast(call);
   }
 
   private Grammar<Type> Type()
