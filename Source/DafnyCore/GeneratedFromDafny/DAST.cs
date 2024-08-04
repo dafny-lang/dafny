@@ -6156,8 +6156,8 @@ namespace DAST {
     public static _IExpression create_SeqBoundedPool(DAST._IExpression of, bool includeDuplicates) {
       return new Expression_SeqBoundedPool(of, includeDuplicates);
     }
-    public static _IExpression create_IntRange(DAST._IExpression lo, DAST._IExpression hi, bool up) {
-      return new Expression_IntRange(lo, hi, up);
+    public static _IExpression create_IntRange(DAST._IType elemType, DAST._IExpression lo, DAST._IExpression hi, bool up) {
+      return new Expression_IntRange(elemType, lo, hi, up);
     }
     public static _IExpression create_UnboundedIntRange(DAST._IExpression start, bool up) {
       return new Expression_UnboundedIntRange(start, up);
@@ -6395,6 +6395,7 @@ namespace DAST {
       get {
         var d = this;
         if (d is Expression_SetBuilder) { return ((Expression_SetBuilder)d)._elemType; }
+        if (d is Expression_IntRange) { return ((Expression_IntRange)d)._elemType; }
         return ((Expression_Quantifier)d)._elemType;
       }
     }
@@ -8210,25 +8211,28 @@ namespace DAST {
     }
   }
   public class Expression_IntRange : Expression {
+    public readonly DAST._IType _elemType;
     public readonly DAST._IExpression _lo;
     public readonly DAST._IExpression _hi;
     public readonly bool _up;
-    public Expression_IntRange(DAST._IExpression lo, DAST._IExpression hi, bool up) : base() {
+    public Expression_IntRange(DAST._IType elemType, DAST._IExpression lo, DAST._IExpression hi, bool up) : base() {
+      this._elemType = elemType;
       this._lo = lo;
       this._hi = hi;
       this._up = up;
     }
     public override _IExpression DowncastClone() {
       if (this is _IExpression dt) { return dt; }
-      return new Expression_IntRange(_lo, _hi, _up);
+      return new Expression_IntRange(_elemType, _lo, _hi, _up);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Expression_IntRange;
-      return oth != null && object.Equals(this._lo, oth._lo) && object.Equals(this._hi, oth._hi) && this._up == oth._up;
+      return oth != null && object.Equals(this._elemType, oth._elemType) && object.Equals(this._lo, oth._lo) && object.Equals(this._hi, oth._hi) && this._up == oth._up;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 46;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hi));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
@@ -8237,6 +8241,8 @@ namespace DAST {
     public override string ToString() {
       string s = "DAST.Expression.IntRange";
       s += "(";
+      s += Dafny.Helpers.ToString(this._elemType);
+      s += ", ";
       s += Dafny.Helpers.ToString(this._lo);
       s += ", ";
       s += Dafny.Helpers.ToString(this._hi);

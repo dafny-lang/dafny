@@ -1837,6 +1837,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       return (DAST.Expression)DAST.Expression.create_IntRange(
+        DAST.Type.create_Primitive(DAST.Primitive.create_Int()),
         startExpr, endExpr, true);
     }
 
