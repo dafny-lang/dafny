@@ -43,7 +43,7 @@ internal class NumberW : Printer<int>;
 internal class IdentifierW : Printer<string>;
 
 class SequenceW<TLeft, TRight, T>(Printer<TLeft> left, Printer<TRight> right, 
-  Func<T, (TLeft, TRight)> destruct, Orientation mode) : Printer<T>;
+  Func<T, (TLeft, TRight)?> destruct, Orientation mode) : Printer<T>;
 
 class SkipLeftW<T>(VoidPrinter left, Printer<T> right, Orientation mode) : Printer<T>;
 

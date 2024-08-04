@@ -82,7 +82,7 @@ class SkipLeftG<T>(VoidGrammar left, Grammar<T> right, Orientation mode = Orient
   }
 }
 
-class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode) : Grammar<T> {
+class SkipRightG<T>(Grammar<T> left, VoidGrammar right, Orientation mode = Orientation.Horizontal) : Grammar<T> {
   Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
     var first = (Printer<T>)recurse(left);
     var second = (VoidPrinter)recurse(right);
@@ -174,7 +174,7 @@ class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
 }
 
 class SequenceG<TLeft, TRight, T>(Grammar<TLeft> left, Grammar<TRight> right, Orientation mode, 
-  Func<TLeft, TRight, T> construct, Func<T, (TLeft, TRight)> destruct) : Grammar<T> {
+  Func<TLeft, TRight, T> construct, Func<T, (TLeft, TRight)?> destruct) : Grammar<T> {
 
   public Grammar<TLeft> Left { get; set; } = left;
   public Grammar<TRight> Right { get; set; } = right;
@@ -219,33 +219,22 @@ public static class GrammarExtensions {
   }  
   
   public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Orientation mode = Orientation.Horizontal) {
-    return new SkipRightG<T>(left, right, Orientation.Horizontal);
+    return new SkipRightG<T>(left, right, mode);
   }  
   
   public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Horizontal) {
-    return new SkipLeftG<T>(left, right, Orientation.Horizontal);
-  }
-
-  record Prepend<T>(T Head, IEnumerable<T> Tail) : IEnumerable<T> {
-    public IEnumerator<T> GetEnumerator() {
-      throw new NotImplementedException();
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() {
-      return GetEnumerator();
-    }
+    return new SkipLeftG<T>(left, right, mode);
   }
   
   public static Grammar<List<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Horizontal) {
-    var numerable = GrammarBuilder.Recursive<IEnumerable<T>>(self => 
-      GrammarBuilder.Value<IEnumerable<T>>(() => []).Or(one.Then(self, orientation,
+    var numerable = GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
+      GrammarBuilder.Value<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, orientation,
         
-        (head, tail) => (IEnumerable<T>)new Prepend<T>(head, tail),
+        (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
         // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
         // ReSharper disable once PossibleMultipleEnumeration
-        l => (l.First(), l.Skip(1))
-      )));
-    return numerable.Map(e => e.ToList(), l => l);
+        l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null))));
+    return numerable.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
   
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
@@ -273,7 +262,7 @@ public static class GrammarExtensions {
     Grammar<TRight> right,
     Orientation mode,
     Func<TLeft, TRight, T> construct,
-    Func<T, (TLeft, TRight)> destruct) {
+    Func<T, (TLeft, TRight)?> destruct) {
     return new SequenceG<TLeft, TRight, T>(left, right, mode, construct, destruct);
   }
   

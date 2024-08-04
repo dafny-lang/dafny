@@ -1,40 +1,35 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Microsoft.Dafny;
 
-class LinkedListEnumerator<T> : IEnumerator<T> {
-  private Cons<T> list;
-
-  public LinkedListEnumerator(Cons<T> list) {
-    this.list = new Cons<T>(default, list);
-  }
-
+class LinkedListEnumerator<T>(SinglyLinkedList<T> remainder) : IEnumerator<T> {
+  private T? current;
+  
   public bool MoveNext() {
-    if (list.Tail is Cons<T> tailCons) {
-      list = tailCons;
+    return remainder.Fold((head, tail) => {
+      current = head;
+      remainder = tail;
       return true;
-    }
-
-    return false;
+    }, () => false);
   }
 
   public void Reset() {
-    throw new System.NotSupportedException();
+    throw new NotSupportedException();
   }
 
-  public T Current => list.Head;
+  public T Current => current!;
 
-  object IEnumerator.Current => Current;
+  object IEnumerator.Current => Current!;
 
   public void Dispose() {
   }
 }
 
 public abstract record SinglyLinkedList<T> : IEnumerable<T> {
-  public abstract IEnumerator<T> GetEnumerator();
+  public IEnumerator<T> GetEnumerator() {
+    return new LinkedListEnumerator<T>(this);
+  }
+  
   IEnumerator IEnumerable.GetEnumerator() {
     return GetEnumerator();
   }
@@ -42,19 +37,19 @@ public abstract record SinglyLinkedList<T> : IEnumerable<T> {
   public bool Any() {
     return this is not Nil<T>;
   }
+
+  public abstract U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil);
 }
 
 public static class LinkedLists {
   public static SinglyLinkedList<T> Concat<T>(SinglyLinkedList<T> left, SinglyLinkedList<T> right) {
-    return left switch {
-      Nil<T> => right,
-      Cons<T> cons => new Cons<T>(cons.Head, Concat<T>(cons.Tail, right)),
-      _ => throw new ArgumentOutOfRangeException(nameof(left))
-    };
+    return left.Fold(
+      (head, tail) => new Cons<T>(head, Concat<T>(tail, right)), 
+      () => right);
   }
 
 
-  public static SinglyLinkedList<T> FromList<T>(IReadOnlyList<T> values, SinglyLinkedList<T> tail = null) {
+  public static SinglyLinkedList<T> FromList<T>(IReadOnlyList<T> values, SinglyLinkedList<T>? tail = null) {
     SinglyLinkedList<T> result = tail ?? new Nil<T>();
     for (int i = values.Count - 1; i >= 0; i--) {
       result = new Cons<T>(values[i], result);
@@ -67,14 +62,29 @@ public static class LinkedLists {
   }
 }
 
+
 public record Cons<T>(T Head, SinglyLinkedList<T> Tail) : SinglyLinkedList<T> {
-  public override IEnumerator<T> GetEnumerator() {
-    return new LinkedListEnumerator<T>(this);
+
+  public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
+    return cons(Head, Tail);
   }
 }
 
-public record Nil<T>() : SinglyLinkedList<T> {
-  public override IEnumerator<T> GetEnumerator() {
-    return Enumerable.Empty<T>().GetEnumerator();
+public record Nil<T> : SinglyLinkedList<T> {
+
+  public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
+    return nil();
+  }
+}
+
+record LinkedListFromList<T>(IReadOnlyList<T> Source, int Offset = 0) : SinglyLinkedList<T> {
+  
+
+  public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
+    if (Source.Count > Offset) {
+      return cons(Source[Offset], new LinkedListFromList<T>(Source, Offset + 1));
+    }
+
+    return nil();
   }
 }
