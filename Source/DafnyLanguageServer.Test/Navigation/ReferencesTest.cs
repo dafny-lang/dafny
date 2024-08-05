@@ -12,43 +12,6 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class ReferencesTest : ClientBasedLanguageServerTest {
-    private async Task<LocationContainer> RequestReferences(
-      TextDocumentItem documentItem, Position position, bool includeDeclaration = false) {
-      // We don't want resolution errors, but other diagnostics (like a cyclic-include warning) are okay
-      await AssertNoResolutionErrors(documentItem);
-
-      return await client.RequestReferences(
-        new ReferenceParams {
-          TextDocument = documentItem.Uri,
-          Position = position,
-          Context = new ReferenceContext() {
-            IncludeDeclaration = includeDeclaration
-          }
-        }, CancellationToken).AsTask();
-    }
-
-    /// <summary>
-    /// Assert that when finding-references at each cursor position and each regular span,
-    /// the client returns all ranges marked with regular spans.
-    /// </summary>
-    private async Task AssertReferences(string source, string fileName, bool includeDeclaration = false) {
-      MarkupTestFile.GetPositionsAndRanges(
-        source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
-      var expectedRanges = new HashSet<Range>(expectedRangesArray);
-
-      var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { r.Start, r.End });
-      var allPositions = explicitPositions.Concat(positionsFromRanges);
-
-      var documentItem = CreateTestDocument(cleanSource, fileName);
-      await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await AssertNoResolutionErrors(documentItem);
-
-      foreach (var position in allPositions) {
-        var result = await RequestReferences(documentItem, position, includeDeclaration);
-        var resultRanges = result.Select(location => location.Range).ToHashSet();
-        Assert.Equal(expectedRanges, resultRanges);
-      }
-    }
 
     [Fact]
     public async Task UnusedModule() {

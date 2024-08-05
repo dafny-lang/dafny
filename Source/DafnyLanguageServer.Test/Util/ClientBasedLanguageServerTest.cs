@@ -434,7 +434,7 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
   /// assert that a RequestDefinition at position K
   /// returns either the Kth range, or the range with key K (as a string).
   /// </summary>
-  protected async Task AssertPositionsLineUpWithRanges(string source, string filePath = null) {
+  protected async Task AssertGotoDefinition(string source, string filePath = null) {
     MarkupTestFile.GetPositionsAndNamedRanges(source, out var cleanSource,
       out var positions, out var ranges);
 
@@ -444,6 +444,44 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
       var range = ranges.ContainsKey(index.ToString()) ? ranges[index.ToString()].Single() : ranges[string.Empty][index];
       var result = (await RequestDefinition(documentItem, position)).Single();
       Assert.Equal(range, result.Location!.Range);
+    }
+  }
+
+  protected async Task<LocationContainer> RequestReferences(
+    TextDocumentItem documentItem, Position position, bool includeDeclaration = false) {
+    // We don't want resolution errors, but other diagnostics (like a cyclic-include warning) are okay
+    await AssertNoResolutionErrors(documentItem);
+
+    return await client.RequestReferences(
+      new ReferenceParams {
+        TextDocument = documentItem.Uri,
+        Position = position,
+        Context = new ReferenceContext() {
+          IncludeDeclaration = includeDeclaration
+        }
+      }, CancellationToken).AsTask();
+  }
+
+  /// <summary>
+  /// Assert that when finding-references at each cursor position and each regular span,
+  /// the client returns all ranges marked with regular spans.
+  /// </summary>
+  protected async Task AssertReferences(string source, string fileName, bool includeDeclaration = false) {
+    MarkupTestFile.GetPositionsAndRanges(
+      source, out var cleanSource, out var explicitPositions, out var expectedRangesArray);
+    var expectedRanges = new HashSet<Range>(expectedRangesArray);
+
+    var positionsFromRanges = expectedRangesArray.SelectMany(r => new[] { r.Start, r.End });
+    var allPositions = explicitPositions.Concat(positionsFromRanges);
+
+    var documentItem = CreateTestDocument(cleanSource, fileName);
+    await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
+    await AssertNoResolutionErrors(documentItem);
+
+    foreach (var position in allPositions) {
+      var result = await RequestReferences(documentItem, position, includeDeclaration);
+      var resultRanges = result.Select(location => location.Range).ToHashSet();
+      Assert.Equal(expectedRanges, resultRanges);
     }
   }
 }

@@ -23,7 +23,7 @@ module User {
 module [>Used<] {
   const x: bool := 3
 }".TrimStart();
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ module User {
 module Used {
   const [>x<] := 3
 }".TrimStart();
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ module Used {
   const [>y<] := 3
   const x: bool := ><y
 }".TrimStart();
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ module User {
 module [>Used<] {
   const x := 3
 }".TrimStart();
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ module User {
 module [>Used<] {
   const x := 3
 }".TrimStart();
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -142,7 +142,7 @@ method HasLoop() {
 }
 ".TrimStart();
 
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ datatype Result<T, E> = Ok(value: T) | Err({>1:error<}: E) {
 }
 ".TrimStart();
 
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -186,7 +186,7 @@ function Bar(): Zaz.E {
 }
 ".TrimStart();
 
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -331,7 +331,7 @@ module Consumer2 {
   type A2 = Pro><vider.A
 }".TrimStart();
 
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     [Fact]
@@ -552,7 +552,7 @@ module B refines ><A {
                           // inherited method body
   }
 }".TrimStart();
-      await AssertPositionsLineUpWithRanges(source);
+      await AssertGotoDefinition(source);
     }
 
     public GoToDefinitionTest(ITestOutputHelper output) : base(output) {

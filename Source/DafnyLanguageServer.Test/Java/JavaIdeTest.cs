@@ -30,7 +30,20 @@ class Div {
     return 3 / ><x;
   }
 }".TrimStart();
-    await AssertPositionsLineUpWithRanges(source, "GotoDefinitionJava.vjava");
+    await AssertGotoDefinition(source, "GotoDefinitionJava.vjava");
+  }
+  
+  
+  [Fact]
+  public async Task FindReferencesJava() {
+    var source = @"
+class Div {
+  int Foo(int ><x) {
+    return 3 / [>x<];
+  }
+}".TrimStart();
+    
+    await AssertReferences(source, "FindReferencesJava.vjava");
   }
   
   [Fact]
