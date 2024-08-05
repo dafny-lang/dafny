@@ -76,11 +76,19 @@ public class JavaGrammar {
   }
 
   public Grammar<FileModuleDefinition> File() {
-    return Class().Many().Map(c => {
-      var result = new FileModuleDefinition(Token.NoToken);
-      result.SourceDecls.AddRange(c);
-      return result;
-    }, m => m.SourceDecls.OfType<ClassDecl>().ToList());
+    Grammar<ModuleQualifiedId> qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
+    Grammar<AliasModuleDecl> import = Keyword("import").Then(qualifiedId).Then(";").Map(
+        (t, a) => new AliasModuleDecl(DafnyOptions.Default, 
+          Convert(t), a, a.Path[^1], null, true, [], Guid.NewGuid()), 
+        a => a.TargetQId);
+    
+    var classes = Class().Many();
+    return import.Many().Map(imports =>
+      new FileModuleDefinition(Token.NoToken) {
+        SourceDecls = imports.ToList<TopLevelDecl>()
+      }, f => f.SourceDecls.OfType<AliasModuleDecl>().ToList()).Then(classes,
+      f => f.SourceDecls.OfType<ClassDecl>().ToList(),
+      (f, c) => f.SourceDecls.AddRange(c));
   }
   
   Grammar<ClassDecl> Class() {
@@ -96,9 +104,45 @@ public class JavaGrammar {
   }
 
   Grammar<MemberDecl> Member() {
-    return Method().UpCast<Method, MemberDecl>();
+    return Method().UpCast<Method, MemberDecl>().OrCast(Function());
   }
 
+  Grammar<Function> Function() {
+    
+    // Need something special for a unordered bag of keywords
+    var staticc = Keyword("static").Then(Constant(true)).Default(() => false);
+
+    var parameter = Value(() => new Formal() {
+        InParam = true
+      }).
+      Then(type, f => f.Type).
+      Then(name, f => new Name(f.Name), (f,v) => {
+        f.Name = v.Value;
+        f.tok = v.tok;
+      }).
+      SetRange((f, t) => {
+        f.RangeToken = Convert(t);
+      });
+    var parameters = parameter.Many().InParens();
+    var require = Keyword("requires").Then(expression).Map(
+      e => new AttributedExpression(e), 
+      ae => ae.E);
+    var requires = require.Many();
+
+    var expressionBlock = block.Map(b =>
+        ((b.Body.FirstOrDefault() as ReturnStmt)?.Rhss.FirstOrDefault() as ExprRhs)?.Expr,
+      e => new BlockStmt(e.RangeToken, [new ReturnStmt(e.RangeToken, [new ExprRhs(e)])]));
+    
+    return Keyword("@Function").Then(Value(() => new Function())).
+      Then(staticc, m => m.IsStatic).
+      Then(type, m => m.ResultType).
+      Then(name, m => m.NameNode).
+      Then(parameters, m => m.Ins).
+      Then(requires, m => m.Req).
+      Then(expressionBlock, m => m.Body, Orientation.Vertical).
+      SetRange((m, r) => m.RangeToken = Convert(r));
+  }
+  
   Grammar<Method> Method() {
     // Need something special for a unordered bag of keywords
     var staticc = Keyword("static").Then(Constant(true)).Default(() => false);
@@ -107,7 +151,9 @@ public class JavaGrammar {
       f=> f.Type);
     var outs = returnParameter.Option(Keyword("void")).OptionToList();
 
-    var parameter = Value(() => new Formal()).
+    var parameter = Value(() => new Formal() {
+        InParam = true
+      }).
       Then(type, f => f.Type).
       Then(name, f => new Name(f.Name), (f,v) => {
         f.Name = v.Value;

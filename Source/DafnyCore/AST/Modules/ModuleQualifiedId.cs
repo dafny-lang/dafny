@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class ModuleQualifiedId : Node, IHasReferences {
-  public readonly List<Name> Path; // Path != null && Path.Count > 0
+  public List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
   // Note that the root (first path segment) is resolved initially,

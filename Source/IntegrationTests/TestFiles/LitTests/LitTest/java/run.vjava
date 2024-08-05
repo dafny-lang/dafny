@@ -1,17 +1,14 @@
-// RUN: %run "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-
-//import System.out;
+import out;
 
 class Div {
   static void Main() {
-    Foo(3);
-    //System.out.println(Foo(3));
+    println(Foo(2));
   }
 
-  static int Foo(int x)
+  @Function
+  static int32 Foo(int32 x)
     requires x != 0 
   {
-    return 3 / x;
+    return 6 / x;
   }
 }

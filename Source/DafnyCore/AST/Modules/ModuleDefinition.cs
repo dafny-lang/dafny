@@ -64,7 +64,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 
   public DefaultClassDecl DefaultClass { get; set; }
 
-  public readonly List<TopLevelDecl> SourceDecls = new();
+  public List<TopLevelDecl> SourceDecls = new();
   [FilledInDuringResolution]
   public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = new();
   [FilledInDuringResolution]

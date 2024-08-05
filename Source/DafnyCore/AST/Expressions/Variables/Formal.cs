@@ -7,13 +7,13 @@ namespace Microsoft.Dafny;
 public class Formal : NonglobalVariable {
   public Attributes Attributes { get; set; }
 
-  public readonly bool InParam;  // true to in-parameter, false for out-parameter
+  public bool InParam;  // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
   public readonly bool IsOld;
   public Expression DefaultValue;
   public readonly bool IsNameOnly;
   public readonly bool IsOlder;
-  public readonly string NameForCompilation;
+  public string NameForCompilation => nameForCompilation ?? Name;
 
   public Formal() : base(Token.Parsing, null, null, false)
   {
@@ -34,12 +34,14 @@ public class Formal : NonglobalVariable {
     Attributes = attributes;
     IsNameOnly = isNameOnly;
     IsOlder = isOlder;
-    NameForCompilation = nameForCompilation ?? name;
+    this.nameForCompilation = nameForCompilation;
   }
 
   public bool HasName => !Name.StartsWith("#");
 
   private string sanitizedName;
+  private readonly string nameForCompilation;
+
   public override string SanitizedName =>
     sanitizedName ??= SanitizeName(Name); // No unique-ification
   public override string CompileName =>

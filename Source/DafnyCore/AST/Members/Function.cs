@@ -93,9 +93,9 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly Formal Result;
+  public Formal Result;
   public PreType ResultPreType;
-  public readonly Type ResultType;
+  public Type ResultType;
   public Type OriginalResultTypeWithRenamings() {
     if (OverriddenFunction == null) {
       return ResultType;
@@ -225,6 +225,11 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     Contract.Invariant(Decreases != null);
   }
 
+  
+  public Function() 
+    : base(RangeToken.NoToken, null, false, false, null, false) {
+  }
+  
   public Function(RangeToken range, Name name, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result, Type resultType,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,

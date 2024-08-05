@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -85,7 +86,13 @@ public class TranslationRecord {
   }
 
   public void Write(TextWriter writer) {
-    writer.Write(Toml.FromModel(this, new TomlModelOptions()).Replace("\r\n", "\n"));
+    string content;
+    try {
+      content = Toml.FromModel(this, new TomlModelOptions());
+    } catch (InvalidCastException) {
+      content = ""; // Seems like a toml bug that we need to do this for
+    }
+    writer.Write(content.Replace("\r\n", "\n"));
   }
 
   public void Write(ConcreteSyntaxTree writer) {

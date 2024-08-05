@@ -1,4 +1,4 @@
-package externs;
+package out;
 
 public class __default {
   public static void println(int x) {
