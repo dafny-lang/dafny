@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         .WithHandler<DafnyTextDocumentHandler>()
         .WithHandler<DafnyDocumentSymbolHandler>()
         .WithHandler<DafnyHoverHandler>()
-        .WithHandler<DafnyDefinitionHandler>()
+        .WithHandler<GotoDefinitionHandler>()
         .WithHandler<DafnyReferencesHandler>()
         .WithHandler<DafnyRenameHandler>()
         .WithHandler<DafnyCompletionHandler>()

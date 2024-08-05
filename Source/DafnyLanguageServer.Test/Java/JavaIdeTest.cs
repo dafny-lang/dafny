@@ -23,6 +23,17 @@ class Div {
   }
   
   [Fact]
+  public async Task GotoDefinitionJava() {
+    var source = @"
+class Div {
+  int Foo(int [>x<]) {
+    return 3 / ><x;
+  }
+}".TrimStart();
+    await AssertPositionsLineUpWithRanges(source, "GotoDefinitionJava.vjava");
+  }
+  
+  [Fact]
   public async Task SafeDivision() {
     var input = @"
 class Div {

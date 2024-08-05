@@ -36,10 +36,31 @@ public class JavaGrammar {
     return Comments.AddTrivia(result, Comments.JavaTrivia());
   }
 
+
+  public IToken ConvertValue(IPosition position, string value) {
+    return new Token {
+      col = position.Column + 1,
+      line = position.Line + 1,
+      pos = position.Offset,
+      Uri = uri,
+      val = value
+    };
+  }
+  
+  public IToken ConvertToken(ParseRange position) {
+    return new Token {
+      col = position.From.Column + 1,
+      line = position.From.Line + 1,
+      pos = position.From.Offset,
+      Uri = uri,
+      val = new string('f', position.Until.Offset - position.From.Offset)
+    };
+  }
+  
   public IToken Convert(IPosition position) {
     return new Token {
-      col = position.Column,
-      line = position.Line,
+      col = position.Column + 1,
+      line = position.Line + 1,
       pos = position.Offset,
       Uri = uri,
     };
@@ -83,11 +104,11 @@ public class JavaGrammar {
 
     var parameter = Value(() => new Formal()).
       Then(type, f => f.Type).
-      Then(Identifier, f => f.Name).
-      SetRange((f, t) => {
-        f.RangeToken = Convert(t);
-        f.tok = f.RangeToken.StartToken; // TODO fix so it points to the name
-      });
+      Then(name, f => new Name(f.Name), (f,v) => {
+        f.Name = v.Value;
+        f.tok = v.tok;
+      }).
+      SetRange((f, t) => f.RangeToken = Convert(t));
     var parameters = parameter.Many().InParens();
 
     return Value(() => new Method()).
@@ -194,7 +215,7 @@ public class JavaGrammar {
 
 
   private Grammar<Name> GetNameGrammar() => 
-    Identifier.Map((t, value) => new Name(Convert(t), value), n => n.Value);
+    Identifier.Map((t, value) => new Name(ConvertValue(t.From, value)), n => n.Value);
 }
 
 // class Div {

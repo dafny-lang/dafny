@@ -12,11 +12,11 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP handler responsible to resolve the location of a designator at the specified position.
   /// </summary>
-  public class DafnyDefinitionHandler : DefinitionHandlerBase {
+  public class GotoDefinitionHandler : DefinitionHandlerBase {
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;
 
-    public DafnyDefinitionHandler(ILogger<DafnyDefinitionHandler> logger, IProjectDatabase projects) {
+    public GotoDefinitionHandler(ILogger<GotoDefinitionHandler> logger, IProjectDatabase projects) {
       this.logger = logger;
       this.projects = projects;
     }

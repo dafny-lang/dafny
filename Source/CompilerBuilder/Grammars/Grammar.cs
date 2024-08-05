@@ -347,4 +347,7 @@ public static class GrammarBuilder {
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
   public static readonly Grammar<string> Whitespace = new ExplicitGrammar<string>(ParserBuilder.Whitespace, Verbatim.Instance);
+  
+  public static readonly Grammar<IPosition> Position = 
+    new ExplicitGrammar<IPosition>(PositionR.Instance, new IgnoreW<IPosition>(Empty.Instance));
 }
