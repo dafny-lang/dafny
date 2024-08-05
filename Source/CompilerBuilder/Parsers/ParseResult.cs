@@ -36,6 +36,7 @@ public interface ParseResult<T> : ParseResult {
 
     failure ??= Failure ?? other.Failure;
     if (concreteSuccess != null && failure != null && failure.Location.Offset <= concreteSuccess.Remainder.Offset) {
+      // TODO consider keeping the failure if it's at the same offset, because it might have been how you wanted to continue
       failure = null;
     }
 

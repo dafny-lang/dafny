@@ -1,0 +1,17 @@
+// RUN: %run "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+//import System.out;
+
+class Div {
+  static void Main() {
+    Foo(3);
+    //System.out.println(Foo(3));
+  }
+
+  static int Foo(int x)
+    requires x != 0 
+  {
+    return 3 / x;
+  }
+}

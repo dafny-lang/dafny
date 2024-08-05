@@ -1,7 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Collections.Immutable;
-using Microsoft.Boogie;
+﻿using System.Collections.Immutable;
 
 namespace CompilerBuilder;
 
@@ -60,6 +57,14 @@ class EndOfText<T>(Parser<T> inner) : Parser<T> {
   }
 }
 
+/*
+ * TODO
+ * it might be a cool idea to use PointerFromString to determine which parts of the cache to keep
+ * However, when you call Drop, you do not know if the old pointer is still used.
+ * We make have to introduce .Ref() and .DropAndUnref() methods
+ * That enable the cache to know when a text pointer is disposed
+ * Or maybe we can use the C# dispose mechanic
+ */
 class PointerFromString : ITextPointer {
   public PointerFromString(string text) {
     Text = text;
@@ -115,9 +120,6 @@ class PointerFromString : ITextPointer {
   }
 }
 
-// TODO maybe change the right to an aggregate function of TLeft and TRight
-// And leave the container concept for the extensions
-
 public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> second, Func<TLeft, TRight, T> combine) : Parser<T> {
   
   public Parser<TLeft> First { get; set; } = first;
@@ -159,16 +161,20 @@ class PositionR : Parser<IPosition> {
   }
 }
 
-class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U> map) : Parser<U> {
+class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U?> map) : Parser<U> {
 
   public Parser<T> Parser { get; set; } = parser;
   
   public ParseResult<U> Parse(ITextPointer text) {
     var start = text;
     var innerResult = Parser.Parse(text);
-    return innerResult.Continue(success => {
+    return innerResult.Continue<U>(success => {
       var end = success.Remainder;
-      return new ConcreteSuccess<U>(map(new ParseRange(start, end), success.Value), success.Remainder);
+      var newValue = map(new ParseRange(start, end), success.Value);
+      if (newValue == null) {
+        return new FailureResult<U>("Mapping failure", end);
+      }
+      return new ConcreteSuccess<U>(newValue, success.Remainder);
     });
   }
 }
@@ -299,7 +305,6 @@ internal class IdentifierR : Parser<string> {
 }
 
 class ValueR<T>(Func<T> value) : Parser<T> {
-
   public T Evaluated => value();
   
   public ParseResult<T> Parse(ITextPointer text) {

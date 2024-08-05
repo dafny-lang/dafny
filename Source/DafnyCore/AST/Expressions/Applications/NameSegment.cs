@@ -15,7 +15,7 @@ public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, IC
     Name = name;
     OptTypeArguments = optTypeArguments;
   }
-
+  
   public NameSegment(Cloner cloner, NameSegment original) : base(cloner, original) {
     Name = original.Name;
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);

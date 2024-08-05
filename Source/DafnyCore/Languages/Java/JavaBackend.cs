@@ -179,7 +179,7 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     string baseName = Path.GetFileNameWithoutExtension(externFilename);
     var mainDir = Path.GetDirectoryName(mainProgram);
     Contract.Assert(mainDir != null);
-    var tgtDir = Path.Combine(mainDir, pkgName);
+    var tgtDir = Path.Combine(mainDir, Path.Combine(pkgName.ToArray()));
     var tgtFilename = Path.Combine(tgtDir, baseName + ".java");
     Directory.CreateDirectory(tgtDir);
     FileInfo file = new FileInfo(externFilename);
@@ -190,18 +190,18 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     return true;
   }
 
-  private static string FindPackageName(string externFilename) {
+  private static IList<string> FindPackageName(string externFilename) {
     using var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read));
-    while (rd.ReadLine() is string line) {
+    while (rd.ReadLine() is { } line) {
       var match = PackageLine.Match(line);
       if (match.Success) {
-        return match.Groups[1].Value;
+        return match.Groups[1].Value.Split(".");
       }
     }
     return null;
   }
 
-  private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
+  private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_\.]+)\s*;$");
 
   public JavaBackend(DafnyOptions options) : base(options) {
   }

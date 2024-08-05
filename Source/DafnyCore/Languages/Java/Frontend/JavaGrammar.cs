@@ -17,14 +17,19 @@ public class JavaGrammar {
   private readonly Grammar<Type> type;
   private readonly Grammar<Statement> statement;
   private Grammar<BlockStmt> block;
+  private Grammar<ApplySuffix> call;
 
   public JavaGrammar(Uri uri) {
     this.uri = uri;
     name = GetNameGrammar();
     type = TypeGrammar();
-    expression = Recursive<Expression>(GetExpressionGrammar);
+    expression = Recursive<Expression>(self => {
+      var t = GetExpressionGrammar(self);
+      call = t.call;
+      return t.expression;
+    });
     statement = Recursive<Statement>(self => {
-      var r = Statement(self);
+      var r = StatementGrammar(self);
       block = r.Block;
       return r.Statement;
     });
@@ -110,7 +115,7 @@ public class JavaGrammar {
       }).
       SetRange((f, t) => f.RangeToken = Convert(t));
     var parameters = parameter.Many().InParens();
-    Grammar<AttributedExpression> require = Keyword("requires").Then(expression).Map(
+    var require = Keyword("requires").Then(expression).Map(
       e => new AttributedExpression(e), 
       ae => ae.E);
     var requires = require.Many();
@@ -130,7 +135,7 @@ public class JavaGrammar {
     public Expression? Initializer { get; set; }
   }
   
-  (Grammar<Statement> Statement, Grammar<BlockStmt> Block) Statement(Grammar<Statement> self) {
+  (Grammar<Statement> Statement, Grammar<BlockStmt> Block) StatementGrammar(Grammar<Statement> self) {
     var block = self.Many().InBraces().Map(
       (r, ss) => new BlockStmt(Convert(r), ss), 
       b => b.Body);
@@ -140,6 +145,13 @@ public class JavaGrammar {
     var ifStatement = Value(() => new IfStmt()).
       Then("if").Then(expression.InParens(), s => s.Guard).
       Then(block, s => s.Thn);
+
+    // The recursive binnen de call slokt alle expression meuk op.
+    var expressionStatement = expression.DownCast<Expression, ApplySuffix>().Then(";").Map(
+      (t, a) => new UpdateStmt(Convert(t), new List<Expression>(), [new ExprRhs(a) {
+        tok = Convert(t.From)
+      }]),
+      updateStmt => (updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix);
 
     var initializer = Keyword("=").Then(expression).Option();
     var localStart = Value(() => new LocalVariable()).
@@ -169,11 +181,12 @@ public class JavaGrammar {
     // if statement
     // assignment statement
     // variable declaration [initializer]
-    var statement = returnExpression.UpCast<ReturnStmt, Statement>().OrCast(ifStatement).OrCast(block);
-    return (statement, block);
+    var result = returnExpression.UpCast<ReturnStmt, Statement>().
+      OrCast(ifStatement).OrCast(block).OrCast(expressionStatement);
+    return (result, block);
   }
 
-  Grammar<Expression> GetExpressionGrammar(Grammar<Expression> self) {
+  (Grammar<Expression> expression, Grammar<ApplySuffix> call) GetExpressionGrammar(Grammar<Expression> self) {
     var ternary = 
       self.Assign(() => new ITEExpr(), e => e.Test).
       Then("?").Then(self, e => e.Thn).
@@ -189,15 +202,29 @@ public class JavaGrammar {
       Then(opCode, b => b.Op).
       Then(self, b => b.E1);
 
-    var variableRef = Identifier.Map((r, v) => new IdentifierExpr(Convert(r), v), ie => ie.Name);
+    var variableRef = Identifier.Map(
+      (r, v) => new NameSegment(Convert(r), v, null), 
+      ie => ie.Name);
     var number = Number.Map((r, v) => new LiteralExpr(Convert(r), v), l => throw new NotImplementedException());
-    var nonGhostBinding = self.Map(e => new ActualBinding(null, e), a => a.Actual);
+    var nonGhostBinding = self.Map((t, e) => new ActualBinding(null, e) {
+      RangeToken = Convert(t)
+    }, a => a.Actual);
     var nonGhostBindings = nonGhostBinding.Many().
-      Map(b => new ActualBindings(b), a => a.ArgumentBindings);
-    var call = self.Assign(() => new ApplySuffix(), s => s.Lhs)
-      .Then(nonGhostBindings.InParens(), s => s.Bindings);
+      Map((t, b) => new ActualBindings(b) {
+        RangeToken = Convert(t)
+      }, a => a.ArgumentBindings);
+    var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
+      .Then(nonGhostBindings.InParens(), s => s.Bindings).
+      SetRange((s, t) => s.RangeToken = Convert(t));
+
+    var exprDotName = self.Assign(() => new ExprDotName(), c => c.Lhs).
+      Then(".").
+      Then(Identifier, c => c.SuffixName).
+      SetRange((c,r) => c.RangeToken = Convert(r));
     
-    return ternary.UpCast<ITEExpr, Expression>().OrCast(binary).OrCast(variableRef).OrCast(number).OrCast(call);
+    var expressionResult = ternary.UpCast<ITEExpr, Expression>().OrCast(binary).
+      OrCast(variableRef).OrCast(number).OrCast(callResult).OrCast(exprDotName);
+    return (expressionResult, callResult);
   }
 
   private Grammar<Type> TypeGrammar()
@@ -222,37 +249,3 @@ public class JavaGrammar {
   private Grammar<Name> GetNameGrammar() => 
     Identifier.Map((t, value) => new Name(ConvertValue(t.From, value)), n => n.Value);
 }
-
-// class Div {
-//   int Foo(int x) {
-//     return 3 / x;
-//   }
-// }
-// class Fib {
-//   static int FibonacciSpec(int n) {
-//     return n < 2 ? n : FibonacciSpec(n - 1) + FibonacciSpec(n - 2);
-//   }
-//
-//   static int Fibonacci(int n)
-//     // ensures result == FibonacciSpec(n)
-//   {
-//     if (n == 0) {
-//       return 0;
-//     }
-//
-//     int iMinMinResult = 0;
-//     int iResult = 1;
-//     int i = 1;
-//     while(i < n)
-//       // invariant iResult == FibonacciSpec(i)
-//       // invariant iMinMinResult == FibonacciSpec(i - 1)
-//       // invariant i <= n
-//     {
-//       i = i + 1;
-//       int temp = iResult + iMinMinResult;
-//       iMinMinResult = iResult;
-//       iResult = temp;
-//     }
-//     return iResult;
-//   }
-// }

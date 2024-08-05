@@ -123,7 +123,7 @@ internal class IdentifierG : Grammar<string> {
   public IEnumerable<Grammar> Children => [];
 }
 
-class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U> map, Func<U, T?> destruct) : Grammar<U> {
+class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U?> map, Func<U, T?> destruct) : Grammar<U> {
 
   public Grammar<T> Grammar { get; set; } = grammar;
 
@@ -228,13 +228,19 @@ public static class GrammarExtensions {
     return new WithRangeG<T, U>(grammar, construct, destruct);
   }
   
+  public static Grammar<TSub> DownCast<TSuper, TSub>(this Grammar<TSuper> grammar)
+    where TSub : class, TSuper
+  {
+    return grammar.Map<TSuper, TSub>(t => t as TSub, u => u is TSuper t ? t : default);
+  }
+  
   public static Grammar<TSuper> UpCast<TSub, TSuper>(this Grammar<TSub> grammar)
     where TSub : TSuper
   {
     return grammar.Map<TSub, TSuper>(t => t, u => u is TSub t ? t : default);
   }
   
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U> construct, Func<U, T?> destruct) {
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U?> construct, Func<U, T?> destruct) {
     return new WithRangeG<T, U>(grammar, (_, original) => construct(original), destruct);
   }
   
@@ -296,7 +302,7 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<T?> Option<T>(this Grammar<T> grammar, VoidGrammar fallback) {
-    var r = fallback.Then(GrammarBuilder.Value<T?>(default));
+    var r = fallback.Then(GrammarBuilder.Constant<T?>(default));
     return grammar.Map<T, T?>(t => t, t => t).Or(r);
   }
 

@@ -29,7 +29,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver { get { return MethodSelect.Obj; } }
   public Method Method { get { return (Method)MethodSelect.Member; } }
 
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, 
+    List<ActualBinding> args, IToken overrideToken = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));

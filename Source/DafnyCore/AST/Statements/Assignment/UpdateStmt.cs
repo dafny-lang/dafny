@@ -12,7 +12,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   public override IToken Tok {
     get {
       var firstRhs = Rhss.First();
-      if (firstRhs.StartToken != StartToken) {
+      if (firstRhs.StartToken != StartToken && firstRhs.StartToken.Prev != null) {
         // If there is an operator, use it as a token
         return firstRhs.StartToken.Prev;
       }
