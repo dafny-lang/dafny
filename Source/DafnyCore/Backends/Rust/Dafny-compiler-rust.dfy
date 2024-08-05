@@ -1827,6 +1827,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     const ObjectType: ObjectType
 
+    static const TailRecursionPrefix := "_r"
+
     var error: Option<string>
 
     var optimizations: seq<R.Mod -> R.Mod>
@@ -3618,22 +3620,28 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             generated := generated.Then(R.DeclareVar(R.MUT, "_this", None, Some(selfClone)));
           }
           newEnv := env;
+          var loopBegin := R.RawExpr("");
           for paramI := 0 to |env.names| {
             var param := env.names[paramI];
             var paramInit, _, _ := GenIdent(param, selfIdent, env, OwnershipOwned);
-            generated := generated.Then(R.DeclareVar(R.MUT, param, None, Some(paramInit)));
+            var recVar := TailRecursionPrefix + Strings.OfNat(paramI);
+            generated := generated.Then(R.DeclareVar(R.MUT, recVar, None, Some(paramInit)));
             if param in env.types {
               // We made the input type owned by the variable.
               // so we can remove borrow annotations.
               var declaredType := env.types[param].ToOwned();
               newEnv := newEnv.AddAssigned(param, declaredType);
+              newEnv := newEnv.AddAssigned(recVar, declaredType);
             }
+            // Redeclare the input parameter, take ownership of the recursive value
+            loopBegin := loopBegin.Then(R.DeclareVar(R.CONST, param, None, Some(R.Identifier(recVar))));
           }
           var bodyExpr, bodyIdents, bodyEnv := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, newEnv, false, earlyReturn);
           readIdents := bodyIdents;
           generated := generated.Then(
             R.Labelled("TAIL_CALL_START",
-                       R.Loop(None, bodyExpr)));
+                       R.Loop(None,
+                       loopBegin.Then(bodyExpr))));
         }
         case JumpTailCallStart() => {
           generated := R.Continue(Some("TAIL_CALL_START"));

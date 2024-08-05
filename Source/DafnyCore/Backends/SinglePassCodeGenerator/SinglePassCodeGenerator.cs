@@ -4594,7 +4594,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
     }
-
+    public virtual string TailRecursiveVar(int inParamIndex, IVariable variable) {
+      return IdName(variable);
+    }
     void TrTailCallStmt(IToken tok, Method method, Expression receiver, List<Expression> args, string receiverReplacement, ConcreteSyntaxTree wr) {
       Contract.Requires(tok != null);
       Contract.Requires(method != null);
@@ -4643,13 +4645,17 @@ namespace Microsoft.Dafny.Compilers {
         EndStmt(wr);
         n++;
       }
+      var inParamIndex = 0;
       foreach (var p in method.Ins) {
         if (!p.IsGhost) {
-          EmitIdentifier(
-            inTmps[n],
-            EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, tok)
-          );
+          // We want to assign the value to input parameters. However, if input parameters were shadowed
+          // for the compilers that support the same shadowing rules as Dafny (e.g. the Dafny-to-Rust compiler)
+          // we need to assign the result to the temporary and mutable variables instead
+          var wrAssignRhs =
+            EmitAssignment(IdentLvalue(TailRecursiveVar(inParamIndex, p)), p.Type, inTypes[n], wr, tok);
+          EmitIdentifier(inTmps[n], wrAssignRhs);
           n++;
+          inParamIndex++;
         }
       }
       Contract.Assert(n == inTmps.Count);
