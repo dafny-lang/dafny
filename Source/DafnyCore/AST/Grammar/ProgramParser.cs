@@ -4,10 +4,10 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CompilerBuilder;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -266,8 +266,24 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = getReader();
-    var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
-    return ParseFile(options, text, uri, cancellationToken);
+    if (uri.LocalPath.EndsWith(DafnyFile.DafnyFileExtension)) {
+      var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
+      return ParseFile(options, text, uri, cancellationToken);
+    } else if (uri.LocalPath.EndsWith(DafnyFile.VerifiedJavaExtension)) {
+      var jGrammarBuilder = new JavaGrammar(uri);
+      var javaGrammar = jGrammarBuilder.GetFinalGrammar();
+      ConcreteResult<FileModuleDefinition> result = javaGrammar.ToParser().Parse(reader.ReadToEnd());
+      if (result is ConcreteSuccess<FileModuleDefinition> success) {
+        return new DfyParseResult(new BatchErrorReporter(options), success.Value, []);
+      } else {
+        var failure = (FailureResult<FileModuleDefinition>)result;
+        var reporter = new BatchErrorReporter(options);
+        reporter.Error(MessageSource.Parser, jGrammarBuilder.Convert(failure.Location), failure.Message);
+        return new DfyParseResult(reporter, new FileModuleDefinition(RangeToken.NoToken), []);
+      }
+    }
+
+    throw new NotSupportedException();
   }
 
   ///<summary>

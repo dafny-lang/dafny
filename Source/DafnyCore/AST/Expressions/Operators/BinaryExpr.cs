@@ -299,7 +299,12 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
         throw new cce.UnreachableException();  // unexpected operator
     }
   }
-  public Expression E0;
+
+  public Expression E0 {
+    get; 
+    set;
+  }
+  
   public Expression E1;
   public enum AccumulationOperand { None, Left, Right }
   public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver

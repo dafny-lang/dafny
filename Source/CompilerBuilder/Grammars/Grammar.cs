@@ -264,6 +264,18 @@ public static class GrammarExtensions {
       }, c => (c, get(c)));
   }
   
+  public static Grammar<TContainer> Assign<TContainer, TValue>(
+    this Grammar<TValue> value, 
+    Func<TContainer> createContainer, 
+    Expression<Func<TContainer, TValue>> getExpression, Orientation mode = Orientation.Horizontal) {
+    var property = getExpression.GetProperty();
+    return value.Map(v => {
+      var container = createContainer();
+      property.Set(container, v);
+      return container;
+    }, container => property.Get(container));
+  }
+  
   public static Grammar<TContainer> Then<TContainer, TValue>(
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
@@ -279,6 +291,10 @@ public static class GrammarExtensions {
     }, x => x);
   }
 
+  public static Grammar<T?> Option<T>(this Grammar<T> grammar) {
+    return grammar.Map<T, T?>(t => t, t => t).Or(GrammarBuilder.Value<T?>(() => default));
+  }
+  
   public static Grammar<T?> Option<T>(this Grammar<T> grammar, VoidGrammar fallback) {
     var r = fallback.Then(GrammarBuilder.Value<T?>(default));
     return grammar.Map<T, T?>(t => t, t => t).Or(r);
@@ -317,12 +333,10 @@ public static class GrammarBuilder {
 
   
   public static Grammar<T> Recursive<T>(Func<Grammar<T>, Grammar<T>> build) {
-    Grammar<T>? result = null;
+    RecursiveG<T>? result = null;
     // ReSharper disable once AccessToModifiedClosure
-    result = new RecursiveG<T>(() => {
-      var builtInner = build(result!);
-      return builtInner;
-    });
+    result = new RecursiveG<T>(() => build(result!));
+    var resolved = result.Inner;
     return result;
   }
   

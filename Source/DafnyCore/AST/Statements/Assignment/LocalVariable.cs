@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
-  readonly string name;
+  string name;
   public string DafnyName => Name;
   public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
@@ -31,6 +31,8 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
+  public LocalVariable() : base(RangeToken.NoToken) { }
+  
   public LocalVariable(RangeToken rangeToken, string name, Type type, bool isGhost)
     : base(rangeToken) {
     Contract.Requires(name != null);
@@ -50,6 +52,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       Contract.Ensures(Contract.Result<string>() != null);
       return name;
     }
+    set => name = value;
   }
   public static bool HasWildcardName(IVariable v) {
     Contract.Requires(v != null);
@@ -96,6 +99,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
       Contract.Assume(type != null);  /* we assume object has been resolved */
       return type.Normalize();
     }
+    set => type = value;
   }
 
   /// <summary>

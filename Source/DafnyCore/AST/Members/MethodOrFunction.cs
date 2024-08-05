@@ -22,6 +22,17 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public readonly Specification<Expression> Decreases;
   public List<Formal> Ins;
 
+
+  protected MethodOrFunction(RangeToken tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) 
+    : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
+    TypeArgs = [];
+    Req = [];
+    Ens = [];
+    Ins = [];
+    Decreases = new Specification<Expression>([], null);
+    Reads = new Specification<FrameExpression>([], null);
+  }
+  
   protected MethodOrFunction(RangeToken rangeToken, Name name, bool hasStaticKeyword, bool isGhost,
     Attributes attributes, bool isRefining, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
@@ -94,9 +105,6 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Req.Count > 0
     // The following check is incomplete, which is a bug.
     || Ins.Any(f => f.Type.AsSubsetType is not null);
-
-  protected MethodOrFunction(RangeToken tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
-  }
 
   public Specification<FrameExpression> Reads { get; set; }
 }

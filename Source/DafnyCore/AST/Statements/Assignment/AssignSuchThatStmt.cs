@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Created using ":-"
+/// </summary>
 public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;

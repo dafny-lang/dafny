@@ -5,9 +5,9 @@ namespace Microsoft.Dafny;
 
 public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   public readonly bool IsBindingGuard;
-  public readonly Expression Guard;
-  public readonly BlockStmt Thn;
-  public readonly Statement Els;
+  public Expression Guard;
+  public BlockStmt Thn;
+  public Statement Els;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
@@ -15,6 +15,8 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
   }
 
+  public IfStmt() : base(RangeToken.NoToken) { }
+  
   public IfStmt Clone(Cloner cloner) {
     return new IfStmt(cloner, this);
   }

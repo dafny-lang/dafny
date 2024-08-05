@@ -16,6 +16,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyFile {
   public const string DafnyFileExtension = ".dfy";
+  public const string VerifiedJavaExtension = ".vjava";
   public string FilePath => CanonicalPath;
   public string Extension { get; private set; }
   public string CanonicalPath { get; }
@@ -74,7 +75,7 @@ public class DafnyFile {
       extension = DafnyFileExtension;
     }
 
-    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
+    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == VerifiedJavaExtension || extension == ".dfyi") {
       var file = HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
       if (file != null) {
         yield return file;

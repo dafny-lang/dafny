@@ -1,28 +1,33 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using CompilerBuilder;
 using CompilerBuilder.Grammars;
-using Microsoft.Dafny;
 using static CompilerBuilder.GrammarBuilder;
-using Expression = Microsoft.Dafny.Expression;
-using Formal = Microsoft.Dafny.Formal;
-using Method = Microsoft.Dafny.Method;
-using Name = Microsoft.Dafny.Name;
-using Statement = Microsoft.Dafny.Statement;
-using Type = Microsoft.Dafny.Type;
 
-namespace JavaSupport;
+namespace Microsoft.Dafny;
 
 public class JavaGrammar {
 
   private readonly Grammar<Expression> expression;
   private readonly Grammar<Name> name;
   private readonly Uri uri;
+  private readonly Grammar<Type> type;
+  private readonly Grammar<Statement> statement;
+  private Grammar<BlockStmt> block;
 
   public JavaGrammar(Uri uri) {
     this.uri = uri;
     name = GetNameGrammar();
+    type = TypeGrammar();
     expression = Recursive<Expression>(GetExpressionGrammar);
+    statement = Recursive<Statement>(self => {
+      var r = Statement(self);
+      block = r.Block;
+      return r.Statement;
+    });
   }
 
   public Grammar<FileModuleDefinition> GetFinalGrammar()
@@ -71,15 +76,18 @@ public class JavaGrammar {
   Grammar<Method> Method() {
     // Need something special for a unordered bag of keywords
     var staticc = Keyword("static").Then(Constant(true)).Default(() => false);
-    var type = Type();
     var returnParameter = type.Map(
-      t => new Formal(Token.NoToken,"_returnName", t, false, false, null), 
+      t => new Formal(t.Tok,"_returnName", t, false, false, null), 
       f=> f.Type);
     var outs = returnParameter.Option(Keyword("void")).OptionToList();
 
     var parameter = Value(() => new Formal()).
       Then(type, f => f.Type).
-      Then(Identifier, f => f.Name);
+      Then(Identifier, f => f.Name).
+      SetRange((f, t) => {
+        f.RangeToken = Convert(t);
+        f.tok = f.RangeToken.StartToken; // TODO fix so it points to the name
+      });
     var parameters = parameter.Many().InParens();
 
     return Value(() => new Method()).
@@ -87,33 +95,70 @@ public class JavaGrammar {
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
       Then(parameters, m => m.Ins).
-      Then(Block(), m => m.Body, Orientation.Vertical);
-  }
-
-  Grammar<BlockStmt> Block() {
-    return Statement().Many().InBraces().Map(
-      (r, ss) => new BlockStmt(Convert(r), ss), 
-      b => b.Body);
+      Then(block, m => m.Body, Orientation.Vertical).
+      SetRange((m, r) => m.RangeToken = Convert(r));
   }
   
-  Grammar<Statement> Statement() {
+  struct VarDeclData {
+    public LocalVariable Local { get; set; }
+    public Expression? Initializer { get; set; }
+  }
+  
+  (Grammar<Statement> Statement, Grammar<BlockStmt> Block) Statement(Grammar<Statement> self) {
+    var block = self.Many().InBraces().Map(
+      (r, ss) => new BlockStmt(Convert(r), ss), 
+      b => b.Body);
     var returnExpression = Keyword("return").Then(expression).Then(";").
       Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
+    var ifStatement = Value(() => new IfStmt()).
+      Then("if").Then(expression.InParens(), s => s.Guard).
+      Then(block, s => s.Thn);
 
-    return returnExpression.UpCast<ReturnStmt, Statement>();
+    var initializer = Keyword("=").Then(expression).Option();
+    var localStart = Value(() => new LocalVariable()).
+      Then(type, s => s.Type).
+      Then(Identifier, s => s.Name).
+      SetRange((v, r) => v.RangeToken = Convert(r));
+    var varDecl = Value(() => new VarDeclData()).
+      Then(localStart, s => s.Local).
+      Then(initializer, s => s.Initializer).Then(";").
+      Map((t, data) => {
+        var locals = new List<LocalVariable> {
+          data.Local
+        };
+
+        ConcreteUpdateStatement? update = null;
+        if (data.Initializer != null) {
+          var lhs = locals.Select(l =>
+            new AutoGhostIdentifierExpr(l.Tok, l.Name) { RangeToken = new RangeToken(l.Tok, l.Tok) } ).ToList<Expression>();
+          update = new UpdateStmt(data.Initializer.RangeToken, lhs,
+            new List<AssignmentRhs>() { new ExprRhs(data.Initializer) });
+        }
+        return new VarDeclStmt(Convert(t), locals, update);
+      }, varDeclStmt => new VarDeclData {
+        Initializer = ((varDeclStmt.Update as UpdateStmt)?.Rhss[0] as ExprRhs)?.Expr,
+        Local = varDeclStmt.Locals[0]
+      });
+    // if statement
+    // assignment statement
+    // variable declaration [initializer]
+    var statement = returnExpression.UpCast<ReturnStmt, Statement>().OrCast(ifStatement).OrCast(block);
+    return (statement, block);
   }
 
   Grammar<Expression> GetExpressionGrammar(Grammar<Expression> self) {
-    var ternary = Value(() => new ITEExpr()).
-      Then(self, e => e.Test).
+    var ternary = 
+      self.Assign(() => new ITEExpr(), e => e.Test).
       Then("?").Then(self, e => e.Thn).
       Then(":").Then(self, e => e.Els);
 
     var opCode = 
-      Keyword("<").Then(Constant(BinaryExpr.Opcode.Le)).Or(
+      Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub)).Or(
+      Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
+      Keyword("<").Then(Constant(BinaryExpr.Opcode.Le))).Or(
       Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
-    var less = Value(() => new BinaryExpr()).Then(self, b => b.E0).
+    var binary = self.Assign(() => new BinaryExpr(), b => b.E0).
       Then(opCode, b => b.Op).
       Then(self, b => b.E1);
 
@@ -122,19 +167,20 @@ public class JavaGrammar {
     var nonGhostBinding = self.Map(e => new ActualBinding(null, e), a => a.Actual);
     var nonGhostBindings = nonGhostBinding.Many().
       Map(b => new ActualBindings(b), a => a.ArgumentBindings);
-    var call = Value(() => new ApplySuffix()).Then(self, s => s.Lhs)
+    var call = self.Assign(() => new ApplySuffix(), s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings);
     
-    return ternary.UpCast<ITEExpr, Expression>().OrCast(less).OrCast(variableRef).OrCast(number).OrCast(call);
+    return ternary.UpCast<ITEExpr, Expression>().OrCast(binary).OrCast(variableRef).OrCast(number).OrCast(call);
   }
 
-  private Grammar<Type> Type()
+  private Grammar<Type> TypeGrammar()
   {
-    Grammar<NameSegment> nameSegmentForTypeName = 
+    var nameSegmentForTypeName = 
       Identifier.Map((t, i) => new NameSegment(Convert(t), i, new List<Type>()),
       ns => ns.Name);
     // OptGenericInstantiation<out typeArgs, inExpressionContext>
-    Grammar<Type> type = nameSegmentForTypeName.UpCast<NameSegment, Expression>().
+    var intGrammar = Keyword("int").Then(Constant(Type.Int));
+    var userDefinedType = nameSegmentForTypeName.UpCast<NameSegment, Expression>().
       Map(n => new UserDefinedType(n.Tok, n), udt => udt.NamePath).UpCast<UserDefinedType, Type>();
 
     // { "."
@@ -142,7 +188,7 @@ public class JavaGrammar {
     //   OptGenericInstantiation<out typeArgs, inExpressionContext>
     //     (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
     // }
-    return type;
+    return intGrammar.UpCast<IntType, Type>().OrCast(userDefinedType);
   }
 
 

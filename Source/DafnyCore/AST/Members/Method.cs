@@ -120,8 +120,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   }
 
   public Method() 
-    : base(null, null, false, false, null, false)
-  {
+    : base(RangeToken.NoToken, null, false, false, null, false) {
+    Mod = new Specification<FrameExpression>([], null);
   }
 
   public Method(Cloner cloner, Method original) : base(cloner, original) {

@@ -99,7 +99,7 @@ class PointerFromString : ITextPointer {
     var lines = sequence.Split("\n");
     return new PointerFromString(Text, Offset + amount, 
       Line + lines.Length - 1, 
-      lines.Last().Length, 
+      lines.Length > 1 ? lines.Last().Length : Column + amount, 
       ImmutableHashSet<Parser>.Empty);
   }
 

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Newtonsoft.Json.Serialization;
 
 namespace Microsoft.Dafny;
 
@@ -16,7 +17,7 @@ public class ClassDecl : ClassLikeDecl {
   }
 
   public ClassDecl() 
-    : base(null, null, null, null, new(), null, false, null)
+    : base(null, null, null, [], new(), null, false, null)
   {
   }
 

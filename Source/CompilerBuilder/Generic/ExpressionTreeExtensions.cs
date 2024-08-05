@@ -19,10 +19,10 @@ public static class ExpressionTreeExtensions {
     if (expr.Body is MemberExpression { Member: PropertyInfo property }) {
       memberExpression = Expression.Property(instanceExpr, property);
       if (!property.CanRead) {
-        throw new ArgumentException($"Property {property.Name} is not readable");
+        throw new ArgumentException($"Property {property.Name} of type {typeof(TContainer).Name} is not readable");
       }
       if (!property.CanWrite) {
-        throw new ArgumentException($"Property {property.Name} is not writeable");
+        throw new ArgumentException($"Property {property.Name} of type {typeof(TContainer).Name} is not writeable");
       }
     }
 
