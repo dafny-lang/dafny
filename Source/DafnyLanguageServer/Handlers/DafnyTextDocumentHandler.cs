@@ -50,7 +50,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
       return new TextDocumentSyncRegistrationOptions {
-        DocumentSelector = new DocumentSelector(DocumentFilter.ForLanguage(DafnyLanguage), DocumentFilter.ForPattern("**/*dfyconfig.toml")),
+        DocumentSelector = new DocumentSelector(DocumentFilter.ForLanguage(DafnyLanguage), 
+          DocumentFilter.ForPattern("**/*dfyconfig.toml"),
+          DocumentFilter.ForPattern("**/*.vjava")),
         Change = TextDocumentSyncKind.Incremental
       };
     }
