@@ -21,6 +21,21 @@ class Div {
     Assert.Single(diagnostics);
     Assert.Equal("possible division by zero", diagnostics[0].Message);
   }
+  
+  [Fact]
+  public async Task SafeDivision() {
+    var input = @"
+class Div {
+  int Foo(int x) {
+    if (x != 0) {
+      return 3 / x;
+    }
+    return 0;
+  }
+}".TrimStart(); 
+    var document = CreateAndOpenTestDocument(input, "Division.vjava");
+    await AssertNoDiagnosticsAreComing(CancellationToken, document);
+  }
 
   public JavaIdeTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel)
   {

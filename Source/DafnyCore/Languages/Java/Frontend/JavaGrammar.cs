@@ -154,7 +154,8 @@ public class JavaGrammar {
       Then(":").Then(self, e => e.Els);
 
     var opCode = 
-      Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub)).Or(
+      Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)).Or(
+      Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub))).Or(
       Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
       Keyword("<").Then(Constant(BinaryExpr.Opcode.Le))).Or(
       Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
