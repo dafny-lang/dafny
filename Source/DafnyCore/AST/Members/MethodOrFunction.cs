@@ -17,12 +17,11 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   [FilledInDuringResolution]
   public bool ContainsHide { get; set; }
   public readonly List<TypeParameter> TypeArgs;
-  public readonly List<AttributedExpression> Req;
+  public List<AttributedExpression> Req;
   public readonly List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
   public List<Formal> Ins;
-
-
+  
   protected MethodOrFunction(RangeToken tok, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining) 
     : base(tok, name, hasStaticKeyword, isGhost, attributes, isRefining) {
     TypeArgs = [];

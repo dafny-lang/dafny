@@ -110,12 +110,17 @@ public class JavaGrammar {
       }).
       SetRange((f, t) => f.RangeToken = Convert(t));
     var parameters = parameter.Many().InParens();
+    Grammar<AttributedExpression> require = Keyword("requires").Then(expression).Map(
+      e => new AttributedExpression(e), 
+      ae => ae.E);
+    var requires = require.Many();
 
     return Value(() => new Method()).
       Then(staticc, m => m.IsStatic).
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
       Then(parameters, m => m.Ins).
+      Then(requires, m => m.Req).
       Then(block, m => m.Body, Orientation.Vertical).
       SetRange((m, r) => m.RangeToken = Convert(r));
   }

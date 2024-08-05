@@ -60,6 +60,21 @@ class Div {
     var document = CreateAndOpenTestDocument(input, "Division.vjava");
     await AssertNoDiagnosticsAreComing(CancellationToken, document);
   }
+  
+  
+  [Fact]
+  public async Task Requires() {
+    var input = @"
+class Div {
+  int Foo(int x) 
+    requires x != 0
+  {
+    return 3 / x;
+  }
+}".TrimStart(); 
+    var document = CreateAndOpenTestDocument(input, "Requires.vjava");
+    await AssertNoDiagnosticsAreComing(CancellationToken, document);
+  }
 
   public JavaIdeTest(ITestOutputHelper output, LogLevel dafnyLogLevel = LogLevel.Information) : base(output, dafnyLogLevel)
   {
