@@ -6,7 +6,7 @@ record IndentW<T>(Printer<T> Inner, int Amount) : Printer<T> {
   public Document? Print(T value) {
     var innerValue = Inner.Print(value);
     if (innerValue != null) {
-      return new IndentD(innerValue, Amount);
+      return innerValue.Indent(Amount);
     }
 
     return null;
@@ -81,14 +81,13 @@ class MapWithoutFailW<T, U>(Printer<T> printer, Func<U, T> map) : Printer<U> {
   }
 }
 
-class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U> {
+class MapW<T, U>(Printer<T> printer, Func<U, MapResult<T>> map) : Printer<U> {
   public Document? Print(U value) {
     var newValue = map(value);
-    if (newValue == null) {
-      return null;
+    if (newValue is MapSuccess<T> success) {
+      return printer.Print(success.Value);
     }
-
-    return printer.Print(newValue);
+    return null;
   }
 }
 
@@ -162,7 +161,7 @@ class SkipRightW<T>(Printer<T> first, VoidPrinter second, Orientation orientatio
 }
 
 public static class PrinterExtensions {
-  public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U,T?> map) {
+  public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U, MapResult<T>> map) {
     return new MapW<T, U>(printer, map);
   }
 }

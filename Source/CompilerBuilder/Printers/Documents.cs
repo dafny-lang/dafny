@@ -9,6 +9,10 @@ public interface Document {
   public void Render(int desiredWidth, IndentationWriter writer);
   public bool IsEmpty { get; }
 
+  public Document Indent(int amount) {
+    return this is Empty ? this : new IndentD(this, amount);
+  }
+  
   public Document Then(Document next, Orientation orientation) {
     if (this is Empty) {
       return next;

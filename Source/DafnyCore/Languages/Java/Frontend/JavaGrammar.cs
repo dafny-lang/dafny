@@ -134,8 +134,9 @@ public class JavaGrammar {
         ((b.Body.FirstOrDefault() as ReturnStmt)?.Rhss.FirstOrDefault() as ExprRhs)?.Expr,
       e => new BlockStmt(e.RangeToken, [new ReturnStmt(e.RangeToken, [new ExprRhs(e)])]));
     
-    return Keyword("@Function").Then(Constructor<Function>()).
-      Then(staticc, m => m.IsStatic).
+    return Constructor<Function>().
+      Then(Keyword("@Function")).
+      Then(staticc, m => m.IsStatic, Orientation.Vertical).
       Then(type, m => m.ResultType).
       Then(name, m => m.NameNode).
       Then(parameters, m => m.Ins, Orientation.Adjacent).
@@ -266,7 +267,7 @@ public class JavaGrammar {
         RangeToken = Convert(t)
       }, a => a.ArgumentBindings);
     var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
-      .Then(nonGhostBindings.InParens(), s => s.Bindings).
+      .Then(nonGhostBindings.InParens(), s => s.Bindings, Orientation.Adjacent).
       SetRange((s, t) => s.RangeToken = Convert(t));
 
     var exprDotName = self.Assign(() => new ExprDotName(), c => c.Lhs).

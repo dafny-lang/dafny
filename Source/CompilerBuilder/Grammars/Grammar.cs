@@ -152,7 +152,7 @@ internal class IdentifierG : Grammar<string> {
   public IEnumerable<Grammar> Children => [];
 }
 
-class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U?> map, Func<U, T?> destruct) : Grammar<U> {
+class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U?> construct, Func<U, MapResult<T>> destruct) : Grammar<U> {
 
   public Grammar<T> Grammar { get; set; } = grammar;
 
@@ -161,7 +161,7 @@ class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U?> map, Func<U, 
   }
 
   Parser<U> Grammar<U>.ToParser(Func<Grammar, Parser> recurse) {
-    return new WithRangeR<T, U>((Parser<T>)recurse(Grammar), map);
+    return new WithRangeR<T, U>((Parser<T>)recurse(Grammar), construct);
   }
 
   public IEnumerable<Grammar> Children => [Grammar];
@@ -266,29 +266,41 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
-    Func<U, T?> destruct) {
+    Func<U, T> destruct) {
+    return new WithRangeG<T, U>(grammar, construct, v => new MapSuccess<T>(destruct(v)));
+  }
+  
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
+    Func<U, MapResult<T>> destruct) {
     return new WithRangeG<T, U>(grammar, construct, destruct);
   }
   
   public static Grammar<TSub> DownCast<TSuper, TSub>(this Grammar<TSuper> grammar)
     where TSub : class, TSuper
   {
-    return grammar.Map<TSuper, TSub>(t => t as TSub, u => u is TSuper t ? t : default);
+    return grammar.Map<TSuper, TSub>(t => t as TSub, u => new MapSuccess<TSuper>(u));
   }
   
   public static Grammar<TSuper> UpCast<TSub, TSuper>(this Grammar<TSub> grammar)
     where TSub : TSuper
   {
-    return grammar.Map<TSub, TSuper>(t => t, u => u is TSub t ? t : default);
+    return grammar.Map<TSub, TSuper>(t => t, 
+      u => u is TSub t ? new MapSuccess<TSub>(t) : new MapFail<TSub>());
   }
   
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U?> construct, Func<U, T?> destruct) {
+  
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U?> construct, Func<U, T> destruct) {
+    return new WithRangeG<T, U>(grammar, (_, original) => construct(original), 
+      v => new MapSuccess<T>(destruct(v)));
+  }
+  
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U?> construct, Func<U, MapResult<T>> destruct) {
     return new WithRangeG<T, U>(grammar, (_, original) => construct(original), destruct);
   }
   
   public static Grammar<List<T>> OptionToList<T>(this Grammar<T?> grammar) {
     return grammar.Map(o => o == null ? new List<T>() : new List<T>() { o },
-      l => l.FirstOrDefault());
+      l => new MapSuccess<T?>(l.FirstOrDefault()));
   }
   
   public static Grammar<T> Then<TLeft, TRight, T>(
@@ -357,6 +369,11 @@ public static class GrammarExtensions {
     return new ParseOnly<T>(grammar);
   }
 }
+
+public interface MapResult<T>;
+
+record MapSuccess<T>(T Value) : MapResult<T>;
+record MapFail<T>() : MapResult<T>;
 
 class Fail<T>(string expectation) : Grammar<T> {
   Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {

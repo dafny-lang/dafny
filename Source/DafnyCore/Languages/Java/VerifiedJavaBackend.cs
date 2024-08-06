@@ -25,6 +25,8 @@ public class VerifiedJavaBackend : JavaBackend {
     public bool SupportsDatatypeWrapperErasure { get; }
 
     public void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+      RemoveGhost(dafnyProgram);
+      
       var grammar = new JavaGrammar(dafnyProgram.GetStartOfFirstFileToken().Uri).GetFinalGrammar();
       var fileModuleDefinition = new FileModuleDefinition(Token.NoToken) {
         
@@ -42,6 +44,18 @@ public class VerifiedJavaBackend : JavaBackend {
 
     public void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
     }
+  }
+
+  static void RemoveGhost(Program program) {
+    foreach (var module in program.CompileModules) {
+      foreach (var withMembers in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
+        foreach (var member in withMembers.Members.OfType<MethodOrFunction>()) {
+          member.Req.Clear();
+          member.Ens.Clear();
+        }
+      }
+    }
+    
   }
 
   public VerifiedJavaBackend(DafnyOptions options) : base(options) {
