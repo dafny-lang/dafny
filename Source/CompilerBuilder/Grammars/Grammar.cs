@@ -370,10 +370,17 @@ public static class GrammarExtensions {
   }
 }
 
-public interface MapResult<T>;
+public interface MapResult<T> {
+  public static MapResult<T> FromNullable(T? nullable) {
+    if (nullable == null) {
+      return new MapFail<T>();
+    }
+    return new MapSuccess<T>(nullable);
+  }
+}
 
-record MapSuccess<T>(T Value) : MapResult<T>;
-record MapFail<T>() : MapResult<T>;
+public record MapSuccess<T>(T Value) : MapResult<T>;
+public record MapFail<T>() : MapResult<T>;
 
 class Fail<T>(string expectation) : Grammar<T> {
   Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {

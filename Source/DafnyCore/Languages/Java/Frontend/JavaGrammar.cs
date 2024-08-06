@@ -196,12 +196,13 @@ public class JavaGrammar {
       Then("if").Then(expression.InParens(), s => s.Guard).
       Then(block, s => s.Thn);
 
-    // The recursive binnen de call slokt alle expression meuk op.
-    var expressionStatement = expression.DownCast<Expression, ApplySuffix>().Then(";", Orientation.Adjacent).Map(
+    var expressionStatement = expression.DownCast<Expression, ApplySuffix>().
+      Then(";", Orientation.Adjacent).Map(
       (t, a) => new UpdateStmt(Convert(t), new List<Expression>(), [new ExprRhs(a) {
         tok = Convert(t.From)
       }]),
-      updateStmt => (updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix);
+      updateStmt => MapResult<ApplySuffix>.FromNullable((updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix)
+      );
 
     var initializer = Keyword("=").Then(expression).Option();
     var localStart = Constructor<LocalVariable>().
