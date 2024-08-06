@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Security.Cryptography;
 using CompilerBuilder;
 using CompilerBuilder.Grammars;
 using static CompilerBuilder.GrammarBuilder;
@@ -20,6 +21,7 @@ public class JavaGrammar {
   private readonly Grammar<Statement> statement;
   private Grammar<BlockStmt> block;
   private Grammar<ApplySuffix> call;
+  private readonly Grammar<AttributedExpression> attributedExpression;
 
   public JavaGrammar(Uri uri) {
     this.uri = uri;
@@ -30,6 +32,9 @@ public class JavaGrammar {
       call = t.call;
       return t.expression;
     });
+    attributedExpression = expression.Map(
+      e => new AttributedExpression(e),
+      ae => ae.E);
     statement = Recursive<Statement>(self => {
       var r = StatementGrammar(self);
       block = r.Block;
@@ -125,9 +130,7 @@ public class JavaGrammar {
         f.InParam = true;
       });
     var parameters = parameter.Many().InParens();
-    var require = Keyword("requires").Then(expression).Map(
-      e => new AttributedExpression(e), 
-      ae => ae.E);
+    var require = Keyword("requires").Then(attributedExpression);
     var requires = require.Many();
 
     var expressionBody = Keyword("return").
@@ -180,21 +183,16 @@ public class JavaGrammar {
       SetRange((m, r) => m.RangeToken = Convert(r));
   }
   
-  struct VarDeclData {
-    public LocalVariable Local { get; set; }
-    public Expression? Initializer { get; set; }
-  }
-  
   (Grammar<Statement> Statement, Grammar<BlockStmt> Block) StatementGrammar(Grammar<Statement> self) {
-    var block = self.Many(Orientation.Vertical).InBraces().Map(
-      (r, ss) => new BlockStmt(Convert(r), ss), 
-      b => b.Body);
+    var blockResult = self.Many(Orientation.Vertical).InBraces().
+      Assign<BlockStmt, List<Statement>>(b => b.Body).SetRange(uri);
+    
     var returnExpression = Keyword("return").Then(expression).Then(";", Orientation.Adjacent).
       Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
     var ifStatement = Constructor<IfStmt>().
       Then("if").Then(expression.InParens(), s => s.Guard).
-      Then(block, s => s.Thn);
+      Then(blockResult, s => s.Thn);
 
     var expressionStatement = expression.DownCast<Expression, ApplySuffix>().
       Then(";", Orientation.Adjacent).Map(
@@ -209,6 +207,11 @@ public class JavaGrammar {
       Then(type, s => s.Type).
       Then(Identifier, s => s.Name).
       SetRange((v, r) => v.RangeToken = Convert(r));
+    var assert = Constructor<AssertStmt>().
+      Then(Keyword("assert")).
+      Then(expression, a => a.Expr).
+      Then(";", Orientation.Adjacent);
+    
     var varDecl = Constructor<VarDeclData>().
       Then(localStart, s => s.Local).
       Then(initializer, s => s.Initializer).Then(";", Orientation.Adjacent).
@@ -219,22 +222,45 @@ public class JavaGrammar {
 
         ConcreteUpdateStatement? update = null;
         if (data.Initializer != null) {
-          var lhs = locals.Select(l =>
-            new AutoGhostIdentifierExpr(l.Tok, l.Name) { RangeToken = new RangeToken(l.Tok, l.Tok) } ).ToList<Expression>();
-          update = new UpdateStmt(data.Initializer.RangeToken, lhs,
-            new List<AssignmentRhs>() { new ExprRhs(data.Initializer) });
+          var local = locals[0];
+          update = CreateSingleUpdate(new Name(local.RangeToken, local.Name), data.Initializer);
         }
         return new VarDeclStmt(Convert(t), locals, update);
       }, varDeclStmt => new VarDeclData {
         Initializer = ((varDeclStmt.Update as UpdateStmt)?.Rhss[0] as ExprRhs)?.Expr,
         Local = varDeclStmt.Locals[0]
       });
+
+    var autoGhostIdentifier = Constructor<AutoGhostIdentifierExpr>().
+      Then(Identifier, g => g.Name).SetRange2(uri);
+
+    var assignmentRhs = expression.Map(e => new ExprRhs(e), e => e.Expr).SetRange2(uri);
+    var assignmentStatement = Constructor<UpdateStmt>().
+      Then(autoGhostIdentifier.UpCast<AutoGhostIdentifierExpr, Expression>().Singleton(), s => s.Lhss).
+      Then(Keyword("=")).Then(assignmentRhs.UpCast<ExprRhs, AssignmentRhs>().Singleton(), s => s.Rhss).
+      Then(";", Orientation.Adjacent).SetRange(uri);
+    
+    var invariant = Keyword("invariant").Then(attributedExpression);
+    var invariants = invariant.Many(Orientation.Vertical).Indent();
+    var whileStatement = Constructor<WhileStmt>().Then(Keyword("while")).
+      Then(expression.InParens(), w => w.Guard).
+      Then(invariants, w => w.Invariants, Orientation.Vertical).
+      Then(blockResult, w => w.Body, Orientation.Vertical).SetRange(uri);
+      
     // if statement
     // assignment statement
     // variable declaration [initializer]
     var result = Fail<Statement>("a statement").OrCast(returnExpression).
-      OrCast(ifStatement).OrCast(block).OrCast(expressionStatement);
-    return (result, block);
+      OrCast(ifStatement).OrCast(blockResult).OrCast(expressionStatement).OrCast(assert).OrCast(varDecl).
+      OrCast(whileStatement).OrCast(assignmentStatement);
+    return (result, blockResult);
+  }
+
+  private static ConcreteUpdateStatement CreateSingleUpdate(Name name, Expression value)
+  {
+    return new UpdateStmt(value.RangeToken, [
+      new AutoGhostIdentifierExpr(name.Tok, name.Value) { RangeToken = name.RangeToken }], 
+      [new ExprRhs(value)]);
   }
 
   (Grammar<Expression> expression, Grammar<ApplySuffix> call) GetExpressionGrammar(Grammar<Expression> self) {
@@ -245,6 +271,7 @@ public class JavaGrammar {
 
     var opCode = 
       Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)).Or(
+        Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
       Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub))).Or(
       Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
       Keyword("<").Then(Constant(BinaryExpr.Opcode.Le))).Or(
@@ -301,4 +328,54 @@ public class JavaGrammar {
 
   private Grammar<Name> GetNameGrammar() => 
     Identifier.Map((t, value) => new Name(ConvertValue(t.From, value)), n => n.Value);
+}
+
+public static class DafnyGrammarExtensions {
+  public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Uri uri) 
+    where T : RangeNode {
+    return grammar.SetRange((v, r) => v.RangeToken = Convert(r, uri));
+  }
+  
+  public static Grammar<T> SetRange2<T>(this Grammar<T> grammar, Uri uri) 
+    where T : TokenNode {
+    return grammar.SetRange((v, r) => v.RangeToken = Convert(r, uri));
+  }
+  
+  public static IToken ConvertValue(IPosition position, string value, Uri uri) {
+    return new Token {
+      col = position.Column + 1,
+      line = position.Line + 1,
+      pos = position.Offset,
+      Uri = uri,
+      val = value
+    };
+  }
+  
+  public static IToken ConvertToken(ParseRange position, Uri uri) {
+    return new Token {
+      col = position.From.Column + 1,
+      line = position.From.Line + 1,
+      pos = position.From.Offset,
+      Uri = uri,
+      val = new string('f', position.Until.Offset - position.From.Offset)
+    };
+  }
+  
+  public static IToken Convert(IPosition position, Uri uri) {
+    return new Token {
+      col = position.Column + 1,
+      line = position.Line + 1,
+      pos = position.Offset,
+      Uri = uri,
+    };
+  }
+  
+  public static RangeToken Convert(ParseRange parseRange, Uri uri) {
+    return new RangeToken(Convert(parseRange.From, uri), Convert(parseRange.Until, uri));
+  }
+}
+  
+public class VarDeclData {
+  public LocalVariable Local { get; set; }
+  public Expression? Initializer { get; set; }
 }

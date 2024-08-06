@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanResolve {
-  public readonly List<AssignmentRhs> Rhss;
+  public List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
 
@@ -21,6 +21,10 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     }
   }
 
+  public UpdateStmt() : base(RangeToken.NoToken, []) {
+    
+  }
+  
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
   public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 

@@ -222,7 +222,7 @@ class TextR(string value) : VoidParser {
       return new ConcreteSuccess<Unit>(Unit.Instance, text.Drop(value.Length));
     }
 
-    return new FailureResult<Unit>($"Expected '{value}' but found '{actual}'", text);
+    return new FailureResult<Unit>($"Expected '{value}' but found '{text.LocationDescription}'", text);
   }
 }
 

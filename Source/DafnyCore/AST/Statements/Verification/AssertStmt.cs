@@ -35,6 +35,9 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = label;
   }
 
+  public AssertStmt() : base(RangeToken.NoToken, null) {
+  }
+
   public override IEnumerable<Statement> SubStatements {
     get {
       if (Proof != null) {

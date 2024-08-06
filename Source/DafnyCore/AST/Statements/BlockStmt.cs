@@ -1,16 +1,21 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
 public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
-  public readonly List<Statement> Body;
+  public List<Statement> Body;
 
   public BlockStmt Clone(Cloner cloner) {
     return new BlockStmt(cloner, this);
   }
 
+  public BlockStmt() : base(RangeToken.NoToken) {
+    
+  }
+  
   protected BlockStmt(Cloner cloner, BlockStmt original) : base(cloner, original) {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }

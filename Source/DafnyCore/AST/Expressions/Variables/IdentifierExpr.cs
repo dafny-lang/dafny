@@ -10,7 +10,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     Contract.Invariant(Name != null);
   }
 
-  public readonly string Name;
+  public string Name;
   [FilledInDuringResolution] public IVariable Var;
 
   public string DafnyName => tok.line > 0 ? RangeToken.PrintOriginal() : Name;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
-  public readonly Expression/*?*/ Guard;
+  public Expression/*?*/ Guard;
 
   public class LoopBodySurrogate {
     public readonly List<IVariable> LocalLoopTargets;
@@ -15,6 +15,12 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     }
   }
 
+  public WhileStmt() : base(Dafny.RangeToken.NoToken, [], 
+    new Specification<Expression>(), 
+      new Specification<FrameExpression>(), null, null) {
+    
+  }
+  
   public WhileStmt Clone(Cloner cloner) {
     return new WhileStmt(cloner, this);
   }

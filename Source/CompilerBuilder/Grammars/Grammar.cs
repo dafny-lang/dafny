@@ -298,6 +298,19 @@ public static class GrammarExtensions {
     return new WithRangeG<T, U>(grammar, (_, original) => construct(original), destruct);
   }
   
+  
+  public static Grammar<List<U>> Singleton<T, U>(this Grammar<T> grammar)
+    where T : class, U
+  {
+    return grammar.Map(o => new List<U>() { o },
+      l => MapResult<T>.FromNullable(l.FirstOrDefault() as T));
+  }
+  
+  public static Grammar<List<T>> Singleton<T>(this Grammar<T> grammar) {
+    return grammar.Map(o => new List<T>() { o },
+      l => MapResult<T>.FromNullable(l.FirstOrDefault()));
+  }
+  
   public static Grammar<List<T>> OptionToList<T>(this Grammar<T?> grammar) {
     return grammar.Map(o => o == null ? new List<T>() : new List<T>() { o },
       l => new MapSuccess<T?>(l.FirstOrDefault()));
@@ -323,6 +336,18 @@ public static class GrammarExtensions {
         set(c, v);
         return c;
       }, c => (c, get(c)));
+  }
+  
+  public static Grammar<TContainer> Assign<TContainer, TValue>(
+    this Grammar<TValue> value, 
+    Expression<Func<TContainer, TValue>> getExpression, Orientation mode = Orientation.Spaced) 
+    where TContainer : new() {
+    var property = getExpression.GetProperty();
+    return value.Map(v => {
+      var container = new TContainer();
+      property.Set(container, v);
+      return container;
+    }, container => property.Get(container));
   }
   
   public static Grammar<TContainer> Assign<TContainer, TValue>(

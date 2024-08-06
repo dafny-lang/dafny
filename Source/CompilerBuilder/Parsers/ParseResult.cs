@@ -14,7 +14,7 @@ public interface ParseResult<T> : ParseResult {
         return Success;
       }
 
-      throw new InvalidOperationException(Failure!.Message + $", at offset { Failure.Location.Offset }");
+      throw new InvalidOperationException(Failure!.Message + $", at ({Failure.Location.Line},{Failure.Location.Column})");
     }
   }
   
