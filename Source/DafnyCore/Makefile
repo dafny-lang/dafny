@@ -27,3 +27,7 @@ format:
 
 check-format:
 	../../Scripts/dafny format . --check
+
+extract:
+	(cd Prelude; make; cd ..)
+	cp Prelude/DafnyPrelude.bpl .

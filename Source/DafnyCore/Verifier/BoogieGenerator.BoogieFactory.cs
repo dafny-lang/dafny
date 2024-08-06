@@ -684,7 +684,7 @@ namespace Microsoft.Dafny {
         : new Bpl.ForallExpr(tok, typeParams, formals, kv, triggers, body, immutable);
     }
 
-    static Bpl.Expr BplAnd(IEnumerable<Bpl.Expr> conjuncts) {
+    public static Bpl.Expr BplAnd(IEnumerable<Bpl.Expr> conjuncts) {
       Contract.Requires(conjuncts != null);
       Bpl.Expr eq = Bpl.Expr.True;
       foreach (var c in conjuncts) {
@@ -693,7 +693,7 @@ namespace Microsoft.Dafny {
       return eq;
     }
 
-    static Bpl.Expr BplAnd(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplAnd(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -712,7 +712,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Bpl.Expr BplOr(IEnumerable<Bpl.Expr> disjuncts) {
+    public static Bpl.Expr BplOr(IEnumerable<Bpl.Expr> disjuncts) {
       Contract.Requires(disjuncts != null);
       Bpl.Expr eq = Bpl.Expr.False;
       foreach (var d in disjuncts) {
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny {
       return eq;
     }
 
-    static Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplOr(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -742,7 +742,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplIff(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -767,7 +767,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static Bpl.Expr BplImp(Bpl.Expr a, Bpl.Expr b) {
+    public static Bpl.Expr BplImp(Bpl.Expr a, Bpl.Expr b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);

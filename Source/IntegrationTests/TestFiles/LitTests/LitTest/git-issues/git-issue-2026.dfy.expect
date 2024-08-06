@@ -1,4 +1,4 @@
-git-issue-2026.dfy(18,18): Error: this invariant could not be proved to be maintained by the loop
+git-issue-2026.dfy(19,18): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
  Related counterexample:
  WARNING: the following counterexample may be inconsistent or invalid. See dafny.org/dafny/DafnyRef/DafnyRef#sec-counterexamples
