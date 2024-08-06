@@ -43,9 +43,9 @@ public static class Comments {
         );
       } else {
         if (sequence.FirstType == typeof(Unit)) {
-          sequence.Second = GrammarExtensions.Then(voidTrivia, (dynamic)sequence.Second);
+          sequence.Second = GrammarExtensions.Then(voidTrivia, (dynamic)sequence.Second, Orientation.Adjacent);
         } else {
-          sequence.First = GrammarExtensions.Then((dynamic)sequence.First, voidTrivia);
+          sequence.First = GrammarExtensions.Then((dynamic)sequence.First, voidTrivia, Orientation.Adjacent);
         }
       }
     }

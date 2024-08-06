@@ -79,7 +79,7 @@ public class JavaGrammar {
 
   public Grammar<FileModuleDefinition> File() {
     Grammar<ModuleQualifiedId> qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
-    Grammar<AliasModuleDecl> import = Keyword("import").Then(qualifiedId).Then(";").Map(
+    Grammar<AliasModuleDecl> import = Keyword("import").Then(qualifiedId).Then(";", Orientation.Adjacent).Map(
         (t, a) => new AliasModuleDecl(DafnyOptions.Default, 
           Convert(t), a, a.Path[^1], null, true, [], Guid.NewGuid()), 
         a => a.TargetQId);
@@ -98,10 +98,10 @@ public class JavaGrammar {
       Then("class").
       Then(name, cl => cl.NameNode);
     
-    var body = Member().Many().InBraces();
+    var body = Member().Many(Orientation.LineBroken).InBraces();
 
     return header.
-      Then(body, cl => cl.Members, Orientation.Vertical).
+      Then(body, cl => cl.Members).
       SetRange((cl, t) => cl.RangeToken = Convert(t));
   }
 
@@ -139,9 +139,9 @@ public class JavaGrammar {
       Then(staticc, m => m.IsStatic).
       Then(type, m => m.ResultType).
       Then(name, m => m.NameNode).
-      Then(parameters, m => m.Ins).
-      Then(requires, m => m.Req).
-      Then(expressionBlock, m => m.Body, Orientation.Vertical).
+      Then(parameters, m => m.Ins, Orientation.Adjacent).
+      Then(requires.Indent(), m => m.Req, Orientation.Vertical).
+      Then(expressionBlock, m => m.Body).
       SetRange((m, r) => m.RangeToken = Convert(r));
   }
   
@@ -162,18 +162,19 @@ public class JavaGrammar {
         f.tok = v.tok;
       }).
       SetRange((f, t) => f.RangeToken = Convert(t));
+    // TODO replace .Many with .SeparatedBy
     var parameters = parameter.Many().InParens();
     var require = Keyword("requires").Then(expression).Map(
       e => new AttributedExpression(e), 
       ae => ae.E);
-    var requires = require.Many();
+    var requires = require.Many(Orientation.Vertical);
 
     return Value(() => new Method()).
       Then(staticc, m => m.IsStatic).
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
-      Then(parameters, m => m.Ins).
-      Then(requires, m => m.Req).
+      Then(parameters, m => m.Ins, Orientation.Adjacent).
+      Then(requires.Indent(), m => m.Req, Orientation.Vertical).
       Then(block, m => m.Body, Orientation.Vertical).
       SetRange((m, r) => m.RangeToken = Convert(r));
   }
@@ -184,10 +185,10 @@ public class JavaGrammar {
   }
   
   (Grammar<Statement> Statement, Grammar<BlockStmt> Block) StatementGrammar(Grammar<Statement> self) {
-    var block = self.Many().InBraces().Map(
+    var block = self.Many(Orientation.Vertical).InBraces().Map(
       (r, ss) => new BlockStmt(Convert(r), ss), 
       b => b.Body);
-    var returnExpression = Keyword("return").Then(expression).Then(";").
+    var returnExpression = Keyword("return").Then(expression).Then(";", Orientation.Adjacent).
       Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
     var ifStatement = Value(() => new IfStmt()).
@@ -195,7 +196,7 @@ public class JavaGrammar {
       Then(block, s => s.Thn);
 
     // The recursive binnen de call slokt alle expression meuk op.
-    var expressionStatement = expression.DownCast<Expression, ApplySuffix>().Then(";").Map(
+    var expressionStatement = expression.DownCast<Expression, ApplySuffix>().Then(";", Orientation.Adjacent).Map(
       (t, a) => new UpdateStmt(Convert(t), new List<Expression>(), [new ExprRhs(a) {
         tok = Convert(t.From)
       }]),
@@ -208,7 +209,7 @@ public class JavaGrammar {
       SetRange((v, r) => v.RangeToken = Convert(r));
     var varDecl = Value(() => new VarDeclData()).
       Then(localStart, s => s.Local).
-      Then(initializer, s => s.Initializer).Then(";").
+      Then(initializer, s => s.Initializer).Then(";", Orientation.Adjacent).
       Map((t, data) => {
         var locals = new List<LocalVariable> {
           data.Local

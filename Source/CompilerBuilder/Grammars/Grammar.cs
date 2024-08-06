@@ -51,6 +51,17 @@ public abstract class VoidGrammar : Grammar {
   public abstract IEnumerable<Grammar> Children { get; }
 }
 
+record IndentG<T>(Grammar<T> Inner, int Amount) : Grammar<T> {
+
+  public IEnumerable<Grammar> Children => Inner.Children;
+  public Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
+    return new IndentW<T>((Printer<T>)recurse(Inner), Amount);
+  }
+
+  public Parser<T> ToParser(Func<Grammar, Parser> recurse) {
+    return Inner.ToParser(recurse);
+  }
+}
 public interface Grammar<T> : Grammar {
   internal Printer<T> ToPrinter(Func<Grammar, Printer> recurse);
 
@@ -215,22 +226,23 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<T> InParens<T>(this Grammar<T> grammar) {
-    return GrammarBuilder.Keyword("(").Then(grammar).Then(")");
+    return GrammarBuilder.Keyword("(").Then(grammar, Orientation.Adjacent).Then(")", Orientation.Adjacent);
   }  
   
-  public static Grammar<T> InBraces<T>(this Grammar<T> grammar) {
-    return GrammarBuilder.Keyword("{").Then(grammar, Orientation.Vertical).Then("}", Orientation.Vertical);
+  public static Grammar<T> InBraces<T>(this Grammar<T> grammar, bool indent = true) {
+    var inner = indent ? new IndentG<T>(grammar, 1) : grammar;
+    return GrammarBuilder.Keyword("{").Then(inner, Orientation.Vertical).Then("}", Orientation.Vertical);
   }  
   
-  public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Orientation mode = Orientation.Horizontal) {
+  public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Orientation mode = Orientation.Spaced) {
     return new SkipRightG<T>(left, right, mode);
   }  
   
-  public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Horizontal) {
+  public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Spaced) {
     return new SkipLeftG<T>(left, right, mode);
   }
   
-  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Horizontal) {
+  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Spaced) {
     var numerable = GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
       GrammarBuilder.Value<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, orientation,
         
@@ -280,8 +292,9 @@ public static class GrammarExtensions {
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value,
     Func<TContainer, TValue> get,
-    Action<TContainer, TValue> set) {
-    return new SequenceG<TContainer, TValue, TContainer>(containerGrammar, value, Orientation.Horizontal,
+    Action<TContainer, TValue> set, 
+    Orientation mode = Orientation.Spaced) {
+    return new SequenceG<TContainer, TValue, TContainer>(containerGrammar, value, mode,
       (c, v) => {
         set(c, v);
         return c;
@@ -291,7 +304,7 @@ public static class GrammarExtensions {
   public static Grammar<TContainer> Assign<TContainer, TValue>(
     this Grammar<TValue> value, 
     Func<TContainer> createContainer, 
-    Expression<Func<TContainer, TValue>> getExpression, Orientation mode = Orientation.Horizontal) {
+    Expression<Func<TContainer, TValue>> getExpression, Orientation mode = Orientation.Spaced) {
     var property = getExpression.GetProperty();
     return value.Map(v => {
       var container = createContainer();
@@ -303,11 +316,15 @@ public static class GrammarExtensions {
   public static Grammar<TContainer> Then<TContainer, TValue>(
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
-    Expression<Func<TContainer, TValue>> get, Orientation mode = Orientation.Horizontal) {
+    Expression<Func<TContainer, TValue>> get, Orientation mode = Orientation.Spaced) {
     var property = get.GetProperty();
-    return containerGrammar.Then(value, property.Get, property.Set);
+    return containerGrammar.Then(value, property.Get, property.Set, mode);
   }
 
+  public static Grammar<T> Indent<T>(this Grammar<T> grammar, int amount = 1) {
+    return new IndentG<T>(grammar, amount);
+  }
+  
   public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Action<T, ParseRange> set) {
     return grammar.Map((t, v) => {
       set(v, t);

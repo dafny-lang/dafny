@@ -20,9 +20,10 @@ class Div {
     var printer = grammar.ToPrinter();
 
     var parsed = parser.Parse(input).Success!.Value;
-    var output = new StringWriter();
-    printer.Print(parsed)!.Render(output);
-    
-    Assert.Equal(output.ToString(), input);
+    var outputWriter = new StringWriter();
+    printer.Print(parsed)!.Render(outputWriter);
+
+    var output = outputWriter.ToString();
+    Assert.Equal(input, output);
   }
 }

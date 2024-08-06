@@ -2,6 +2,16 @@
 
 namespace CompilerBuilder;
 
+record IndentW<T>(Printer<T> Inner, int Amount) : Printer<T> {
+  public Document? Print(T value) {
+    var innerValue = Inner.Print(value);
+    if (innerValue != null) {
+      return new IndentD(innerValue, Amount);
+    }
+
+    return null;
+  }
+}
 public interface Printer<in T> : Printer {
 
   public Document? Print(T value);
@@ -110,7 +120,7 @@ class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> seco
       return null;
     }
 
-    return new SequenceD(firstDoc, secondDoc, orientation);
+    return firstDoc.Then(secondDoc, orientation);
   }
 }
 
@@ -120,7 +130,7 @@ class SkipLeftW<T>(VoidPrinter first, Printer<T> second, Orientation orientation
     if (secondValue == null) {
       return null;
     }
-    return new SequenceD(first.Print(), secondValue, orientation);
+    return first.Print().Then(secondValue, orientation);
   }
 }
 
@@ -130,7 +140,7 @@ class SkipRightW<T>(Printer<T> first, VoidPrinter second, Orientation orientatio
     if (firstValue == null) {
       return null;
     }
-    return new SequenceD(firstValue, second.Print(), orientation);
+    return firstValue.Then(second.Print(), orientation);
   }
 }
 

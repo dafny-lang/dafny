@@ -46,7 +46,7 @@ class SequenceG<TFirst, TSecond, T>(Grammar<TFirst> first, Grammar<TSecond> seco
   public IEnumerable<Grammar> Children => [First, Second];
 }
 
-class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Orientation mode = Orientation.Horizontal) : Grammar<T>, ISequenceLikeG {
+class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Orientation mode = Orientation.Spaced) : Grammar<T>, ISequenceLikeG {
   public Type FirstType => typeof(Unit);
   public Type SecondType => typeof(T);
   public Type Type => typeof(T);
@@ -77,7 +77,7 @@ class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Orientation mode = Orie
   public IEnumerable<Grammar> Children => [First, Second];
 }
 
-class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Orientation mode = Orientation.Horizontal) : Grammar<T>, ISequenceLikeG {
+class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Orientation mode = Orientation.Spaced) : Grammar<T>, ISequenceLikeG {
   public Type FirstType => typeof(T);
   public Type SecondType => typeof(Unit);
   public Type Type => typeof(T);
