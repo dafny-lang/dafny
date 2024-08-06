@@ -6,7 +6,8 @@ public class JavaPrinterTest {
 
   [Fact]
   public void ParseAndPrint() {
-    var input = @"class Div {
+    var input = @"
+class Div {
   int Foo(int x) 
     requires x != 0
   {
@@ -19,6 +20,9 @@ public class JavaPrinterTest {
     var printer = grammar.ToPrinter();
 
     var parsed = parser.Parse(input).Success!.Value;
-    var printed = printer.Print
+    var output = new StringWriter();
+    printer.Print(parsed)!.Render(output);
+    
+    Assert.Equal(output.ToString(), input);
   }
 }

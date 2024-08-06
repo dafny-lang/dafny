@@ -38,10 +38,14 @@ public interface Grammar {
 public abstract class VoidGrammar : Grammar {
   public static implicit operator VoidGrammar(string keyword) => new TextG(keyword);
 
-  public abstract VoidPrinter ToPrinter();
+  public abstract VoidPrinter ToPrinter(Func<Grammar, Printer> recurse);
   public abstract VoidParser ToParser(Func<Grammar, Parser> recurse);
   public Parser ToGenParser(Func<Grammar, Parser> recurse) {
     return ToParser(recurse);
+  }
+
+  public Printer ToGenPrinter(Func<Grammar, Printer> recurse) {
+    return ToPrinter(recurse);
   }
 
   public abstract IEnumerable<Grammar> Children { get; }
@@ -98,7 +102,7 @@ public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
 class TextG(string value) : VoidGrammar {
   public string Value => value;
 
-  public override VoidPrinter ToPrinter() {
+  public override VoidPrinter ToPrinter(Func<Grammar, Printer> recurse) {
     return new TextW(value);
   }
 
@@ -127,7 +131,7 @@ internal class NumberG : Grammar<int> {
 
 internal class IdentifierG : Grammar<string> {
   Printer<string> Grammar<string>.ToPrinter(Func<Grammar, Printer> recurse) {
-    return Verbatim.Instance;
+    return VerbatimW.Instance;
   }
 
   Parser<string> Grammar<string>.ToParser(Func<Grammar, Parser> recurse) {
@@ -183,7 +187,7 @@ class Value<T>(Func<T> value) : Grammar<T> {
 }
 
 class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
-  public override VoidPrinter ToPrinter() {
+  public override VoidPrinter ToPrinter(Func<Grammar, Printer> recurse) {
     return EmptyW.Instance;
   }
 
@@ -366,7 +370,7 @@ public static class GrammarBuilder {
   public static Grammar<T> Fail<T>(string expectation) => new Fail<T>(expectation);
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
-  public static readonly Grammar<string> Whitespace = new ExplicitGrammar<string>(ParserBuilder.Whitespace, Verbatim.Instance);
+  public static readonly Grammar<string> Whitespace = new ExplicitGrammar<string>(ParserBuilder.Whitespace, VerbatimW.Instance);
   
   public static readonly Grammar<IPosition> Position = 
     new ExplicitGrammar<IPosition>(PositionR.Instance, new IgnoreW<IPosition>(EmptyW.Instance));

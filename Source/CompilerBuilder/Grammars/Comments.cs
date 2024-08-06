@@ -14,7 +14,7 @@ public static class Comments {
   
   public static Grammar<string> SlashSlashLineComment() {
     // TODO I think the printer has to reinsert the line break
-    return new ExplicitGrammar<string>(ParserBuilder.SlashSlashLineComment, Verbatim.Instance);
+    return new ExplicitGrammar<string>(ParserBuilder.SlashSlashLineComment, VerbatimW.Instance);
   }
   
   /*

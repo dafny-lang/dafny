@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using CompilerBuilder;
 using CompilerBuilder.Grammars;
 using static CompilerBuilder.GrammarBuilder;
@@ -253,7 +254,8 @@ public class JavaGrammar {
     var variableRef = Identifier.Map(
       (r, v) => new NameSegment(Convert(r), v, null), 
       ie => ie.Name);
-    var number = Number.Map((r, v) => new LiteralExpr(Convert(r), v), l => throw new NotImplementedException());
+    var number = Number.Map(
+      (r, v) => new LiteralExpr(Convert(r), v), l => (int)(BigInteger)l.Value);
     var nonGhostBinding = self.Map((t, e) => new ActualBinding(null, e) {
       RangeToken = Convert(t)
     }, a => a.Actual);
