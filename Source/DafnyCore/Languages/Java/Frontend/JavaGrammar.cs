@@ -78,19 +78,19 @@ public class JavaGrammar {
   }
 
   public Grammar<FileModuleDefinition> File() {
-    Grammar<ModuleQualifiedId> qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
-    Grammar<AliasModuleDecl> import = Keyword("import").Then(qualifiedId).Then(";", Orientation.Adjacent).Map(
+    var qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
+    var import = Keyword("import").Then(qualifiedId).Then(";", Orientation.Adjacent).Map(
         (t, a) => new AliasModuleDecl(DafnyOptions.Default, 
           Convert(t), a, a.Path[^1], null, true, [], Guid.NewGuid()), 
         a => a.TargetQId);
     
-    var classes = Class().Many();
-    return import.Many().Map(imports =>
+    var classes = Class().Many(Orientation.LineBroken);
+    return import.Many(Orientation.Vertical).Map(imports =>
       new FileModuleDefinition(Token.NoToken) {
         SourceDecls = imports.ToList<TopLevelDecl>()
       }, f => f.SourceDecls.OfType<AliasModuleDecl>().ToList()).Then(classes,
       f => f.SourceDecls.OfType<ClassDecl>().ToList(),
-      (f, c) => f.SourceDecls.AddRange(c));
+      (f, c) => f.SourceDecls.AddRange(c), Orientation.LineBroken);
   }
   
   Grammar<ClassDecl> Class() {

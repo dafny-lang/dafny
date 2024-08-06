@@ -45,7 +45,7 @@ public class GoBackend : ExecutableBackend {
     });
   }
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     var goModuleName = Options.Get(GoModuleNameCliOption);
     GoModuleMode = goModuleName != null;
     if (GoModuleMode) {

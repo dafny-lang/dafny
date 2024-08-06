@@ -1,14 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.CommandLine;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using DafnyCore;
-using DafnyCore.Options;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -17,13 +10,40 @@ public class VerifiedJavaBackend : JavaBackend {
   public override string TargetId => "vjava";
   
   public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
-    ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
-    CheckInstantiationReplaceableModules(dafnyProgram);
-    ProcessOuterModules(dafnyProgram);
 
     CodeGenerator.Compile(dafnyProgram, output);
   }
   
+  protected override CodeGenerator CreateCodeGenerator() {
+    return new VerifiedJavaCodeGenerator();
+  }
+  
+  class VerifiedJavaCodeGenerator : CodeGenerator {
+    public string ModuleSeparator { get; }
+    public CoverageInstrumenter Coverage { get; }
+    public IReadOnlySet<Feature> UnsupportedFeatures { get; }
+    public bool SupportsDatatypeWrapperErasure { get; }
+
+    public void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
+      var grammar = new JavaGrammar(dafnyProgram.GetStartOfFirstFileToken().Uri).GetFinalGrammar();
+      var fileModuleDefinition = new FileModuleDefinition(Token.NoToken) {
+        
+      };
+      fileModuleDefinition.SourceDecls.AddRange(
+        dafnyProgram.DefaultModuleDef.SourceDecls.Where(td => !td.IsExtern(dafnyProgram.Options)));
+      var outputStringWriter = new StringWriter();
+      grammar.ToPrinter().Print(fileModuleDefinition)!.Render(outputStringWriter);
+      output.Write(outputStringWriter.ToString());
+    }
+
+    public string PublicIdProtect(string name) {
+      throw new NotImplementedException();
+    }
+
+    public void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
+    }
+  }
+
   public VerifiedJavaBackend(DafnyOptions options) : base(options) {
   }
 }

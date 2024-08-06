@@ -41,7 +41,7 @@ public class LibraryBackend : ExecutableBackend {
 
   public string DooPath { get; set; }
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     return null;
   }
 

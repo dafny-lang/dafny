@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CppBackend : ExecutableBackend {
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     return new CppCodeGenerator(Options, Reporter, OtherFileNames);
   }
 

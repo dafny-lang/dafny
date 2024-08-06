@@ -49,7 +49,7 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     }
   }
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     return new JavaCodeGenerator(Options, Reporter);
   }
 

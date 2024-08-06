@@ -45,7 +45,7 @@ public class PythonBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "number", "ulong", "long" };
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     var pythonModuleName = Options.Get(PythonModuleNameCliOption);
     PythonModuleMode = pythonModuleName != null;
     if (PythonModuleMode) {

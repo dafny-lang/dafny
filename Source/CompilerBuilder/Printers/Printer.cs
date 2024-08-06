@@ -74,6 +74,13 @@ class VerbatimW : Printer<string> {
   }
 }
 
+class MapWithoutFailW<T, U>(Printer<T> printer, Func<U, T> map) : Printer<U> {
+  public Document? Print(U value) {
+    var newValue = map(value);
+    return printer.Print(newValue);
+  }
+}
+
 class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U> {
   public Document? Print(U value) {
     var newValue = map(value);

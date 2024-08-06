@@ -15,7 +15,7 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
   protected DafnyExecutableBackend(DafnyOptions options) : base(options) {
   }
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     // becomes this.compiler
     return new DafnyCodeGenerator(Options, Reporter, InternalFieldPrefix, PreventShadowing, CanEmitUncompilableCode);
   }

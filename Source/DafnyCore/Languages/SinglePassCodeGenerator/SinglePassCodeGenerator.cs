@@ -24,7 +24,17 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public abstract partial class SinglePassCodeGenerator {
+  public interface CodeGenerator {
+    string ModuleSeparator { get; }
+    CoverageInstrumenter Coverage { get; }
+    IReadOnlySet<Feature> UnsupportedFeatures { get; }
+    bool SupportsDatatypeWrapperErasure { get; }
+    void Compile(Program dafnyProgram, ConcreteSyntaxTree output);
+    string PublicIdProtect(string name);
+    void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree);
+  }
+
+  public abstract partial class SinglePassCodeGenerator : CodeGenerator {
     // Dafny names cannot start with "_". Hence, if an internal Dafny name is problematic in the target language,
     // we can prefix it with "_".
     // This prefix can be overridden as necessary by backends.
@@ -83,7 +93,7 @@ namespace Microsoft.Dafny.Compilers {
       return n;
     }
 
-    public readonly CoverageInstrumenter Coverage;
+    public CoverageInstrumenter Coverage { get; }
 
     // Common limits on the size of builtins: tuple, arrow, and array types.
     // Some backends have to enforce limits so that all built-ins can be pre-compiled

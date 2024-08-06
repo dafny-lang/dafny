@@ -6,7 +6,7 @@ using Microsoft.Dafny.Plugins;
 public class BenchmarkingCompilerInstrumenter : CompilerInstrumenter {
   public BenchmarkingCompilerInstrumenter(ErrorReporter reporter) : base(reporter) { }
 
-  public override void Instrument(IExecutableBackend backend, SinglePassCodeGenerator codeGenerator, Program program) {
+  public override void Instrument(IExecutableBackend backend, CodeGenerator codeGenerator, Program program) {
     if (codeGenerator is JavaCodeGenerator javaCompiler) {
       javaCompiler.AddInstrumenter(new JavaBenchmarkCompilationInstrumenter(Reporter));
     } else {

@@ -1,4 +1,5 @@
 // RUN: %run %S/run.vjava --input %S/run.dfy --input %S/__default.java --target=java > "%t"
+// RUN: %translate vjava %S/run.vjava %S/run.dfy >> %t
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern} out {

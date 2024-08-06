@@ -23,7 +23,7 @@ public class JavaScriptBackend : ExecutableBackend {
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string>(new List<string> { "number" });
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     return new JavaScriptCodeGenerator(Options, Reporter);
   }
 

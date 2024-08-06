@@ -11,6 +11,7 @@ internal class InternalBackendsPluginConfiguration : Plugins.PluginConfiguration
       new JavaScriptBackend(options),
       new GoBackend(options),
       new JavaBackend(options),
+      new VerifiedJavaBackend(options),
       new PythonBackend(options),
       new CppBackend(options),
       new LibraryBackend(options),

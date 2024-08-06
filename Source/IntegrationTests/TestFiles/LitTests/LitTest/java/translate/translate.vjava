@@ -1,0 +1,8 @@
+class Div {
+  @Function
+  static int32 Foo(int32 x) // int32 should be int. Parser needs to map int to int32, but that requires inserting a JavaStdLib file
+    requires x != 0 
+  {
+    return 6 / x;
+  }
+}

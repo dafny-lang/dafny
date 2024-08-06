@@ -9,7 +9,7 @@ namespace Microsoft.Dafny.Compilers;
 
 public class CsharpBackend : ExecutableBackend {
 
-  protected override SinglePassCodeGenerator CreateCodeGenerator() {
+  protected override CodeGenerator CreateCodeGenerator() {
     return new CsharpCodeGenerator(Options, Reporter);
   }
 

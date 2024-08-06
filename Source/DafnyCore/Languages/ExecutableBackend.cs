@@ -15,7 +15,7 @@ namespace Microsoft.Dafny;
 
 public abstract class ExecutableBackend : IExecutableBackend {
   // May be null for backends that don't use the single-pass compiler logic
-  protected SinglePassCodeGenerator codeGenerator;
+  protected CodeGenerator codeGenerator;
 
   protected ExecutableBackend(DafnyOptions options) : base(options) {
   }
@@ -124,7 +124,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     codeGenerator = CreateCodeGenerator();
   }
 
-  SinglePassCodeGenerator CodeGenerator {
+  protected CodeGenerator CodeGenerator {
     get {
       if (codeGenerator == null) {
         codeGenerator = CreateCodeGenerator();
@@ -135,11 +135,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
-    CodeGenerator.Coverage.WriteLegendFile();
+    CodeGenerator.Coverage?.WriteLegendFile();
     return Task.FromResult(true);
   }
 
-  protected abstract SinglePassCodeGenerator CreateCodeGenerator();
+  protected abstract CodeGenerator CreateCodeGenerator();
 
   public override string PublicIdProtect(string name) {
     return CodeGenerator.PublicIdProtect(name);
