@@ -92,7 +92,7 @@ public class CsharpSynthesizer {
       o => codeGenerator.idGenerator.FreshId(o.CompileName(SinglePassCodeGenerator.FormalIdGenerator) + "Return"));
     foreach (var (obj, returnName) in objectToReturnName) {
       parameterString = Regex.Replace(parameterString,
-        $"(^|[^a-zA-Z0-9_]){obj.CompileName}([^a-zA-Z0-9_]|$)",
+        $"(^|[^a-zA-Z0-9_]){obj.CompileName(codeGenerator.currentIdGenerator)}([^a-zA-Z0-9_]|$)",
         "$1" + returnName + "$2");
     }
     wr.FormatLine($"{keywords}{returnType} {codeGenerator.PublicIdProtect(method.GetCompileName(Options))}{typeParameters}({parameterString}) {{");
@@ -274,7 +274,7 @@ public class CsharpSynthesizer {
       var boundVar = forallExpr.BoundVars[i];
       var varType = codeGenerator.TypeName(boundVar.Type, wr, boundVar.tok);
       bounds[boundVar] = $"It.Is<{varType}>(x => {matcherName}.Match(x))";
-      declarations.Add($"var {boundVar.CompileName} = ({varType}) {tmpId}[{i}];");
+      declarations.Add($"var {boundVar.CompileName(codeGenerator.currentIdGenerator)} = ({varType}) {tmpId}[{i}];");
     }
 
     wr.WriteLine($"var {matcherName} = new Dafny.MultiMatcher({declarations.Count}, {tmpId} => {{");

@@ -921,7 +921,7 @@ namespace Microsoft.Dafny.Compilers {
                 var compiledConstructorsProcessed = 0;
                 for (var i = 0; i < n; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  Contract.Assert(arg.CompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].CompileName(currentIdGenerator));
                   if (ctor_i.IsGhost) {
                     continue;
                   }
@@ -2067,7 +2067,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
-      wr.Write($"for {loopIndex.CompileName} := ");
+      wr.Write($"for {loopIndex.CompileName(currentIdGenerator)} := ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
@@ -2076,28 +2076,28 @@ namespace Microsoft.Dafny.Compilers {
         if (endVarName == null) {
           wr.Write("true");
         } else if (IsOrderedByCmp(loopIndex.Type)) {
-          wr.Write($"{loopIndex.CompileName}.Cmp({endVarName}) < 0");
+          wr.Write($"{loopIndex.CompileName(currentIdGenerator)}.Cmp({endVarName}) < 0");
         } else {
-          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+          wr.Write($"{loopIndex.CompileName(currentIdGenerator)} < {endVarName}");
         }
         if (AsNativeType(loopIndex.Type) == null) {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.Plus(_dafny.One)");
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)} = {loopIndex.CompileName(currentIdGenerator)}.Plus(_dafny.One)");
         } else {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++");
+          bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)}++");
         }
       } else {
         if (endVarName == null) {
           wr.Write("true");
         } else if (IsOrderedByCmp(loopIndex.Type)) {
-          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName}) < 0");
+          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName(currentIdGenerator)}) < 0");
         } else {
-          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+          wr.Write($"{endVarName} < {loopIndex.CompileName(currentIdGenerator)}");
         }
         bodyWr = wr.NewBlock($"; ");
         if (AsNativeType(loopIndex.Type) == null) {
-          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.Minus(_dafny.One)");
+          bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)} = {loopIndex.CompileName(currentIdGenerator)}.Minus(_dafny.One)");
         } else {
-          bodyWr.WriteLine($"{loopIndex.CompileName}--");
+          bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)}--");
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);

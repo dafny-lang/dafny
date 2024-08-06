@@ -61,6 +61,10 @@ namespace Microsoft.Dafny {
         return tipString == null ? old.ToString() : tipString + "_" + old.ToString();
       }
     }
+
+    public override string ToString() {
+      throw new InvalidOperationException("Did not expect to convert the fresh Id generator itself to a string");
+    }
   }
 
   public class CompilationIdGenerator : FreshIdGenerator {

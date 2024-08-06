@@ -17,12 +17,12 @@ namespace DAST.Format {
       if ((new BigInteger((s).Count)).Sign == 0) {
         return BigInteger.Zero;
       } else {
-        BigInteger _759_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
-        BigInteger _760_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
-        if ((_759_i) < (_760_j)) {
-          return _760_j;
+        BigInteger _0_i = Dafny.Helpers.Id<Func<__T, BigInteger>>(f)((s).Select(BigInteger.Zero));
+        BigInteger _1_j = DAST.Format.__default.SeqToHeight<__T>((s).Drop(BigInteger.One), f);
+        if ((_0_i) < (_1_j)) {
+          return _1_j;
         } else {
-          return _759_i;
+          return _0_i;
         }
       }
     }

@@ -899,7 +899,7 @@ namespace Microsoft.Dafny.Compilers {
                 var compiledConstructorsProcessed = 0;
                 for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  Contract.Assert(arg.CompileName(FormalIdGenerator) == dtor.CorrespondingFormals[i].CompileName(FormalIdGenerator));
                   if (ctor_i.IsGhost) {
                     continue;
                   }
@@ -2046,18 +2046,18 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
-      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName} = ");
+      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName(currentIdGenerator)} = ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
       ConcreteSyntaxTree bodyWr;
       if (goingUp) {
-        wr.Write(endVarName != null ? $"{loopIndex.CompileName} < {endVarName}" : "");
-        bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+        wr.Write(endVarName != null ? $"{loopIndex.CompileName(currentIdGenerator)} < {endVarName}" : "");
+        bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)}++)");
       } else {
-        wr.Write(endVarName != null ? $"{endVarName} < {loopIndex.CompileName}" : "");
+        wr.Write(endVarName != null ? $"{endVarName} < {loopIndex.CompileName(currentIdGenerator)}" : "");
         bodyWr = wr.NewBlock($"; )");
-        bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+        bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)}--;");
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);

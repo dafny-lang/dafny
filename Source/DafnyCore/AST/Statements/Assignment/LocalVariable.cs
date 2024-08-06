@@ -77,7 +77,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   private string sanitizedName;
 
   public string SanitizedName(CompilationIdGenerator generator) {
-    return sanitizedName ??= $"_{generator}_{SanitizedNameShadowable}";
+    return sanitizedName ??= $"_{generator.FreshNumericId()}_{SanitizedNameShadowable}";
   }
 
   string compileName;

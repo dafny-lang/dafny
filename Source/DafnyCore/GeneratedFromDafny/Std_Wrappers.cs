@@ -70,8 +70,8 @@ namespace Std.Wrappers {
       Std.Wrappers._IOption<T> _source0 = _this;
       {
         if (_source0.is_Some) {
-          T v = _source0.dtor_value;
-          return v;
+          T _0_v = _source0.dtor_value;
+          return _0_v;
         }
       }
       {
@@ -79,11 +79,11 @@ namespace Std.Wrappers {
       }
     }
     public Std.Wrappers._IResult<T, __E> ToResult<__E>(__E error) {
-      Std.Wrappers._IOption<T> _source1 = this;
+      Std.Wrappers._IOption<T> _source0 = this;
       {
-        if (_source1.is_Some) {
-          T v = _source1.dtor_value;
-          return Std.Wrappers.Result<T, __E>.create_Success(v);
+        if (_source0.is_Some) {
+          T _0_v = _source0.dtor_value;
+          return Std.Wrappers.Result<T, __E>.create_Success(_0_v);
         }
       }
       {
@@ -91,10 +91,10 @@ namespace Std.Wrappers {
       }
     }
     public Std.Wrappers._IOutcome<__E> ToOutcome<__E>(__E error) {
-      Std.Wrappers._IOption<T> _source2 = this;
+      Std.Wrappers._IOption<T> _source0 = this;
       {
-        if (_source2.is_Some) {
-          T v = _source2.dtor_value;
+        if (_source0.is_Some) {
+          T _0_v = _source0.dtor_value;
           return Std.Wrappers.Outcome<__E>.create_Pass();
         }
       }
@@ -207,58 +207,58 @@ namespace Std.Wrappers {
       return (this).dtor_value;
     }
     public static R GetOr(Std.Wrappers._IResult<R, E> _this, R @default) {
-      Std.Wrappers._IResult<R, E> _source3 = _this;
+      Std.Wrappers._IResult<R, E> _source0 = _this;
       {
-        if (_source3.is_Success) {
-          R s = _source3.dtor_value;
-          return s;
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return _0_s;
         }
       }
       {
-        E e = _source3.dtor_error;
+        E _1_e = _source0.dtor_error;
         return @default;
       }
     }
     public Std.Wrappers._IOption<R> ToOption() {
-      Std.Wrappers._IResult<R, E> _source4 = this;
+      Std.Wrappers._IResult<R, E> _source0 = this;
       {
-        if (_source4.is_Success) {
-          R s = _source4.dtor_value;
-          return Std.Wrappers.Option<R>.create_Some(s);
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return Std.Wrappers.Option<R>.create_Some(_0_s);
         }
       }
       {
-        E _10_e = _source4.dtor_error;
+        E _1_e = _source0.dtor_error;
         return Std.Wrappers.Option<R>.create_None();
       }
     }
     public Std.Wrappers._IOutcome<E> ToOutcome() {
-      Std.Wrappers._IResult<R, E> _source5 = this;
+      Std.Wrappers._IResult<R, E> _source0 = this;
       {
-        if (_source5.is_Success) {
-          R _11_s = _source5.dtor_value;
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
           return Std.Wrappers.Outcome<E>.create_Pass();
         }
       }
       {
-        E _12_e = _source5.dtor_error;
-        return Std.Wrappers.Outcome<E>.create_Fail(_12_e);
+        E _1_e = _source0.dtor_error;
+        return Std.Wrappers.Outcome<E>.create_Fail(_1_e);
       }
     }
     public static __FC Map<__FC>(Std.Wrappers._IResult<R, E> _this, Func<Std.Wrappers._IResult<R, E>, __FC> rewrap) {
       return Dafny.Helpers.Id<Func<Std.Wrappers._IResult<R, E>, __FC>>(rewrap)(_this);
     }
     public static Std.Wrappers._IResult<R, __NewE> MapFailure<__NewE>(Std.Wrappers._IResult<R, E> _this, Func<E, __NewE> reWrap) {
-      Std.Wrappers._IResult<R, E> _source6 = _this;
+      Std.Wrappers._IResult<R, E> _source0 = _this;
       {
-        if (_source6.is_Success) {
-          R _13_s = _source6.dtor_value;
-          return Std.Wrappers.Result<R, __NewE>.create_Success(_13_s);
+        if (_source0.is_Success) {
+          R _0_s = _source0.dtor_value;
+          return Std.Wrappers.Result<R, __NewE>.create_Success(_0_s);
         }
       }
       {
-        E _14_e = _source6.dtor_error;
-        return Std.Wrappers.Result<R, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(reWrap)(_14_e));
+        E _1_e = _source0.dtor_error;
+        return Std.Wrappers.Result<R, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(reWrap)(_1_e));
       }
     }
   }
@@ -358,27 +358,27 @@ namespace Std.Wrappers {
       return this;
     }
     public Std.Wrappers._IOption<__R> ToOption<__R>(__R r) {
-      Std.Wrappers._IOutcome<E> _source7 = this;
+      Std.Wrappers._IOutcome<E> _source0 = this;
       {
-        if (_source7.is_Pass) {
+        if (_source0.is_Pass) {
           return Std.Wrappers.Option<__R>.create_Some(r);
         }
       }
       {
-        E _15_e = _source7.dtor_error;
+        E _0_e = _source0.dtor_error;
         return Std.Wrappers.Option<__R>.create_None();
       }
     }
     public Std.Wrappers._IResult<__R, E> ToResult<__R>(__R r) {
-      Std.Wrappers._IOutcome<E> _source8 = this;
+      Std.Wrappers._IOutcome<E> _source0 = this;
       {
-        if (_source8.is_Pass) {
+        if (_source0.is_Pass) {
           return Std.Wrappers.Result<__R, E>.create_Success(r);
         }
       }
       {
-        E _16_e = _source8.dtor_error;
-        return Std.Wrappers.Result<__R, E>.create_Failure(_16_e);
+        E _0_e = _source0.dtor_error;
+        return Std.Wrappers.Result<__R, E>.create_Failure(_0_e);
       }
     }
     public static __FC Map<__FC>(Std.Wrappers._IOutcome<E> _this, Func<Std.Wrappers._IOutcome<E>, __FC> rewrap) {
@@ -386,15 +386,15 @@ namespace Std.Wrappers {
     }
     public static Std.Wrappers._IResult<__T, __NewE> MapFailure<__T, __NewE>(Std.Wrappers._IOutcome<E> _this, Func<E, __NewE> rewrap, __T @default)
     {
-      Std.Wrappers._IOutcome<E> _source9 = _this;
+      Std.Wrappers._IOutcome<E> _source0 = _this;
       {
-        if (_source9.is_Pass) {
+        if (_source0.is_Pass) {
           return Std.Wrappers.Result<__T, __NewE>.create_Success(@default);
         }
       }
       {
-        E _17_e = _source9.dtor_error;
-        return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(rewrap)(_17_e));
+        E _0_e = _source0.dtor_error;
+        return Std.Wrappers.Result<__T, __NewE>.create_Failure(Dafny.Helpers.Id<Func<E, __NewE>>(rewrap)(_0_e));
       }
     }
     public static Std.Wrappers._IOutcome<E> Need(bool condition, E error)

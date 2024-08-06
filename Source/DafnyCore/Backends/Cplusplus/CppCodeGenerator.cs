@@ -558,12 +558,12 @@ namespace Microsoft.Dafny.Compilers {
                   for (int i = 0; i < n - 1; i++) {
                     var ctor_i = dtor.EnclosingCtors[i];
                     var ctor_name = DatatypeSubStructName(ctor_i);
-                    Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                    Contract.Assert(arg.CompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].CompileName(currentIdGenerator));
                     wDtor.WriteLine("if (is_{0}()) {{ return std::get<{0}{1}>(v).{2}; }}",
                       ctor_name, InstantiateTemplate(dt.TypeArgs), IdName(arg));
                   }
 
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
+                  Contract.Assert(arg.CompileName(currentIdGenerator) == dtor.CorrespondingFormals[n - 1].CompileName(currentIdGenerator));
                   var final_ctor_name = DatatypeSubStructName(dtor.EnclosingCtors[n - 1], true);
                   wDtor.WriteLine("return std::get<{0}>(v).{1}; ",
                     final_ctor_name, IdName(arg));
