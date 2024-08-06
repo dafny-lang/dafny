@@ -3280,7 +3280,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           generated := generated.Then(
             R.Labelled("TAIL_CALL_START",
                        R.Loop(None,
-                       loopBegin.Then(bodyExpr))));
+                              loopBegin.Then(bodyExpr))));
         }
         case JumpTailCallStart() => {
           generated := R.Continue(Some("TAIL_CALL_START"));

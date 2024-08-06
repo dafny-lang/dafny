@@ -691,7 +691,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         // TODO: Emit new variables to store the input parameters,
-        
+
         var recBuilder = stmtContainer.Builder.TailRecursive();
         return new BuilderSyntaxTree<StatementContainer>(recBuilder, this);
       } else {
