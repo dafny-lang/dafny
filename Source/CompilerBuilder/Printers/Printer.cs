@@ -1,53 +1,138 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using System.Net.Http.Headers;
-using Microsoft.Boogie;
-using Microsoft.Dafny;
-
 namespace CompilerBuilder;
 
-public interface Printer<T>: IPrinter;
+public interface Printer<in T> : Printer {
 
-class FailW<T> : Printer<T>;
-
-class RecursiveW<T>(Func<Printer<T>> get) : Printer<T>;
-
-class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T>;
-
-class Cast<T, U>(Printer<T> printer) : Printer<U>;
-
-public interface IPrinter;
-
-public interface VoidPrinter : IPrinter;
-
-class Empty : VoidPrinter {
-  public static readonly Empty Instance = new();
-
-  private Empty() { }
+  public Document? Print(T value);
 }
 
-class Verbatim : Printer<string> {
-  public static readonly Printer<string> Instance = new Verbatim();
-
-  private Verbatim() { }
+class FailW<T> : Printer<T> {
+  public Document? Print(T value) {
+    return null;
+  }
 }
 
-class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U>;
+class RecursiveW<T>(Func<Printer<T>> get) : Printer<T> {
 
-class IgnoreW<T>(VoidPrinter printer) : Printer<T>;
+  public Printer<T>? inner;
+  public Printer<T> Inner => inner ??= get();
+  
+  public Document? Print(T value) {
+    return Inner.Print(value);
+  }
+}
 
-internal class TextW(string value) : VoidPrinter;
+class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T> {
+  public Document? Print(T value) {
+    return first.Print(value) ?? second.Print(value);
+  }
+}
 
-internal class NumberW : Printer<int>;
+class Cast<T, U>(Printer<T> printer) : Printer<U> {
+  public Document? Print(U value) {
+    if (value is T t) {
+      return printer.Print(t);
+    }
 
-internal class IdentifierW : Printer<string>;
+    return null;
+  }
+}
 
-class SequenceW<TLeft, TRight, T>(Printer<TLeft> left, Printer<TRight> right, 
-  Func<T, (TLeft, TRight)?> destruct, Orientation mode) : Printer<T>;
+public interface Printer;
 
-class SkipLeftW<T>(VoidPrinter left, Printer<T> right, Orientation mode) : Printer<T>;
+public interface VoidPrinter : Printer {
+  
+  public Document Print();
+}
 
-class SkipRightW<T>(Printer<T> left, VoidPrinter right, Orientation mode) : Printer<T>;
+class EmptyW : VoidPrinter {
+  public static readonly EmptyW Instance = new();
+
+  private EmptyW() { }
+  public Document Print() {
+    return new Empty();
+  }
+}
+
+class VerbatimW : Printer<string> {
+  public static readonly Printer<string> Instance = new VerbatimW();
+
+  private VerbatimW() { }
+  public Document Print(string value) {
+    return new Verbatim(value);
+  }
+}
+
+class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U> {
+  public Document? Print(U value) {
+    var newValue = map(value);
+    if (newValue == null) {
+      return null;
+    }
+
+    return printer.Print(newValue);
+  }
+}
+
+class IgnoreW<T>(VoidPrinter printer) : Printer<T> {
+  public Document Print(T value) {
+    return printer.Print();
+  }
+}
+
+// TODO rename TextW and VerbatimW to make the difference more clear?
+internal class TextW(string value) : VoidPrinter {
+  public Document Print() {
+    return new Verbatim(value);
+  }
+}
+
+// TODO replace by map and VerbatimW?
+internal class NumberW : Printer<int> {
+  public Document? Print(int value) {
+    return new Verbatim(value.ToString());
+  }
+}
+
+class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> second, 
+  Func<T, (TFirst, TSecond)?> destruct, Orientation orientation) : Printer<T> {
+  public Document? Print(T value) {
+    var t = destruct(value);
+    if (t == null) {
+      return null;
+    }
+
+    var (firstValue, secondValue) = t.Value;
+    var firstDoc = first.Print(firstValue);
+    var secondDoc = second.Print(secondValue);
+    if (firstDoc == null || secondDoc == null) {
+      return null;
+    }
+
+    return new SequenceD(firstDoc, secondDoc, orientation);
+  }
+}
+
+class SkipLeftW<T>(VoidPrinter first, Printer<T> second, Orientation orientation) : Printer<T> {
+  public Document? Print(T value) {
+    var secondValue = second.Print(value);
+    if (secondValue == null) {
+      return null;
+    }
+    return new SequenceD(first.Print(), secondValue, orientation);
+  }
+}
+
+class SkipRightW<T>(Printer<T> first, VoidPrinter second, Orientation orientation) : Printer<T> {
+  public Document? Print(T value) {
+    var firstValue = first.Print(value);
+    if (firstValue == null) {
+      return null;
+    }
+    return new SequenceD(firstValue, second.Print(), orientation);
+  }
+}
 
 public static class PrinterExtensions {
   public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U,T?> map) {

@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;

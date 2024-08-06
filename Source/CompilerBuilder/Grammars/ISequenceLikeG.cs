@@ -1,11 +1,5 @@
 namespace CompilerBuilder;
 
-
-public enum Orientation {
-  Horizontal,
-  Vertical
-};
-
 interface ISequenceLikeG {
   Type FirstType { get; }
   Type SecondType { get; }
@@ -37,7 +31,7 @@ class SequenceG<TFirst, TSecond, T>(Grammar<TFirst> first, Grammar<TSecond> seco
 
   public Orientation Mode => mode;
 
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
     var firstPrinter = (Printer<TFirst>)recurse(First);
     var secondPrinter = (Printer<TSecond>)recurse(Second);
     return new SequenceW<TFirst,TSecond,T>(firstPrinter, secondPrinter, destruct, mode);
@@ -70,7 +64,7 @@ class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Orientation mode = Orie
   public VoidGrammar First { get; set; } = first;
   public Grammar<T> Second { get; set; } = second;
 
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
     var first = (VoidPrinter)recurse(First);
     var second = (Printer<T>)recurse(Second);
     return new SkipLeftW<T>(first, second, mode);
@@ -102,7 +96,7 @@ class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Orientation mode = Ori
   public Grammar<T> First { get; set; } = first;
   public VoidGrammar Second { get; set; } = second;
   
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
     var firstParser = (Printer<T>)recurse(First);
     var secondParser = (VoidPrinter)recurse(Second);
     return new SkipRightW<T>(firstParser, secondParser, mode);

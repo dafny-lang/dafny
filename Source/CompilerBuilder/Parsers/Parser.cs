@@ -22,9 +22,11 @@ class IgnoreR<T>(Parser<T> parser) : VoidParser {
   }
 }
 
-public interface Parser {
-}
+public interface Parser;
+
 public interface Parser<T> : Parser {
+  
+  // TODO make internal??
   public ParseResult<T> Parse(ITextPointer text);
   
   public ConcreteResult<T> Parse(string text) {
