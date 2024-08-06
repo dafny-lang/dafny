@@ -455,8 +455,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
 
-      void PrintBy(ConcreteUpdateStatement s)
-      {
+      void PrintBy(ConcreteUpdateStatement s) {
         BlockStmt proof = s switch {
           UpdateStmt updateStmt => updateStmt.Proof,
           AssignOrReturnStmt returnStmt => returnStmt.Proof,
