@@ -130,10 +130,9 @@ public class JavaGrammar {
       ae => ae.E);
     var requires = require.Many();
 
-    var expressionBlock = block.Map(b =>
-        ((b.Body.FirstOrDefault() as ReturnStmt)?.Rhss.FirstOrDefault() as ExprRhs)?.Expr,
-      e => new BlockStmt(e.RangeToken, [new ReturnStmt(e.RangeToken, [new ExprRhs(e)])]));
-    
+    var expressionBody = Keyword("return").
+      Then(expression).
+      Then(";", Orientation.Adjacent).InBraces();
     return Constructor<Function>().
       Then(Keyword("@Function")).
       Then(staticc, m => m.IsStatic, Orientation.Vertical).
@@ -141,7 +140,7 @@ public class JavaGrammar {
       Then(name, m => m.NameNode).
       Then(parameters, m => m.Ins, Orientation.Adjacent).
       Then(requires.Indent(), m => m.Req, Orientation.Vertical).
-      Then(expressionBlock, m => m.Body).
+      Then(expressionBody, m => m.Body).
       SetRange((m, r) => m.RangeToken = Convert(r));
   }
   
