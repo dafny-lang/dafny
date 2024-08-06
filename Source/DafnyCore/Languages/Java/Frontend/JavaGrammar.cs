@@ -94,7 +94,7 @@ public class JavaGrammar {
   }
   
   Grammar<ClassDecl> Class() {
-    var header = Value(() => new ClassDecl()).
+    var header = Constructor<ClassDecl>().
       Then("class").
       Then(name, cl => cl.NameNode);
     
@@ -112,11 +112,9 @@ public class JavaGrammar {
   Grammar<Function> Function() {
     
     // Need something special for a unordered bag of keywords
-    var staticc = Keyword("static").Then(Constant(true)).Default(() => false);
+    var staticc = Keyword("static").Then(Constant(true)).Default(false);
 
-    var parameter = Value(() => new Formal() {
-        InParam = true
-      }).
+    var parameter = Constructor<Formal>().
       Then(type, f => f.Type).
       Then(name, f => new Name(f.Name), (f,v) => {
         f.Name = v.Value;
@@ -124,6 +122,7 @@ public class JavaGrammar {
       }).
       SetRange((f, t) => {
         f.RangeToken = Convert(t);
+        f.InParam = true;
       });
     var parameters = parameter.Many().InParens();
     var require = Keyword("requires").Then(expression).Map(
@@ -135,7 +134,7 @@ public class JavaGrammar {
         ((b.Body.FirstOrDefault() as ReturnStmt)?.Rhss.FirstOrDefault() as ExprRhs)?.Expr,
       e => new BlockStmt(e.RangeToken, [new ReturnStmt(e.RangeToken, [new ExprRhs(e)])]));
     
-    return Keyword("@Function").Then(Value(() => new Function())).
+    return Keyword("@Function").Then(Constructor<Function>()).
       Then(staticc, m => m.IsStatic).
       Then(type, m => m.ResultType).
       Then(name, m => m.NameNode).
@@ -147,21 +146,23 @@ public class JavaGrammar {
   
   Grammar<Method> Method() {
     // Need something special for a unordered bag of keywords
-    var staticc = Keyword("static").Then(Constant(true)).Default(() => false);
+    var staticc = Keyword("static").Then(Constant(true)).Default(false);
     var returnParameter = type.Map(
       t => new Formal(t.Tok,"_returnName", t, false, false, null), 
       f=> f.Type);
-    var outs = returnParameter.Option(Keyword("void")).OptionToList();
+    var voidReturnType = Keyword("void").Then(Constant<Formal?>(null));
+    var outs = voidReturnType.OrCast(returnParameter).OptionToList();
 
-    var parameter = Value(() => new Formal() {
-        InParam = true
-      }).
+    var parameter = Constructor<Formal>().
       Then(type, f => f.Type).
       Then(name, f => new Name(f.Name), (f,v) => {
         f.Name = v.Value;
         f.tok = v.tok;
       }).
-      SetRange((f, t) => f.RangeToken = Convert(t));
+      SetRange((f, t) => {
+        f.RangeToken = Convert(t);
+        f.InParam = true;
+      });
     // TODO replace .Many with .SeparatedBy
     var parameters = parameter.Many().InParens();
     var require = Keyword("requires").Then(expression).Map(
@@ -169,7 +170,7 @@ public class JavaGrammar {
       ae => ae.E);
     var requires = require.Many(Orientation.Vertical);
 
-    return Value(() => new Method()).
+    return Constructor<Method>().
       Then(staticc, m => m.IsStatic).
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
@@ -191,7 +192,7 @@ public class JavaGrammar {
     var returnExpression = Keyword("return").Then(expression).Then(";", Orientation.Adjacent).
       Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
-    var ifStatement = Value(() => new IfStmt()).
+    var ifStatement = Constructor<IfStmt>().
       Then("if").Then(expression.InParens(), s => s.Guard).
       Then(block, s => s.Thn);
 
@@ -203,11 +204,11 @@ public class JavaGrammar {
       updateStmt => (updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix);
 
     var initializer = Keyword("=").Then(expression).Option();
-    var localStart = Value(() => new LocalVariable()).
+    var localStart = Constructor<LocalVariable>().
       Then(type, s => s.Type).
       Then(Identifier, s => s.Name).
       SetRange((v, r) => v.RangeToken = Convert(r));
-    var varDecl = Value(() => new VarDeclData()).
+    var varDecl = Constructor<VarDeclData>().
       Then(localStart, s => s.Local).
       Then(initializer, s => s.Initializer).Then(";", Orientation.Adjacent).
       Map((t, data) => {

@@ -85,6 +85,16 @@ class MapW<T, U>(Printer<T> printer, Func<U, T?> map) : Printer<U> {
   }
 }
 
+class ValueW<T>(T expected, VoidPrinter printer) : Printer<T> {
+  public Document? Print(T value) {
+    if (Equals(expected, value)) {
+      return printer.Print();
+    }
+
+    return null;
+  }
+}
+
 class IgnoreW<T>(VoidPrinter printer) : Printer<T> {
   public Document Print(T value) {
     return printer.Print();

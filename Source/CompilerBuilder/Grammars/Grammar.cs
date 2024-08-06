@@ -183,15 +183,27 @@ class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
   public IEnumerable<Grammar> Children => [First, Second];
 }
 
-class Value<T>(Func<T> value) : Grammar<T> {
-  public T Evaluated => value();
+class Constructor<T>(Func<T> construct) : Grammar<T> {
 
   Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
     return new IgnoreW<T>(EmptyW.Instance);
   }
 
   Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
-    return new ValueR<T>(value);
+    return new ValueR<T>(construct);
+  }
+
+  public IEnumerable<Grammar> Children => [];
+}
+
+class Value<T>(T value) : Grammar<T> {
+
+  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
+    return new ValueW<T>(value, EmptyW.Instance);
+  }
+
+  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+    return new ValueR<T>(() => value);
   }
 
   public IEnumerable<Grammar> Children => [];
@@ -210,8 +222,8 @@ class ParseOnly<T>(Grammar<T> grammar) : VoidGrammar {
 }
 
 public static class GrammarExtensions {
-  public static Grammar<T> Default<T>(this Grammar<T> grammar, Func<T> value) {
-    return grammar.Or(GrammarBuilder.Value(value));
+  public static Grammar<T> Default<T>(this Grammar<T> grammar, T value) {
+    return grammar.Or(GrammarBuilder.Constant(value));
   }
   
   public static Grammar<T> OrCast<T, U>(this Grammar<T> grammar, Grammar<U> other)
@@ -244,7 +256,7 @@ public static class GrammarExtensions {
   
   public static Grammar<List<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Spaced) {
     var numerable = GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
-      GrammarBuilder.Value<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, orientation,
+      new Constructor<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, orientation,
         
         (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
         // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
@@ -333,7 +345,7 @@ public static class GrammarExtensions {
   }
 
   public static Grammar<T?> Option<T>(this Grammar<T> grammar) {
-    return grammar.Map<T, T?>(t => t, t => t).Or(GrammarBuilder.Value<T?>(() => default));
+    return grammar.Map<T, T?>(t => t, t => t).Or(new Constructor<T?>(() => default));
   }
   
   public static Grammar<T?> Option<T>(this Grammar<T> grammar, VoidGrammar fallback) {
@@ -381,8 +393,8 @@ public static class GrammarBuilder {
     return result;
   }
   
-  public static Grammar<T> Value<T>(Func<T> value) => new Value<T>(value);
-  public static Grammar<T> Constant<T>(T value) => new Value<T>(() => value);
+  public static Grammar<T> Constructor<T>() where T : new() => new Constructor<T>(() => new T());
+  public static Grammar<T> Constant<T>(T value) => new Value<T>(value);
   public static VoidGrammar Keyword(string keyword) => new TextG(keyword);
   public static Grammar<T> Fail<T>(string expectation) => new Fail<T>(expectation);
   public static readonly Grammar<string> Identifier = new IdentifierG();

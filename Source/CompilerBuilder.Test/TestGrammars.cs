@@ -46,7 +46,7 @@ public class TestGrammars {
   [Fact]
   public void TestSequence() {
     var person =
-      Value(() => new Person()).
+      Constructor<Person>().
         Then(Number, (p) => p.Age).
         Then(Identifier, (p) => p.Name);
     var result = person.ToParser().Parse("123124Jan");
@@ -58,7 +58,7 @@ public class TestGrammars {
   [Fact]
   public void TestMany() {
     var person =
-      Value(() => new Person()).
+      Constructor<Person>().
         Then(Number, (p) => p.Age).
         Then(Identifier, (p) => p.Name);
     var persons = person.Many();
@@ -92,7 +92,7 @@ public class TestGrammars {
   public void ManualTrivia() {
     var trivia = Comments.SlashSlashLineComment().Or(Whitespace).Many();
     var person =
-      Value(() => new PersonWithTrivia()).
+      Constructor<PersonWithTrivia>().
         Then(Number, (p) => p.Age).
         Then(trivia, (p) => p.Trivia).
         Then(Identifier, (p) => p.Name);

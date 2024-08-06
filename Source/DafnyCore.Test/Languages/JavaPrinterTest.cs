@@ -8,7 +8,7 @@ public class JavaPrinterTest {
   public void ParseAndPrint() {
     var input = @"
 class Div {
-  int Foo(int x) 
+  int Foo(int x)
     requires x != 0
   {
     return 3 / x;
