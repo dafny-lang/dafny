@@ -227,7 +227,7 @@ public class JavaGrammar {
     // if statement
     // assignment statement
     // variable declaration [initializer]
-    var result = returnExpression.UpCast<ReturnStmt, Statement>().
+    var result = Fail<Statement>("a statement").OrCast(returnExpression).
       OrCast(ifStatement).OrCast(block).OrCast(expressionStatement);
     return (result, block);
   }
@@ -245,6 +245,7 @@ public class JavaGrammar {
       Keyword("<").Then(Constant(BinaryExpr.Opcode.Le))).Or(
       Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
     var binary = self.Assign(() => new BinaryExpr(), b => b.E0).
+      Then(Position, e => null, (e, p) => e.tok = Convert(p)).
       Then(opCode, b => b.Op).
       Then(self, b => b.E1);
 
@@ -268,7 +269,7 @@ public class JavaGrammar {
       Then(Identifier, c => c.SuffixName).
       SetRange((c,r) => c.RangeToken = Convert(r));
     
-    var expressionResult = ternary.UpCast<ITEExpr, Expression>().OrCast(binary).
+    var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
       OrCast(variableRef).OrCast(number).OrCast(callResult).OrCast(exprDotName);
     return (expressionResult, callResult);
   }
@@ -288,7 +289,7 @@ public class JavaGrammar {
     //   OptGenericInstantiation<out typeArgs, inExpressionContext>
     //     (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
     // }
-    return intGrammar.UpCast<IntType, Type>().OrCast(userDefinedType);
+    return Fail<Type>("a type").OrCast(intGrammar).OrCast(userDefinedType);
   }
 
 

@@ -33,7 +33,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
   protected override CodeActionRegistrationOptions CreateRegistrationOptions(CodeActionCapability capability,
     ClientCapabilities clientCapabilities) {
     return new CodeActionRegistrationOptions {
-      DocumentSelector = DocumentSelector.ForLanguage("dafny"),
+      DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava"),
       ResolveProvider = true,
       CodeActionKinds = Container<CodeActionKind>.From(
         CodeActionKind.QuickFix

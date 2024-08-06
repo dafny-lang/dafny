@@ -31,7 +31,7 @@ public interface ParseResult<T> : ParseResult {
 
     FailureResult<T>? failure = null;
     if (Failure != null && other.Failure != null) {
-      failure = Failure.Location.Offset > other.Failure.Location.Offset ? Failure : other.Failure;
+      failure = Failure.Location.Offset >= other.Failure.Location.Offset ? Failure : other.Failure;
     }
 
     failure ??= Failure ?? other.Failure;

@@ -16,6 +16,7 @@ public static class ParserBuilder {
   public static VoidParser Keyword(string keyword) => new TextR(keyword);
   public static readonly Parser<string> Identifier = new IdentifierR();
   public static readonly Parser<int> Number = new NumberR();
+  public static Parser<T> Fail<T>(string expectation) => new FailR<T>(expectation);
   public static readonly Parser<string> SlashSlashLineComment = new LineComment();
   public static readonly Parser<string> Whitespace = new Whitespace();
 }

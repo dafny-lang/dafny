@@ -26,7 +26,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override SignatureHelpRegistrationOptions CreateRegistrationOptions(SignatureHelpCapability capability, ClientCapabilities clientCapabilities) {
       return new SignatureHelpRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage("dafny"),
+        DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava"),
         TriggerCharacters = new Container<string>("(")
       };
     }

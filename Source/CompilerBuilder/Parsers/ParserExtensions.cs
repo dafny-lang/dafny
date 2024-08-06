@@ -18,6 +18,18 @@ public static class ParserExtensions {
   public static Parser<T> Or<T>(this Parser<T> left, Parser<T> right) {
     return new ChoiceR<T>(left, right);
   }
+  
+  public static Parser<T> OrCast<T, U>(this Parser<T> grammar, Parser<U> other)
+    where U : T
+  {
+    return new ChoiceR<T>(grammar, other.UpCast<U, T>());
+  }
+  
+  public static Parser<TSuper> UpCast<TSub, TSuper>(this Parser<TSub> grammar)
+    where TSub : TSuper
+  {
+    return grammar.Map<TSub, TSuper>(t => t);
+  }
 
   public static Parser<List<T>> Many<T>(this Parser<T> one) {
     return ParserBuilder.Recursive<List<T>>(self => 

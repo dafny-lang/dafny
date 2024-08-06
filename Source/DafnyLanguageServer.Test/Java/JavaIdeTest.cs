@@ -19,6 +19,7 @@ class Div {
     var document = CreateAndOpenTestDocument(input, "Division.vjava");
     var diagnostics = await GetLastDiagnostics(document);
     Assert.Single(diagnostics);
+    Assert.Equal(13, diagnostics[0].Range.Start.Character);
     Assert.Equal("possible division by zero", diagnostics[0].Message);
   }
   

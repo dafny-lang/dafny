@@ -30,14 +30,16 @@ public class TestParsing {
   
   [Fact]
   public void TestChoice() {
-    var numberOrIdentifier = Number.Map(i => (object)i).Or(Identifier.Map(s => (object)s));
+    var numberOrIdentifier = Fail<object>("a number or identifier").
+      Or(Number.Map(i => (object)i).Or(Identifier.Map(s => (object)s)));
     Assert.Equal(123124, numberOrIdentifier.Parse("123124").Success!.Value);
     Assert.Equal("abcefg", numberOrIdentifier.Parse("abcefg").Success!.Value);
     Assert.Null(numberOrIdentifier.Parse("!@!@$#").Success);
     
     Assert.Equal("'!@#!@' is not the end of the text", numberOrIdentifier.Parse("123124!@#!@#").Failure!.Message);
+    Assert.Equal("'!@#!@' is not a number or identifier", numberOrIdentifier.Parse("!@#!@#").Failure!.Message);
   }
-
+  
   record Person {
     public int Age;
     public string Name;

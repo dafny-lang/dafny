@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override DocumentSymbolRegistrationOptions CreateRegistrationOptions(DocumentSymbolCapability capability, ClientCapabilities clientCapabilities) {
       return new DocumentSymbolRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage("dafny")
+        DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava")
       };
     }
 

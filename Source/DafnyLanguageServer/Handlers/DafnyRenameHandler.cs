@@ -24,7 +24,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     protected override RenameRegistrationOptions CreateRegistrationOptions(
       RenameCapability capability, ClientCapabilities clientCapabilities) {
       return new RenameRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage("dafny")
+        DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava")
       };
     }
 

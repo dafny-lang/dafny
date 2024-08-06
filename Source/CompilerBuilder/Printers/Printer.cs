@@ -8,6 +8,8 @@ namespace CompilerBuilder;
 
 public interface Printer<T>: IPrinter;
 
+class FailW<T> : Printer<T>;
+
 class RecursiveW<T>(Func<Printer<T>> get) : Printer<T>;
 
 class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T>;

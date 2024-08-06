@@ -21,7 +21,7 @@ public class DafnyFormattingHandler : DocumentFormattingHandlerBase {
   protected override DocumentFormattingRegistrationOptions CreateRegistrationOptions(DocumentFormattingCapability capability,
     ClientCapabilities clientCapabilities) {
     return new DocumentFormattingRegistrationOptions() {
-      DocumentSelector = DocumentSelector.ForLanguage("dafny")
+      DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava")
     };
   }
 

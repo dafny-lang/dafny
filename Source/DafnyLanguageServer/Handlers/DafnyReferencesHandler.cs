@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
     protected override ReferenceRegistrationOptions CreateRegistrationOptions(
       ReferenceCapability capability, ClientCapabilities clientCapabilities) {
       return new ReferenceRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage("dafny")
+        DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava")
       };
     }
 

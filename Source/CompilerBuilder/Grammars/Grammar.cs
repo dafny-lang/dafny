@@ -311,13 +311,13 @@ public static class GrammarExtensions {
   }
 }
 
-class Fail<T> : Grammar<T> {
+class Fail<T>(string expectation) : Grammar<T> {
   Printer<T> Grammar<T>.ToPrinter(Func<Grammar, IPrinter> recurse) {
-    throw new NotImplementedException();
+    return new FailW<T>();
   }
 
   Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
-    throw new NotImplementedException();
+    return new FailR<T>(expectation);
   }
 
   public IEnumerable<Grammar> Children => [];
@@ -349,7 +349,7 @@ public static class GrammarBuilder {
   public static Grammar<T> Value<T>(Func<T> value) => new Value<T>(value);
   public static Grammar<T> Constant<T>(T value) => new Value<T>(() => value);
   public static VoidGrammar Keyword(string keyword) => new TextG(keyword);
-  public static Grammar<T> Fail<T>() => new Fail<T>();
+  public static Grammar<T> Fail<T>(string expectation) => new Fail<T>(expectation);
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
   public static readonly Grammar<string> Whitespace = new ExplicitGrammar<string>(ParserBuilder.Whitespace, Verbatim.Instance);

@@ -34,7 +34,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities) {
       return new HoverRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage("dafny")
+        DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava")
       };
     }
 

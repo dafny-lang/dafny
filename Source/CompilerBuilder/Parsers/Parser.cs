@@ -137,6 +137,9 @@ public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> sec
   }
 }
 
+/// <summary>
+/// Prefer the first over the second choice, also when it comes to error messages
+/// </summary>
 class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
 
   public Parser<T> First { get; set; } = first;
@@ -146,6 +149,12 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
     var firstResult = First.Parse(text);
     var secondResult = Second.Parse(text);
     return firstResult.Combine(secondResult);
+  }
+}
+
+class FailR<T>(string expectation) : Parser<T> {
+  public ParseResult<T> Parse(ITextPointer text) {
+    return text.Fail<T>(expectation);
   }
 }
 

@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
     protected override CompletionRegistrationOptions CreateRegistrationOptions(CompletionCapability capability, ClientCapabilities clientCapabilities) {
       return new CompletionRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage("dafny"),
+        DocumentSelector = DocumentSelector.ForLanguage("dafny", "vjava"),
         ResolveProvider = false,
         TriggerCharacters = new Container<string>(".")
       };

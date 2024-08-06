@@ -52,13 +52,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       return new TextDocumentSyncRegistrationOptions {
         DocumentSelector = new DocumentSelector(DocumentFilter.ForLanguage(DafnyLanguage), 
           DocumentFilter.ForPattern("**/*dfyconfig.toml"),
-          DocumentFilter.ForPattern("**/*.vjava")),
+          DocumentFilter.ForLanguage("vjava")),
         Change = TextDocumentSyncKind.Incremental
       };
     }
 
     public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
-      return new TextDocumentAttributes(uri, uri.Path.EndsWith(DafnyProject.FileName) ? "toml" : DafnyLanguage);
+      return new TextDocumentAttributes(uri, uri.Path.EndsWith(DafnyProject.FileName) ? "toml" : 
+        uri.Path.EndsWith(".vjava") ? "vjava": DafnyLanguage);
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
