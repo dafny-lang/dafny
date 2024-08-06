@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -345,7 +346,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
         resolver.reporter.Error(MessageSource.Resolver, p,
           "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
-        var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
+        var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName(SinglePassCodeGenerator.FormalIdGenerator), p.IsGhost, false,
           false, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -361,7 +362,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
           "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
         nonDuplicateOuts.Add(p);
-        var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
+        var field = new SpecialField(p.RangeToken, p.Name, SpecialField.ID.UseIdParam, p.CompileName(SinglePassCodeGenerator.FormalIdGenerator), p.IsGhost, true,
           true, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);

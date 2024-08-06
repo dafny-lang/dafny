@@ -912,7 +912,7 @@ namespace Microsoft.Dafny.Compilers {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
               wr.WriteLine();
-              var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
+              var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName(FormalIdGenerator)), TypeName(arg.Type, wr, arg.tok));
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
                 wDtor.WriteLine("return _this.Get_().({0}).{1}", StructOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
@@ -1845,12 +1845,12 @@ namespace Microsoft.Dafny.Compilers {
     protected string DatatypeFieldName(Formal formal, int formalNonGhostIndex) {
       // Don't rely on base.FormalName because it needlessly (for us) passes the
       // value through IdProtect when we're going to capitalize it
-      return formal.HasName ? Capitalize(formal.CompileName) : "A" + formalNonGhostIndex + "_";
+      return formal.HasName ? Capitalize(formal.CompileName(FormalIdGenerator)) : "A" + formalNonGhostIndex + "_";
     }
 
     protected string DatatypeFieldName(Formal formal) {
       Contract.Assert(formal.HasName);
-      return Capitalize(formal.CompileName);
+      return Capitalize(formal.CompileName(FormalIdGenerator));
     }
 
     // ----- Declarations -------------------------------------------------------------

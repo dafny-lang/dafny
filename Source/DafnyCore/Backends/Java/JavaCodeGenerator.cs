@@ -2326,7 +2326,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(formal != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return IdProtect(InternalFieldPrefix + (formal.HasName ? formal.CompileName : "a" + i));
+      return IdProtect(InternalFieldPrefix + (formal.HasName ? formal.CompileName(FormalIdGenerator) : "a" + i));
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {

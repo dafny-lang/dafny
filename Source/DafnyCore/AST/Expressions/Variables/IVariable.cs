@@ -19,18 +19,13 @@ public interface IVariable : ISymbol {
   bool HasBeenAssignedUniqueName {  // unique names are not assigned until the Translator; if you don't already know if that stage has run, this boolean method will tell you
     get;
   }
-  static FreshIdGenerator CompileNameIdGenerator = new FreshIdGenerator();
-  string AssignUniqueName(FreshIdGenerator generator);
-  string SanitizedName {
-    get;
-  }
+  string AssignUniqueName(VerificationIdGenerator generator);
+  string SanitizedName(CompilationIdGenerator generator);
   string SanitizedNameShadowable { // A name suitable for compilation, but without the unique identifier.
                                    // Useful to generate readable identifiers in the generated source code.
     get;
   }
-  string CompileName {
-    get;
-  }
+  string CompileName(CompilationIdGenerator generator);
 
   PreType PreType {
     get;

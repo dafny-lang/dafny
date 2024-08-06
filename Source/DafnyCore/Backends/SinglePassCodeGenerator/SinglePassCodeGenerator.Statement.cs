@@ -733,7 +733,7 @@ namespace Microsoft.Dafny.Compilers {
               valueWriter.Append(destructor);
             }
           } else {
-            newSourceName = ProtectedFreshId(arg.CompileName);
+            newSourceName = ProtectedFreshId(arg.CompileName(currentIdGenerator));
             var valueWriter = DeclareLocalVar(newSourceName, type, idPattern.Tok, result);
             valueWriter.Append(destructor);
             result = EmitNestedMatchCaseConditions(newSourceName, type, childPattern, result, lastCase);

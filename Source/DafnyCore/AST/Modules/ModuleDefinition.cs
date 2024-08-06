@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Compilers;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -871,7 +872,7 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
               dtor.AddAnotherEnclosingCtor(ctor, formal);
             } else {
               // either the destructor has no explicit name, or this constructor declared another destructor with this name, or no previous destructor had this name
-              dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName,
+              dtor = new DatatypeDestructor(formal.RangeToken, ctor, formal, new Name(formal.RangeToken, formal.Name), "dtor_" + formal.CompileName(SinglePassCodeGenerator.FormalIdGenerator),
                 formal.IsGhost, formal.Type, null);
               dtor.InheritVisibility(dt);
               dtor.EnclosingClass = dt; // resolve here

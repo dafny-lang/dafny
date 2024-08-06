@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetCompileNameNotProtected(IVariable v) {
-      return preventShadowing ? v.CompileName : v.SanitizedNameShadowable;
+      return preventShadowing ? v.CompileName(currentIdGenerator) : v.SanitizedNameShadowable;
     }
 
     public void AddUnsupported(string why) {
@@ -437,7 +437,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var param in formals) {
         if (param is not ImplicitFormal && !param.IsGhost) {
           paramsList.Add((DAST.Formal)DAST.Formal.create_Formal(
-            Sequence<Rune>.UnicodeFromString(IdProtect(param.CompileName)), GenType(param.Type), ParseAttributes(param.Attributes)));
+            Sequence<Rune>.UnicodeFromString(IdProtect(param.CompileName(FormalIdGenerator))), GenType(param.Type), ParseAttributes(param.Attributes)));
         }
       }
 
@@ -495,7 +495,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> outTypes = new();
         foreach (var outVar in m.Outs) {
           if (!outVar.IsGhost) {
-            outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.CompileName)));
+            outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.CompileName(m.CompilationIdGenerator))));
             outTypes.Add(compiler.GenType(outVar.Type));
           }
         }
@@ -814,7 +814,7 @@ namespace Microsoft.Dafny.Compilers {
         ? (Option<DAST.Type>)Option<DAST.Type>.create_Some(GenType(replacementReceiver.Type))
         : (Option<DAST.Type>)Option<DAST.Type>.create_None();
       if (receiverBeforeName) {
-        var name = replacementReceiver is IdentifierExpr { Var: { CompileName: var compileName } }
+        var name = replacementReceiver is IdentifierExpr { Var: var variable } && variable.CompileName(enclosingDeclaration.CompilationIdGenerator) is var compileName
           ? compileName
           : "receiver";
         receiverArg = (Option<_IFormal>)Option<DAST._IFormal>.create_Some(
@@ -1771,7 +1771,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private static string GetDestructorFormalName(Formal formal) {
-      var defaultName = formal.CompileName;
+      var defaultName = formal.CompileName(FormalIdGenerator);
       object externVal = null;
       bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
         ref externVal, new List<Attributes.MatchingValueOption> {
@@ -2180,7 +2180,7 @@ namespace Microsoft.Dafny.Compilers {
               int.Parse(dtor.NameForCompilation), GenType(dtor.Type)
             ));
           } else {
-            var compileName = GetExtractOverrideName(dtor.Attributes, dtor.CompileName);
+            var compileName = GetExtractOverrideName(dtor.Attributes, dtor.CompileName(currentIdGenerator));
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),

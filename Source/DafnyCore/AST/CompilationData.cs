@@ -5,7 +5,7 @@ using DafnyCore.Options;
 namespace Microsoft.Dafny;
 
 public class CompilationData {
-  public readonly FreshIdGenerator IdGenerator = new();
+  public readonly FreshIdGenerator IdGenerator = new CompilationIdGenerator();
 
   public CompilationData(ErrorReporter errorReporter, List<Include> includes, IList<Uri> rootSourceUris, ISet<Uri> alreadyVerifiedRoots, ISet<Uri> alreadyCompiledRoots) {
     Includes = includes;

@@ -435,7 +435,7 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost && arg.HasName) {
               // datatype:   get dtor_Dtor0() { return this.Dtor0; }
               // codatatype: get dtor_Dtor0() { return this._D().Dtor0; }
-              wr.WriteLine("get dtor_{0}() {{ return this{2}.{1}; }}", arg.CompileName, IdName(arg), dt is CoDatatypeDecl ? "._D()" : "");
+              wr.WriteLine("get dtor_{0}() {{ return this{2}.{1}; }}", arg.CompileName(FormalIdGenerator), IdName(arg), dt is CoDatatypeDecl ? "._D()" : "");
             }
           }
         }

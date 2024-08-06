@@ -144,7 +144,7 @@ public interface RedirectingTypeDecl : ICallable {
   Expression/*?*/ Constraint { get; }
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
-  FreshIdGenerator IdGenerator { get; }
+  VerificationIdGenerator IdGenerator { get; }
 
   [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; }
 }
