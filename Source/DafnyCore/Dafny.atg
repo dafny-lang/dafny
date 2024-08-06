@@ -2501,9 +2501,9 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
-    ( "by"
+    SYNC ( "by"
       BlockStmt<out proof, out _, out _>
-    | SYNC ";"                       (. endTok = t; .)
+    | ";"                            (. endTok = t; .)
     )
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
