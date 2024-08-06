@@ -14,16 +14,16 @@ namespace Std.Arithmetic.MulInternals {
   public partial class __default {
     public static BigInteger MulPos(BigInteger x, BigInteger y)
     {
-      BigInteger _0___accumulator = BigInteger.Zero;
+      BigInteger _135___accumulator = BigInteger.Zero;
     TAIL_CALL_START: ;
       if ((x).Sign == 0) {
-        return (BigInteger.Zero) + (_0___accumulator);
+        return (BigInteger.Zero) + (_135___accumulator);
       } else {
-        _0___accumulator = (_0___accumulator) + (y);
-        BigInteger _in0 = (x) - (BigInteger.One);
-        BigInteger _in1 = y;
-        x = _in0;
-        y = _in1;
+        _135___accumulator = (_135___accumulator) + (y);
+        BigInteger _in32 = (x) - (BigInteger.One);
+        BigInteger _in33 = y;
+        x = _in32;
+        y = _in33;
         goto TAIL_CALL_START;
       }
     }

@@ -14,16 +14,16 @@ namespace Std.Arithmetic.Power {
   public partial class __default {
     public static BigInteger Pow(BigInteger b, BigInteger e)
     {
-      BigInteger _0___accumulator = BigInteger.One;
+      BigInteger _137___accumulator = BigInteger.One;
     TAIL_CALL_START: ;
       if ((e).Sign == 0) {
-        return (BigInteger.One) * (_0___accumulator);
+        return (BigInteger.One) * (_137___accumulator);
       } else {
-        _0___accumulator = (_0___accumulator) * (b);
-        BigInteger _in0 = b;
-        BigInteger _in1 = (e) - (BigInteger.One);
-        b = _in0;
-        e = _in1;
+        _137___accumulator = (_137___accumulator) * (b);
+        BigInteger _in42 = b;
+        BigInteger _in43 = (e) - (BigInteger.One);
+        b = _in42;
+        e = _in43;
         goto TAIL_CALL_START;
       }
     }

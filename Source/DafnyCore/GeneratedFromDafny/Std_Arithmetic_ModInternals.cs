@@ -16,18 +16,18 @@ namespace Std.Arithmetic.ModInternals {
     {
     TAIL_CALL_START: ;
       if ((x).Sign == -1) {
-        BigInteger _in0 = (d) + (x);
-        BigInteger _in1 = d;
-        x = _in0;
-        d = _in1;
+        BigInteger _in34 = (d) + (x);
+        BigInteger _in35 = d;
+        x = _in34;
+        d = _in35;
         goto TAIL_CALL_START;
       } else if ((x) < (d)) {
         return x;
       } else {
-        BigInteger _in2 = (x) - (d);
-        BigInteger _in3 = d;
-        x = _in2;
-        d = _in3;
+        BigInteger _in36 = (x) - (d);
+        BigInteger _in37 = d;
+        x = _in36;
+        d = _in37;
         goto TAIL_CALL_START;
       }
     }
