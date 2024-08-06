@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       return n;  // the number of formals written
     }
-    
+
     // Placeholder because formals don't need an Id generator
 
     public static CompilationIdGenerator FormalIdGenerator = new UncallableIdGenerator();
