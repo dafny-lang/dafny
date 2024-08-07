@@ -66,7 +66,6 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     ResolveAlternatives(resolver, Alternatives, null, resolutionContext);
   }
 
-
   public static void ResolveAlternatives(INewOrOldResolver resolver, List<GuardedAlternative> alternatives,
     AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
     Contract.Requires(alternatives != null);
@@ -75,8 +74,7 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     // first, resolve the guards
     foreach (var alternative in alternatives) {
       int prevErrorCount = resolver.Reporter.Count(ErrorLevel.Error);
-      resolver.ResolveExpression(alternative.Guard, resolutionContext);
-      Contract.Assert(alternative.Guard.Type != null);  // follows from postcondition of ResolveExpression
+      resolver.ResolveExpression(alternative.Guard, resolutionContext);  // follows from postcondition of ResolveExpression
       bool successfullyResolved = resolver.Reporter.Count(ErrorLevel.Error) == prevErrorCount;
       resolver.ConstrainTypeExprBool(alternative.Guard, "condition is expected to be of type bool, but is {0}");
     }
