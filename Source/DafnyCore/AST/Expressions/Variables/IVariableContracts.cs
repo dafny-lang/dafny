@@ -35,7 +35,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
       throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
     }
   }
-  public string SanitizedName(CompilationIdGenerator generator) {
+  public string SanitizedName(CodeGenIdGenerator generator) {
     Contract.Ensures(Contract.Result<string>() != null);
     throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
   }
@@ -46,7 +46,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
       throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
     }
   }
-  public string CompileName(CompilationIdGenerator generator) {
+  public string CompileName(CodeGenIdGenerator generator) {
     Contract.Ensures(Contract.Result<string>() != null);
     throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
   }

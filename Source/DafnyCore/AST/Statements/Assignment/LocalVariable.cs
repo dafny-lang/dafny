@@ -76,13 +76,13 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   private string sanitizedName;
 
-  public string SanitizedName(CompilationIdGenerator generator) {
+  public string SanitizedName(CodeGenIdGenerator generator) {
     return sanitizedName ??= $"_{generator.FreshNumericId()}_{SanitizedNameShadowable}";
   }
 
   string compileName;
 
-  public string CompileName(CompilationIdGenerator generator) {
+  public string CompileName(CodeGenIdGenerator generator) {
     return compileName ??= SanitizedName(generator);
   }
 

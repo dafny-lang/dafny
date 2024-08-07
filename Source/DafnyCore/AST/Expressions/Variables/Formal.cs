@@ -37,11 +37,11 @@ public class Formal : NonglobalVariable {
 
   private string sanitizedName;
 
-  public override string SanitizedName(CompilationIdGenerator generator) {
+  public override string SanitizedName(CodeGenIdGenerator generator) {
     return sanitizedName ??= SanitizeName(Name); // No unique-ification
   }
 
-  public override string CompileName(CompilationIdGenerator generator) {
+  public override string CompileName(CodeGenIdGenerator generator) {
     return compileName ??= SanitizeName(NameForCompilation);
   }
 

@@ -374,7 +374,7 @@ namespace Microsoft.Dafny.Compilers {
                                    where dtor.EnclosingCtors[0] == ctor
                                    select dtor.CorrespondingFormals[0] into arg
                                    where !arg.IsGhost
-                                   select IdProtect(arg.CompileName(dt.CompilationIdGenerator))) {
+                                   select IdProtect(arg.CompileName(dt.CodeGenIdGenerator))) {
           w.WriteLine("@property");
           w.NewBlockPy($"def {destructor}(self):")
             .WriteLine($"return self._get().{destructor}");

@@ -69,9 +69,9 @@ namespace Microsoft.Dafny.Compilers {
     protected Function enclosingFunction;  // non-null when a function body is being translated
     protected Declaration enclosingDeclaration; // non-null when a declaration body is being translated
 
-    protected internal readonly CompilationIdGenerator idGenerator = new CompilationIdGenerator();
+    protected internal readonly CodeGenIdGenerator idGenerator = new CodeGenIdGenerator();
 
-    protected internal CompilationIdGenerator currentIdGenerator => enclosingDeclaration?.CompilationIdGenerator ?? idGenerator;
+    protected internal CodeGenIdGenerator currentIdGenerator => enclosingDeclaration?.CodeGenIdGenerator ?? idGenerator;
 
     private protected string ProtectedFreshId(string prefix) => IdProtect(currentIdGenerator.FreshId(prefix));
     private protected string ProtectedFreshNumericId(string prefix) => IdProtect(currentIdGenerator.FreshNumericId(prefix));
@@ -1850,7 +1850,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // Placeholder because formals don't need an Id generator
 
-    public static CompilationIdGenerator FormalIdGenerator = new UncallableIdGenerator();
+    public static CodeGenIdGenerator FormalIdGenerator = new UncallableIdGenerator();
 
     protected string FormalName(Formal formal, int i) {
       Contract.Requires(formal != null);

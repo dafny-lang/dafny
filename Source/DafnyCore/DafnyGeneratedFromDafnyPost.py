@@ -38,6 +38,10 @@ with open (output + '.cs', 'r' ) as f:
 
   prelude_match = re.match(r'(.*?)\nnamespace', content_new, re.DOTALL)
   prelude = prelude_match.group(1).strip() if prelude_match else ""
+  prelude = (prelude +
+    "\n#pragma warning disable CS0164 // This label has not been referenced" +
+    "\n#pragma warning disable CS0162 // Unreachable code detected" +
+    "\n#pragma warning disable CS1717 // Assignment made to same variable")
 
   # Define a regular expression to match the prelude and namespace blocks
   pattern = re.compile(r'(namespace\s+([\w.]+)\s*{[\s\S]*?}\s*//\s*end\s*of\s*namespace\s+\2)')

@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class CompilationIdGenerator : FreshIdGenerator {
+  public class CodeGenIdGenerator : FreshIdGenerator {
   }
 
   public class VerificationIdGenerator : FreshIdGenerator {
@@ -81,7 +81,7 @@ namespace Microsoft.Dafny {
   }
 
   // For formals
-  public class UncallableIdGenerator : CompilationIdGenerator {
+  public class UncallableIdGenerator : CodeGenIdGenerator {
     public override string FreshNumericId(string prefix = "") {
       throw new InvalidOperationException("Not supposed to call this method with this kind of Id generator");
     }

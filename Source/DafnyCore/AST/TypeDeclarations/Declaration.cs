@@ -141,5 +141,5 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
 
 
   // For Compilation
-  internal CompilationIdGenerator CompilationIdGenerator = new();
+  internal CodeGenIdGenerator CodeGenIdGenerator = new();
 }

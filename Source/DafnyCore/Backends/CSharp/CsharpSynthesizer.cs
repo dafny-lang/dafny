@@ -110,7 +110,7 @@ public class CsharpSynthesizer {
         wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
         wr.FormatLine($"{mockName}.CallBase = true;");
       }
-      wr.FormatLine($"var {obj.CompileName(method.CompilationIdGenerator)} = {mockName}.Object;");
+      wr.FormatLine($"var {obj.CompileName(method.CodeGenIdGenerator)} = {mockName}.Object;");
     }
 
     // Stub methods and fields according to the Dafny post-conditions:

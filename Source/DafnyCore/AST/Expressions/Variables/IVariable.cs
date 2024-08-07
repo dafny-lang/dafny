@@ -20,12 +20,12 @@ public interface IVariable : ISymbol {
     get;
   }
   string AssignUniqueName(VerificationIdGenerator generator);
-  string SanitizedName(CompilationIdGenerator generator);
+  string SanitizedName(CodeGenIdGenerator generator);
   string SanitizedNameShadowable { // A name suitable for compilation, but without the unique identifier.
                                    // Useful to generate readable identifiers in the generated source code.
     get;
   }
-  string CompileName(CompilationIdGenerator generator);
+  string CompileName(CodeGenIdGenerator generator);
 
   PreType PreType {
     get;
