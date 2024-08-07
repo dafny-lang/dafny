@@ -10,7 +10,8 @@ ForbidNondeterminismResolve.dfy(40,2): Error: case-based loop forbidden by the -
 ForbidNondeterminismResolve.dfy(48,12): Error: nondeterministic assignment forbidden by the --enforce-determinism option
 ForbidNondeterminismResolve.dfy(50,2): Error: modify statement without a body forbidden by the --enforce-determinism option
 ForbidNondeterminismResolve.dfy(64,16): Error: nondeterministic assignment forbidden by the --enforce-determinism option
+ForbidNondeterminismResolve.dfy(130,14): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 ForbidNondeterminismResolve.dfy(79,9): Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option
 ForbidNondeterminismResolve.dfy(4,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
 ForbidNondeterminismResolve.dfy(90,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
-14 resolution/type errors detected in ForbidNondeterminismResolve.dfy
+15 resolution/type errors detected in ForbidNondeterminismResolve.dfy
