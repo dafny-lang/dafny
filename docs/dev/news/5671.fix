@@ -1,0 +1,1 @@
+Resolved a crash that would occur when using a match statement inside an assert by block
