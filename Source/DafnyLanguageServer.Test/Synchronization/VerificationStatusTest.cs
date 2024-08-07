@@ -15,6 +15,27 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+  [Fact]
+  public async Task ParentModuleProjectFileVerification() {
+
+    await SetUp(options => {
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
+    });
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "");
+    await File.WriteAllTextAsync(Path.Combine(directory, "a.dfy"), "module A {}");
+    // var project = CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
+    // var a = CreateAndOpenTestDocument("module A {}", Path.Combine(directory, "a.dfy"));
+    var b = CreateAndOpenTestDocument("module A.B { \n  method Test() { assert true; }\n}", Path.Combine(directory, "b.dfy"));
+
+    var methodHeader = new Position(1, 11);
+    verificationStatusReceiver.GetLatestAndClearQueue(_ => true);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(b.Uri), methodHeader, CancellationToken);
+    var result = await WaitUntilAllStatusAreCompleted(b);
+    Assert.Equal(PublishedVerificationStatus.Correct, result.NamedVerifiables[0].Status);
+  }
+
   /// <summary>
   /// The client does not correctly migrate symbolStatus information,
   /// so we have to republish it if the positions change.

@@ -1,0 +1,1 @@
+Verification in the IDE now works correctly when declaring nested module in a different file than their parent.

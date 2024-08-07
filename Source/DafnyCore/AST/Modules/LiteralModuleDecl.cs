@@ -20,6 +20,9 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
     }
     return this.AccessibleSignature();
   }
+
+  public override bool SingleFileToken => ModuleDef.SingleFileToken;
+
   public override ModuleSignature AccessibleSignature() {
     if (DefaultExport == null) {
       if (emptySignature == null) {

@@ -189,7 +189,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           ? e.Function.EnclosingClass.TypeArgs[i]
           : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
         if (!IsDetermined(p.Normalize())) {
-          var hint = e.Name.StartsWith(RevealStmt.RevealLemmaPrefix)
+          var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix)
             ? ". If you are making an opaque function, make sure that the function can be called."
             : "";
           resolver.ReportError(ResolutionErrors.ErrorId.r_function_type_parameter_undetermined, e.tok,
