@@ -1,7 +1,10 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.Dafny;
 
 namespace Microsoft.Dafny;
@@ -33,8 +36,10 @@ public class OptionRegistry {
   public static IEnumerable<Option> GlobalOptions => GlobalOptionChecks.Keys;
   public static IEnumerable<Option> TranslationOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key);
   public static IEnumerable<Option> ModuleOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Module).Select(kv => kv.Key);
-  public static IEnumerable<(Option option, GlobalOptionCheck check)> GlobalChecks =>
-    GlobalOptionChecks.Select(kv => (kv.Key, kv.Value));
+  
+  public static GlobalOptionCheck? GlobalCheck(Option option) {
+    return GlobalOptionChecks.GetValueOrDefault(option);
+  }
 
   public static void RegisterOption(Option option, OptionScope scope) {
     if (scope == OptionScope.Global) {

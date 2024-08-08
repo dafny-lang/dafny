@@ -186,7 +186,7 @@ public class DooFile {
     var success = true;
 
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
-    foreach (var (option, check) in OptionRegistry.GlobalChecks) {
+    foreach (var option in OptionRegistry.GlobalOptions.Concat(OptionRegistry.ModuleOptions)) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().
@@ -215,7 +215,8 @@ public class DooFile {
       result.Options.OptionArguments[option] = libraryValue;
       result.ApplyBinding(option);
       var prefix = $"cannot load {options.GetPrintPath(libraryFile.LocalPath)}";
-      success = success && check(reporter, origin, prefix, option, localValue, libraryValue);
+      var checkpasses = OptionRegistry.GlobalCheck(option)?.Invoke(reporter, origin, prefix, option, localValue, libraryValue) ?? true;
+      success = success && checkpasses;
     }
 
     if (!success) {
