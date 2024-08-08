@@ -37,7 +37,7 @@ for backwards compatibility with Java code generated with Dafny versions earlier
   };
   static JavaBackend() {
     DafnyOptions.RegisterLegacyUi(LegacyDataConstructors, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyDataConstructors", defaultValue: false);
-    DooFile.RegisterNoChecksNeeded(LegacyDataConstructors, false);
+    OptionRegistry.RegisterOption(LegacyDataConstructors, OptionScope.Cli);
   }
 
   public override IEnumerable<Option> SupportedOptions => new List<Option> { LegacyDataConstructors };

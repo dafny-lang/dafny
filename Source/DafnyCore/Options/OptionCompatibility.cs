@@ -7,7 +7,6 @@ using System.Linq;
 namespace DafnyCore.Options;
 
 public class OptionCompatibility {
-  public delegate bool OptionCheck(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue);
 
   public static bool CheckOptionMatches(ErrorReporter reporter, IToken origin, string prefix, Option option, object localValue, object libraryValue) {
     if (OptionValuesEqual(option, localValue, libraryValue)) {

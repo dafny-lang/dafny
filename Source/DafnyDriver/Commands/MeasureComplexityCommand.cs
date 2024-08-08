@@ -27,9 +27,9 @@ static class MeasureComplexityCommand {
     DafnyOptions.RegisterLegacyBinding(Iterations, (o, v) => o.RandomizeVcIterations = (int)v);
     DafnyOptions.RegisterLegacyBinding(RandomSeed, (o, v) => o.RandomSeed = (int)v);
 
-    DooFile.RegisterNoChecksNeeded(Iterations, false);
-    DooFile.RegisterNoChecksNeeded(RandomSeed, false);
-    DooFile.RegisterNoChecksNeeded(TopX, false);
+    OptionRegistry.RegisterOption(Iterations, OptionScope.Cli);
+    OptionRegistry.RegisterOption(RandomSeed, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TopX, OptionScope.Cli);
   }
 
   private static readonly Option<uint> TopX = new("--worst-amount", () => 10U,

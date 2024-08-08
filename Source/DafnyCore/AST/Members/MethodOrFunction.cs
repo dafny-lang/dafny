@@ -11,7 +11,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     "Allow exporting callables with preconditions, and importing callables with postconditions");
 
   static MethodOrFunction() {
-    DooFile.RegisterLibraryCheck(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(AllowExternalContracts, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 
   [FilledInDuringResolution]

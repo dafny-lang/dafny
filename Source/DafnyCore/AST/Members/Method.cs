@@ -21,7 +21,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
 0 (default) - Reads clauses on methods are forbidden.
 1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
-    DooFile.RegisterLibraryCheck(ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary);
+    OptionRegistry.RegisterGlobalOption(ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 
   public override IEnumerable<INode> Children => new Node[] { Body, Decreases }.Where(x => x != null).

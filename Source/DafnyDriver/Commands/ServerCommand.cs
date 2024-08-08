@@ -16,14 +16,14 @@ public class ServerCommand {
   static ServerCommand() {
     DafnyOptions.RegisterLegacyBinding(LanguageServer.VerifySnapshots, (options, u) => options.VerifySnapshots = (int)u);
 
-    DooFile.RegisterNoChecksNeeded(ProjectManager.Verification, false);
-    DooFile.RegisterNoChecksNeeded(GhostStateDiagnosticCollector.GhostIndicators, false);
-    DooFile.RegisterNoChecksNeeded(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, false);
-    DooFile.RegisterNoChecksNeeded(LanguageServer.VerifySnapshots, false);
-    DooFile.RegisterNoChecksNeeded(DafnyLangSymbolResolver.UseCaching, false);
-    DooFile.RegisterNoChecksNeeded(ProjectManager.UpdateThrottling, false);
-    DooFile.RegisterNoChecksNeeded(ProjectManager.ReuseSolvers, false);
-    DooFile.RegisterNoChecksNeeded(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable, false);
+    OptionRegistry.RegisterOption(ProjectManager.Verification, OptionScope.Cli);
+    OptionRegistry.RegisterOption(GhostStateDiagnosticCollector.GhostIndicators, OptionScope.Cli);
+    OptionRegistry.RegisterOption(GutterIconAndHoverVerificationDetailsManager.LineVerificationStatus, OptionScope.Cli);
+    OptionRegistry.RegisterOption(LanguageServer.VerifySnapshots, OptionScope.Cli);
+    OptionRegistry.RegisterOption(DafnyLangSymbolResolver.UseCaching, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ProjectManager.UpdateThrottling, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ProjectManager.ReuseSolvers, OptionScope.Cli);
+    OptionRegistry.RegisterOption(LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable, OptionScope.Cli);
   }
 
   private static Command Create() {

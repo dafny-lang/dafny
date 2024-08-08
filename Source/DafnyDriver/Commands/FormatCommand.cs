@@ -19,8 +19,8 @@ public static class FormatCommand {
     DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
       options.DafnyPrintFile = value ? "-" : null;
     });
-    DooFile.RegisterNoChecksNeeded(CheckOption, false);
-    DooFile.RegisterNoChecksNeeded(FormatPrint, false);
+    OptionRegistry.RegisterOption(CheckOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(FormatPrint, OptionScope.Cli);
   }
 
   public static IEnumerable<Option> Options => new Option[] {

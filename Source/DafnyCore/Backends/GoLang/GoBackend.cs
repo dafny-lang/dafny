@@ -40,9 +40,7 @@ public class GoBackend : ExecutableBackend {
   public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { GoModuleNameCliOption };
 
   static GoBackend() {
-    TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
-      { GoModuleNameCliOption, OptionCompatibility.NoOpOptionCheck }
-    });
+    OptionRegistry.RegisterOption(GoModuleNameCliOption, OptionScope.Translation);
   }
 
   protected override SinglePassCodeGenerator CreateCodeGenerator() {
