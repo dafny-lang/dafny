@@ -85,13 +85,17 @@ public class Program : TokenNode {
 
   //Set appropriate visibilty before presenting module
   public IEnumerable<ModuleDefinition> Modules() {
-
-    foreach (var msig in ModuleSigs) {
-      Type.PushScope(msig.Value.VisibilityScope);
-      yield return msig.Key;
-      Type.PopScope(msig.Value.VisibilityScope);
+    var keys = ModuleSigs.Keys.ToList();
+    keys.Sort((left, right) =>
+      String.Compare((left.FullName ?? ""), right.FullName ?? "", StringComparison.Ordinal)
+    );
+    
+    foreach (var key in keys) {
+      var value = ModuleSigs[key];
+      Type.PushScope(value.VisibilityScope);
+      yield return key;
+      Type.PopScope(value.VisibilityScope);
     }
-
   }
 
   public IEnumerable<ModuleDefinition> RawModules() {
