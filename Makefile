@@ -90,6 +90,9 @@ update-cs-module:
 update-go-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
 
+update-rs-module:
+	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module-rs)
+
 update-runtime-dafny:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
 
@@ -100,4 +103,4 @@ update-runtime-dafny:
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
-pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module
+pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module update-rs-module
