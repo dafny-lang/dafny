@@ -71,13 +71,13 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   private string sanitizedNameShadowable;
 
-  public string SanitizedNameShadowable =>
+  public string CompileNameShadowable =>
     sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
 
   private string sanitizedName;
 
   public string SanitizedName(CodeGenIdGenerator generator) {
-    return sanitizedName ??= $"_{generator.FreshNumericId()}_{SanitizedNameShadowable}";
+    return sanitizedName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
   string compileName;

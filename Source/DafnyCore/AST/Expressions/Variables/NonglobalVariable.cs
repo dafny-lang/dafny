@@ -87,19 +87,13 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
 
   private string sanitizedNameShadowable;
 
-  public virtual string SanitizedNameShadowable =>
+  public virtual string CompileNameShadowable =>
     sanitizedNameShadowable ??= SanitizeName(Name);
-
-  private string sanitizedName;
-
-  public virtual string SanitizedName(CodeGenIdGenerator generator) {
-    return sanitizedName ??= $"_{generator.FreshNumericId()}_{SanitizedNameShadowable}";
-  }
 
   protected string compileName;
 
   public virtual string CompileName(CodeGenIdGenerator generator) {
-    return compileName ??= SanitizedName(generator);
+    return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
   Type type;

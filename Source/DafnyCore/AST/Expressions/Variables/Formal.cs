@@ -35,12 +35,6 @@ public class Formal : NonglobalVariable {
 
   public bool HasName => !Name.StartsWith("#");
 
-  private string sanitizedName;
-
-  public override string SanitizedName(CodeGenIdGenerator generator) {
-    return sanitizedName ??= SanitizeName(Name); // No unique-ification
-  }
-
   public override string CompileName(CodeGenIdGenerator generator) {
     return compileName ??= SanitizeName(NameForCompilation);
   }

@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetCompileNameNotProtected(IVariable v) {
-      return preventShadowing ? v.CompileName(currentIdGenerator) : v.SanitizedNameShadowable;
+      return preventShadowing ? v.CompileName(currentIdGenerator) : v.CompileNameShadowable;
     }
 
     public void AddUnsupported(string why) {
@@ -319,7 +319,7 @@ namespace Microsoft.Dafny.Compilers {
           constraint = (Option<DAST.NewtypeConstraint>)Option<DAST.NewtypeConstraint>.create_Some(
             (DAST.NewtypeConstraint)DAST.NewtypeConstraint.create_NewtypeConstraint(
               (DAST.Formal)DAST.Formal.create_Formal(
-                Sequence<Rune>.UnicodeFromString(IdProtect(sourceFormal.SanitizedNameShadowable)), GenType(type), ParseAttributes(null)),
+                Sequence<Rune>.UnicodeFromString(IdProtect(sourceFormal.CompileNameShadowable)), GenType(type), ParseAttributes(null)),
               Sequence<DAST.Statement>.FromArray(statementBuffer.PopAll().ToArray())));
         } else {
           constraint = (Option<DAST.NewtypeConstraint>)Option<DAST.NewtypeConstraint>.create_None();
@@ -1199,7 +1199,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var statementContainer)) {
-        var indexName = loopIndex.SanitizedNameShadowable;
+        var indexName = loopIndex.CompileNameShadowable;
         ForeachBuilder foreachBuilder = statementContainer.Builder.Foreach(
           indexName, GenType(loopIndex.Type));
         if (endVarName == null) {

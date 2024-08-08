@@ -20,9 +20,8 @@ public interface IVariable : ISymbol {
     get;
   }
   string AssignUniqueName(VerificationIdGenerator generator);
-  string SanitizedName(CodeGenIdGenerator generator);
-  string SanitizedNameShadowable { // A name suitable for compilation, but without the unique identifier.
-                                   // Useful to generate readable identifiers in the generated source code.
+  string CompileNameShadowable { // A name suitable for compilation, but without the unique identifier.
+                                 // Useful to generate readable identifiers in the generated source code.
     get;
   }
   string CompileName(CodeGenIdGenerator generator);
