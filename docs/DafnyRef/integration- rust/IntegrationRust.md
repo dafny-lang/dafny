@@ -110,3 +110,62 @@ https://doc.rust-lang.org/book/appendix-07-nightly-rust.html
 
 (*) Defined in the Dafny runtime
 
+# Externs
+
+You can provide additional `*.rs` files to `dafny translate`, `dafny build` and even `dafny run` (via the `--input` option)
+All the elements imported from the Rust files are going to be available from the generated code via the module `_dafny_externs` that imports everything.
+
+The best way to see what you have to implement as an extern is to compile your code without it. You'll see that it will be necessary for the module `_dafny_extern` to use open a certain module, which you'd put in a file `external.rs` and pass it for compilation.
+
+When using simple 1-argument externs, the compilation follows Dafny conventions:
+* Static methods are static instance methods of a `pub struct _default {}` which is defined in the module itself, or must be defined externally if all static methods are labelled as externs.
+* Methods or functions with an extern attribute with 2 arguments are interpreted as follow: The first argument is a module name, and all the "." are rewritten to "::" to follow Rust's syntax. The second argument is the name of a static `pub fn` of that module.
+
+Let's assume you provide an additional input file `external.rs` with the following content:
+```
+pub mod rust {
+  pub mod module {
+    fn outsideMethod()
+  }
+}
+pub mod Test {
+  pub struct _default {}
+  impl _default {
+    pub fn extern_y() {
+    }
+  }
+}
+```
+Assuming that your Dafny program looks like:
+
+```
+
+module Test {
+  method {:extern "rust.module", "externalMethod"} outsideMethod()
+  method {:extern "extern_y"} dafny_y();
+}
+method Main() {
+  Test.outsideMethod();
+  Test.dafny_y();
+}
+```
+
+Dafny will generate the following for you:
+
+```
+pub mod external;         // from the additional external.rs input file
+
+pub mod _dafny_externs {  // from the additional external.rs input file
+  import opened external::*;
+}
+pub mod Test {
+  pub use super::_dafny_externs::Test::*; // Imports the _default
+}
+fn main() {
+  crate::rust::module::externalMethod();
+  super::Test::_default::extern_y();
+}
+```
+
+Note: 
+Note that if the extern module name contains a space, any dot after the space is not replaced by `::`.

@@ -90,6 +90,7 @@ public static class DafnyCommands {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.RawPointers,
     CommonOptionBag.UseBaseFileName,
     CommonOptionBag.EmitUncompilableCode,
     CommonOptionBag.GeneralTraits,
