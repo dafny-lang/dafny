@@ -56,7 +56,7 @@ public class DooFile {
       SolverVersion = options.SolverVersion?.ToString();
 
       Options = new Dictionary<string, object>();
-      foreach (var option in OptionRegistry.GlobalOptions) {
+      foreach (var option in OptionRegistry.GlobalOptions.Concat(OptionRegistry.ModuleOptions)) {
         if (option == CommonOptionBag.Libraries) {
           // We don't want to serialize the FileInfo objects of this option
           // For now we add an option specific exception here so we do not need to change
