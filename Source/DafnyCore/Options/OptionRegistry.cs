@@ -36,7 +36,7 @@ public class OptionRegistry {
   public static IEnumerable<Option> GlobalOptions => GlobalOptionChecks.Keys;
   public static IEnumerable<Option> TranslationOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key);
   public static IEnumerable<Option> ModuleOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Module).Select(kv => kv.Key);
-  
+
   public static GlobalOptionCheck? GlobalCheck(Option option) {
     return GlobalOptionChecks.GetValueOrDefault(option);
   }
