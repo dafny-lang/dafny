@@ -57,7 +57,7 @@ with open (output + '.cs', 'r' ) as f:
     # If the name of the namespace ends with "coverage", we move this test
     # to ../DafnyCore.Test/{output}/....
     file_path_prefix = ""
-    if namespace_name.endswith("Coverage"):
+    if namespace_name.endswith("Coverage") or namespace_name.endswith("Test"):
       file_path_prefix = test_output
     
     # Write content to a file

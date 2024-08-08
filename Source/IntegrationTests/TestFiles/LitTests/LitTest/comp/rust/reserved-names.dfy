@@ -12,4 +12,6 @@ method Main()
   var self := 0;
   var Self := 0;
   expect None(3).None == 3;
+  var None := 0;
+  expect None == 0;
 }
