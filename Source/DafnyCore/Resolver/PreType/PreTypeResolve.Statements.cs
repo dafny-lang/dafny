@@ -112,8 +112,8 @@ namespace Microsoft.Dafny {
           ResolveExpression(e, resolutionContext);
         }
 
-      } else if (stmt is RevealStmt revealStmt) {
-        revealStmt.ResolveRevealStmt(this, resolutionContext);
+      } else if (stmt is HideRevealStmt hideRevealStmt) {
+        hideRevealStmt.Resolve(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {

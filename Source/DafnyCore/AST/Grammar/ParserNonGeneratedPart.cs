@@ -25,6 +25,8 @@ public partial class Parser {
     theModule = new FileModuleDefinition(scanner.FirstToken);
   }
 
+  bool IsReveal(IToken nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
+
   bool IsIdentifier(int kind) {
     return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
   }
@@ -156,7 +158,12 @@ public partial class Parser {
   }
 
   bool IsFunctionDecl() {
-    switch (la.kind) {
+    var kind = la.kind;
+    return IsFunctionDecl(kind);
+  }
+
+  private bool IsFunctionDecl(int kind) {
+    switch (kind) {
       case _function:
       case _predicate:
       case _copredicate:
@@ -620,7 +627,6 @@ public partial class Parser {
     public bool IsOpaque;
     public IToken OpaqueToken;
     public IToken FirstToken;
-
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {

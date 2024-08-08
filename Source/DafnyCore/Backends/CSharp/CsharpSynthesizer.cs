@@ -92,7 +92,7 @@ public class CsharpSynthesizer {
       o => codeGenerator.idGenerator.FreshId(o.CompileName + "Return"));
     foreach (var (obj, returnName) in objectToReturnName) {
       parameterString = Regex.Replace(parameterString,
-        $"(^|[^a-zA-Z0-9_]){obj.CompileName}([^a-zA-Z0-9_]|$)",
+        $"(^|[^a-zA-Z0-9_]){obj.GetOrCreateCompileName(codeGenerator.currentIdGenerator)}([^a-zA-Z0-9_]|$)",
         "$1" + returnName + "$2");
     }
     wr.FormatLine($"{keywords}{returnType} {codeGenerator.PublicIdProtect(method.GetCompileName(Options))}{typeParameters}({parameterString}) {{");
@@ -110,7 +110,7 @@ public class CsharpSynthesizer {
         wr.FormatLine($"var {mockName} = new Mock<{typeName}>();");
         wr.FormatLine($"{mockName}.CallBase = true;");
       }
-      wr.FormatLine($"var {obj.CompileName} = {mockName}.Object;");
+      wr.FormatLine($"var {obj.GetOrCreateCompileName(method.CodeGenIdGenerator)} = {mockName}.Object;");
     }
 
     // Stub methods and fields according to the Dafny post-conditions:
@@ -244,7 +244,7 @@ public class CsharpSynthesizer {
       var typeName = codeGenerator.TypeName(arg.Type, wr, arg.tok);
       var bound = GetBound(arg);
       if (bound != null) {
-        wr.Format($"{typeName} {bound.Item1.CompileName}");
+        wr.Format($"{typeName} {bound.Item1.GetOrCreateCompileName(codeGenerator.currentIdGenerator)}");
       } else {
         // if the argument is not a bound variable, it is irrelevant to the
         // expression in the lambda
@@ -274,7 +274,7 @@ public class CsharpSynthesizer {
       var boundVar = forallExpr.BoundVars[i];
       var varType = codeGenerator.TypeName(boundVar.Type, wr, boundVar.tok);
       bounds[boundVar] = $"It.Is<{varType}>(x => {matcherName}.Match(x))";
-      declarations.Add($"var {boundVar.CompileName} = ({varType}) {tmpId}[{i}];");
+      declarations.Add($"var {boundVar.GetOrCreateCompileName(codeGenerator.currentIdGenerator)} = ({varType}) {tmpId}[{i}];");
     }
 
     wr.WriteLine($"var {matcherName} = new Dafny.MultiMatcher({declarations.Count}, {tmpId} => {{");

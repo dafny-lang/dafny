@@ -142,7 +142,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
         return CloneForLoopStmt(forLoopStmt);
       case CallStmt callStmt:
         return CloneCallStmt(callStmt);
-      case PredicateStmt or ForallStmt or RevealStmt: // always ghost?
+      case PredicateStmt or ForallStmt or HideRevealStmt: // always ghost?
         return statement;
       default:
         return base.CloneStmt(statement, isReference);

@@ -14,6 +14,7 @@ public interface ICodeContext : IASTVisitorContext {
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
+  CodeGenIdGenerator CodeGenIdGenerator { get; }
 }
 
 
@@ -37,6 +38,7 @@ public class CodeContextWrapper : ICodeContext {
   public bool MustReverify => inner.MustReverify;
   public string FullSanitizedName => inner.FullSanitizedName;
   public bool AllowsNontermination => inner.AllowsNontermination;
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => inner.CodeGenIdGenerator;
 
   public static ICodeContext Unwrap(ICodeContext codeContext) {
     while (codeContext is CodeContextWrapper ccw) {
@@ -46,6 +48,9 @@ public class CodeContextWrapper : ICodeContext {
   }
 }
 
+interface ICodeContainer {
+  bool ContainsHide { get; set; }
+}
 
 /// <summary>
 /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
@@ -91,6 +96,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
 
   public bool AllowsAllocation => CwInner.AllowsAllocation;
 
+  public bool SingleFileToken => CwInner.SingleFileToken;
   public IEnumerable<IToken> OwnedTokens => CwInner.OwnedTokens;
   public RangeToken RangeToken => CwInner.RangeToken;
   public IToken NavigationToken => CwInner.NavigationToken;
@@ -99,41 +105,6 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
     return CwInner.GetDescription(options);
   }
 
-  public string Designator => WhatKind;
-}
-
-
-public class DontUseICallable : ICallable {
-  public string WhatKind { get { throw new cce.UnreachableException(); } }
-  public bool IsGhost { get { throw new cce.UnreachableException(); } }
-  public List<TypeParameter> TypeArgs { get { throw new cce.UnreachableException(); } }
-  public List<Formal> Ins { get { throw new cce.UnreachableException(); } }
-  public ModuleDefinition EnclosingModule { get { throw new cce.UnreachableException(); } }
-  public bool MustReverify { get { throw new cce.UnreachableException(); } }
-  public string FullSanitizedName { get { throw new cce.UnreachableException(); } }
-  public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
-  public IToken Tok { get { throw new cce.UnreachableException(); } }
-  public IEnumerable<INode> Children => throw new cce.UnreachableException();
-  public IEnumerable<INode> PreResolveChildren => throw new cce.UnreachableException();
-
-  public string NameRelativeToModule { get { throw new cce.UnreachableException(); } }
-  public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
-  public bool InferredDecreases {
-    get { throw new cce.UnreachableException(); }
-    set { throw new cce.UnreachableException(); }
-  }
-  public bool AllowsAllocation => throw new cce.UnreachableException();
-  public IEnumerable<INode> GetConcreteChildren() {
-    throw new cce.UnreachableException();
-  }
-
-  public IEnumerable<IToken> OwnedTokens => throw new cce.UnreachableException();
-  public RangeToken RangeToken => throw new cce.UnreachableException();
-  public IToken NavigationToken => throw new cce.UnreachableException();
-  public SymbolKind? Kind => throw new cce.UnreachableException();
-  public string GetDescription(DafnyOptions options) {
-    throw new cce.UnreachableException();
-  }
   public string Designator => WhatKind;
 }
 
@@ -160,6 +131,8 @@ public class NoContext : ICodeContext {
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator { get; } = new();
+
   public bool AllowsAllocation => true;
 }
 
@@ -175,7 +148,7 @@ public interface RedirectingTypeDecl : ICallable {
   Expression/*?*/ Constraint { get; }
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
-  FreshIdGenerator IdGenerator { get; }
+  VerificationIdGenerator IdGenerator { get; }
 
   [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; }
 }
