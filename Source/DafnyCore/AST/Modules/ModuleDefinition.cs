@@ -26,7 +26,7 @@ public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
 
-  public static readonly Option<bool> LegacyDataConstructors = new("--legacy-module-names",
+  public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
     @"
 Generate module names in the older A_mB_mC style instead of the current A.B.C scheme".TrimStart()) {
     IsHidden = true
@@ -222,11 +222,15 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       if (IsBuiltinName) {
         compileName = Name;
       } else if (EnclosingModule is { TryToAvoidName: false }) {
-        // Include all names in the module tree path, to disambiguate when compiling
-        // a flat list of modules.
-        // Use an "underscore-escaped" character as a module name separator, since
-        // underscores are already used as escape characters in SanitizeName()
-        compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        if (options.Get(LegacyModuleNames)) {
+          compileName = SanitizedName + nonExternSuffix;
+        } else {
+          // Include all names in the module tree path, to disambiguate when compiling
+          // a flat list of modules.
+          // Use an "underscore-escaped" character as a module name separator, since
+          // underscores are already used as escape characters in SanitizeName()
+          compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        }
       } else {
         compileName = NonglobalVariable.SanitizeName(Name);
       }
