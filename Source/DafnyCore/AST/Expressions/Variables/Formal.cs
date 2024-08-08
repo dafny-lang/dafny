@@ -35,11 +35,11 @@ public class Formal : NonglobalVariable {
 
   public bool HasName => !Name.StartsWith("#");
 
-  private string sanitizedName;
-  public override string SanitizedName =>
-    sanitizedName ??= SanitizeName(Name); // No unique-ification
-  public override string CompileName =>
-    compileName ??= SanitizeName(NameForCompilation);
+  public override string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    return CompileName;
+  }
+
+  public string CompileName => compileName ??= SanitizeName(NameForCompilation);
 
   public override IEnumerable<INode> Children =>
     (DefaultValue != null ? new List<Node> { DefaultValue } : Enumerable.Empty<Node>()).Concat(base.Children);

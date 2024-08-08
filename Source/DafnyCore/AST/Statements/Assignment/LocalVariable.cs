@@ -65,23 +65,20 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   private string uniqueName;
   public string UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
-  public string AssignUniqueName(FreshIdGenerator generator) {
+  public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
   private string sanitizedNameShadowable;
 
-  public string SanitizedNameShadowable =>
+  public string CompileNameShadowable =>
     sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
 
-  private string sanitizedName;
-
-  public string SanitizedName =>
-    sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{SanitizedNameShadowable}";
-
   string compileName;
-  public string CompileName =>
-    compileName ??= SanitizedName;
+
+  public string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
+  }
 
   // TODO rename and update comment? Or make it nullable?
   public readonly Type SyntacticType;  // this is the type mentioned in the declaration, if any

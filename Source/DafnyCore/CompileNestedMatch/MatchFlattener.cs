@@ -41,12 +41,10 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class MatchFlattener : IRewriter {
   private const string NoCasesMessage = "match has no cases and this is only allowed when the verifier can prove the match is unreachable";
-  private readonly FreshIdGenerator idGenerator;
   private ResolutionContext resolutionContext;
 
-  public MatchFlattener(ErrorReporter reporter, FreshIdGenerator idGenerator)
+  public MatchFlattener(ErrorReporter reporter)
     : base(reporter) {
-    this.idGenerator = idGenerator;
   }
 
   internal override void PostResolve(ModuleDefinition module) {
@@ -174,7 +172,7 @@ public class MatchFlattener : IRewriter {
   }
 
   string FreshTempVarName(string prefix, ICodeContext context) {
-    var gen = context is Declaration decl ? decl.IdGenerator : idGenerator;
+    var gen = context.CodeGenIdGenerator;
     var freshTempVarName = gen.FreshId(prefix);
     return freshTempVarName;
   }

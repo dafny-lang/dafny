@@ -61,10 +61,8 @@ namespace Microsoft.Dafny {
       return d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    public FreshIdGenerator defaultTempVarIdGenerator => ProgramResolver.Program.Compilation.IdGenerator;
-
     public string FreshTempVarName(string prefix, ICodeContext context) {
-      var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
+      var gen = context.CodeGenIdGenerator;
       var freshTempVarName = gen.FreshId(prefix);
       return freshTempVarName;
     }

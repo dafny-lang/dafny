@@ -8,6 +8,9 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace Std.Arithmetic.ModInternals {
 
@@ -16,18 +19,18 @@ namespace Std.Arithmetic.ModInternals {
     {
     TAIL_CALL_START: ;
       if ((x).Sign == -1) {
-        BigInteger _in34 = (d) + (x);
-        BigInteger _in35 = d;
-        x = _in34;
-        d = _in35;
+        BigInteger _in0 = (d) + (x);
+        BigInteger _in1 = d;
+        x = _in0;
+        d = _in1;
         goto TAIL_CALL_START;
       } else if ((x) < (d)) {
         return x;
       } else {
-        BigInteger _in36 = (x) - (d);
-        BigInteger _in37 = d;
-        x = _in36;
-        d = _in37;
+        BigInteger _in2 = (x) - (d);
+        BigInteger _in3 = d;
+        x = _in2;
+        d = _in3;
         goto TAIL_CALL_START;
       }
     }

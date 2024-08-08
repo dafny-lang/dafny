@@ -147,7 +147,7 @@ public class InferDecreasesClause {
 
     List<Expression> sets = new List<Expression>();
     List<Expression> singletons = null;
-    var idGen = new FreshIdGenerator();
+    var idGen = new VerificationIdGenerator();
     // drop wildcards altogether in the following iterations
     foreach (FrameExpression fe in fexprs.Where(fe => fe.E is not WildcardExpr)) {
       Contract.Assert(fe != null);

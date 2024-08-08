@@ -8,6 +8,9 @@
 using System;
 using System.Numerics;
 using System.Collections;
+#pragma warning disable CS0164 // This label has not been referenced
+#pragma warning disable CS0162 // Unreachable code detected
+#pragma warning disable CS1717 // Assignment made to same variable
 
 namespace DAST {
 
@@ -290,77 +293,77 @@ namespace DAST {
     }
     public abstract _IModuleItem DowncastClone();
     public Dafny.ISequence<Dafny.Rune> name() {
-      DAST._IModuleItem _source25 = this;
+      DAST._IModuleItem _source0 = this;
       {
-        if (_source25.is_Module) {
-          DAST._IModule _761_m = _source25.dtor_Module_a0;
-          return (_761_m).dtor_name;
+        if (_source0.is_Module) {
+          DAST._IModule _0_m = _source0.dtor_Module_a0;
+          return (_0_m).dtor_name;
         }
       }
       {
-        if (_source25.is_Class) {
-          DAST._IClass _762_m = _source25.dtor_Class_a0;
-          return (_762_m).dtor_name;
+        if (_source0.is_Class) {
+          DAST._IClass _1_m = _source0.dtor_Class_a0;
+          return (_1_m).dtor_name;
         }
       }
       {
-        if (_source25.is_Trait) {
-          DAST._ITrait _763_m = _source25.dtor_Trait_a0;
-          return (_763_m).dtor_name;
+        if (_source0.is_Trait) {
+          DAST._ITrait _2_m = _source0.dtor_Trait_a0;
+          return (_2_m).dtor_name;
         }
       }
       {
-        if (_source25.is_Newtype) {
-          DAST._INewtype _764_m = _source25.dtor_Newtype_a0;
-          return (_764_m).dtor_name;
+        if (_source0.is_Newtype) {
+          DAST._INewtype _3_m = _source0.dtor_Newtype_a0;
+          return (_3_m).dtor_name;
         }
       }
       {
-        if (_source25.is_SynonymType) {
-          DAST._ISynonymType _765_m = _source25.dtor_SynonymType_a0;
-          return (_765_m).dtor_name;
+        if (_source0.is_SynonymType) {
+          DAST._ISynonymType _4_m = _source0.dtor_SynonymType_a0;
+          return (_4_m).dtor_name;
         }
       }
       {
-        DAST._IDatatype _766_m = _source25.dtor_Datatype_a0;
-        return (_766_m).dtor_name;
+        DAST._IDatatype _5_m = _source0.dtor_Datatype_a0;
+        return (_5_m).dtor_name;
       }
     }
     public Dafny.ISequence<DAST._IAttribute> attributes() {
-      DAST._IModuleItem _source26 = this;
+      DAST._IModuleItem _source0 = this;
       {
-        if (_source26.is_Module) {
-          DAST._IModule _767_m = _source26.dtor_Module_a0;
-          return (_767_m).dtor_attributes;
+        if (_source0.is_Module) {
+          DAST._IModule _0_m = _source0.dtor_Module_a0;
+          return (_0_m).dtor_attributes;
         }
       }
       {
-        if (_source26.is_Class) {
-          DAST._IClass _768_m = _source26.dtor_Class_a0;
-          return (_768_m).dtor_attributes;
+        if (_source0.is_Class) {
+          DAST._IClass _1_m = _source0.dtor_Class_a0;
+          return (_1_m).dtor_attributes;
         }
       }
       {
-        if (_source26.is_Trait) {
-          DAST._ITrait _769_m = _source26.dtor_Trait_a0;
-          return (_769_m).dtor_attributes;
+        if (_source0.is_Trait) {
+          DAST._ITrait _2_m = _source0.dtor_Trait_a0;
+          return (_2_m).dtor_attributes;
         }
       }
       {
-        if (_source26.is_Newtype) {
-          DAST._INewtype _770_m = _source26.dtor_Newtype_a0;
-          return (_770_m).dtor_attributes;
+        if (_source0.is_Newtype) {
+          DAST._INewtype _3_m = _source0.dtor_Newtype_a0;
+          return (_3_m).dtor_attributes;
         }
       }
       {
-        if (_source26.is_SynonymType) {
-          DAST._ISynonymType _771_m = _source26.dtor_SynonymType_a0;
-          return (_771_m).dtor_attributes;
+        if (_source0.is_SynonymType) {
+          DAST._ISynonymType _4_m = _source0.dtor_SynonymType_a0;
+          return (_4_m).dtor_attributes;
         }
       }
       {
-        DAST._IDatatype _772_m = _source26.dtor_Datatype_a0;
-        return (_772_m).dtor_attributes;
+        DAST._IDatatype _5_m = _source0.dtor_Datatype_a0;
+        return (_5_m).dtor_attributes;
       }
     }
   }
@@ -700,73 +703,73 @@ namespace DAST {
       if ((mapping).Contains(this)) {
         return Dafny.Map<DAST._IType, DAST._IType>.Select(mapping,this);
       } else {
-        DAST._IType _source27 = this;
+        DAST._IType _source0 = this;
         {
-          if (_source27.is_UserDefined) {
-            DAST._IResolvedType _773_resolved = _source27.dtor_resolved;
-            return DAST.Type.create_UserDefined((_773_resolved).Replace(mapping));
+          if (_source0.is_UserDefined) {
+            DAST._IResolvedType _0_resolved = _source0.dtor_resolved;
+            return DAST.Type.create_UserDefined((_0_resolved).Replace(mapping));
           }
         }
         {
-          if (_source27.is_Tuple) {
-            Dafny.ISequence<DAST._IType> _774_arguments = _source27.dtor_Tuple_a0;
-            return DAST.Type.create_Tuple(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_775_mapping, _776_arguments) => ((System.Func<DAST._IType, DAST._IType>)((_777_t) => {
-  return (_777_t).Replace(_775_mapping);
-})))(mapping, _774_arguments), _774_arguments));
+          if (_source0.is_Tuple) {
+            Dafny.ISequence<DAST._IType> _1_arguments = _source0.dtor_Tuple_a0;
+            return DAST.Type.create_Tuple(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_2_mapping, _3_arguments) => ((System.Func<DAST._IType, DAST._IType>)((_4_t) => {
+  return (_4_t).Replace(_2_mapping);
+})))(mapping, _1_arguments), _1_arguments));
           }
         }
         {
-          if (_source27.is_Array) {
-            DAST._IType _778_element = _source27.dtor_element;
-            BigInteger _779_dims = _source27.dtor_dims;
-            return DAST.Type.create_Array((_778_element).Replace(mapping), _779_dims);
+          if (_source0.is_Array) {
+            DAST._IType _5_element = _source0.dtor_element;
+            BigInteger _6_dims = _source0.dtor_dims;
+            return DAST.Type.create_Array((_5_element).Replace(mapping), _6_dims);
           }
         }
         {
-          if (_source27.is_Seq) {
-            DAST._IType _780_element = _source27.dtor_element;
-            return DAST.Type.create_Seq((_780_element).Replace(mapping));
+          if (_source0.is_Seq) {
+            DAST._IType _7_element = _source0.dtor_element;
+            return DAST.Type.create_Seq((_7_element).Replace(mapping));
           }
         }
         {
-          if (_source27.is_Set) {
-            DAST._IType _781_element = _source27.dtor_element;
-            return DAST.Type.create_Set((_781_element).Replace(mapping));
+          if (_source0.is_Set) {
+            DAST._IType _8_element = _source0.dtor_element;
+            return DAST.Type.create_Set((_8_element).Replace(mapping));
           }
         }
         {
-          if (_source27.is_Multiset) {
-            DAST._IType _782_element = _source27.dtor_element;
-            return DAST.Type.create_Multiset((_782_element).Replace(mapping));
+          if (_source0.is_Multiset) {
+            DAST._IType _9_element = _source0.dtor_element;
+            return DAST.Type.create_Multiset((_9_element).Replace(mapping));
           }
         }
         {
-          if (_source27.is_Map) {
-            DAST._IType _783_key = _source27.dtor_key;
-            DAST._IType _784_value = _source27.dtor_value;
-            return DAST.Type.create_Map((_783_key).Replace(mapping), (_784_value).Replace(mapping));
+          if (_source0.is_Map) {
+            DAST._IType _10_key = _source0.dtor_key;
+            DAST._IType _11_value = _source0.dtor_value;
+            return DAST.Type.create_Map((_10_key).Replace(mapping), (_11_value).Replace(mapping));
           }
         }
         {
-          if (_source27.is_SetBuilder) {
-            DAST._IType _785_element = _source27.dtor_element;
-            return DAST.Type.create_SetBuilder((_785_element).Replace(mapping));
+          if (_source0.is_SetBuilder) {
+            DAST._IType _12_element = _source0.dtor_element;
+            return DAST.Type.create_SetBuilder((_12_element).Replace(mapping));
           }
         }
         {
-          if (_source27.is_MapBuilder) {
-            DAST._IType _786_key = _source27.dtor_key;
-            DAST._IType _787_value = _source27.dtor_value;
-            return DAST.Type.create_MapBuilder((_786_key).Replace(mapping), (_787_value).Replace(mapping));
+          if (_source0.is_MapBuilder) {
+            DAST._IType _13_key = _source0.dtor_key;
+            DAST._IType _14_value = _source0.dtor_value;
+            return DAST.Type.create_MapBuilder((_13_key).Replace(mapping), (_14_value).Replace(mapping));
           }
         }
         {
-          if (_source27.is_Arrow) {
-            Dafny.ISequence<DAST._IType> _788_args = _source27.dtor_args;
-            DAST._IType _789_result = _source27.dtor_result;
-            return DAST.Type.create_Arrow(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_790_mapping, _791_args) => ((System.Func<DAST._IType, DAST._IType>)((_792_t) => {
-  return (_792_t).Replace(_790_mapping);
-})))(mapping, _788_args), _788_args), (_789_result).Replace(mapping));
+          if (_source0.is_Arrow) {
+            Dafny.ISequence<DAST._IType> _15_args = _source0.dtor_args;
+            DAST._IType _16_result = _source0.dtor_result;
+            return DAST.Type.create_Arrow(Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Dafny.ISequence<DAST._IType>, Func<DAST._IType, DAST._IType>>>((_17_mapping, _18_args) => ((System.Func<DAST._IType, DAST._IType>)((_19_t) => {
+  return (_19_t).Replace(_17_mapping);
+})))(mapping, _15_args), _15_args), (_16_result).Replace(mapping));
           }
         }
         {
@@ -2431,23 +2434,23 @@ namespace DAST {
       }
     }
     public DAST._IResolvedType Replace(Dafny.IMap<DAST._IType,DAST._IType> mapping) {
-      return DAST.ResolvedType.create((this).dtor_path, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Func<DAST._IType, DAST._IType>>>((_793_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_794_t) => {
-  return (_794_t).Replace(_793_mapping);
+      return DAST.ResolvedType.create((this).dtor_path, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Func<DAST._IType, DAST._IType>>>((_0_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_1_t) => {
+  return (_1_t).Replace(_0_mapping);
 })))(mapping), (this).dtor_typeArgs), ((System.Func<DAST._IResolvedTypeBase>)(() => {
-  DAST._IResolvedTypeBase _source28 = (this).dtor_kind;
+  DAST._IResolvedTypeBase _source0 = (this).dtor_kind;
   {
-    if (_source28.is_Newtype) {
-      DAST._IType _795_baseType = _source28.dtor_baseType;
-      DAST._INewtypeRange _796_range = _source28.dtor_range;
-      bool _797_erase = _source28.dtor_erase;
-      return DAST.ResolvedTypeBase.create_Newtype((_795_baseType).Replace(mapping), _796_range, _797_erase);
+    if (_source0.is_Newtype) {
+      DAST._IType _2_baseType = _source0.dtor_baseType;
+      DAST._INewtypeRange _3_range = _source0.dtor_range;
+      bool _4_erase = _source0.dtor_erase;
+      return DAST.ResolvedTypeBase.create_Newtype((_2_baseType).Replace(mapping), _3_range, _4_erase);
     }
   }
   {
     return (this).dtor_kind;
   }
-}))(), (this).dtor_attributes, (this).dtor_properMethods, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Func<DAST._IType, DAST._IType>>>((_798_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_799_t) => {
-  return (_799_t).Replace(_798_mapping);
+}))(), (this).dtor_attributes, (this).dtor_properMethods, Std.Collections.Seq.__default.Map<DAST._IType, DAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<DAST._IType,DAST._IType>, Func<DAST._IType, DAST._IType>>>((_5_mapping) => ((System.Func<DAST._IType, DAST._IType>)((_6_t) => {
+  return (_6_t).Replace(_5_mapping);
 })))(mapping), (this).dtor_extendedTypes));
     }
   }

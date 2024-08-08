@@ -38,7 +38,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
   private string uniqueName;
   public string UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
-  public string AssignUniqueName(FreshIdGenerator generator) {
+  public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
@@ -87,16 +87,14 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
 
   private string sanitizedNameShadowable;
 
-  public virtual string SanitizedNameShadowable =>
+  public virtual string CompileNameShadowable =>
     sanitizedNameShadowable ??= SanitizeName(Name);
 
-  private string sanitizedName;
-  public virtual string SanitizedName =>
-    sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{SanitizedNameShadowable}";
-
   protected string compileName;
-  public virtual string CompileName =>
-    compileName ??= SanitizedName;
+
+  public virtual string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
+  }
 
   Type type;
   public bool IsTypeExplicit { get; set; }

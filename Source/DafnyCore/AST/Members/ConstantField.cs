@@ -30,6 +30,8 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
+
   public string NameRelativeToModule {
     get {
       if (EnclosingClass is DefaultClassDecl) {

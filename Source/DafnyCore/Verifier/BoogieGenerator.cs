@@ -1753,9 +1753,9 @@ namespace Microsoft.Dafny {
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
 
-    public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
+    public readonly VerificationIdGenerator defaultIdGenerator = new VerificationIdGenerator();
 
-    public FreshIdGenerator CurrentIdGenerator {
+    public VerificationIdGenerator CurrentIdGenerator {
       get {
         var decl = codeContext as Declaration;
         if (decl != null) {
@@ -3654,7 +3654,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(decreases != null);
       List<Bpl.Expr> oldBfs = new List<Bpl.Expr>();
-      var idGen = new FreshIdGenerator();
+      var idGen = new VerificationIdGenerator();
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
         Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, idGen.FreshId(varPrefix), TrType(cce.NonNull(e.Type))));

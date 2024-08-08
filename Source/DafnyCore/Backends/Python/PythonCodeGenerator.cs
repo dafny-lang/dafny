@@ -374,7 +374,7 @@ namespace Microsoft.Dafny.Compilers {
                                    where dtor.EnclosingCtors[0] == ctor
                                    select dtor.CorrespondingFormals[0] into arg
                                    where !arg.IsGhost
-                                   select IdProtect(arg.CompileName)) {
+                                   select IdProtect(arg.GetOrCreateCompileName(dt.CodeGenIdGenerator))) {
           w.WriteLine("@property");
           w.NewBlockPy($"def {destructor}(self):")
             .WriteLine($"return self._get().{destructor}");
@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(DafnySeqMakerFunction);
       if (expr.Initializer is LambdaExpr lam) {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
-        var binder = IdProtect(lam.BoundVars[0].CompileName);
+        var binder = IdProtect(lam.BoundVars[0].GetOrCreateCompileName(currentIdGenerator));
         wr.Write($"([{valueExpression} for {binder} in {range}])");
       } else {
         valueExpression = Expr(expr.Initializer, inLetExprBody, wStmts);
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
       } else {
-        wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.CompileName)}");
+        wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.GetOrCreateCompileName(currentIdGenerator))}");
       }
     }
 
