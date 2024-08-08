@@ -74,16 +74,10 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public string CompileNameShadowable =>
     sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
 
-  private string sanitizedName;
-
-  public string SanitizedName(CodeGenIdGenerator generator) {
-    return sanitizedName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
-  }
-
   string compileName;
 
   public string CompileName(CodeGenIdGenerator generator) {
-    return compileName ??= SanitizedName(generator);
+    return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
   // TODO rename and update comment? Or make it nullable?
