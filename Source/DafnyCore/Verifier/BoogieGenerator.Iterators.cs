@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
             p.Label.E = etran.Old.TrExpr(p.E);
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.Tok, currentModule)) {
+              if (kind == MethodTranslationKind.CallPre && RefinementToken.IsInherited(s.Tok, currentModule)) {
                 // this precondition was inherited into this module, so just ignore it
               } else {
                 req.Add(Requires(s.Tok, s.IsOnlyFree, p.E, s.E, errorMessage, successMessage, comment));

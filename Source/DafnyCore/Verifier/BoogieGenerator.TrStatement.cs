@@ -1740,19 +1740,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      MethodTranslationKind kind;
+      bool isCoCall = false;
       var callee = method;
       if (method is ExtremeLemma && isRecursiveCall) {
-        kind = MethodTranslationKind.CoCall;
+        isCoCall = true;
         callee = ((ExtremeLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
         // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding greatest lemma,
         // so we consider this to be a co-call
-        kind = MethodTranslationKind.CoCall;
-      } else {
-        kind = MethodTranslationKind.Call;
+        isCoCall = true;
       }
-
 
       var ins = new List<Bpl.Expr>();
       if (callee is TwoStateLemma) {
@@ -1949,10 +1946,19 @@ namespace Microsoft.Dafny {
         }
       }
 
-      builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
+      var callBuilder = builder;
+      if (cs.Proof != null) {
+        callBuilder = new BoogieStmtListBuilder(this, options);
+        AddComment(callBuilder, cs, "call statement proof");
+        CurrentIdGenerator.Push();
+        TrStmt(cs.Proof, callBuilder, locals, etran);
+        CurrentIdGenerator.Pop();
+      }
+
+      callBuilder.Add(new CommentCmd($"ProcessCallStmt: {(isCoCall ? "Make the call" : "Check precondition")}"));
       // Make the call
       AddReferencedMember(callee);
-      Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
+      Bpl.CallCmd call = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.CallPre), ins, isCoCall ? outs : new List<Bpl.IdentifierExpr>());
       proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
       if (
         (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
@@ -1964,7 +1970,16 @@ namespace Microsoft.Dafny {
         // of the predicate.
         call.IsFree = true;
       }
-      builder.Add(call);
+      callBuilder.Add(call);
+      if (cs.Proof != null) {
+        PathAsideBlock(cs.Tok, callBuilder, builder);
+      }
+      if (!isCoCall) {
+        builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
+        CallCmd post = Call(tok, MethodName(callee, MethodTranslationKind.CallPost), ins, outs);
+        proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
+        builder.Add(post);
+      }
 
       // Unbox results as needed
       for (int i = 0; i < Lhss.Count; i++) {

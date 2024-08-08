@@ -193,7 +193,9 @@ namespace Microsoft.Dafny {
       }
       // the method spec itself
       if (!isByMethod) {
-        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CallPre));
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CallPost));
+
       }
       if (m is ExtremeLemma) {
         // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
@@ -1793,7 +1795,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        if (m is Constructor && kind == MethodTranslationKind.Call) {
+        if (m is Constructor && kind == MethodTranslationKind.CallPost) {
           var dafnyFresh = new OldExpr(Token.NoToken,
             new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
               new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
@@ -1818,6 +1820,18 @@ namespace Microsoft.Dafny {
       }
 
       var name = MethodName(m, kind);
+      switch (kind) {
+        case MethodTranslationKind.CallPre:
+          outParams = new List<Variable>();
+          mod = new List<Bpl.IdentifierExpr>();
+          ens = new List<Ensures>();
+          break;
+        case MethodTranslationKind.CallPost:
+          req = new List<Bpl.Requires>();
+          break;
+        default:
+          break;
+      }
       var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
