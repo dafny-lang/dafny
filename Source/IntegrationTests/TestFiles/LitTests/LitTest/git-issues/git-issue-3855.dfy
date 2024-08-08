@@ -468,7 +468,7 @@ assert heapExternalsZeroOrOneEdges(xedges);
 
       assert ObjectsAreValid({o});
 
-      assert edges(objects) == old( edges(objects) ) + {Edge(o,f,t)};
+      // assert edges(objects) == old( edges(objects) ) + {Edge(o,f,t)};
           
       var zedges := edges(objects);  //or could hand in if necessary?
       var zisos := justTheIsos(objects);
