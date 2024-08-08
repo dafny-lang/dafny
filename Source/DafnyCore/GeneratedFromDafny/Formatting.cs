@@ -15,23 +15,23 @@ namespace Formatting {
     public static System.String ReindentProgramFromFirstToken(Microsoft.Dafny.IToken firstToken, Formatting.IIndentationFormatter reindent)
     {
       System.String s = default(System.String);
-      Microsoft.Dafny.IToken token;
-      token = firstToken;
-      System.Text.StringBuilder sb;
+      Microsoft.Dafny.IToken _0_token;
+      _0_token = firstToken;
+      System.Text.StringBuilder _1_sb;
       System.Text.StringBuilder _nw0 = new System.Text.StringBuilder();
-      sb = _nw0;
-      while ((token) != (object) ((Microsoft.Dafny.IToken)null)) {
-        System.String newLeadingTrivia;
-        newLeadingTrivia = (reindent).GetNewLeadingTrivia(token);
-        System.String newTrailingTrivia;
-        newTrailingTrivia = (reindent).GetNewTrailingTrivia(token);
-        (sb).Append(newLeadingTrivia);
-        (sb).Append(token.val);
-        (sb).Append(newTrailingTrivia);
-        token = token.Next;
+      _1_sb = _nw0;
+      while ((_0_token) != (object) ((Microsoft.Dafny.IToken)null)) {
+        System.String _2_newLeadingTrivia;
+        _2_newLeadingTrivia = (reindent).GetNewLeadingTrivia(_0_token);
+        System.String _3_newTrailingTrivia;
+        _3_newTrailingTrivia = (reindent).GetNewTrailingTrivia(_0_token);
+        (_1_sb).Append(_2_newLeadingTrivia);
+        (_1_sb).Append(_0_token.val);
+        (_1_sb).Append(_3_newTrailingTrivia);
+        _0_token = _0_token.Next;
       }
       System.String _out0;
-      _out0 = (sb).ToString().ToString();
+      _out0 = (_1_sb).ToString().ToString();
       s = _out0;
       return s;
     }

@@ -23,6 +23,12 @@ namespace XUnitExtensions.Lit {
       TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
+      if (shellCommand.Contains('/')) {
+        var workingDir = Path.GetDirectoryName(shellCommand);
+        process.StartInfo.WorkingDirectory = workingDir;
+        shellCommand = Path.GetFileName(shellCommand);
+      }
+
       process.StartInfo.FileName = shellCommand;
       foreach (var argument in Arguments) {
         process.StartInfo.ArgumentList.Add(argument);

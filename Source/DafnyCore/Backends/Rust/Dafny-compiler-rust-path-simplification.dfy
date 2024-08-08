@@ -10,7 +10,7 @@ module FactorPathsOptimizationTest {
     var std_any_Any := global.MSel("std").MSel("any").MSel("Any");
     var Any := TIdentifier("Any");
     expect apply(
-        Mod("onemodule", [
+        Mod("onemodule", [], [
               StructDecl(Struct([], "test", [T_Decl],
                                 NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
               //                                   ::std::any::Any ==> Any
@@ -20,20 +20,20 @@ module FactorPathsOptimizationTest {
                   [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
               //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
             ])).ToString("") ==
-           Mod("onemodule", [
+           Mod("onemodule", [], [
                  UseDecl(Use(PUB, std_any_Any)),
                  StructDecl(Struct([], "test", [T_Decl_simp], NamedFields([Field(PUB, Formal("a", Any))]))),
                  ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
                  ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
                ]).ToString("");
     expect apply(
-        Mod("onemodule", [
+        Mod("onemodule", [], [
               ImplDecl(
                 ImplFor(
                   [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
                   TIdentifier("test").Apply([T]), "", []))
             ])).ToString("") ==
-           Mod("onemodule", [
+           Mod("onemodule", [], [
                  UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
                  ImplDecl(
                    ImplFor(

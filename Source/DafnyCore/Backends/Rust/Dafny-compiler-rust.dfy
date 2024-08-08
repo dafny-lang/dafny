@@ -28,7 +28,7 @@ module RAST
 
   datatype Mod =
       // Rust modules
-    | Mod(name: string, body: seq<ModDecl>)
+    | Mod(name: string, attributes: seq<Attribute>, body: seq<ModDecl>)
     | ExternMod(name: string)
   {
     function Fold<T(!new)>(acc: T, accBuilder: (T, ModDecl) --> T): T
@@ -43,7 +43,7 @@ module RAST
       match this {
         case ExternMod(name) =>
           "pub mod " + name + ";"
-        case Mod(name, body) =>
+        case Mod(name, attributes, body) =>
           /* If the module does not start with "use", just separate declarations by one blank line
              If the module starts with "use", add blank lines only after use declarations */
           var startWithUse := |body| > 0 && body[0].UseDecl?;
@@ -51,6 +51,7 @@ module RAST
           var prefixIfUseDecl := if startWithUse then ind + IND else "";
           var infixDecl := if startWithUse then "\n" else "\n\n" + ind + IND;
           var initialIdent := if startWithUse then "" else ind + IND;
+          Attribute.ToStringMultiple(attributes, ind) +
           "pub mod " + name + " {" + "\n" + initialIdent +
           SeqToString(
             body,
@@ -1843,7 +1844,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     static function ContainingPathToRust(containingPath: seq<Ident>): seq<string> {
       Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
     }
-
+    predicate HasTestAttribute(attributes: seq<Attribute>) {
+      exists attribute <- attributes :: attribute.name == "test" && |attribute.args| == 0
+    }
     // Returns a top-level gathering module that can be merged with other gathering modules
     method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: SeqMap<string, GatheringModule>)
       decreases mod, 1
@@ -1867,8 +1870,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         } else if optExtern.UnsupportedExtern? {
           error := Some(optExtern.reason);
         }
+        var attributes := [];
+        if HasTestAttribute(mod.attributes) {
+          attributes := [R.RawAttribute("#[cfg(test)]")];
+        }
         s := GatheringModule.MergeSeqMap(
-          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(modName, body)),
+          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(modName, attributes, body)),
           allmodules);
       }
     }
@@ -2079,6 +2086,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           implBody
         );
         s := s + [R.ImplDecl(i)];
+      }
+      // Add test methods
+      var testMethods := [];
+      if className == "_default" {
+        for i := 0 to |c.body| {
+          var m := match c.body[i] case Method(m) => m;
+          if HasTestAttribute(m.attributes) && |m.params| == 0 {
+            var fnName := escapeName(m.name);
+            testMethods := testMethods + [
+              R.TopFnDecl(
+                R.TopFn(
+                  [R.RawAttribute("#[test]")], R.PUB,
+                  R.Fn(
+                    fnName, [], [], None,
+                    "",
+                    Some(R.Identifier("_default").FSel(fnName).Apply([])))
+                ))
+            ];
+          }
+        }
+        s := s + testMethods;
       }
       var genSelfPath := GenPathType(path);
       // TODO: If general traits, check whether the trait extends object or not.
@@ -5481,7 +5509,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       if externUseDecls != [] {
-        s := s + R.Mod(DAFNY_EXTERN_MODULE, externUseDecls).ToString("") + "\n";
+        s := s + R.Mod(DAFNY_EXTERN_MODULE, [], externUseDecls).ToString("") + "\n";
       }
 
       var allModules := SeqMap<string, GatheringModule>.Empty();

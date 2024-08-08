@@ -202,6 +202,7 @@ module {:extern "DAST"} DAST {
   datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
   datatype Method = Method(
+    attributes: seq<Attribute>,
     isStatic: bool,
     hasBody: bool,
     outVarsAreUninitFieldsToAssign: bool, // For constructors

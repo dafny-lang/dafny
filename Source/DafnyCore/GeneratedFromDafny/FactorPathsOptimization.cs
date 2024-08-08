@@ -16,359 +16,275 @@ namespace FactorPathsOptimization {
       if ((mod).is_ExternMod) {
         return mod;
       } else {
-        RAST._IPath _1148_SelfPath = (RAST.__default.crate).MSel((mod).dtor_name);
-        FactorPathsOptimization._IMapping _1149_initialMapping = FactorPathsOptimization.Mapping.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.FromElements(), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
-        FactorPathsOptimization._IMapping _1150_mappings = (mod).Fold<FactorPathsOptimization._IMapping>(_1149_initialMapping, Dafny.Helpers.Id<Func<RAST._IPath, Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>>>((_1151_SelfPath) => ((System.Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>)((_1152_current, _1153_modDecl) => {
-          return FactorPathsOptimization.__default.GatherModMapping(_1151_SelfPath, _1153_modDecl, _1152_current);
-        })))(_1148_SelfPath));
-        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> _1154_pathsToRemove = (_1150_mappings).ToFinalReplacement();
-        Dafny.ISequence<RAST._IModDecl> _1155_imports = (_1150_mappings).ToUseStatements(_1154_pathsToRemove, _1148_SelfPath);
-        Dafny.ISequence<RAST._IModDecl> _1156_rewrittenDeclarations = (mod).Fold<Dafny.ISequence<RAST._IModDecl>>(Dafny.Sequence<RAST._IModDecl>.FromElements(), Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, RAST._IMod, Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>>>((_1157_pathsToRemove, _1158_mod) => ((System.Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>)((_1159_current, _1160_modDecl) => {
-          return Dafny.Sequence<RAST._IModDecl>.Concat(_1159_current, Dafny.Sequence<RAST._IModDecl>.FromElements(FactorPathsOptimization.__default.ReplaceModDecl(_1160_modDecl, _1157_pathsToRemove)));
-        })))(_1154_pathsToRemove, mod));
-        Dafny.ISequence<RAST._IModDecl> _1161_newBody = Dafny.Sequence<RAST._IModDecl>.Concat(_1155_imports, _1156_rewrittenDeclarations);
-        RAST._IMod _1162_dt__update__tmp_h0 = mod;
-        Dafny.ISequence<RAST._IModDecl> _1163_dt__update_hbody_h0 = _1161_newBody;
-        return RAST.Mod.create_Mod((_1162_dt__update__tmp_h0).dtor_name, _1163_dt__update_hbody_h0);
+        RAST._IPath _0_SelfPath = (RAST.__default.crate).MSel((mod).dtor_name);
+        FactorPathsOptimization._IMapping _1_initialMapping = FactorPathsOptimization.Mapping.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.FromElements(), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
+        FactorPathsOptimization._IMapping _2_mappings = (mod).Fold<FactorPathsOptimization._IMapping>(_1_initialMapping, Dafny.Helpers.Id<Func<RAST._IPath, Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>>>((_3_SelfPath) => ((System.Func<FactorPathsOptimization._IMapping, RAST._IModDecl, FactorPathsOptimization._IMapping>)((_4_current, _5_modDecl) => {
+          return FactorPathsOptimization.__default.GatherModMapping(_3_SelfPath, _5_modDecl, _4_current);
+        })))(_0_SelfPath));
+        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> _6_pathsToRemove = (_2_mappings).ToFinalReplacement();
+        Dafny.ISequence<RAST._IModDecl> _7_imports = (_2_mappings).ToUseStatements(_6_pathsToRemove, _0_SelfPath);
+        Dafny.ISequence<RAST._IModDecl> _8_rewrittenDeclarations = (mod).Fold<Dafny.ISequence<RAST._IModDecl>>(Dafny.Sequence<RAST._IModDecl>.FromElements(), Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, RAST._IMod, Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>>>((_9_pathsToRemove, _10_mod) => ((System.Func<Dafny.ISequence<RAST._IModDecl>, RAST._IModDecl, Dafny.ISequence<RAST._IModDecl>>)((_11_current, _12_modDecl) => {
+          return Dafny.Sequence<RAST._IModDecl>.Concat(_11_current, Dafny.Sequence<RAST._IModDecl>.FromElements(FactorPathsOptimization.__default.ReplaceModDecl(_12_modDecl, _9_pathsToRemove)));
+        })))(_6_pathsToRemove, mod));
+        Dafny.ISequence<RAST._IModDecl> _13_newBody = Dafny.Sequence<RAST._IModDecl>.Concat(_7_imports, _8_rewrittenDeclarations);
+        RAST._IMod _14_dt__update__tmp_h0 = mod;
+        Dafny.ISequence<RAST._IModDecl> _15_dt__update_hbody_h0 = _13_newBody;
+        return RAST.Mod.create_Mod((_14_dt__update__tmp_h0).dtor_name, (_14_dt__update__tmp_h0).dtor_attributes, _15_dt__update_hbody_h0);
       }
     }
     public static __T UniqueElementOf<__T>(Dafny.ISet<__T> s) {
       return Dafny.Helpers.Let<int, __T>(0, _let_dummy_9 =>  {
-        __T _1164_e = default(__T);
-        foreach (__T _assign_such_that_2 in (s).Elements) {
-          _1164_e = (__T)_assign_such_that_2;
-          if ((s).Contains(_1164_e)) {
-            goto after__ASSIGN_SUCH_THAT_2;
+        __T _0_e = default(__T);
+        foreach (__T _assign_such_that_0 in (s).Elements) {
+          _0_e = (__T)_assign_such_that_0;
+          if ((s).Contains(_0_e)) {
+            goto after__ASSIGN_SUCH_THAT_0;
           }
         }
         throw new System.Exception("assign-such-that search produced no value (line 89)");
-      after__ASSIGN_SUCH_THAT_2: ;
-        return _1164_e;
+      after__ASSIGN_SUCH_THAT_0: ;
+        return _0_e;
       }
       );
     }
     public static FactorPathsOptimization._IMapping GatherModMapping(RAST._IPath prefix, RAST._IModDecl modDecl, FactorPathsOptimization._IMapping current)
     {
-      var _pat_let_tv148 = current;
-      var _pat_let_tv149 = prefix;
-      var _pat_let_tv150 = current;
-      var _pat_let_tv151 = prefix;
-      var _pat_let_tv152 = current;
-      var _pat_let_tv153 = prefix;
-      var _pat_let_tv154 = current;
-      var _pat_let_tv155 = prefix;
-      var _pat_let_tv156 = current;
-      var _pat_let_tv157 = prefix;
-      var _pat_let_tv158 = current;
-      var _pat_let_tv159 = current;
-      var _pat_let_tv160 = current;
-      var _pat_let_tv161 = prefix;
-      var _pat_let_tv162 = current;
-      RAST._IModDecl _source57 = modDecl;
-      bool unmatched57 = true;
-      if (unmatched57) {
-        if (_source57.is_ModDecl) {
-          RAST._IMod _1165_mod = _source57.dtor_mod;
-          unmatched57 = false;
-          return (_pat_let_tv148).Add((_1165_mod).dtor_name, _pat_let_tv149);
+      RAST._IModDecl _source0 = modDecl;
+      {
+        if (_source0.is_ModDecl) {
+          RAST._IMod _0_mod = _source0.dtor_mod;
+          return (current).Add((_0_mod).dtor_name, prefix);
         }
       }
-      if (unmatched57) {
-        if (_source57.is_StructDecl) {
-          RAST._IStruct _1166_struct = _source57.dtor_struct;
-          unmatched57 = false;
-          return (_pat_let_tv150).Add((_1166_struct).dtor_name, _pat_let_tv151);
+      {
+        if (_source0.is_StructDecl) {
+          RAST._IStruct _1_struct = _source0.dtor_struct;
+          return (current).Add((_1_struct).dtor_name, prefix);
         }
       }
-      if (unmatched57) {
-        if (_source57.is_TypeDecl) {
-          RAST._ITypeSynonym _1167_tpe = _source57.dtor_tpe;
-          unmatched57 = false;
-          return (_pat_let_tv152).Add((_1167_tpe).dtor_name, _pat_let_tv153);
+      {
+        if (_source0.is_TypeDecl) {
+          RAST._ITypeSynonym _2_tpe = _source0.dtor_tpe;
+          return (current).Add((_2_tpe).dtor_name, prefix);
         }
       }
-      if (unmatched57) {
-        if (_source57.is_ConstDecl) {
-          RAST._IConstant _1168_c = _source57.dtor_c;
-          unmatched57 = false;
-          return (_pat_let_tv154).Add((_1168_c).dtor_name, _pat_let_tv155);
+      {
+        if (_source0.is_ConstDecl) {
+          RAST._IConstant _3_c = _source0.dtor_c;
+          return (current).Add((_3_c).dtor_name, prefix);
         }
       }
-      if (unmatched57) {
-        if (_source57.is_EnumDecl) {
-          RAST._IEnum _1169_enum = _source57.dtor_enum;
-          unmatched57 = false;
-          return (_pat_let_tv156).Add((_1169_enum).dtor_name, _pat_let_tv157);
+      {
+        if (_source0.is_EnumDecl) {
+          RAST._IEnum _4_enum = _source0.dtor_enum;
+          return (current).Add((_4_enum).dtor_name, prefix);
         }
       }
-      if (unmatched57) {
-        if (_source57.is_ImplDecl) {
-          RAST._IImpl _1170_impl = _source57.dtor_impl;
-          unmatched57 = false;
-          return FactorPathsOptimization.__default.GatherImplMapping(_1170_impl, _pat_let_tv158);
+      {
+        if (_source0.is_ImplDecl) {
+          RAST._IImpl _5_impl = _source0.dtor_impl;
+          return FactorPathsOptimization.__default.GatherImplMapping(_5_impl, current);
         }
       }
-      if (unmatched57) {
-        if (_source57.is_TraitDecl) {
-          RAST._ITrait _1171_tr = _source57.dtor_tr;
-          unmatched57 = false;
-          return _pat_let_tv159;
+      {
+        if (_source0.is_TraitDecl) {
+          RAST._ITrait _6_tr = _source0.dtor_tr;
+          return current;
         }
       }
-      if (unmatched57) {
-        if (_source57.is_TopFnDecl) {
-          RAST._ITopFnDecl _1172_fn = _source57.dtor_fn;
-          unmatched57 = false;
-          return (_pat_let_tv160).Add(((_1172_fn).dtor_fn).dtor_name, _pat_let_tv161);
+      {
+        if (_source0.is_TopFnDecl) {
+          RAST._ITopFnDecl _7_fn = _source0.dtor_fn;
+          return (current).Add(((_7_fn).dtor_fn).dtor_name, prefix);
         }
       }
-      if (unmatched57) {
-        RAST._IUse _1173_use = _source57.dtor_use;
-        unmatched57 = false;
-        return _pat_let_tv162;
+      {
+        RAST._IUse _8_use = _source0.dtor_use;
+        return current;
       }
-      throw new System.Exception("unexpected control point");
     }
     public static FactorPathsOptimization._IMapping GatherTypeMapping(RAST._IType tpe, FactorPathsOptimization._IMapping current)
     {
-      return (tpe).Fold<FactorPathsOptimization._IMapping>(current, ((System.Func<FactorPathsOptimization._IMapping, RAST._IType, FactorPathsOptimization._IMapping>)((_1174_current, _1175_t) => {
+      return (tpe).Fold<FactorPathsOptimization._IMapping>(current, ((System.Func<FactorPathsOptimization._IMapping, RAST._IType, FactorPathsOptimization._IMapping>)((_0_current, _1_t) => {
         return ((System.Func<FactorPathsOptimization._IMapping>)(() => {
-          RAST._IType _source58 = _1175_t;
-          bool unmatched58 = true;
-          if (unmatched58) {
-            if (_source58.is_TypeFromPath) {
-              RAST._IPath path4 = _source58.dtor_path;
-              if (path4.is_PMemberSelect) {
-                RAST._IPath _1176_base = path4.dtor_base;
-                Dafny.ISequence<Dafny.Rune> _1177_name = path4.dtor_name;
-                unmatched58 = false;
-                return (_1174_current).Add(_1177_name, _1176_base);
+          RAST._IType _source0 = _1_t;
+          {
+            if (_source0.is_TypeFromPath) {
+              RAST._IPath path0 = _source0.dtor_path;
+              if (path0.is_PMemberSelect) {
+                RAST._IPath _2_base = path0.dtor_base;
+                Dafny.ISequence<Dafny.Rune> _3_name = path0.dtor_name;
+                return (_0_current).Add(_3_name, _2_base);
               }
             }
           }
-          if (unmatched58) {
-            unmatched58 = false;
-            return _1174_current;
+          {
+            return _0_current;
           }
-          throw new System.Exception("unexpected control point");
         }))();
       })));
     }
     public static FactorPathsOptimization._IMapping GatherImplMapping(RAST._IImpl impl, FactorPathsOptimization._IMapping current)
     {
-      var _pat_let_tv163 = current;
-      var _pat_let_tv164 = current;
-      RAST._IImpl _source59 = impl;
-      bool unmatched59 = true;
-      if (unmatched59) {
-        if (_source59.is_ImplFor) {
-          Dafny.ISequence<RAST._ITypeParamDecl> _1178_typeParams = _source59.dtor_typeParams;
-          RAST._IType _1179_tpe = _source59.dtor_tpe;
-          RAST._IType _1180_forType = _source59.dtor_forType;
-          Dafny.ISequence<Dafny.Rune> _1181_where = _source59.dtor_where;
-          Dafny.ISequence<RAST._IImplMember> _1182_body = _source59.dtor_body;
-          unmatched59 = false;
-          return FactorPathsOptimization.__default.GatherTypeMapping(_1180_forType, FactorPathsOptimization.__default.GatherTypeMapping(_1179_tpe, _pat_let_tv163));
+      RAST._IImpl _source0 = impl;
+      {
+        if (_source0.is_ImplFor) {
+          Dafny.ISequence<RAST._ITypeParamDecl> _0_typeParams = _source0.dtor_typeParams;
+          RAST._IType _1_tpe = _source0.dtor_tpe;
+          RAST._IType _2_forType = _source0.dtor_forType;
+          Dafny.ISequence<Dafny.Rune> _3_where = _source0.dtor_where;
+          Dafny.ISequence<RAST._IImplMember> _4_body = _source0.dtor_body;
+          return FactorPathsOptimization.__default.GatherTypeMapping(_2_forType, FactorPathsOptimization.__default.GatherTypeMapping(_1_tpe, current));
         }
       }
-      if (unmatched59) {
-        Dafny.ISequence<RAST._ITypeParamDecl> _1183_typeParams = _source59.dtor_typeParams;
-        RAST._IType _1184_tpe = _source59.dtor_tpe;
-        Dafny.ISequence<Dafny.Rune> _1185_where = _source59.dtor_where;
-        Dafny.ISequence<RAST._IImplMember> _1186_body = _source59.dtor_body;
-        unmatched59 = false;
-        return FactorPathsOptimization.__default.GatherTypeMapping(_1184_tpe, _pat_let_tv164);
+      {
+        Dafny.ISequence<RAST._ITypeParamDecl> _5_typeParams = _source0.dtor_typeParams;
+        RAST._IType _6_tpe = _source0.dtor_tpe;
+        Dafny.ISequence<Dafny.Rune> _7_where = _source0.dtor_where;
+        Dafny.ISequence<RAST._IImplMember> _8_body = _source0.dtor_body;
+        return FactorPathsOptimization.__default.GatherTypeMapping(_6_tpe, current);
       }
-      throw new System.Exception("unexpected control point");
     }
     public static RAST._IModDecl ReplaceModDecl(RAST._IModDecl modDecl, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
-      var _pat_let_tv165 = replacement;
-      var _pat_let_tv166 = modDecl;
-      var _pat_let_tv167 = modDecl;
-      var _pat_let_tv168 = modDecl;
-      var _pat_let_tv169 = replacement;
-      var _pat_let_tv170 = modDecl;
-      var _pat_let_tv171 = modDecl;
-      var _pat_let_tv172 = modDecl;
-      RAST._IModDecl _source60 = modDecl;
-      bool unmatched60 = true;
-      if (unmatched60) {
-        if (_source60.is_ModDecl) {
-          RAST._IMod _1187_mod = _source60.dtor_mod;
-          unmatched60 = false;
-          return RAST.ModDecl.create_ModDecl(FactorPathsOptimization.__default.apply(_1187_mod));
+      RAST._IModDecl _source0 = modDecl;
+      {
+        if (_source0.is_ModDecl) {
+          RAST._IMod _0_mod = _source0.dtor_mod;
+          return RAST.ModDecl.create_ModDecl(FactorPathsOptimization.__default.apply(_0_mod));
         }
       }
-      if (unmatched60) {
-        if (_source60.is_StructDecl) {
-          RAST._IStruct _1188_struct = _source60.dtor_struct;
-          unmatched60 = false;
-          return RAST.ModDecl.create_StructDecl(FactorPathsOptimization.__default.ReplaceStruct(_1188_struct, _pat_let_tv165));
+      {
+        if (_source0.is_StructDecl) {
+          RAST._IStruct _1_struct = _source0.dtor_struct;
+          return RAST.ModDecl.create_StructDecl(FactorPathsOptimization.__default.ReplaceStruct(_1_struct, replacement));
         }
       }
-      if (unmatched60) {
-        if (_source60.is_TypeDecl) {
-          RAST._ITypeSynonym _1189_tpe = _source60.dtor_tpe;
-          unmatched60 = false;
-          return _pat_let_tv166;
+      {
+        if (_source0.is_TypeDecl) {
+          RAST._ITypeSynonym _2_tpe = _source0.dtor_tpe;
+          return modDecl;
         }
       }
-      if (unmatched60) {
-        if (_source60.is_ConstDecl) {
-          RAST._IConstant _1190_c = _source60.dtor_c;
-          unmatched60 = false;
-          return _pat_let_tv167;
+      {
+        if (_source0.is_ConstDecl) {
+          RAST._IConstant _3_c = _source0.dtor_c;
+          return modDecl;
         }
       }
-      if (unmatched60) {
-        if (_source60.is_EnumDecl) {
-          RAST._IEnum _1191_enum = _source60.dtor_enum;
-          unmatched60 = false;
-          return _pat_let_tv168;
+      {
+        if (_source0.is_EnumDecl) {
+          RAST._IEnum _4_enum = _source0.dtor_enum;
+          return modDecl;
         }
       }
-      if (unmatched60) {
-        if (_source60.is_ImplDecl) {
-          RAST._IImpl _1192_impl = _source60.dtor_impl;
-          unmatched60 = false;
-          return RAST.ModDecl.create_ImplDecl(FactorPathsOptimization.__default.ReplaceImplDecl(_1192_impl, _pat_let_tv169));
+      {
+        if (_source0.is_ImplDecl) {
+          RAST._IImpl _5_impl = _source0.dtor_impl;
+          return RAST.ModDecl.create_ImplDecl(FactorPathsOptimization.__default.ReplaceImplDecl(_5_impl, replacement));
         }
       }
-      if (unmatched60) {
-        if (_source60.is_TraitDecl) {
-          RAST._ITrait _1193_tr = _source60.dtor_tr;
-          unmatched60 = false;
-          return _pat_let_tv170;
+      {
+        if (_source0.is_TraitDecl) {
+          RAST._ITrait _6_tr = _source0.dtor_tr;
+          return modDecl;
         }
       }
-      if (unmatched60) {
-        if (_source60.is_TopFnDecl) {
-          RAST._ITopFnDecl _1194_fn = _source60.dtor_fn;
-          unmatched60 = false;
-          return _pat_let_tv171;
+      {
+        if (_source0.is_TopFnDecl) {
+          RAST._ITopFnDecl _7_fn = _source0.dtor_fn;
+          return modDecl;
         }
       }
-      if (unmatched60) {
-        RAST._IUse _1195_use = _source60.dtor_use;
-        unmatched60 = false;
-        return _pat_let_tv172;
+      {
+        RAST._IUse _8_use = _source0.dtor_use;
+        return modDecl;
       }
-      throw new System.Exception("unexpected control point");
     }
     public static RAST._IType ReplaceType(RAST._IType t, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
-      var _pat_let_tv173 = replacement;
-      var _pat_let_tv174 = replacement;
-      var _pat_let_tv175 = t;
-      var _pat_let_tv176 = t;
-      var _pat_let_tv177 = t;
-      RAST._IType _source61 = t;
-      bool unmatched61 = true;
-      if (unmatched61) {
-        if (_source61.is_TypeFromPath) {
-          RAST._IPath path5 = _source61.dtor_path;
-          if (path5.is_PMemberSelect) {
-            RAST._IPath _1196_base = path5.dtor_base;
-            Dafny.ISequence<Dafny.Rune> _1197_id = path5.dtor_name;
-            unmatched61 = false;
-            if (((_pat_let_tv173).Contains(_1197_id)) && (object.Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(_pat_let_tv174,_1197_id), _1196_base))) {
-              return RAST.Type.create_TSynonym(RAST.Type.create_TIdentifier(_1197_id), _pat_let_tv175);
+      RAST._IType _source0 = t;
+      {
+        if (_source0.is_TypeFromPath) {
+          RAST._IPath path0 = _source0.dtor_path;
+          if (path0.is_PMemberSelect) {
+            RAST._IPath _0_base = path0.dtor_base;
+            Dafny.ISequence<Dafny.Rune> _1_id = path0.dtor_name;
+            if (((replacement).Contains(_1_id)) && (object.Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(replacement,_1_id), _0_base))) {
+              return RAST.Type.create_TSynonym(RAST.Type.create_TIdentifier(_1_id), t);
             } else {
-              return _pat_let_tv176;
+              return t;
             }
           }
         }
       }
-      if (unmatched61) {
-        unmatched61 = false;
-        return _pat_let_tv177;
+      {
+        return t;
       }
-      throw new System.Exception("unexpected control point");
     }
     public static Dafny.ISequence<RAST._ITypeParamDecl> ReplaceTypeParams(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
-      return Std.Collections.Seq.__default.Map<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>>>((_1198_replacement) => ((System.Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>)((_1199_t) => {
-        return Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_1199_t, _pat_let10_0 => Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_pat_let10_0, _1200_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(Std.Collections.Seq.__default.Map<RAST._IType, RAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_1201_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_1202_constraint) => {
-          return FactorPathsOptimization.__default.ReplaceType(_1202_constraint, _1201_replacement);
-        })))(_1198_replacement), (_1199_t).dtor_constraints), _pat_let11_0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(_pat_let11_0, _1203_dt__update_hconstraints_h0 => RAST.TypeParamDecl.create((_1200_dt__update__tmp_h0).dtor_name, _1203_dt__update_hconstraints_h0)))));
+      return Std.Collections.Seq.__default.Map<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>>>((_0_replacement) => ((System.Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>)((_1_t) => {
+        return Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_1_t, _pat_let10_0 => Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_pat_let10_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(Std.Collections.Seq.__default.Map<RAST._IType, RAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_3_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_4_constraint) => {
+          return FactorPathsOptimization.__default.ReplaceType(_4_constraint, _3_replacement);
+        })))(_0_replacement), (_1_t).dtor_constraints), _pat_let11_0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(_pat_let11_0, _5_dt__update_hconstraints_h0 => RAST.TypeParamDecl.create((_2_dt__update__tmp_h0).dtor_name, _5_dt__update_hconstraints_h0)))));
       })))(replacement), typeParams);
     }
     public static RAST._IImpl ReplaceImplDecl(RAST._IImpl impl, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
-      var _pat_let_tv178 = replacement;
-      var _pat_let_tv179 = replacement;
-      var _pat_let_tv180 = replacement;
-      var _pat_let_tv181 = replacement;
-      var _pat_let_tv182 = replacement;
-      RAST._IImpl _source62 = impl;
-      bool unmatched62 = true;
-      if (unmatched62) {
-        if (_source62.is_ImplFor) {
-          Dafny.ISequence<RAST._ITypeParamDecl> _1204_typeParams = _source62.dtor_typeParams;
-          RAST._IType _1205_tpe = _source62.dtor_tpe;
-          RAST._IType _1206_forType = _source62.dtor_forType;
-          Dafny.ISequence<Dafny.Rune> _1207_where = _source62.dtor_where;
-          Dafny.ISequence<RAST._IImplMember> _1208_body = _source62.dtor_body;
-          unmatched62 = false;
-          return RAST.Impl.create_ImplFor(FactorPathsOptimization.__default.ReplaceTypeParams(_1204_typeParams, _pat_let_tv178), (_1205_tpe).Replace(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>(FactorPathsOptimization.__default.typeReplacer)(_pat_let_tv179)), (_1206_forType).Replace(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>(FactorPathsOptimization.__default.typeReplacer)(_pat_let_tv180)), _1207_where, _1208_body);
+      RAST._IImpl _source0 = impl;
+      {
+        if (_source0.is_ImplFor) {
+          Dafny.ISequence<RAST._ITypeParamDecl> _0_typeParams = _source0.dtor_typeParams;
+          RAST._IType _1_tpe = _source0.dtor_tpe;
+          RAST._IType _2_forType = _source0.dtor_forType;
+          Dafny.ISequence<Dafny.Rune> _3_where = _source0.dtor_where;
+          Dafny.ISequence<RAST._IImplMember> _4_body = _source0.dtor_body;
+          return RAST.Impl.create_ImplFor(FactorPathsOptimization.__default.ReplaceTypeParams(_0_typeParams, replacement), (_1_tpe).Replace(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>(FactorPathsOptimization.__default.typeReplacer)(replacement)), (_2_forType).Replace(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>(FactorPathsOptimization.__default.typeReplacer)(replacement)), _3_where, _4_body);
         }
       }
-      if (unmatched62) {
-        Dafny.ISequence<RAST._ITypeParamDecl> _1209_typeParams = _source62.dtor_typeParams;
-        RAST._IType _1210_tpe = _source62.dtor_tpe;
-        Dafny.ISequence<Dafny.Rune> _1211_where = _source62.dtor_where;
-        Dafny.ISequence<RAST._IImplMember> _1212_body = _source62.dtor_body;
-        unmatched62 = false;
-        return RAST.Impl.create_Impl(FactorPathsOptimization.__default.ReplaceTypeParams(_1209_typeParams, _pat_let_tv181), (_1210_tpe).Replace(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>(FactorPathsOptimization.__default.typeReplacer)(_pat_let_tv182)), _1211_where, _1212_body);
+      {
+        Dafny.ISequence<RAST._ITypeParamDecl> _5_typeParams = _source0.dtor_typeParams;
+        RAST._IType _6_tpe = _source0.dtor_tpe;
+        Dafny.ISequence<Dafny.Rune> _7_where = _source0.dtor_where;
+        Dafny.ISequence<RAST._IImplMember> _8_body = _source0.dtor_body;
+        return RAST.Impl.create_Impl(FactorPathsOptimization.__default.ReplaceTypeParams(_5_typeParams, replacement), (_6_tpe).Replace(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>(FactorPathsOptimization.__default.typeReplacer)(replacement)), _7_where, _8_body);
       }
-      throw new System.Exception("unexpected control point");
     }
     public static RAST._IStruct ReplaceStruct(RAST._IStruct @struct, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
-      var _pat_let_tv183 = replacement;
-      var _pat_let_tv184 = replacement;
-      RAST._IStruct _source63 = @struct;
-      bool unmatched63 = true;
-      if (unmatched63) {
-        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _1213_attributes = _source63.dtor_attributes;
-        Dafny.ISequence<Dafny.Rune> _1214_name = _source63.dtor_name;
-        Dafny.ISequence<RAST._ITypeParamDecl> _1215_typeParams = _source63.dtor_typeParams;
-        RAST._IFields _1216_fields = _source63.dtor_fields;
-        unmatched63 = false;
-        return RAST.Struct.create(_1213_attributes, _1214_name, FactorPathsOptimization.__default.ReplaceTypeParams(_1215_typeParams, _pat_let_tv183), FactorPathsOptimization.__default.ReplaceFields(_1216_fields, _pat_let_tv184));
+      RAST._IStruct _source0 = @struct;
+      {
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _0_attributes = _source0.dtor_attributes;
+        Dafny.ISequence<Dafny.Rune> _1_name = _source0.dtor_name;
+        Dafny.ISequence<RAST._ITypeParamDecl> _2_typeParams = _source0.dtor_typeParams;
+        RAST._IFields _3_fields = _source0.dtor_fields;
+        return RAST.Struct.create(_0_attributes, _1_name, FactorPathsOptimization.__default.ReplaceTypeParams(_2_typeParams, replacement), FactorPathsOptimization.__default.ReplaceFields(_3_fields, replacement));
       }
-      throw new System.Exception("unexpected control point");
     }
     public static RAST._IFields ReplaceFields(RAST._IFields fields, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
-      var _pat_let_tv185 = replacement;
-      var _pat_let_tv186 = replacement;
-      RAST._IFields _source64 = fields;
-      bool unmatched64 = true;
-      if (unmatched64) {
-        if (_source64.is_NamedFields) {
-          Dafny.ISequence<RAST._IField> _1217_sFields = _source64.dtor_fields;
-          unmatched64 = false;
-          return RAST.Fields.create_NamedFields(Std.Collections.Seq.__default.Map<RAST._IField, RAST._IField>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IField, RAST._IField>>>((_1218_replacement) => ((System.Func<RAST._IField, RAST._IField>)((_1219_f) => {
-  return Dafny.Helpers.Let<RAST._IField, RAST._IField>(_1219_f, _pat_let12_0 => Dafny.Helpers.Let<RAST._IField, RAST._IField>(_pat_let12_0, _1220_dt__update__tmp_h0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>((_1219_f).dtor_formal, _pat_let14_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>(_pat_let14_0, _1221_dt__update__tmp_h1 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(FactorPathsOptimization.__default.ReplaceType(((_1219_f).dtor_formal).dtor_tpe, _1218_replacement), _pat_let15_0 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(_pat_let15_0, _1222_dt__update_htpe_h0 => RAST.Formal.create((_1221_dt__update__tmp_h1).dtor_name, _1222_dt__update_htpe_h0))))), _pat_let13_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(_pat_let13_0, _1223_dt__update_hformal_h0 => RAST.Field.create((_1220_dt__update__tmp_h0).dtor_visibility, _1223_dt__update_hformal_h0)))));
-})))(_pat_let_tv185), _1217_sFields));
+      RAST._IFields _source0 = fields;
+      {
+        if (_source0.is_NamedFields) {
+          Dafny.ISequence<RAST._IField> _0_sFields = _source0.dtor_fields;
+          return RAST.Fields.create_NamedFields(Std.Collections.Seq.__default.Map<RAST._IField, RAST._IField>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IField, RAST._IField>>>((_1_replacement) => ((System.Func<RAST._IField, RAST._IField>)((_2_f) => {
+  return Dafny.Helpers.Let<RAST._IField, RAST._IField>(_2_f, _pat_let12_0 => Dafny.Helpers.Let<RAST._IField, RAST._IField>(_pat_let12_0, _3_dt__update__tmp_h0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>((_2_f).dtor_formal, _pat_let14_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>(_pat_let14_0, _4_dt__update__tmp_h1 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(FactorPathsOptimization.__default.ReplaceType(((_2_f).dtor_formal).dtor_tpe, _1_replacement), _pat_let15_0 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(_pat_let15_0, _5_dt__update_htpe_h0 => RAST.Formal.create((_4_dt__update__tmp_h1).dtor_name, _5_dt__update_htpe_h0))))), _pat_let13_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(_pat_let13_0, _6_dt__update_hformal_h0 => RAST.Field.create((_3_dt__update__tmp_h0).dtor_visibility, _6_dt__update_hformal_h0)))));
+})))(replacement), _0_sFields));
         }
       }
-      if (unmatched64) {
-        Dafny.ISequence<RAST._INamelessField> _1224_sFields = _source64.dtor_types;
-        unmatched64 = false;
-        return RAST.Fields.create_NamelessFields(Std.Collections.Seq.__default.Map<RAST._INamelessField, RAST._INamelessField>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._INamelessField, RAST._INamelessField>>>((_1225_replacement) => ((System.Func<RAST._INamelessField, RAST._INamelessField>)((_1226_f) => {
-  return Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_1226_f, _pat_let16_0 => Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_pat_let16_0, _1227_dt__update__tmp_h2 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(FactorPathsOptimization.__default.ReplaceType((_1226_f).dtor_tpe, _1225_replacement), _pat_let17_0 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(_pat_let17_0, _1228_dt__update_htpe_h1 => RAST.NamelessField.create((_1227_dt__update__tmp_h2).dtor_visibility, _1228_dt__update_htpe_h1)))));
-})))(_pat_let_tv186), _1224_sFields));
+      {
+        Dafny.ISequence<RAST._INamelessField> _7_sFields = _source0.dtor_types;
+        return RAST.Fields.create_NamelessFields(Std.Collections.Seq.__default.Map<RAST._INamelessField, RAST._INamelessField>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._INamelessField, RAST._INamelessField>>>((_8_replacement) => ((System.Func<RAST._INamelessField, RAST._INamelessField>)((_9_f) => {
+  return Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_9_f, _pat_let16_0 => Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_pat_let16_0, _10_dt__update__tmp_h2 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(FactorPathsOptimization.__default.ReplaceType((_9_f).dtor_tpe, _8_replacement), _pat_let17_0 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(_pat_let17_0, _11_dt__update_htpe_h1 => RAST.NamelessField.create((_10_dt__update__tmp_h2).dtor_visibility, _11_dt__update_htpe_h1)))));
+})))(replacement), _7_sFields));
       }
-      throw new System.Exception("unexpected control point");
     }
     public static Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>> typeReplacer { get {
-      return ((System.Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>)((_1229_replacement) => {
-        return Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_1230_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_1231_t) => {
-          return FactorPathsOptimization.__default.ReplaceType(_1231_t, _1230_replacement);
-        })))(_1229_replacement);
+      return ((System.Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>)((_0_replacement) => {
+        return Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_1_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_2_t) => {
+          return FactorPathsOptimization.__default.ReplaceType(_2_t, _1_replacement);
+        })))(_0_replacement);
       }));
     } }
   }
@@ -441,47 +357,47 @@ namespace FactorPathsOptimization {
     public FactorPathsOptimization._IMapping Add(Dafny.ISequence<Dafny.Rune> k, RAST._IPath path)
     {
       if (((this).dtor_provenance).Contains(k)) {
-        FactorPathsOptimization._IMapping _1232_dt__update__tmp_h0 = this;
-        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> _1233_dt__update_hprovenance_h0 = Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Update((this).dtor_provenance, k, Dafny.Set<RAST._IPath>.Union(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,k), Dafny.Set<RAST._IPath>.FromElements(path)));
-        return FactorPathsOptimization.Mapping.create(_1233_dt__update_hprovenance_h0, (_1232_dt__update__tmp_h0).dtor_keys);
+        FactorPathsOptimization._IMapping _0_dt__update__tmp_h0 = this;
+        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> _1_dt__update_hprovenance_h0 = Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Update((this).dtor_provenance, k, Dafny.Set<RAST._IPath>.Union(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,k), Dafny.Set<RAST._IPath>.FromElements(path)));
+        return FactorPathsOptimization.Mapping.create(_1_dt__update_hprovenance_h0, (_0_dt__update__tmp_h0).dtor_keys);
       } else {
-        FactorPathsOptimization._IMapping _1234_dt__update__tmp_h1 = this;
-        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _1235_dt__update_hkeys_h0 = Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((this).dtor_keys, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(k));
-        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> _1236_dt__update_hprovenance_h1 = Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Update((this).dtor_provenance, k, Dafny.Set<RAST._IPath>.FromElements(path));
-        return FactorPathsOptimization.Mapping.create(_1236_dt__update_hprovenance_h1, _1235_dt__update_hkeys_h0);
+        FactorPathsOptimization._IMapping _2_dt__update__tmp_h1 = this;
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _3_dt__update_hkeys_h0 = Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat((this).dtor_keys, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(k));
+        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,Dafny.ISet<RAST._IPath>> _4_dt__update_hprovenance_h1 = Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Update((this).dtor_provenance, k, Dafny.Set<RAST._IPath>.FromElements(path));
+        return FactorPathsOptimization.Mapping.create(_4_dt__update_hprovenance_h1, _3_dt__update_hkeys_h0);
       }
     }
     public Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> ToFinalReplacement() {
       return ((System.Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>)(() => {
-        var _coll6 = new System.Collections.Generic.List<Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>();
-        foreach (Dafny.ISequence<Dafny.Rune> _compr_6 in ((this).dtor_provenance).Keys.Elements) {
-          Dafny.ISequence<Dafny.Rune> _1237_identifier = (Dafny.ISequence<Dafny.Rune>)_compr_6;
-          if (((this).dtor_provenance).Contains(_1237_identifier)) {
-            foreach (Dafny.ISet<RAST._IPath> _compr_7 in Dafny.Helpers.SingleValue<Dafny.ISet<RAST._IPath>>(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_1237_identifier))) {
-              Dafny.ISet<RAST._IPath> _1238_paths = (Dafny.ISet<RAST._IPath>)_compr_7;
-              if (((_1238_paths).Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_1237_identifier))) && (((new BigInteger((_1238_paths).Count)) == (BigInteger.One)) || (Dafny.Helpers.Id<Func<Dafny.ISet<RAST._IPath>, bool>>((_1239_paths) => Dafny.Helpers.Quantifier<RAST._IPath>(Dafny.Helpers.SingleValue<RAST._IPath>(RAST.__default.dafny__runtime), false, (((_exists_var_1) => {
-                RAST._IPath _1240_p = (RAST._IPath)_exists_var_1;
-                return ((_1239_paths).Contains(_1240_p)) && (object.Equals(_1240_p, RAST.__default.dafny__runtime));
-              }))))(_1238_paths)))) {
-                _coll6.Add(new Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>(_1237_identifier, (((new BigInteger((_1238_paths).Count)) == (BigInteger.One)) ? (FactorPathsOptimization.__default.UniqueElementOf<RAST._IPath>(_1238_paths)) : (RAST.__default.dafny__runtime))));
+        var _coll0 = new System.Collections.Generic.List<Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>();
+        foreach (Dafny.ISequence<Dafny.Rune> _compr_0 in ((this).dtor_provenance).Keys.Elements) {
+          Dafny.ISequence<Dafny.Rune> _0_identifier = (Dafny.ISequence<Dafny.Rune>)_compr_0;
+          if (((this).dtor_provenance).Contains(_0_identifier)) {
+            foreach (Dafny.ISet<RAST._IPath> _compr_1 in Dafny.Helpers.SingleValue<Dafny.ISet<RAST._IPath>>(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_0_identifier))) {
+              Dafny.ISet<RAST._IPath> _1_paths = (Dafny.ISet<RAST._IPath>)_compr_1;
+              if (((_1_paths).Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_0_identifier))) && (((new BigInteger((_1_paths).Count)) == (BigInteger.One)) || (Dafny.Helpers.Id<Func<Dafny.ISet<RAST._IPath>, bool>>((_2_paths) => Dafny.Helpers.Quantifier<RAST._IPath>(Dafny.Helpers.SingleValue<RAST._IPath>(RAST.__default.dafny__runtime), false, (((_exists_var_0) => {
+                RAST._IPath _3_p = (RAST._IPath)_exists_var_0;
+                return ((_2_paths).Contains(_3_p)) && (object.Equals(_3_p, RAST.__default.dafny__runtime));
+              }))))(_1_paths)))) {
+                _coll0.Add(new Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>(_0_identifier, (((new BigInteger((_1_paths).Count)) == (BigInteger.One)) ? (FactorPathsOptimization.__default.UniqueElementOf<RAST._IPath>(_1_paths)) : (RAST.__default.dafny__runtime))));
               }
             }
           }
         }
-        return Dafny.Map<Dafny.ISequence<Dafny.Rune>,RAST._IPath>.FromCollection(_coll6);
+        return Dafny.Map<Dafny.ISequence<Dafny.Rune>,RAST._IPath>.FromCollection(_coll0);
       }))();
     }
     public Dafny.ISequence<RAST._IModDecl> ToUseStatements(Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> finalReplacement, RAST._IPath SelfPath)
     {
-      Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _1241_toUse = Std.Collections.Seq.__default.Filter<Dafny.ISequence<Dafny.Rune>>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, RAST._IPath, Func<Dafny.ISequence<Dafny.Rune>, bool>>>((_1242_finalReplacement, _1243_SelfPath) => ((System.Func<Dafny.ISequence<Dafny.Rune>, bool>)((_1244_key) => {
-        return ((_1242_finalReplacement).Contains(_1244_key)) && (!object.Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(_1242_finalReplacement,_1244_key), _1243_SelfPath));
+      Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _0_toUse = Std.Collections.Seq.__default.Filter<Dafny.ISequence<Dafny.Rune>>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, RAST._IPath, Func<Dafny.ISequence<Dafny.Rune>, bool>>>((_1_finalReplacement, _2_SelfPath) => ((System.Func<Dafny.ISequence<Dafny.Rune>, bool>)((_3_key) => {
+        return ((_1_finalReplacement).Contains(_3_key)) && (!object.Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(_1_finalReplacement,_3_key), _2_SelfPath));
       })))(finalReplacement, SelfPath), (this).dtor_keys);
       return ((System.Func<Dafny.ISequence<RAST._IModDecl>>) (() => {
-        BigInteger dim12 = new BigInteger((_1241_toUse).Count);
+        BigInteger dim12 = new BigInteger((_0_toUse).Count);
         var arr12 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim12, "array size exceeds memory limit")];
         for (int i12 = 0; i12 < dim12; i12++) {
-          var _1245_i = (BigInteger) i12;
-          arr12[(int)(_1245_i)] = RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(finalReplacement,(_1241_toUse).Select(_1245_i))).MSel((_1241_toUse).Select(_1245_i))));
+          var _4_i = (BigInteger) i12;
+          arr12[(int)(_4_i)] = RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(finalReplacement,(_0_toUse).Select(_4_i))).MSel((_0_toUse).Select(_4_i))));
         }
         return Dafny.Sequence<RAST._IModDecl>.FromArray(arr12);
       }))();
