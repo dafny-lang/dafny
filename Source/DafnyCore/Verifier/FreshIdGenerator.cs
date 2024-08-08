@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny {
-  public class FreshIdGenerator {
+  public abstract class FreshIdGenerator {
     string tipString;  // a string representation of Tip
     int tipChildrenCount = 0;
     readonly Stack<Dictionary<string, int>> prefixToCountStack = new();  // invariant PrefixToCount_Stack.Count == Tip.Count
@@ -35,7 +36,7 @@ namespace Microsoft.Dafny {
       prefixToCountStack.Push(new());
     }
 
-    private FreshIdGenerator(string commonPrefix) : this() {
+    protected FreshIdGenerator(string commonPrefix) : this() {
       this.commonPrefix = commonPrefix;
     }
 
@@ -50,11 +51,7 @@ namespace Microsoft.Dafny {
       return commonPrefix + prefix + FreshNumericId(prefix);
     }
 
-    public FreshIdGenerator NestedFreshIdGenerator(string prefix) {
-      return new(FreshId(prefix));
-    }
-
-    public string FreshNumericId(string prefix = "") {
+    public virtual string FreshNumericId(string prefix = "") {
       var prefixToCount = prefixToCountStack.Peek();
       lock (prefixToCount) {
         if (!prefixToCount.TryGetValue(prefix, out var old)) {
@@ -63,6 +60,23 @@ namespace Microsoft.Dafny {
         prefixToCount[prefix] = old + 1;
         return tipString == null ? old.ToString() : tipString + "_" + old.ToString();
       }
+    }
+
+    public override string ToString() {
+      throw new InvalidOperationException("Did not expect to convert the fresh Id generator itself to a string");
+    }
+  }
+
+  public class CodeGenIdGenerator : FreshIdGenerator {
+  }
+
+  public class VerificationIdGenerator : FreshIdGenerator {
+    public VerificationIdGenerator() {
+    }
+    public VerificationIdGenerator(string commonPrefix) : base(commonPrefix) {
+    }
+    public VerificationIdGenerator NestedFreshIdGenerator(string prefix) {
+      return new(FreshId(prefix));
     }
   }
 }

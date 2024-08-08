@@ -132,9 +132,14 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return Name;
   }
 
-  internal FreshIdGenerator IdGenerator = new();
+  // For Boogie
+  internal VerificationIdGenerator IdGenerator = new();
   public override IEnumerable<INode> Children => (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>());
   public override IEnumerable<INode> PreResolveChildren => Children;
   public abstract SymbolKind? Kind { get; }
   public abstract string GetDescription(DafnyOptions options);
+
+
+  // For Compilation
+  internal CodeGenIdGenerator CodeGenIdGenerator = new();
 }
