@@ -28,6 +28,8 @@ namespace Microsoft.Dafny.LanguageServer {
         DafnyLangSymbolResolver.UseCaching,
         ProjectManager.UpdateThrottling,
         CachingProjectFileOpener.ProjectFileCacheExpiry,
+        DeveloperOptionBag.SplitPrint,
+        DeveloperOptionBag.PassivePrint,
         DeveloperOptionBag.BoogiePrint,
         InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption,
         LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
