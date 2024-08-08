@@ -15,7 +15,7 @@ public class OptionRegistry {
   public static void CheckOptionsAreKnown(IEnumerable<Option> allOptions) {
     var unsupportedOptions = allOptions.ToHashSet()
       .Where(o =>
-        !optionScopes.ContainsKey(o))
+        !OptionScopes.ContainsKey(o))
       .ToList();
     if (unsupportedOptions.Any()) {
       throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
@@ -27,25 +27,25 @@ public class OptionRegistry {
   // Note that legacy CLI options are not as cleanly enumerated and therefore
   // more difficult to completely categorize, which is the main reason the LibraryBackend
   // is restricted to only the new CLI.
-  private static readonly Dictionary<Option, GlobalOptionCheck> globalOptionChecks = new();
-  private static readonly Dictionary<Option, OptionScope> optionScopes = new();
+  private static readonly Dictionary<Option, GlobalOptionCheck> GlobalOptionChecks = new();
+  private static readonly Dictionary<Option, OptionScope> OptionScopes = new();
 
-  public static IEnumerable<Option> GlobalOptions => globalOptionChecks.Keys;
-  public static IEnumerable<Option> TranslationOptions => optionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key);
-  public static IEnumerable<Option> ModuleOptions => optionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key);
+  public static IEnumerable<Option> GlobalOptions => GlobalOptionChecks.Keys;
+  public static IEnumerable<Option> TranslationOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key);
+  public static IEnumerable<Option> ModuleOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Module).Select(kv => kv.Key);
   public static IEnumerable<(Option option, GlobalOptionCheck check)> GlobalChecks =>
-    globalOptionChecks.Select(kv => (kv.Key, kv.Value));
+    GlobalOptionChecks.Select(kv => (kv.Key, kv.Value));
 
   public static void RegisterOption(Option option, OptionScope scope) {
     if (scope == OptionScope.Global) {
       throw new ArgumentException("Please call RegisterGlobalOption instead");
     }
 
-    optionScopes[option] = scope;
+    OptionScopes[option] = scope;
   }
   public static void RegisterGlobalOption(Option option, GlobalOptionCheck check) {
-    optionScopes[option] = OptionScope.Global;
-    globalOptionChecks[option] = check;
+    OptionScopes[option] = OptionScope.Global;
+    GlobalOptionChecks[option] = check;
   }
 
   // public static void RegisterLibraryCheck(Option option, OptionCompatibility.OptionCheck check) {
