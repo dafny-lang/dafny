@@ -2063,7 +2063,7 @@ namespace Microsoft.Dafny.Compilers {
             continue;
           }
 
-          var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.CompileName}()");
+          var wDtor = wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} dtor_{arg.GetOrCreateCompileName(currentIdGenerator)}()");
           if (dt.IsRecordType) {
             wDtor.WriteLine($"return this.{FieldName(arg, 0)};");
           } else {
@@ -2071,7 +2071,7 @@ namespace Microsoft.Dafny.Compilers {
             var compiledConstructorsProcessed = 0;
             for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
               var ctor_i = dtor.EnclosingCtors[i];
-              Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+              Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].GetOrCreateCompileName(currentIdGenerator));
               if (ctor_i.IsGhost) {
                 continue;
               }
@@ -3855,7 +3855,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
-      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName} = ");
+      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
@@ -3864,32 +3864,32 @@ namespace Microsoft.Dafny.Compilers {
         if (endVarName == null) {
           wr.Write("");
         } else if (nativeType == null) {
-          wr.Write($"{loopIndex.CompileName}.compareTo({endVarName}) < 0");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}.compareTo({endVarName}) < 0");
         } else if (0 <= nativeType.LowerBound) {
-          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({loopIndex.CompileName}, {endVarName}) < 0");
+          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({loopIndex.GetOrCreateCompileName(currentIdGenerator)}, {endVarName}) < 0");
         } else {
-          wr.Write($"{loopIndex.CompileName} < {endVarName}");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} < {endVarName}");
         }
         if (nativeType == null) {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName} = {loopIndex.CompileName}.add(java.math.BigInteger.ONE))");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.add(java.math.BigInteger.ONE))");
         } else {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)}++)");
         }
       } else {
         if (endVarName == null) {
           wr.Write("");
         } else if (nativeType == null) {
-          wr.Write($"{endVarName}.compareTo({loopIndex.CompileName}) < 0");
+          wr.Write($"{endVarName}.compareTo({loopIndex.GetOrCreateCompileName(currentIdGenerator)}) < 0");
         } else if (0 <= nativeType.LowerBound) {
-          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({endVarName}, {loopIndex.CompileName}) < 0");
+          wr.Write($"{HelperClass(nativeType)}.compareUnsigned({endVarName}, {loopIndex.GetOrCreateCompileName(currentIdGenerator)}) < 0");
         } else {
-          wr.Write($"{endVarName} < {loopIndex.CompileName}");
+          wr.Write($"{endVarName} < {loopIndex.GetOrCreateCompileName(currentIdGenerator)}");
         }
         bodyWr = wr.NewBlock($"; )");
         if (nativeType == null) {
-          bodyWr.WriteLine($"{loopIndex.CompileName} = {loopIndex.CompileName}.subtract(java.math.BigInteger.ONE);");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.subtract(java.math.BigInteger.ONE);");
         } else {
-          bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}--;");
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);

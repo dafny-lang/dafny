@@ -67,11 +67,14 @@ namespace Microsoft.Dafny.Compilers {
     protected ModuleDefinition enclosingModule; // non-null when a module body is being translated
     protected Method enclosingMethod;  // non-null when a method body is being translated
     protected Function enclosingFunction;  // non-null when a function body is being translated
+    protected Declaration enclosingDeclaration; // non-null when a declaration body is being translated
 
-    protected internal readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
+    protected internal readonly CodeGenIdGenerator idGenerator = new CodeGenIdGenerator();
 
-    private protected string ProtectedFreshId(string prefix) => IdProtect(idGenerator.FreshId(prefix));
-    private protected string ProtectedFreshNumericId(string prefix) => IdProtect(idGenerator.FreshNumericId(prefix));
+    protected internal CodeGenIdGenerator currentIdGenerator => enclosingDeclaration?.CodeGenIdGenerator ?? idGenerator;
+
+    private protected string ProtectedFreshId(string prefix) => IdProtect(currentIdGenerator.FreshId(prefix));
+    private protected string ProtectedFreshNumericId(string prefix) => IdProtect(currentIdGenerator.FreshNumericId(prefix));
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
@@ -985,7 +988,7 @@ namespace Microsoft.Dafny.Compilers {
       return IdProtect(tp.GetCompileName(Options));
     }
     protected virtual string GetCompileNameNotProtected(IVariable v) {
-      return v.CompileName;
+      return v.GetOrCreateCompileName(currentIdGenerator);
     }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
@@ -2129,6 +2132,7 @@ namespace Microsoft.Dafny.Compilers {
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
+          enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -2198,6 +2202,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       foreach (MemberDecl memberx in c.Members) {
+        enclosingDeclaration = memberx;
         var member = (memberx as Function)?.ByMethodDecl ?? memberx;
         if (!member.IsStatic) {
           thisContext = c;
