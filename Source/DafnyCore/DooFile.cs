@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using System.IO;
 using System.IO.Compression;
@@ -57,7 +56,7 @@ public class DooFile {
       SolverVersion = options.SolverVersion?.ToString();
 
       Options = new Dictionary<string, object>();
-      foreach (var (option, _) in OptionChecks) {
+      foreach (var option in OptionRegistry.GlobalOptions) {
         if (option == CommonOptionBag.Libraries) {
           // We don't want to serialize the FileInfo objects of this option
           // For now we add an option specific exception here so we do not need to change
@@ -187,7 +186,7 @@ public class DooFile {
     var success = true;
 
     var relevantOptions = options.Options.OptionArguments.Keys.ToHashSet();
-    foreach (var (option, check) in OptionChecks) {
+    foreach (var (option, check) in OptionRegistry.GlobalChecks) {
       // It's important to only look at the options the current command uses,
       // because other options won't be initialized to the correct default value.
       // See CommandRegistry.Create().
@@ -255,46 +254,4 @@ public class DooFile {
     }
   }
 
-  // Partitioning of all options into subsets that must be recorded in a .doo file
-  // to guard against unsafe usage.
-  // Note that legacy CLI options are not as cleanly enumerated and therefore
-  // more difficult to completely categorize, which is the main reason the LibraryBackend
-  // is restricted to only the new CLI.
-
-  private static readonly Dictionary<Option, OptionCompatibility.OptionCheck> OptionChecks = new();
-  private static readonly HashSet<Option> NoChecksNeeded = new();
-
-  public static void RegisterLibraryCheck(Option option, OptionCompatibility.OptionCheck check) {
-    if (NoChecksNeeded.Contains(option)) {
-      throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-    }
-    OptionChecks.Add(option, check);
-  }
-
-  public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
-    foreach (var (option, check) in checks) {
-      RegisterLibraryCheck(option, check);
-    }
-  }
-
-  public static void RegisterNoChecksNeeded(Option option, bool semantic) {
-    if (semantic) {
-      RegisterLibraryCheck(option, OptionCompatibility.NoOpOptionCheck);
-    } else {
-      if (OptionChecks.ContainsKey(option)) {
-        throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
-      }
-      NoChecksNeeded.Add(option);
-    }
-  }
-
-  public static void CheckOptions(IEnumerable<Option> allOptions) {
-    var unsupportedOptions = allOptions.ToHashSet()
-      .Where(o =>
-        !OptionChecks.ContainsKey(o) && !NoChecksNeeded.Contains(o))
-      .ToList();
-    if (unsupportedOptions.Any()) {
-      throw new Exception($"Internal error - unsupported options registered: {{\n{string.Join(",\n", unsupportedOptions)}\n}}");
-    }
-  }
 }
