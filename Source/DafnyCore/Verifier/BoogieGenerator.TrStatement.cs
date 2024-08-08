@@ -1979,7 +1979,7 @@ namespace Microsoft.Dafny {
 
       var callBuilder = builder;
       if (cs.Proof != null) {
-        callBuilder = new BoogieStmtListBuilder(this, options);
+        callBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
         AddComment(callBuilder, cs, "call statement proof");
         CurrentIdGenerator.Push();
         TrStmt(cs.Proof, callBuilder, locals, etran);
