@@ -79,11 +79,4 @@ namespace Microsoft.Dafny {
       return new(FreshId(prefix));
     }
   }
-
-  // For formals
-  public class UncallableIdGenerator : CodeGenIdGenerator {
-    public override string FreshNumericId(string prefix = "") {
-      throw new InvalidOperationException("Not supposed to call this method with this kind of Id generator");
-    }
-  }
 }

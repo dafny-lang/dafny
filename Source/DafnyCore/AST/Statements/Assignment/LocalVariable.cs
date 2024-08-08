@@ -76,7 +76,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   string compileName;
 
-  public string CompileName(CodeGenIdGenerator generator) {
+  public string GetOrCreateCompileName(CodeGenIdGenerator generator) {
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 

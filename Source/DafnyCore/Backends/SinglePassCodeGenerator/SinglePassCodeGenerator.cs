@@ -988,7 +988,7 @@ namespace Microsoft.Dafny.Compilers {
       return IdProtect(tp.GetCompileName(Options));
     }
     protected virtual string GetCompileNameNotProtected(IVariable v) {
-      return v.CompileName(currentIdGenerator);
+      return v.GetOrCreateCompileName(currentIdGenerator);
     }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
@@ -1848,15 +1848,11 @@ namespace Microsoft.Dafny.Compilers {
       return n;  // the number of formals written
     }
 
-    // Placeholder because formals don't need an Id generator
-
-    public static CodeGenIdGenerator FormalIdGenerator = new UncallableIdGenerator();
-
     protected string FormalName(Formal formal, int i) {
       Contract.Requires(formal != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return IdProtect(formal.HasName ? formal.CompileName(FormalIdGenerator) : "_a" + i);
+      return IdProtect(formal.HasName ? formal.CompileName : "_a" + i);
     }
 
     public static bool HasMain(Program program, out Method mainMethod) {

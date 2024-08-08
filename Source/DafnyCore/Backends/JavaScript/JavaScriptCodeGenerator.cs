@@ -435,7 +435,7 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost && arg.HasName) {
               // datatype:   get dtor_Dtor0() { return this.Dtor0; }
               // codatatype: get dtor_Dtor0() { return this._D().Dtor0; }
-              wr.WriteLine("get dtor_{0}() {{ return this{2}.{1}; }}", arg.CompileName(FormalIdGenerator), IdName(arg), dt is CoDatatypeDecl ? "._D()" : "");
+              wr.WriteLine("get dtor_{0}() {{ return this{2}.{1}; }}", arg.CompileName, IdName(arg), dt is CoDatatypeDecl ? "._D()" : "");
             }
           }
         }
@@ -1246,7 +1246,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var nativeType = AsNativeType(loopIndex.Type);
 
-      wr.Write($"for (let {loopIndex.CompileName(currentIdGenerator)} = ");
+      wr.Write($"for (let {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
@@ -1255,28 +1255,28 @@ namespace Microsoft.Dafny.Compilers {
         if (endVarName == null) {
           wr.Write("true");
         } else if (nativeType == null) {
-          wr.Write($"{loopIndex.CompileName(currentIdGenerator)}.isLessThan({endVarName})");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}.isLessThan({endVarName})");
         } else {
-          wr.Write($"{loopIndex.CompileName(currentIdGenerator)} < {endVarName}");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} < {endVarName}");
         }
         if (nativeType == null) {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)} = {loopIndex.CompileName(currentIdGenerator)}.plus(_dafny.ONE))");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.plus(_dafny.ONE))");
         } else {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)}++)");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)}++)");
         }
       } else {
         if (endVarName == null) {
           wr.Write("true");
         } else if (nativeType == null) {
-          wr.Write($"{endVarName}.isLessThan({loopIndex.CompileName(currentIdGenerator)})");
+          wr.Write($"{endVarName}.isLessThan({loopIndex.GetOrCreateCompileName(currentIdGenerator)})");
         } else {
-          wr.Write($"{endVarName} < {loopIndex.CompileName(currentIdGenerator)}");
+          wr.Write($"{endVarName} < {loopIndex.GetOrCreateCompileName(currentIdGenerator)}");
         }
         bodyWr = wr.NewBlock($"; )");
         if (nativeType == null) {
-          bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)} = {loopIndex.CompileName(currentIdGenerator)}.minus(_dafny.ONE);");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.minus(_dafny.ONE);");
         } else {
-          bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)}--;");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}--;");
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);

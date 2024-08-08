@@ -92,7 +92,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
 
   protected string compileName;
 
-  public virtual string CompileName(CodeGenIdGenerator generator) {
+  public virtual string GetOrCreateCompileName(CodeGenIdGenerator generator) {
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 

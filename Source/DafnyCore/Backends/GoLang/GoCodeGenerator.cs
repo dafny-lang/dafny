@@ -912,7 +912,7 @@ namespace Microsoft.Dafny.Compilers {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
               wr.WriteLine();
-              var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName(FormalIdGenerator)), TypeName(arg.Type, wr, arg.tok));
+              var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
                 wDtor.WriteLine("return _this.Get_().({0}).{1}", StructOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
@@ -921,7 +921,7 @@ namespace Microsoft.Dafny.Compilers {
                 var compiledConstructorsProcessed = 0;
                 for (var i = 0; i < n; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
-                  Contract.Assert(arg.CompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].CompileName(currentIdGenerator));
+                  Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].GetOrCreateCompileName(currentIdGenerator));
                   if (ctor_i.IsGhost) {
                     continue;
                   }
@@ -1845,12 +1845,12 @@ namespace Microsoft.Dafny.Compilers {
     protected string DatatypeFieldName(Formal formal, int formalNonGhostIndex) {
       // Don't rely on base.FormalName because it needlessly (for us) passes the
       // value through IdProtect when we're going to capitalize it
-      return formal.HasName ? Capitalize(formal.CompileName(FormalIdGenerator)) : "A" + formalNonGhostIndex + "_";
+      return formal.HasName ? Capitalize(formal.CompileName) : "A" + formalNonGhostIndex + "_";
     }
 
     protected string DatatypeFieldName(Formal formal) {
       Contract.Assert(formal.HasName);
-      return Capitalize(formal.CompileName(FormalIdGenerator));
+      return Capitalize(formal.CompileName);
     }
 
     // ----- Declarations -------------------------------------------------------------
@@ -2067,7 +2067,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
-      wr.Write($"for {loopIndex.CompileName(currentIdGenerator)} := ");
+      wr.Write($"for {loopIndex.GetOrCreateCompileName(currentIdGenerator)} := ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
@@ -2076,28 +2076,28 @@ namespace Microsoft.Dafny.Compilers {
         if (endVarName == null) {
           wr.Write("true");
         } else if (IsOrderedByCmp(loopIndex.Type)) {
-          wr.Write($"{loopIndex.CompileName(currentIdGenerator)}.Cmp({endVarName}) < 0");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}.Cmp({endVarName}) < 0");
         } else {
-          wr.Write($"{loopIndex.CompileName(currentIdGenerator)} < {endVarName}");
+          wr.Write($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} < {endVarName}");
         }
         if (AsNativeType(loopIndex.Type) == null) {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)} = {loopIndex.CompileName(currentIdGenerator)}.Plus(_dafny.One)");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.Plus(_dafny.One)");
         } else {
-          bodyWr = wr.NewBlock($"; {loopIndex.CompileName(currentIdGenerator)}++");
+          bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)}++");
         }
       } else {
         if (endVarName == null) {
           wr.Write("true");
         } else if (IsOrderedByCmp(loopIndex.Type)) {
-          wr.Write($"{endVarName}.Cmp({loopIndex.CompileName(currentIdGenerator)}) < 0");
+          wr.Write($"{endVarName}.Cmp({loopIndex.GetOrCreateCompileName(currentIdGenerator)}) < 0");
         } else {
-          wr.Write($"{endVarName} < {loopIndex.CompileName(currentIdGenerator)}");
+          wr.Write($"{endVarName} < {loopIndex.GetOrCreateCompileName(currentIdGenerator)}");
         }
         bodyWr = wr.NewBlock($"; ");
         if (AsNativeType(loopIndex.Type) == null) {
-          bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)} = {loopIndex.CompileName(currentIdGenerator)}.Minus(_dafny.One)");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} = {loopIndex.GetOrCreateCompileName(currentIdGenerator)}.Minus(_dafny.One)");
         } else {
-          bodyWr.WriteLine($"{loopIndex.CompileName(currentIdGenerator)}--");
+          bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}--");
         }
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);

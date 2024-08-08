@@ -368,7 +368,7 @@ namespace Microsoft.Dafny.Compilers {
         var wc = wdef.NewNamedBlock("{1}\n{0}{2}::{0}()", DtT_protected, DeclareTemplate(dt.TypeArgs), InstantiateTemplate(dt.TypeArgs));
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            wc.WriteLine("{0} = {1};", arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator), DefaultValue(arg.Type, wc, arg.tok));
+            wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
           }
         }
 
@@ -393,7 +393,7 @@ namespace Microsoft.Dafny.Compilers {
         owr.WriteLine("size_t seed = 0;");
         foreach (var arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator));
+            owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
           }
         }
         owr.WriteLine("return seed;");
@@ -453,9 +453,9 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // Recursive destructor needs to use a pointer
-                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator));
+                owr.WriteLine("hash_combine<std::shared_ptr<{0}>>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
               } else {
-                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator));
+                owr.WriteLine("hash_combine<{0}>(seed, x.{1});", TypeName(arg.Type, owr, dt.tok), arg.CompileName);
               }
               argCount++;
             }
@@ -482,10 +482,10 @@ namespace Microsoft.Dafny.Compilers {
             if (!arg.IsGhost) {
               if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
                 // This is a recursive destuctor, so we need to allocate space and copy the input in
-                wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator),
+                wc.WriteLine("COMPILER_result_subStruct.{0} = std::make_shared<{1}>({0});", arg.CompileName,
                   DtT_protected);
               } else {
-                wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator));
+                wc.WriteLine("COMPILER_result_subStruct.{0} = {0};", arg.CompileName);
               }
             }
           }
@@ -501,7 +501,7 @@ namespace Microsoft.Dafny.Compilers {
         wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
         foreach (Formal arg in default_ctor.Formals) {
           if (!arg.IsGhost) {
-            wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator),
+            wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
               DefaultValue(arg.Type, wd, arg.tok));
           }
         }
@@ -550,7 +550,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
                 var wDtor = ws.NewNamedBlock("{0} dtor_{1}()", returnType,
-                  arg.CompileName(SinglePassCodeGenerator.FormalIdGenerator));
+                  arg.CompileName);
                 if (dt.IsRecordType) {
                   wDtor.WriteLine("return this.{0};", IdName(arg));
                 } else {
@@ -558,12 +558,12 @@ namespace Microsoft.Dafny.Compilers {
                   for (int i = 0; i < n - 1; i++) {
                     var ctor_i = dtor.EnclosingCtors[i];
                     var ctor_name = DatatypeSubStructName(ctor_i);
-                    Contract.Assert(arg.CompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].CompileName(currentIdGenerator));
+                    Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[i].GetOrCreateCompileName(currentIdGenerator));
                     wDtor.WriteLine("if (is_{0}()) {{ return std::get<{0}{1}>(v).{2}; }}",
                       ctor_name, InstantiateTemplate(dt.TypeArgs), IdName(arg));
                   }
 
-                  Contract.Assert(arg.CompileName(currentIdGenerator) == dtor.CorrespondingFormals[n - 1].CompileName(currentIdGenerator));
+                  Contract.Assert(arg.GetOrCreateCompileName(currentIdGenerator) == dtor.CorrespondingFormals[n - 1].GetOrCreateCompileName(currentIdGenerator));
                   var final_ctor_name = DatatypeSubStructName(dtor.EnclosingCtors[n - 1], true);
                   wDtor.WriteLine("return std::get<{0}>(v).{1}; ",
                     final_ctor_name, IdName(arg));

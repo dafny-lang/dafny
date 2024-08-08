@@ -374,7 +374,7 @@ namespace Microsoft.Dafny.Compilers {
                                    where dtor.EnclosingCtors[0] == ctor
                                    select dtor.CorrespondingFormals[0] into arg
                                    where !arg.IsGhost
-                                   select IdProtect(arg.CompileName(dt.CodeGenIdGenerator))) {
+                                   select IdProtect(arg.GetOrCreateCompileName(dt.CodeGenIdGenerator))) {
           w.WriteLine("@property");
           w.NewBlockPy($"def {destructor}(self):")
             .WriteLine($"return self._get().{destructor}");
@@ -417,9 +417,9 @@ namespace Microsoft.Dafny.Compilers {
         .Where(f => !f.IsGhost)
         .Select(f => {
           if (f.Type.IsStringType && UnicodeCharEnabled) {
-            return $"{{self.{IdProtect(f.CompileName(FormalIdGenerator))}.VerbatimString(True)}}";
+            return $"{{self.{IdProtect(f.CompileName)}.VerbatimString(True)}}";
           } else {
-            return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName(FormalIdGenerator))})}}";
+            return $"{{{DafnyRuntimeModule}.string_of(self.{IdProtect(f.CompileName)})}}";
           }
         })
         .Comma();
@@ -433,7 +433,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var argList = ctor.Formals
         .Where(f => !f.IsGhost)
-        .Select(f => $"self.{IdProtect(f.CompileName(FormalIdGenerator))} == __o.{IdProtect(f.CompileName(FormalIdGenerator))}");
+        .Select(f => $"self.{IdProtect(f.CompileName)} == __o.{IdProtect(f.CompileName)}");
       var suffix = args.Length > 0 ? $" and {string.Join(" and ", argList)}" : "";
 
       wr.NewBlockPy("def __eq__(self, __o: object) -> bool:")
@@ -1511,7 +1511,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(DafnySeqMakerFunction);
       if (expr.Initializer is LambdaExpr lam) {
         valueExpression = Expr(lam.Body, inLetExprBody, wStmts);
-        var binder = IdProtect(lam.BoundVars[0].CompileName(currentIdGenerator));
+        var binder = IdProtect(lam.BoundVars[0].GetOrCreateCompileName(currentIdGenerator));
         wr.Write($"([{valueExpression} for {binder} in {range}])");
       } else {
         valueExpression = Expr(expr.Initializer, inLetExprBody, wStmts);
@@ -1549,7 +1549,7 @@ namespace Microsoft.Dafny.Compilers {
         Contract.Assert(coreDtor.CorrespondingFormals.Count == 1);
         Contract.Assert(dtor == coreDtor.CorrespondingFormals[0]); // any other destructor is a ghost
       } else {
-        wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.CompileName(currentIdGenerator))}");
+        wr.Write(ctor.EnclosingDatatype is TupleTypeDecl ? $"[{dtor.NameForCompilation}]" : $".{IdProtect(dtor.GetOrCreateCompileName(currentIdGenerator))}");
       }
     }
 
