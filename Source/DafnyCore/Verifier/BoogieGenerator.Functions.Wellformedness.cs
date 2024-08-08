@@ -42,11 +42,25 @@ public partial class BoogieGenerator {
       var mod = new List<Bpl.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
       };
+      
+      var context = new BodyTranslationContext(f.ContainsHide);
+      var ens = new List<Bpl.Ensures>();
+      foreach (AttributedExpression ensures in f.Ens) {
+        var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
+        var splits = new List<SplitExprInfo>();
+        bool splitHappened /*we actually don't care*/ = generator.TrSplitExpr(context, ensures.E, splits, true, functionHeight, true, true, etran);
+        var (errorMessage, successMessage) = generator.CustomErrorMessage(ensures.Attributes);
+        foreach (var s in splits) {
+          if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
+            generator.AddEnsures(ens, generator.EnsuresWithDependencies(s.Tok, false, ensures.E, s.E, errorMessage, successMessage, null));
+          }
+        }
+      }
 
       var proc = new Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
         new List<TypeVariable>(),
         Concat(Concat(typeInParams, heapParameters), procedureParameters), outParams,
-        false, requires, mod, new List<Ensures>(), etran.TrAttributes(f.Attributes, null));
+        false, requires, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       generator.sink.AddTopLevelDeclaration(proc);
 
@@ -57,7 +71,6 @@ public partial class BoogieGenerator {
       Contract.Assert(proc.InParams.Count == typeInParams.Count + heapParameters.Count + procedureParameters.Count);
       // Changed the next line to strip from inParams instead of proc.InParams
       // They should be the same, but hence the added contract
-      var context = new BodyTranslationContext(f.ContainsHide);
       var locals = new List<Variable>();
       var builder = new BoogieStmtListBuilder(generator, generator.options, context);
       var builderInitializationArea = new BoogieStmtListBuilder(generator, generator.options, context);
@@ -126,7 +139,7 @@ public partial class BoogieGenerator {
       }
 
       var implementationParameters = Bpl.Formal.StripWhereClauses(procedureParameters);
-      CheckBodyAndEnsuresClauses(f, etran, locals, implementationParameters, builderInitializationArea, builder);
+      CheckBodyAndEnsuresClauseWellformedness(f, etran, locals, implementationParameters, builderInitializationArea, builder);
 
       if (generator.EmitImplementation(f.Attributes)) {
         var s0 = builderInitializationArea.Collect(f.tok);
@@ -159,7 +172,7 @@ public partial class BoogieGenerator {
       }
     }
 
-    private void CheckBodyAndEnsuresClauses(Function f, ExpressionTranslator etran, List<Variable> locals, List<Variable> inParams,
+    private void CheckBodyAndEnsuresClauseWellformedness(Function f, ExpressionTranslator etran, List<Variable> locals, List<Variable> inParams,
       BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
       builder.Add(new CommentCmd("Check body and ensures clauses"));
       // Generate:
@@ -190,8 +203,8 @@ public partial class BoogieGenerator {
       if (f.Body != null && generator.RevealedInScope(f)) {
         var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
         bodyCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          CheckPostcondition checkPostcondition = (b, innerBody, adaptBoxing, prefix) => {
-            generator.CheckSubsetType(etran, innerBody, selfCall, f.Body.Type, b, adaptBoxing, prefix);
+          void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody, bool adaptBoxing, string prefix) {
+            generator.CheckSubsetType(etran, innerBody, selfCall, f.Body.Type, innerBuilder, adaptBoxing, prefix);
             // Contract.Assert(f.ResultType != null);
             // var bResult = etran.TrExpr(innerBody);
             // generator.CheckSubrange(f.Body.tok, bResult, f.Body.Type, f.ResultType, f.Body, b);
@@ -205,29 +218,14 @@ public partial class BoogieGenerator {
             if (f.Result != null) {
               var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
               generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
-              b.Add(cmd);
+              innerBuilder.Add(cmd);
             }
+          }
 
-            var context = new BodyTranslationContext(f.ContainsHide);
-            foreach (AttributedExpression e in f.Ens) {
-              var functionHeight = generator.currentModule.CallGraph.GetSCCRepresentativePredecessorCount(f);
-              var splits = new List<SplitExprInfo>();
-              bool splitHappened /*we actually don't care*/ =
-                generator.TrSplitExpr(context, e.E, splits, true, functionHeight, true, true, etran);
-              var (errorMessage, successMessage) = generator.CustomErrorMessage(e.Attributes);
-              foreach (var s in splits) {
-                if (s.IsChecked && !RefinementToken.IsInherited(s.Tok, generator.currentModule)) {
-                  var ensures =
-                    generator.EnsuresWithDependencies(s.Tok, false, e.E, s.E, errorMessage, successMessage, null);
-                  b.Add(new AssertCmd(ensures.tok, ensures.Condition, ensures.Description,
-                    ensures.Attributes));
-                }
-              }
-            }
-          };
-          generator.CheckWellformedWithResult(f.Body, wfo, checkPostcondition, locals, bodyCheckBuilder, etran, "function call result");
+          generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran, "function call result");
         });
 
+          
         // Enforce 'older' conditions
         var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
         if (olderParameterCount != 0) {
@@ -235,6 +233,7 @@ public partial class BoogieGenerator {
             new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))));
         }
       }
+      bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Expr.False));
 
       return bodyCheckBuilder;
     }
