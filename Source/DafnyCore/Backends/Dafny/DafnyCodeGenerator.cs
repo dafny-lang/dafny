@@ -585,7 +585,7 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
-        
+
         var attributes = compiler.ParseAttributes(enclosingDecl.Attributes);
 
         var builder = this.builder.Method(
