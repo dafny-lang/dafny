@@ -21,7 +21,7 @@ module RAST
 
   datatype Mod =
       // Rust modules
-    | Mod(name: string, body: seq<ModDecl>)
+    | Mod(name: string, attributes: seq<Attribute>, body: seq<ModDecl>)
     | ExternMod(name: string)
   {
     function ToString(ind: string): string
@@ -30,7 +30,8 @@ module RAST
       match this {
         case ExternMod(name) =>
           "pub mod " + name + ";"
-        case Mod(name, body) =>
+        case Mod(name, attributes, body) =>
+          Attribute.ToStringMultiple(attributes, ind) +
           "pub mod " + name + " {" + "\n" + ind + IND +
           SeqToString(
             body,
@@ -1651,6 +1652,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    predicate HasTestAttribute(attributes: seq<Attribute>) {
+      exists attribute <- attributes :: attribute.name == "test" && |attribute.args| == 0
+    }
+
     method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: R.Mod)
       decreases mod, 1
       modifies this
@@ -1661,7 +1666,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       } else {
         assume {:axiom} forall m: ModuleItem <- mod.body.value :: m < mod;
         var body := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(mod.name)]);
-        s := R.Mod(modName, body);
+        var attributes := [];
+        if HasTestAttribute(mod.attributes) {
+          attributes := [R.RawAttribute("#[cfg(test)]")];
+        }
+        s := R.Mod(modName, attributes, body);
       }
     }
 
@@ -1829,6 +1838,28 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         implBody
       );
       s := s + [R.ImplDecl(i)];
+      // Add test methods
+      var testMethods := [];
+      if datatypeName == "_default" {
+        for i := 0 to |c.body| {
+          var m := match c.body[i] case Method(m) => m;
+          if HasTestAttribute(m.attributes) && |m.params| == 0 {
+            var fnName := escapeName(m.name);
+            testMethods := testMethods + [
+              R.TopFnDecl(
+                R.TopFn(
+                  [R.RawAttribute("#[test]")], R.PUB,
+                  R.Fn(
+                    fnName, [], [], None,
+                    "",
+                    Some(R.Identifier("_default").MSel(fnName).Apply([])))
+                ))
+            ];
+          }
+        }
+        s := s + testMethods;
+      }
+
       var genSelfPath := GenPath(path);
       // TODO: If general traits, check whether the trait extends object or not.
       s := s + [

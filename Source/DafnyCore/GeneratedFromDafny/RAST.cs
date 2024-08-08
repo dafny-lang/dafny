@@ -267,6 +267,7 @@ namespace RAST {
     bool is_Mod { get; }
     bool is_ExternMod { get; }
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes { get; }
     Dafny.ISequence<RAST._IModDecl> dtor_body { get; }
     _IMod DowncastClone();
     Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind);
@@ -274,7 +275,7 @@ namespace RAST {
   public abstract class Mod : _IMod {
     public Mod() {
     }
-    private static readonly RAST._IMod theDefault = create_Mod(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<RAST._IModDecl>.Empty);
+    private static readonly RAST._IMod theDefault = create_Mod(Dafny.Sequence<Dafny.Rune>.Empty, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Empty, Dafny.Sequence<RAST._IModDecl>.Empty);
     public static RAST._IMod Default() {
       return theDefault;
     }
@@ -282,8 +283,8 @@ namespace RAST {
     public static Dafny.TypeDescriptor<RAST._IMod> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IMod create_Mod(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IModDecl> body) {
-      return new Mod_Mod(name, body);
+    public static _IMod create_Mod(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<RAST._IModDecl> body) {
+      return new Mod_Mod(name, attributes, body);
     }
     public static _IMod create_ExternMod(Dafny.ISequence<Dafny.Rune> name) {
       return new Mod_ExternMod(name);
@@ -295,6 +296,12 @@ namespace RAST {
         var d = this;
         if (d is Mod_Mod) { return ((Mod_Mod)d)._name; }
         return ((Mod_ExternMod)d)._name;
+      }
+    }
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_attributes {
+      get {
+        var d = this;
+        return ((Mod_Mod)d)._attributes;
       }
     }
     public Dafny.ISequence<RAST._IModDecl> dtor_body {
@@ -314,32 +321,36 @@ namespace RAST {
       }
       {
         Dafny.ISequence<Dafny.Rune> _1_name = _source0.dtor_name;
-        Dafny.ISequence<RAST._IModDecl> _2_body = _source0.dtor_body;
-        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub mod "), _1_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), ind), RAST.__default.IND), RAST.__default.SeqToString<RAST._IModDecl>(_2_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>>>((_3_ind) => ((System.Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>)((_4_modDecl) => {
-          return (_4_modDecl)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_3_ind, RAST.__default.IND));
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _2_attributes = _source0.dtor_attributes;
+        Dafny.ISequence<RAST._IModDecl> _3_body = _source0.dtor_body;
+        return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(RAST.Attribute.ToStringMultiple(_2_attributes, ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("pub mod ")), _1_name), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" {")), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), ind), RAST.__default.IND), RAST.__default.SeqToString<RAST._IModDecl>(_3_body, Dafny.Helpers.Id<Func<Dafny.ISequence<Dafny.Rune>, Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>>>((_4_ind) => ((System.Func<RAST._IModDecl, Dafny.ISequence<Dafny.Rune>>)((_5_modDecl) => {
+          return (_5_modDecl)._ToString(Dafny.Sequence<Dafny.Rune>.Concat(_4_ind, RAST.__default.IND));
         })))(ind), Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n\n"), ind), RAST.__default.IND))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("\n")), ind), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("}"));
       }
     }
   }
   public class Mod_Mod : Mod {
     public readonly Dafny.ISequence<Dafny.Rune> _name;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _attributes;
     public readonly Dafny.ISequence<RAST._IModDecl> _body;
-    public Mod_Mod(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<RAST._IModDecl> body) : base() {
+    public Mod_Mod(Dafny.ISequence<Dafny.Rune> name, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> attributes, Dafny.ISequence<RAST._IModDecl> body) : base() {
       this._name = name;
+      this._attributes = attributes;
       this._body = body;
     }
     public override _IMod DowncastClone() {
       if (this is _IMod dt) { return dt; }
-      return new Mod_Mod(_name, _body);
+      return new Mod_Mod(_name, _attributes, _body);
     }
     public override bool Equals(object other) {
       var oth = other as RAST.Mod_Mod;
-      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._body, oth._body);
+      return oth != null && object.Equals(this._name, oth._name) && object.Equals(this._attributes, oth._attributes) && object.Equals(this._body, oth._body);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._name));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._attributes));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._body));
       return (int) hash;
     }
@@ -347,6 +358,8 @@ namespace RAST {
       string s = "RAST.Mod.Mod";
       s += "(";
       s += this._name.ToVerbatimString(true);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._attributes);
       s += ", ";
       s += Dafny.Helpers.ToString(this._body);
       s += ")";
