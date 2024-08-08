@@ -2334,9 +2334,9 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitDatatypeBoundedPool(IVariable bv, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
-        if (bv.Type.IsDatatype && bv.Type.AsDatatype is {} datatypeDecl) {
-          
-          var signature = Sequence<_IFormal>.FromArray(new _IFormal[] {});
+        if (bv.Type.IsDatatype && bv.Type.AsDatatype is { } datatypeDecl) {
+
+          var signature = Sequence<_IFormal>.FromArray(new _IFormal[] { });
           var c = exprBuilder.Builder.Call(signature);
           c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("_AllSingletonConstructors"),
             Option<_IType>.create_None(), Option<_IFormal>.create_None(), signature));

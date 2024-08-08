@@ -2537,7 +2537,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                    Some(R.dafny_runtime_type.MSel("SequenceIter").Apply([instantiationType])),
                    "",
                    Some(R.dafny_runtime.MSel("seq!").Apply(singletonConstructors).Sel("iter").Apply([]))
-                )
+                 )
                )]))];
       }
 
