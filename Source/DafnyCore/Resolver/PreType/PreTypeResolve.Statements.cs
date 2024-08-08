@@ -653,13 +653,13 @@ namespace Microsoft.Dafny {
       // resolve proof
       if (update.Proof != null) {
         // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-        var prevLblStmts = resolver.EnclosingStatementLabels;
-        var prevLoopStack = resolver.LoopStack;
-        resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-        resolver.LoopStack = new List<Statement>();
-        resolver.ResolveStatement(update.Proof, resolutionContext);
-        resolver.EnclosingStatementLabels = prevLblStmts;
-        resolver.LoopStack = prevLoopStack;
+        var prevLblStmts = EnclosingStatementLabels;
+        var prevLoopStack = LoopStack;
+        EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+        LoopStack = new List<Statement>();
+        ResolveStatement(update.Proof, resolutionContext);
+        EnclosingStatementLabels = prevLblStmts;
+        LoopStack = prevLoopStack;
       }
 
       // figure out what kind of UpdateStmt this is
@@ -943,13 +943,13 @@ namespace Microsoft.Dafny {
 
       if (s.Proof != null) {
         // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-        var prevLblStmts = resolver.EnclosingStatementLabels;
-        var prevLoopStack = resolver.LoopStack;
-        resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-        resolver.LoopStack = new List<Statement>();
-        resolver.ResolveStatement(s.Proof, resolutionContext);
-        resolver.EnclosingStatementLabels = prevLblStmts;
-        resolver.LoopStack = prevLoopStack;
+        var prevLblStmts = EnclosingStatementLabels;
+        var prevLoopStack = LoopStack;
+        EnclosingStatementLabels = new Scope<Statement>(Options);
+        LoopStack = new List<Statement>();
+        ResolveStatement(s.Proof, resolutionContext);
+        EnclosingStatementLabels = prevLblStmts;
+        LoopStack = prevLoopStack;
       }
 
       Expression lhsExtract = null;

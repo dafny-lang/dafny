@@ -1,0 +1,7 @@
+CallBy.dfy(48,10): Error: assertion might not hold
+CallBy.dfy(54,10): Error: assertion might not hold
+CallBy.dfy(61,10): Error: assertion might not hold
+CallBy.dfy(67,10): Error: assertion might not hold
+CallBy.dfy(73,10): Error: assertion might not hold
+
+Dafny program verifier finished with 4 verified, 5 errors

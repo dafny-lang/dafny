@@ -23,7 +23,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   }
 
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
-  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
+  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>().Concat(Proof != null ? Proof.SubStatements : new List<Statement>());
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions =>
     ResolvedStatements == null ? Rhss.SelectMany(r => r.NonSpecificationSubExpressions) : Enumerable.Empty<Expression>();
