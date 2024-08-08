@@ -23,10 +23,10 @@ namespace XUnitExtensions.Lit {
       TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
-      if (shellCommand.Contains('/')) {
+      if (shellCommand.Contains('/') && Path.GetFileName(shellCommand) is var command and "cargo") {
         var workingDir = Path.GetDirectoryName(shellCommand);
         process.StartInfo.WorkingDirectory = workingDir;
-        shellCommand = Path.GetFileName(shellCommand);
+        shellCommand = command;
       }
 
       process.StartInfo.FileName = shellCommand;
