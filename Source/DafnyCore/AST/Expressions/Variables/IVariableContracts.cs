@@ -35,24 +35,20 @@ public abstract class IVariableContracts : TokenNode, IVariable {
       throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
     }
   }
-  public string SanitizedName {
-    get {
-      Contract.Ensures(Contract.Result<string>() != null);
-      throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
-    }
+  public string SanitizedName(CodeGenIdGenerator generator) {
+    Contract.Ensures(Contract.Result<string>() != null);
+    throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
   }
 
-  public string SanitizedNameShadowable {
+  public string CompileNameShadowable {
     get {
       Contract.Ensures(Contract.Result<string>() != null);
       throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
     }
   }
-  public string CompileName {
-    get {
-      Contract.Ensures(Contract.Result<string>() != null);
-      throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
-    }
+  public string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    Contract.Ensures(Contract.Result<string>() != null);
+    throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
   }
   public Type Type {
     get {
@@ -88,7 +84,7 @@ public abstract class IVariableContracts : TokenNode, IVariable {
   public void MakeGhost() {
     throw new NotImplementedException();
   }
-  public string AssignUniqueName(FreshIdGenerator generator) {
+  public string AssignUniqueName(VerificationIdGenerator generator) {
     Contract.Ensures(Contract.Result<string>() != null);
     throw new NotImplementedException();
   }
