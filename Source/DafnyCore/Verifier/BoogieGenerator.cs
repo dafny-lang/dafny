@@ -2855,14 +2855,15 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCall, Implementation, OverrideCheck }
+    enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCallPre, CoCallPost, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
         { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
         { MethodTranslationKind.CallPre, "CallPre" },
         { MethodTranslationKind.CallPost, "CallPost" },
-        { MethodTranslationKind.CoCall, "CoCall" },
+        { MethodTranslationKind.CoCallPre, "CoCallPre" },
+        { MethodTranslationKind.CoCallPost, "CoCallPost" },
         { MethodTranslationKind.Implementation, "Impl" },
         { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
       };
@@ -2877,7 +2878,8 @@ namespace Microsoft.Dafny {
         {MethodTranslationKind.SpecWellformedness, "well-formedness"},
         {MethodTranslationKind.CallPre, "call precondtion"},
         {MethodTranslationKind.CallPost, "call postcondition"},
-        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.CoCallPre, "co-call precondtion"},
+        {MethodTranslationKind.CoCallPost, "co-call postcondition"},
         {MethodTranslationKind.Implementation, "correctness"},
         {MethodTranslationKind.OverrideCheck, "override check"},
       };

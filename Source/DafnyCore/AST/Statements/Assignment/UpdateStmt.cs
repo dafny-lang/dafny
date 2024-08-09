@@ -128,7 +128,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     }
 
     // resolve proof
-    resolver.ResolveByProof(Proof, resolutionContext);
+    ModuleResolver.ResolveByProof(resolver, Proof, resolutionContext);
 
     // figure out what kind of UpdateStmt this is
     if (firstEffectfulRhs == null) {

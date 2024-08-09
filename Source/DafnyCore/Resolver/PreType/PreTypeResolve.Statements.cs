@@ -621,7 +621,8 @@ namespace Microsoft.Dafny {
     /// errorCountBeforeCheckingStmt is passed in so that this method can determine if any resolution errors were found during
     /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
     /// </summary>
-    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext, int errorCountBeforeCheckingStmt) {
+    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext,
+      int errorCountBeforeCheckingStmt) {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
@@ -643,6 +644,7 @@ namespace Microsoft.Dafny {
             isEffectful = false;
           }
         }
+
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Tok;
         }
@@ -651,15 +653,16 @@ namespace Microsoft.Dafny {
       }
 
       // resolve proof
-      ResolveByProof(update.Proof, resolutionContext);
+      ModuleResolver.ResolveByProof(this, update.Proof, resolutionContext);
 
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
         if (update.Lhss.Count == 0) {
-          Contract.Assert(update.Rhss.Count == 1);  // guaranteed by the parser
+          Contract.Assert(update.Rhss.Count == 1); // guaranteed by the parser
           ReportError(update, "expected method call, found expression");
         } else if (update.Lhss.Count != update.Rhss.Count) {
-          ReportError(update, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
+          ReportError(update,
+            "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
             update.Lhss.Count, update.Rhss.Count);
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
@@ -672,7 +675,8 @@ namespace Microsoft.Dafny {
       } else if (update.CanMutateKnownState) {
         if (1 < update.Rhss.Count) {
           ReportError(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
-        } else { // it might be ok, if it is a TypeRhs
+        } else {
+          // it might be ok, if it is a TypeRhs
           Contract.Assert(update.Rhss.Count == 1);
           if (methodCallInfo != null) {
             ReportError(methodCallInfo.Tok, "cannot have method call in return statement.");
@@ -692,12 +696,16 @@ namespace Microsoft.Dafny {
       } else {
         // if there was an effectful RHS, that must be the only RHS
         if (update.Rhss.Count != 1) {
-          ReportError(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+          ReportError(firstEffectfulRhs,
+            "an update statement is allowed an effectful RHS only if there is just one RHS");
         } else if (methodCallInfo == null) {
           // must be a single TypeRhs
           if (update.Lhss.Count != 1) {
-            Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-            ReportError(update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
+            Contract.Assert(2 <=
+                            update.Lhss
+                              .Count); // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+            ReportError(update.Lhss[1].tok,
+              "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
               update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingStmt) {
             var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
@@ -706,7 +714,8 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok, update.Proof);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters,
+            methodCallInfo.Tok, update.Proof);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -714,20 +723,6 @@ namespace Microsoft.Dafny {
 
       foreach (var a in update.ResolvedStatements) {
         ResolveStatement(a, resolutionContext);
-      }
-    }
-
-    private void ResolveByProof(BlockStmt proof, ResolutionContext resolutionContext)
-    {
-      if (proof != null) {
-        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-        var prevLblStmts = EnclosingStatementLabels;
-        var prevLoopStack = LoopStack;
-        EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-        LoopStack = new List<Statement>();
-        ResolveStatement(proof, resolutionContext);
-        EnclosingStatementLabels = prevLblStmts;
-        LoopStack = prevLoopStack;
       }
     }
 
@@ -946,7 +941,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      ResolveByProof(s.Proof, resolutionContext);
+      ModuleResolver.ResolveByProof(this, s.Proof, resolutionContext);
 
       Expression lhsExtract = null;
       if (expectExtract) {

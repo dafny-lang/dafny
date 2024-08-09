@@ -467,8 +467,6 @@ assert heapExternalsZeroOrOneEdges(xedges);
       o.fields := o.fields[f := t];   ///who designed this fucking syntax?
 
       assert ObjectsAreValid({o});
-
-      // assert edges(objects) == old( edges(objects) ) + {Edge(o,f,t)};
           
       var zedges := edges(objects);  //or could hand in if necessary?
       var zisos := justTheIsos(objects);

@@ -56,3 +56,12 @@ method E() returns (r: Option<int>){
   assert P(); //  should fail
   r := None;
 }
+
+greatest predicate G(x: int) { x == 0 || G(x-2) }
+
+greatest lemma F(x: int)
+  ensures G(x)
+{
+  F(x-2) by { ProveP(); }
+  assert P(); // should fail
+}

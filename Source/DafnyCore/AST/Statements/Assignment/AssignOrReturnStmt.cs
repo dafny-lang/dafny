@@ -23,7 +23,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public override IEnumerable<INode> Children => ResolvedStatements.Concat(Proof != null ? Proof.Children : new List<INode>());
+  public override IEnumerable<INode> Children => ResolvedStatements.Concat(Proof?.Children ?? new List<INode>());
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
@@ -193,7 +193,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       return;
     }
 
-    resolver.ResolveByProof(Proof, resolutionContext);
+    ModuleResolver.ResolveByProof(resolver, Proof, resolutionContext);
 
     Expression lhsExtract = null;
     if (expectExtract) {
