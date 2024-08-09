@@ -86,4 +86,36 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     }
     return false;
   }
+
+  public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+    if (Guard != null) {
+      if (!resolutionContext.IsGhost && IsBindingGuard && resolver.Options.ForbidNondeterminism) {
+        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_binding_if_forbidden, Tok, "binding if statement forbidden by the --enforce-determinism option");
+      }
+      resolver.ResolveExpression(Guard, resolutionContext);
+      resolver.ConstrainTypeExprBool(Guard, "condition is expected to be of type bool, but is {0}");
+    } else {
+      if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
+        resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_nondeterministic_if_forbidden, Tok, "nondeterministic if statement forbidden by the --enforce-determinism option");
+      }
+    }
+
+    resolver.Scope.PushMarker();
+    if (IsBindingGuard) {
+      var exists = (ExistsExpr)Guard;
+      foreach (var v in exists.BoundVars) {
+        resolver.ScopePushAndReport(resolver.Scope, v.Name, v, v.Tok, "bound-variable");
+      }
+    }
+    resolver.DominatingStatementLabels.PushMarker();
+    resolver.ResolveBlockStatement(Thn, resolutionContext);
+    resolver.DominatingStatementLabels.PopMarker();
+    resolver.Scope.PopMarker();
+
+    if (Els != null) {
+      resolver.DominatingStatementLabels.PushMarker();
+      resolver.ResolveStatement(Els, resolutionContext);
+      resolver.DominatingStatementLabels.PopMarker();
+    }
+  }
 }

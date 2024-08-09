@@ -423,7 +423,7 @@ do
                  FAIL=1
               fi
               if [ "$actualExit" != "$expectedExit" ]; then
-                echo EXPECTED EXIT CODE $expectedExit, got $actualec
+                echo EXPECTED EXIT CODE $expectedExit, got $actualExit
                 FAIL=1
               fi
             else 

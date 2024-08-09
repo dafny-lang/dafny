@@ -172,6 +172,6 @@
 //
 // CHECK: Results for M.GetX \(well-formedness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencies.dfy\(445,5\)-\(445,5\): target object is never null
+// CHECK:       ProofDependencies.dfy\(446,5\)-\(446,5\): target object is never null
 
 include "ProofDependencies.dfy"
