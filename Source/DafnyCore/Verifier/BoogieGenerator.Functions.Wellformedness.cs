@@ -204,17 +204,7 @@ public partial class BoogieGenerator {
         var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
         bodyCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
           void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody, bool adaptBoxing, string prefix) {
-            generator.CheckSubsetType(etran, innerBody, selfCall, f.Body.Type, innerBuilder, adaptBoxing, prefix);
-            // Contract.Assert(f.ResultType != null);
-            // var bResult = etran.TrExpr(innerBody);
-            // generator.CheckSubrange(f.Body.tok, bResult, f.Body.Type, f.ResultType, f.Body, b);
-            //
-            // bodyCheckBuilder.Add(generator.TrAssumeCmdWithDependenciesAndExtend(etran, f.Body.tok, f.Body,
-            //   e => Bpl.Expr.Eq(selfCall, generator.AdaptBoxing(f.Body.tok, e, f.Body.Type, f.ResultType)),
-            //   prefix));
-            // bodyCheckBuilder.Add(TrAssumeCmd(f.Body.tok, etran.CanCallAssumption(f.Body)));
-            // bodyCheckBuilder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
-            // bodyCheckBuilder.Add(TrAssumeCmd(f.Body.tok, generator.MkIs(selfCall, f.ResultType)));
+            generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, adaptBoxing, prefix);
             if (f.Result != null) {
               var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
               generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
