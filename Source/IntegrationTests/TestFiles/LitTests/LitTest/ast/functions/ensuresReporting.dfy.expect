@@ -1,29 +1,8 @@
-// RUN: ! %verify %s &> "%t"
-// RUN: %diff "%s.expect" "%t"
+ensuresReporting.dfy(10,4): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(5,23): Related location: this is the postcondition that could not be proved
+ensuresReporting.dfy(16,4): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(13,23): Related location: this is the postcondition that could not be proved
+ensuresReporting.dfy(26,14): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(22,23): Related location: this is the postcondition that could not be proved
 
-function ElseError(x: int): int
-  ensures ElseErorr(x) == 0
-{
-  if x == 0 then
-    0
-  else 
-    1
-}
-function ThenError(x: int): int
-  ensures ThenError(x) == 0
-{
-  if x == 0 then
-    0
-  else 
-    1
-}
-
-function CaseError(x: int): int
-  ensures CaseError(x) == 1
-{
-  match x {
-    case 0 => 0
-    case 1 => 1
-    case 2 => 2 
-  }
-}
+Dafny program verifier finished with 0 verified, 3 errors

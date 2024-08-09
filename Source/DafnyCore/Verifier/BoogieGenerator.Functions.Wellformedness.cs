@@ -220,11 +220,11 @@ public partial class BoogieGenerator {
               generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
               innerBuilder.Add(cmd);
             }
+            innerBuilder.Add(new ReturnCmd(innerBody.Tok));
           }
 
           generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran, "function call result");
         });
-
           
         // Enforce 'older' conditions
         var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
