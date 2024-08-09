@@ -1532,14 +1532,16 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < e.LHSs.Count; i++) {
           var pat = e.LHSs[i];
           var rhs = e.RHSs[i];
-          var nm = varNameGen.FreshId(string.Format("#{0}#", i));
+          var nm = varNameGen.FreshId($"#{i}#");
           var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(pat.Expr.Type)));
           locals.Add(r);
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
-          CheckPostcondition checkPostconditionForLhs = (innerBuilder, body, adaptBoxing, prefix) => {
+
+          void CheckPostconditionForRhs(BoogieStmtListBuilder innerBuilder, Expression body, bool adaptBoxing, string prefix) {
             CheckSubsetType(etran, body, rIe, pat.Expr.Type, innerBuilder, adaptBoxing, prefix);
-          };
-          CheckWellformedWithResult(e.RHSs[i], wfOptions, checkPostconditionForLhs, locals, builder, etran, "let expression binding RHS well-formed");
+          }
+
+          CheckWellformedWithResult(e.RHSs[i], wfOptions, CheckPostconditionForRhs, locals, builder, etran, "let expression binding RHS well-formed");
           CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
           builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
@@ -1578,17 +1580,17 @@ namespace Microsoft.Dafny {
         var letBody = Substitute(e.Body, null, substMap);
         CheckWellformed(letBody, wfOptions, locals, builder, etran);
         if (e.Constraint_Bounds != null) {
-          var substMap_prime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
-          var nonGhostMap_prime = new Dictionary<IVariable, Expression>();
+          var substMapPrime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
+          var nonGhostMapPrime = new Dictionary<IVariable, Expression>();
           foreach (BoundVar bv in lhsVars) {
-            nonGhostMap_prime.Add(bv, bv.IsGhost ? substMap[bv] : substMap_prime[bv]);
+            nonGhostMapPrime.Add(bv, bv.IsGhost ? substMap[bv] : substMapPrime[bv]);
           }
-          var rhs_prime = Substitute(e.RHSs[0], null, nonGhostMap_prime);
-          var letBody_prime = Substitute(e.Body, null, nonGhostMap_prime);
-          builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(rhs_prime)));
-          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhs_prime, "assign-such-that constraint"));
-          builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(letBody_prime)));
-          var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
+          var rhsPrime = Substitute(e.RHSs[0], null, nonGhostMapPrime);
+          var letBodyPrime = Substitute(e.Body, null, nonGhostMapPrime);
+          builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(rhsPrime)));
+          builder.Add(TrAssumeCmdWithDependencies(etran, e.tok, rhsPrime, "assign-such-that constraint"));
+          builder.Add(TrAssumeCmd(e.tok, etran.CanCallAssumption(letBodyPrime)));
+          var eq = Expression.CreateEq(letBody, letBodyPrime, e.Body.Type);
           builder.Add(Assert(GetToken(e), etran.TrExpr(eq),
             new PODesc.LetSuchThatUnique(e.RHSs[0], e.BoundVars.ToList())));
         }
