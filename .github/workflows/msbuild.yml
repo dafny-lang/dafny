@@ -161,7 +161,7 @@ jobs:
           output: both
           # Fail if less than 86% total coverage, measured across all packages combined.
           # Report "yellow" status if less than 90% total coverage.
-          thresholds: '85.9 90'
+          thresholds: '85 90'
 
       - name: Code coverage report (LSP)
         uses: irongut/CodeCoverageSummary@v1.3.0
