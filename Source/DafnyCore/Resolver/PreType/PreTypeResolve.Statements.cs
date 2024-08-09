@@ -651,16 +651,7 @@ namespace Microsoft.Dafny {
       }
 
       // resolve proof
-      if (update.Proof != null) {
-        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-        var prevLblStmts = EnclosingStatementLabels;
-        var prevLoopStack = LoopStack;
-        EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-        LoopStack = new List<Statement>();
-        ResolveStatement(update.Proof, resolutionContext);
-        EnclosingStatementLabels = prevLblStmts;
-        LoopStack = prevLoopStack;
-      }
+      ResolveByProof(update.Proof, resolutionContext);
 
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
@@ -723,6 +714,20 @@ namespace Microsoft.Dafny {
 
       foreach (var a in update.ResolvedStatements) {
         ResolveStatement(a, resolutionContext);
+      }
+    }
+
+    private void ResolveByProof(BlockStmt proof, ResolutionContext resolutionContext)
+    {
+      if (proof != null) {
+        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+        var prevLblStmts = EnclosingStatementLabels;
+        var prevLoopStack = LoopStack;
+        EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+        LoopStack = new List<Statement>();
+        ResolveStatement(proof, resolutionContext);
+        EnclosingStatementLabels = prevLblStmts;
+        LoopStack = prevLoopStack;
       }
     }
 
@@ -941,16 +946,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (s.Proof != null) {
-        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-        var prevLblStmts = EnclosingStatementLabels;
-        var prevLoopStack = LoopStack;
-        EnclosingStatementLabels = new Scope<Statement>(Options);
-        LoopStack = new List<Statement>();
-        ResolveStatement(s.Proof, resolutionContext);
-        EnclosingStatementLabels = prevLblStmts;
-        LoopStack = prevLoopStack;
-      }
+      ResolveByProof(s.Proof, resolutionContext);
 
       Expression lhsExtract = null;
       if (expectExtract) {

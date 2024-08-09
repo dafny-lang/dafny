@@ -23,7 +23,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public override IEnumerable<INode> Children => ResolvedStatements;
+  public override IEnumerable<INode> Children => ResolvedStatements.Concat(Proof != null ? Proof.Children : new List<INode>());
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
@@ -193,16 +193,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       return;
     }
 
-    if (Proof != null) {
-      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-      var prevLblStmts = resolver.EnclosingStatementLabels;
-      var prevLoopStack = resolver.LoopStack;
-      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      resolver.LoopStack = new List<Statement>();
-      resolver.ResolveStatement(Proof, resolutionContext);
-      resolver.EnclosingStatementLabels = prevLblStmts;
-      resolver.LoopStack = prevLoopStack;
-    }
+    resolver.ResolveByProof(Proof, resolutionContext);
 
     Expression lhsExtract = null;
     if (expectExtract) {

@@ -3311,6 +3311,19 @@ namespace Microsoft.Dafny {
       return LetPatIn(tok, lhs, rhs, body);
     }
 
+    internal void ResolveByProof(BlockStmt proof, ResolutionContext resolutionContext) {
+      if (proof != null) {
+        // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+        var prevLblStmts = EnclosingStatementLabels;
+        var prevLoopStack = LoopStack;
+        EnclosingStatementLabels = new Scope<Statement>(Options);
+        LoopStack = new List<Statement>();
+        ResolveStatement(proof, resolutionContext);
+        EnclosingStatementLabels = prevLblStmts;
+        LoopStack = prevLoopStack;
+      }
+    }
+
     /// <summary>
     ///  If expr.Lhs != null: Desugars "var x: T :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else var x: T := temp.Extract(); F"
     ///  If expr.Lhs == null: Desugars "         :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else                             F"
