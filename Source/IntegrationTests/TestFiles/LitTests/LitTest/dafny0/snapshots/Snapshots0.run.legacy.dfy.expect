@@ -7,7 +7,7 @@ Processing call to procedure bar (call precondtion) in implementation foo (corre
 Processing call to procedure bar (call postcondition) in implementation foo (correctness) (at Snapshots0.v1.dfy(3,6)):
   >>> added axiom: (forall call0old#AT#$Heap: Heap, $Heap: Heap :: {:weight 30} { ##extracted_function##1(call0old#AT#$Heap, $Heap) } ##extracted_function##1(call0old#AT#$Heap, $Heap) == (true && Lit(false) && (forall $o: ref :: { $Heap[$o] } $o != null && $Unbox(read(call0old#AT#$Heap, $o, alloc)): bool ==> $Heap[$o] == call0old#AT#$Heap[$o]) && $HeapSucc(call0old#AT#$Heap, $Heap)))
   >>> added after: a##cached##1 := a##cached##1 && ##extracted_function##1(call0old#AT#$Heap, $Heap);
-Processing command (at Snapshots0.v1.dfy(4,10)) assert {:id "id8"} Lit(false);
+Processing command (at Snapshots0.v1.dfy(4,10)) assert {:id "id7"} Lit(false);
   >>> MarkAsPartiallyVerified
 Snapshots0.v1.dfy(4,9): Error: assertion might not hold
 
