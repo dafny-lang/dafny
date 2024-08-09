@@ -55,6 +55,9 @@ method FunctionSubsetResult() {
   hide *;
   var x: nat := Natty();
   assert x >= 0; // no error
+
+  var y: int := Natty();
+  assert y >= 0; // no error
 }
 
 function Natty(): nat {

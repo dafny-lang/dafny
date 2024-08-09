@@ -8,7 +8,7 @@ function Test(x: bool): int
 {
   assert p1: x ==> P(1) by { reveal r; }
   assert p2: !x ==> P(2) by { reveal r; }
-  var x :=
+  var y :=
     match x {
       case true =>
         assert p11: P(1) by { reveal p1; }
@@ -21,6 +21,6 @@ function Test(x: bool): int
         assert P(2) by { reveal p21; } // p21 can be revealed and this assertion is visible outside.
         2
     };
-  assert P(x);
-  x
+  assert P(y);
+  y
 }

@@ -148,7 +148,7 @@ namespace Microsoft.Dafny {
       AddClassMember_Function(f);
 
       if (InVerificationScope(f)) {
-        AddWellformednessCheck(f);
+        new FunctionWellformednessChecker(this).Check(f);
         if (f.OverriddenFunction != null) { //it means that f is overriding its associated parent function
           AddFunctionOverrideCheckImpl(f);
         }

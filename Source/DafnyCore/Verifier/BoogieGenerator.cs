@@ -2338,10 +2338,12 @@ namespace Microsoft.Dafny {
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, true,
-          false, true), locals, builder, etran);
-        builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-        CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
+        CheckWellformedWithResult(e, new WFOptions(null, true,
+          false, true),
+          (innerBuilder, innerExpr, _, _) => {
+            builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
+            CheckSubrange(innerExpr.tok, etran.TrExpr(innerExpr), e.Type, formal.Type, e, innerBuilder);
+          } ,locals, builder, etran);
       }
 
       if (EmitImplementation(ctor.Attributes)) {
