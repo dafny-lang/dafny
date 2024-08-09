@@ -678,12 +678,6 @@ namespace Microsoft.Dafny {
                 builder.Add(new Bpl.CommentCmd("assume allocatedness for receiver argument to function"));
                 builder.Add(TrAssumeCmd(e.Receiver.tok, MkIsAllocBox(BoxIfNecessary(e.Receiver.tok, etran.TrExpr(e.Receiver), e.Receiver.Type), et, etran.HeapExpr)));
               }
-              // check well-formedness of the other parameters
-              foreach (Expression arg in e.Args) {
-                if (!(arg is DefaultValueExpression)) {
-                  CheckWellformed(arg, wfOptions, locals, builder, etran);
-                }
-              }
               // create a local variable for each formal parameter, and assign each actual parameter to the corresponding local
               Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
               Dictionary<IVariable, Expression> directSubstMap = new Dictionary<IVariable, Expression>();
@@ -694,14 +688,22 @@ namespace Microsoft.Dafny {
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
-                IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
-                ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
+                var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator))
+                  {
+                    Var = local
+                  };
+                ie.Type = ie.Var.Type;  // resolve ie here
                 substMap.Add(p, ie);
                 locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
-                CheckSubrange(ee.tok, etran.TrExpr(ee), ee.Type, et, ee, builder);
+                
+                if (!(ee is DefaultValueExpression)) {
+                  CheckWellformedWithResult(ee, wfOptions, (innerBuilder, innerBody, _, _) => {
+                    CheckSubrange(innerBody.tok, etran.TrExpr(innerBody), ee.Type, et, ee, innerBuilder);
+                  }, locals, builder, etran);
+                }
                 Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, AdaptBoxing(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
                 if (!etran.UsesOldHeap) {
