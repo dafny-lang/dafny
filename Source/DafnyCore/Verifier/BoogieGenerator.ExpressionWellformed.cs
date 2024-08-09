@@ -1144,9 +1144,7 @@ namespace Microsoft.Dafny {
             break;
           }
         case StmtExpr stmtExpr:
-          var bodyBuilder = new BoogieStmtListBuilder(this, builder.Options, builder.Context);
-          CheckWellformedStmtExpr(stmtExpr, wfOptions, checkPostcondition, locals, bodyBuilder, etran);
-          PathAsideBlock(stmtExpr.tok, bodyBuilder, builder);
+          CheckWellformedStmtExpr(stmtExpr, wfOptions, checkPostcondition, locals, builder, etran);
           checkPostcondition = null;
           break;
         case ITEExpr iteExpr: {
@@ -1422,18 +1420,36 @@ namespace Microsoft.Dafny {
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions wfOptions, CheckPostcondition checkPostcondition, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      
+      var bodyBuilder = new BoogieStmtListBuilder(this, builder.Options, builder.Context);
+
+      var statements = new List<Statement>() { stmtExpr.S };
+      Expression expression = stmtExpr.E;
+      while (expression is StmtExpr nestedStmtExpr) {
+        statements.Add(nestedStmtExpr.S);
+        expression = nestedStmtExpr.E;
+      }
+      
       // If we're inside an "old" expression, then "etran" will know how to translate
       // expressions. However, here, we're also having to translate e.S, which is a
       // Statement. Since statement translation (in particular, translation of CallStmt's)
       // work directly on the global variable $Heap, we temporarily change its value here.
       if (etran.UsesOldHeap) {
-        BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, builder,
-          () => TrStmt(stmtExpr.S, builder, locals, etran));
+        BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, bodyBuilder,
+          () => {
+            foreach (var statement in statements) {
+              TrStmt(statement, bodyBuilder, locals, etran);
+            }
+          });
       } else {
-        TrStmt(stmtExpr.S, builder, locals, etran);
+        foreach (var statement in statements) {
+          TrStmt(statement, bodyBuilder, locals, etran);
+        }
       }
 
-      CheckWellformedWithResult(stmtExpr.E, wfOptions, checkPostcondition, locals, builder, etran, "statement expression result");
+      CheckWellformedWithResult(expression, wfOptions, checkPostcondition, locals, bodyBuilder, etran, "statement expression result");
+      
+      PathAsideBlock(stmtExpr.tok, bodyBuilder, builder);
     }
 
     /// <summary>
