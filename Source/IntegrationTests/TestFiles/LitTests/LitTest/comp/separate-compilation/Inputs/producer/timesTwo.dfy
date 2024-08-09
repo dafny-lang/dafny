@@ -1,4 +1,4 @@
-module {:options "--function-syntax:4"} LibraryModule {
+module {:options "--function-syntax:4"} CoolLibraryName.LibraryModule {
 
   function TimesTwo(x: nat): nat
   {
