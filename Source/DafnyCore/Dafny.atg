@@ -2297,6 +2297,7 @@ UpdateStmt<out Statement/*!*/ s>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      Expression e;
      AssignmentRhs r;
+     BlockStmt proof = null;
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      IToken startToken = Token.NoToken;
@@ -2334,10 +2335,16 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
-    ";"                            (. endTok = t; .)
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
@@ -2352,18 +2359,21 @@ UpdateStmt<out Statement/*!*/ s>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
-   ";"                             (. endTok = t; .)
+   (
+     "by" BlockStmt<out proof, out _, out _>
+   | ";"                           (. endTok = t; .)
+   )                           
 )
   (. var rangeToken = new RangeToken(startToken, t);
      if (suchThat != null) {
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
-       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss, proof);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(rangeToken, lhss, rhss);
+         s = new UpdateStmt(rangeToken, lhss, rhss, proof);
        }
      }
   .)
@@ -2463,6 +2473,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      ExprRhs exceptionRhs = null;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
+     BlockStmt proof = null;
      IToken endTok;
      IToken startToken = null;
      s = dummyStmt;
@@ -2499,7 +2510,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
-    SYNC ";"                         (. endTok = t; .)
+    SYNC ( "by"
+      BlockStmt<out proof, out _, out _>
+    | ";"                            (. endTok = t; .)
+    )
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
@@ -2516,11 +2530,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss, proof);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
+         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss, proof);
        }
        s = new VarDeclStmt(rangeToken, lhss, update);
     .)

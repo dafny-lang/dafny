@@ -1,0 +1,2 @@
+CallByResolution1.dfy(9,6): Error: a non-labeled 'break' statement is allowed only in loops
+1 resolution/type errors detected in CallByResolution1.dfy

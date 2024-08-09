@@ -257,6 +257,38 @@ Note that the syntax
 
 is interpreted as a label in which the user forgot the `label` keyword.
 
+### 8.5.6. Method call with a `by` proof
+
+The purpose of this form of a method call is to seperate the called method's
+precondition and its proof from the rest of the correctness proof of the
+calling method.
+
+<!-- %check-verify Statements.16.expect -->
+```dafny
+opaque predicate P() { true }
+
+lemma ProveP() ensures P() {
+  reveal P();
+}
+
+method M(i: int) returns (r: int)
+  requires P()
+  ensures r == i
+{ r := i; }
+
+method C() {
+  var v := M(1/3) by { // We prove 3 != 0 outside of the by proof
+    ProveP();          // Prove precondtion  
+  }
+  assert v == 0;       // Use postcondition
+  assert P();          // Fails
+}
+```
+
+By placing the call to lemma `ProveP` inside of the by block, we can not use
+`P` after the method call. The well-formedness checks of the arguments to the
+method call are not subject to the separation.
+
 ## 8.6. Update with Failure Statement (`:-`) ([grammar](#g-update-with-failure-statement)) {#sec-update-with-failure-statement}
 
 See the subsections below for examples.

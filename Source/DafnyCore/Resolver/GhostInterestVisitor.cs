@@ -145,6 +145,9 @@ class GhostInterestVisitor {
       var s = (UpdateStmt)stmt;
       s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+      if (s.Proof != null) {
+        Visit(s.Proof, true, "a call-by body");
+      }
 
     } else if (stmt is AssignOrReturnStmt) {
       var s = (AssignOrReturnStmt)stmt;
