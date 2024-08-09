@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Dafny.Auditor;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -31,6 +33,11 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
 Generate module names in the older A_mB_mC style instead of the current A.B.C scheme".TrimStart()) {
     IsHidden = true
   };
+
+  static ModuleDefinition() {
+    DafnyOptions.RegisterLegacyUi(LegacyModuleNames, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyModuleNames", defaultValue: false);
+    DooFile.RegisterNoChecksNeeded(LegacyModuleNames, false); // needs translation record entry
+  }
   
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
@@ -223,7 +230,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         compileName = Name;
       } else if (EnclosingModule is { TryToAvoidName: false }) {
         if (options.Get(LegacyModuleNames)) {
-          compileName = SanitizedName + nonExternSuffix;
+          compileName = SanitizedName;
         } else {
           // Include all names in the module tree path, to disambiguate when compiling
           // a flat list of modules.
