@@ -27,3 +27,10 @@ function CaseError(x: int): int
     case _ => 1 
   }
 }
+
+function LetError(x: int): int
+  ensures LetError(x) == 1
+{
+  var r := 3;
+  r
+}
