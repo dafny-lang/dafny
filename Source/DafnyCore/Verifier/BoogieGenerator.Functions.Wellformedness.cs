@@ -201,27 +201,31 @@ public partial class BoogieGenerator {
       var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
       bodyCheckBuilder.Add(new CommentCmd("Check Wfness of body and result subset type constraint"));
       if (f.Body != null && generator.RevealedInScope(f)) {
-        var bodyCheckDelayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, bodyCheckBuilder);
-        bodyCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
-          void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody, bool adaptBoxing, string prefix) {
-            generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, adaptBoxing, prefix);
-            if (f.Result != null) {
-              var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
-              generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
-              innerBuilder.Add(cmd);
-            }
-            innerBuilder.Add(new ReturnCmd(innerBody.Tok));
+        var doReadsChecks = etran.readsFrame != null;
+        var wfo = new WFOptions(null, doReadsChecks, doReadsChecks, false);
+        
+        void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody, bool adaptBoxing, string prefix) {
+          generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, adaptBoxing, prefix);
+          if (f.Result != null) {
+            var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
+            generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
+            innerBuilder.Add(cmd);
           }
-
-          generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran, "function call result");
-        });
+          if (doReadsChecks) {
+            wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, innerBuilder);
+          }
           
-        // Enforce 'older' conditions
-        var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
-        if (olderParameterCount != 0) {
-          bodyCheckBuilder.Add(generator.Assert(f.tok, olderCondition,
-            new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))));
+          // Enforce 'older' conditions
+          var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
+          if (olderParameterCount != 0) {
+            innerBuilder.Add(generator.Assert(f.tok, olderCondition,
+              new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))));
+          }
+          innerBuilder.Add(new ReturnCmd(innerBody.Tok));
         }
+
+        generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran, "function call result");
+          
       }
       bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Expr.False));
 
