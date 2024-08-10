@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
       public readonly bool DoReadsChecks;
       public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
       public readonly List<Bpl.Variable> Locals;
-      public readonly List<Bpl.Cmd> Asserts;
+      public readonly List<Func<Bpl.Cmd>> Asserts;
       public readonly bool LValueContext;
       public readonly Bpl.QKeyValue AssertKv;
 
@@ -54,12 +54,12 @@ namespace Microsoft.Dafny {
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
         if (saveReadsChecks) {
           Locals = new List<Variable>();
-          Asserts = new List<Bpl.Cmd>();
+          Asserts = new();
         }
       }
 
       private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
-        List<Bpl.Variable> locals, List<Bpl.Cmd> asserts, bool lValueContext, Bpl.QKeyValue assertKv) {
+        List<Bpl.Variable> locals, List<Func<Bpl.Cmd>> asserts, bool lValueContext, Bpl.QKeyValue assertKv) {
         SelfCallsAllowance = selfCallsAllowance;
         DoReadsChecks = doReadsChecks;
         DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
         return (t, e, d, qk) => {
           if (Locals != null) {
             var b = BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);
-            Asserts.Add(tran.Assert(t, b, d, qk));
+            Asserts.Add(() => tran.Assert(t, b, d, qk));
             builder.Add(Bpl.Cmd.SimpleAssign(e.tok, (Bpl.IdentifierExpr)b, e));
           } else {
             builder.Add(tran.Assert(t, e, d, qk));
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny {
         }
         // assert b$reads_guards#0;  ...
         foreach (var a in Asserts) {
-          builder.Add(a);
+          builder.Add(a());
         }
       }
     }
@@ -688,17 +688,16 @@ namespace Microsoft.Dafny {
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
-                var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator))
-                  {
-                    Var = local
-                  };
+                var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator)) {
+                  Var = local
+                };
                 ie.Type = ie.Var.Type;  // resolve ie here
                 substMap.Add(p, ie);
                 locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
-                
+
                 if (!(ee is DefaultValueExpression)) {
                   CheckWellformedWithResult(ee, wfOptions, (innerBuilder, innerBody, _, _) => {
                     CheckSubrange(innerBody.tok, etran.TrExpr(innerBody), ee.Type, et, ee, innerBuilder);
@@ -1422,7 +1421,7 @@ namespace Microsoft.Dafny {
 
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions wfOptions, CheckPostcondition checkPostcondition, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      
+
       var bodyBuilder = new BoogieStmtListBuilder(this, builder.Options, builder.Context);
 
       var statements = new List<Statement>() { stmtExpr.S };
@@ -1431,7 +1430,7 @@ namespace Microsoft.Dafny {
         statements.Add(nestedStmtExpr.S);
         expression = nestedStmtExpr.E;
       }
-      
+
       // If we're inside an "old" expression, then "etran" will know how to translate
       // expressions. However, here, we're also having to translate e.S, which is a
       // Statement. Since statement translation (in particular, translation of CallStmt's)
@@ -1450,7 +1449,7 @@ namespace Microsoft.Dafny {
       }
 
       CheckWellformedWithResult(expression, wfOptions, checkPostcondition, locals, bodyBuilder, etran, "statement expression result");
-      
+
       PathAsideBlock(stmtExpr.tok, bodyBuilder, builder);
     }
 

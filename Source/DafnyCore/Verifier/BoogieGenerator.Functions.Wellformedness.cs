@@ -42,7 +42,7 @@ public partial class BoogieGenerator {
       var mod = new List<Bpl.IdentifierExpr> {
         ordinaryEtran.HeapCastToIdentifierExpr,
       };
-      
+
       var context = new BodyTranslationContext(f.ContainsHide);
       var ens = new List<Bpl.Ensures>();
       foreach (AttributedExpression ensures in f.Ens) {
@@ -203,7 +203,7 @@ public partial class BoogieGenerator {
       if (f.Body != null && generator.RevealedInScope(f)) {
         var doReadsChecks = etran.readsFrame != null;
         var wfo = new WFOptions(null, doReadsChecks, doReadsChecks, false);
-        
+
         void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody, bool adaptBoxing, string prefix) {
           generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, adaptBoxing, prefix);
           if (f.Result != null) {
@@ -212,9 +212,12 @@ public partial class BoogieGenerator {
             innerBuilder.Add(cmd);
           }
           if (doReadsChecks) {
-            wfo.ProcessSavedReadsChecks(locals, builderInitializationArea, innerBuilder);
+            // assert b$reads_guards#0;  ...
+            foreach (var a in wfo.Asserts) {
+              innerBuilder.Add(a());
+            }
           }
-          
+
           // Enforce 'older' conditions
           var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
           if (olderParameterCount != 0) {
@@ -225,7 +228,13 @@ public partial class BoogieGenerator {
         }
 
         generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran, "function call result");
-          
+
+        // var b$reads_guards#0 : bool  ...
+        locals.AddRange(wfo.Locals);
+        // b$reads_guards#0 := true   ...
+        foreach (var cmd in wfo.AssignLocals) {
+          builderInitializationArea.Add(cmd);
+        }
       }
       bodyCheckBuilder.Add(TrAssumeCmd(f.tok, Expr.False));
 

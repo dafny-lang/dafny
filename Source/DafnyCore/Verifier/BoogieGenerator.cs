@@ -2343,7 +2343,7 @@ namespace Microsoft.Dafny {
           (innerBuilder, innerExpr, _, _) => {
             builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
             CheckSubrange(innerExpr.tok, etran.TrExpr(innerExpr), e.Type, formal.Type, e, innerBuilder);
-          } ,locals, builder, etran);
+          }, locals, builder, etran);
       }
 
       if (EmitImplementation(ctor.Attributes)) {

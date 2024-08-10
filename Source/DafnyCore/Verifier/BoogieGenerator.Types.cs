@@ -1503,16 +1503,16 @@ public partial class BoogieGenerator {
           // Note, for new-types, this has already been checked by CheckWellformed.
           CheckResultToBeInType(decl.Witness.tok, innerWitness, decl.Var.Type, locals, innerBuilder, etran);
         }
-        
+
         // check that the witness expression checks out
         witnessExpr = Substitute(decl.Constraint, decl.Var, innerWitness);
         witnessExpr.tok = decl.Witness.Tok;
         var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
-      
+
         SplitAndAssertExpression(innerBuilder, witnessExpr, etran, context, desc);
       }, locals, witnessCheckBuilder, etran);
       codeContext = ghostCodeContext;
-      
+
     } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
       var witness = Zero(decl.tok, decl.Var.Type);
       if (witness == null) {
@@ -1523,7 +1523,7 @@ public partial class BoogieGenerator {
         witnessString = Printer.ExprToString(options, witness);
         CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
         witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
-        
+
         witnessExpr.tok = decl.tok;
         var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
         SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
@@ -1551,8 +1551,7 @@ public partial class BoogieGenerator {
   }
 
   private void SplitAndAssertExpression(BoogieStmtListBuilder witnessCheckBuilder, Expression witnessExpr,
-    ExpressionTranslator etran, BodyTranslationContext context, PODesc.WitnessCheck desc)
-  {
+    ExpressionTranslator etran, BodyTranslationContext context, PODesc.WitnessCheck desc) {
     witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessExpr.tok, etran.CanCallAssumption(witnessExpr)));
     var witnessCheck = etran.TrExpr(witnessExpr);
 
@@ -1570,8 +1569,7 @@ public partial class BoogieGenerator {
   }
 
   private BoogieStmtListBuilder CheckConstraintWellformedness(RedirectingTypeDecl decl, BodyTranslationContext context,
-    ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder builder)
-  {
+    ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder builder) {
     var constraintCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
     var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
