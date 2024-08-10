@@ -200,6 +200,8 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
     }
   }
 
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
+
   public override string GetCompileName(DafnyOptions options) {
     var nm = base.GetCompileName(options);
     if (nm == Dafny.Compilers.SinglePassCodeGenerator.DefaultNameMain && IsStatic && !IsEntryPoint) {

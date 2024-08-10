@@ -200,6 +200,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     }
   }
 
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
+
   /// <summary>
   /// The "AllCalls" field is used for non-ExtremePredicate, non-PrefixPredicate functions only (so its value should not be relied upon for ExtremePredicate and PrefixPredicate functions).
   /// It records all function calls made by the Function, including calls made in the body as well as in the specification.

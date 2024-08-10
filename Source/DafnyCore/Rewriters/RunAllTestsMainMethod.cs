@@ -95,7 +95,7 @@ public class RunAllTestsMainMethod : IRewriter {
   internal override void PostResolve(Program program) {
     var tok = program.GetStartOfFirstFileToken() ?? Token.NoToken;
     List<Statement> mainMethodStatements = new();
-    var idGenerator = new FreshIdGenerator();
+    var idGenerator = new CodeGenIdGenerator();
 
     // var success := true;
     var successVarStmt = Statement.CreateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
