@@ -209,7 +209,7 @@ public class DooFile {
       } else {
         // This else can occur because Tomlyn will drop aggregate properties with no values.
         // When this happens, use the default value
-        libraryValue = option.Parse("").GetValueForOption(option);
+        libraryValue = option.Parse("").GetValueForOption(option)!;
       }
 
       result.Options.OptionArguments[option] = libraryValue;

@@ -52,30 +52,6 @@ public class OptionRegistry {
     OptionScopes[option] = OptionScope.Global;
     GlobalOptionChecks[option] = check;
   }
-
-  // public static void RegisterLibraryCheck(Option option, OptionCompatibility.OptionCheck check) {
-  //   if (NoChecksNeeded.Contains(option)) {
-  //     throw new ArgumentException($"Option already registered as not needing a library check: {option.Name}");
-  //   }
-  //   OptionChecks.Add(option, check);
-  // }
-  //
-  // public static void RegisterLibraryChecks(IDictionary<Option, OptionCompatibility.OptionCheck> checks) {
-  //   foreach (var (option, check) in checks) {
-  //     RegisterLibraryCheck(option, check);
-  //   }
-  // }
-  //
-  // public static void RegisterNoChecksNeeded(Option option, bool semantic) {
-  //   if (semantic) {
-  //     RegisterLibraryCheck(option, OptionCompatibility.NoOpOptionCheck);
-  //   } else {
-  //     if (OptionChecks.ContainsKey(option)) {
-  //       throw new ArgumentException($"Option already registered as needing a library check: {option.Name}");
-  //     }
-  //     NoChecksNeeded.Add(option);
-  //   }
-  // }
 }
 
 public enum OptionScope { Cli, Global, Module, Translation }
