@@ -2008,17 +2008,10 @@ namespace Microsoft.Dafny {
         callBuilder.Add(call);
       }
 
-
-
-
-
-
-
       builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
       CallCmd post = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
       proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
       builder.Add(post);
-
 
       // Unbox results as needed
       for (int i = 0; i < Lhss.Count; i++) {
