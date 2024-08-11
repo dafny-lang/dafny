@@ -1977,14 +1977,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (cs.Proof == null) {
+      if (false) {
         AddCall(builder);
       } else {
         var callBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-        AddComment(callBuilder, cs, "call statement proof");
-        CurrentIdGenerator.Push();
-        TrStmt(cs.Proof, callBuilder, locals, etran);
-        CurrentIdGenerator.Pop();
+        if (cs.Proof != null) {
+          AddComment(callBuilder, cs, "call statement proof");
+          CurrentIdGenerator.Push();
+          TrStmt(cs.Proof, callBuilder, locals, etran);
+          CurrentIdGenerator.Pop();
+        }
         AddCall(callBuilder);
         PathAsideBlock(cs.Tok, callBuilder, builder);
       }
