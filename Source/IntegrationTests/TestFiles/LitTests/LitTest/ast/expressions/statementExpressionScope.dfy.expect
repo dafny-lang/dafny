@@ -1,8 +1,0 @@
-statementExpressionScope.dfy(17,13): Error: this is the postcondition that could not be proved
-statementExpressionScope.dfy(48,11): Error: value does not satisfy the subset constraints of 'nat'
-statementExpressionScope.dfy(49,8): Error: a precondition for this call could not be proved
-statementExpressionScope.dfy(44,31): Related location: this is the precondition that could not be proved
-statementExpressionScope.dfy(55,9): Error: assertion might not hold
-statementExpressionScope.dfy(61,9): Error: assertion might not hold
-
-Dafny program verifier finished with 15 verified, 5 errors

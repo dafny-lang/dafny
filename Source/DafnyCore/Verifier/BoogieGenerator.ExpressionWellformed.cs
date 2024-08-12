@@ -1422,8 +1422,6 @@ namespace Microsoft.Dafny {
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions wfOptions, CheckPostcondition checkPostcondition, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
 
-      var bodyBuilder = new BoogieStmtListBuilder(this, builder.Options, builder.Context);
-
       var statements = new List<Statement>() { stmtExpr.S };
       Expression expression = stmtExpr.E;
       while (expression is StmtExpr nestedStmtExpr) {
@@ -1436,21 +1434,19 @@ namespace Microsoft.Dafny {
       // Statement. Since statement translation (in particular, translation of CallStmt's)
       // work directly on the global variable $Heap, we temporarily change its value here.
       if (etran.UsesOldHeap) {
-        BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, bodyBuilder,
+        BuildWithHeapAs(stmtExpr.S.Tok, etran.HeapExpr, "StmtExpr#", locals, builder,
           () => {
             foreach (var statement in statements) {
-              TrStmt(statement, bodyBuilder, locals, etran);
+              TrStmt(statement, builder, locals, etran);
             }
           });
       } else {
         foreach (var statement in statements) {
-          TrStmt(statement, bodyBuilder, locals, etran);
+          TrStmt(statement, builder, locals, etran);
         }
       }
 
-      CheckWellformedWithResult(expression, wfOptions, checkPostcondition, locals, bodyBuilder, etran, "statement expression result");
-
-      PathAsideBlock(stmtExpr.tok, bodyBuilder, builder);
+      CheckWellformedWithResult(expression, wfOptions, checkPostcondition, locals, builder, etran, "statement expression result");
     }
 
     /// <summary>
