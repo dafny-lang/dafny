@@ -1344,9 +1344,7 @@ namespace Microsoft.Dafny {
       }
 
 
-      if (addResultCommands != null) {
-        addResultCommands(builder, expr);
-      }
+      addResultCommands?.Invoke(builder, expr);
     }
 
     public void CheckSubsetType(ExpressionTranslator etran, Expression expr, Bpl.Expr selfCall, Type resultType,
@@ -1402,8 +1400,6 @@ namespace Microsoft.Dafny {
         Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
         // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
 
-        // TODO: 
-        // resultDescription = "match expression";
         CheckWellformedWithResult(mc.Body, wfOptions, locals, b, etran, addResultCommands);
         ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
         els = null;

@@ -1497,16 +1497,17 @@ public partial class BoogieGenerator {
       // check well-formedness of the witness expression (including termination, and reads checks)
       var ghostCodeContext = codeContext;
       codeContext = decl.WitnessKind == SubsetTypeDecl.WKind.Compiled ? new CallableWrapper(decl, false) : ghostCodeContext;
-      CheckWellformedWithResult(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran, (returnBuilder, result) => {
+      CheckWellformedWithResult(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran, 
+        (returnBuilder, result) => {
         // check that the witness is assignable to the type of the given bound variable
         if (decl is SubsetTypeDecl) {
           // Note, for new-types, this has already been checked by CheckWellformed.
-          CheckResultToBeInType(decl.Witness.tok, result, decl.Var.Type, locals, returnBuilder, etran);
+          CheckResultToBeInType(result.Tok, result, decl.Var.Type, locals, returnBuilder, etran);
         }
 
         // check that the witness expression checks out
         witnessExpr = Substitute(decl.Constraint, decl.Var, result);
-        witnessExpr.tok = decl.Witness.Tok;
+        witnessExpr.tok = result.Tok;
         var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
 
         SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
