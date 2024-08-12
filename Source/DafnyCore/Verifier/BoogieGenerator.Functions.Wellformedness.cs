@@ -213,7 +213,7 @@ public partial class BoogieGenerator {
           }
           if (doReadsChecks) {
             // assert b$reads_guards#0;  ...
-            foreach (var a in wfo.Asserts) {
+            foreach (var a in wfo.CreateAsserts) {
               innerBuilder.Add(a());
             }
           }
