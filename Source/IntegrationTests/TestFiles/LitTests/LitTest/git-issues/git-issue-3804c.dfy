@@ -21,6 +21,6 @@ function Test(x: bool): int
         assert P(2) by { reveal p21; } // p21 can be revealed and this assertion is visible outside.
         2
     };
-  assert P(x);
+  assert P(x); // No longer verifies since we scoped expression proofs
   x
 }
