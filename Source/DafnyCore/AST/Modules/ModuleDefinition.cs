@@ -38,7 +38,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     DafnyOptions.RegisterLegacyUi(LegacyModuleNames, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyModuleNames", defaultValue: false);
     DooFile.RegisterNoChecksNeeded(LegacyModuleNames, false); // needs translation record entry
   }
-  
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
