@@ -82,11 +82,11 @@ enabling necessary special handling.".TrimStart()) {
         options.FileTimestamp);
     });
 
-    DooFile.RegisterNoChecksNeeded(PassivePrint, false);
-    DooFile.RegisterNoChecksNeeded(BoogiePrint, false);
-    DooFile.RegisterNoChecksNeeded(SplitPrint, false);
-    DooFile.RegisterNoChecksNeeded(PrintOption, false);
-    DooFile.RegisterNoChecksNeeded(ResolvedPrint, false);
-    DooFile.RegisterNoChecksNeeded(Bootstrapping, false);
+    OptionRegistry.RegisterOption(PassivePrint, OptionScope.Cli);
+    OptionRegistry.RegisterOption(BoogiePrint, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SplitPrint, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PrintOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ResolvedPrint, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Bootstrapping, OptionScope.Cli);
   }
 }

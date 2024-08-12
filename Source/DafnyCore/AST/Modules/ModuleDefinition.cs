@@ -7,6 +7,7 @@ using System.Linq;
 using DafnyCore;
 using DafnyCore.Options;
 using Microsoft.Dafny.Auditor;
+using Microsoft.Dafny.Compilers;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;

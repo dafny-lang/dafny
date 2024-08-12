@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -150,6 +151,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
     }
   }
+
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
 
   public override bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);

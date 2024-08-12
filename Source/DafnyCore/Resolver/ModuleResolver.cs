@@ -61,10 +61,8 @@ namespace Microsoft.Dafny {
       return d.IsVisibleInScope(moduleInfo.VisibilityScope);
     }
 
-    public FreshIdGenerator defaultTempVarIdGenerator => ProgramResolver.Program.Compilation.IdGenerator;
-
     public string FreshTempVarName(string prefix, ICodeContext context) {
-      var gen = context is Declaration decl ? decl.IdGenerator : defaultTempVarIdGenerator;
+      var gen = context.CodeGenIdGenerator;
       var freshTempVarName = gen.FreshId(prefix);
       return freshTempVarName;
     }
@@ -3311,6 +3309,21 @@ namespace Microsoft.Dafny {
     internal LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
       var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
       return LetPatIn(tok, lhs, rhs, body);
+    }
+
+    internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
+      if (proof == null) {
+        return;
+      }
+
+      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+      var prevLblStmts = resolver.EnclosingStatementLabels;
+      var prevLoopStack = resolver.LoopStack;
+      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+      resolver.LoopStack = new List<Statement>();
+      resolver.ResolveStatement(proof, resolutionContext);
+      resolver.EnclosingStatementLabels = prevLblStmts;
+      resolver.LoopStack = prevLoopStack;
     }
 
     /// <summary>
