@@ -37,9 +37,7 @@ public class PythonBackend : ExecutableBackend {
   public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { PythonModuleNameCliOption };
 
   static PythonBackend() {
-    TranslationRecord.RegisterLibraryChecks(new Dictionary<Option, OptionCompatibility.OptionCheck> {
-      { PythonModuleNameCliOption, OptionCompatibility.NoOpOptionCheck }
-    });
+    OptionRegistry.RegisterOption(PythonModuleNameCliOption, OptionScope.Translation);
   }
 
   public override IReadOnlySet<string> SupportedNativeTypes =>
