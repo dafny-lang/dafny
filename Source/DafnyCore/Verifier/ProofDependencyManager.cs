@@ -32,14 +32,6 @@ namespace Microsoft.Dafny {
       return idString;
     }
 
-    public ProofDependency GetProofDependency(ICarriesAttributes declaration) {
-      var id = QKeyValue.FindStringAttribute(declaration.Attributes, idAttributeName);
-      if (id == null) {
-        return null;
-      }
-      return ProofDependenciesById[id];
-    }
-
     public void SetCurrentDefinition(string verificationScopeId) {
       currentDefinition = verificationScopeId;
     }
