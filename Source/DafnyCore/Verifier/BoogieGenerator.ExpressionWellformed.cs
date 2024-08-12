@@ -253,7 +253,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(predef != null);
-      CheckWellformedWithResult(expr, wfOptions, null, locals, builder, etran);
+      CheckWellformedWithResult(expr, wfOptions, locals, builder, etran, null);
     }
 
     /// <summary>
@@ -264,8 +264,8 @@ namespace Microsoft.Dafny {
     /// See class WFOptions for descriptions of the specified options.
     /// </summary>
     void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
-      AddResultCommands addResultCommands,
-      List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+      AddResultCommands addResultCommands) {
       Contract.Requires(expr != null);
       Contract.Requires(wfOptions != null);
       Contract.Requires(locals != null);
@@ -283,7 +283,7 @@ namespace Microsoft.Dafny {
       switch (expr) {
         case StaticReceiverExpr stexpr: {
             if (stexpr.ObjectToDiscard != null) {
-              CheckWellformedWithResult(stexpr.ObjectToDiscard, wfOptions, null, locals, builder, etran);
+              CheckWellformedWithResult(stexpr.ObjectToDiscard, wfOptions, locals, builder, etran, null);
             }
 
             break;
@@ -910,9 +910,9 @@ namespace Microsoft.Dafny {
               Contract.Assert(letExpr != null);
               CheckWellformedLetExprWithResult(letExpr, wfOptions, addResultCommands, locals, bThen, etran, false);
             } else {
-              CheckWellformedWithResult(e.Thn, wfOptions, addResultCommands, locals, bThen, etran);
+              CheckWellformedWithResult(e.Thn, wfOptions, locals, bThen, etran, addResultCommands);
             }
-            CheckWellformedWithResult(e.Els, wfOptions, addResultCommands, locals, bElse, etran);
+            CheckWellformedWithResult(e.Els, wfOptions, locals, bElse, etran, addResultCommands);
             builder.Add(new Bpl.IfCmd(iteExpr.tok, etran.TrExpr(e.Test), bThen.Collect(iteExpr.tok), null, bElse.Collect(iteExpr.tok)));
             addResultCommands = null;
             break;
@@ -936,18 +936,18 @@ namespace Microsoft.Dafny {
             CheckNotGhostVariant(e.InCompiledContext, updateExpr, e.Root, "update of", e.Members,
               e.LegalSourceConstructors, builder, etran);
 
-            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, addResultCommands, locals, builder, etran);
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, locals, builder, etran, addResultCommands);
             addResultCommands = null;
             break;
           }
         case ConcreteSyntaxExpression expression: {
             var e = expression;
-            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, addResultCommands, locals, builder, etran);
+            CheckWellformedWithResult(e.ResolvedExpression, wfOptions, locals, builder, etran, addResultCommands);
             addResultCommands = null;
             break;
           }
         case NestedMatchExpr nestedMatchExpr:
-          CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, addResultCommands, locals, builder, etran);
+          CheckWellformedWithResult(nestedMatchExpr.Flattened, wfOptions, locals, builder, etran, addResultCommands);
           addResultCommands = null;
           break;
         case BoogieFunctionCall call: {
@@ -1016,9 +1016,9 @@ namespace Microsoft.Dafny {
           directSubstMap.Add(p, ee);
 
           if (!(ee is DefaultValueExpression)) {
-            CheckWellformedWithResult(ee, wfOptions, (returnBuilder, result) => {
+            CheckWellformedWithResult(ee, wfOptions, locals, builder, etran, (returnBuilder, result) => {
               CheckSubrange(result.Tok, etran.TrExpr(result), ee.Type, et, ee, returnBuilder);
-            }, locals, builder, etran);
+            });
           }
           Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.tok, lhs, AdaptBoxing(p.tok, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
           builder.Add(cmd);
@@ -1310,7 +1310,7 @@ namespace Microsoft.Dafny {
               }
             }
 
-            CheckWellformedWithResult(body, newOptions, AddResultCommands, locals, b, comprehensionEtran);
+            CheckWellformedWithResult(body, newOptions, locals, b, comprehensionEtran, AddResultCommands);
           });
 
           if (mc != null) {
@@ -1416,7 +1416,7 @@ namespace Microsoft.Dafny {
 
         // TODO: 
         // resultDescription = "match expression";
-        CheckWellformedWithResult(mc.Body, wfOptions, addResultCommands, locals, b, etran);
+        CheckWellformedWithResult(mc.Body, wfOptions, locals, b, etran, addResultCommands);
         ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
         els = null;
       }
@@ -1451,7 +1451,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      CheckWellformedWithResult(expression, wfOptions, addResultCommands, locals, builder, etran);
+      CheckWellformedWithResult(expression, wfOptions, locals, builder, etran, addResultCommands);
     }
 
     /// <summary>
@@ -1542,12 +1542,12 @@ namespace Microsoft.Dafny {
             CheckSubsetType(etran, body, rIe, pat.Expr.Type, innerBuilder);
           }
 
-          CheckWellformedWithResult(e.RHSs[i], wfOptions, CheckPostconditionForRhs, locals, builder, etran);
+          CheckWellformedWithResult(e.RHSs[i], wfOptions, locals, builder, etran, CheckPostconditionForRhs);
           CheckCasePatternShape(pat, rhs, rIe, rhs.tok, pat.Expr.Type, builder);
           var substExpr = Substitute(pat.Expr, null, substMap);
           builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, e.tok, substExpr, e => Bpl.Expr.Eq(e, rIe), "let expression binding"));
         }
-        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, addResultCommands, locals, builder, etran);
+        CheckWellformedWithResult(Substitute(e.Body, null, substMap), wfOptions, locals, builder, etran, addResultCommands);
 
       } else {
         // CheckWellformed(var b :| RHS(b); Body(b)) =

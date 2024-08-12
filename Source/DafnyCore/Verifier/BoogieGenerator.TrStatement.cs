@@ -415,7 +415,7 @@ namespace Microsoft.Dafny {
         returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs,
           e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
       };
-      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), addResultCommands, locals, builder, etran);
+      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), locals, builder, etran, addResultCommands);
       builder.Add(TrAssumeCmd(rhs.tok, etran.CanCallAssumption(rhs)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));
@@ -2909,7 +2909,7 @@ namespace Microsoft.Dafny {
       if (lValueContext) {
         options = options.WithLValueContext(true);
       }
-      CheckWellformedWithResult(expr, options, addResultCommands, locals, builder, etran);
+      CheckWellformedWithResult(expr, options, locals, builder, etran, addResultCommands);
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
 

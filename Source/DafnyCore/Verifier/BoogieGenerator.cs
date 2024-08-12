@@ -2339,11 +2339,10 @@ namespace Microsoft.Dafny {
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
         CheckWellformedWithResult(e, new WFOptions(null, true,
-          false, true),
-          (returnBuilder, result) => {
-            builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-            CheckSubrange(result.tok, etran.TrExpr(result), e.Type, formal.Type, e, returnBuilder);
-          }, locals, builder, etran);
+            false, true), locals, builder, etran, (returnBuilder, result) => {
+          builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
+          CheckSubrange(result.tok, etran.TrExpr(result), e.Type, formal.Type, e, returnBuilder);
+        });
       }
 
       if (EmitImplementation(ctor.Attributes)) {

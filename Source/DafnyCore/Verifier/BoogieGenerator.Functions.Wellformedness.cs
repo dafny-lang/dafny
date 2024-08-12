@@ -227,7 +227,7 @@ public partial class BoogieGenerator {
           innerBuilder.Add(new ReturnCmd(innerBody.Tok));
         }
 
-        generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran);
+        generator.CheckWellformedWithResult(f.Body, wfo, locals, bodyCheckBuilder, etran, CheckPostcondition);
 
         // var b$reads_guards#0 : bool  ...
         locals.AddRange(wfo.Locals);
