@@ -396,14 +396,14 @@ namespace Microsoft.Dafny {
         locals.Add(boogieTupleLocal);
         var boogieTupleReference = new Bpl.IdentifierExpr(rhs.tok, boogieTupleLocal);
 
-        AddResultCommands addResultCommands = (returnBuilder, result) => {
+        void AddResultCommands(BoogieStmtListBuilder returnBuilder, Expression result) {
           Contract.Assert(pat.Expr.Type != null);
           var bResult = etran.TrExpr(result);
-          CheckSubrange(rhs.tok, bResult, rhs.Type, pat.Expr.Type, rhs, returnBuilder);
-          returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs,
-            e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
-        };
-        CheckWellformedWithResult(rhs, new WFOptions(null, false, false), locals, builder, etran, addResultCommands);
+          CheckSubrange(result.tok, bResult, rhs.Type, pat.Expr.Type, rhs, returnBuilder);
+          returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs, e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
+        }
+
+        CheckWellformedWithResult(rhs, new WFOptions(null, false, false), locals, builder, etran, AddResultCommands);
         builder.Add(TrAssumeCmd(rhs.tok, etran.CanCallAssumption(rhs)));
         builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
         builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));
@@ -2621,16 +2621,15 @@ namespace Microsoft.Dafny {
         var e = (ExprRhs)rhs;
 
         var bRhs = etran.TrExpr(e.Expr);
-        // TODO should GetSubrangeCheck not be moved inside?
         var cre = GetSubrangeCheck(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, null, out var desc, "");
         TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, addResultCommands:
           (returnBuilder, result) => {
             if (cre != null) {
-              returnBuilder.Add(Assert(tok, cre, desc));
+              returnBuilder.Add(Assert(result.Tok, cre, desc));
             }
           });
         if (cre != null) {
-          builder.Add(new AssumeCmd(tok, cre)); //e.tok, MkIs(bRhs, rhsTypeConstraint)));
+          builder.Add(new AssumeCmd(tok, cre));
         }
 
         if (bGivenLhs != null) {
