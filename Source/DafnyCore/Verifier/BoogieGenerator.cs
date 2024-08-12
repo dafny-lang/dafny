@@ -2340,9 +2340,9 @@ namespace Microsoft.Dafny {
         var e = formal.DefaultValue;
         CheckWellformedWithResult(e, new WFOptions(null, true,
           false, true),
-          (innerBuilder, innerExpr, _, _) => {
+          (returnBuilder, result) => {
             builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
-            CheckSubrange(innerExpr.tok, etran.TrExpr(innerExpr), e.Type, formal.Type, e, innerBuilder);
+            CheckSubrange(result.tok, etran.TrExpr(result), e.Type, formal.Type, e, returnBuilder);
           }, locals, builder, etran);
       }
 

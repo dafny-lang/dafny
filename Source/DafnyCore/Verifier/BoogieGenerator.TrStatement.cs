@@ -408,16 +408,14 @@ namespace Microsoft.Dafny {
       locals.Add(boogieTupleLocal);
       var boogieTupleReference = new Bpl.IdentifierExpr(rhs.tok, boogieTupleLocal);
 
-      CheckPostcondition checkPostcondition = (b, body, adaptBoxing, prefix) => {
+      AddResultCommands addResultCommands = (returnBuilder, result) => {
         Contract.Assert(pat.Expr.Type != null);
-        var bResult = etran.TrExpr(body);
-        CheckSubrange(rhs.tok, bResult, rhs.Type, pat.Expr.Type, rhs, b);
-        b.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs,
-          e => Bpl.Expr.Eq(boogieTupleReference, adaptBoxing ? AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type) : e),
-          prefix));
+        var bResult = etran.TrExpr(result);
+        CheckSubrange(rhs.tok, bResult, rhs.Type, pat.Expr.Type, rhs, returnBuilder);
+        returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs,
+          e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
       };
-      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), checkPostcondition, locals, builder, etran,
-        "variable declaration RHS");
+      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), addResultCommands, locals, builder, etran);
       builder.Add(TrAssumeCmd(rhs.tok, etran.CanCallAssumption(rhs)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));
@@ -2626,11 +2624,12 @@ namespace Microsoft.Dafny {
         var e = (ExprRhs)rhs;
 
         var bRhs = etran.TrExpr(e.Expr);
+        // TODO should GetSubrangeCheck not be moved inside?
         var cre = GetSubrangeCheck(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, null, out var desc, "");
-        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, checkPostcondition:
-          (b, _, _, _) => {
+        TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, addResultCommands:
+          (returnBuilder, result) => {
             if (cre != null) {
-              b.Add(Assert(tok, cre, desc));
+              returnBuilder.Add(Assert(tok, cre, desc));
             }
           });
         if (cre != null) {
@@ -2885,7 +2884,7 @@ namespace Microsoft.Dafny {
     }
 
     void TrStmt_CheckWellformed(Expression expr, BoogieStmtListBuilder builder, List<Variable> locals,
-      ExpressionTranslator etran, bool subsumption, bool lValueContext = false, CheckPostcondition checkPostcondition = null) {
+      ExpressionTranslator etran, bool subsumption, bool lValueContext = false, AddResultCommands addResultCommands = null) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -2910,7 +2909,7 @@ namespace Microsoft.Dafny {
       if (lValueContext) {
         options = options.WithLValueContext(true);
       }
-      CheckWellformedWithResult(expr, options, checkPostcondition, locals, builder, etran);
+      CheckWellformedWithResult(expr, options, addResultCommands, locals, builder, etran);
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
     }
 

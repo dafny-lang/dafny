@@ -204,8 +204,8 @@ public partial class BoogieGenerator {
         var doReadsChecks = etran.readsFrame != null;
         var wfo = new WFOptions(null, doReadsChecks, doReadsChecks, false);
 
-        void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody, bool adaptBoxing, string prefix) {
-          generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, adaptBoxing, prefix);
+        void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody) {
+          generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder);
           if (f.Result != null) {
             var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
             generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
@@ -227,7 +227,7 @@ public partial class BoogieGenerator {
           innerBuilder.Add(new ReturnCmd(innerBody.Tok));
         }
 
-        generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran, "function call result");
+        generator.CheckWellformedWithResult(f.Body, wfo, CheckPostcondition, locals, bodyCheckBuilder, etran);
 
         // var b$reads_guards#0 : bool  ...
         locals.AddRange(wfo.Locals);
