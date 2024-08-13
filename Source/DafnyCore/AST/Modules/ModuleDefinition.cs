@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using DafnyCore;
+using DafnyCore.Options;
 using Microsoft.Dafny.Auditor;
 using Microsoft.Dafny.Compilers;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -25,6 +28,18 @@ public enum ImplementationKind {
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition>, IHasSymbolChildren {
+
+  public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
+    @"
+Generate module names in the older A_mB_mC style instead of the current A.B.C scheme".TrimStart()) {
+    IsHidden = true
+  };
+
+  static ModuleDefinition() {
+    DafnyOptions.RegisterLegacyUi(LegacyModuleNames, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyModuleNames", defaultValue: false);
+    OptionRegistry.RegisterOption(LegacyModuleNames, OptionScope.Translation);
+  }
+
   public IToken BodyStartTok = Token.NoToken;
   public IToken TokenWithTrailingDocString = Token.NoToken;
   public string DafnyName => NameNode.StartToken.val; // The (not-qualified) name as seen in Dafny source code
@@ -215,11 +230,15 @@ public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, IClonea
       if (IsBuiltinName) {
         compileName = Name;
       } else if (EnclosingModule is { TryToAvoidName: false }) {
-        // Include all names in the module tree path, to disambiguate when compiling
-        // a flat list of modules.
-        // Use an "underscore-escaped" character as a module name separator, since
-        // underscores are already used as escape characters in SanitizeName()
-        compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        if (options.Get(LegacyModuleNames)) {
+          compileName = SanitizedName;
+        } else {
+          // Include all names in the module tree path, to disambiguate when compiling
+          // a flat list of modules.
+          // Use an "underscore-escaped" character as a module name separator, since
+          // underscores are already used as escape characters in SanitizeName()
+          compileName = EnclosingModule.GetCompileName(options) + options.Backend.ModuleSeparator + NonglobalVariable.SanitizeName(Name);
+        }
       } else {
         compileName = NonglobalVariable.SanitizeName(Name);
       }

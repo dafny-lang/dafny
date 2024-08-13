@@ -1793,19 +1793,16 @@ namespace Microsoft.Dafny {
         }
       }
 
-      MethodTranslationKind kind;
+      bool isCoCall = false;
       var callee = method;
       if (method is ExtremeLemma && isRecursiveCall) {
-        kind = MethodTranslationKind.CoCall;
+        isCoCall = true;
         callee = ((ExtremeLemma)method).PrefixLemma;
       } else if (method is PrefixLemma) {
         // an explicit call to a prefix lemma is allowed only inside the SCC of the corresponding greatest lemma,
         // so we consider this to be a co-call
-        kind = MethodTranslationKind.CoCall;
-      } else {
-        kind = MethodTranslationKind.Call;
+        isCoCall = true;
       }
-
 
       var ins = new List<Bpl.Expr>();
       if (callee is TwoStateLemma) {
@@ -2002,22 +1999,41 @@ namespace Microsoft.Dafny {
         }
       }
 
-      builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
-      // Make the call
-      AddReferencedMember(callee);
-      Bpl.CallCmd call = Call(tok, MethodName(callee, kind), ins, outs);
-      proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
-      if (
-        (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-        (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
-        // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
-        // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
-        // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
-        // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
-        // of the predicate.
-        call.IsFree = true;
+      if (cs.Proof == null) {
+        AddCall(builder);
+      } else {
+        var callBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
+        AddComment(callBuilder, cs, "call statement proof");
+        CurrentIdGenerator.Push();
+        TrStmt(cs.Proof, callBuilder, locals, etran);
+        CurrentIdGenerator.Pop();
+        AddCall(callBuilder);
+        PathAsideBlock(cs.Tok, callBuilder, builder);
       }
-      builder.Add(call);
+
+      void AddCall(BoogieStmtListBuilder callBuilder) {
+        callBuilder.Add(new CommentCmd($"ProcessCallStmt: Check precondition"));
+        // Make the call
+        AddReferencedMember(callee);
+        Bpl.CallCmd call = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPre : MethodTranslationKind.CallPre), ins, new List<Bpl.IdentifierExpr>());
+        proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
+        if (
+          (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+          (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+          // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
+          // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
+          // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
+          // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
+          // of the predicate.
+          call.IsFree = true;
+        }
+        callBuilder.Add(call);
+      }
+
+      builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
+      CallCmd post = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
+      proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
+      builder.Add(post);
 
       // Unbox results as needed
       for (int i = 0; i < Lhss.Count; i++) {
