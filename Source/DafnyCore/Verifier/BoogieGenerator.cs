@@ -2856,13 +2856,15 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
+    enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCallPre, CoCallPost, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
         { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
-        { MethodTranslationKind.Call, "Call" },
-        { MethodTranslationKind.CoCall, "CoCall" },
+        { MethodTranslationKind.CallPre, "CallPre" },
+        { MethodTranslationKind.CallPost, "CallPost" },
+        { MethodTranslationKind.CoCallPre, "CoCallPre" },
+        { MethodTranslationKind.CoCallPost, "CoCallPost" },
         { MethodTranslationKind.Implementation, "Impl" },
         { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
       };
@@ -2875,8 +2877,10 @@ namespace Microsoft.Dafny {
     private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
       new Dictionary<MethodTranslationKind, string>() {
         {MethodTranslationKind.SpecWellformedness, "well-formedness"},
-        {MethodTranslationKind.Call, "call"},
-        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.CallPre, "call precondtion"},
+        {MethodTranslationKind.CallPost, "call postcondition"},
+        {MethodTranslationKind.CoCallPre, "co-call precondtion"},
+        {MethodTranslationKind.CoCallPost, "co-call postcondition"},
         {MethodTranslationKind.Implementation, "correctness"},
         {MethodTranslationKind.OverrideCheck, "override check"},
       };
@@ -4587,7 +4591,7 @@ namespace Microsoft.Dafny {
       var splits = new List<SplitExprInfo>();
       var applyInduction = kind == MethodTranslationKind.Implementation;
       bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, applyInduction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.CallPost, applyInduction, etran);
       return splits;
     }
 
