@@ -1209,7 +1209,7 @@ namespace Microsoft.Dafny {
 
                   void AddResultCommands(BoogieStmtListBuilder returnBuilder, Expression result) {
                     if (rangeType != null) {
-                      CheckSubsetType(etran, result, resultIe, rangeType, returnBuilder);
+                      CheckSubsetType(etran, result, resultIe, rangeType, returnBuilder, "lambda expression");
                     }
                   }
 
@@ -1343,13 +1343,13 @@ namespace Microsoft.Dafny {
     }
 
     public void CheckSubsetType(ExpressionTranslator etran, Expression expr, Bpl.Expr selfCall, Type resultType,
-      BoogieStmtListBuilder builder) {
+      BoogieStmtListBuilder builder, string comment) {
 
       Contract.Assert(resultType != null);
       var bResult = etran.TrExpr(expr);
       CheckSubrange(expr.tok, bResult, expr.Type, resultType, expr, builder);
       builder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, expr,
-        e => Bpl.Expr.Eq(selfCall, AdaptBoxing(expr.tok, e, expr.Type, resultType))));
+        e => Bpl.Expr.Eq(selfCall, AdaptBoxing(expr.tok, e, expr.Type, resultType)), comment));
       builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(expr.tok, MkIs(selfCall, resultType)));
@@ -1518,7 +1518,7 @@ namespace Microsoft.Dafny {
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
 
           void CheckPostconditionForRhs(BoogieStmtListBuilder innerBuilder, Expression body) {
-            CheckSubsetType(etran, body, rIe, pat.Expr.Type, innerBuilder);
+            CheckSubsetType(etran, body, rIe, pat.Expr.Type, innerBuilder, "let expression binding RHS well-formed");
           }
 
           CheckWellformedWithResult(e.RHSs[i], wfOptions, locals, builder, etran, CheckPostconditionForRhs);

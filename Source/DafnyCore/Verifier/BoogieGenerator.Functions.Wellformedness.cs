@@ -205,7 +205,7 @@ public partial class BoogieGenerator {
         var wfo = new WFOptions(null, doReadsChecks, doReadsChecks, false);
 
         void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody) {
-          generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder);
+          generator.CheckSubsetType(etran, innerBody, selfCall, f.ResultType, innerBuilder, "function call result");
           if (f.Result != null) {
             var cmd = TrAssumeCmd(f.tok, Expr.Eq(selfCall, generator.TrVar(f.tok, f.Result)));
             generator.proofDependencies?.AddProofDependencyId(cmd, f.tok, new FunctionDefinitionDependency(f));
