@@ -3069,13 +3069,16 @@ namespace Microsoft.Dafny.Compilers {
           EndStmt(wr);
           n++;
         }
+
+        var inParamIndex = 0;
         foreach (var p in e.Function.Ins) {
           if (!p.IsGhost) {
             EmitIdentifier(
               inTmps[n],
-              EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, e.tok)
+              EmitAssignment(IdentLvalue(TailRecursiveVar(inParamIndex, p)), p.Type, inTypes[n], wr, e.tok)
             );
             n++;
+            inParamIndex++;
           }
         }
         Contract.Assert(n == inTmps.Count);
