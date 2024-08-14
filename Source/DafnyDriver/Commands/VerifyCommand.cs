@@ -20,8 +20,13 @@ public static class VerifyCommand {
     // they can't be specified when building a doo file.
     OptionRegistry.RegisterOption(FilterSymbol, OptionScope.Cli);
     OptionRegistry.RegisterOption(FilterPosition, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PerformanceStatisticsOption, OptionScope.Cli);
   }
 
+  public static readonly Option<bool> PerformanceStatisticsOption = new("--performance-stats",
+    @"Report a summary of the verification performance.");
+
+  
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
     @"Filter what gets verified by selecting only symbols whose fully qualified name contains the given argument. For example: ""--filter-symbol=MyNestedModule.MyFooFunction""");
 
@@ -40,6 +45,7 @@ public static class VerifyCommand {
 
   private static IReadOnlyList<Option> VerifyOptions =>
     new Option[] {
+        PerformanceStatisticsOption,
         FilterSymbol,
         FilterPosition,
         DafnyFile.DoNotVerifyDependencies
@@ -80,6 +86,10 @@ public static class VerifyCommand {
     verificationResults.Subscribe(result => {
       foreach (var taskResult in result.Results) {
         var runResult = taskResult.Result;
+        Interlocked.Add(ref statistics.TotalResourcesUsed, runResult.ResourceCount);
+        lock (statistics) {
+          statistics.MaxVcResourcesUsed = Math.Max(statistics.MaxVcResourcesUsed, runResult.ResourceCount);
+        }
 
         switch (runResult.Outcome) {
           case SolverOutcome.Valid:
@@ -114,6 +124,11 @@ public static class VerifyCommand {
     });
     await verificationResults.WaitForComplete();
     await WriteTrailer(cliCompilation, statistics);
+    if (cliCompilation.Options.Get(PerformanceStatisticsOption)) {
+      var output = cliCompilation.Options.OutputWriter;
+      await output.WriteLineAsync($"Total resources used is {statistics.TotalResourcesUsed}");
+      await output.WriteLineAsync($"Max resources used by VC is {statistics.MaxVcResourcesUsed}");
+    }
   }
 
   private static async Task WriteTrailer(CliCompilation cliCompilation,
