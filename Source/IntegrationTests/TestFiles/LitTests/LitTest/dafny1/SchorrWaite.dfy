@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %testDafnyForEachResolver "%s" -- --performance-stats
 
 
 // Rustan Leino
