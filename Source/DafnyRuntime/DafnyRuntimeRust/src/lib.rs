@@ -1661,12 +1661,17 @@ impl<V: DafnyTypeEq> PartialOrd<Multiset<V>> for Multiset<V> {
                 let mut has_less = false;
                 let mut has_greater = false;
                 for value in self.data.keys() {
-                    if self.get(value) < other.get(value) {
+                    if !other.contains(value) {
+                        return None;
+                    }
+                    let self_count = self.get(value);
+                    let other_count = other.get(value);
+                    if self_count < other_count {
                         if has_greater {
                             return None;
                         }
                         has_less = true;
-                    } else if self.get(value) > other.get(value) {
+                    } else if self_count > other_count {
                         if has_less {
                             return None;
                         }
