@@ -1753,9 +1753,9 @@ namespace Microsoft.Dafny {
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
 
-    public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
+    public readonly VerificationIdGenerator defaultIdGenerator = new VerificationIdGenerator();
 
-    public FreshIdGenerator CurrentIdGenerator {
+    public VerificationIdGenerator CurrentIdGenerator {
       get {
         var decl = codeContext as Declaration;
         if (decl != null) {
@@ -2855,13 +2855,15 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
+    enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCallPre, CoCallPost, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
         { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
-        { MethodTranslationKind.Call, "Call" },
-        { MethodTranslationKind.CoCall, "CoCall" },
+        { MethodTranslationKind.CallPre, "CallPre" },
+        { MethodTranslationKind.CallPost, "CallPost" },
+        { MethodTranslationKind.CoCallPre, "CoCallPre" },
+        { MethodTranslationKind.CoCallPost, "CoCallPost" },
         { MethodTranslationKind.Implementation, "Impl" },
         { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
       };
@@ -2874,8 +2876,10 @@ namespace Microsoft.Dafny {
     private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
       new Dictionary<MethodTranslationKind, string>() {
         {MethodTranslationKind.SpecWellformedness, "well-formedness"},
-        {MethodTranslationKind.Call, "call"},
-        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.CallPre, "call precondtion"},
+        {MethodTranslationKind.CallPost, "call postcondition"},
+        {MethodTranslationKind.CoCallPre, "co-call precondtion"},
+        {MethodTranslationKind.CoCallPost, "co-call postcondition"},
         {MethodTranslationKind.Implementation, "correctness"},
         {MethodTranslationKind.OverrideCheck, "override check"},
       };
@@ -3654,7 +3658,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(decreases != null);
       List<Bpl.Expr> oldBfs = new List<Bpl.Expr>();
-      var idGen = new FreshIdGenerator();
+      var idGen = new VerificationIdGenerator();
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
         Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, idGen.FreshId(varPrefix), TrType(cce.NonNull(e.Type))));
@@ -4586,7 +4590,7 @@ namespace Microsoft.Dafny {
       var splits = new List<SplitExprInfo>();
       var applyInduction = kind == MethodTranslationKind.Implementation;
       bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.Call, applyInduction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.CallPost, applyInduction, etran);
       return splits;
     }
 
