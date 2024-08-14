@@ -15,6 +15,14 @@ function {:tailrecursion} GetSum(
     GetSum(j - 1, ac_c + a_b')
 }
 
+function GetSumAuto(x: nat, y: nat): nat
+  decreases y - x
+{
+  if x >= y then y else
+  1 + GetSumAuto(x + 1, y)
+}
+
 method Main() {
   print GetSum(10, ""), "\n";
+  print GetSumAuto(0, 5), "\n";
 }

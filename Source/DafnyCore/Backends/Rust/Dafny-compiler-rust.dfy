@@ -3622,6 +3622,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var loopBegin := R.RawExpr("");
           for paramI := 0 to |env.names| {
             var param := env.names[paramI];
+            if param == "_accumulator" {
+              continue; // This is an already mutable variable handled by SinglePassCodeGenerator
+            }
             var paramInit, _, _ := GenIdent(param, selfIdent, env, OwnershipOwned);
             var recVar := TailRecursionPrefix + Strings.OfNat(paramI);
             generated := generated.Then(R.DeclareVar(R.MUT, recVar, None, Some(paramInit)));
