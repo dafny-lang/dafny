@@ -3269,6 +3269,9 @@ namespace DCOMP {
             for (BigInteger _79_paramI = BigInteger.Zero; _79_paramI < _hi1; _79_paramI++) {
               Dafny.ISequence<Dafny.Rune> _80_param;
               _80_param = ((env).dtor_names).Select(_79_paramI);
+              if ((_80_param).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_accumulator"))) {
+                goto continue_4_0;
+              }
               RAST._IExpr _81_paramInit;
               DCOMP._IOwnership _82___v90;
               Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _83___v91;
@@ -3289,7 +3292,9 @@ namespace DCOMP {
                 newEnv = (newEnv).AddAssigned(_84_recVar, _85_declaredType);
               }
               _78_loopBegin = (_78_loopBegin).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _80_param, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_Identifier(_84_recVar))));
+            continue_4_0: ;
             }
+          after_4_0: ;
             RAST._IExpr _86_bodyExpr;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _87_bodyIdents;
             DCOMP._IEnvironment _88_bodyEnv;
@@ -5676,7 +5681,7 @@ namespace DCOMP {
                       goto after__ASSIGN_SUCH_THAT_0;
                     }
                   }
-                  throw new System.Exception("assign-such-that search produced no value (line 4744)");
+                  throw new System.Exception("assign-such-that search produced no value (line 4747)");
                 after__ASSIGN_SUCH_THAT_0: ;
                   _63_allReadCloned = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(_63_allReadCloned, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("let ")), _64_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" = ")), _64_next), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".clone();\n"));
                   _62_recIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Difference(_62_recIdents, Dafny.Set<Dafny.ISequence<Dafny.Rune>>.FromElements(_64_next));
@@ -7032,7 +7037,7 @@ namespace DCOMP {
                   goto after__ASSIGN_SUCH_THAT_1;
                 }
               }
-              throw new System.Exception("assign-such-that search produced no value (line 5280)");
+              throw new System.Exception("assign-such-that search produced no value (line 5283)");
             after__ASSIGN_SUCH_THAT_1: ;
               if ((!object.Equals(selfIdent, DCOMP.SelfInfo.create_NoSelf())) && ((_310_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
                 RAST._IExpr _311_selfCloned;
