@@ -23,8 +23,9 @@ public static class VerifyCommand {
     OptionRegistry.RegisterOption(PerformanceStatisticsOption, OptionScope.Cli);
   }
 
-  public static readonly Option<bool> PerformanceStatisticsOption = new("--performance-stats",
-    @"Report a summary of the verification performance.");
+  public static readonly Option<int> PerformanceStatisticsOption = new("--performance-stats",
+    "Report a summary of the verification performance. " +
+    "The given argument is used to divide all the output with, which can help ignore small differences.");
 
   
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
@@ -124,10 +125,15 @@ public static class VerifyCommand {
     });
     await verificationResults.WaitForComplete();
     await WriteTrailer(cliCompilation, statistics);
-    if (cliCompilation.Options.Get(PerformanceStatisticsOption)) {
+    var performanceStatisticsDivisor = cliCompilation.Options.Get(PerformanceStatisticsOption);
+    if (performanceStatisticsDivisor != 0) {
+      int Round(int number) {
+        var numberForUpRounding = number + performanceStatisticsDivisor / 2;
+        return (numberForUpRounding / performanceStatisticsDivisor) * performanceStatisticsDivisor;
+      }
       var output = cliCompilation.Options.OutputWriter;
-      await output.WriteLineAsync($"Total resources used is {statistics.TotalResourcesUsed}");
-      await output.WriteLineAsync($"Max resources used by VC is {statistics.MaxVcResourcesUsed}");
+      await output.WriteLineAsync($"Total resources used is {Round(statistics.TotalResourcesUsed)}");
+      await output.WriteLineAsync($"Max resources used by VC is {Round(statistics.MaxVcResourcesUsed)}");
     }
   }
 
