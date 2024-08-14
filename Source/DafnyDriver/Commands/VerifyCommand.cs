@@ -27,7 +27,7 @@ public static class VerifyCommand {
     "Report a summary of the verification performance. " +
     "The given argument is used to divide all the output with, which can help ignore small differences.");
 
-  
+
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
     @"Filter what gets verified by selecting only symbols whose fully qualified name contains the given argument. For example: ""--filter-symbol=MyNestedModule.MyFooFunction""");
 
