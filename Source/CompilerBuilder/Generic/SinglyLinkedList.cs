@@ -38,6 +38,10 @@ public abstract record SinglyLinkedList<T> : IEnumerable<T> {
     return this is not Nil<T>;
   }
 
+  public (T, SinglyLinkedList<T>)? ToNullable() {
+    return Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null);
+  }
+  
   public abstract U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil);
 }
 

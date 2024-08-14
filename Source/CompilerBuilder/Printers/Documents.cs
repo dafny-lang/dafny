@@ -13,7 +13,7 @@ public interface Document {
     return this is Empty ? this : new IndentD(this, amount);
   }
   
-  public Document Then(Document next, Orientation orientation) {
+  public Document Then(Document next, Separator separator) {
     if (this is Empty) {
       return next;
     }
@@ -22,7 +22,7 @@ public interface Document {
       return this;
     }
 
-    return new SequenceD(this, next, orientation);
+    return new SequenceD(this, next, separator);
   }
 }
 
@@ -51,12 +51,12 @@ record Empty : Document {
   public bool IsEmpty => true;
 }
 
-public enum Orientation {
-  Adjacent,
-  Spaced,
-  Vertical,
-  LineBroken,
-  SpacedOrVertical,
+public enum Separator {
+  Nothing,
+  Space,
+  Linebreak,
+  EmptyLine,
+  SpaceOrLinebreak,
 }
 
 public class IndentationWriter(TextWriter writer, int spacesPerTick) {
@@ -90,20 +90,20 @@ public class IndentationWriter(TextWriter writer, int spacesPerTick) {
   }
 }
 
-record SequenceD(Document Left, Document Right, Orientation Orientation) : Document {
+record SequenceD(Document Left, Document Right, Separator Separator) : Document {
   public void Render(int desiredWidth, IndentationWriter writer) {
     Left.Render(desiredWidth, writer);
-    if (Orientation == Orientation.Adjacent) {
-    } else if (Orientation == Orientation.Spaced) {
+    if (Separator == Separator.Nothing) {
+    } else if (Separator == Separator.Space) {
       if (!Left.IsEmpty && !Right.IsEmpty) {
         writer.Write(" ");
       }
-    } else if (Orientation == Orientation.Vertical || Orientation == Orientation.LineBroken) {
-      if (Orientation == Orientation.LineBroken) {
+    } else if (Separator == Separator.Linebreak || Separator == Separator.EmptyLine) {
+      if (Separator == Separator.EmptyLine) {
         writer.WriteLine();
       }
       writer.WriteLine();
-    } else if (Orientation == Orientation.SpacedOrVertical) {
+    } else if (Separator == Separator.SpaceOrLinebreak) {
       throw new NotImplementedException();
       // if (writer.LineWidth + Right.Width > desiredWidth) {
       //   writer.WriteLine();

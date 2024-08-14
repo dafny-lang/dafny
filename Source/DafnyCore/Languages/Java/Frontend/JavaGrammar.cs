@@ -83,19 +83,21 @@ public class JavaGrammar {
   }
 
   public Grammar<FileModuleDefinition> File() {
+    var package = Keyword("package").Then(Identifier.CommaSeparated()).Ignore();
     var qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
-    var import = Keyword("import").Then(qualifiedId).Then(";", Orientation.Adjacent).Map(
+    var import = Keyword("import").Then(qualifiedId).Then(";", Separator.Nothing).Map(
         (t, a) => new AliasModuleDecl(DafnyOptions.Default, 
           Convert(t), a, a.Path[^1], null, true, [], Guid.NewGuid()), 
         a => a.TargetQId);
     
-    var classes = Class().Many(Orientation.LineBroken);
-    return import.Many(Orientation.Vertical).Map(imports =>
+    var classes = Class().Many(Separator.EmptyLine);
+    var imports = import.Many(Separator.Linebreak).Map(imports =>
       new FileModuleDefinition(Token.NoToken) {
         SourceDecls = imports.ToList<TopLevelDecl>()
-      }, f => f.SourceDecls.OfType<AliasModuleDecl>().ToList()).Then(classes,
+      }, f => f.SourceDecls.OfType<AliasModuleDecl>().ToList());
+    return package.Then(imports).Then(classes,
       f => f.SourceDecls.OfType<ClassDecl>().ToList(),
-      (f, c) => f.SourceDecls.AddRange(c), Orientation.LineBroken);
+      (f, c) => f.SourceDecls.AddRange(c), Separator.EmptyLine);
   }
   
   Grammar<ClassDecl> Class() {
@@ -103,7 +105,7 @@ public class JavaGrammar {
       Then("class").
       Then(name, cl => cl.NameNode);
     
-    var body = Member().Many(Orientation.LineBroken).InBraces();
+    var body = Member().Many(Separator.EmptyLine).InBraces();
 
     return header.
       Then(body, cl => cl.Members).
@@ -135,14 +137,14 @@ public class JavaGrammar {
 
     var expressionBody = Keyword("return").
       Then(expression).
-      Then(";", Orientation.Adjacent).InBraces();
+      Then(";", Separator.Nothing).InBraces();
     return Constructor<Function>().
       Then(Keyword("@Function")).
-      Then(staticc, m => m.IsStatic, Orientation.Vertical).
+      Then(staticc, m => m.IsStatic, Separator.Linebreak).
       Then(type, m => m.ResultType).
       Then(name, m => m.NameNode).
-      Then(parameters, m => m.Ins, Orientation.Adjacent).
-      Then(requires.Indent(), m => m.Req, Orientation.Vertical).
+      Then(parameters, m => m.Ins, Separator.Nothing).
+      Then(requires.Indent(), m => m.Req, Separator.Linebreak).
       Then(expressionBody, m => m.Body).
       SetRange((m, r) => m.RangeToken = Convert(r));
   }
@@ -171,23 +173,23 @@ public class JavaGrammar {
     var require = Keyword("requires").Then(expression).Map(
       e => new AttributedExpression(e), 
       ae => ae.E);
-    var requires = require.Many(Orientation.Vertical);
+    var requires = require.Many(Separator.Linebreak);
 
     return Constructor<Method>().
       Then(staticc, m => m.IsStatic).
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
-      Then(parameters, m => m.Ins, Orientation.Adjacent).
-      Then(requires.Indent(), m => m.Req, Orientation.Vertical).
-      Then(block, m => m.Body, Orientation.Vertical).
+      Then(parameters, m => m.Ins, Separator.Nothing).
+      Then(requires.Indent(), m => m.Req, Separator.Linebreak).
+      Then(block, m => m.Body, Separator.Linebreak).
       SetRange((m, r) => m.RangeToken = Convert(r));
   }
   
   (Grammar<Statement> Statement, Grammar<BlockStmt> Block) StatementGrammar(Grammar<Statement> self) {
-    var blockResult = self.Many(Orientation.Vertical).InBraces().
+    var blockResult = self.Many(Separator.Linebreak).InBraces().
       Assign<BlockStmt, List<Statement>>(b => b.Body).SetRange(uri);
     
-    var returnExpression = Keyword("return").Then(expression).Then(";", Orientation.Adjacent).
+    var returnExpression = Keyword("return").Then(expression).Then(";", Separator.Nothing).
       Map((r, e) =>
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
     var ifStatement = Constructor<IfStmt>().
@@ -195,7 +197,7 @@ public class JavaGrammar {
       Then(blockResult, s => s.Thn);
 
     var expressionStatement = expression.DownCast<Expression, ApplySuffix>().
-      Then(";", Orientation.Adjacent).Map(
+      Then(";", Separator.Nothing).Map(
       (t, a) => new UpdateStmt(Convert(t), new List<Expression>(), [new ExprRhs(a) {
         tok = Convert(t.From)
       }]),
@@ -210,11 +212,11 @@ public class JavaGrammar {
     var assert = Constructor<AssertStmt>().
       Then(Keyword("assert")).
       Then(expression, a => a.Expr).
-      Then(";", Orientation.Adjacent);
+      Then(";", Separator.Nothing);
     
     var varDecl = Constructor<VarDeclData>().
       Then(localStart, s => s.Local).
-      Then(initializer, s => s.Initializer).Then(";", Orientation.Adjacent).
+      Then(initializer, s => s.Initializer).Then(";", Separator.Nothing).
       Map((t, data) => {
         var locals = new List<LocalVariable> {
           data.Local
@@ -238,14 +240,14 @@ public class JavaGrammar {
     var assignmentStatement = Constructor<UpdateStmt>().
       Then(autoGhostIdentifier.UpCast<AutoGhostIdentifierExpr, Expression>().Singleton(), s => s.Lhss).
       Then(Keyword("=")).Then(assignmentRhs.UpCast<ExprRhs, AssignmentRhs>().Singleton(), s => s.Rhss).
-      Then(";", Orientation.Adjacent).SetRange(uri);
+      Then(";", Separator.Nothing).SetRange(uri);
     
     var invariant = Keyword("invariant").Then(attributedExpression);
-    var invariants = invariant.Many(Orientation.Vertical).Indent();
+    var invariants = invariant.Many(Separator.Linebreak).Indent();
     var whileStatement = Constructor<WhileStmt>().Then(Keyword("while")).
       Then(expression.InParens(), w => w.Guard).
-      Then(invariants, w => w.Invariants, Orientation.Vertical).
-      Then(blockResult, w => w.Body, Orientation.Vertical).SetRange(uri);
+      Then(invariants, w => w.Invariants, Separator.Linebreak).
+      Then(blockResult, w => w.Body, Separator.Linebreak).SetRange(uri);
       
     // if statement
     // assignment statement
@@ -294,7 +296,7 @@ public class JavaGrammar {
         RangeToken = Convert(t)
       }, a => a.ArgumentBindings);
     var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
-      .Then(nonGhostBindings.InParens(), s => s.Bindings, Orientation.Adjacent).
+      .Then(nonGhostBindings.InParens(), s => s.Bindings, Separator.Nothing).
       SetRange((s, t) => s.RangeToken = Convert(t));
 
     var exprDotName = self.Assign(() => new ExprDotName(), c => c.Lhs).

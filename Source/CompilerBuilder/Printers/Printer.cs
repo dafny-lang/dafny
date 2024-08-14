@@ -122,7 +122,7 @@ internal class NumberW : Printer<int> {
 }
 
 class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> second, 
-  Func<T, (TFirst, TSecond)?> destruct, Orientation orientation) : Printer<T> {
+  Func<T, (TFirst, TSecond)?> destruct, Separator separator) : Printer<T> {
   public Document? Print(T value) {
     var t = destruct(value);
     if (t == null) {
@@ -136,27 +136,27 @@ class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> seco
       return null;
     }
 
-    return firstDoc.Then(secondDoc, orientation);
+    return firstDoc.Then(secondDoc, separator);
   }
 }
 
-class SkipLeftW<T>(VoidPrinter first, Printer<T> second, Orientation orientation) : Printer<T> {
+class SkipLeftW<T>(VoidPrinter first, Printer<T> second, Separator separator) : Printer<T> {
   public Document? Print(T value) {
     var secondValue = second.Print(value);
     if (secondValue == null) {
       return null;
     }
-    return first.Print().Then(secondValue, orientation);
+    return first.Print().Then(secondValue, separator);
   }
 }
 
-class SkipRightW<T>(Printer<T> first, VoidPrinter second, Orientation orientation) : Printer<T> {
+class SkipRightW<T>(Printer<T> first, VoidPrinter second, Separator separator) : Printer<T> {
   public Document? Print(T value) {
     var firstValue = first.Print(value);
     if (firstValue == null) {
       return null;
     }
-    return firstValue.Then(second.Print(), orientation);
+    return firstValue.Then(second.Print(), separator);
   }
 }
 

@@ -238,33 +238,52 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<T> InParens<T>(this Grammar<T> grammar) {
-    return GrammarBuilder.Keyword("(").Then(grammar, Orientation.Adjacent).Then(")", Orientation.Adjacent);
+    return GrammarBuilder.Keyword("(").Then(grammar, Separator.Nothing).Then(")", Separator.Nothing);
   }  
   
   public static Grammar<T> InBraces<T>(this Grammar<T> grammar, bool indent = true) {
     var inner = indent ? new IndentG<T>(grammar, 1) : grammar;
-    return GrammarBuilder.Keyword("{").Then(inner, Orientation.Vertical).Then("}", Orientation.Vertical);
+    return GrammarBuilder.Keyword("{").Then(inner, Separator.Linebreak).Then("}", Separator.Linebreak);
   }  
   
-  public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Orientation mode = Orientation.Spaced) {
+  public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Separator mode = Separator.Space) {
     return new SkipRightG<T>(left, right, mode);
   }  
   
-  public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Orientation mode = Orientation.Spaced) {
+  public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Separator mode = Separator.Space) {
     return new SkipLeftG<T>(left, right, mode);
   }
   
-  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Orientation orientation = Orientation.Spaced) {
-    var numerable = GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
-      new Constructor<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, orientation,
+  public static Grammar<List<T>> CommaSeparated<T>(this Grammar<T> inner) {
+    return inner.Separated(",", Separator.Nothing);
+  }
+  
+  public static Grammar<List<T>> Separated<T>(this Grammar<T> inner, VoidGrammar separator, 
+    Separator beforeSep = Separator.Space, 
+    Separator afterSep = Separator.Space) {
+    var r = ManyInner(inner.Then(separator, beforeSep), afterSep).Then<SinglyLinkedList<T>, T, SinglyLinkedList<T>>(
+      inner, afterSep, 
+      (l, e) => new Cons<T>(e, l), 
+      l => l.Fold((head, tail) => (tail, head), () => ((SinglyLinkedList<T>, T)?)null));
+    return r.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
+  }
+  
+  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Separator separator = Separator.Space) {
+    var numerable = ManyInner(one, separator);
+    return numerable.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
+  }
+
+  private static Grammar<SinglyLinkedList<T>> ManyInner<T>(Grammar<T> one, Separator separator)
+  {
+    return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
+      new Constructor<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, separator,
         
         (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
         // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
         // ReSharper disable once PossibleMultipleEnumeration
         l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null))));
-    return numerable.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
-  
+
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
     Func<U, T> destruct) {
     return new WithRangeG<T, U>(grammar, construct, v => new MapSuccess<T>(destruct(v)));
@@ -319,7 +338,7 @@ public static class GrammarExtensions {
   public static Grammar<T> Then<TLeft, TRight, T>(
     this Grammar<TLeft> left, 
     Grammar<TRight> right,
-    Orientation mode,
+    Separator mode,
     Func<TLeft, TRight, T> construct,
     Func<T, (TLeft, TRight)?> destruct) {
     return new SequenceG<TLeft, TRight, T>(left, right, mode, construct, destruct);
@@ -330,7 +349,7 @@ public static class GrammarExtensions {
     Grammar<TValue> value,
     Func<TContainer, TValue> get,
     Action<TContainer, TValue> set, 
-    Orientation mode = Orientation.Spaced) {
+    Separator mode = Separator.Space) {
     return new SequenceG<TContainer, TValue, TContainer>(containerGrammar, value, mode,
       (c, v) => {
         set(c, v);
@@ -340,7 +359,7 @@ public static class GrammarExtensions {
   
   public static Grammar<TContainer> Assign<TContainer, TValue>(
     this Grammar<TValue> value, 
-    Expression<Func<TContainer, TValue>> getExpression, Orientation mode = Orientation.Spaced) 
+    Expression<Func<TContainer, TValue>> getExpression, Separator mode = Separator.Space) 
     where TContainer : new() {
     var property = getExpression.GetProperty();
     return value.Map(v => {
@@ -353,7 +372,7 @@ public static class GrammarExtensions {
   public static Grammar<TContainer> Assign<TContainer, TValue>(
     this Grammar<TValue> value, 
     Func<TContainer> createContainer, 
-    Expression<Func<TContainer, TValue>> getExpression, Orientation mode = Orientation.Spaced) {
+    Expression<Func<TContainer, TValue>> getExpression, Separator mode = Separator.Space) {
     var property = getExpression.GetProperty();
     return value.Map(v => {
       var container = createContainer();
@@ -365,7 +384,7 @@ public static class GrammarExtensions {
   public static Grammar<TContainer> Then<TContainer, TValue>(
     this Grammar<TContainer> containerGrammar, 
     Grammar<TValue> value, 
-    Expression<Func<TContainer, TValue>> get, Orientation mode = Orientation.Spaced) {
+    Expression<Func<TContainer, TValue>> get, Separator mode = Separator.Space) {
     var property = get.GetProperty();
     return containerGrammar.Then(value, property.Get, property.Set, mode);
   }
