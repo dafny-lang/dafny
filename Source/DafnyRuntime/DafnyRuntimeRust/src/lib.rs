@@ -1650,24 +1650,42 @@ impl<V: DafnyTypeEq> PartialOrd<Multiset<V>> for Multiset<V> {
     fn partial_cmp(&self, other: &Multiset<V>) -> Option<Ordering> {
         match self.cardinality().cmp(&other.cardinality()) {
             Ordering::Less => {
-                for value in other.data.keys() {
-                    if !self.contains(value) || self.get(value) > other.get(value) {
+                for value in self.data.keys() {
+                    if !other.contains(value) || self.get(value) > other.get(value) {
                         return None;
                     }
                 }
                 Some(Ordering::Less)
             }
             Ordering::Equal => {
+                let mut has_less = false;
+                let mut has_greater = false;
                 for value in self.data.keys() {
-                    if self.get(value) != other.get(value) {
-                        return None;
+                    if self.get(value) < other.get(value) {
+                        if has_greater {
+                            return None;
+                        }
+                        has_less = true;
+                    } else if self.get(value) > other.get(value) {
+                        if has_less {
+                            return None;
+                        }
+                        has_greater = true;
                     }
                 }
-                Some(Ordering::Equal)
+                if has_less && has_greater {
+                    None // should be unreachable
+                } else if has_less {
+                    Some(Ordering::Less)
+                } else if has_greater {
+                    Some(Ordering::Greater)
+                } else {
+                    Some(Ordering::Equal)
+                }
             }
             Ordering::Greater => {
-                for value in self.data.keys() {
-                    if !other.contains(value) || self.get(value) < other.get(value) {
+                for value in other.data.keys() {
+                    if !self.contains(value) || self.get(value) < other.get(value) {
                         return None;
                     }
                 }
@@ -2437,7 +2455,7 @@ macro_rules! ARRAY_GETTER_LENGTH0 {
         pub fn length0_usize(&self) -> usize {
             self.data.len()
         }
-    }
+    };
 }
 macro_rules! ARRAY_GETTER_LENGTH {
     ($field: ident, $field_usize: ident) => {
@@ -2449,7 +2467,7 @@ macro_rules! ARRAY_GETTER_LENGTH {
         pub fn $field_usize(&self) -> usize {
             self.$field
         }
-    }
+    };
 }
 
 // An 1-dimensional Dafny array is a zero-cost abstraction over a pointer on a native array
@@ -2471,7 +2489,7 @@ macro_rules! ARRAY_INIT {
 macro_rules! ARRAY_INIT_INNER {
     ($length: ident) => {
         $crate::array::placebos_box_usize::<T>($length)
-    }
+    };
 }
 
 // ARRAY_DATA_TYPE(length0, length1, length2) will return
@@ -2511,7 +2529,7 @@ macro_rules! ARRAY_METHODS {
                 data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
             })
         }
-        
+
         pub fn placebos_usize(
             $length0: usize,
             $($length: usize),+
@@ -2556,7 +2574,6 @@ macro_rules! ARRAY_METHODS {
     };
 }
 
-
 macro_rules! ARRAY_STRUCT {
     ($ArrayType:ident, $length0: ident, $($length:ident),+) => {
         pub struct $ArrayType<T> {
@@ -2582,7 +2599,7 @@ macro_rules! ARRAY_TO_VEC_LOOP {
             $outerTmp.push(tmp);
         }
     };
-    
+
     ($self: ident, $data: expr $(, $rest_length_usize: ident)*) => {
         {
             let mut tmp = Vec::new();
@@ -2662,25 +2679,25 @@ macro_rules! ARRAY_DEF {
 
 // Array2 to Array16
 
-ARRAY_DEF!{Array2, 
+ARRAY_DEF! {Array2,
     (length0, length0_usize),
     (length1, length1_usize)
 }
 
-ARRAY_DEF!{Array3, 
+ARRAY_DEF! {Array3,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize)
 }
 
-ARRAY_DEF!{Array4,
+ARRAY_DEF! {Array4,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
     (length3, length3_usize)
 }
 
-ARRAY_DEF!{Array5,
+ARRAY_DEF! {Array5,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2688,7 +2705,7 @@ ARRAY_DEF!{Array5,
     (length4, length4_usize)
 }
 
-ARRAY_DEF!{Array6,
+ARRAY_DEF! {Array6,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2697,7 +2714,7 @@ ARRAY_DEF!{Array6,
     (length5, length5_usize)
 }
 
-ARRAY_DEF!{Array7,
+ARRAY_DEF! {Array7,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2707,7 +2724,7 @@ ARRAY_DEF!{Array7,
     (length6, length6_usize)
 }
 
-ARRAY_DEF!{Array8,
+ARRAY_DEF! {Array8,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2718,7 +2735,7 @@ ARRAY_DEF!{Array8,
     (length7, length7_usize)
 }
 
-ARRAY_DEF!{Array9,
+ARRAY_DEF! {Array9,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2730,7 +2747,7 @@ ARRAY_DEF!{Array9,
     (length8, length8_usize)
 }
 
-ARRAY_DEF!{Array10,
+ARRAY_DEF! {Array10,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2743,7 +2760,7 @@ ARRAY_DEF!{Array10,
     (length9, length9_usize)
 }
 
-ARRAY_DEF!{Array11,
+ARRAY_DEF! {Array11,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2757,7 +2774,7 @@ ARRAY_DEF!{Array11,
     (length10, length10_usize)
 }
 
-ARRAY_DEF!{Array12,
+ARRAY_DEF! {Array12,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2772,7 +2789,7 @@ ARRAY_DEF!{Array12,
     (length11, length11_usize)
 }
 
-ARRAY_DEF!{Array13,
+ARRAY_DEF! {Array13,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2788,7 +2805,7 @@ ARRAY_DEF!{Array13,
     (length12, length12_usize)
 }
 
-ARRAY_DEF!{Array14,
+ARRAY_DEF! {Array14,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2805,7 +2822,7 @@ ARRAY_DEF!{Array14,
     (length13, length13_usize)
 }
 
-ARRAY_DEF!{Array15,
+ARRAY_DEF! {Array15,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -2823,7 +2840,7 @@ ARRAY_DEF!{Array15,
     (length14, length14_usize)
 }
 
-ARRAY_DEF!{Array16,
+ARRAY_DEF! {Array16,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize),
@@ -3046,7 +3063,6 @@ macro_rules! cast_any_object {
     };
 }
 
-
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
 // This is problematic if the same field is overwritten multiple times
@@ -3129,7 +3145,7 @@ macro_rules! update_field_if_uninit {
 
 pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 
-impl <T: ?Sized> Object<T> {
+impl<T: ?Sized> Object<T> {
     unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
         Object(Some(rcmut::from_rc(rc)))
     }
@@ -3142,7 +3158,7 @@ impl<T: ?Sized> Clone for Object<T> {
     }
 }
 
-impl <T: ?Sized>Default for Object<T> {
+impl<T: ?Sized> Default for Object<T> {
     fn default() -> Self {
         Object(None)
     }
@@ -3153,14 +3169,13 @@ impl<T: ?Sized> Debug for Object<T> {
         self.fmt_print(f, false)
     }
 }
-impl <T: ?Sized> DafnyPrint for Object<T> {
+impl<T: ?Sized> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
         write!(f, "<object>")
     }
 }
 
-
-impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
+impl<T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
     fn eq(&self, other: &Object<U>) -> bool {
         if let Some(p) = &self.0 {
             if let Some(q) = &other.0 {
@@ -3178,7 +3193,7 @@ impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
     }
 }
 
-impl <T: ?Sized> std::hash::Hash for Object<T> {
+impl<T: ?Sized> std::hash::Hash for Object<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if let Some(p) = &self.0 {
             (p.as_ref().get() as *const ()).hash(state);
@@ -3188,19 +3203,18 @@ impl <T: ?Sized> std::hash::Hash for Object<T> {
     }
 }
 
-impl <T: ?Sized> AsMut<T> for Object<T> {
+impl<T: ?Sized> AsMut<T> for Object<T> {
     fn as_mut(&mut self) -> &mut T {
         unsafe { &mut *(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
     }
 }
-impl <T: ?Sized> AsRef<T> for Object<T> {
+impl<T: ?Sized> AsRef<T> for Object<T> {
     fn as_ref(&self) -> &T {
         unsafe { &*(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
     }
 }
 
-
-impl <T: ?Sized> Object<T> {
+impl<T: ?Sized> Object<T> {
     pub fn from_ref(r: &T) -> Object<T> {
         let pt = r as *const T;
         unsafe { ::std::rc::Rc::increment_strong_count(pt) }
@@ -3213,9 +3227,9 @@ impl <T: ?Sized> Object<T> {
 macro_rules! cast_object {
     ($raw:expr, $id:ty) => {
         unsafe {
-            let res: $crate::Object<$id> = 
-            $crate::Object(Some(::std::rc::Rc::from_raw(
-                ::std::rc::Rc::into_raw($raw.0.unwrap()) as _)));
+            let res: $crate::Object<$id> = $crate::Object(Some(::std::rc::Rc::from_raw(
+                ::std::rc::Rc::into_raw($raw.0.unwrap()) as _,
+            )));
             res
         }
     };
@@ -3227,25 +3241,34 @@ pub fn allocate_object<T>() -> Object<T> {
 }
 
 pub struct AllocationTracker {
-    allocations: Vec<Weak<dyn Any>>
+    allocations: Vec<Weak<dyn Any>>,
 }
 
 pub fn allocate_object_track<T: 'static>(allocation_tracker: &mut AllocationTracker) -> Object<T> {
     let res = allocate_object::<T>();
-    allocation_tracker.allocations.push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
+    allocation_tracker
+        .allocations
+        .push(Rc::<UnsafeCell<T>>::downgrade(&res.0.clone().unwrap()));
     res
 }
 
-pub fn is_instance_of_object<T: ?Sized + 'static + UpcastObject<dyn Any>, U: 'static>(theobject: Object<T>) -> bool {
+pub fn is_instance_of_object<T: ?Sized + 'static + UpcastObject<dyn Any>, U: 'static>(
+    theobject: Object<T>,
+) -> bool {
     // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-    rd!(UpcastObject::<dyn Any>::upcast(rd!(theobject))).downcast_ref::<U>().is_some()
+    rd!(UpcastObject::<dyn Any>::upcast(rd!(theobject)))
+        .downcast_ref::<U>()
+        .is_some()
 }
 
 // Equivalent of update_field_nodrop but for rcmut
 #[macro_export]
 macro_rules! update_field_nodrop_object {
     ($ptr:expr, $field: ident, $value:expr) => {
-        $crate::update_nodrop_object!(($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field, $value)
+        $crate::update_nodrop_object!(
+            ($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field,
+            $value
+        )
     };
 }
 
@@ -3315,7 +3338,8 @@ pub mod object {
     }
     pub fn downcast<T: 'static>(_self: crate::Object<dyn Any>) -> crate::Object<T> {
         unsafe {
-          crate::Object(Some(crate::rcmut::downcast::<T>(_self.0.unwrap()).unwrap())) // Use unwrap_unchecked?
+            crate::Object(Some(crate::rcmut::downcast::<T>(_self.0.unwrap()).unwrap()))
+            // Use unwrap_unchecked?
         }
     }
     #[inline]
@@ -3499,19 +3523,20 @@ macro_rules! maybe_placebos_from {
 ////////////////
 
 pub fn upcast_object<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Object<A>) -> Object<B>>
-  where A : UpcastObject<B>
+where
+    A: UpcastObject<B>,
 {
     Rc::new(|x: Object<A>| rd!(x).upcast())
 }
 
 pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(*mut A) -> *mut B>
-  where A: Upcast<B>
+where
+    A: Upcast<B>,
 {
     Rc::new(|x: *mut A| read!(x).upcast())
 }
 
-pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
-{
+pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A> {
     Rc::new(|x: A| x)
 }
 
@@ -3523,8 +3548,8 @@ pub fn box_coerce<T: Clone, U: Clone>(f: Box<impl Fn(T) -> U>) -> Box<impl Fn(Bo
 }
 
 pub fn fn1_coerce<T: Clone + 'static, A: Clone + 'static, R: Clone + 'static>(
-    a_to_r: Rc<impl Fn(A) -> R + 'static>) ->
-  Rc<impl Fn(Rc<dyn Fn(&T) -> A>) -> Rc<dyn Fn(&T) -> R> + 'static> {
+    a_to_r: Rc<impl Fn(A) -> R + 'static>,
+) -> Rc<impl Fn(Rc<dyn Fn(&T) -> A>) -> Rc<dyn Fn(&T) -> R> + 'static> {
     Rc::new(move |t_to_a: Rc<dyn Fn(&T) -> A>| {
         let a_to_r = a_to_r.clone();
         let t_to_a = t_to_a.clone();
@@ -3541,12 +3566,12 @@ pub trait UpcastObject<T: ?Sized> {
     fn upcast(&self) -> Object<T>;
 }
 
-impl <T: ?Sized> Upcast<T> for T {
+impl<T: ?Sized> Upcast<T> for T {
     fn upcast(&self) -> *mut T {
         self as *const T as *mut T
     }
 }
-impl <T: ?Sized> UpcastObject<T> for T {
+impl<T: ?Sized> UpcastObject<T> for T {
     fn upcast(&self) -> Object<T> {
         Object::from_ref(self)
     }
@@ -3577,8 +3602,6 @@ macro_rules! UpcastObjectFn {
     };
 }
 
-
-
 // IT works only when there is no type parameters for $A...
 #[macro_export]
 macro_rules! UpcastDef {
@@ -3587,7 +3610,7 @@ macro_rules! UpcastDef {
             $crate::UpcastFn!($B);
         }
     };
-    
+
     ($A:ty, $B:ty, $($C: ty),*) => {
         UpcastDef!($A, $B);
         UpcastDef!($A, $($C),*);
@@ -3601,7 +3624,7 @@ macro_rules! UpcastDefObject {
             $crate::UpcastObjectFn!($B);
         }
     };
-    
+
     ($A:ty, $B:ty, $($C: ty),*) => {
         UpcastDefObject!($A, $B);
         UpcastDefObject!($A, $($C),*);
@@ -3609,8 +3632,7 @@ macro_rules! UpcastDefObject {
 }
 
 // Coercions for sets
-impl<U: DafnyTypeEq> Set<U>
-{
+impl<U: DafnyTypeEq> Set<U> {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Set<U>) -> Set<V>> {
         Rc::new(move |x: Set<U>| {
             // We need to upcast individual elements
@@ -3625,8 +3647,7 @@ impl<U: DafnyTypeEq> Set<U>
 }
 
 // Coercions for sequences
-impl<U: DafnyType> Sequence<U>
-{
+impl<U: DafnyType> Sequence<U> {
     pub fn coerce<V: DafnyType>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Sequence<U>) -> Sequence<V>> {
         // We need to upcast individual elements
         Rc::new(move |x: Sequence<U>| {
@@ -3641,12 +3662,13 @@ impl<U: DafnyType> Sequence<U>
 }
 
 // Coercions for multisets
-impl<U: DafnyTypeEq> Multiset<U>
-{
-    pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Multiset<U>) -> Multiset<V>> {
+impl<U: DafnyTypeEq> Multiset<U> {
+    pub fn coerce<V: DafnyTypeEq>(
+        f: Rc<impl Fn(U) -> V>,
+    ) -> Rc<impl Fn(Multiset<U>) -> Multiset<V>> {
         // We need to upcast individual elements
         Rc::new(move |x: Multiset<U>| {
-                let f2 = f.clone();
+            let f2 = f.clone();
             // We need to upcast individual elements
             let mut new_multiset: HashMap<V, DafnyInt> = HashMap::<V, DafnyInt>::default();
             for (value, count) in x.data.into_iter() {
@@ -3658,8 +3680,7 @@ impl<U: DafnyTypeEq> Multiset<U>
 }
 
 // Coercions for Maps
-impl<K: DafnyTypeEq, U: DafnyTypeEq> Map<K, U>
-{
+impl<K: DafnyTypeEq, U: DafnyTypeEq> Map<K, U> {
     pub fn coerce<V: DafnyTypeEq>(f: Rc<impl Fn(U) -> V>) -> Rc<impl Fn(Map<K, U>) -> Map<K, V>> {
         // We need to upcast individual elements
         Rc::new(move |x: Map<K, U>| {
