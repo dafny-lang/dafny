@@ -17,6 +17,7 @@ public static class ParserBuilder {
   public static readonly Parser<string> Identifier = new IdentifierR();
   public static readonly Parser<int> Number = new NumberR();
   public static Parser<T> Fail<T>(string expectation) => new FailR<T>(expectation);
-  public static readonly Parser<string> SlashSlashLineComment = new LineComment();
+  public static readonly Parser<string> SlashSlashLineComment = new Comment("//", "\n", "a line comment");
+  public static readonly Parser<string> BlockComment = new Comment("/**", "*/", "a block comment");
   public static readonly Parser<string> Whitespace = new Whitespace();
 }

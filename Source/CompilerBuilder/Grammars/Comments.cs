@@ -9,12 +9,15 @@ interface ITriviaContainer {
 public static class Comments {
 
   public static Grammar<List<string>> JavaTrivia() {
-    return GrammarBuilder.Whitespace.Or(SlashSlashLineComment()).Many();
+    return GrammarBuilder.Whitespace.Or(SlashSlashLineComment()).Or(BlockComment()).Many();
   }
   
   public static Grammar<string> SlashSlashLineComment() {
-    // TODO I think the printer has to reinsert the line break
     return new ExplicitGrammar<string>(ParserBuilder.SlashSlashLineComment, VerbatimW.Instance);
+  }
+  
+  public static Grammar<string> BlockComment() {
+    return new ExplicitGrammar<string>(ParserBuilder.BlockComment, VerbatimW.Instance);
   }
   
   /*
@@ -23,7 +26,7 @@ public static class Comments {
    * If the type of the left side can carry trivia, insert them there
    */
   public static Grammar<T> AddTrivia<T>(Grammar<T> root, Grammar<List<string>> triviaGrammar) {
-    var grammars = root.SelfAndDescendants;
+    var grammars = root.SelfAndDescendants();
     var voidTrivia = new ParseOnly<List<string>>(triviaGrammar);
     foreach (var grammar in grammars) {
       if (grammar is not ISequenceLikeG sequence) {

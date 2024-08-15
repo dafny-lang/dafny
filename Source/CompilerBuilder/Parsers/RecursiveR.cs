@@ -19,20 +19,28 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
     }
 
     ParseResult<T> combinedResult = seedResult;
-    foreach (var recursion in seedResult.Recursions) {
-      if (recursion is not FoundRecursion<T, T>) {
-        // TODO figure out why this is necessary
-        continue;
-      }
+    ConcreteSuccess<T>? bestSuccess = seedResult.Success;
+    var change = true;
+    while (change) {
+      change = false;
+      foreach (var recursion in seedResult.Recursions) {
+        if (recursion is not FoundRecursion<T, T>) {
+          // TODO figure out why this is necessary
+          continue;
+        }
 
-      // after a few iterations a binaryExpr 3 / x, is built
-      // now the binaryExpr itself is available as a seed,
-      // And the FoundRecursion that built it still holds a pionter to the BinaryExpr that was used to construct the initial one.
-      // Constructors should be on the right of self expressions
-      var current = seedResult;
-      while (current.Success != null) {
-        current = recursion.Apply(current.Success.Value!, current.Success.Remainder);
-        combinedResult = combinedResult.Combine(current);
+        // after a few iterations a binaryExpr 3 / x, is built
+        // now the binaryExpr itself is available as a seed,
+        // And the FoundRecursion that built it still holds a pionter to the BinaryExpr that was used to construct the initial one.
+        // Constructors should be on the right of self expressions
+        var newResult = recursion.Apply(bestSuccess.Value!, bestSuccess.Remainder);
+        
+        combinedResult = combinedResult.Combine(newResult);
+        if (newResult.Success != null) {
+          bestSuccess = newResult.Success;
+          change = true;
+          break;
+        }
       }
     }
 

@@ -31,19 +31,19 @@ class SequenceG<TFirst, TSecond, T>(Grammar<TFirst> first, Grammar<TSecond> seco
 
   public Separator Mode => mode;
 
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
+  internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
     var firstPrinter = (Printer<TFirst>)recurse(First);
     var secondPrinter = (Printer<TSecond>)recurse(Second);
     return new SequenceW<TFirst,TSecond,T>(firstPrinter, secondPrinter, destruct, mode);
   }
 
-  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+  internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     var leftParser = (Parser<TFirst>)recurse(First);
     var rightParser = (Parser<TSecond>)recurse(Second);
     return new SequenceR<TFirst, TSecond, T>(leftParser, rightParser, construct);
   }
 
-  public IEnumerable<Grammar> Children => [First, Second];
+  public override IEnumerable<Grammar> Children => [First, Second];
 }
 
 class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Separator mode = Separator.Space) : Grammar<T>, ISequenceLikeG {
@@ -64,17 +64,17 @@ class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Separator mode = Separa
   public VoidGrammar First { get; set; } = first;
   public Grammar<T> Second { get; set; } = second;
 
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
+  internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
     var first = (VoidPrinter)recurse(First);
     var second = (Printer<T>)recurse(Second);
     return new SkipLeftW<T>(first, second, mode);
   }
 
-  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+  internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new SkipLeft<T>((VoidParser)recurse(First), (Parser<T>)recurse(Second));
   }
 
-  public IEnumerable<Grammar> Children => [First, Second];
+  public override IEnumerable<Grammar> Children => [First, Second];
 }
 
 class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Separator mode = Separator.Space) : Grammar<T>, ISequenceLikeG {
@@ -95,16 +95,16 @@ class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Separator mode = Separ
   public Separator Mode { get; set; }
   public Grammar<T> First { get; set; } = first;
   public VoidGrammar Second { get; set; } = second;
-  
-  Printer<T> Grammar<T>.ToPrinter(Func<Grammar, Printer> recurse) {
+
+  internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
     var firstParser = (Printer<T>)recurse(First);
     var secondParser = (VoidPrinter)recurse(Second);
     return new SkipRightW<T>(firstParser, secondParser, mode);
   }
 
-  Parser<T> Grammar<T>.ToParser(Func<Grammar, Parser> recurse) {
+  internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
     return new SkipRight<T>((Parser<T>)recurse(First), (VoidParser)recurse(Second));
   }
 
-  public IEnumerable<Grammar> Children => [First, Second];
+  public override IEnumerable<Grammar> Children => [First, Second];
 }

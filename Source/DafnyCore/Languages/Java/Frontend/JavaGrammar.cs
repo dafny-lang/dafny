@@ -83,7 +83,7 @@ public class JavaGrammar {
   }
 
   public Grammar<FileModuleDefinition> File() {
-    var package = Keyword("package").Then(Identifier.CommaSeparated()).Ignore();
+    var package = Keyword("package").Then(Identifier.CommaSeparated()).Then(";").Ignore();
     var qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
     var import = Keyword("import").Then(qualifiedId).Then(";", Separator.Nothing).Map(
         (t, a) => new AliasModuleDecl(DafnyOptions.Default, 
@@ -102,6 +102,7 @@ public class JavaGrammar {
   
   Grammar<ClassDecl> Class() {
     var header = Constructor<ClassDecl>().
+      Then(Modifier("final").Ignore()). // TODO Bind to attribute 
       Then("class").
       Then(name, cl => cl.NameNode);
     
@@ -113,11 +114,11 @@ public class JavaGrammar {
   }
 
   Grammar<MemberDecl> Member() {
-    return Method().UpCast<Method, MemberDecl>().OrCast(Function());
+    var (method, function) = MethodAndFunction();
+    return method.UpCast<Method, MemberDecl>().OrCast(function);
   }
-
-  Grammar<Function> Function() {
-    
+  
+  (Grammar<Method> Method, Grammar<Function> Function) MethodAndFunction() {
     // Need something special for a unordered bag of keywords
     var staticc = Keyword("static").Then(Constant(true)).Default(false);
 
@@ -131,58 +132,61 @@ public class JavaGrammar {
         f.RangeToken = Convert(t);
         f.InParam = true;
       });
-    var parameters = parameter.Many().InParens();
+    
+    var parameters = parameter.CommaSeparated().InParens();
     var require = Keyword("requires").Then(attributedExpression);
-    var requires = require.Many();
+    var requires = require.Many(Separator.Linebreak);
 
-    var expressionBody = Keyword("return").
-      Then(expression).
-      Then(";", Separator.Nothing).InBraces();
-    return Constructor<Function>().
-      Then(Keyword("@Function")).
-      Then(staticc, m => m.IsStatic, Separator.Linebreak).
-      Then(type, m => m.ResultType).
-      Then(name, m => m.NameNode).
-      Then(parameters, m => m.Ins, Separator.Nothing).
-      Then(requires.Indent(), m => m.Req, Separator.Linebreak).
-      Then(expressionBody, m => m.Body).
-      SetRange((m, r) => m.RangeToken = Convert(r));
-  }
-  
-  Grammar<Method> Method() {
-    // Need something special for a unordered bag of keywords
-    var staticc = Keyword("static").Then(Constant(true)).Default(false);
+    var ensure = Keyword("ensures").Then(attributedExpression);
+    var ensures = ensure.Many(Separator.Linebreak);
+
     var returnParameter = type.Map(
       t => new Formal(t.Tok,"_returnName", t, false, false, null), 
       f=> f.Type);
     var voidReturnType = Keyword("void").Then(Constant<Formal?>(null));
     var outs = voidReturnType.OrCast(returnParameter).OptionToList();
-
-    var parameter = Constructor<Formal>().
-      Then(type, f => f.Type).
-      Then(name, f => new Name(f.Name), (f,v) => {
-        f.Name = v.Value;
-        f.tok = v.tok;
-      }).
-      SetRange((f, t) => {
-        f.RangeToken = Convert(t);
-        f.InParam = true;
-      });
-    // TODO replace .Many with .SeparatedBy
-    var parameters = parameter.Many().InParens();
-    var require = Keyword("requires").Then(expression).Map(
-      e => new AttributedExpression(e), 
-      ae => ae.E);
-    var requires = require.Many(Separator.Linebreak);
-
-    return Constructor<Method>().
+    
+    var frameField = Keyword("`").Then(Identifier);
+    
+    var wildcardFrame = Constructor<FrameExpression>().Then(
+      Keyword("*").Then(Constructor<WildcardExpr>()).UpCast<WildcardExpr, Expression>(), f => f.OriginalExpression);
+    var receiverFrame = Constructor<FrameExpression>().Then(expression, f => f.OriginalExpression)
+      .Then(frameField.Option(), f => f.FieldName);
+    var implicitThisFrame = Constructor<FrameExpression>().Then(
+      Constructor<ImplicitThisExpr>().UpCast<ImplicitThisExpr, Expression>(), f => f.OriginalExpression);
+    
+    var frameExpression = wildcardFrame.Or(receiverFrame.Or(implicitThisFrame));
+    
+    var modify = Keyword("modifies").Then(frameExpression);
+    var modifies = modify.Many(Separator.Linebreak).Map(xs => new Specification<FrameExpression>(xs, null),
+      s => s.Expressions);
+    var method = Constructor<Method>().
       Then(staticc, m => m.IsStatic).
       Then(outs, m => m.Outs).
       Then(name, m => m.NameNode).
       Then(parameters, m => m.Ins, Separator.Nothing).
+      // TODO optional: allow unordered required and modifies
       Then(requires.Indent(), m => m.Req, Separator.Linebreak).
+      Then(modifies.Indent(), m => m.Mod, Separator.Linebreak).
+      Then(ensures.Indent(), m => m.Ens, Separator.Linebreak).
       Then(block, m => m.Body, Separator.Linebreak).
       SetRange((m, r) => m.RangeToken = Convert(r));
+
+    var expressionBody = Keyword("return").
+      Then(expression).
+      Then(";", Separator.Nothing).InBraces();
+    var function = Constructor<Function>().
+      Then(Keyword("@Function")).
+      Then(staticc, m => m.IsStatic, Separator.Linebreak).
+      Then(type, m => m.ResultType).
+      Then(name, m => m.NameNode).
+      Then(parameters, m => m.Ins, Separator.Nothing).
+      Then(requires.Indent(), f => f.Req, Separator.Linebreak).
+      Then(ensures.Indent(), f => f.Ens, Separator.Linebreak).
+      Then(expressionBody, m => m.Body).
+      SetRange((m, r) => m.RangeToken = Convert(r));
+
+    return (method, function);
   }
   
   (Grammar<Statement> Statement, Grammar<BlockStmt> Block) StatementGrammar(Grammar<Statement> self) {
@@ -291,7 +295,7 @@ public class JavaGrammar {
     var nonGhostBinding = self.Map((t, e) => new ActualBinding(null, e) {
       RangeToken = Convert(t)
     }, a => a.Actual);
-    var nonGhostBindings = nonGhostBinding.Many().
+    var nonGhostBindings = nonGhostBinding.CommaSeparated().
       Map((t, b) => new ActualBindings(b) {
         RangeToken = Convert(t)
       }, a => a.ArgumentBindings);
@@ -305,7 +309,7 @@ public class JavaGrammar {
       SetRange((c,r) => c.RangeToken = Convert(r));
     
     var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
-      OrCast(variableRef).OrCast(number).OrCast(callResult).OrCast(exprDotName);
+      OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult);
     return (expressionResult, callResult);
   }
 

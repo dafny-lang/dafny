@@ -247,25 +247,44 @@ internal class Whitespace : Parser<string> {
   }
 }
 
-internal class LineComment : Parser<string> {
-  public ParseResult<string> Parse(ITextPointer text) {
-    var start = text.SubSequence(2);
-    if (!start.Equals("//")) {
-      return text.Fail<string>("a // line comment");
+internal class Comment(string opener, string closer, string description) : Parser<string> {
+  bool Find(string expectation, ITextPointer text, int offset = 0) {
+    if (text.Length < expectation.Length) {
+      return false;
     }
-
-    var offset = 2;
-    while (text.Length > offset) {
-      var c = text.At(offset);
-      if (c != '\n') {
-        offset++;
-      } else {
-        break;
+    
+    for (int index = 0; index < expectation.Length; index++) {
+      if (text.At(offset + index) != expectation[index]) {
+        return false;
       }
     }
 
-    var comment = text.SubSequence(offset);
-    return new ConcreteSuccess<string>(comment, text.Drop(offset + 1));
+    return true;
+  }
+  
+  public ParseResult<string> Parse(ITextPointer text) {
+    if (!Find(opener, text)) {
+      return text.Fail<string>(description);
+    }
+
+    bool foundExit = false;
+    int offset = opener.Length;
+    while (text.Length > offset) {
+      if (Find(closer, text, offset)) {
+        foundExit = true;
+        offset += closer.Length;
+        break;
+      }
+
+      offset++;
+    }
+
+    if (foundExit) {
+      var comment = text.SubSequence(offset);
+      return new ConcreteSuccess<string>(comment, text.Drop(offset));
+    }
+
+    return text.Fail<string>(description);
   }
 }
 

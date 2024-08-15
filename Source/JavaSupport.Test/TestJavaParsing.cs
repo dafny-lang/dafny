@@ -7,6 +7,8 @@ public class TestJavaParsing {
   [Fact]
   public void TestFirstExample() {
     var input = @"
+package bar;
+
 class Div {
   int Foo(int x) {
     return 3 / x;
@@ -20,9 +22,29 @@ class Div {
   }
   
   
+  // TODO mixed recursives should be part of the Java-agnostic test suite
+  [Fact]
+  public void TestRegression() {
+    var input = @"
+package bar;
+
+class Foo {
+  int Foo() {
+    return a.b(c, d);
+  }
+}".TrimStart();
+    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()));
+    var programGrammar = jg.GetFinalGrammar();
+    var parser = programGrammar.ToParser();
+    var parseResult = parser.Parse(input);
+    Assert.NotNull(parseResult.ForceSuccess.Value);
+  }
+  
   [Fact]
   public void TestSecondExample() {
     var input = @"
+package bar;
+
 class Fib {
   static int FibonacciSpec(int n) {
     return n < 2 ? n : FibonacciSpec(n - 1) + FibonacciSpec(n - 2);

@@ -18,7 +18,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public bool ContainsHide { get; set; }
   public readonly List<TypeParameter> TypeArgs;
   public List<AttributedExpression> Req;
-  public readonly List<AttributedExpression> Ens;
+  public List<AttributedExpression> Ens;
   public readonly Specification<Expression> Decreases;
   public List<Formal> Ins;
   

@@ -90,7 +90,7 @@ public class TestGrammars {
   
   [Fact]
   public void ManualTrivia() {
-    var trivia = Comments.SlashSlashLineComment().Or(Whitespace).Many();
+    var trivia = Comments.SlashSlashLineComment().Or(Whitespace).Or(Comments.BlockComment()).Many();
     var person =
       Constructor<PersonWithTrivia>().
         Then(Number, (p) => p.Age).
@@ -104,10 +104,14 @@ public class TestGrammars {
     var input2 = @"123// line comment
   
 // another linecomment
+/** block 
+
+comment
+*/
 Remy";
     var result2 = person.ToParser().Parse(input2);
     Assert.NotNull(result2.Success);
-    Assert.Equal("// another linecomment", result2.Success?.Value.Trivia[2]);
+    Assert.Equal("// another linecomment\n", result2.Success?.Value.Trivia[2]);
   }
   
 }
