@@ -5769,7 +5769,7 @@ namespace RAST {
       throw new System.Exception("unexpected control point");
     }
     public bool LeftRequiresParentheses(RAST._IExpr left) {
-      return ((this).printingInfo).NeedParenthesesForLeft((left).printingInfo);
+      return ((this).printingInfo).NeedParenthesesForLeft(((left).Optimize()).printingInfo);
     }
     public _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> LeftParentheses(RAST._IExpr left) {
       if ((this).LeftRequiresParentheses(left)) {
@@ -5779,7 +5779,7 @@ namespace RAST {
       }
     }
     public bool RightRequiresParentheses(RAST._IExpr right) {
-      return ((this).printingInfo).NeedParenthesesForRight((right).printingInfo);
+      return ((this).printingInfo).NeedParenthesesForRight(((right).Optimize()).printingInfo);
     }
     public _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> RightParentheses(RAST._IExpr right) {
       if ((this).RightRequiresParentheses(right)) {
@@ -6030,7 +6030,7 @@ namespace RAST {
           RAST._IExpr _1039_underlying = _source46.dtor_underlying;
           DAST.Format._IUnaryOpFormat _1040_format = _source46.dtor_format;
           unmatched46 = false;
-          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs41 = ((((this).printingInfo).NeedParenthesesFor((_1039_underlying).printingInfo)) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"))) : (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
+          _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs41 = ((((this).printingInfo).NeedParenthesesFor(((_1039_underlying).Optimize()).printingInfo)) ? (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("("), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(")"))) : (_System.Tuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>.create(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))));
           Dafny.ISequence<Dafny.Rune> _1041_leftP = _let_tmp_rhs41.dtor__0;
           Dafny.ISequence<Dafny.Rune> _1042_rightP = _let_tmp_rhs41.dtor__1;
           Dafny.ISequence<Dafny.Rune> _1043_leftOp = ((((_1038_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("&mut"))) && (!(_1041_leftP).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")))) ? (Dafny.Sequence<Dafny.Rune>.Concat(_1038_op, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" "))) : ((((_1038_op).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?"))) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")) : (_1038_op))));
