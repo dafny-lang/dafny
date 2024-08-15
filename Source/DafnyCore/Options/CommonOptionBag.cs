@@ -537,7 +537,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
-      options.DefiniteAssignmentLevel = 4;
+      if (!options.Get(RelaxDefiniteAssignment)) {
+        options.DefiniteAssignmentLevel = 4;
+      }
     });
     RelaxDefiniteAssignment.AddValidator(optionResult => {
       var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
