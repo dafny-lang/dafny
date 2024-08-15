@@ -25,7 +25,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public abstract partial class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICanFormat {
   public virtual string WhatKind => "comprehension";
-  public readonly List<BoundVar> BoundVars;
+  public List<BoundVar> BoundVars;
   public readonly Expression Range;
   public Expression Term;
 

@@ -209,7 +209,9 @@ public class JavaGrammar {
       );
 
     var initializer = Keyword("=").Then(expression).Option();
+    var ghostModifier = Modifier("ghost");
     var localStart = Constructor<LocalVariable>().
+      Then(ghostModifier, s => s.IsGhost).
       Then(type, s => s.Type).
       Then(Identifier, s => s.Name).
       SetRange((v, r) => v.RangeToken = Convert(r));
@@ -280,6 +282,8 @@ public class JavaGrammar {
         Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
       Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub))).Or(
       Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
+      Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp))).Or(
+      Keyword("&&").Then(Constant(BinaryExpr.Opcode.And))).Or(
       Keyword("<").Then(Constant(BinaryExpr.Opcode.Le))).Or(
       Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
     var binary = self.Assign(() => new BinaryExpr(), b => b.E0).
@@ -308,8 +312,23 @@ public class JavaGrammar {
       Then(Identifier, c => c.SuffixName).
       SetRange((c,r) => c.RangeToken = Convert(r));
     
+    var lambdaParameter = Constructor<BoundVar>().
+      Then(type.Option(), f => f.Type).
+      Then(name, f => new Name(f.Name), (f,v) => {
+        f.Name = v.Value;
+        f.tok = v.tok;
+      }).
+      SetRange((f, t) => {
+        f.RangeToken = Convert(t);
+      });
+    var parameters = lambdaParameter.CommaSeparated();
+    var lambda = Constructor<LambdaExpr>().
+      Then(parameters, e => e.BoundVars).
+      Then("->").
+      Then(self, l => l.Term);
+    
     var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
-      OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult);
+      OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult).OrCast(lambda);
     return (expressionResult, callResult);
   }
 

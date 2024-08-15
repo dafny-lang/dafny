@@ -7,6 +7,10 @@ namespace Microsoft.Dafny;
 [DebuggerDisplay("Bound<{name}>")]
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
+
+  public BoundVar() : base(Token.Parsing, null, null, false) {
+    
+  }
   public BoundVar(IToken tok, string name, Type type)
     : base(tok, name, type, false) {
     Contract.Requires(tok != null);
