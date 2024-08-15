@@ -72,3 +72,7 @@ jobs:
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJs
           make all
+      - name: Test DafnyRuntimeRust
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeRust
+          cargo test

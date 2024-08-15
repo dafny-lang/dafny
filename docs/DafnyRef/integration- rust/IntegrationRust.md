@@ -29,7 +29,7 @@ It's worth recalling that Rust has two semantics for variables:
 
 * *Copy semantics* are the one everyone used to `C#`, `Java`, `JavaScript`, `Go` understand.
 At run-time, it means the actual bits of memory are copied from one location to the other.
-Primitive types like `bool`, `u8`, `i8`, `u16`... but also any references `& T`, `&mut T`, `*const T` or `*mut T` have copy semantics.
+Primitive types like `bool`, `u8`, `i8`, `u16`... but also any references `& T`, `&mut T`, `*const T`, `*mut T` or structs of these types have copy semantics.
 * *Move semantics* or *owned semantics* indicate that once a variable or a field is used without borrowing, it can no longer be used afterwards. These are the semantics that allow Rust to forget the garbage collector, by cleaning up resources Rust can statically determine they are not longer used.
 Move semantics are the default for any type that does not implement the `Copy` trait.
 
@@ -41,14 +41,14 @@ Hence, whenever a variable with move semantics (borrowed or owned) is used in a 
 
 For maximum flexibility, Dafny follows these rules to encode types in Rust:
 - Function parameters always take primitive types without borrowing them (`bool`, `u32`, etc.) 
-- Function parameters always borrows variables of other types (`DafnyString`, structs, etc.), because
+- Function parameters always borrow variables of other types (`DafnyString`, structs, etc.), because
   borrowing is always cheaper than cloning for non-Copy types.  
   Open question: There are at least two more possible alternatives
   - We could actually have parameters be always owned, which require `.clone()` also to be used at the call site
   - We could have parameter attributes like `{:rc_owned true}` so that users can choose which API to precisely give to their functions.
-- Functions always return an owned type, otherwise we would need to have an automated theory about lifetimes of returned borrowed references, which Dafny does not support. Moreover, borrowing a variable makes its lifetime not `'static`, so it's not possible to use that trait.
+- Functions always return an owned type, otherwise we would need to have an automated theory about lifetimes of returned borrowed references, which Dafny does not support yet. Moreover, borrowing a variable makes its lifetime not `'static`, so it's not possible to use that trait.
 - `& T` and `&mut T` annotations only appear at the top-level of types, never nested.
-- Classes types are encoded in raw pointers, and a deallocation statement will be made available.
+- Classes types are encoded in reference-counted pointers by default, but there is a command-line flag `--raw-pointers` that encode class type into an equivalent of a raw pointer, in which case a deallocation statement will have to be made available.
 
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Rust type                 |
@@ -59,7 +59,7 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
 | `int32`                       | `i32`                       |
 | `int16`                       | `i16`                       |
 | `int8`                        | `i8`                        |
-| `char`                        | `char` OR `u16`             |
+| `char`                        | `char` OR `u16` (`--unicode-chars=false`)  |
 | `bitvector`                   | appropriate `u8` ... `u128` type  |
 | `ORDINAL`                     | `DafnyInt` - TODO           |
 | `real`                        | `num::BigRational` (will move to DafnyRational) |
@@ -71,42 +71,55 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
 | subset type                   | same as base type           |
 | `newtype T = u: U`            | `struct T(U)`               |
 |                               | or optimized to `u8`..`i128`|
-| `(T1, T2...)`                 | `(T1, T2...)`               |
+| `(T1, T2...)`                 | `(T1, T2...)` except for tuple of size 13 or more which use `_System.TupleXXX` because Rust has limitations             |
 | `seq<T>`                      | `Sequence<T: DafnyType>` (*)|
 | `set<T>`, `iset<T>`           | `Set<T: DafnyTypeEq>` (*)      |
 | `multiset<T>`                 | `MultiSet<T: DafnyTypeEq>` (*) |
 | `map<T,U>`, `imap<T,U>`       | `Map<T: DafnyTypeEq, U: DafnyTypeEq>` (*) |
 | function (arrow) types        | `Rc<dyn Fn(...) -> ...>`    |
 
-## With the option --raw-pointers=false (default)
-This version compiles classes to reference counting.
-However, it requires the nightly version to compile until the following feature
-is declared stable:
-- [trait Unsize](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html)
-
-To install and use the nightly, use 
+## Encoding of classes and arrays (default)
+This version compiles classes to reference counting, which roughly uses
+the following definition
+```rs
+pub struct Object<T: ?Sized>(pub Option<Rc<UnsafeCell<T>>>);
 ```
-rustup default nightly-x86_64-pc-windows-gnu
-```
-(to go back to the stable version, use `rustup default stable-x86_64-pc-windows-gnu`)
 
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Rust type                 |
 |-------------------------------|-----------------------------|
-| `C`, `C?` (for class, iterator C) | `object<C>`             |
-| (trait) `T`                   | (trait) `object<dyn T>`     |
-| `array<T>`                    | `object<[T]>`               |
-| `array2<T>`                   | `object<array2<T>>`         |
+| `C`, `C?` (for class, iterator C) | `Object<C>`         (*) |
+| (trait) `T`                   | (trait) `Object<dyn T>` (*) |
+| `array<T>`                    | `Object<[T]>`           (*) |
+| `array2<T>`                   | `Object<array2<T>>`  (*)(*) |
+| `c.x` if `c: C`               | `rd!(c).x`              (*) |
+| `c.x := 2` if `c: C`          | `md!(c).x = 2`          (*) |
+| `a[0]` if `a: array<T>`       | `rd!(a)[0]`             (*) |
+| `a[1] := 2` if  `a: array<T>` | `md!(a)[1] = 2`         (*) |
 
-## With the option --raw-pointers=true
-https://doc.rust-lang.org/book/appendix-07-nightly-rust.html
+
+## Encoding of classes and arrays with the option --raw-pointers
+The option `--raw-pointers` ensures that classes only have 8 bytes pointers,
+and array only have 8 bytes pointers + information about the length,
+and point to raw memory. Therefore, pointers have copy semantics and
+no call to any clone method needs to be made.
+However, since pointer comparison in Rust normally compares vtables,
+which is brittle, Dafny use its own pointer types which are wrappers:
+```rs
+pub struct Ptr<T: ?Sized>(pub Option<NonNull<UnsafeCell<T>>>);
+```
+
 |-------------------------------|-----------------------------|
 |  Dafny type                   |   Rust type                 |
 |-------------------------------|-----------------------------|
-| `C`, `C?` (for class, iterator C) | `*mut C`                |
-| (trait) `T`                   | (trait) `*mut dyn T`        |
-| `array<T>`                    | `*mut [T]`                  |
-| `array2<T>`                   | `*mut array2<T>`            |
+| `C`, `C?` (for class, iterator C) | `Ptr<C>`            (*) |
+| (trait) `T`                   | (trait) `Ptr<dyn T>`    (*) |
+| `array<T>`                    | `Ptr<[T]>`              (*) |
+| `array2<T>`                   | `Ptr<array2<T>>`    (*) (*) |
+| `c.x` if `c: C`               | `read!(c).x`            (*) |
+| `c.x := 2` if `c: C`          | `modify!(c).x = 2`      (*) |
+| `a[0]` if `a: array<T>`       | `read!(a)[0]`           (*) |
+| `a[1] := 2` if  `a: array<T>` | `modify!(a)[1] = 2`     (*) |
 
 (*) Defined in the Dafny runtime
 
