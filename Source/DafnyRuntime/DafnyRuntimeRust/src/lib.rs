@@ -1658,35 +1658,12 @@ impl<V: DafnyTypeEq> PartialOrd<Multiset<V>> for Multiset<V> {
                 Some(Ordering::Less)
             }
             Ordering::Equal => {
-                let mut has_less = false;
-                let mut has_greater = false;
                 for value in self.data.keys() {
-                    if !other.contains(value) {
+                    if self.get(value) != other.get(value) {
                         return None;
                     }
-                    let self_count = self.get(value);
-                    let other_count = other.get(value);
-                    if self_count < other_count {
-                        if has_greater {
-                            return None;
-                        }
-                        has_less = true;
-                    } else if self_count > other_count {
-                        if has_less {
-                            return None;
-                        }
-                        has_greater = true;
-                    }
                 }
-                if has_less && has_greater {
-                    None // should be unreachable
-                } else if has_less {
-                    Some(Ordering::Less)
-                } else if has_greater {
-                    Some(Ordering::Greater)
-                } else {
-                    Some(Ordering::Equal)
-                }
+                Some(Ordering::Equal)
             }
             Ordering::Greater => {
                 for value in other.data.keys() {
