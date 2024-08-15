@@ -1156,7 +1156,7 @@ module RAST
     }
 
     predicate LeftRequiresParentheses(left: Expr) {
-      printingInfo.NeedParenthesesForLeft(left.printingInfo)
+      printingInfo.NeedParenthesesForLeft(left.Optimize().printingInfo)
     }
     function LeftParentheses(left: Expr): (string, string) {
       if LeftRequiresParentheses(left) then
@@ -1166,7 +1166,7 @@ module RAST
     }
 
     predicate RightRequiresParentheses(right: Expr) {
-      printingInfo.NeedParenthesesForRight(right.printingInfo)
+      printingInfo.NeedParenthesesForRight(right.Optimize().printingInfo)
     }
 
 
@@ -1252,7 +1252,7 @@ module RAST
 
         case UnaryOp(op, underlying, format) =>
           var (leftP, rightP) :=
-            if printingInfo.NeedParenthesesFor(underlying.printingInfo) then
+            if printingInfo.NeedParenthesesFor(underlying.Optimize().printingInfo) then
               ("(", ")")
             else
               ("", "");
@@ -3462,14 +3462,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             onExpr := onExpr.Sel("data");
           }
 
-          var rhs := rhs;
-          if && onExpr.IsLhsIdentifier()
-             && var name := onExpr.LhsIdentifierName();
-             && var tpe := env.GetType(name);
-             && tpe.Some? && tpe.value.IsUninitArray() {
-            rhs := R.MaybeUninitNew(rhs);
-          }
-
           generated := r.Then(R.Assign(Some(R.Index(onExpr, indicesExpr)), rhs));
           needsIIFE := true;
         }
@@ -5192,7 +5184,15 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case IndexRange(on, isArray, low, high) => {
-          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
+          var onExpectedOwnership :=
+            if isArray then
+              if ObjectType.RawPointers? then
+                OwnershipOwned
+              else
+                OwnershipBorrowed
+            else
+              OwnershipAutoBorrowed;
+          var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, onExpectedOwnership);
           readIdents := recIdents;
 
           var methodName := if low.Some? then
@@ -5223,10 +5223,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             if methodName != "" {
               methodName := "_" + methodName;
             }
-            r := R.dafny_runtime_Sequence.FSel("from_array"+methodName).Apply(arguments);
+            var object_suffix :=
+              if ObjectType.RawPointers? then "" else "_object";
+            r := R.dafny_runtime_Sequence.FSel("from_array"+methodName+object_suffix).Apply([onExpr] + arguments);
           } else {
             if methodName != "" {
               r := r.Sel(methodName).Apply(arguments);
+            } else {
+              r := r.Clone();
             }
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);

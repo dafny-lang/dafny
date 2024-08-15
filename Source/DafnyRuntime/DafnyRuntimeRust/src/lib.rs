@@ -692,24 +692,60 @@ impl<T> Sequence<T>
 where
     T: DafnyType,
 {
-    pub fn from_array(values: &Vec<T>) -> Sequence<T> {
+    pub fn from_array(values: Ptr<[T]>) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(read!(values));
         Sequence::ArraySequence {
-            values: Rc::new(values.clone()),
+            values: Rc::new(v),
         }
     }
-    pub fn from_array_slice(values: &Vec<T>, start: &DafnyInt, end: &DafnyInt) -> Sequence<T> {
+    pub fn from_array_object(values: &Object<[T]>) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(rd!(values));
         Sequence::ArraySequence {
-            values: Rc::new(values[start.to_usize().unwrap()..end.to_usize().unwrap()].to_vec()),
+            values: Rc::new(v),
         }
     }
-    pub fn from_array_take(values: &Vec<T>, n: &DafnyInt) -> Sequence<T> {
+    pub fn from_array_slice(values: Ptr<[T]>, start: &DafnyInt, end: &DafnyInt) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(&read!(values)[start.to_usize().unwrap()..end.to_usize().unwrap()]);
         Sequence::ArraySequence {
-            values: Rc::new(values[..n.to_usize().unwrap()].to_vec()),
+            values: Rc::new(v),
         }
     }
-    pub fn from_array_drop(values: &Vec<T>, n: &DafnyInt) -> Sequence<T> {
+    pub fn from_array_slice_object(values: &Object<[T]>, start: &DafnyInt, end: &DafnyInt) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(&rd!(values)[start.to_usize().unwrap()..end.to_usize().unwrap()]);
         Sequence::ArraySequence {
-            values: Rc::new(values[n.to_usize().unwrap()..].to_vec()),
+            values: Rc::new(v),
+        }
+    }
+    pub fn from_array_take(values: Ptr<[T]>, n: &DafnyInt) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(&read!(values)[..n.to_usize().unwrap()]);
+        Sequence::ArraySequence {
+            values: Rc::new(v),
+        }
+    }
+    pub fn from_array_take_object(values: &Object<[T]>, n: &DafnyInt) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(&rd!(values)[..n.to_usize().unwrap()]);
+        Sequence::ArraySequence {
+            values: Rc::new(v),
+        }
+    }
+    pub fn from_array_drop(values: Ptr<[T]>, n: &DafnyInt) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(&read!(values)[n.to_usize().unwrap()..]);
+        Sequence::ArraySequence {
+            values: Rc::new(v),
+        }
+    }
+    pub fn from_array_drop_object(values: &Object<[T]>, n: &DafnyInt) -> Sequence<T> {
+        let mut v = vec![];
+        v.extend_from_slice(&rd!(values)[n.to_usize().unwrap()..]);
+        Sequence::ArraySequence {
+            values: Rc::new(v),
         }
     }
     pub fn from_array_owned(values: Vec<T>) -> Sequence<T> {

@@ -1276,7 +1276,9 @@ namespace Microsoft.Dafny.Compilers {
               start,
               goingUp
             ));
-          TrStmtList(body, new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this));
+          ConcreteSyntaxTree bodyWr = new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this);
+          bodyWr = EmitContinueLabel(labels, bodyWr);
+          TrStmtList(body, bodyWr);
           return new BuilderSyntaxTree<ExprContainer>(startBuilder, this);
         } else {
           var loHiBuilder = ((ExprContainer)foreachBuilder).BinOp("int_range", (DAST.Expression lo, DAST.Expression hi) =>
@@ -1286,7 +1288,9 @@ namespace Microsoft.Dafny.Compilers {
                hi,
                goingUp
              ));
-          TrStmtList(body, new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this));
+          ConcreteSyntaxTree bodyWr = new BuilderSyntaxTree<StatementContainer>(foreachBuilder, this);
+          bodyWr = EmitContinueLabel(labels, bodyWr);
+          TrStmtList(body, bodyWr);
           BuilderSyntaxTree<ExprContainer> toReturn;
           if (goingUp) {
             var loBuf = new ExprBuffer(null);
