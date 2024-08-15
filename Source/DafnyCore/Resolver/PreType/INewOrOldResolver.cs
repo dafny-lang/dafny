@@ -17,4 +17,14 @@ public interface INewOrOldResolver {
   void ConstrainTypeExprBool(Expression expression, string message);
   void ResolveStatement(Statement statement, ResolutionContext resolutionContext);
   void ResolveTypeRhs(TypeRhs typeRhs, Statement statement, ResolutionContext resolutionContext);
+  void ResolveBlockStatement(BlockStmt blockS, ResolutionContext resolutionContext);
+
+  Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok,
+    string kind) where Thing : class;
+
+  public void ScopePushAndReport(Scope<IVariable> scope, IVariable v, string kind) {
+    ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
+  }
+
+  void ResolveStatementWithLabels(Statement statement, ResolutionContext resolutionContext);
 }
