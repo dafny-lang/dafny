@@ -81,7 +81,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.NonSequentializableForallStatements,
       Feature.MapItems,
       Feature.RunAllTests,
-      Feature.ExactBoundedPool,
       Feature.SequenceDisplaysOfCharacters,
       Feature.TypeTests,
       Feature.SubsetTypeTests,
@@ -3104,7 +3103,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AddUnsupportedFeature(e.Tok, Feature.ExactBoundedPool);
+      if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
+        var eBuild = convert(e);
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ExactBoundedPool(eBuild));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
