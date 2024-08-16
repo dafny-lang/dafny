@@ -1646,11 +1646,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-          if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-            Error(ErrorId.c_iterators_are_not_deterministic, iter.tok,
-              "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option",
-              wr);
-          }
 
           var wIter = CreateIterator(iter, wr);
           if (iter.Body == null) {
@@ -1683,15 +1678,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (d is ClassLikeDecl cl) {
           var (classIsExtern, include) = GetIsExternAndIncluded(cl);
-
-          if (Options.ForbidNondeterminism &&
-              !classIsExtern &&
-              !cl.Members.Exists(member => member is Constructor) &&
-              cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
-            Error(ErrorId.c_constructorless_class_forbidden, cl.tok,
-              "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option",
-              wr);
-          }
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),

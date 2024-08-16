@@ -98,11 +98,7 @@ namespace Microsoft.Dafny.Compilers {
               var rhsTypes = new List<Type>();
               foreach (var assignStmt in assignStmts) {
                 var rhs = assignStmt.Rhs;
-                if (rhs is HavocRhs) {
-                  if (Options.ForbidNondeterminism) {
-                    Error(ErrorId.c_nondeterminism_forbidden, rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
-                  }
-                } else {
+                if (rhs is not HavocRhs) {
                   var lhs = assignStmt.Lhs;
                   rhss.Add(rhs);
                   lhss.Add(lhs);
@@ -129,9 +125,6 @@ namespace Microsoft.Dafny.Compilers {
             var s = assignStmt;
             Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
             if (s.Rhs is HavocRhs) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_nondeterminism_forbidden, s.Rhs.Tok, "nondeterministic assignment forbidden by the --enforce-determinism option", wr);
-              }
             } else if (s.Rhs is TypeRhs typeRhs) {
               var lvalue = CreateLvalue(s.Lhs, wr, wStmts);
               wStmts = wr.Fork();
@@ -157,9 +150,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         case AssignSuchThatStmt thatStmt: {
             var s = thatStmt;
-            if (Options.ForbidNondeterminism) {
-              Error(ErrorId.c_assign_such_that_forbidden, s.Tok, "assign-such-that statement forbidden by the --enforce-determinism option", wr);
-            }
             var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
             var missingBounds = BoundedPool.MissingBounds(lhss, s.Bounds, BoundedPool.PoolVirtues.Enumerable);
             if (missingBounds.Count != 0) {
@@ -263,9 +253,6 @@ namespace Microsoft.Dafny.Compilers {
         case IfStmt ifStmt: {
             IfStmt s = ifStmt;
             if (s.Guard == null) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_nondeterministic_if_forbidden, s.Tok, "nondeterministic if statement forbidden by the --enforce-determinism option", wr);
-              }
               // we can compile the branch of our choice
               ConcreteSyntaxTree guardWriter;
               if (s.Els == null) {
@@ -288,10 +275,6 @@ namespace Microsoft.Dafny.Compilers {
                 Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
               }
             } else {
-              if (s.IsBindingGuard && Options.ForbidNondeterminism) {
-                Error(ErrorId.c_binding_if_forbidden, s.Tok, "binding if statement forbidden by the --enforce-determinism option", wr);
-              }
-
               var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
               var thenWriter = EmitIf(out var guardWriter, s.Els != null || coverageForElse, wr);
               EmitExpr(s.IsBindingGuard ? ((ExistsExpr)s.Guard).AlphaRename("eg_d") : s.Guard, false, guardWriter, wStmts);
@@ -319,9 +302,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         case AlternativeStmt alternativeStmt: {
             var s = alternativeStmt;
-            if (Options.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
-              Error(ErrorId.c_case_based_if_forbidden, s.Tok, "case-based if statement forbidden by the --enforce-determinism option", wr);
-            }
             foreach (var alternative in s.Alternatives) {
               var thn = EmitIf(out var guardWriter, true, wr);
               EmitExpr(alternative.IsBindingGuard ? ((ExistsExpr)alternative.Guard).AlphaRename("eg_d") : alternative.Guard, false, guardWriter, wStmts);
@@ -341,9 +321,6 @@ namespace Microsoft.Dafny.Compilers {
               return;
             }
             if (s.Guard == null) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_non_deterministic_loop_forbidden, s.Tok, "nondeterministic loop forbidden by the --enforce-determinism option", wr);
-              }
               // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
               // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
               // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
@@ -359,9 +336,6 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case AlternativeLoopStmt loopStmt: {
-            if (Options.ForbidNondeterminism) {
-              Error(ErrorId.c_case_based_loop_forbidden, loopStmt.Tok, "case-based loop forbidden by the --enforce-determinism option", wr);
-            }
             if (loopStmt.Alternatives.Count != 0) {
               var w = CreateWhileLoop(out var whileGuardWriter, wr);
               EmitExpr(Expression.CreateBoolLiteral(loopStmt.tok, true), false, whileGuardWriter, wStmts);
@@ -408,9 +382,6 @@ namespace Microsoft.Dafny.Compilers {
             }
             var s0 = (AssignStmt)s.S0;
             if (s0.Rhs is HavocRhs) {
-              if (Options.ForbidNondeterminism) {
-                Error(ErrorId.c_nondeterminism_forbidden, s0.Rhs.Tok, "nondeterministic assignment forbidden by --enforce-determinism", wr);
-              }
               // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
               // into doing nothing.
               return;
@@ -574,8 +545,6 @@ namespace Microsoft.Dafny.Compilers {
             var s = modifyStmt;
             if (s.Body != null) {
               TrStmt(s.Body, wr);
-            } else if (Options.ForbidNondeterminism) {
-              Error(ErrorId.c_bodyless_modify_statement_forbidden, s.Tok, "modify statement without a body forbidden by the --enforce-determinism option", wr);
             }
 
             break;

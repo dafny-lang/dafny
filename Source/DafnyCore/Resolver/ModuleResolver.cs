@@ -1478,6 +1478,22 @@ namespace Microsoft.Dafny {
       // Further checks
       // ----------------------------------------------------------------------------
 
+      foreach (TopLevelDecl d in declarations) {
+        if (d is ClassLikeDecl classLikeDecl) {
+          var classIsExtern = !Options.DisallowExterns && Attributes.Contains(classLikeDecl.Attributes, "extern");
+          if (Options.ForbidNondeterminism &&
+              !classIsExtern &&
+              !classLikeDecl.Members.Exists(member => member is Constructor) &&
+              classLikeDecl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+            // This check should be moved to the resolver once we have a language construct to indicate the type is imported
+            // Instead of the extern attribute
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_constructorless_class_forbidden,
+              classLikeDecl.tok,
+              "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option");
+          }
+        }
+      }
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type-parameter variance is respected in type definitions
         foreach (TopLevelDecl d in declarations) {
@@ -2966,7 +2982,7 @@ namespace Microsoft.Dafny {
       ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
     }
 
-    void ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+    public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
       Contract.Requires(scope != null);
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
@@ -2983,6 +2999,8 @@ namespace Microsoft.Dafny {
           reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
+
+      return r;
     }
 
     /// <summary>
@@ -3309,6 +3327,21 @@ namespace Microsoft.Dafny {
     internal LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
       var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
       return LetPatIn(tok, lhs, rhs, body);
+    }
+
+    internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
+      if (proof == null) {
+        return;
+      }
+
+      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+      var prevLblStmts = resolver.EnclosingStatementLabels;
+      var prevLoopStack = resolver.LoopStack;
+      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+      resolver.LoopStack = new List<Statement>();
+      resolver.ResolveStatement(proof, resolutionContext);
+      resolver.EnclosingStatementLabels = prevLblStmts;
+      resolver.LoopStack = prevLoopStack;
     }
 
     /// <summary>

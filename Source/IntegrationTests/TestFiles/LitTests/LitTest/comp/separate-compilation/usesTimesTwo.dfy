@@ -49,7 +49,7 @@ include "Inputs/producer/timesTwo.dfy"
 
 module ConsumerModule {
 
-  import opened LibraryModule
+  import opened CoolLibraryName.LibraryModule
 
   method Main() {
     var n := 21;

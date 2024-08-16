@@ -132,6 +132,73 @@ mod tests {
     }
 
     #[test]
+    fn test_dafny_multisubset() {
+        let s = multiset! {55, 56, 57, 58, 59};
+        let t = multiset! {55, 56, 57, 58};
+        assert!(t < s);
+        assert!(t <= s);
+        assert!(s > t);
+        assert!(s >= t);
+        assert!(s != t);
+        assert!(t != s);
+
+        assert!(!(t > s));
+        assert!(!(t >= s));
+        assert!(!(s < t));
+        assert!(!(s <= t));
+        assert!(!(s == t));
+        assert!(!(t == s));
+
+        let s = multiset! {55, 56, 57, 58, 58};
+        let t = multiset! {55, 56, 57, 58};
+        assert!(t < s);
+        assert!(t <= s);
+        assert!(s > t);
+        assert!(s >= t);
+        assert!(s != t);
+        assert!(t != s);
+
+        assert!(!(t > s));
+        assert!(!(t >= s));
+        assert!(!(s < t));
+        assert!(!(s <= t));
+        assert!(!(s == t));
+        assert!(!(t == s));
+
+        let s = multiset! {55, 56, 57, 58, 59};
+        let t = multiset! {55, 56, 57, 58, 59};
+        assert!(t <= s);
+        assert!(s <= t);
+        assert!(s >= t);
+        assert!(t >= s);
+        assert!(s == t);
+        assert!(t == s);
+
+        assert!(!(t < s));
+        assert!(!(t > s));
+        assert!(!(s > t));
+        assert!(!(s < t));
+        assert!(!(s != t));
+        assert!(!(t != s));
+
+        let s = multiset! {55, 56, 57, 58, 59};
+        let s = multiset! {55, 56, 57, 58, 58};
+        assert!(s != t);
+        assert!(t != s);
+
+        assert!(!(t < s));
+        assert!(!(t <= s));
+        assert!(!(t > s));
+        assert!(!(t >= s));
+        assert!(!(s < t));
+        assert!(!(s <= t));
+        assert!(!(s > t));
+        assert!(!(s >= t));
+        assert!(!(s == t));
+        assert!(!(t == s));
+    }
+
+    #[test]
     fn test_dafny_multiset() {
         let s = multiset! {55, 56, 57, 56, 58};
         let t = multiset! {59, 58, 57, 56};
