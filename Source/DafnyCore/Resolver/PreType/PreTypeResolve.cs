@@ -483,7 +483,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(r == Scope<IVariable>.PushResult.Success);
     }
 
-    private Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+    public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
       Contract.Requires(scope != null);
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
@@ -1172,6 +1172,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(iter != null);
       Contract.Requires(currentClass != null);
       Contract.Ensures(currentClass == null);
+
+      if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
+        Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_iterators_are_not_deterministic, iter.tok,
+          "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option");
+      }
 
       var initialErrorCount = ErrorCount;
 
