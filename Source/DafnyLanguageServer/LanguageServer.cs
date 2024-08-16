@@ -31,7 +31,6 @@ namespace Microsoft.Dafny.LanguageServer {
         DeveloperOptionBag.SplitPrint,
         DeveloperOptionBag.PassivePrint,
         DeveloperOptionBag.BoogiePrint,
-        CommonOptionBag.EnforceDeterminism,
         InternalDocstringRewritersPluginConfiguration.UseJavadocLikeDocstringRewriterOption,
         LegacySignatureAndCompletionTable.MigrateSignatureAndCompletionTable
       }.Concat(DafnyCommands.VerificationOptions).

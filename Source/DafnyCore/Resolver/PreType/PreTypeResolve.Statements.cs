@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     private List<Statement> loopStack = new();  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
-    void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
+    public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -252,8 +252,8 @@ namespace Microsoft.Dafny {
           var rr = (TypeRhs)s.Rhs;
           ResolveTypeRhs(rr, stmt, resolutionContext);
           AddSubtypeConstraint(lhsPreType, rr.PreType, stmt.Tok, "type {1} is not assignable to LHS (of type {0})");
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
+        } else if (s.Rhs is HavocRhs havocRhs) {
+          havocRhs.Resolve(this, resolutionContext);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
@@ -266,41 +266,22 @@ namespace Microsoft.Dafny {
         ResolveBlockStatement(blockStmt, resolutionContext);
         scope.PopMarker();
 
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, resolutionContext);
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
-        }
-
-        scope.PushMarker();
-        if (s.IsBindingGuard) {
-          var exists = (ExistsExpr)s.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", false);
-          }
-        }
-        DominatingStatementLabels.PushMarker();
-        ResolveBlockStatement(s.Thn, resolutionContext);
-        DominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-
-        if (s.Els != null) {
-          DominatingStatementLabels.PushMarker();
-          ResolveStatement(s.Els, resolutionContext);
-          DominatingStatementLabels.PopMarker();
-        }
-
+      } else if (stmt is IfStmt ifStmt) {
+        ifStmt.Resolve(this, resolutionContext);
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        ResolveAlternatives(s.Alternatives, null, resolutionContext);
+        s.Resolve(this, resolutionContext);
 
       } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
         ResolveOneBodyLoopStmt(oneBodyLoopStmt, resolutionContext);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        ResolveAlternatives(s.Alternatives, s, resolutionContext);
+        if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+          Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Tok,
+            "case-based loop forbidden by the --enforce-determinism option");
+        }
+        AlternativeStmt.ResolveAlternatives(this, s.Alternatives, s, resolutionContext);
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       } else if (stmt is ForallStmt) {
@@ -391,6 +372,12 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ModifyStmt modifyStmt) {
+        if (modifyStmt.Body == null) {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_bodyless_modify_statement_forbidden,
+              modifyStmt.Tok, "modify statement without a body forbidden by the --enforce-determinism option");
+          }
+        }
         ResolveAttributes(modifyStmt.Mod, resolutionContext, false);
         foreach (FrameExpression fe in modifyStmt.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext.CodeContext);
@@ -424,11 +411,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
-      if (s is WhileStmt whileS && whileS.Guard != null) {
-        ResolveExpression(whileS.Guard, resolutionContext);
-        ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
-
-      } else if (s is ForLoopStmt forS) {
+      if (s is WhileStmt whileS) {
+        if (whileS.Guard != null) {
+          ResolveExpression(whileS.Guard, resolutionContext);
+          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+        } else {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Tok,
+              "nondeterministic loop forbidden by the --enforce-determinism option");
+          }
+        }
+      }
+      if (s is ForLoopStmt forS) {
         var loopIndex = forS.LoopIndex;
         resolver.ResolveType(loopIndex.tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
@@ -1264,40 +1258,6 @@ namespace Microsoft.Dafny {
         // nothing to check; this can only denote an array element
       } else {
         ReportError(lhs, "LHS of assignment must denote a mutable variable or field");
-      }
-    }
-
-    void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
-      Contract.Requires(alternatives != null);
-      Contract.Requires(resolutionContext != null);
-
-      // first, resolve the guards
-      foreach (var alternative in alternatives) {
-        ResolveExpression(alternative.Guard, resolutionContext);
-        ConstrainExpressionToBoolFamily(alternative.Guard, "condition is expected to be of type bool, but is {0}");
-      }
-
-      if (loopToCatchBreaks != null) {
-        loopStack.Add(loopToCatchBreaks);  // push
-      }
-      foreach (var alternative in alternatives) {
-        scope.PushMarker();
-        DominatingStatementLabels.PushMarker();
-        if (alternative.IsBindingGuard) {
-          var exists = (ExistsExpr)alternative.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", false);
-          }
-        }
-        ResolveAttributes(alternative, resolutionContext, false);
-        foreach (Statement ss in alternative.Body) {
-          ResolveStatementWithLabels(ss, resolutionContext);
-        }
-        DominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-      }
-      if (loopToCatchBreaks != null) {
-        loopStack.RemoveAt(loopStack.Count - 1);  // pop
       }
     }
   }
