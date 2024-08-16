@@ -1,4 +1,3 @@
-pub mod experimental;
 // Test module
 #[cfg(test)]
 mod tests {
@@ -130,6 +129,73 @@ mod tests {
             s.as_dafny_multiset(),
             Multiset::from_array(&vec!(55, 56, 57, 58))
         );
+    }
+
+    #[test]
+    fn test_dafny_multisubset() {
+        let s = multiset! {55, 56, 57, 58, 59};
+        let t = multiset! {55, 56, 57, 58};
+        assert!(t < s);
+        assert!(t <= s);
+        assert!(s > t);
+        assert!(s >= t);
+        assert!(s != t);
+        assert!(t != s);
+
+        assert!(!(t > s));
+        assert!(!(t >= s));
+        assert!(!(s < t));
+        assert!(!(s <= t));
+        assert!(!(s == t));
+        assert!(!(t == s));
+
+        let s = multiset! {55, 56, 57, 58, 58};
+        let t = multiset! {55, 56, 57, 58};
+        assert!(t < s);
+        assert!(t <= s);
+        assert!(s > t);
+        assert!(s >= t);
+        assert!(s != t);
+        assert!(t != s);
+
+        assert!(!(t > s));
+        assert!(!(t >= s));
+        assert!(!(s < t));
+        assert!(!(s <= t));
+        assert!(!(s == t));
+        assert!(!(t == s));
+
+        let s = multiset! {55, 56, 57, 58, 59};
+        let t = multiset! {55, 56, 57, 58, 59};
+        assert!(t <= s);
+        assert!(s <= t);
+        assert!(s >= t);
+        assert!(t >= s);
+        assert!(s == t);
+        assert!(t == s);
+
+        assert!(!(t < s));
+        assert!(!(t > s));
+        assert!(!(s > t));
+        assert!(!(s < t));
+        assert!(!(s != t));
+        assert!(!(t != s));
+
+        let s = multiset! {55, 56, 57, 58, 59};
+        let s = multiset! {55, 56, 57, 58, 58};
+        assert!(s != t);
+        assert!(t != s);
+
+        assert!(!(t < s));
+        assert!(!(t <= s));
+        assert!(!(t > s));
+        assert!(!(t >= s));
+        assert!(!(s < t));
+        assert!(!(s <= t));
+        assert!(!(s > t));
+        assert!(!(s >= t));
+        assert!(!(s == t));
+        assert!(!(t == s));
     }
 
     #[test]
