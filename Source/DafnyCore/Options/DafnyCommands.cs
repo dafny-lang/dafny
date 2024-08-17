@@ -51,7 +51,6 @@ public static class DafnyCommands {
   public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
     BoogieOptionBag.HiddenNoVerify,
-    CommonOptionBag.EnforceDeterminism,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
@@ -110,6 +109,7 @@ public static class DafnyCommands {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
     CommonOptionBag.AllowAxioms,
+    CommonOptionBag.EnforceDeterminism,
     MethodOrFunction.AllowExternalContracts,
     DafnyProject.FindProjectOption
   }).Concat(ParserOptions).ToList();

@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation --performance-stats=1
 
 
 codatatype Stream<T> = Cons(head: T, tail: Stream)
