@@ -15,13 +15,13 @@ using Token = Microsoft.Boogie.Token;
 namespace DafnyTestGeneration.Inlining;
 
 /// <summary>
-/// Create implementations for all "Call$$" procedures by making them
+/// Create implementations for all "CallPost$$" procedures by making them
 /// call the respective "Impl$$ implementations. This allows to implement
 /// inlining of Dafny methods further down the road.
 /// </summary>
 public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
 
-  private const string CallPrefix = "Call$$";
+  private const string CallPrefix = "CallPost$$";
   private readonly DafnyOptions options;
   private List<Implementation> implsToAdd = new();
 
