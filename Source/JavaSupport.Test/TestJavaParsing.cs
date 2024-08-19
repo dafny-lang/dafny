@@ -14,7 +14,7 @@ class Div {
     return 3 / x;
   }
 }";
-    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()));
+    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()), DafnyOptions.Default);
     var programGrammar = jg.GetFinalGrammar();
     var parser = programGrammar.ToParser();
     var parseResult = parser.Parse(input);
@@ -33,7 +33,7 @@ class Foo {
     return a.b(c, d);
   }
 }".TrimStart();
-    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()));
+    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()), DafnyOptions.Default);
     var programGrammar = jg.GetFinalGrammar();
     var parser = programGrammar.ToParser();
     var parseResult = parser.Parse(input);
@@ -73,7 +73,7 @@ class Fib {
     return iResult;
   }
 }";
-    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()));
+    var jg = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()), DafnyOptions.Default);
     var programGrammar = jg.GetFinalGrammar();
     var parser = programGrammar.ToParser();
     var parseResult = parser.Parse(input);

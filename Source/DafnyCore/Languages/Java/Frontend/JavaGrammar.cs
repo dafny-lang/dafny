@@ -3,6 +3,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
@@ -17,14 +18,16 @@ public class JavaGrammar {
   private readonly Grammar<Expression> expression;
   private readonly Grammar<Name> name;
   private readonly Uri uri;
+  private readonly DafnyOptions options;
   private readonly Grammar<Type> type;
   private readonly Grammar<Statement> statement;
   private Grammar<BlockStmt> block;
   private Grammar<ApplySuffix> call;
   private readonly Grammar<AttributedExpression> attributedExpression;
 
-  public JavaGrammar(Uri uri) {
+  public JavaGrammar(Uri uri, DafnyOptions options) {
     this.uri = uri;
+    this.options = options;
     name = GetNameGrammar();
     type = TypeGrammar();
     expression = Recursive<Expression>(self => {
@@ -84,6 +87,12 @@ public class JavaGrammar {
 
   public Grammar<FileModuleDefinition> File() {
     var package = Keyword("package").Then(Identifier.CommaSeparated()).Then(";").Ignore();
+
+    var include = Keyword("include").Then(StringInDoubleQuotes).Map((r, s) =>
+        new Include(ConvertToken(r), uri, new Uri(Path.GetFullPath(s, Path.GetDirectoryName(uri.LocalPath)!)), options),
+      i => i.IncludedFilename.LocalPath);
+    var includes = include.Many(Separator.Linebreak);
+    
     var qualifiedId = name.Map(n => new ModuleQualifiedId([n]), q => q.Path[0]);
     var import = Keyword("import").Then(qualifiedId).Then(";", Separator.Nothing).Map(
         (t, a) => new AliasModuleDecl(DafnyOptions.Default, 
@@ -91,11 +100,12 @@ public class JavaGrammar {
         a => a.TargetQId);
     
     var classes = Class().Many(Separator.EmptyLine);
-    var imports = import.Many(Separator.Linebreak).Map(imports =>
-      new FileModuleDefinition(Token.NoToken) {
-        SourceDecls = imports.ToList<TopLevelDecl>()
-      }, f => f.SourceDecls.OfType<AliasModuleDecl>().ToList());
-    return package.Then(imports).Then(classes,
+    var imports = import.Many(Separator.Linebreak);
+    return Constructor<FileModuleDefinition>().Then(package).
+      Then(includes, f => f.Includes).
+      Then(imports, f => f.SourceDecls.OfType<AliasModuleDecl>().ToList(),
+        (f, a) => f.SourceDecls.AddRange(a), Separator.EmptyLine).
+      Then(classes,
       f => f.SourceDecls.OfType<ClassDecl>().ToList(),
       (f, c) => f.SourceDecls.AddRange(c), Separator.EmptyLine);
   }
@@ -383,6 +393,7 @@ public class JavaGrammar {
       ns => ns.Name);
     // OptGenericInstantiation<out typeArgs, inExpressionContext>
     var intGrammar = Keyword("int").Then(Constant(Type.Int));
+    var boolGrammar = Keyword("boolean").Then(Constant(Type.Bool)); 
     var userDefinedType = nameSegmentForTypeName.UpCast<NameSegment, Expression>().
       Map(n => new UserDefinedType(n.Tok, n), udt => udt.NamePath).UpCast<UserDefinedType, Type>();
 
@@ -391,7 +402,7 @@ public class JavaGrammar {
     //   OptGenericInstantiation<out typeArgs, inExpressionContext>
     //     (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
     // }
-    return Fail<Type>("a type").OrCast(intGrammar).OrCast(userDefinedType);
+    return Fail<Type>("a type").OrCast(boolGrammar).OrCast(intGrammar).OrCast(userDefinedType);
   }
 
 

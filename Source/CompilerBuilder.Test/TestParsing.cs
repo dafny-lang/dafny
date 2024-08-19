@@ -14,7 +14,7 @@ public class TestParsing {
   [Fact]
   public void TestChar() {
     var parsed = CharInSingleQuotes.Parse("'d'").ForceSuccess.Value;
-    Assert.Equal('d', parsed);
+    Assert.Equal("d", parsed);
   }
   
   [Fact]

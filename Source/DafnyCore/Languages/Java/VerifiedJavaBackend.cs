@@ -28,7 +28,7 @@ public class VerifiedJavaBackend : JavaBackend {
     public void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
       RemoveGhost(dafnyProgram);
       
-      var grammar = new JavaGrammar(dafnyProgram.GetStartOfFirstFileToken().Uri).GetFinalGrammar();
+      var grammar = new JavaGrammar(dafnyProgram.GetStartOfFirstFileToken().Uri, dafnyProgram.Options).GetFinalGrammar();
       var fileModuleDefinition = new FileModuleDefinition(Token.NoToken) {
         
       };

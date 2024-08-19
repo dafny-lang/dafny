@@ -270,7 +270,7 @@ public class ProgramParser {
       var text = SourcePreprocessor.ProcessDirectives(reader, new List<string>());
       return ParseFile(options, text, uri, cancellationToken);
     } else if (uri.LocalPath.EndsWith(DafnyFile.VerifiedJavaExtension)) {
-      var jGrammarBuilder = new JavaGrammar(uri);
+      var jGrammarBuilder = new JavaGrammar(uri, options);
       var javaGrammar = jGrammarBuilder.GetFinalGrammar();
       ConcreteResult<FileModuleDefinition> result = javaGrammar.ToParser().Parse(reader.ReadToEnd());
       if (result is ConcreteSuccess<FileModuleDefinition> success) {

@@ -10,7 +10,10 @@ namespace Microsoft.Dafny;
 /// https://github.com/dafny-lang/dafny/issues/3027
 /// </summary>
 public class FileModuleDefinition : ModuleDefinition {
-  public List<Include> Includes { get; } = new();
+  public List<Include> Includes { get; set; } = new();
+
+  public FileModuleDefinition() : this(Token.Parsing) {
+  }
 
   public FileModuleDefinition(IToken token) :
     base(token.ToRange(), new Name("_module"), new List<IToken>(),

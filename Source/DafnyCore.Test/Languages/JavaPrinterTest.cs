@@ -14,7 +14,7 @@ class Div {
     return 3 / x;
   }
 }".TrimStart();
-    var grammarBuilder = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()));
+    var grammarBuilder = new JavaGrammar(new Uri(Directory.GetCurrentDirectory()), DafnyOptions.Default);
     var grammar = grammarBuilder.GetFinalGrammar();
     var parser = grammar.ToParser();
     var printer = grammar.ToPrinter();

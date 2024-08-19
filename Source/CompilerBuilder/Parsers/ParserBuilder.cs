@@ -21,6 +21,8 @@ public static class ParserBuilder {
   public static readonly Parser<int> Number = new RegexR(@"\d+", "number").MapValue(s => 
     int.TryParse(s, out var result) ? result : default(int?));
   public static readonly Parser<string> CharInSingleQuotes = new RegexR(@"'.'", "char");
+  public static readonly Parser<string> StringInDoubleQuotes = 
+    new RegexR("\".+\"", "string").Map(s => s.Substring(1, s.Length - 2));
   
   public static Parser<T> Fail<T>(string expectation) => new FailR<T>(expectation);
   public static readonly Parser<string> SlashSlashLineComment = new Comment("//", "\n", "a line comment");
