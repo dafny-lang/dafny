@@ -335,14 +335,14 @@ internal class NumberR : Parser<int> {
 internal class IdentifierR : Parser<string> {
   public ParseResult<string> Parse(ITextPointer text) {
     var offset = 0;
-    var allowDigit = false;
+    var allowOthers = false;
     while (text.Length > offset) {
       var c = text.At(offset);
       if (Char.IsLetter(c)) {
-        allowDigit = true;
+        allowOthers = true;
         offset++;
       }
-      else if (allowDigit && Char.IsDigit(c)) {
+      else if (allowOthers && (char.IsDigit(c) || c == '\'') || c == '_') {
         offset++;
       } else {
         break;

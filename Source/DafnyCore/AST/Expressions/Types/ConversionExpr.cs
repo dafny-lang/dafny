@@ -5,6 +5,9 @@ namespace Microsoft.Dafny;
 public class ConversionExpr : TypeUnaryExpr, ICloneable<ConversionExpr> {
   public readonly string messagePrefix;
 
+  public ConversionExpr() : base(Token.Parsing, null, null) {
+  }
+
   public ConversionExpr(Cloner cloner, ConversionExpr original) : base(cloner, original) {
     messagePrefix = original.messagePrefix;
   }

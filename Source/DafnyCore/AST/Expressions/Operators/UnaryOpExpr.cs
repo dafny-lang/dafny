@@ -1,4 +1,5 @@
 using System.Diagnostics.Contracts;
+using System.Reflection.Emit;
 
 namespace Microsoft.Dafny;
 
@@ -11,7 +12,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     Assigned,
   }
-  public readonly Opcode Op;
+  public Opcode Op;
 
   public enum ResolvedOpcode {
     YetUndetermined,
@@ -59,6 +60,13 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     _ResolvedOp = resolvedOpcode;
   }
 
+  public UnaryOpExpr(Opcode op) : base(Token.Parsing, null) {
+    Op = op;
+  }
+  
+  public UnaryOpExpr() : base(Token.Parsing, null) {
+  }
+  
   public UnaryOpExpr(IToken tok, Opcode op, Expression e)
     : base(tok, e) {
     Contract.Requires(tok != null);

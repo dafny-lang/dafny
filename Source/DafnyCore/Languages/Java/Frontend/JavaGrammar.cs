@@ -198,7 +198,8 @@ public class JavaGrammar {
       new ReturnStmt(Convert(r), [new ExprRhs(e)]), r => ((ExprRhs)r.Rhss.First()).Expr);
     var ifStatement = Constructor<IfStmt>().
       Then("if").Then(expression.InParens(), s => s.Guard).
-      Then(blockResult, s => s.Thn);
+      Then(blockResult, s => s.Thn).
+      Then(Keyword("else").Then(self).Option(), s => s.Els);
 
     var expressionStatement = expression.DownCast<Expression, ApplySuffix>().
       Then(";", Separator.Nothing).Map(
@@ -207,6 +208,17 @@ public class JavaGrammar {
       }]),
       updateStmt => MapResult<ApplySuffix>.FromNullable((updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix)
       );
+    
+    var oneLiteral = Expression.CreateIntLiteral(Token.NoToken, 1);
+
+    var incrementStatement = expression.Then("++").Then(";").Map(
+      (t, e) => new UpdateStmt(Convert(t), [e], [new ExprRhs(new BinaryExpr(ConvertToken(t),
+        BinaryExpr.Opcode.Add, e, oneLiteral)) {
+        tok = Convert(t.From)
+      }]),
+      updateStmt => updateStmt.Rhss.Count == 1 && ((updateStmt.Rhss[0] as ExprRhs)?.Expr 
+        is BinaryExpr { Op: BinaryExpr.Opcode.Add } binaryExpr) && binaryExpr.E1 == oneLiteral
+                    ? new MapSuccess<Expression>(updateStmt.Lhss[0]) : new MapFail<Expression>());
 
     var initializer = Keyword("=").Then(expression).Option();
     var ghostModifier = Modifier("ghost");
@@ -250,17 +262,20 @@ public class JavaGrammar {
     
     var invariant = Keyword("invariant").Then(attributedExpression);
     var invariants = invariant.Many(Separator.Linebreak).Indent();
+    
+    var decrease = Keyword("decreases").Then(expression);
+    var decreases = decrease.Many(Separator.Linebreak).Map(
+      xs => new Specification<Expression>(xs, null),
+      s => s.Expressions).Indent();
     var whileStatement = Constructor<WhileStmt>().Then(Keyword("while")).
       Then(expression.InParens(), w => w.Guard).
       Then(invariants, w => w.Invariants, Separator.Linebreak).
+      Then(decreases, w => w.Decreases, Separator.Linebreak).
       Then(blockResult, w => w.Body, Separator.Linebreak).SetRange(uri);
       
-    // if statement
-    // assignment statement
-    // variable declaration [initializer]
     var result = Fail<Statement>("a statement").OrCast(returnExpression).
       OrCast(ifStatement).OrCast(blockResult).OrCast(expressionStatement).OrCast(assert).OrCast(varDecl).
-      OrCast(whileStatement).OrCast(assignmentStatement);
+      OrCast(whileStatement).OrCast(assignmentStatement).OrCast(incrementStatement);
     return (result, blockResult);
   }
 
@@ -277,6 +292,11 @@ public class JavaGrammar {
       Then("?").Then(self, e => e.Thn).
       Then(":").Then(self, e => e.Els);
 
+    var unicodeOpcode = 
+      Keyword("!").Then(Constant(UnaryOpExpr.Opcode.Not));
+    var prefixUnary = unicodeOpcode.Assign(() => new UnaryOpExpr(), b => b.Op).
+      Then(self, u => u.E);
+    
     var opCode = 
       Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)).Or(
         Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
@@ -315,6 +335,8 @@ public class JavaGrammar {
     var get = self.Assign(() => new SeqSelectExpr(true), s => s.Seq).
       Then(".").Then("get")
       .Then(self.InParens(), s => s.E1);
+    var length = self.Assign(() => new UnaryOpExpr(UnaryOpExpr.Opcode.Cardinality), s => s.E).Then(".").Then("size")
+      .Then("(").Then(")");
     
     var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings, Separator.Nothing).
@@ -344,9 +366,13 @@ public class JavaGrammar {
       (r, c) => new CharLiteralExpr(ConvertToken(r), c),
       e => (string)e.Value);
     
+    var downcast = Keyword("(").Then(self).Then(")").
+      Assign(() => new ConversionExpr(), c => c.E).Then(type, c => c.ToType);
+    
     var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
+      OrCast(prefixUnary).
       OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult).OrCast(lambda).OrCast(charLiteral).
-      OrCast(drop).OrCast(take).OrCast(get);
+      OrCast(drop).OrCast(take).OrCast(get).OrCast(length).OrCast(downcast);
     return (expressionResult, callResult);
   }
 
