@@ -58,9 +58,9 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      if (InVerificationScope(iter)) {
+      /*if (InVerificationScope(iter)) {
         AddIteratorWellformednessCheck(iter, proc);
-      }
+      }*/
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
         proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
@@ -193,31 +193,21 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.Member_Init.Ens) {
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator ensures clause"));
       }
-
-      // save heap before havoc in $_YieldRequiresOldHeap
-      var yrOldHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType));
-      localVariables.Add(yrOldHeap);
-      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, yrOldHeap), etran.HeapExpr));
-
-      // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
-      var th = new ThisExpr(iter);  // resolve here
-      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
-      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
-      builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
-        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
-        new List<Bpl.IdentifierExpr>()));
-
+      
       // save $_YieldEnsuresOldHeap := Heap;
       var yeOldHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType));
       localVariables.Add(yeOldHeap);
       builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, yeOldHeap), etran.HeapExpr));
-
+      
       // simulate a modifies this, this._modifies, this._new;
+      var th = new ThisExpr(iter);  // resolve here
       var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
+      var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
 
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
+      
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
       var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType), iter);
@@ -260,8 +250,20 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var p in iter.YieldEnsures) {
+        yeBuilder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType))));
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
       }
+
+      // save heap before havoc in $_YieldRequiresOldHeap
+      var yrOldHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType));
+      localVariables.Add(yrOldHeap);
+      builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, yrOldHeap), etran.HeapExpr));
+
+      // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
+      var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
+      builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
+        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
+        new List<Bpl.IdentifierExpr>()));
 
       // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
       builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
@@ -269,10 +271,12 @@ namespace Microsoft.Dafny {
       // check well-formedness of the user-defined part of the yield-requires
       // where the old state is before the havoc
       foreach (var p in iter.YieldRequires) {
+        //builder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.Old.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType))));
+        builder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType))));
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder,
           new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType), iter), "iterator yield-requires clause");
       }
-
+      
       // Ensures clause is checked at old($Heap) == $_EnsuresOldHeap_Global
       foreach (var p in iter.Ensures) {
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, endBuilder, etran, "iterator ensures clause");
