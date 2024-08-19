@@ -231,7 +231,7 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
   }
 
   function
-    {:resource_limit 4000000}
+    {:isolate_assertions}
   DecodeMinimalWellFormedCodeUnitSubsequenceQuadrupleByte(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 4
     ensures 0x10000 <= v <= 0x10FFFF
@@ -247,6 +247,11 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
     var y := (thirdByte & 0x3F) as bv24;
     var x := (fourthByte & 0x3F) as bv24;
     assert {:split_here} true;
-    (u1 << 18) | (u2 << 16) | (z << 12) | (y << 6) | x as ScalarValue
+    var r := (u1 << 18) | (u2 << 16) | (z << 12) | (y << 6) | x as ScalarValue;
+    assert EncodeScalarValueQuadrupleByte(r)[0] == m[0];
+    assert EncodeScalarValueQuadrupleByte(r)[1] == m[1];
+    assert EncodeScalarValueQuadrupleByte(r)[2] == m[2];
+    assert EncodeScalarValueQuadrupleByte(r)[3] == m[3]; 
+    r
   }
 }
