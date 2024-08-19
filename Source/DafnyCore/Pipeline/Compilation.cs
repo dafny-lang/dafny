@@ -575,7 +575,7 @@ public class Compilation : IDisposable {
       case SolverOutcome.Undetermined:
         return VcOutcome.Inconclusive;
       case SolverOutcome.Bounded:
-        return VcOutcome.Correct;
+        return VcOutcome.ReachedBound;
       default:
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }

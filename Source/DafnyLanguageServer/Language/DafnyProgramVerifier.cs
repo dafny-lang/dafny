@@ -62,7 +62,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
-        return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
+        return engine.GetVerificationTasks(boogieProgram);
       }
       finally {
         mutex.Release();
