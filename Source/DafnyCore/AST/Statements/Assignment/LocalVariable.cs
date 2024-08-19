@@ -87,7 +87,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     compileName ??= SanitizedName;
 
   // TODO rename and update comment? Or make it nullable?
-  public readonly Type SyntacticType;  // this is the type mentioned in the declaration, if any
+  public Type SyntacticType;  // this is the type mentioned in the declaration, if any
   Type IVariable.OptionalType => SyntacticType;
 
   [FilledInDuringResolution]

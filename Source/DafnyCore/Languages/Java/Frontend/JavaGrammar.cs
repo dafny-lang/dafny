@@ -234,7 +234,7 @@ public class JavaGrammar {
     var ghostModifier = Modifier("ghost");
     var localStart = Constructor<LocalVariable>().
       Then(ghostModifier, s => s.IsGhost).
-      Then(type, s => s.Type).
+      Then(type, s => s.SyntacticType).
       Then(Identifier, s => s.Name).
       SetRange((v, r) => v.RangeToken = Convert(r));
     var assert = Constructor<AssertStmt>().
@@ -310,7 +310,7 @@ public class JavaGrammar {
     var opCode = 
       Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)).Or(
         Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
-        Keyword("<==>").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
+        Keyword("<==>").Then(Constant(BinaryExpr.Opcode.Iff))).Or(
         Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le))).Or(
       Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub))).Or(
       Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
