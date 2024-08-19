@@ -48,54 +48,53 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
   - We could have parameter attributes like `{:rc_owned true}` so that users can choose which API to precisely give to their functions.
 - Functions always return an owned type, otherwise we would need to have an automated theory about lifetimes of returned borrowed references, which Dafny does not support yet. Moreover, borrowing a variable makes its lifetime not `'static`, so it's not possible to use that trait.
 - `& T` and `&mut T` annotations only appear at the top-level of types, never nested.
-- Classes types are encoded in reference-counted pointers by default, but there is a command-line flag `--raw-pointers` that encode class type into an equivalent of a raw pointer, in which case a deallocation statement will have to be made available.
+- Class types are encoded in reference-counted pointers by default, but there is a command-line flag `--raw-pointers` that encodes class type into an equivalent of a raw pointer. The Dafny team will have to make a deallocation statement available in the future, as it is not available yet. Please weight in on [this issue](https://github.com/dafny-lang/dafny/issues/5257) if you are interested.
 
-|-------------------------------|-----------------------------|
-|  Dafny type                   |   Rust type                 |
-|-------------------------------|-----------------------------|
-| `bool`                        | `bool`                      |
-| `int`                         | `DafnyInt` (wrapper around `Rc<num::BigInt>`)   |
-| `int64`                       | `i64`                       |
-| `int32`                       | `i32`                       |
-| `int16`                       | `i16`                       |
-| `int8`                        | `i8`                        |
-| `char`                        | `char` OR `u16` (`--unicode-chars=false`)  |
-| `bitvector`                   | appropriate `u8` ... `u128` type  |
-| `ORDINAL`                     | `DafnyInt` - TODO           |
-| `real`                        | `num::BigRational` (will move to DafnyRational) |
-|                               | `f64`                       |
-| `string`                      | `Sequence<DafnyChar>`       |
-|                               | or `Sequence<DafnyCharUTF16>`  |
-| datatype, codatatype `D`      | `Rc<D>`                     |
-|                               | or `D` with the option `{:rust_rc false}` |
-| subset type                   | same as base type           |
-| `newtype T = u: U`            | `struct T(U)`               |
-|                               | or optimized to `u8`..`i128`|
-| `(T1, T2...)`                 | `(T1, T2...)` except for tuple of size 13 or more which use `_System.TupleXXX` because Rust has limitations             |
-| `seq<T>`                      | `Sequence<T: DafnyType>` (*)|
-| `set<T>`, `iset<T>`           | `Set<T: DafnyTypeEq>` (*)      |
-| `multiset<T>`                 | `MultiSet<T: DafnyTypeEq>` (*) |
-| `map<T,U>`, `imap<T,U>`       | `Map<T: DafnyTypeEq, U: DafnyTypeEq>` (*) |
-| function (arrow) types        | `Rc<dyn Fn(...) -> ...>`    |
+For each construct, the third column indicates if it's in the Dafny runtime, is native built-in in Rust, or is a Rust crate.
+If runtime, it also indicates in parentheses what it is roughly equivalent to. `[[U]]` notation indicates the Rust equivalent of the Dafny type `U`.
+
+|  Dafny type                   |   Rust type                 | Defined in       |
+|-------------------------------|-----------------------------|------------------|
+| `bool`                        | `bool`                      | Native           |
+| `int`                         | `DafnyInt`                  | Runtime (`Rc<num::BigInt>`) |
+| `int64`                       | `i64`                       | Native           |
+| `int32`                       | `i32`                       | Native           |
+| `int16`                       | `i16`                       | Native           |
+| `int8`                        | `i8`                        | Native           |
+| `char`                        | `DafnyChar`                 | Runtime (`char`) |
+| `char` (`--unicode-chars=false`)| `DafnyCharUTF16`          | Runtime (`u16`)  |
+| `bv8` ... `bv128`             | `u8` ... `u128`             | Native           |
+| `type T = u: U | <range>`     | `[[U]]`                     | Native           |
+| `newtype T = u: U | range`    | `struct T([[U]])`           | Native           |
+| `newtype T = u: int | <range>`| `u8` ... `i128`             | Native           |
+| `ORDINAL`                     | N/A                         | TODO             |
+| `real`                        | Partially supported         | TODO             |
+| `seq<T>`                      | `Sequence<[[T]]>           `| Runtime (`enum`, either Array or Concat) |
+| `set<T>`, `iset<T>`           | `Set<[[T]]>`                | Runtime (`HashSet`) |
+| `multiset<T>`                 | `Multiset<[[T]]>`           | Runtime (`HashMap<[[T]], DafnyInt>`) |
+| `map<T>`, `imap<T>`           | `Map<[[T]]>`                | Runtime (`HashMap`) |
+| `string`                      | `DafnyString`           | Runtime (`Sequence<DafnyCharUTF16>`) |
+| `string` (`--unicode-chars=false`)| `DafnyStringUTF16`      | Runtime (`Sequence<DafnyCharUTF16>`) |
+| (co)datatype `D`              | `std::rc::Rc<D>`            | Native wrapped struct |
+| (co)datatype `D` with attribute `{:rust_rc false}` | `D`    | Native struct    |
+| `(T1, T2...)`  (Up to size 12)| `(T1, T2...)`               | Native           |
+| `(T1, T2..., TN)` (13<=N<=20) | `_System.TupleN`            | Runtime because Rust limitations |
+| `A -> B`                      | `Rc<dyn Fn([[A]]) -> [[B]]>`| Native (note: arguments always borrowed) |
 
 ## Encoding of classes and arrays (default)
-This version compiles classes to reference counting, which roughly uses
-the following definition
-```rs
-pub struct Object<T: ?Sized>(pub Option<Rc<UnsafeCell<T>>>);
-```
+By default, Dafny uses reference counting to compile class and array references.
 
-|-------------------------------|-----------------------------|
-|  Dafny type                   |   Rust type                 |
-|-------------------------------|-----------------------------|
-| `C`, `C?` (for class, iterator C) | `Object<C>`         (*) |
-| (trait) `T`                   | (trait) `Object<dyn T>` (*) |
-| `array<T>`                    | `Object<[T]>`           (*) |
-| `array2<T>`                   | `Object<array2<T>>`  (*)(*) |
-| `c.x` if `c: C`               | `rd!(c).x`              (*) |
-| `c.x := 2` if `c: C`          | `md!(c).x = 2`          (*) |
-| `a[0]` if `a: array<T>`       | `rd!(a)[0]`             (*) |
-| `a[1] := 2` if  `a: array<T>` | `md!(a)[1] = 2`         (*) |
+|  Dafny type                   |   Rust type             | Defined in       |
+|-------------------------------|-------------------------|------------------|
+| `C`, `C?` (for class, iterator C) | `Object<C>`         | Runtime (`Option<Rc<UnsafeCell<C>>>`) |
+| (trait) `T`                   | (trait) `Object<dyn T>` | Runtime (`Option<Rc<UnsafeCell<dyn T>>>`) |
+| `array<T>`                    | `Object<[T]>`           | Runtime (`Option<Rc<UnsafeCell<[T]>>>`) |
+| `array2<T>`                   | `Object<array2<T>>`     | Runtime (`struct array2 {length0: usize, length1: usize, data: Box<[Box<[T]>]>}`)     |
+| `array3<T>` ... `array16<T>`  | `Object<array3<T>>` ... `Object<array16<T>>` | Runtime (`struct arrayN {length0: usize, ... lengthN-1: usize, data: Box<[...Box<[T]>...]>}`)     |
+| `c.x` if `c: C`               | `rd!(c).x`              | Runtime         |
+| `c.x := 2` if `c: C`          | `md!(c).x = 2`          | Runtime         |
+| `a[0]` if `a: array<T>`       | `rd!(a)[0]`             | Runtime         |
+| `a[1] := 2` if  `a: array<T>` | `md!(a)[1] = 2`         | Runtime         |
 
 
 ## Encoding of classes and arrays with the option --raw-pointers
@@ -109,30 +108,26 @@ which is brittle, Dafny use its own pointer types which are wrappers:
 pub struct Ptr<T: ?Sized>(pub Option<NonNull<UnsafeCell<T>>>);
 ```
 
-|-------------------------------|-----------------------------|
-|  Dafny type                   |   Rust type                 |
-|-------------------------------|-----------------------------|
-| `C`, `C?` (for class, iterator C) | `Ptr<C>`            (*) |
-| (trait) `T`                   | (trait) `Ptr<dyn T>`    (*) |
-| `array<T>`                    | `Ptr<[T]>`              (*) |
-| `array2<T>`                   | `Ptr<array2<T>>`    (*) (*) |
-| `c.x` if `c: C`               | `read!(c).x`            (*) |
-| `c.x := 2` if `c: C`          | `modify!(c).x = 2`      (*) |
-| `a[0]` if `a: array<T>`       | `read!(a)[0]`           (*) |
-| `a[1] := 2` if  `a: array<T>` | `modify!(a)[1] = 2`     (*) |
-
-(*) Defined in the Dafny runtime
+|  Dafny type                   |   Rust type             | Defined in       |
+|-------------------------------|-------------------------|------------------|
+| `C`, `C?` (for class, iterator C) | `Ptr<C>`            | Runtime (`Option<NonNull<UnsafeCell<C>>>`) |
+| (trait) `T`                   | (trait) `Ptr<dyn T>`    | Runtime (`Option<NonNull<UnsafeCell<dyn T>>>`) |
+| `array<T>`                    | `Ptr<[T]>`              | Runtime (`Option<NonNull<UnsafeCell<[T]>>>`) |
+| `array2<T>`                   | `Ptr<array2<T>>`        | Runtime (`struct array2 {length0: usize, length1: usize, data: Box<[Box<[T]>]>}`)     |
+| `array3<T>` ... `array16<T>`  | `Ptr<array3<T>>` ... `Ptr<array16<T>>` | Runtime (`struct arrayN {length0: usize, ... lengthN-1: usize, data: Box<[...Box<[T]>...]>}`)     |
+| `c.x` if `c: C`               | `read!(c).x`            | Runtime         |
+| `c.x := 2` if `c: C`          | `modify!(c).x = 2`      | Runtime         |
+| `a[0]` if `a: array<T>`       | `read!(a)[0]`           | Runtime         |
+| `a[1] := 2` if  `a: array<T>` | `modify!(a)[1] = 2`     | Runtime         |
 
 # Externs
 
 You can provide additional `*.rs` files to `dafny translate`, `dafny build` and even `dafny run` (via the `--input` option)
-All the elements imported from the Rust files are going to be available from the generated code via the module `_dafny_externs` that imports everything.
 
-The best way to see what you have to implement as an extern is to compile your code without it. You'll see that it will be necessary for the module `_dafny_extern` to use open a certain module, which you'd put in a file `external.rs` and pass it for compilation.
+The best way to see what you have to implement as an extern Rust file is to compile your code with extern attributes and adding an external Rust file. For extra methods or static methods, you would then define an additional implementation in the extern Rust file. For other class or struct types, you just need to define them without any `mod` wrapper, or using the module structure as defined in the `{:extern}` attribute.
 
-When using simple 1-argument externs, the compilation follows Dafny conventions:
-* Static methods are static instance methods of a `pub struct _default {}` which is defined in the module itself, or must be defined externally if all static methods are labelled as externs.
-* Methods or functions with an extern attribute with 2 arguments are interpreted as follow: The first argument is a module name, and all the "." are rewritten to "::" to follow Rust's syntax. The second argument is the name of a static `pub fn` of that module.
+When using simple 1-argument externs, the compilation follows Dafny conventions: static methods are static instance methods of a `pub struct _default {}` which is defined in the module itself, or must be defined externally if all static methods are labelled as externs.
+When using 2-argument extern methods or functions, the compilation follows Rust convention: The first argument is a module name, and all the "." are rewritten to "::" to map into Rust's syntax. The second argument is the name of a static `pub fn` of that module.
 
 Let's assume you provide an additional input file `external.rs` with the following content:
 ```
@@ -163,7 +158,7 @@ method Main() {
 }
 ```
 
-Dafny will generate the following for you:
+As of today, Dafny will generate the following for you (internal names not guaranteed):
 
 ```
 pub mod external;         // from the additional external.rs input file
