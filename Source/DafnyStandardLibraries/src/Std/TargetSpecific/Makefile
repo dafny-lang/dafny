@@ -10,7 +10,7 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor --
 
-NO_VERIFY := true
+NO_VERIFY := false
 DOO_FILE_SOURCE=../../../build/DafnyStandardLibraries-${TARGETLANG}.doo
 DOO_FILE_TARGET=../../../binaries/DafnyStandardLibraries-${TARGETLANG}.doo
 
