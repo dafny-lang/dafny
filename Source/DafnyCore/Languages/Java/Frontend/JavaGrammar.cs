@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Security.Cryptography;
 using CompilerBuilder;
 using CompilerBuilder.Grammars;
 using static CompilerBuilder.GrammarBuilder;
@@ -297,32 +296,7 @@ public class JavaGrammar {
   }
 
   (Grammar<Expression> expression, Grammar<ApplySuffix> call) GetExpressionGrammar(Grammar<Expression> self) {
-    var ternary = 
-      self.Assign(() => new ITEExpr(), e => e.Test).
-      Then("?").Then(self, e => e.Thn).
-      Then(":").Then(self, e => e.Els);
-
-    var unicodeOpcode = 
-      Keyword("!").Then(Constant(UnaryOpExpr.Opcode.Not));
-    var prefixUnary = unicodeOpcode.Assign(() => new UnaryOpExpr(), b => b.Op).
-      Then(self, u => u.E);
     
-    var opCode = 
-      Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)).Or(
-        Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
-        Keyword("<==>").Then(Constant(BinaryExpr.Opcode.Iff))).Or(
-        Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le))).Or(
-      Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub))).Or(
-      Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
-      Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp))).Or(
-      Keyword("&&").Then(Constant(BinaryExpr.Opcode.And))).Or(
-      Keyword("<").Then(Constant(BinaryExpr.Opcode.Lt))).Or(
-      Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
-    var binary = self.Assign(() => new BinaryExpr(), b => b.E0).
-      Then(Position, e => null, (e, p) => e.tok = Convert(p)).
-      Then(opCode, b => b.Op).
-      Then(self, b => b.E1);
-
     var variableRef = Identifier.Map(
       (r, v) => new NameSegment(Convert(r), v, null), 
       ie => ie.Name);
@@ -376,14 +350,110 @@ public class JavaGrammar {
       (r, c) => new CharLiteralExpr(ConvertToken(r), c),
       e => (string)e.Value);
     
-    var downcast = Keyword("(").Then(self).Then(")").
-      Assign(() => new ConversionExpr(), c => c.E).Then(type, c => c.ToType);
+    var downcast = Constructor<ConversionExpr>().Then("(").
+      Then(type, c => c.ToType, Separator.Nothing).Then(")", Separator.Nothing).
+      Then(self, c => c.E);
+
+    var parenthesis = Keyword("(").Then(self).Then(")").Map(
+      (t, e) => new ParensExpression(ConvertToken(t), e),
+      p => p.E);
     
-    var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
-      OrCast(prefixUnary).
+    Grammar<Expression> code = Fail<Expression>("an expression").
       OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult).OrCast(lambda).OrCast(charLiteral).
-      OrCast(drop).OrCast(take).OrCast(get).OrCast(length).OrCast(downcast);
-    return (expressionResult, callResult);
+      OrCast(drop).OrCast(take).OrCast(get).OrCast(parenthesis).OrCast(length).OrCast(downcast);
+    
+    // postfix expr++ expr--
+
+    // unary ++expr --expr +expr -expr ~ !
+    var unary = Recursive<Expression>(unarySelf => {
+      var unicodeOpcode =
+        Keyword("!").Then(Constant(UnaryOpExpr.Opcode.Not));
+      var prefixUnary = unicodeOpcode.Assign(() => new UnaryOpExpr(), b => b.Op).
+        Then(unarySelf, u => u.E);
+
+      return code.OrCast(prefixUnary);
+    });
+    
+    // multiplicative * / %
+    var multiplicative = Recursive<Expression>(multiplicativeSelf => {
+      var opCodes = Keyword("*").Then(Constant(BinaryExpr.Opcode.Mul)).Or(
+        Keyword("/").Then(Constant(BinaryExpr.Opcode.Div))).Or(
+        Keyword("%").Then(Constant(BinaryExpr.Opcode.Mod)));
+      return unary.OrCast(CreateBinary(multiplicativeSelf, opCodes));
+    });
+
+    // additive + -
+    var additive = Recursive<Expression>(additiveSelf => {
+      var opCodes = Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub)).Or(
+        Keyword("+").Then(Constant(BinaryExpr.Opcode.Add)));
+      return multiplicative.OrCast(CreateBinary(additiveSelf, opCodes));
+    });
+      
+    // shift	<< >> >>>
+    var shift = additive;
+    
+    // relational	< > <= >= instanceof
+    var relational = Recursive<Expression>(shiftSelf => {
+      var opCodes = Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le)).Or(
+        Keyword("<").Then(Constant(BinaryExpr.Opcode.Lt)));
+      return shift.OrCast(CreateBinary(shiftSelf, opCodes));
+    });
+    
+    // equality	== !=
+    var equality = Recursive<Expression>(equalitySelf => {
+      var opCodes = Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq)).Or(
+        Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)));
+      return relational.OrCast(CreateBinary(equalitySelf, opCodes));
+    });
+    
+    // bitwise AND	&
+    var bitwiseAnd = equality;
+    
+    // bitwise exclusive OR	^
+    var bitwiseExclusiveOr = bitwiseAnd;
+    
+    // bitwise inclusive OR	|
+    var bitwiseInclusiveOr = bitwiseExclusiveOr;
+    
+    var logicalAnd = Recursive<Expression>(logicalAndSelf => {
+      var opCodes = Keyword("&&").Then(Constant(BinaryExpr.Opcode.And));
+      return bitwiseInclusiveOr.OrCast(CreateBinary(logicalAndSelf, opCodes));
+    });
+    
+    var logicalOr = Recursive<Expression>(logicalAndSelf => {
+      var opCodes = Keyword("||").Then(Constant(BinaryExpr.Opcode.Or));
+      return logicalAnd.OrCast(CreateBinary(logicalAndSelf, opCodes));
+    });
+    
+    // TODO consider not adding ==>
+    var implies = Recursive<Expression>(impliesSelf => {
+      var opCodes = Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp));
+      return logicalOr.OrCast(CreateBinary(impliesSelf, opCodes));
+    });
+
+    var ternary = Recursive<Expression>(ternarySelf => {
+      var t = ternarySelf.Assign(() => new ITEExpr(), e => e.Test).
+        Then("?").
+        Then(ternarySelf, e => e.Thn).Then(":").
+        Then(ternarySelf, e => e.Els);
+      return implies.OrCast(t);
+    });
+
+    // assignment	= += -= *= /= %= &= ^= |= <<= >>= >>>=
+    
+    // var opCode = 
+        //Keyword("<==>").Then(Constant(BinaryExpr.Opcode.Iff))).Or(
+      // Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp))).Or(
+
+    Grammar<BinaryExpr> CreateBinary(Grammar<Expression> inner, Grammar<BinaryExpr.Opcode> opCode) {
+      return inner.Assign(() => new BinaryExpr(), b => b.E0).
+        Then(Position, e => null, (e, p) => e.tok = Convert(p)).
+        Then(opCode, b => b.Op).
+        Then(inner, b => b.E1);
+    }
+
+    
+    return (ternary, callResult);
   }
 
   private Grammar<Type> TypeGrammar()
