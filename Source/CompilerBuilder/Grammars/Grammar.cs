@@ -2,7 +2,9 @@
 
 using System.Linq.Expressions;
 using CompilerBuilder.Generic;
+using Microsoft.Boogie;
 using Microsoft.Dafny;
+using Util = Microsoft.Dafny.Util;
 
 namespace CompilerBuilder;
 
@@ -56,7 +58,7 @@ public abstract class Grammar<T> : Grammar
     var map = new Dictionary<Grammar, Parser>();
     Func<Grammar, Parser>? recurse = null;
     recurse = grammar => {
-      return map.GetOrCreate(grammar, () => grammar.ToGenParser(recurse!));
+      return Util.GetOrCreate(map, grammar, () => grammar.ToGenParser(recurse!));
     };
     return (Parser<T>)recurse(this);
   }
@@ -65,7 +67,7 @@ public abstract class Grammar<T> : Grammar
     var map = new Dictionary<Grammar, Printer>();
     Func<Grammar, Printer>? recurse = null;
     recurse = grammar => {
-      return map.GetOrCreate(grammar, () => grammar.ToGenPrinter(recurse!));
+      return Util.GetOrCreate(map, grammar, () => grammar.ToGenPrinter(recurse!));
     };
     return (Printer<T>)recurse(this);
   }
@@ -481,6 +483,8 @@ public static class GrammarBuilder {
   public static Grammar<T> Fail<T>(string expectation) => new Fail<T>(expectation);
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
+  public static readonly Grammar<string> CharInSingleQuotes = new ExplicitGrammar<string>(ParserBuilder.CharInSingleQuotes, 
+    VerbatimW.Instance);
   
   public static readonly Grammar<string> Whitespace = new ExplicitGrammar<string>(ParserBuilder.Whitespace, VerbatimW.Instance);
   

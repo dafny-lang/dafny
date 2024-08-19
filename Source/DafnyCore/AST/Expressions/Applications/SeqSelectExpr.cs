@@ -5,9 +5,9 @@ namespace Microsoft.Dafny;
 
 public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
   public readonly bool SelectOne;  // false means select a range
-  public readonly Expression Seq;
-  public readonly Expression E0;
-  public readonly Expression E1;
+  public Expression Seq;
+  public Expression E0;
+  public Expression E1;
   public readonly IToken CloseParen;
 
   public SeqSelectExpr(Cloner cloner, SeqSelectExpr original) : base(cloner, original) {
@@ -24,6 +24,8 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
     Contract.Invariant(!SelectOne || E1 == null);
   }
 
+  public SeqSelectExpr(bool selectOne) : base(Token.Parsing) { }
+    
   public SeqSelectExpr(IToken tok, bool selectOne, Expression seq, Expression e0, Expression e1, IToken closeParen)
     : base(tok) {
     Contract.Requires(tok != null);

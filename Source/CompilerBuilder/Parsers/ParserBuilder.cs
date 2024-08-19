@@ -20,7 +20,7 @@ public static class ParserBuilder {
   public static readonly Parser<string> Identifier = new RegexR(@"\w+", "identifier");
   public static readonly Parser<int> Number = new RegexR(@"\d+", "number").MapValue(s => 
     int.TryParse(s, out var result) ? result : default(int?));
-  public static readonly Parser<char> CharInSingleQuotes = new RegexR(@"'\w'", "char").Map(s => s[1]);
+  public static readonly Parser<string> CharInSingleQuotes = new RegexR(@"'.'", "char");
   
   public static Parser<T> Fail<T>(string expectation) => new FailR<T>(expectation);
   public static readonly Parser<string> SlashSlashLineComment = new Comment("//", "\n", "a line comment");

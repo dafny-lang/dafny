@@ -81,7 +81,13 @@ class MapWithoutFailW<T, U>(Printer<T> printer, Func<U, T> map) : Printer<U> {
   }
 }
 
-class MapW<T, U>(Printer<T> printer, Func<U, MapResult<T>> map) : Printer<U> {
+class MapW<T, U>(Printer<T> printer, Func<U, T> map) : Printer<U> {
+  public Document? Print(U value) {
+    return printer.Print(map(value));
+  }
+}
+
+class OptionMapW<T, U>(Printer<T> printer, Func<U, MapResult<T>> map) : Printer<U> {
   public Document? Print(U value) {
     var newValue = map(value);
     if (newValue is MapSuccess<T> success) {
@@ -162,6 +168,10 @@ class SkipRightW<T>(Printer<T> first, VoidPrinter second, Separator separator) :
 
 public static class PrinterExtensions {
   public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U, MapResult<T>> map) {
+    return new OptionMapW<T, U>(printer, map);
+  }
+  
+  public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U, T> map) {
     return new MapW<T, U>(printer, map);
   }
 }

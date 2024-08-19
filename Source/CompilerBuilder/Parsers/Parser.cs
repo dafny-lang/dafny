@@ -221,7 +221,7 @@ class TextR(string value) : VoidParser {
   }
 
   internal override ParseResult<Unit> Parse(ITextPointer text) {
-    var actual = text.SubSequence(value.Length);
+    var actual = text.SubSequence(value.Length).ToString();
     if (actual.Equals(value)) {
       return new ConcreteSuccess<Unit>(Unit.Instance, text.Drop(value.Length));
     }

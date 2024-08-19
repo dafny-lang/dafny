@@ -280,11 +280,13 @@ public class JavaGrammar {
     var opCode = 
       Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)).Or(
         Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
+        Keyword("<==>").Then(Constant(BinaryExpr.Opcode.Eq))).Or(
+        Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le))).Or(
       Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub))).Or(
       Keyword("+").Then(Constant(BinaryExpr.Opcode.Add))).Or(
       Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp))).Or(
       Keyword("&&").Then(Constant(BinaryExpr.Opcode.And))).Or(
-      Keyword("<").Then(Constant(BinaryExpr.Opcode.Le))).Or(
+      Keyword("<").Then(Constant(BinaryExpr.Opcode.Lt))).Or(
       Keyword("/").Then(Constant(BinaryExpr.Opcode.Div)));
     var binary = self.Assign(() => new BinaryExpr(), b => b.E0).
       Then(Position, e => null, (e, p) => e.tok = Convert(p)).
@@ -303,6 +305,17 @@ public class JavaGrammar {
       Map((t, b) => new ActualBindings(b) {
         RangeToken = Convert(t)
       }, a => a.ArgumentBindings);
+    
+    var drop = self.Assign(() => new SeqSelectExpr(false), s => s.Seq).
+      Then(".").Then("drop")
+      .Then(self.InParens(), s => s.E0);
+    var take = self.Assign(() => new SeqSelectExpr(false), s => s.Seq).
+      Then(".").Then("take")
+      .Then(self.InParens(), s => s.E1);
+    var get = self.Assign(() => new SeqSelectExpr(true), s => s.Seq).
+      Then(".").Then("get")
+      .Then(self.InParens(), s => s.E1);
+    
     var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings, Separator.Nothing).
       SetRange((s, t) => s.RangeToken = Convert(t));
@@ -326,11 +339,14 @@ public class JavaGrammar {
       Then(parameters, e => e.BoundVars).
       Then("->").
       Then(self, l => l.Term);
-    
-    //var charLiteral = Keyword("'").Then()
+
+    var charLiteral = CharInSingleQuotes.Map<string, CharLiteralExpr>(
+      (r, c) => new CharLiteralExpr(ConvertToken(r), c),
+      e => (string)e.Value);
     
     var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
-      OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult).OrCast(lambda);
+      OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult).OrCast(lambda).OrCast(charLiteral).
+      OrCast(drop).OrCast(take).OrCast(get);
     return (expressionResult, callResult);
   }
 
