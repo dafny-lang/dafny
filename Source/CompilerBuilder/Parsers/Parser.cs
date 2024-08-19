@@ -1,4 +1,6 @@
 ﻿using System.Collections.Immutable;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace CompilerBuilder;
 
@@ -81,7 +83,7 @@ class PointerFromString : ITextPointer {
     Text = text;
   }
 
-  public string Upcoming => SubSequence(5);
+  public string Upcoming => SubSequence(5).ToString();
   
   public string Text { get; }
 
@@ -103,7 +105,7 @@ class PointerFromString : ITextPointer {
 
   public ITextPointer Drop(int amount) {
     var sequence = SubSequence(amount);
-    var lines = sequence.Split("\n");
+    var lines = sequence.ToString().Split("\n"); // TODO optimize
     return new PointerFromString(Text, Offset + amount, 
       Line + lines.Length - 1, 
       lines.Length > 1 ? lines.Last().Length : Column + amount, 
@@ -117,8 +119,10 @@ class PointerFromString : ITextPointer {
     return Text[Offset + offset];
   }
 
-  public string SubSequence(int length) {
-    return Text.Substring(Offset, Math.Min(Length, length));
+  public ReadOnlySpan<char> Remainder => Text.AsSpan(Offset);
+
+  public ReadOnlySpan<char> SubSequence(int length) {
+    return Text.AsSpan(Offset, Math.Min(Length, length));
   }
 }
 
@@ -172,7 +176,7 @@ class PositionR : Parser<IPosition> {
   }
 }
 
-class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U?> map) : Parser<U> {
+class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) : Parser<U> {
 
   public Parser<T> Parser { get; set; } = parser;
   
@@ -182,10 +186,10 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, U?> map) : Parser<U
     return innerResult.Continue<U>(success => {
       var end = success.Remainder;
       var newValue = map(new ParseRange(start, end), success.Value);
-      if (newValue == null) {
-        return new FailureResult<U>("Mapping failure", end);
+      if (newValue is MapSuccess<U> s) {
+        return new ConcreteSuccess<U>(s.Value, success.Remainder);
       }
-      return new ConcreteSuccess<U>(newValue, success.Remainder);
+      return new FailureResult<U>("Mapping failure", end);
     });
   }
 }
@@ -226,6 +230,21 @@ class TextR(string value) : VoidParser {
   }
 }
 
+class RegexR(string regex, string description) : Parser<string> {
+  private Regex r = new("^" + regex);
+  public ParseResult<string> Parse(ITextPointer text) {
+    var matches = r.EnumerateMatches(text.Remainder);
+    while (matches.MoveNext()) {
+      var match = matches.Current;
+      Debug.Assert(match.Index == 0);
+      var remainder = text.Drop(match.Length);
+      return new ConcreteSuccess<string>(text.SubSequence(match.Length).ToString(), remainder);
+    }
+
+    return text.Fail<string>(description);
+  }
+}
+
 internal class Whitespace : Parser<string> {
   public ParseResult<string> Parse(ITextPointer text) {
     var offset = 0;
@@ -240,7 +259,7 @@ internal class Whitespace : Parser<string> {
 
     if (offset > 0) {
       var result = text.SubSequence(offset);
-      return new ConcreteSuccess<string>(result, text.Drop(offset));
+      return new ConcreteSuccess<string>(result.ToString(), text.Drop(offset));
     }
 
     return text.Fail<string>("whitespace");
@@ -281,7 +300,7 @@ internal class Comment(string opener, string closer, string description) : Parse
 
     if (foundExit) {
       var comment = text.SubSequence(offset);
-      return new ConcreteSuccess<string>(comment, text.Drop(offset));
+      return new ConcreteSuccess<string>(comment.ToString(), text.Drop(offset));
     }
 
     return text.Fail<string>(description);
@@ -331,7 +350,7 @@ internal class IdentifierR : Parser<string> {
     }
 
     if (offset > 0) {
-      var sequence = text.SubSequence(offset);
+      var sequence = text.SubSequence(offset).ToString();
       return new ConcreteSuccess<string>(sequence, text.Drop(offset));
     }
 

@@ -1,6 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using System.Collections;
 using System.Linq.Expressions;
 using CompilerBuilder.Generic;
 using Microsoft.Dafny;
@@ -140,7 +139,7 @@ internal class IdentifierG : Grammar<string> {
   public override IEnumerable<Grammar> Children => [];
 }
 
-class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, U?> construct, Func<U, MapResult<T>> destruct) : Grammar<U> {
+class WithRangeG<T, U>(Grammar<T> grammar, Func<ParseRange, T, MapResult<U>> construct, Func<U, MapResult<T>> destruct) : Grammar<U> {
 
   public Grammar<T> Grammar { get; set; } = grammar;
 
@@ -239,7 +238,7 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<T> OrCast<T, U>(this Grammar<T> grammar, Grammar<U> other, string? otherName = null)
-    where U : T {
+    where U : class, T {
     if (otherName != null) {
       other.Name = otherName;
     }
@@ -299,54 +298,50 @@ public static class GrammarExtensions {
         l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null), separator)));
   }
 
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T, U> construct, 
     Func<U, T> destruct) {
-    return new WithRangeG<T, U>(grammar, construct, v => new MapSuccess<T>(destruct(v)));
+    return new WithRangeG<T, U>(grammar, (r,v) => new MapSuccess<U>(construct(r,v)), 
+      v => new MapSuccess<T>(destruct(v)));
   }
   
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T,U> construct, 
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T, U> construct, 
     Func<U, MapResult<T>> destruct) {
-    return new WithRangeG<T, U>(grammar, construct, destruct);
+    return new WithRangeG<T, U>(grammar, (r,v) => new MapSuccess<U>(construct(r,v)), 
+      destruct);
   }
   
   public static Grammar<TSub> DownCast<TSuper, TSub>(this Grammar<TSuper> grammar)
-    where TSub : class, TSuper
-  {
-    return grammar.Map<TSuper, TSub>(t => t as TSub, u => new MapSuccess<TSuper>(u));
+    where TSub : class, TSuper {
+    // TODO fix t as TSub
+    return grammar.Map<TSuper, TSub>(t => t as TSub, u => u);
   }
   
   public static Grammar<TSuper> UpCast<TSub, TSuper>(this Grammar<TSub> grammar)
     where TSub : TSuper
   {
     return grammar.Map<TSub, TSuper>(t => t, 
-      u => u is TSub t ? new MapSuccess<TSub>(t) : new MapFail<TSub>());
+      u => u is TSub s ? new MapSuccess<TSub>(s) : new MapFail<TSub>());
   }
   
-  
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U?> construct, Func<U, T> destruct) {
-    return new WithRangeG<T, U>(grammar, (_, original) => construct(original), 
-      v => new MapSuccess<T>(destruct(v)));
-  }
-  
-  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U?> construct, Func<U, MapResult<T>> destruct) {
-    return new WithRangeG<T, U>(grammar, (_, original) => construct(original), destruct);
-  }
-  
-  
-  public static Grammar<List<U>> Singleton<T, U>(this Grammar<T> grammar)
-    where T : class, U
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T, U> construct, Func<U, T?> destruct)
   {
-    return grammar.Map(o => new List<U>() { o },
-      l => MapResult<T>.FromNullable(l.FirstOrDefault() as T));
+    return new WithRangeG<T, U>(grammar, (_, original) => new MapSuccess<U>(construct(original)), v => {
+      var d = destruct(v);
+      return d == null ? new MapFail<T>() : new MapSuccess<T>(d);
+    });
   }
   
-  public static Grammar<List<T>> Singleton<T>(this Grammar<T> grammar) {
+  public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T,U> construct, Func<U, MapResult<T>> destruct) {
+    return new WithRangeG<T, U>(grammar, (_, original) => new MapSuccess<U>(construct(original)), destruct);
+  }
+  
+  public static Grammar<List<T>> Singleton<T>(this Grammar<T> grammar) where T : notnull {
     return grammar.Map(o => new List<T>() { o },
-      l => MapResult<T>.FromNullable(l.FirstOrDefault()));
+      l => l.FirstOrDefault());
   }
   
   public static Grammar<List<T>> OptionToList<T>(this Grammar<T?> grammar) {
-    return grammar.Map(o => o == null ? new List<T>() : new List<T>() { o },
+    return grammar.Map(o => o == null ? [] : new List<T> { o },
       l => new MapSuccess<T?>(l.FirstOrDefault()));
   }
   

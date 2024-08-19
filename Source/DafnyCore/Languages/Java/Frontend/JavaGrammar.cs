@@ -327,6 +327,8 @@ public class JavaGrammar {
       Then("->").
       Then(self, l => l.Term);
     
+    //var charLiteral = Keyword("'").Then()
+    
     var expressionResult = Fail<Expression>("an expression").OrCast(ternary).OrCast(binary).
       OrCast(variableRef).OrCast(number).OrCast(exprDotName).OrCast(callResult).OrCast(lambda);
     return (expressionResult, callResult);

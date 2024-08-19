@@ -37,11 +37,20 @@ public static class ParserExtensions {
   }
   
   public static Parser<U> Map<T, U>(this Parser<T> parser, Func<ParseRange, T,U> map) {
-    return new WithRangeR<T, U>(parser, map);
+    return new WithRangeR<T, U>(parser, (a,b) => new MapSuccess<U>(map(a,b)));
   }
   
-  public static Parser<U> Map<T, U>(this Parser<T> parser, Func<T,U> map) {
-    return new WithRangeR<T, U>(parser, (_, original) => map(original));
+  public static Parser<U> Map<T, U>(this Parser<T> parser, Func<T, U> map) {
+    return new WithRangeR<T, U>(parser, (_, original) => new MapSuccess<U>(map(original)));
+  }
+  
+  public static Parser<U> MapValue<T, U>(this Parser<T> parser, Func<T, U?> map)
+    where U : struct
+  {
+    return new WithRangeR<T, U>(parser, (_, original) => {
+      var result = map(original);
+      return result.HasValue ? new MapSuccess<U>(result.Value) : new MapFail<U>();
+    });
   }
 
   public static Parser<TContainer> Then<TContainer, TValue>(

@@ -7,14 +7,21 @@ public class TestParsing {
   [Fact]
   public void TestNumber() {
     var number = Number;
-    var parsed = number.Parse("123124").Success!.Value;
+    var parsed = number.Parse("123124").ForceSuccess.Value;
     Assert.Equal(123124, parsed);
+  }
+  
+  [Fact]
+  public void TestChar() {
+    var parsed = CharInSingleQuotes.Parse("'d'").ForceSuccess.Value;
+    Assert.Equal('d', parsed);
   }
   
   [Fact]
   public void TestIdentifier() {
     var number = Identifier;
-    var parsed = number.Parse("abcdefg").Success!.Value;
+    var result = number.Parse("abcdefg");
+    var parsed = result.ForceSuccess.Value;
     Assert.Equal("abcdefg", parsed);
   }
   
