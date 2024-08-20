@@ -145,7 +145,7 @@ function Qf(x: int, a: array<int>): bool
   forall i :: 0 <= i < x ==> m[i] == true // error: index might be outside domain
 }
 
-trait AsTr { }
+trait AsTr extends object { }
 class AsCl extends AsTr { }
 
 method Is(clIn: AsCl) {
@@ -169,7 +169,7 @@ method As(clIn: AsCl, ch: char) returns (cl: AsCl) {
   var x: int;
   var ord: ORDINAL;
   x := ch as int;
-  ord := ch as ORDINAL;
+
 }
 
 method As?(clIn: AsCl) returns (cl: AsCl?) {
@@ -256,7 +256,7 @@ method Mxy(x: int, y: int) {
 }
 
 module Inheritance {
-  trait Trait { }
+  trait Trait extends object { }
   class A extends Trait { }
   class B extends Trait { }
   class C<X, Y, Z> extends Trait { }
