@@ -916,7 +916,7 @@ namespace Microsoft.Dafny.Compilers {
           var rhsValue = bufferedInitializationValue;
           bufferedInitializationValue = null;
 
-          if (bufferedInitializationStmts.is_Some) {
+          if (bufferedInitializationStmts is { is_Some: true }) {
             foreach (var stmt in bufferedInitializationStmts.dtor_value) {
               stmtContainer.Builder.AddStatement(stmt);
             }
