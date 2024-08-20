@@ -279,7 +279,10 @@ public class JavaGrammar {
     
     var decrease = Keyword("decreases").Then(expression);
     var decreases = decrease.Many(Separator.Linebreak).Map(
-      xs => new Specification<Expression>(xs, null),
+      (r, xs) => new Specification<Expression>(xs, null) {
+        RangeToken = Convert(r),
+        tok = ConvertToken(r)
+      },
       s => s.Expressions).Indent();
     var whileStatement = Constructor<WhileStmt>().Then(Keyword("while")).
       Then(expression.InParens(), w => w.Guard).
@@ -301,6 +304,7 @@ public class JavaGrammar {
   }
 
   (Grammar<Expression> expression, Grammar<ApplySuffix> call) GetExpressionGrammar(Grammar<Expression> self) {
+    // Precedence of Java operators: https://introcs.cs.princeton.edu/java/11precedence/
     
     var variableRef = identifier.Map(
       (r, v) => new NameSegment(Convert(r), v, null), 
@@ -398,31 +402,31 @@ public class JavaGrammar {
       var opCodes = Keyword("*").Then(Constant(BinaryExpr.Opcode.Mul)).Or(
         Keyword("/").Then(Constant(BinaryExpr.Opcode.Div))).Or(
         Keyword("%").Then(Constant(BinaryExpr.Opcode.Mod)));
-      return downcast.OrCast(CreateBinary(multiplicativeSelf, opCodes));
+      return downcast.OrCast(CreateBinary(multiplicativeSelf,  downcast, opCodes, true));
     });
 
     // additive + -
     var additive = Recursive<Expression>(additiveSelf => {
       var opCodes = Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub)).Or(
         Keyword("+").Then(Constant(BinaryExpr.Opcode.Add)));
-      return multiplicative.OrCast(CreateBinary(additiveSelf, opCodes));
+      return multiplicative.OrCast(CreateBinary(additiveSelf, multiplicative, opCodes, true));
     });
       
     // shift	<< >> >>>
     var shift = additive;
     
     // relational	< > <= >= instanceof
-    var relational = Recursive<Expression>(shiftSelf => {
+    var relational = Recursive<Expression>(relationalSelf => {
       var opCodes = Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le)).Or(
         Keyword("<").Then(Constant(BinaryExpr.Opcode.Lt)));
-      return shift.OrCast(CreateBinary(shiftSelf, opCodes));
+      return shift.OrCast(CreateBinary(relationalSelf, shift, opCodes, true));
     });
     
     // equality	== !=
     var equality = Recursive<Expression>(equalitySelf => {
       var opCodes = Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq)).Or(
         Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)));
-      return relational.OrCast(CreateBinary(equalitySelf, opCodes));
+      return relational.OrCast(CreateBinary(equalitySelf, relational, opCodes, true));
     });
     
     // bitwise AND	&
@@ -436,18 +440,18 @@ public class JavaGrammar {
     
     var logicalAnd = Recursive<Expression>(logicalAndSelf => {
       var opCodes = Keyword("&&").Then(Constant(BinaryExpr.Opcode.And));
-      return bitwiseInclusiveOr.OrCast(CreateBinary(logicalAndSelf, opCodes));
+      return bitwiseInclusiveOr.OrCast(CreateBinary(logicalAndSelf,  bitwiseInclusiveOr, opCodes));
     });
     
     var logicalOr = Recursive<Expression>(logicalAndSelf => {
       var opCodes = Keyword("||").Then(Constant(BinaryExpr.Opcode.Or));
-      return logicalAnd.OrCast(CreateBinary(logicalAndSelf, opCodes));
+      return logicalAnd.OrCast(CreateBinary(logicalAndSelf, logicalAnd, opCodes));
     });
     
     // TODO consider not adding ==>
     var implies = Recursive<Expression>(impliesSelf => {
       var opCodes = Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp));
-      return logicalOr.OrCast(CreateBinary(impliesSelf, opCodes));
+      return logicalOr.OrCast(CreateBinary(impliesSelf, logicalOr, opCodes));
     });
 
     var ternary = Recursive<Expression>(ternarySelf => {
@@ -464,11 +468,19 @@ public class JavaGrammar {
         //Keyword("<==>").Then(Constant(BinaryExpr.Opcode.Iff))).Or(
       // Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp))).Or(
 
-    Grammar<BinaryExpr> CreateBinary(Grammar<Expression> inner, Grammar<BinaryExpr.Opcode> opCode) {
-      return inner.Assign(() => new BinaryExpr(), b => b.E0).
-        Then(Position, e => null, (e, p) => e.tok = Convert(p)).
-        Then(opCode, b => b.Op).
-        Then(inner, b => b.E1);
+    Grammar<BinaryExpr> CreateBinary(Grammar<Expression> withSelf, Grammar<Expression> withoutSelf, 
+      Grammar<BinaryExpr.Opcode> opCode, bool leftToRight = true) {
+      if (leftToRight) {
+        return withSelf.Assign(() => new BinaryExpr(), b => b.E0).
+          Then(Position, e => null, (e, p) => e.tok = Convert(p)).
+          Then(opCode, b => b.Op).
+          Then(withoutSelf, b => b.E1);
+      } else {
+        return withoutSelf.Assign(() => new BinaryExpr(), b => b.E0).
+          Then(Position, e => null, (e, p) => e.tok = Convert(p)).
+          Then(opCode, b => b.Op).
+          Then(withSelf, b => b.E1);
+      }
     }
 
     
