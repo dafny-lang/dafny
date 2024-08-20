@@ -27,24 +27,25 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   public Parser<T> Inner => inner ??= get();
   
   enum RecursionState { FindingLeftRecursions, Parsing }
-  private readonly ThreadLocal<RecursionState> state = new(() => RecursionState.Parsing);
+  private readonly ThreadLocal<RecursionState> findingRecursionState = new(() => RecursionState.Parsing);
   private readonly ThreadLocal<SinglyLinkedList<int>> enteredStack = new(() => new Nil<int>());
-  
-  private List<IFoundRecursion<T>>? leftRecursions;
+
+  private bool checkedLeftRecursion;
+  private IFoundRecursion<T>? leftRecursion;
   private static readonly ITextPointer deadPointer = new PointerFromString("");
   
   public override ParseResult<T> Parse(ITextPointer text) {
     
-    var recursionState = state.Value;
+    var recursionState = findingRecursionState.Value;
     if (recursionState == RecursionState.FindingLeftRecursions) {
-      return new FoundRecursion<T, T>(this, Util.Identity);
+      return new FoundRecursion<T, T>(Util.Identity);
     }
     
-    if (leftRecursions == null) {
-      state.Value = RecursionState.FindingLeftRecursions;
-      var result = Inner.Parse(deadPointer);
-      leftRecursions = result.Recursions.ToList();
-      state.Value = RecursionState.Parsing;
+    if (!checkedLeftRecursion) {
+      findingRecursionState.Value = RecursionState.FindingLeftRecursions;
+      leftRecursion = Inner.Parse(deadPointer) as IFoundRecursion<T>;
+      findingRecursionState.Value = RecursionState.Parsing;
+      checkedLeftRecursion = true;
     }
 
     var startingStack = enteredStack.Value!;
@@ -53,7 +54,7 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
       return new EmptyResult<T>();
     }
 
-    if (leftRecursions.Count == 0) {
+    if (leftRecursion == null) {
       return text.ParseWithCache2(Inner);
     }
 
@@ -67,26 +68,16 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
 
     ParseResult<T> combinedResult = seedResult;
     ConcreteSuccess<T>? bestSuccess = seedResult.Success;
-    var change = true;
 
-    var b = 3;
-
-    while (change) {
-      change = false;
-      foreach (var recursion in leftRecursions) {
-        // after a few iterations a binaryExpr 3 / x, is built
-        // now the binaryExpr itself is available as a seed,
-        // And the FoundRecursion that built it still holds a pionter to the BinaryExpr that was used to construct the initial one.
-        // Constructors should be on the right of self expressions
-        var newResult = recursion.Apply(bestSuccess.Value!, bestSuccess.Remainder);
-        
-        combinedResult = combinedResult.Combine(newResult);
-        if (newResult.Success != null) {
-          bestSuccess = newResult.Success;
-          change = true;
-          break;
-        }
-      }
+    while (bestSuccess != null) {
+      // after a few iterations a binaryExpr 3 / x, is built
+      // now the binaryExpr itself is available as a seed,
+      // And the FoundRecursion that built it still holds a pionter to the BinaryExpr that was used to construct the initial one.
+      // Constructors should be on the right of self expressions
+      var newResult = leftRecursion.Apply(bestSuccess.Value!, bestSuccess.Remainder);
+      
+      combinedResult = combinedResult.Combine(newResult);
+      bestSuccess = newResult.Success;
     }
 
     return combinedResult;
