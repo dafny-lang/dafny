@@ -488,7 +488,7 @@ public static class GrammarBuilder {
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
   public static readonly Grammar<string> CharInSingleQuotes = new ExplicitGrammar<string>(ParserBuilder.CharInSingleQuotes, 
-    VerbatimW.Instance);
+    VerbatimW.Instance.Map<string, string>(s => $"'{s}'"));
   public static readonly Grammar<string> StringInDoubleQuotes = new ExplicitGrammar<string>(ParserBuilder.StringInDoubleQuotes, 
     VerbatimW.Instance.Map<string, string>(s => $"\"{s}\""));
   

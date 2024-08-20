@@ -388,8 +388,8 @@ public class JavaGrammar {
     // cast
     var downcast = Recursive<Expression>(castSelf => {
       var cast = Constructor<ConversionExpr>().
-        Then("(").Then(type, c => c.ToType, Separator.Nothing).
-        Then(")", Separator.Nothing).Then(castSelf, c => c.E);
+        Then(type.InParens(), c => c.ToType).
+        Then(castSelf, c => c.E);
       return unary.OrCast(cast);
     });
     
