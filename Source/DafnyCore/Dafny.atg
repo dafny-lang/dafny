@@ -199,6 +199,7 @@ TOKENS
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
   reveal = "reveal".
+  hide = "hide".
   expect = "expect".
   sarrow = "->".
   qarrow = "~>".
@@ -1258,7 +1259,10 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
        m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken.ToRange(), "_ctor"), dmod.IsGhost, typeArgs, ins,
-                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), (DividedBlockStmt)body, attrs, signatureEllipsis);
+                           req, new Specification<FrameExpression>(reads, readsAttrs), 
+                           new Specification<FrameExpression>(mod, modAttrs), ens, 
+                           new Specification<Expression>(dec, decAttrs), 
+                           (DividedBlockStmt)body, attrs, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
@@ -1274,7 +1278,9 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                              ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      } else {
        m = new Method(range, name, dmod.IsStatic, dmod.IsGhost, typeArgs, ins, outs,
-                      req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
+                      req, new Specification<FrameExpression>(reads, readsAttrs), 
+                      new Specification<FrameExpression>(mod, modAttrs), ens, 
+                      new Specification<Expression>(dec, decAttrs), body, attrs, signatureEllipsis);
      }
      m.BodyStartTok = bodyStart;
      m.TokenWithTrailingDocString = tokenWithTrailingDocString;
@@ -1981,15 +1987,18 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
-                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                 reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                                 new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isTwoState) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStateFunction(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result, returnType,
-                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
+                                reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                                new Specification<Expression>(decreases, decAttrs), body, attrs, signatureEllipsis);
      } else if (isPredicate) {
        Contract.Assert(functionMethodToken == null || !dmod.IsGhost);
        f = new Predicate(range, name, dmod.IsStatic, isGhost, dmod.IsOpaque, typeArgs, formals, result,
-                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
+                         reqs, new Specification<FrameExpression>(reads, readsAttrs), ens, 
+                         new Specification<Expression>(decreases, decAttrs), body, Predicate.BodyOriginKind.OriginalOrInherited,
                          byMethodTok, byMethodBody, attrs, signatureEllipsis);
      } else if (isLeastPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
@@ -2178,6 +2187,7 @@ OneStmt<out Statement/*!*/ s>
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+  | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
   | UpdateStmt<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
   | ReturnStmt<out s>
@@ -2194,7 +2204,6 @@ OneStmt<out Statement/*!*/ s>
   | MatchStmt<out s>
   | ModifyStmt<out s>
   | PrintStmt<out s>
-  | RevealStmt<out s>
   | SkeletonStmt<out s>
   | YieldStmt<out s>
   )
@@ -2292,6 +2301,7 @@ UpdateStmt<out Statement/*!*/ s>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      Expression e;
      AssignmentRhs r;
+     BlockStmt proof = null;
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      IToken startToken = Token.NoToken;
@@ -2329,10 +2339,16 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
-    ";"                            (. endTok = t; .)
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
@@ -2347,18 +2363,21 @@ UpdateStmt<out Statement/*!*/ s>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
-   ";"                             (. endTok = t; .)
+   (
+     "by" BlockStmt<out proof, out _, out _>
+   | ";"                           (. endTok = t; .)
+   )                           
 )
   (. var rangeToken = new RangeToken(startToken, t);
      if (suchThat != null) {
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
-       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss, proof);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(rangeToken, lhss, rhss);
+         s = new UpdateStmt(rangeToken, lhss, rhss, proof);
        }
      }
   .)
@@ -2458,6 +2477,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      ExprRhs exceptionRhs = null;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
+     BlockStmt proof = null;
      IToken endTok;
      IToken startToken = null;
      s = dummyStmt;
@@ -2494,7 +2514,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
-    SYNC ";"                         (. endTok = t; .)
+    SYNC ( "by"
+      BlockStmt<out proof, out _, out _>
+    | ";"                            (. endTok = t; .)
+    )
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
@@ -2511,11 +2534,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss, proof);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
+         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss, proof);
        }
        s = new VarDeclStmt(rangeToken, lhss, update);
     .)
@@ -3012,14 +3035,18 @@ RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x; Expression e; var es = new List<Expression>();
      IToken startToken = null;
+     HideRevealCmd.Modes mode = HideRevealCmd.Modes.Reveal;
+     s = null;
   .)
-  "reveal"                                      (. x = t; startToken = t; .)
-  Expression<out e, false, true>                (. es.Add(e); .)
-  { "," Expression<out e, false, true>          (. es.Add(e); .)
-  }
-  ";"                                           (.
-    s = new RevealStmt(new RangeToken(startToken, t), es);
-    .)
+  ( "reveal"                                    (. x = t; startToken = t; mode = HideRevealCmd.Modes.Reveal; .)
+  | "hide"                                      (. x = t; startToken = t; mode = HideRevealCmd.Modes.Hide; .)
+  )
+  ( Expression<out e, false, true>                (. es.Add(e); .)
+    { "," Expression<out e, false, true>          (. es.Add(e); .)
+    }                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, mode); .)
+  | "*"                                         (. s = new HideRevealStmt(new RangeToken(startToken, t), mode); .)
+  )
+  ";"                                           
   .
 
 /*------------------------------------------------------------------------*/
@@ -4540,6 +4567,9 @@ Ident<out IToken/*!*/ x>
   | "older"      (. t.kind = _ident; .) // convert it to an ident
   | "opaque"     (. t.kind = _ident; .) // convert it to an ident
                  (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
+  | "hide"       (. t.kind = _ident; .) // convert it to an ident
+  | "reveal"     (. t.kind = _ident; .) // convert it to an ident
+                 
   )
   (. x = t; .)
   .

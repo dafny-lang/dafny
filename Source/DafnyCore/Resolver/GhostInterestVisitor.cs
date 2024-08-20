@@ -101,11 +101,9 @@ class GhostInterestVisitor {
         s.Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
       }
 
-    } else if (stmt is RevealStmt) {
-      var s = (RevealStmt)stmt;
-      s.ResolvedStatements.ForEach(ss => Visit(ss, true, "a reveal statement"));
-      s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
-
+    } else if (stmt is HideRevealStmt hideRevealStmt) {
+      hideRevealStmt.ResolvedStatements.ForEach(ss => Visit(ss, true, $"a {hideRevealStmt.Kind} statement"));
+      hideRevealStmt.IsGhost = hideRevealStmt.ResolvedStatements.All(ss => ss.IsGhost);
     } else if (stmt is BreakStmt) {
       var s = (BreakStmt)stmt;
       s.IsGhost = mustBeErasable;
@@ -147,6 +145,9 @@ class GhostInterestVisitor {
       var s = (UpdateStmt)stmt;
       s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+      if (s.Proof != null) {
+        Visit(s.Proof, true, "a call-by body");
+      }
 
     } else if (stmt is AssignOrReturnStmt) {
       var s = (AssignOrReturnStmt)stmt;

@@ -154,7 +154,6 @@ namespace Microsoft.Dafny.Triggers {
     private static bool SameBoundVar(IVariable arg1, IVariable arg2) {
       return arg1 == arg2 ||
              (arg1.Name == arg2.Name &&
-              arg1.CompileName == arg2.CompileName &&
               arg1.DisplayName == arg2.DisplayName &&
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&

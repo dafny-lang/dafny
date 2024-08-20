@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny {
       if (!this.functionReveals.ContainsKey(f)) {
         // const reveal_FunctionA : bool
         Bpl.Constant revealTrigger =
-          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, RevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
+          new Bpl.Constant(f.tok, new Bpl.TypedIdent(f.tok, HideRevealStmt.RevealLemmaPrefix + f.FullName, Bpl.Type.Bool), false);
         sink.AddTopLevelDeclaration(revealTrigger);
         Bpl.Expr revealTrigger_expr = new Bpl.IdentifierExpr(f.tok, revealTrigger);
         this.functionReveals[f] = revealTrigger_expr;
@@ -1753,9 +1753,9 @@ namespace Microsoft.Dafny {
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
 
-    public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
+    public readonly VerificationIdGenerator defaultIdGenerator = new VerificationIdGenerator();
 
-    public FreshIdGenerator CurrentIdGenerator {
+    public VerificationIdGenerator CurrentIdGenerator {
       get {
         var decl = codeContext as Declaration;
         if (decl != null) {
@@ -2328,7 +2328,7 @@ namespace Microsoft.Dafny {
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for datatype constructor {0}", ctor)));
       builder.AddCaptureState(ctor.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
@@ -2338,7 +2338,8 @@ namespace Microsoft.Dafny {
       // check well-formedness of each default-value expression
       foreach (var formal in ctor.Formals.Where(formal => formal.DefaultValue != null)) {
         var e = formal.DefaultValue;
-        CheckWellformed(e, new WFOptions(null, true, false, true), locals, builder, etran);
+        CheckWellformed(e, new WFOptions(null, true,
+          false, true), locals, builder, etran);
         builder.Add(new Bpl.AssumeCmd(e.tok, etran.CanCallAssumption(e)));
         CheckSubrange(e.tok, etran.TrExpr(e), e.Type, formal.Type, e, builder);
       }
@@ -2854,13 +2855,15 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
-    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
+    enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCallPre, CoCallPost, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
         { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
-        { MethodTranslationKind.Call, "Call" },
-        { MethodTranslationKind.CoCall, "CoCall" },
+        { MethodTranslationKind.CallPre, "CallPre" },
+        { MethodTranslationKind.CallPost, "CallPost" },
+        { MethodTranslationKind.CoCallPre, "CoCallPre" },
+        { MethodTranslationKind.CoCallPost, "CoCallPost" },
         { MethodTranslationKind.Implementation, "Impl" },
         { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
       };
@@ -2873,8 +2876,10 @@ namespace Microsoft.Dafny {
     private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
       new Dictionary<MethodTranslationKind, string>() {
         {MethodTranslationKind.SpecWellformedness, "well-formedness"},
-        {MethodTranslationKind.Call, "call"},
-        {MethodTranslationKind.CoCall, "co-call"},
+        {MethodTranslationKind.CallPre, "call precondtion"},
+        {MethodTranslationKind.CallPost, "call postcondition"},
+        {MethodTranslationKind.CoCallPre, "co-call precondtion"},
+        {MethodTranslationKind.CoCallPost, "co-call postcondition"},
         {MethodTranslationKind.Implementation, "correctness"},
         {MethodTranslationKind.OverrideCheck, "override check"},
       };
@@ -3481,7 +3486,8 @@ namespace Microsoft.Dafny {
       return req;
     }
 
-    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder, Statement block, List<Variable> locals, ExpressionTranslator etran) {
+    Bpl.StmtList TrStmt2StmtList(BoogieStmtListBuilder builder,
+      Statement block, List<Variable> locals, ExpressionTranslator etran, bool introduceScope = false) {
       Contract.Requires(builder != null);
       Contract.Requires(block != null);
       Contract.Requires(locals != null);
@@ -3489,7 +3495,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      TrStmt(block, builder, locals, etran);
+      TrStmtList(new List<Statement> { block }, builder, locals, etran, introduceScope ? block.RangeToken : null, processLabels: false);
       return builder.Collect(block.Tok);  // TODO: would be nice to have an end-curly location for "block"
     }
 
@@ -3656,7 +3662,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(decreases != null);
       List<Bpl.Expr> oldBfs = new List<Bpl.Expr>();
-      var idGen = new FreshIdGenerator();
+      var idGen = new VerificationIdGenerator();
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
         Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, idGen.FreshId(varPrefix), TrType(cce.NonNull(e.Type))));
@@ -4570,25 +4576,26 @@ namespace Microsoft.Dafny {
       }
     }
 
-    List<SplitExprInfo/*!*/>/*!*/ TrSplitExpr(Expression expr, ExpressionTranslator etran, bool applyInduction, out bool splitHappened) {
+    List<SplitExprInfo> /*!*/ TrSplitExpr(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, bool applyInduction,
+      out bool splitHappened) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(expr, splits, true, int.MaxValue, true, applyInduction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, true, applyInduction, etran);
       return splits;
     }
 
-    List<SplitExprInfo> TrSplitExprForMethodSpec(Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
+    List<SplitExprInfo> TrSplitExprForMethodSpec(BodyTranslationContext context, Expression expr, ExpressionTranslator etran, MethodTranslationKind kind) {
       Contract.Requires(expr != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
       var applyInduction = kind == MethodTranslationKind.Implementation;
-      TrSplitExpr(expr, splits, true, int.MaxValue,
-        kind != MethodTranslationKind.Call, applyInduction, etran);
+      bool splitHappened;  // we don't actually care
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.CallPost, applyInduction, etran);
       return splits;
     }
 

@@ -51,7 +51,8 @@ public partial class BoogieGenerator {
           BplFormalVar(null, requires_ty, true),
           BplFormalVar(null, reads_ty, true)
         };
-      sink.AddTopLevelDeclaration(new Bpl.Function(Token.NoToken, Handle(arity), arg, res));
+      var declaration = new Bpl.Function(Token.NoToken, Handle(arity), arg, res);
+      sink.AddTopLevelDeclaration(declaration);
     }
 
     Action<Function, string, Bpl.Type> SelectorFunction = (dafnyFunction, name, t) => {
@@ -1464,7 +1465,8 @@ public partial class BoogieGenerator {
     // They should be the same, but hence the added contract
     var implInParams = Bpl.Formal.StripWhereClauses(inParams);
     var locals = new List<Variable>();
-    var builder = new BoogieStmtListBuilder(this, options);
+    var context = new BodyTranslationContext(false);
+    var builder = new BoogieStmtListBuilder(this, options, context);
     builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
     builder.AddCaptureState(decl.tok, false, "initial state");
     isAllocContext = new IsAllocContext(options, true);
@@ -1485,8 +1487,8 @@ public partial class BoogieGenerator {
     // }
 
     // check well-formedness of the constraint (including termination, and delayed reads checks)
-    var constraintCheckBuilder = new BoogieStmtListBuilder(this, options);
-    var builderInitializationArea = new BoogieStmtListBuilder(this, options);
+    var constraintCheckBuilder = new BoogieStmtListBuilder(this, options, context);
+    var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
     if (decl.Constraint == null) {
       constraintCheckBuilder.Add(new Bpl.CommentCmd($"well-formedness of {decl.WhatKind} constraint is trivial"));
     } else {
@@ -1503,7 +1505,7 @@ public partial class BoogieGenerator {
     // Check that the type is inhabited.
     // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
     Expression witnessExpr = null;
-    var witnessCheckBuilder = new BoogieStmtListBuilder(this, options);
+    var witnessCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     witnessCheckBuilder.Add(new Bpl.CommentCmd($"check well-formedness of {decl.WhatKind} witness, and that it satisfies the constraint"));
     string witnessString = null;
     if (decl.Witness != null) {
@@ -1533,7 +1535,7 @@ public partial class BoogieGenerator {
       witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessCheckTok, etran.CanCallAssumption(witnessExpr)));
 
       bool splitHappened;
-      var ss = TrSplitExpr(witnessExpr, etran, true, out splitHappened);
+      var ss = TrSplitExpr(context, witnessExpr, etran, true, out splitHappened);
       var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
       if (!splitHappened) {
         witnessCheckBuilder.Add(Assert(witnessCheckTok, etran.TrExpr(witnessExpr), desc));

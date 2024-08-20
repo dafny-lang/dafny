@@ -339,7 +339,7 @@ namespace Microsoft.Dafny {
               ? e.Function.EnclosingClass.TypeArgs[i]
               : e.Function.TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
           if (!IsDetermined(p)) {
-            var hint = e.Name.StartsWith(RevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
+            var hint = e.Name.StartsWith(HideRevealStmt.RevealLemmaPrefix) ? ". If you are making an opaque function, make sure that the function can be called." : "";
             cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') in the function call to '{e.Name}' could not be determined{hint}");
           } else {
             CheckContainsNoOrdinal(e.tok, p, $"type parameter '{tp.Name}' (passed in as '{p}') to function call '{e.Name}' is not allowed to use ORDINAL");

@@ -114,7 +114,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
   Expression RedirectingTypeDecl.Witness { get { return Witness; } }
-  FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
+  VerificationIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
   bool ICodeContext.IsGhost {
     get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
@@ -124,6 +124,7 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {

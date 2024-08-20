@@ -21,7 +21,7 @@ public class DafnyProject : IEquatable<DafnyProject> {
     "Given a filesystem path, search for a project file by traversing up the file tree.");
 
   static DafnyProject() {
-    DooFile.RegisterNoChecksNeeded(FindProjectOption, false);
+    OptionRegistry.RegisterOption(FindProjectOption, OptionScope.Cli);
   }
 
   public const string Extension = ".toml";
