@@ -1580,7 +1580,7 @@ namespace Microsoft.Dafny {
               resolutionContext, allowMethodCall);
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, new InferredTypeProxy(), true) {
-              PreType = new DPreType(tentativeReceiverPreType.Decl, tentativeReceiverPreType.Arguments), // don't include the .PrintablePreType
+              PreType = tentativeReceiverPreType.SansPrintablePreType(),
               ObjectToDiscard = lhs
             };
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext,
