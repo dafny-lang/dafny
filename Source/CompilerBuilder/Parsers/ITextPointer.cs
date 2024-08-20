@@ -9,10 +9,6 @@ public interface IPosition {
 public record ParseRange(IPosition From, IPosition Until);
 
 public interface ITextPointer : IPosition {
-
-  bool SeenHere(Parser parser);
-  ITextPointer Add(Parser parser);
-  ITextPointer Remove(Parser parser);
   
   ITextPointer Drop(int amount);
 

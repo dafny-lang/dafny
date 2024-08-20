@@ -276,19 +276,20 @@ public static class GrammarExtensions {
   public static Grammar<List<T>> Separated<T>(this Grammar<T> inner, VoidGrammar separator, 
     Separator beforeSep = Separator.Space, 
     Separator afterSep = Separator.Space) {
-    var r = inner.Then<T, SinglyLinkedList<T>, SinglyLinkedList<T>>(ManyInner(separator.Then(inner, afterSep), beforeSep),
+    var some = inner.Then<T, SinglyLinkedList<T>, SinglyLinkedList<T>>(
+      ManyInner(separator.Then(inner, afterSep), beforeSep, "separated"),
       (e, l) => new Cons<T>(e, l), 
       l => l.Fold((head, tail) => (head, tail), () => ((T, SinglyLinkedList<T>)?)null), beforeSep);
-    var r2 = r.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
-    return r2.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
+    var llResult = some.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
+    return llResult.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
   
-  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Separator separator = Separator.Space) {
-    var numerable = ManyInner(one, separator);
+  public static Grammar<List<T>> Many<T>(this Grammar<T> one, Separator separator = Separator.Space, string debugString = "many") {
+    var numerable = ManyInner(one, separator, debugString);
     return numerable.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
 
-  private static Grammar<SinglyLinkedList<T>> ManyInner<T>(Grammar<T> one, Separator separator)
+  private static Grammar<SinglyLinkedList<T>> ManyInner<T>(Grammar<T> one, Separator separator, string debugString)
   {
     return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
       new Constructor<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, 
@@ -297,7 +298,7 @@ public static class GrammarExtensions {
         // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
         // ReSharper disable once PossibleMultipleEnumeration
         l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null), separator)),
-      "manyInner");
+      debugString);
   }
 
   public static Grammar<T> Where<T>(this Grammar<T> grammar, Func<T, bool> filter) {

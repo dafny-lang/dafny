@@ -17,7 +17,7 @@ public static class ParserBuilder {
   // TODO should this exist? Could be dangerous
   public static Parser<T> Constant<T>(T value) => new ValueR<T>(() => value);
   public static VoidParser Keyword(string keyword) => new TextR(keyword);
-  public static readonly Parser<string> Identifier = new RegexR(@"\w+", "identifier");
+  public static readonly Parser<string> Identifier = new RegexR(@"[a-zA-Z]\w*", "an identifier");
   public static readonly Parser<int> Number = new RegexR(@"\d+", "number").MapValue(s => 
     int.TryParse(s, out var result) ? result : default(int?));
   public static readonly Parser<string> CharInSingleQuotes = new RegexR(@"'.'", "char").

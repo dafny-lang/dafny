@@ -40,8 +40,8 @@ class PointerFromString : ITextPointer {
   public int Column { get; }
   private readonly ImmutableHashSet<Parser> seen;
   
-  public bool SeenHere(Parser parser) {
-    return seen.Contains(parser);
+  public bool FindingRecursionFor(Parser parser) {
+    return false;
   }
 
   public ITextPointer Add(Parser parser) {
@@ -104,11 +104,11 @@ class PointerFromString : ITextPointer {
   private readonly Dictionary<int, PointerFromString> pointerCache;
 
   public ParseResult<Unit> ParseWithCache(VoidParser parser) {
-    if (cache.TryGetValue(parser, out var result)) {
-      return (ParseResult<Unit>)result;
-    }
+    // if (cache.TryGetValue(parser, out var result)) {
+    //   return (ParseResult<Unit>)result;
+    // }
     
-    result = parser.Parse(this);
+    var result = parser.Parse(this);
     cache[parser] = result;
 
     return (ParseResult<Unit>)result;
@@ -123,11 +123,11 @@ class PointerFromString : ITextPointer {
   }
   
   public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
-    if (cache.TryGetValue(parser, out var result)) {
-      return (ParseResult<T>)result;
-    }
+    // if (cache.TryGetValue(parser, out var result)) {
+    //   return (ParseResult<T>)result;
+    // }
     
-    result = parser.Parse(this);
+    var result = parser.Parse(this);
     cache[parser] = result;
 
     return (ParseResult<T>)result;

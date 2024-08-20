@@ -70,13 +70,14 @@ public class TestParsing {
   public void TestMany() {
     var person =
       Value(() => new Person()).
+        Then("^").
         Then(Number, (p, v) => p.Age = v).
         Then(Identifier, (p, v) => p.Name = v);
     var persons = person.Many();
-    var goodResult = persons.Parse("123124Jan12313Henk12Remy");
-    Assert.Equal(3, goodResult.Success!.Value.Count);
-    Assert.Equal("Remy", goodResult.Success!.Value[2].Name);
-    var badResult = persons.Parse("123124Jan12313Henk12");
+    var goodResult = persons.Parse("^123124Jan^12313Henk^12Remy");
+    Assert.Equal(3, goodResult.ForceSuccess.Value.Count);
+    Assert.Equal("Remy", goodResult.ForceSuccess.Value[2].Name);
+    var badResult = persons.Parse("^123124Jan^12313Henk^12");
     Assert.Null(badResult.Success);
   }
 
@@ -84,7 +85,7 @@ public class TestParsing {
   public void LeftRecursive() {
     var parser = Recursive<int>(self => Number.Or(self.Then("^")), "LeftRecursiveTest");
     var result = parser.Parse("13^^^");
-    Assert.Equal(13, result.Success!.Value);
+    Assert.Equal(13, result.ForceSuccess.Value);
   }
 
   class PersonWithTrivia {
@@ -118,7 +119,7 @@ public class TestParsing {
 Remy";
     var result2 = person.Parse(input2);
     Assert.NotNull(result2.Success);
-    Assert.Equal("// another linecomment", result2.Success?.Value.Trivia[2]);
+    Assert.Equal("// another linecomment\n", result2.Success?.Value.Trivia[2]);
   }
   
   // There were a lot of issues in the following that this file should test, but did not.

@@ -9,7 +9,7 @@ interface ITriviaContainer {
 public static class Comments {
 
   public static Grammar<List<string>> JavaTrivia() {
-    return GrammarBuilder.Whitespace.Or(SlashSlashLineComment()).Or(BlockComment()).Many();
+    return GrammarBuilder.Whitespace.Or(SlashSlashLineComment()).Or(BlockComment()).Many(debugString: "javaTrivia");
   }
   
   public static Grammar<string> SlashSlashLineComment() {
