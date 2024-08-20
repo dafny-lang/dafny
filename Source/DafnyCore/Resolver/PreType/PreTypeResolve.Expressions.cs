@@ -279,7 +279,10 @@ namespace Microsoft.Dafny {
               }
               return false;
             });
-            updateExpr.PreType = e.Seq.PreType;
+
+            updateExpr.PreType = CreatePreTypeProxy("result of _[_:=_]");
+            AddSubtypeConstraint(updateExpr.PreType, e.Seq.PreType, e.tok,
+              $"result of update expression must agree with the source type ({{0}})");
             break;
           }
         case DatatypeUpdateExpr datatypeUpdateExpr: {
