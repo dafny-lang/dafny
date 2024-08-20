@@ -13,7 +13,7 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
       return new FoundRecursion<T, T>(Util.Identity);
     }
     
-    var seedResult = Inner.Parse(text.Add(this));
+    var seedResult = text.Add(this).ParseWithCache2(Inner);
     if (seedResult.Success == null) {
       return seedResult;
     }

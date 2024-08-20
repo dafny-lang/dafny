@@ -77,6 +77,13 @@ interface IFoundRecursion<T> : ParseResult<T> {
   ParseResult<T> Apply(object value, ITextPointer remainder);
 }
 
+/// <summary>
+/// Parsers that do not have recursive children have the same result regardless of whether they're a recursion on the stack.
+/// A parser that has a recursive child, will have a different result if that child is already on its stack.
+///
+/// TODO do a little analysis to see how often a particular parser is in a cache with different seens
+/// 
+/// </summary>
 record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursion) : IFoundRecursion<TB> {
   public ParseResult<TC> Continue<TC>(Func<ConcreteSuccess<TB>, ParseResult<TC>> f) {
     return new FoundRecursion<TA, TC>(concrete => {

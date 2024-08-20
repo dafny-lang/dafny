@@ -28,4 +28,12 @@ public interface ITextPointer : IPosition {
   FailureResult<T> Fail<T>(string expected) {
     return new FailureResult<T>($"'{LocationDescription}' is not {expected}", this);
   }
+
+  ParseResult<Unit> ParseWithCache(VoidParser parser);
+  ParseResult<T> ParseWithCache<T>(Parser<T> grammar);
+  ParseResult<Unit> ParseWithCache2(VoidParser parser);
+  ParseResult<T> ParseWithCache2<T>(Parser<T> grammar);
+
+  void Ref();
+  void UnRef();
 }

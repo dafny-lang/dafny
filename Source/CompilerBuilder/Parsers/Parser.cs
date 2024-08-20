@@ -1,10 +1,9 @@
-﻿using System.Collections.Immutable;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace CompilerBuilder;
 
-record Unit {
+public record Unit {
   public static readonly Unit Instance = new();
 
   private Unit() { }
@@ -19,7 +18,7 @@ class IgnoreR<T>(Parser<T> parser) : VoidParser {
   public Parser<T> Parser => parser;
 
   internal override ParseResult<Unit> Parse(ITextPointer text) {
-    return parser.Parse(text).Continue(
+    return text.ParseWithCache2(parser).Continue(
       s => new ConcreteSuccess<Unit>(Unit.Instance, s.Remainder));
   }
 }
@@ -36,6 +35,7 @@ public interface Parser<T> : Parser {
     var withEnd = new EndOfText<T>(this);
     return withEnd.Parse(pointer).Concrete!;
   }
+  
 }
 
 class EndOfText<T>(Parser<T> inner) : Parser<T> {
@@ -61,80 +61,15 @@ class EndOfText<T>(Parser<T> inner) : Parser<T> {
   }
 }
 
-/*
- * TODO
- * it might be a cool idea to use PointerFromString to determine which parts of the cache to keep
- * However, when you call Drop, you do not know if the old pointer is still used.
- * We make have to introduce .Ref() and .DropAndUnref() methods
- * That enable the cache to know when a text pointer is disposed
- * Or maybe we can use the C# dispose mechanic
- */
-class PointerFromString : ITextPointer {
-  public PointerFromString(string text) {
-    Text = text;
-    Seen = ImmutableHashSet<Parser>.Empty;
-  }
-
-  public PointerFromString(string text, int offset, int line, int column, ImmutableHashSet<Parser> seen) {
-    Offset = offset;
-    Line = line;
-    Column = column;
-    Seen = seen;
-    Text = text;
-  }
-
-  public string Upcoming => SubSequence(5).ToString();
-  
-  public string Text { get; }
-
-  public int Offset { get; }
-  public int Line { get; }
-  public int Column { get; }
-  private ImmutableHashSet<Parser> Seen;
-  public bool SeenHere(Parser parser) {
-    return Seen.Contains(parser);
-  }
-
-  public ITextPointer Add(Parser parser) {
-    return new PointerFromString(Text, Offset, Line, Column, Seen.Add(parser));
-  }
-
-  public ITextPointer Remove(Parser parser) {
-    return new PointerFromString(Text, Offset, Line, Column, Seen.Remove(parser));
-  }
-
-  public ITextPointer Drop(int amount) {
-    var sequence = SubSequence(amount);
-    var lines = sequence.ToString().Split("\n"); // TODO optimize
-    return new PointerFromString(Text, Offset + amount, 
-      Line + lines.Length - 1, 
-      lines.Length > 1 ? lines.Last().Length : Column + amount, 
-      ImmutableHashSet<Parser>.Empty);
-  }
-
-  public char First => At(0);
-  public int Length => Text.Length - Offset;
-
-  public char At(int offset) {
-    return Text[Offset + offset];
-  }
-
-  public ReadOnlySpan<char> Remainder => Text.AsSpan(Offset);
-
-  public ReadOnlySpan<char> SubSequence(int length) {
-    return Text.AsSpan(Offset, Math.Min(Length, length));
-  }
-}
-
 public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> second, Func<TLeft, TRight, T> combine) : Parser<T> {
   
   public Parser<TLeft> First { get; set; } = first;
   public Parser<TRight> Second { get; set; } = second;
   
   public ParseResult<T> Parse(ITextPointer text) {
-    var leftResult = First.Parse(text);
+    var leftResult = text.ParseWithCache(First);
     return leftResult.Continue(leftConcrete => {
-      var rightResult = Second.Parse(leftConcrete.Remainder);
+      var rightResult = leftConcrete.Remainder.ParseWithCache2(Second);
       return rightResult.Continue(rightConcrete => {
         var value = combine(leftConcrete.Value, rightConcrete.Value);
         return new ConcreteSuccess<T>(value, rightConcrete.Remainder);
@@ -152,8 +87,10 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
   public Parser<T> Second { get; set; } = second;
   
   public ParseResult<T> Parse(ITextPointer text) {
-    var firstResult = First.Parse(text);
-    var secondResult = Second.Parse(text);
+    text.Ref();
+    var firstResult = text.ParseWithCache2(First);
+    text.UnRef();
+    var secondResult = text.ParseWithCache2(Second);
     return firstResult.Combine(secondResult);
   }
 }
@@ -182,7 +119,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
   
   public ParseResult<U> Parse(ITextPointer text) {
     var start = text;
-    var innerResult = Parser.Parse(text);
+    var innerResult = text.ParseWithCache(Parser);
     return innerResult.Continue<U>(success => {
       var end = success.Remainder;
       var newValue = map(new ParseRange(start, end), success.Value);
@@ -196,8 +133,8 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
 
 class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
   public ParseResult<T> Parse(ITextPointer text) {
-    var leftResult = left.Parse(text);
-    return leftResult.Continue(leftConcrete => right.Parse(leftConcrete.Remainder));
+    var leftResult = text.ParseWithCache(left);
+    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache2(right));
   }
 }
 
@@ -207,8 +144,8 @@ class SkipRight<T>(Parser<T> first, VoidParser second) : Parser<T> {
   public VoidParser Second { get; set; } = second;
   
   public ParseResult<T> Parse(ITextPointer text) {
-    var leftResult = First.Parse(text);
-    return leftResult.Continue(leftConcrete => Second.Parse(leftConcrete.Remainder).
+    var leftResult = text.ParseWithCache(First);
+    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache2(Second).
       Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
   }
 }
