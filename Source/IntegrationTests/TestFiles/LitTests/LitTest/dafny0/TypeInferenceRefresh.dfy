@@ -1010,6 +1010,26 @@ module UnaryMinus {
   }
 }
 
+module TypeInferenceViaInAndEquals {
+  trait GrandParent { }
+  trait Parent extends GrandParent { const data: int }
+  trait Child extends Parent { }
+
+  method Test(ghost s: set<Parent>, n: Parent) returns (ghost b: bool)
+  {
+    // type inference uses "in" to obtain type
+    b := forall y :: y in s ==> y.data == 19;
+    b := forall y :: y in s ==> P(y);
+
+    // type inference uses "==" to obtain type
+    b := forall y :: y == n ==> y.data == 19;
+    var z := MagicAssign();
+    b := z == n;
+  }
+
+  predicate P<X>(x: X)
+  method MagicAssign<X>() returns (r: X)
+}
 
 /****************************************************************************************
  ******** TO DO *************************************************************************
