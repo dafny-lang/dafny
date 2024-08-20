@@ -23,23 +23,26 @@ class IgnoreR<T>(Parser<T> parser) : VoidParser {
   }
 }
 
-public interface Parser;
+public abstract class Parser
+{
+  public override string ToString() {
+    return "Parser";
+  }
+}
 
-public interface Parser<T> : Parser {
-  
-  // TODO make internal??
-  public ParseResult<T> Parse(ITextPointer text);
-  
+public abstract class Parser<T> : Parser
+{
+  public abstract ParseResult<T> Parse(ITextPointer text);
+
   public ConcreteResult<T> Parse(string text) {
     ITextPointer pointer = new PointerFromString(text);
     var withEnd = new EndOfText<T>(this);
     return withEnd.Parse(pointer).Concrete!;
   }
-  
 }
 
 class EndOfText<T>(Parser<T> inner) : Parser<T> {
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     var innerResult = inner.Parse(text);
     if (innerResult.Success == null) {
       return innerResult;
@@ -66,7 +69,7 @@ public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> sec
   public Parser<TLeft> First { get; set; } = first;
   public Parser<TRight> Second { get; set; } = second;
   
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     var leftResult = text.ParseWithCache(First);
     return leftResult.Continue(leftConcrete => {
       var rightResult = leftConcrete.Remainder.ParseWithCache2(Second);
@@ -86,7 +89,7 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
   public Parser<T> First { get; set; } = first;
   public Parser<T> Second { get; set; } = second;
   
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     text.Ref();
     var firstResult = text.ParseWithCache2(First);
     text.UnRef();
@@ -96,7 +99,7 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
 }
 
 class FailR<T>(string expectation) : Parser<T> {
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     return text.Fail<T>(expectation);
   }
 }
@@ -108,7 +111,7 @@ class PositionR : Parser<IPosition> {
   {
   }
 
-  public ParseResult<IPosition> Parse(ITextPointer text) {
+  public override ParseResult<IPosition> Parse(ITextPointer text) {
     return new ConcreteSuccess<IPosition>(text, text);
   }
 }
@@ -117,7 +120,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
 
   public Parser<T> Parser { get; set; } = parser;
   
-  public ParseResult<U> Parse(ITextPointer text) {
+  public override ParseResult<U> Parse(ITextPointer text) {
     var start = text;
     var innerResult = text.ParseWithCache(Parser);
     return innerResult.Continue<U>(success => {
@@ -132,7 +135,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
 }
 
 class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     var leftResult = text.ParseWithCache(left);
     return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache2(right));
   }
@@ -143,7 +146,7 @@ class SkipRight<T>(Parser<T> first, VoidParser second) : Parser<T> {
   public Parser<T> First { get; set; } = first;
   public VoidParser Second { get; set; } = second;
   
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     var leftResult = text.ParseWithCache(First);
     return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache2(Second).
       Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
@@ -169,7 +172,7 @@ class TextR(string value) : VoidParser {
 
 class RegexR(string regex, string description) : Parser<string> {
   private Regex r = new("^" + regex);
-  public ParseResult<string> Parse(ITextPointer text) {
+  public override ParseResult<string> Parse(ITextPointer text) {
     var matches = r.EnumerateMatches(text.Remainder);
     while (matches.MoveNext()) {
       var match = matches.Current;
@@ -183,7 +186,7 @@ class RegexR(string regex, string description) : Parser<string> {
 }
 
 internal class Whitespace : Parser<string> {
-  public ParseResult<string> Parse(ITextPointer text) {
+  public override ParseResult<string> Parse(ITextPointer text) {
     var offset = 0;
     while (text.Length > offset) {
       var c = text.At(offset);
@@ -218,7 +221,7 @@ internal class Comment(string opener, string closer, string description) : Parse
     return true;
   }
   
-  public ParseResult<string> Parse(ITextPointer text) {
+  public override ParseResult<string> Parse(ITextPointer text) {
     if (!Find(opener, text)) {
       return text.Fail<string>(description);
     }
@@ -245,7 +248,7 @@ internal class Comment(string opener, string closer, string description) : Parse
 }
 
 internal class NumberR : Parser<int> {
-  public ParseResult<int> Parse(ITextPointer text) {
+  public override ParseResult<int> Parse(ITextPointer text) {
     var offset = 0;
     while (text.Length > offset) {
       var c = text.At(offset);
@@ -270,7 +273,7 @@ internal class NumberR : Parser<int> {
 }
 
 internal class IdentifierR : Parser<string> {
-  public ParseResult<string> Parse(ITextPointer text) {
+  public override ParseResult<string> Parse(ITextPointer text) {
     var offset = 0;
     var allowOthers = false;
     while (text.Length > offset) {
@@ -298,7 +301,7 @@ internal class IdentifierR : Parser<string> {
 class ValueR<T>(Func<T> value) : Parser<T> {
   public T Evaluated => value();
   
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
     return new ConcreteSuccess<T>(value(), text);
   }
 }

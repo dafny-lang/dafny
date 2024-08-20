@@ -14,17 +14,20 @@ class PointerFromString : ITextPointer {
   public PointerFromString(string text) {
     Text = text;
     seen = ImmutableHashSet<Parser>.Empty;
+    cache = new();
     pointerCache = new();
   }
 
   public PointerFromString(string text, int offset, int line, int column,
-    Dictionary<CacheKey, PointerFromString> pointerCache,
+    Dictionary<int, PointerFromString> pointerCache,
+    Dictionary<Parser, ParseResult> cache,
     ImmutableHashSet<Parser> seen) {
     Offset = offset;
     Line = line;
     Column = column;
     this.seen = seen;
     Text = text;
+    this.cache = cache;
     this.pointerCache = pointerCache;
   }
 
@@ -43,40 +46,34 @@ class PointerFromString : ITextPointer {
 
   public ITextPointer Add(Parser parser) {
     var newSeen = seen.Add(parser);
-    var key = new CacheKey(Offset, newSeen);
-    if (pointerCache.TryGetValue(key, out var existingPointer)) {
-      return existingPointer;
-    }
-
-    return new PointerFromString(Text, Offset, Line, Column, pointerCache, newSeen);
+    return new PointerFromString(Text, Offset, Line, Column, pointerCache, cache, newSeen);
   }
 
   public ITextPointer Remove(Parser parser) {
     var newSeen = seen.Remove(parser);
-    var key = new CacheKey(Offset, newSeen);
-    if (pointerCache.TryGetValue(key, out var existingPointer)) {
+    if (pointerCache.TryGetValue(Offset, out var existingPointer)) {
       return existingPointer;
     }
-    return new PointerFromString(Text, Offset, Line, Column, pointerCache, newSeen);
+    return new PointerFromString(Text, Offset, Line, Column, pointerCache, cache, newSeen);
   }
 
   public ITextPointer Drop(int amount) {
-    var sequence = SubSequence(amount);
-    var lines = sequence.ToString().Split("\n"); // TODO optimize
     // if (references == 0) {
     //   cache.Clear();
     // })
     var newOffset = Offset + amount;
-    var key = new CacheKey(newOffset, seen);
-    if (pointerCache.TryGetValue(key, out var existingPointer)) {
+    if (pointerCache.TryGetValue(newOffset, out var existingPointer)) {
       return existingPointer;
     } else {
+      var sequence = SubSequence(amount);
+      var lines = sequence.ToString().Split("\n"); // TODO optimize
       var result = new PointerFromString(Text, newOffset, 
         Line + lines.Length - 1, 
         lines.Length > 1 ? lines.Last().Length : Column + amount, 
         pointerCache,
+        new(),
         ImmutableHashSet<Parser>.Empty);
-      pointerCache[key] = result;
+      pointerCache[newOffset] = result;
       return result;
     }
   }
@@ -103,93 +100,35 @@ class PointerFromString : ITextPointer {
     references--;
   }
 
-  internal record CacheKey(int Offset, ImmutableHashSet<Parser> Seen);
-
-  // private readonly Dictionary<Parser, ParseResult> simpleCache;
-  private static readonly Dictionary<(int, Parser), ParseResult> globalSimpleCache = new();
-  private readonly Dictionary<Parser, ParseResult> cache = new();
-  private readonly Dictionary<CacheKey, PointerFromString> pointerCache;
+  private readonly Dictionary<Parser, ParseResult> cache;
+  private readonly Dictionary<int, PointerFromString> pointerCache;
 
   public ParseResult<Unit> ParseWithCache(VoidParser parser) {
     if (cache.TryGetValue(parser, out var result)) {
       return (ParseResult<Unit>)result;
     }
-
-    var globalKey = (Offset, parser);
-    if (globalSimpleCache.TryGetValue(globalKey, out result)) {
-      return (ParseResult<Unit>)result;
-    }
-    // if (simpleCache.ContainsKey(parser)) {
-    //   var c = 3;
-    // }
     
     result = parser.Parse(this);
     cache[parser] = result;
-    // simpleCache[parser] = result;
-    globalSimpleCache[globalKey] = result;
 
     return (ParseResult<Unit>)result;
   }
   
   public ParseResult<Unit> ParseWithCache2(VoidParser parser) {
-    if (cache.TryGetValue(parser, out var result)) {
-      return (ParseResult<Unit>)result;
-    }
-    var globalKey = (Offset, parser);
-
-    if (globalSimpleCache.TryGetValue(globalKey, out result)) {
-      return (ParseResult<Unit>)result;
-    }
-    // if (simpleCache.ContainsKey(parser)) {
-    //   var c = 3;
-    // }
-    
-    result = parser.Parse(this);
-    cache[parser] = result;
-    // simpleCache[parser] = result;
-    globalSimpleCache[globalKey] = result;
-
-    return (ParseResult<Unit>)result;
+    return ParseWithCache(parser);
   }
 
   public ParseResult<T> ParseWithCache2<T>(Parser<T> parser) {
-    if (cache.TryGetValue(parser, out var result)) {
-      return (ParseResult<T>)result;
-    }
-    
-    var globalKey = (Offset, parser);
-    if (globalSimpleCache.TryGetValue(globalKey, out result)) {
-      return (ParseResult<T>)result;
-    }
-    // if (simpleCache.ContainsKey(parser)) {
-    //   var c = 3;
-    // }
-    
-    result = parser.Parse(this);
-    cache[parser] = result;
-    // simpleCache[parser] = result;
-    globalSimpleCache[globalKey] = result;
-
-    return (ParseResult<T>)result;
+    return ParseWithCache(parser);
   }
   
   public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
     if (cache.TryGetValue(parser, out var result)) {
       return (ParseResult<T>)result;
     }
-
-    var globalKey = (Offset, parser);
-    if (globalSimpleCache.TryGetValue(globalKey, out result)) {
-      return (ParseResult<T>)result;
-    }
-    // if (simpleCache.ContainsKey(parser)) {
-    //   var c = 3;
-    // }
     
     result = parser.Parse(this);
     cache[parser] = result;
-    // simpleCache[parser] = result;
-    globalSimpleCache[globalKey] = result;
 
     return (ParseResult<T>)result;
   }

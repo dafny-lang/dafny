@@ -7,7 +7,7 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
 
   public Parser<T> Inner => inner ??= get();
   
-  public ParseResult<T> Parse(ITextPointer text) {
+  public override ParseResult<T> Parse(ITextPointer text) {
 
     if (text.SeenHere(this)) {
       return new FoundRecursion<T, T>(Util.Identity);
@@ -49,5 +49,6 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
     }
 
     return combinedResult.Continue(r1 => r1 with { Remainder = r1.Remainder.Remove(this) });
+    // TODO can I update the cache with the new result here?
   }
 }
