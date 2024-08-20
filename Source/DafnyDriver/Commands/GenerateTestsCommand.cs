@@ -163,11 +163,11 @@ Path - Generate tests targeting path-coverage.");
       options.TestGenOptions.ForcePrune = value;
     });
 
-    DooFile.RegisterNoChecksNeeded(LoopUnroll, false);
-    DooFile.RegisterNoChecksNeeded(SequenceLengthLimit, false);
-    DooFile.RegisterNoChecksNeeded(PrintBpl, false);
-    DooFile.RegisterNoChecksNeeded(ExpectedCoverageReport, false);
-    DooFile.RegisterNoChecksNeeded(ForcePrune, false);
-    DooFile.RegisterNoChecksNeeded(IgnoreWarnings, false);
+    OptionRegistry.RegisterOption(LoopUnroll, OptionScope.Cli);
+    OptionRegistry.RegisterOption(SequenceLengthLimit, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PrintBpl, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExpectedCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ForcePrune, OptionScope.Cli);
+    OptionRegistry.RegisterOption(IgnoreWarnings, OptionScope.Cli);
   }
 }

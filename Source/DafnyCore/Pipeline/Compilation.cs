@@ -140,16 +140,12 @@ public class Compilation : IDisposable {
     await started.Task;
 
     var result = new List<DafnyFile>();
-    var includedFiles = new List<DafnyFile>();
-    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
-      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri,
-                       Project.StartingToken)) {
-        result.Add(file);
-        includedFiles.Add(file);
-      }
-    }
 
+    var handledInput = new HashSet<Uri>();
     foreach (var uri in Options.CliRootSourceUris) {
+      if (!handledInput.Add(uri)) {
+        continue;
+      }
       var shortPath = Path.GetRelativePath(Directory.GetCurrentDirectory(), uri.LocalPath);
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri, Token.Cli,
                        false,
@@ -157,6 +153,19 @@ public class Compilation : IDisposable {
         result.Add(file);
       }
     }
+
+    var includedFiles = new List<DafnyFile>();
+    foreach (var uri in Input.Project.GetRootSourceUris(fileSystem)) {
+      if (!handledInput.Add(uri)) {
+        continue;
+      }
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, uri,
+                       Project.StartingToken)) {
+        result.Add(file);
+        includedFiles.Add(file);
+      }
+    }
+
     if (Options.UseStdin) {
       result.Add(DafnyFile.HandleStandardInput(Options, Token.Cli));
     }

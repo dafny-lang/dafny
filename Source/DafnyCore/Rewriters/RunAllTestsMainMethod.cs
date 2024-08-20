@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 public class RunAllTestsMainMethod : IRewriter {
 
   static RunAllTestsMainMethod() {
-    DooFile.RegisterNoChecksNeeded(IncludeTestRunner, false);
+    OptionRegistry.RegisterOption(IncludeTestRunner, OptionScope.Cli);
   }
 
   public static Option<bool> IncludeTestRunner = new("--include-test-runner",
@@ -93,9 +93,9 @@ public class RunAllTestsMainMethod : IRewriter {
   /// }
   /// </summary>
   internal override void PostResolve(Program program) {
-    var tok = program.GetStartOfFirstFileToken();
+    var tok = program.GetStartOfFirstFileToken() ?? Token.NoToken;
     List<Statement> mainMethodStatements = new();
-    var idGenerator = new FreshIdGenerator();
+    var idGenerator = new CodeGenIdGenerator();
 
     // var success := true;
     var successVarStmt = Statement.CreateLocalVariable(tok, "success", Expression.CreateBoolLiteral(tok, true));
