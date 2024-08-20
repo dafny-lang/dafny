@@ -22,12 +22,12 @@ namespace Microsoft.Dafny.Compilers {
     }
   }
 
-  public class Extractor : ASTVisitor<IASTVisitorContext> {
+  public class BoogieExtractor : ASTVisitor<IASTVisitorContext> {
     /// <summary>
     /// Throws an "ExtractorError" if the input is unexpected or unsupported.
     /// </summary>
     public static Boogie.Program Extract(Program program) {
-      var extractor = new Extractor();
+      var extractor = new BoogieExtractor();
       extractor.VisitModule(program.DefaultModule);
       extractor.FixUpUsedByInformation();
 
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.Compilers {
     private readonly Dictionary<Function, Boogie.Function> functionExtractions = new();
     private readonly List<(Boogie.Axiom, Function)> axiomUsedBy = new();
 
-    private Extractor() {
+    private BoogieExtractor() {
     }
 
     void FixUpUsedByInformation() {

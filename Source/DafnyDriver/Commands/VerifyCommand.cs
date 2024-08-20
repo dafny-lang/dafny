@@ -88,7 +88,7 @@ Extract Dafny types, functions, and lemmas to Boogie.
       if (!resolution.HasErrors && options.BoogieExtractionTargetFile != null) {
         using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
           try {
-            var extractedProgram = Extractor.Extract(resolution.ResolvedProgram);
+            var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
             engine.PrintBplFile(options.BoogieExtractionTargetFile, extractedProgram, true, pretty: true);
           } catch (ExtractorError extractorError) {
             options.OutputWriter.WriteLine($"Boogie axiom extraction error: {extractorError.Message}");
