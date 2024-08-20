@@ -28,7 +28,7 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   }
 
   public ExprDotName() : base(Token.Parsing, null) {
-    OptTypeArguments = [];
+    // OptTypeArguments = [];
   }
 
   public ExprDotName(Cloner cloner, ExprDotName original) : base(cloner, original) {

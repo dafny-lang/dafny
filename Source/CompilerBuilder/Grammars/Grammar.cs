@@ -300,6 +300,11 @@ public static class GrammarExtensions {
         l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null), separator)));
   }
 
+  public static Grammar<T> Where<T>(this Grammar<T> grammar, Func<T, bool> filter) {
+    return new WithRangeG<T, T>(grammar, (_, v) => filter(v) ? new MapSuccess<T>(v) : new MapFail<T>(),
+      x => new MapSuccess<T>(x));
+  }
+  
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<ParseRange, T, U> construct, 
     Func<U, T> destruct) {
     return new WithRangeG<T, U>(grammar, (r,v) => new MapSuccess<U>(construct(r,v)), 
