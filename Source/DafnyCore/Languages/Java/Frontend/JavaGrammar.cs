@@ -358,10 +358,6 @@ public class JavaGrammar {
     var charLiteral = CharInSingleQuotes.Map<string, CharLiteralExpr>(
       (r, c) => new CharLiteralExpr(ConvertToken(r), c),
       e => (string)e.Value);
-    
-    var downcast = Constructor<ConversionExpr>().Then("(").
-      Then(type, c => c.ToType, Separator.Nothing).Then(")", Separator.Nothing).
-      Then(self, c => c.E);
 
     var parenthesis = Keyword("(").Then(self).Then(")").Map(
       (t, e) => new ParensExpression(ConvertToken(t), e),
@@ -374,7 +370,8 @@ public class JavaGrammar {
     
     Grammar<Expression> code = Fail<Expression>("an expression").
       OrCast(variableRef).OrCast(number).OrCast(lambda).OrCast(charLiteral).OrCast(truee).OrCast(falsee).
-      OrCast(drop).OrCast(take).OrCast(get).OrCast(parenthesis).OrCast(length).OrCast(downcast).OrCast(exprDotName).OrCast(callResult);
+      OrCast(drop).OrCast(take).OrCast(get).OrCast(parenthesis).OrCast(length).OrCast(exprDotName).OrCast(callResult);
+    
     
     // postfix expr++ expr--
 
@@ -388,12 +385,20 @@ public class JavaGrammar {
       return code.OrCast(prefixUnary);
     });
     
+    // cast
+    var downcast = Recursive<Expression>(castSelf => {
+      var cast = Constructor<ConversionExpr>().
+        Then("(").Then(type, c => c.ToType, Separator.Nothing).
+        Then(")", Separator.Nothing).Then(castSelf, c => c.E);
+      return unary.OrCast(cast);
+    });
+    
     // multiplicative * / %
     var multiplicative = Recursive<Expression>(multiplicativeSelf => {
       var opCodes = Keyword("*").Then(Constant(BinaryExpr.Opcode.Mul)).Or(
         Keyword("/").Then(Constant(BinaryExpr.Opcode.Div))).Or(
         Keyword("%").Then(Constant(BinaryExpr.Opcode.Mod)));
-      return unary.OrCast(CreateBinary(multiplicativeSelf, opCodes));
+      return downcast.OrCast(CreateBinary(multiplicativeSelf, opCodes));
     });
 
     // additive + -

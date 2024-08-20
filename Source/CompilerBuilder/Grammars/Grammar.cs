@@ -276,10 +276,9 @@ public static class GrammarExtensions {
   public static Grammar<List<T>> Separated<T>(this Grammar<T> inner, VoidGrammar separator, 
     Separator beforeSep = Separator.Space, 
     Separator afterSep = Separator.Space) {
-    var r = ManyInner(inner.Then(separator, beforeSep), afterSep).Then<SinglyLinkedList<T>, T, SinglyLinkedList<T>>(
-      inner,  
-      (l, e) => new Cons<T>(e, l), 
-      l => l.Fold((head, tail) => (tail, head), () => ((SinglyLinkedList<T>, T)?)null), afterSep);
+    var r = inner.Then<T, SinglyLinkedList<T>, SinglyLinkedList<T>>(ManyInner(separator.Then(inner, afterSep), beforeSep),
+      (e, l) => new Cons<T>(e, l), 
+      l => l.Fold((head, tail) => (head, tail), () => ((T, SinglyLinkedList<T>)?)null), beforeSep);
     var r2 = r.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
     return r2.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
