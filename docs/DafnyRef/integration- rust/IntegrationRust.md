@@ -127,7 +127,7 @@ You can provide additional `*.rs` files to `dafny translate`, `dafny build` and 
 The best way to see what you have to implement as an extern Rust file is to compile your code with extern attributes and adding an external Rust file. For extra methods or static methods, you would then define an additional implementation in the extern Rust file. For other class or struct types, you just need to define them without any `mod` wrapper, or using the module structure as defined in the `{:extern}` attribute.
 
 When using simple 1-argument externs, the compilation follows Dafny conventions: static methods are static instance methods of a `pub struct _default {}` which is defined in the module itself, or must be defined externally if all static methods are labelled as externs.
-When using 2-argument extern methods or functions, the compilation follows Rust convention: The first argument is a module name, and all the "." are rewritten to "::" to map into Rust's syntax. The second argument is the name of a static `pub fn` of that module.
+When using 2-argument extern methods or functions, the compilation follows Rust convention: The first argument is a path of Rust module names separated by `::` (or `.` for cross-compilation with e.g. the Java compiler). The second argument is the name of a static `pub fn` of that module.
 
 Let's assume you provide an additional input file `external.rs` with the following content:
 ```
@@ -174,6 +174,3 @@ fn main() {
   super::Test::_default::extern_y();
 }
 ```
-
-Note: 
-Note that if the extern module name contains a space, any dot after the space is not replaced by `::`.

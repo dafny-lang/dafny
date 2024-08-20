@@ -1751,7 +1751,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       None
   }
 
-  // Dots make no sense in Rust, so we replace them by double colons, except if the string started with a space
+  // Dots are not valid identifier characters in Rust, so we replace them by double colons.
+  // We don't perform this replacement after any space occurs in an extern string
+  // because normally spaces don't occur in paths, so any use of space indicates something different.
   function ReplaceDotByDoubleColon(s: string): string {
     if |s| == 0 then "" else
     if s[0] == ' ' then s else
