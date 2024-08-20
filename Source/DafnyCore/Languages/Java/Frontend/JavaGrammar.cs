@@ -37,7 +37,7 @@ public class JavaGrammar {
       var t = GetExpressionGrammar(self);
       call = t.call;
       return t.expression;
-    });
+    }, "expression");
     attributedExpression = expression.Map(
       e => new AttributedExpression(e),
       ae => ae.E);
@@ -45,7 +45,7 @@ public class JavaGrammar {
       var r = StatementGrammar(self);
       block = r.Block;
       return r.Statement;
-    });
+    }, "statement");
   }
 
   public Grammar<FileModuleDefinition> GetFinalGrammar()
@@ -387,7 +387,7 @@ public class JavaGrammar {
         Then(unarySelf, u => u.E);
 
       return code.OrCast(prefixUnary);
-    });
+    }, "unary");
     
     // cast
     var downcast = Recursive<Expression>(castSelf => {
@@ -395,7 +395,7 @@ public class JavaGrammar {
         Then(type.InParens(), c => c.ToType).
         Then(castSelf, c => c.E);
       return unary.OrCast(cast);
-    });
+    }, "cast");
     
     // multiplicative * / %
     var multiplicative = Recursive<Expression>(multiplicativeSelf => {
@@ -403,14 +403,14 @@ public class JavaGrammar {
         Keyword("/").Then(Constant(BinaryExpr.Opcode.Div))).Or(
         Keyword("%").Then(Constant(BinaryExpr.Opcode.Mod)));
       return downcast.OrCast(CreateBinary(multiplicativeSelf,  downcast, opCodes, true));
-    });
+    }, "multiplicative");
 
     // additive + -
     var additive = Recursive<Expression>(additiveSelf => {
       var opCodes = Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub)).Or(
         Keyword("+").Then(Constant(BinaryExpr.Opcode.Add)));
       return multiplicative.OrCast(CreateBinary(additiveSelf, multiplicative, opCodes, true));
-    });
+    }, "additive");
       
     // shift	<< >> >>>
     var shift = additive;
@@ -420,14 +420,14 @@ public class JavaGrammar {
       var opCodes = Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le)).Or(
         Keyword("<").Then(Constant(BinaryExpr.Opcode.Lt)));
       return shift.OrCast(CreateBinary(relationalSelf, shift, opCodes, true));
-    });
+    }, "relational");
     
     // equality	== !=
     var equality = Recursive<Expression>(equalitySelf => {
       var opCodes = Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq)).Or(
         Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)));
       return relational.OrCast(CreateBinary(equalitySelf, relational, opCodes, true));
-    });
+    }, "equality");
     
     // bitwise AND	&
     var bitwiseAnd = equality;
@@ -441,18 +441,18 @@ public class JavaGrammar {
     var logicalAnd = Recursive<Expression>(logicalAndSelf => {
       var opCodes = Keyword("&&").Then(Constant(BinaryExpr.Opcode.And));
       return bitwiseInclusiveOr.OrCast(CreateBinary(logicalAndSelf,  bitwiseInclusiveOr, opCodes));
-    });
+    }, "logicalAnd");
     
     var logicalOr = Recursive<Expression>(logicalAndSelf => {
       var opCodes = Keyword("||").Then(Constant(BinaryExpr.Opcode.Or));
       return logicalAnd.OrCast(CreateBinary(logicalAndSelf, logicalAnd, opCodes));
-    });
+    }, "logicalOr");
     
     // TODO consider not adding ==>
     var implies = Recursive<Expression>(impliesSelf => {
       var opCodes = Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp));
       return logicalOr.OrCast(CreateBinary(impliesSelf, logicalOr, opCodes));
-    });
+    }, "implies");
 
     var ternary = Recursive<Expression>(ternarySelf => {
       var t = ternarySelf.Assign(() => new ITEExpr(), e => e.Test).
@@ -460,7 +460,7 @@ public class JavaGrammar {
         Then(ternarySelf, e => e.Thn).Then(":").
         Then(ternarySelf, e => e.Els);
       return implies.OrCast(t);
-    });
+    }, "ternary");
 
     // assignment	= += -= *= /= %= &= ^= |= <<= >>= >>>=
     

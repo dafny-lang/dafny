@@ -4,10 +4,10 @@ namespace CompilerBuilder;
 
 public static class ParserBuilder {
   
-  public static Parser<T> Recursive<T>(Func<Parser<T>, Parser<T>> build) {
+  public static Parser<T> Recursive<T>(Func<Parser<T>, Parser<T>> build, string debugName) {
     Parser<T>? result = null;
     // ReSharper disable once AccessToModifiedClosure
-    result = new RecursiveR<T>(() => build(result!));
+    result = new RecursiveR<T>(() => build(result!), debugName);
     return result;
     
   }

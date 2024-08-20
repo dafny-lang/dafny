@@ -2,7 +2,8 @@ using Microsoft.Dafny;
 
 namespace CompilerBuilder;
 
-class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
+class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
+  private readonly string debugName = debugName;
   private Parser<T>? inner;
 
   public Parser<T> Inner => inner ??= get();

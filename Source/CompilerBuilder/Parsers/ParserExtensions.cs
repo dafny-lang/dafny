@@ -33,7 +33,7 @@ public static class ParserExtensions {
 
   public static Parser<List<T>> Many<T>(this Parser<T> one) {
     return ParserBuilder.Recursive<List<T>>(self => 
-      ParserBuilder.Value(() => new List<T>()).Or(self.Then(one, (l, e) => l.Add(e))));
+      ParserBuilder.Value(() => new List<T>()).Or(self.Then(one, (l, e) => l.Add(e))), "many");
   }
   
   public static Parser<U> Map<T, U>(this Parser<T> parser, Func<ParseRange, T,U> map) {

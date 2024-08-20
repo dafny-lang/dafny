@@ -83,7 +83,7 @@ public abstract class Grammar<T> : Grammar
   }
 }
 
-public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
+public class RecursiveG<T>(Func<Grammar<T>> get, string debugName) : Grammar<T> {
   private Grammar<T>? inner;
 
   public Grammar<T> Inner => inner ??= get();
@@ -93,7 +93,7 @@ public class RecursiveG<T>(Func<Grammar<T>> get) : Grammar<T> {
   }
 
   internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
-    return new RecursiveR<T>(() => (Parser<T>)recurse(Inner));
+    return new RecursiveR<T>(() => (Parser<T>)recurse(Inner), debugName);
   }
 
   public override IEnumerable<Grammar> Children => [Inner];
@@ -296,7 +296,8 @@ public static class GrammarExtensions {
         (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
         // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
         // ReSharper disable once PossibleMultipleEnumeration
-        l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null), separator)));
+        l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null), separator)),
+      "manyInner");
   }
 
   public static Grammar<T> Where<T>(this Grammar<T> grammar, Func<T, bool> filter) {
@@ -471,10 +472,10 @@ class ExplicitGrammar<T>(Parser<T> parser, Printer<T> printer) : Grammar<T> {
 public static class GrammarBuilder {
 
   
-  public static Grammar<T> Recursive<T>(Func<Grammar<T>, Grammar<T>> build) {
+  public static Grammar<T> Recursive<T>(Func<Grammar<T>, Grammar<T>> build, string debugName) {
     RecursiveG<T>? result = null;
     // ReSharper disable once AccessToModifiedClosure
-    result = new RecursiveG<T>(() => build(result!));
+    result = new RecursiveG<T>(() => build(result!), debugName);
     var resolved = result.Inner;
     return result;
   }

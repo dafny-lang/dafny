@@ -72,7 +72,7 @@ public class TestGrammars {
 
   [Fact]
   public void LeftRecursive() {
-    var parser = Recursive<int>(self => Number.Or(self.Then("^")));
+    var parser = Recursive<int>(self => Number.Or(self.Then("^")), "LeftRecursiveTest");
     var result = parser.ToParser().Parse("13^^^");
     Assert.Equal(13, result.Success!.Value);
   }
