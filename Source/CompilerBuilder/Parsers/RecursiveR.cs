@@ -9,8 +9,9 @@ class EmptyResult<T> : ParseResult<T> {
 
   public ConcreteSuccess<T>? Success => null;
   public FailureResult<T>? Failure => null;
-  public IEnumerable<IFoundRecursion<T>> Recursions => Enumerable.Empty<IFoundRecursion<T>>();
+  public IEnumerable<IFoundRecursion<T>> Recursions => [];
 }
+
 class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   private readonly string debugName = debugName;
   private Parser<T>? inner;
@@ -25,8 +26,8 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
 
   public Parser<T> Inner => inner ??= get();
   
-  enum RecursionState { FindingRecursions, Entered, Fresh }
-  private readonly ThreadLocal<RecursionState> state = new(() => RecursionState.Fresh);
+  enum RecursionState { FindingLeftRecursions, Parsing }
+  private readonly ThreadLocal<RecursionState> state = new(() => RecursionState.Parsing);
   private readonly ThreadLocal<SinglyLinkedList<int>> enteredStack = new(() => new Nil<int>());
   
   private List<IFoundRecursion<T>>? leftRecursions;
@@ -35,15 +36,15 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   public override ParseResult<T> Parse(ITextPointer text) {
     
     var recursionState = state.Value;
-    if (recursionState == RecursionState.FindingRecursions) {
+    if (recursionState == RecursionState.FindingLeftRecursions) {
       return new FoundRecursion<T, T>(this, Util.Identity);
     }
     
     if (leftRecursions == null) {
-      state.Value = RecursionState.FindingRecursions;
+      state.Value = RecursionState.FindingLeftRecursions;
       var result = Inner.Parse(deadPointer);
       leftRecursions = result.Recursions.ToList();
-      state.Value = RecursionState.Fresh;
+      state.Value = RecursionState.Parsing;
     }
 
     var startingStack = enteredStack.Value!;
@@ -52,11 +53,10 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
       return new EmptyResult<T>();
     }
 
-    if (!leftRecursions.Any()) {
+    if (leftRecursions.Count == 0) {
       return text.ParseWithCache2(Inner);
     }
 
-    // TODO breaks when we find ourself but at a different location, which can happen for non-left recursion
     enteredStack.Value = new Cons<int>(text.Offset, startingStack!);
     // TODO caching here seems pointless
     var seedResult = text.ParseWithCache2(Inner);

@@ -104,11 +104,11 @@ class PointerFromString : ITextPointer {
   private readonly Dictionary<int, PointerFromString> pointerCache;
 
   public ParseResult<Unit> ParseWithCache(VoidParser parser) {
-    // if (cache.TryGetValue(parser, out var result)) {
-    //   return (ParseResult<Unit>)result;
-    // }
+    if (cache.TryGetValue(parser, out var result)) {
+      return (ParseResult<Unit>)result;
+    }
     
-    var result = parser.Parse(this);
+    result = parser.Parse(this);
     cache[parser] = result;
 
     return (ParseResult<Unit>)result;
@@ -123,11 +123,11 @@ class PointerFromString : ITextPointer {
   }
   
   public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
-    // if (cache.TryGetValue(parser, out var result)) {
-    //   return (ParseResult<T>)result;
-    // }
+    if (cache.TryGetValue(parser, out var result)) {
+      return (ParseResult<T>)result;
+    }
     
-    var result = parser.Parse(this);
+    result = parser.Parse(this);
     cache[parser] = result;
 
     return (ParseResult<T>)result;
