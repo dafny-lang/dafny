@@ -24,6 +24,41 @@ namespace Microsoft.Dafny.Compilers {
 
   public class BoogieExtractor : ASTVisitor<IASTVisitorContext> {
     /// <summary>
+    /// Says to look inside the module for contents to extract.
+    /// Can be applied to a module.
+    /// 
+    /// Note: This attribute isn't used yet, so the use of the attribute is just a stylistic thing at the moment.
+    /// Similarly, one can imagine that the extractor will look at a module's export clauses, to--in some way--check that
+    /// the set of Boogie declarations exported are self consistent. But that isn't done yet, either. Instead, all contents
+    /// of all files given to the extractor are considered for extraction.  
+    /// </summary>
+    private const string ExtractAttribute = "extract_boogie";
+
+    /// <summary>
+    /// Gives the Boogie name to be used in the extraction.
+    /// Can be applied to types and functions.
+    /// </summary>
+    private const string NameAttribute = "extract_boogie_name";
+
+    /// <summary>
+    /// Says to place the extracted axiom declaration in the "uses" block of the given function.
+    /// Can be applied to lemmas.
+    /// </summary>
+    private const string UsedByAttribute = "extract_used_by";
+
+    /// <summary>
+    /// Gives a matching pattern to be applied in the quantifier emitted from a lemma or from a quantifier.
+    /// Can be applied to lemmas and quantifiers.
+    /// </summary>
+    private const string PatternAttribute = "extract_pattern";
+
+    /// <summary>
+    /// Specifies an additional attribute to be attached to the quantifier emitted from a lemma.
+    /// Can be applied to lemmas.
+    /// </summary>
+    private const string AttributeAttribute = "extract_attribute";
+
+    /// <summary>
     /// Throws an "ExtractorError" if the input is unexpected or unsupported.
     /// </summary>
     public static Boogie.Program Extract(Program program) {
@@ -47,7 +82,7 @@ namespace Microsoft.Dafny.Compilers {
     void FixUpUsedByInformation() {
       foreach (var (axiom, function) in axiomUsedBy) {
         if (!functionExtractions.TryGetValue(function, out var boogieFunction)) {
-          throw new ExtractorError($":extract_used_by attribute mentions non-extracted function: {function.Name}");
+          throw new ExtractorError($":{UsedByAttribute} attribute mentions non-extracted function: {function.Name}");
         }
         boogieFunction.OtherDefinitionAxioms.Add(axiom);
       }
@@ -64,7 +99,7 @@ namespace Microsoft.Dafny.Compilers {
 
       VisitDeclarations(module.Signature.TopLevels.Values.ToList());
 
-      if (Attributes.Contains(module.Signature.ModuleDef.Attributes, "extract")) {
+      if (Attributes.Contains(module.Signature.ModuleDef.Attributes, ExtractAttribute)) {
         declarations.Sort((d0, d1) => d0.tok.pos - d1.tok.pos);
         allDeclarations.AddRange(declarations);
       }
@@ -90,14 +125,14 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      var patterns = Attributes.FindAllExpressions(lemma.Attributes, "extract_pattern");
-      var usedByInfo = Attributes.Find(lemma.Attributes, "extract_used_by");
+      var patterns = Attributes.FindAllExpressions(lemma.Attributes, PatternAttribute);
+      var usedByInfo = Attributes.Find(lemma.Attributes, UsedByAttribute);
       if (patterns == null && usedByInfo == null) {
         return;
       }
 
       if ((lemma.Ins.Count == 0) != (patterns == null)) {
-        throw new ExtractorError($"a parameterized lemma must specify at least one :extract_pattern: {lemma.Name}");
+        throw new ExtractorError($"a parameterized lemma must specify at least one :{PatternAttribute}: {lemma.Name}");
       }
       if (lemma.TypeArgs.Count != 0) {
         throw new ExtractorError($"an extracted lemma is not allowed to have type parameters: {lemma.Name}");
@@ -132,7 +167,7 @@ namespace Microsoft.Dafny.Compilers {
         if (usedByInfo.Args.Count == 1 && usedByInfo.Args[0].Resolved is MemberSelectExpr { Member: Function function }) {
           axiomUsedBy.Add((axiom, function));
         } else {
-          throw new ExtractorError($":extract_used_by argument on lemma '{lemma.Name}' is expected to be an extracted function");
+          throw new ExtractorError($":{UsedByAttribute} argument on lemma '{lemma.Name}' is expected to be an extracted function");
         }
       }
     }
@@ -153,10 +188,10 @@ namespace Microsoft.Dafny.Compilers {
 
     private QKeyValue? GetKeyValues(IToken tok, Attributes attributes) {
       Boogie.QKeyValue kv = null;
-      var extractAttributes = Attributes.FindAllExpressions(attributes, "extract_attribute");
+      var extractAttributes = Attributes.FindAllExpressions(attributes, AttributeAttribute);
       if (extractAttributes != null) {
         if (extractAttributes.Count == 0) {
-          throw new ExtractorError($"first argument to :extract_attribute is expected to be a literal string; got no arguments");
+          throw new ExtractorError($"first argument to :{AttributeAttribute} is expected to be a literal string; got no arguments");
         }
         for (var i = extractAttributes.Count; 0 <= --i;) {
           string? attrName = null;
@@ -167,7 +202,7 @@ namespace Microsoft.Dafny.Compilers {
             } else if (argument is StringLiteralExpr { Value: string name }) {
               attrName = name;
             } else {
-              throw new ExtractorError($"first argument to :extract_attribute is expected to be a literal string; got: {argument}");
+              throw new ExtractorError($"first argument to :{AttributeAttribute} is expected to be a literal string; got: {argument}");
             }
           }
 
@@ -211,7 +246,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string? GetExtractName(Attributes attributes) {
-      if (Attributes.Find(attributes, "extract_name") is { } extractNameAttribute) {
+      if (Attributes.Find(attributes, NameAttribute) is { } extractNameAttribute) {
         if (extractNameAttribute.Args.Count == 1 && extractNameAttribute.Args[0] is StringLiteralExpr { Value: string extractName }) {
           return extractName;
         }
@@ -289,9 +324,9 @@ namespace Microsoft.Dafny.Compilers {
               (Boogie.Variable)new Boogie.BoundVariable(tok, new TypedIdent(tok, boundVar.Name, ExtractType(boundVar.Type)))
             );
 
-            var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, "extract_pattern");
+            var patterns = Attributes.FindAllExpressions(quantifierExpr.Attributes, PatternAttribute);
             if (patterns.Count == 0) {
-              throw new ExtractorError("extraction expects every quantifier to specify at least one :extract_pattern");
+              throw new ExtractorError($"extraction expects every quantifier to specify at least one :{PatternAttribute}");
             }
             var triggers = GetTriggers(tok, patterns);
 

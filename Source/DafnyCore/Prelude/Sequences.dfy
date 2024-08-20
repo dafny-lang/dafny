@@ -1,4 +1,4 @@
-module {:extract} Sequences {
+module {:extract_boogie} Sequences {
   export
     provides Lists, Boxes
     provides Seq, Length, AboutLength
@@ -19,10 +19,10 @@ module {:extract} Sequences {
   import opened Boxes
 
   // boogie: type Seq;
-  type {:extract_name "Seq"} Seq = List<Box>
+  type {:extract_boogie_name "Seq"} Seq = List<Box>
 
   // boogie: function Seq#Length(Seq): int;
-  function {:extract_name "Seq#Length"} Length(s: Seq): int {
+  function {:extract_boogie_name "Seq#Length"} Length(s: Seq): int {
     s.Length()
   }
 
@@ -33,7 +33,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Empty(): Seq;
-  function {:extract_name "Seq#Empty"} Empty(): Seq {
+  function {:extract_boogie_name "Seq#Empty"} Empty(): Seq {
     Nil
   }
 
@@ -59,16 +59,16 @@ module {:extract} Sequences {
   //    Seq#Length(s) != 0 ==> (exists x: Box :: Seq#Contains(s, x)));
 
   // boogie: function Seq#Build(s: Seq, val: Box): Seq;
-  function {:extract_name "Seq#Build"} Build(s: Seq, val: Box): Seq {
+  function {:extract_boogie_name "Seq#Build"} Build(s: Seq, val: Box): Seq {
     s.Append(Cons(val, Nil))
   }
 
   // boogie: function Seq#Build_inv0(s: Seq) : Seq;
-  function {:extract_name "Seq#Build_inv0"} BuildInv0(s: Seq): Seq {
+  function {:extract_boogie_name "Seq#Build_inv0"} BuildInv0(s: Seq): Seq {
     if s.Nil? then Nil else s.Take(s.Length() - 1)
   }
   // boogie: function Seq#Build_inv1(s: Seq) : Box;
-  function {:extract_name "Seq#Build_inv1"} BuildInv1(s: Seq): Box {
+  function {:extract_boogie_name "Seq#Build_inv1"} BuildInv1(s: Seq): Box {
     if s.Nil? then
       Boxes.arbitrary
     else
@@ -161,7 +161,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Index(Seq, int): Box;
-  function {:extract_name "Seq#Index"} Index(s: Seq, i: int): Box {
+  function {:extract_boogie_name "Seq#Index"} Index(s: Seq, i: int): Box {
     if 0 <= i < Length(s) then
       s.At(i)
     else
@@ -228,7 +228,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Update(Seq, int, Box): Seq;
-  function {:extract_name "Seq#Update"} Update(s: Seq, i: int, val: Box): Seq {
+  function {:extract_boogie_name "Seq#Update"} Update(s: Seq, i: int, val: Box): Seq {
     if !(0 <= i < s.Length()) then
       s
     else if i == 0 then
@@ -292,12 +292,12 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Append(Seq, Seq): Seq;
-  function {:extract_name "Seq#Append"} Append(s0: Seq, s1: Seq): Seq {
+  function {:extract_boogie_name "Seq#Append"} Append(s0: Seq, s1: Seq): Seq {
     s0.Append(s1)
   }
 
   // boogie: function Seq#Contains(Seq, Box): bool;
-  predicate {:extract_name "Seq#Contains"} Contains(s: Seq, val: Box) {
+  predicate {:extract_boogie_name "Seq#Contains"} Contains(s: Seq, val: Box) {
     exists i :: 0 <= i < Length(s) && Index(s, i) == val
   }
 
@@ -514,7 +514,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Equal(Seq, Seq): bool;
-  predicate {:extract_name "Seq#Equal"} Equal(s0: Seq, s1: Seq) {
+  predicate {:extract_boogie_name "Seq#Equal"} Equal(s0: Seq, s1: Seq) {
     s0 == s1
   }
 
@@ -563,7 +563,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#SameUntil(Seq, Seq, int): bool;
-  predicate {:extract_name "Seq#SameUntil"} SameUntil(s0: Seq, s1: Seq, n: int) {
+  predicate {:extract_boogie_name "Seq#SameUntil"} SameUntil(s0: Seq, s1: Seq, n: int) {
     forall j :: 0 <= j < n ==> Index(s0, j) == Index(s1, j)
   }
 
@@ -580,7 +580,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Take(s: Seq, howMany: int): Seq;
-  function {:extract_name "Seq#Take"} Take(s: Seq, howMany: int): Seq {
+  function {:extract_boogie_name "Seq#Take"} Take(s: Seq, howMany: int): Seq {
     if howMany < 0 then
       Empty()
     else if howMany <= s.Length() then
@@ -617,7 +617,7 @@ module {:extract} Sequences {
   }
 
   // boogie: function Seq#Drop(s: Seq, howMany: int): Seq;
-  function {:extract_name "Seq#Drop"} Drop(s: Seq, howMany: int): Seq {
+  function {:extract_boogie_name "Seq#Drop"} Drop(s: Seq, howMany: int): Seq {
     if 0 <= howMany <= s.Length() then
       s.Drop(howMany)
     else
