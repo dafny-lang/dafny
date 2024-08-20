@@ -74,6 +74,7 @@ public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResu
 }
 
 interface IFoundRecursion<T> : ParseResult<T> {
+  Parser Parser { get; }
   ParseResult<T> Apply(object value, ITextPointer remainder);
 }
 
@@ -84,9 +85,9 @@ interface IFoundRecursion<T> : ParseResult<T> {
 /// TODO do a little analysis to see how often a particular parser is in a cache with different seens
 /// 
 /// </summary>
-record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursion) : IFoundRecursion<TB> {
+record FoundRecursion<TA, TB>(Parser Parser, Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursion) : IFoundRecursion<TB> {
   public ParseResult<TC> Continue<TC>(Func<ConcreteSuccess<TB>, ParseResult<TC>> f) {
-    return new FoundRecursion<TA, TC>(concrete => {
+    return new FoundRecursion<TA, TC>(Parser, concrete => {
       var inner = Recursion(concrete);
       var continued = inner.Continue(f);
       return continued;

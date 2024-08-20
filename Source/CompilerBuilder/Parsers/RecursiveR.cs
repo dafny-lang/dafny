@@ -10,9 +10,10 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
   public override ParseResult<T> Parse(ITextPointer text) {
 
     if (text.SeenHere(this)) {
-      return new FoundRecursion<T, T>(Util.Identity);
+      return new FoundRecursion<T, T>(this, Util.Identity);
     }
     
+    // TODO caching here seems pointless
     var seedResult = text.Add(this).ParseWithCache2(Inner);
     if (seedResult.Success == null) {
       return seedResult;
@@ -21,14 +22,19 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
     ParseResult<T> combinedResult = seedResult;
     ConcreteSuccess<T>? bestSuccess = seedResult.Success;
     var change = true;
+    var myRecursions = new List<IFoundRecursion<T>>();
+    var otherRecursions = new List<IFoundRecursion<T>>();
+    foreach (var recursion in seedResult.Recursions) {
+      if (recursion.Parser == this) {
+        myRecursions.Add(recursion);
+      } else {
+        otherRecursions.Add(recursion);
+      }
+    }
+
     while (change) {
       change = false;
-      foreach (var recursion in seedResult.Recursions) {
-        if (recursion is not FoundRecursion<T, T>) {
-          // TODO figure out why this is necessary
-          continue;
-        }
-
+      foreach (var recursion in myRecursions) {
         // after a few iterations a binaryExpr 3 / x, is built
         // now the binaryExpr itself is available as a seed,
         // And the FoundRecursion that built it still holds a pionter to the BinaryExpr that was used to construct the initial one.
@@ -44,11 +50,14 @@ class RecursiveR<T>(Func<Parser<T>> get) : Parser<T> {
       }
     }
 
-    if (combinedResult is Aggregate<T> aggregate) {
-      combinedResult = aggregate with { Recursions = aggregate.Recursions.Where(r => r is not FoundRecursion<T,T>) };
-    }
+    // TODO figure out why we have to Remove(this) here. Wouldn't a .Drop call already remove that?
+    var finalSuccess = combinedResult.Success == null
+      ? null
+      : combinedResult.Success with {
+        Remainder = combinedResult.Success.Remainder.Remove(this)
+      };
+    combinedResult = new Aggregate<T>(finalSuccess, combinedResult.Failure, otherRecursions);
 
-    return combinedResult.Continue(r1 => r1 with { Remainder = r1.Remainder.Remove(this) });
-    // TODO can I update the cache with the new result here?
+    return combinedResult;
   }
 }
