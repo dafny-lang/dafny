@@ -123,7 +123,7 @@ public class JavaGrammar {
 
     return header.
       Then(body, cl => cl.Members).
-      SetRange((cl, t) => cl.RangeToken = Convert(t));
+      FinishRangeNode(uri);
   }
 
   Grammar<MemberDecl> Member() {
@@ -143,6 +143,7 @@ public class JavaGrammar {
       }).
       SetRange((f, t) => {
         f.RangeToken = Convert(t);
+        f.tok = ConvertToken(t);
         f.InParam = true;
       });
     
@@ -183,7 +184,7 @@ public class JavaGrammar {
       Then(modifies.Indent(), m => m.Mod, Separator.Linebreak).
       Then(ensures.Indent(), m => m.Ens, Separator.Linebreak).
       Then(block, m => m.Body, Separator.Linebreak).
-      SetRange((m, r) => m.RangeToken = Convert(r));
+      FinishRangeNode(uri);
 
     var expressionBody = Keyword("return").
       Then(expression).
@@ -197,14 +198,14 @@ public class JavaGrammar {
       Then(requires.Indent(), f => f.Req, Separator.Linebreak).
       Then(ensures.Indent(), f => f.Ens, Separator.Linebreak).
       Then(expressionBody, m => m.Body).
-      SetRange((m, r) => m.RangeToken = Convert(r));
+      FinishRangeNode(uri);
 
     return (method, function);
   }
   
   (Grammar<Statement> Statement, Grammar<BlockStmt> Block) StatementGrammar(Grammar<Statement> self) {
     var blockResult = self.Many(Separator.Linebreak).InBraces().
-      Assign<BlockStmt, List<Statement>>(b => b.Body).SetRange(uri);
+      Assign<BlockStmt, List<Statement>>(b => b.Body).FinishRangeNode(uri);
     
     var returnStatement = Keyword("return").Then(expression).Then(";", Separator.Nothing).
       Map((r, e) =>
@@ -239,7 +240,7 @@ public class JavaGrammar {
       Then(ghostModifier, s => s.IsGhost).
       Then(type, s => s.SyntacticType).
       Then(identifier, s => s.Name).
-      SetRange((v, r) => v.RangeToken = Convert(r));
+      FinishRangeNode(uri);
     var assert = Constructor<AssertStmt>().
       Then(Keyword("assert")).
       Then(expression, a => a.Expr).
@@ -265,13 +266,13 @@ public class JavaGrammar {
       });
 
     var autoGhostidentifier = Constructor<AutoGhostIdentifierExpr>().
-      Then(identifier, g => g.Name).SetRange2(uri);
+      Then(identifier, g => g.Name).FinishTokenNode(uri);
 
-    var assignmentRhs = expression.Map(e => new ExprRhs(e), e => e.Expr).SetRange2(uri);
+    var assignmentRhs = expression.Map(e => new ExprRhs(e), e => e.Expr).FinishTokenNode(uri);
     var assignmentStatement = Constructor<UpdateStmt>().
       Then(autoGhostidentifier.UpCast<AutoGhostIdentifierExpr, Expression>().Singleton(), s => s.Lhss).
       Then(Keyword("=")).Then(assignmentRhs.UpCast<ExprRhs, AssignmentRhs>().Singleton(), s => s.Rhss).
-      Then(";", Separator.Nothing).SetRange(uri);
+      Then(";", Separator.Nothing).FinishRangeNode(uri);
     
     var invariant = Keyword("invariant").Then(attributedExpression);
     var invariants = invariant.Many(Separator.Linebreak).Indent();
@@ -284,7 +285,7 @@ public class JavaGrammar {
       Then(expression.InParens(), w => w.Guard).
       Then(invariants, w => w.Invariants, Separator.Linebreak).
       Then(decreases, w => w.Decreases, Separator.Linebreak).
-      Then(blockResult, w => w.Body, Separator.Linebreak).SetRange(uri);
+      Then(blockResult, w => w.Body, Separator.Linebreak).FinishRangeNode(uri);
       
     var result = Fail<Statement>("a statement").OrCast(returnStatement).
       OrCast(ifStatement).OrCast(blockResult).OrCast(expressionStatement).OrCast(assert).OrCast(varDecl).
@@ -307,7 +308,8 @@ public class JavaGrammar {
     var number = Number.Map(
       (r, v) => new LiteralExpr(Convert(r), v), l => (int)(BigInteger)l.Value);
     var nonGhostBinding = self.Map((t, e) => new ActualBinding(null, e) {
-      RangeToken = Convert(t)
+      RangeToken = Convert(t),
+      tok = ConvertToken(t)
     }, a => a.Actual);
     var nonGhostBindings = nonGhostBinding.CommaSeparated().
       Map((t, b) => new ActualBindings(b) {
@@ -316,24 +318,29 @@ public class JavaGrammar {
     
     var drop = self.Assign(() => new SeqSelectExpr(false), s => s.Seq).
       Then(".").Then("drop")
-      .Then(self.InParens(), s => s.E0);
+      .Then(self.InParens(), s => s.E0).
+      FinishTokenNode(uri);
     var take = self.Assign(() => new SeqSelectExpr(false), s => s.Seq).
-      Then(".").Then("take")
-      .Then(self.InParens(), s => s.E1);
+      Then(".").Then("take").
+      Then(self.InParens(), s => s.E1).
+      FinishTokenNode(uri);
     var get = self.Assign(() => new SeqSelectExpr(true), s => s.Seq).
-      Then(".").Then("get")
-      .Then(self.InParens(), s => s.E0);
-    var length = self.Assign(() => new UnaryOpExpr(UnaryOpExpr.Opcode.Cardinality), s => s.E).Then(".").Then("size")
-      .Then("(").Then(")");
+      Then(".").Then("get").
+      Then(self.InParens(), s => s.E0).
+      FinishTokenNode(uri);
+    var length = self.Assign(() => new UnaryOpExpr(UnaryOpExpr.Opcode.Cardinality), s => s.E).
+      Then(".").Then("size").
+      Then("(").Then(")").
+      FinishTokenNode(uri);
     
     var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings, Separator.Nothing).
-      SetRange((s, t) => s.RangeToken = Convert(t));
+      FinishTokenNode(uri);
 
     var exprDotName = self.Assign(() => new ExprDotName(), c => c.Lhs).
       Then(".").
       Then(identifier, c => c.SuffixName).
-      SetRange((c,r) => c.RangeToken = Convert(r));
+      FinishTokenNode(uri);
     
     var lambdaParameter = Constructor<BoundVar>().
       Then(type.Option(), f => f.Type).
@@ -341,9 +348,7 @@ public class JavaGrammar {
         f.Name = v.Value;
         f.tok = v.tok;
       }).
-      SetRange((f, t) => {
-        f.RangeToken = Convert(t);
-      });
+      FinishTokenNode(uri);
     var parameters = lambdaParameter.CommaSeparated();
     var lambda = Constructor<LambdaExpr>().
       Then(parameters, e => e.BoundVars).
@@ -490,14 +495,17 @@ public class JavaGrammar {
 }
 
 public static class DafnyGrammarExtensions {
-  public static Grammar<T> SetRange<T>(this Grammar<T> grammar, Uri uri) 
+  public static Grammar<T> FinishRangeNode<T>(this Grammar<T> grammar, Uri uri) 
     where T : RangeNode {
     return grammar.SetRange((v, r) => v.RangeToken = Convert(r, uri));
   }
   
-  public static Grammar<T> SetRange2<T>(this Grammar<T> grammar, Uri uri) 
+  public static Grammar<T> FinishTokenNode<T>(this Grammar<T> grammar, Uri uri) 
     where T : TokenNode {
-    return grammar.SetRange((v, r) => v.RangeToken = Convert(r, uri));
+    return grammar.SetRange((v, r) => {
+      v.RangeToken = Convert(r, uri);
+      v.tok = ConvertToken(r, uri);
+    });
   }
   
   public static IToken ConvertValue(IPosition position, string value, Uri uri) {
