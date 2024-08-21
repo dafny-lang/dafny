@@ -41,6 +41,21 @@ public record PrintResult(Document? Success, Failure? LongestFailure) {
   public PrintResult Continue(Func<Document, Document> f) {
     return new PrintResult(Success == null ? null : f(Success), LongestFailure == null ? null : LongestFailure with { SoFar = f(LongestFailure.SoFar) });
   }
+
+  public PrintResult WithFailure(Failure? failure, bool priority) {
+    if (failure == null) {
+      return this;
+    }
+    
+    if (Success != null) {
+      // TODO we have a curious situation with "true" -> Constant(true) leading to a longer SoFar than a success
+      if (Success.Size >= failure.SoFar.Size) {
+        return this;
+      }
+    }
+
+    return this with { LongestFailure = priority ? Failure.Max(failure, LongestFailure) : Failure.Max(LongestFailure, failure) };
+  }
 }
 
 public interface Printer<in T> : Printer {
@@ -73,12 +88,11 @@ class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T> {
   public PrintResult Print(T value) {
     var firstResult = First.Print(value);
     var secondResult = Second.Print(value);
-    var longest = Failure.Max(firstResult.LongestFailure, secondResult.LongestFailure);
     if (firstResult.Success == null) {
-      return secondResult with { LongestFailure = longest };
+      return secondResult.WithFailure(firstResult.LongestFailure, true);
     }
 
-    return firstResult with { LongestFailure = longest };
+    return firstResult.WithFailure(secondResult.LongestFailure, false);
   }
 }
 
@@ -139,6 +153,10 @@ class OptionMapW<T, U>(Printer<T> printer, Func<U, MapResult<T>> map) : Printer<
     if (newValue is MapSuccess<T> success) {
       return printer.Print(success.Value);
     }
+
+    if (value?.ToString() == "i := i + 1;") {
+      var e = 3;
+    }
     return new PrintResult(value, this, "OptionMap failure");
   }
 }
@@ -196,7 +214,7 @@ class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> seco
 
     var secondResult = second.Print(secondValue);
     var printResult = secondResult.Continue(s => firstDoc.Success.Then(s, separator));
-    return printResult with { LongestFailure = Failure.Max(printResult.LongestFailure, firstDoc.LongestFailure )};
+    return printResult.WithFailure(firstDoc.LongestFailure, false);
   }
 }
 
@@ -220,6 +238,7 @@ class SkipRightW<T>(Printer<T> first, VoidPrinter second, Separator separator) :
     if (firstValue.Success == null) {
       return firstValue;
     }
+    // TODO maybe we should not copy the firstValue to the LongestFailure here, because in a way it failed as well.
     return firstValue.Continue(f => f.Then(second.Print(), separator));
   }
 }

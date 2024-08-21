@@ -34,6 +34,7 @@ public interface Document {
 }
 
 record Verbatim(string Value) : Document {
+  
   public void Render(int desiredWidth, IndentationWriter writer) {
     writer.Write(Value);
   }
@@ -43,6 +44,10 @@ record Verbatim(string Value) : Document {
 }
 
 record IndentD(Document Inner, int Amount) : Document {
+  public override string ToString() {
+    return ((Document)this).RenderAsString();
+  }
+  
   public void Render(int desiredWidth, IndentationWriter writer) {
     writer.Indent();
     Inner.Render(desiredWidth, writer);
@@ -105,6 +110,10 @@ public class IndentationWriter(TextWriter writer, int spacesPerTick) {
 }
 
 record SequenceD(Document Left, Document Right, Separator Separator) : Document {
+  public override string ToString() {
+    return ((Document)this).RenderAsString();
+  }
+
   public void Render(int desiredWidth, IndentationWriter writer) {
     Left.Render(desiredWidth, writer);
     if (Separator == Separator.Nothing) {

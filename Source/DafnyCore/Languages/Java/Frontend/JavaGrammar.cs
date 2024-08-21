@@ -384,9 +384,9 @@ public class JavaGrammar {
       p => p.E);
 
     // TODO fix position
-    var truee = Keyword("true").Then(Constant(Expression.CreateBoolLiteral(Token.Parsing, true)));
+    var truee = Constant(Expression.CreateBoolLiteral(Token.Parsing, true)).Then("true");
     // TODO fix position
-    var falsee = Keyword("false").Then(Constant(Expression.CreateBoolLiteral(Token.Parsing, false)));
+    var falsee = Constant(Expression.CreateBoolLiteral(Token.Parsing, false)).Then("false");
     
     Grammar<Expression> code = Fail<Expression>("an expression").
       OrCast(variableRef).OrCast(number).OrCast(lambda).OrCast(charLiteral).OrCast(truee).OrCast(falsee).
@@ -398,9 +398,9 @@ public class JavaGrammar {
     // unary ++expr --expr +expr -expr ~ !
     var unary = Recursive<Expression>(unarySelf => {
       var unicodeOpcode =
-        Keyword("!").Then(Constant(UnaryOpExpr.Opcode.Not), Separator.Nothing);
+        Constant(UnaryOpExpr.Opcode.Not).Then("!");
       var prefixUnary = unicodeOpcode.Assign(() => new UnaryOpExpr(), b => b.Op).
-        Then(unarySelf, u => u.E);
+        Then(unarySelf, u => u.E, Separator.Nothing);
 
       return code.OrCast(prefixUnary);
     }, "unary");
@@ -415,16 +415,16 @@ public class JavaGrammar {
     
     // multiplicative * / %
     var multiplicative = Recursive<Expression>(multiplicativeSelf => {
-      var opCodes = Keyword("*").Then(Constant(BinaryExpr.Opcode.Mul)).Or(
-        Keyword("/").Then(Constant(BinaryExpr.Opcode.Div))).Or(
-        Keyword("%").Then(Constant(BinaryExpr.Opcode.Mod)));
+      var opCodes = Constant(BinaryExpr.Opcode.Mul).Then("*").Or(
+        Constant(BinaryExpr.Opcode.Div).Then("/")).Or(
+        Constant(BinaryExpr.Opcode.Mod).Then("%"));
       return downcast.OrCast(CreateBinary(multiplicativeSelf,  downcast, opCodes, true));
     }, "multiplicative");
 
     // additive + -
     var additive = Recursive<Expression>(additiveSelf => {
-      var opCodes = Keyword("-").Then(Constant(BinaryExpr.Opcode.Sub)).Or(
-        Keyword("+").Then(Constant(BinaryExpr.Opcode.Add)));
+      var opCodes = Constant(BinaryExpr.Opcode.Sub).Then("-").Or(
+        Constant(BinaryExpr.Opcode.Add).Then("+"));
       return multiplicative.OrCast(CreateBinary(additiveSelf, multiplicative, opCodes, true));
     }, "additive");
       
@@ -433,15 +433,15 @@ public class JavaGrammar {
     
     // relational	< > <= >= instanceof
     var relational = Recursive<Expression>(relationalSelf => {
-      var opCodes = Keyword("<=").Then(Constant(BinaryExpr.Opcode.Le)).Or(
-        Keyword("<").Then(Constant(BinaryExpr.Opcode.Lt)));
+      var opCodes = Constant(BinaryExpr.Opcode.Le).Then("<=").Or(
+        Constant(BinaryExpr.Opcode.Lt).Then("<"));
       return shift.OrCast(CreateBinary(relationalSelf, shift, opCodes, true));
     }, "relational");
     
     // equality	== !=
     var equality = Recursive<Expression>(equalitySelf => {
-      var opCodes = Keyword("==").Then(Constant(BinaryExpr.Opcode.Eq)).Or(
-        Keyword("!=").Then(Constant(BinaryExpr.Opcode.Neq)));
+      var opCodes = Constant(BinaryExpr.Opcode.Eq).Then("==").Or(
+        Constant(BinaryExpr.Opcode.Neq).Then("!="));
       return relational.OrCast(CreateBinary(equalitySelf, relational, opCodes, true));
     }, "equality");
     
@@ -455,18 +455,18 @@ public class JavaGrammar {
     var bitwiseInclusiveOr = bitwiseExclusiveOr;
     
     var logicalAnd = Recursive<Expression>(logicalAndSelf => {
-      var opCodes = Keyword("&&").Then(Constant(BinaryExpr.Opcode.And));
+      var opCodes = Constant(BinaryExpr.Opcode.And).Then("&&");
       return bitwiseInclusiveOr.OrCast(CreateBinary(logicalAndSelf,  bitwiseInclusiveOr, opCodes));
     }, "logicalAnd");
     
     var logicalOr = Recursive<Expression>(logicalAndSelf => {
-      var opCodes = Keyword("||").Then(Constant(BinaryExpr.Opcode.Or));
+      var opCodes = Constant(BinaryExpr.Opcode.Or).Then("||");
       return logicalAnd.OrCast(CreateBinary(logicalAndSelf, logicalAnd, opCodes));
     }, "logicalOr");
     
     // TODO consider not adding ==>
     var implies = Recursive<Expression>(impliesSelf => {
-      var opCodes = Keyword("==>").Then(Constant(BinaryExpr.Opcode.Imp));
+      var opCodes = Constant(BinaryExpr.Opcode.Imp).Then("==>");
       return logicalOr.OrCast(CreateBinary(impliesSelf, logicalOr, opCodes));
     }, "implies");
 

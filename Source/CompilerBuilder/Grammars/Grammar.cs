@@ -304,13 +304,15 @@ public static class GrammarExtensions {
 
   private static Grammar<SinglyLinkedList<T>> ManyLinkedList<T>(Grammar<T> one, Separator separator, string debugString)
   {
-    return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
-      new ValueG<SinglyLinkedList<T>>(new Nil<T>(), ll => !ll.Any()).Or(one.Then(self, 
-        (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
-        l => l.Fold(
-          (head, tail) => (head, tail), 
-          () => ((T,SinglyLinkedList<T>)?)null), separator)),
-      debugString);
+    return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => {
+        var nil = new ValueG<SinglyLinkedList<T>>(new Nil<T>(), ll => !ll.Any());
+        var cons = one.Then(self,
+          (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
+          l => l.Fold(
+            (head, tail) => (head, tail),
+            () => ((T, SinglyLinkedList<T>)?)null), separator);
+        return cons.Or(nil);
+      }, debugString);
   }
 
   public static Grammar<T> Where<T>(this Grammar<T> grammar, Func<T, bool> filter) {
