@@ -13,36 +13,46 @@ class EmptyResult<T> : ParseResult<T> {
   public IEnumerable<IFoundRecursion<T>> Recursions => [];
 }
 
-/// <summary>
-/// It grows the seed result by building a "ParseResult<T> -> ParseResult<T>"
-///
-/// Alternatively, we could try to transform the grammar to get a separate base and grow grammar,
-/// which would avoid hitting 'recursive calls' while determining the base
-///
-/// However, transforming the grammar is difficult, partly due to empty parts
-/// The only way to do it is the gather all the paths in the grammar
-/// And then separate the left recursive ones from the others
-/// expr = (empty | 'a') (expr | 'b') 'c'
-/// path1 = expr 'c'
-/// path2 = 'bc'
-/// path3 = 'a' expr 'c'
-/// path4 = 'abc'
-/// base = 'bc' | 'a' expr 'c' | 'abc'
-/// grow = grow 'c'
-/// </summary>
 class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   private readonly string debugName = debugName;
   private Parser<T>? inner;
 
   public Parser<T> Inner => inner ??= get();
   
+  /// <summary>
+  /// It grows the seed result by building a "ParseResult<T> -> ParseResult<T>" using a 'IFoundRecursion<T>'
+  ///
+  /// Alternatively, we could try to transform the grammar to get a separate base and grow grammar,
+  /// which would avoid hitting 'recursive calls' while determining the base
+  ///
+  /// However, transforming the grammar is difficult, partly due to empty parts
+  /// The only way to do it is the gather all the paths in the grammar
+  /// And then separate the left recursive ones from the others
+  /// expr = (empty | 'a') (expr | 'b') 'c'
+  /// path1 = expr 'c'
+  /// path2 = 'bc'
+  /// path3 = 'a' expr 'c'
+  /// path4 = 'abc'
+  /// base = 'bc' | 'a' expr 'c' | 'abc'
+  /// grow = grow 'c'
+  /// </summary>
+  private IFoundRecursion<T>? leftRecursion;
+  private bool checkedLeftRecursion;
   enum RecursionState { FindingLeftRecursions, Parsing }
   private readonly ThreadLocal<RecursionState> findingRecursionState = new(() => RecursionState.Parsing);
+  
+  /// <summary>
+  /// Alternatively we could store the 'entered' state either in the ITextPointer, so we would store which parsers
+  /// we've entered instead of which offsets.
+  ///
+  /// Or we could pass this enteredParsers set down through the calls to 'Parse'
+  /// However, I didn't want to let recursion effect either ITextPointer or the interface of Parse.
+  /// If we had access to the call-stack, we would inspect it instead of using this field.
+  /// 
+  /// I'm hoping that when we move to a stackless system, we'll have access to the 'stack',
+  /// and then we no longer need this field.
+  /// </summary>
   private readonly ThreadLocal<SinglyLinkedList<int>> enteredStack = new(() => new Nil<int>());
-
-  private bool checkedLeftRecursion;
-  private IFoundRecursion<T>? leftRecursion;
-  private static readonly ITextPointer deadPointer = new PointerFromString("");
   
   public override ParseResult<T> Parse(ITextPointer text) {
     
@@ -53,7 +63,7 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
     
     if (!checkedLeftRecursion) {
       findingRecursionState.Value = RecursionState.FindingLeftRecursions;
-      leftRecursion = Inner.Parse(deadPointer) as IFoundRecursion<T>;
+      leftRecursion = Inner.Parse(PointerFromString.DeadPointer) as IFoundRecursion<T>;
       findingRecursionState.Value = RecursionState.Parsing;
       checkedLeftRecursion = true;
     }
