@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --type-system-refresh --general-newtypes
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --type-system-refresh=true --general-newtypes=true
 
 method Main() {
   Numerics.Test();
