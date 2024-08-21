@@ -178,7 +178,7 @@ namespace Microsoft.Dafny {
                 ident.PreType = Type2PreType(ident.Var.Type);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.tok), f.Name);
+                var yieldIdent = new ExprDotName(f.tok, new ImplicitThisExpr(f.tok), f.Name, null);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
