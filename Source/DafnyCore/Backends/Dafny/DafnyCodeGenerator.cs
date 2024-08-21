@@ -51,7 +51,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetCompileNameNotProtected(IVariable v) {
-      return preventShadowing ? v.CompileName : v.SanitizedNameShadowable;
+      return preventShadowing ? v.GetOrCreateCompileName(currentIdGenerator) : v.CompileNameShadowable;
     }
 
     public void AddUnsupported(string why) {
@@ -319,7 +319,7 @@ namespace Microsoft.Dafny.Compilers {
           constraint = (Option<DAST.NewtypeConstraint>)Option<DAST.NewtypeConstraint>.create_Some(
             (DAST.NewtypeConstraint)DAST.NewtypeConstraint.create_NewtypeConstraint(
               (DAST.Formal)DAST.Formal.create_Formal(
-                Sequence<Rune>.UnicodeFromString(IdProtect(sourceFormal.SanitizedNameShadowable)), GenType(type), ParseAttributes(null)),
+                Sequence<Rune>.UnicodeFromString(IdProtect(sourceFormal.CompileNameShadowable)), GenType(type), ParseAttributes(null)),
               Sequence<DAST.Statement>.FromArray(statementBuffer.PopAll().ToArray())));
         } else {
           constraint = (Option<DAST.NewtypeConstraint>)Option<DAST.NewtypeConstraint>.create_None();
@@ -495,7 +495,7 @@ namespace Microsoft.Dafny.Compilers {
         List<DAST.Type> outTypes = new();
         foreach (var outVar in m.Outs) {
           if (!outVar.IsGhost) {
-            outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.CompileName)));
+            outVars.Add(Sequence<Rune>.UnicodeFromString(compiler.IdProtect(outVar.GetOrCreateCompileName(m.CodeGenIdGenerator))));
             outTypes.Add(compiler.GenType(outVar.Type));
           }
         }
@@ -814,7 +814,7 @@ namespace Microsoft.Dafny.Compilers {
         ? (Option<DAST.Type>)Option<DAST.Type>.create_Some(GenType(replacementReceiver.Type))
         : (Option<DAST.Type>)Option<DAST.Type>.create_None();
       if (receiverBeforeName) {
-        var name = replacementReceiver is IdentifierExpr { Var: { CompileName: var compileName } }
+        var name = replacementReceiver is IdentifierExpr { Var: { } variable } && variable.GetOrCreateCompileName(enclosingDeclaration.CodeGenIdGenerator) is var compileName
           ? compileName
           : "receiver";
         receiverArg = (Option<_IFormal>)Option<DAST._IFormal>.create_Some(
@@ -1199,7 +1199,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var statementContainer)) {
-        var indexName = loopIndex.SanitizedNameShadowable;
+        var indexName = loopIndex.CompileNameShadowable;
         ForeachBuilder foreachBuilder = statementContainer.Builder.Foreach(
           indexName, GenType(loopIndex.Type));
         if (endVarName == null) {
@@ -2180,7 +2180,7 @@ namespace Microsoft.Dafny.Compilers {
               int.Parse(dtor.NameForCompilation), GenType(dtor.Type)
             ));
           } else {
-            var compileName = GetExtractOverrideName(dtor.Attributes, dtor.CompileName);
+            var compileName = GetExtractOverrideName(dtor.Attributes, dtor.GetOrCreateCompileName(currentIdGenerator));
             builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_Select(
               sourceAST,
               Sequence<Rune>.UnicodeFromString(compileName),

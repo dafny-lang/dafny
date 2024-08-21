@@ -1650,8 +1650,8 @@ impl<V: DafnyTypeEq> PartialOrd<Multiset<V>> for Multiset<V> {
     fn partial_cmp(&self, other: &Multiset<V>) -> Option<Ordering> {
         match self.cardinality().cmp(&other.cardinality()) {
             Ordering::Less => {
-                for value in other.data.keys() {
-                    if !self.contains(value) || self.get(value) > other.get(value) {
+                for value in self.data.keys() {
+                    if !other.contains(value) || self.get(value) > other.get(value) {
                         return None;
                     }
                 }
@@ -1666,8 +1666,8 @@ impl<V: DafnyTypeEq> PartialOrd<Multiset<V>> for Multiset<V> {
                 Some(Ordering::Equal)
             }
             Ordering::Greater => {
-                for value in self.data.keys() {
-                    if !other.contains(value) || self.get(value) < other.get(value) {
+                for value in other.data.keys() {
+                    if !self.contains(value) || self.get(value) < other.get(value) {
                         return None;
                     }
                 }

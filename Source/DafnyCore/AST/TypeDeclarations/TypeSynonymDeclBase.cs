@@ -73,7 +73,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
   SubsetTypeDecl.WKind RedirectingTypeDecl.WitnessKind { get { return SubsetTypeDecl.WKind.CompiledZero; } }
   Expression RedirectingTypeDecl.Witness { get { return null; } }
-  FreshIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
+  VerificationIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
   bool ICodeContext.IsGhost {
     get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
@@ -83,6 +83,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
   string ICallable.NameRelativeToModule { get { return Name; } }
   Specification<Expression> ICallable.Decreases {
     get {

@@ -315,4 +315,6 @@ record VerificationStatistics {
   public int OutOfResourceCount;
   public int OutOfMemoryCount;
   public int SolverExceptionCount;
+  public int TotalResourcesUsed;
+  public int MaxVcResourcesUsed;
 }
