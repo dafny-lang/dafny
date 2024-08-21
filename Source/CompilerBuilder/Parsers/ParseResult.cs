@@ -20,53 +20,52 @@ public interface ParseResult<T> : ParseResult {
   
   public FailureResult<T>? Failure { get; }
   
+  internal IFoundRecursion<T>? FoundRecursion { get; }
+
+  R? Combine<R>(R? left, R? right, Func<R, R, R> combine) {
+    if (left == null) {
+      return right;
+    }
+
+    if (right == null) {
+      return left;
+    }
+
+    return combine(left, right);
+  }
   internal ParseResult<T> Combine(ParseResult<T> other) {
     if (this is IFoundRecursion<T> fr && other is IFoundRecursion<T> or) {
       return new FoundRecursion<T, T>(s => fr.Apply(s.Value, s.Remainder).Combine(
         or.Apply(s.Value, s.Remainder)));
     }
 
-    if (this is IFoundRecursion<T>) {
-      return this;
-    }
+    var recursion = Combine(FoundRecursion, other.FoundRecursion, (l, r) => {
+      return new FoundRecursion<T, T>(s => l.Apply(s.Value, s.Remainder).Combine(
+        r.Apply(s.Value, s.Remainder)));
+    });
 
-    if (other is IFoundRecursion<T>) {
-      return other;
-    }
-    
-    return CombineParsingResults(other);
-  }
+    var concreteSuccess = Combine(Success, other.Success, (l,r) => 
+      l.Remainder.Offset >= r.Remainder.Offset ? l : r);
 
-  private ParseResult<T> CombineParsingResults(ParseResult<T> other)
-  {
-    ConcreteSuccess<T>? concreteSuccess = null;
-    if (Success != null && other.Success != null) {
-      concreteSuccess = Success.Remainder.Offset > other.Success.Remainder.Offset ? Success : other.Success;
-    }
+    var failure = Combine(Failure, other.Failure, (l,r) => 
+      l.Location.Offset >= r.Location.Offset ? l : r);
 
-    concreteSuccess ??= Success ?? other.Success;
-
-    FailureResult<T>? failure = null;
-    if (Failure != null && other.Failure != null) {
-      failure = Failure.Location.Offset >= other.Failure.Location.Offset ? Failure : other.Failure;
-    }
-
-    failure ??= Failure ?? other.Failure;
     if (concreteSuccess != null && failure != null && failure.Location.Offset <= concreteSuccess.Remainder.Offset) {
       // TODO consider keeping the failure if it's at the same offset, because it might have been how you wanted to continue
       failure = null;
     }
 
-    return new Aggregate<T>(concreteSuccess, failure);
+    return new Aggregate<T>(concreteSuccess, failure, recursion);
   }
 }
 
 public interface ConcreteResult<T> : ParseResult<T>;
 
-internal record Aggregate<T>(ConcreteSuccess<T>? Success, FailureResult<T>? Failure) : ParseResult<T> {
+internal record Aggregate<T>(ConcreteSuccess<T>? Success, FailureResult<T>? Failure, IFoundRecursion<T>? FoundRecursion) : ParseResult<T> {
   public ParseResult<U> Continue<U>(Func<ConcreteSuccess<T>, ParseResult<U>> f) {;
     var newFailure = Failure == null ? null : new FailureResult<U>(Failure.Message, Failure.Location);
-    var noConcrete = new Aggregate<U>(null, newFailure);
+    var newRecursion = (IFoundRecursion<U>?)FoundRecursion?.Continue(f);
+    var noConcrete = new Aggregate<U>(null, newFailure, newRecursion);
     if (Success != null) {
       var concreteResult = Success.Continue(f);
       return concreteResult.Combine(noConcrete);
@@ -84,6 +83,7 @@ public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResu
 
   public ConcreteSuccess<T>? Success => this;
   public FailureResult<T>? Failure => null;
+  IFoundRecursion<T>? ParseResult<T>.FoundRecursion => null;
 }
 
 interface IFoundRecursion<T> : ParseResult<T> {
@@ -108,6 +108,7 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
 
   public ConcreteSuccess<TB>? Success => null;
   public FailureResult<TB>? Failure => null;
+  IFoundRecursion<TB>? ParseResult<TB>.FoundRecursion => this;
   public IEnumerable<IFoundRecursion<TB>> Recursions => new IFoundRecursion<TB>[]{ this };
 
   public ParseResult<TB> Apply(object value, ITextPointer remainder) {
@@ -131,6 +132,7 @@ public record FailureResult<T> : ConcreteResult<T> {
 
   public ConcreteSuccess<T>? Success => null;
   public FailureResult<T> Failure => this;
+  IFoundRecursion<T>? ParseResult<T>.FoundRecursion => null;
   public string Message { get; init; }
   public ITextPointer Location { get; init; }
 

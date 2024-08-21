@@ -9,20 +9,30 @@ class EmptyResult<T> : ParseResult<T> {
 
   public ConcreteSuccess<T>? Success => null;
   public FailureResult<T>? Failure => null;
+  public IFoundRecursion<T>? FoundRecursion => null;
   public IEnumerable<IFoundRecursion<T>> Recursions => [];
 }
 
+/// <summary>
+/// It grows the seed result by building a "ParseResult<T> -> ParseResult<T>"
+///
+/// Alternatively, we could try to transform the grammar to get a separate base and grow grammar,
+/// which would avoid hitting 'recursive calls' while determining the base
+///
+/// However, transforming the grammar is difficult, partly due to empty parts
+/// The only way to do it is the gather all the paths in the grammar
+/// And then separate the left recursive ones from the others
+/// expr = (empty | 'a') (expr | 'b') 'c'
+/// path1 = expr 'c'
+/// path2 = 'bc'
+/// path3 = 'a' expr 'c'
+/// path4 = 'abc'
+/// base = 'bc' | 'a' expr 'c' | 'abc'
+/// grow = grow 'c'
+/// </summary>
 class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   private readonly string debugName = debugName;
   private Parser<T>? inner;
-  
-  /*
-   * TODO
-   * The FoundRecursion results are always the same, regardless of the text pointer, right???
-   * Maybe find them statically, once
-   * And later do not return results for FoundRecursion
-   * Maybe cache that part and don't return them the second time.
-   */
 
   public Parser<T> Inner => inner ??= get();
   
