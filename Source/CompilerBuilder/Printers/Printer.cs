@@ -9,25 +9,37 @@ record IndentW<T>(Printer<T> Inner, int Amount) : Printer<T> {
   }
 }
 
-public record PrintResult(Document? Success, Document LongestResult) {
+public record Failure(object? Value, Printer Printer, Document SoFar, string Message) {
+  public static Failure? Max(Failure? first, Failure? second) {
+    if (first == null) {
+      return second;
+    }
+
+    if (second == null) {
+      return first;
+    }
+    return first.SoFar.Size >= second.SoFar.Size ? first : second;
+  }
+}
+
+public record PrintResult(Document? Success, Failure? LongestFailure) {
 
   public Document ForceSuccess {
     get {
       if (Success == null) {
-        throw new Exception($"Printing failed. Longest print was {LongestResult.RenderAsString()}");
+        var soFarString = LongestFailure!.SoFar.RenderAsString();
+        throw new Exception($"Printing failed with message {LongestFailure!.Message}. Longest print was:\n{soFarString}");
       }
 
       return Success;
     }
   }
-  public PrintResult() : this(null, Empty.Instance) { }
+  public PrintResult(object? value, Printer printer, string message) : this(null, new Failure(value, printer, Empty.Instance, message)) { }
   
-  public PrintResult(Document Success) : this(Success, Success) {
-    
-  }
+  public PrintResult(Document Success) : this(Success, null) { }
 
   public PrintResult Continue(Func<Document, Document> f) {
-    return new PrintResult(Success == null ? null : f(Success), f(LongestResult));
+    return new PrintResult(Success == null ? null : f(Success), LongestFailure == null ? null : LongestFailure with { SoFar = f(LongestFailure.SoFar) });
   }
 }
 
@@ -36,9 +48,11 @@ public interface Printer<in T> : Printer {
   public PrintResult Print(T value);
 }
 
-class FailW<T> : Printer<T> {
+class FailW<T>(string message) : Printer<T> {
+  public string Message => message;
+  
   public PrintResult Print(T value) {
-    return new PrintResult();
+    return new PrintResult(value, this, message);
   }
 }
 
@@ -59,14 +73,12 @@ class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T> {
   public PrintResult Print(T value) {
     var firstResult = First.Print(value);
     var secondResult = Second.Print(value);
-    var longest = firstResult.LongestResult.Size >= secondResult.LongestResult.Size
-      ? firstResult.LongestResult
-      : secondResult.LongestResult;
+    var longest = Failure.Max(firstResult.LongestFailure, secondResult.LongestFailure);
     if (firstResult.Success == null) {
-      return secondResult with { LongestResult = longest };
+      return secondResult with { LongestFailure = longest };
     }
 
-    return secondResult with { LongestResult = longest };
+    return firstResult with { LongestFailure = longest };
   }
 }
 
@@ -76,7 +88,7 @@ class Cast<T, U>(Printer<T> printer) : Printer<U> {
       return printer.Print(t);
     }
 
-    return new PrintResult();
+    return new PrintResult(value, this, $"Value {value + ""} was not of type {typeof(T)}");
   }
 }
 
@@ -119,12 +131,15 @@ class MapW<T, U>(Printer<T> printer, Func<U, T> map) : Printer<U> {
 }
 
 class OptionMapW<T, U>(Printer<T> printer, Func<U, MapResult<T>> map) : Printer<U> {
+
+  public Printer<T> Printer => printer;
+  
   public PrintResult Print(U value) {
     var newValue = map(value);
     if (newValue is MapSuccess<T> success) {
       return printer.Print(success.Value);
     }
-    return new PrintResult();
+    return new PrintResult(value, this, "OptionMap failure");
   }
 }
 
@@ -137,7 +152,7 @@ class ValueW<T>(Func<T, bool> check, VoidPrinter printer) : Printer<T> {
       return new PrintResult(printer.Print());
     }
 
-    return new PrintResult();
+    return new PrintResult(value, this, "ValueW check failure");
   }
 }
 
@@ -170,7 +185,7 @@ class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> seco
   public PrintResult Print(T value) {
     var t = destruct(value);
     if (t == null) {
-      return new PrintResult();
+      return new PrintResult(value, this, "sequence destruct failure");
     }
 
     var (firstValue, secondValue) = t.Value;
@@ -180,7 +195,8 @@ class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> seco
     }
 
     var secondResult = second.Print(secondValue);
-    return secondResult.Continue(s => firstDoc.Success.Then(s, separator));
+    var printResult = secondResult.Continue(s => firstDoc.Success.Then(s, separator));
+    return printResult with { LongestFailure = Failure.Max(printResult.LongestFailure, firstDoc.LongestFailure )};
   }
 }
 
@@ -201,6 +217,9 @@ class SkipRightW<T>(Printer<T> first, VoidPrinter second, Separator separator) :
   
   public PrintResult Print(T value) {
     var firstValue = first.Print(value);
+    if (firstValue.Success == null) {
+      return firstValue;
+    }
     return firstValue.Continue(f => f.Then(second.Print(), separator));
   }
 }

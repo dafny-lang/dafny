@@ -161,8 +161,9 @@ class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
   public Grammar<T> Second { get; set; } = second;
 
   internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
+    return new ChoiceW<T>((Printer<T>)recurse(First), (Printer<T>)recurse(Second));
     // Reverse order, on purpose. Needs testing.
-    return new ChoiceW<T>((Printer<T>)recurse(Second), (Printer<T>)recurse(First));
+    // return new ChoiceW<T>((Printer<T>)recurse(Second), (Printer<T>)recurse(First));
   }
 
   internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
@@ -187,6 +188,8 @@ class Constructor<T>(Func<T> construct) : Grammar<T> {
 }
 
 class ValueG<T>(T value, Func<T, bool>? isExpected = null) : Grammar<T> {
+  public T Value => value;
+  
   internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
     return new ValueW<T>(isExpected ?? (t => Equals(value, t)), EmptyW.Instance);
   }
@@ -290,7 +293,7 @@ public static class GrammarExtensions {
       ManyLinkedList(separator.Then(inner, afterSep), beforeSep, "separated"),
       (e, l) => new Cons<T>(e, l), 
       l => l.Fold((head, tail) => (head, tail), () => ((T, SinglyLinkedList<T>)?)null), beforeSep);
-    var someOrNone = some.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
+    var someOrNone = some.Or(new ValueG<SinglyLinkedList<T>>(new Nil<T>(), ll => ll.Any()));
     return someOrNone.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
   
@@ -302,7 +305,7 @@ public static class GrammarExtensions {
   private static Grammar<SinglyLinkedList<T>> ManyLinkedList<T>(Grammar<T> one, Separator separator, string debugString)
   {
     return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
-      new ValueG<SinglyLinkedList<T>>(new Nil<T>(), l => !l.Any()).Or(one.Then(self, 
+      new ValueG<SinglyLinkedList<T>>(new Nil<T>(), ll => !ll.Any()).Or(one.Then(self, 
         (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
         l => l.Fold(
           (head, tail) => (head, tail), 
@@ -457,7 +460,7 @@ public record MapFail<T>() : MapResult<T>;
 
 class Fail<T>(string expectation) : Grammar<T> {
   internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
-    return new FailW<T>();
+    return new FailW<T>(expectation);
   }
 
   internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
