@@ -1,7 +1,7 @@
 indices-in-domain.dfy(5,14): Error: all array indices must be in the domain of the initialization function
- Asserted expression: forall i0: int | 0 <= i0 < 1 :: ((i: nat) requires i > 0 => 1).requires(i0)
+ Asserted expression: forall i0: int | 0 <= i0 < 1 :: ((i: int) requires i > 0 => 1).requires(i0)
 indices-in-domain.dfy(6,14): Error: all array indices must be in the domain of the initialization function
- Asserted expression: forall i0: int, i1: int | (0 <= i0 < 1) && (0 <= i1 < 1) :: ((i: nat, j: int) requires i > 0 && j < 0 => 1).requires(i0, i1)
+ Asserted expression: forall i0: int, i1: int | (0 <= i0 < 1) && (0 <= i1 < 1) :: ((i: int, j: int) requires i > 0 && j < 0 => 1).requires(i0, i1)
 indices-in-domain.dfy(7,13): Error: all sequence indices must be in the domain of the initialization function
  Asserted expression: forall i0: int | 0 <= i0 < 1 :: ((i: int) requires i > 0 => 1).requires(i0)
 
