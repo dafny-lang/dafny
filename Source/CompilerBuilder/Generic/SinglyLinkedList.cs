@@ -34,9 +34,7 @@ public abstract record SinglyLinkedList<T> : IEnumerable<T> {
     return GetEnumerator();
   }
 
-  public bool Any() {
-    return this is not Nil<T>;
-  }
+  public abstract bool Any();
 
   public (T, SinglyLinkedList<T>)? ToNullable() {
     return Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null);
@@ -68,6 +66,9 @@ public static class LinkedLists {
 
 
 public record Cons<T>(T Head, SinglyLinkedList<T> Tail) : SinglyLinkedList<T> {
+  public override bool Any() {
+    return true;
+  }
 
   public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
     return cons(Head, Tail);
@@ -75,6 +76,9 @@ public record Cons<T>(T Head, SinglyLinkedList<T> Tail) : SinglyLinkedList<T> {
 }
 
 public record Nil<T> : SinglyLinkedList<T> {
+  public override bool Any() {
+    return false;
+  }
 
   public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
     return nil();
@@ -82,7 +86,10 @@ public record Nil<T> : SinglyLinkedList<T> {
 }
 
 record LinkedListFromList<T>(IReadOnlyList<T> Source, int Offset = 0) : SinglyLinkedList<T> {
-  
+  public override bool Any() {
+    return Source.Count > Offset;
+  }
+
   public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
     if (Source.Count > Offset) {
       return cons(Source[Offset], new LinkedListFromList<T>(Source, Offset + 1));

@@ -186,9 +186,9 @@ class Constructor<T>(Func<T> construct) : Grammar<T> {
   public override IEnumerable<Grammar> Children => [];
 }
 
-class Value<T>(T value) : Grammar<T> {
+class ValueG<T>(T value, Func<T, bool>? isExpected = null) : Grammar<T> {
   internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
-    return new ValueW<T>(value, EmptyW.Instance);
+    return new ValueW<T>(isExpected ?? (t => Equals(value, t)), EmptyW.Instance);
   }
 
   internal override Parser<T> ToParser(Func<Grammar, Parser> recurse) {
@@ -302,12 +302,11 @@ public static class GrammarExtensions {
   private static Grammar<SinglyLinkedList<T>> ManyLinkedList<T>(Grammar<T> one, Separator separator, string debugString)
   {
     return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
-      GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()).Or(one.Then(self, 
-        
+      new ValueG<SinglyLinkedList<T>>(new Nil<T>(), l => !l.Any()).Or(one.Then(self, 
         (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
-        // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing
-        // ReSharper disable once PossibleMultipleEnumeration
-        l => l.Fold((head, tail) => (head, tail), () => ((T,SinglyLinkedList<T>)?)null), separator)),
+        l => l.Fold(
+          (head, tail) => (head, tail), 
+          () => ((T,SinglyLinkedList<T>)?)null), separator)),
       debugString);
   }
 
@@ -492,7 +491,7 @@ public static class GrammarBuilder {
   }
   
   public static Grammar<T> Constructor<T>() where T : new() => new Constructor<T>(() => new T());
-  public static Grammar<T> Constant<T>(T value) => new Value<T>(value);
+  public static Grammar<T> Constant<T>(T value) => new ValueG<T>(value);
   public static VoidGrammar Keyword(string keyword) => new TextG(keyword);
   public static Grammar<bool> Modifier(string keyword) => new TextG(keyword).Then(Constant(true)).Or(Constant(false));
   

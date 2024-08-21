@@ -52,21 +52,21 @@ class RecursiveW<T>(Func<Printer<T>> get) : Printer<T> {
 }
 
 class ChoiceW<T>(Printer<T> first, Printer<T> second): Printer<T> {
+
+  public Printer<T> First => first;
+  public Printer<T> Second => second;
+  
   public PrintResult Print(T value) {
-    var firstResult = first.Print(value);
+    var firstResult = First.Print(value);
+    var secondResult = Second.Print(value);
+    var longest = firstResult.LongestResult.Size >= secondResult.LongestResult.Size
+      ? firstResult.LongestResult
+      : secondResult.LongestResult;
     if (firstResult.Success == null) {
-      var secondResult = second.Print(value);
-      var longest = firstResult.LongestResult.Size >= secondResult.LongestResult.Size
-        ? firstResult.LongestResult
-        : secondResult.LongestResult;
       return secondResult with { LongestResult = longest };
     }
 
-    
-    
-
-    // TODO should I always also print the second, to use its LongestResult?
-    return firstResult;
+    return secondResult with { LongestResult = longest };
   }
 }
 
@@ -128,9 +128,12 @@ class OptionMapW<T, U>(Printer<T> printer, Func<U, MapResult<T>> map) : Printer<
   }
 }
 
-class ValueW<T>(T expected, VoidPrinter printer) : Printer<T> {
+class ValueW<T>(Func<T, bool> check, VoidPrinter printer) : Printer<T> {
+
+  public Func<T, bool> Check => check;
+  
   public PrintResult Print(T value) {
-    if (Equals(expected, value)) {
+    if (check(value)) {
       return new PrintResult(printer.Print());
     }
 
@@ -160,6 +163,10 @@ internal class NumberW : Printer<int> {
 
 class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> second, 
   Func<T, (TFirst, TSecond)?> destruct, Separator separator) : Printer<T> {
+  
+  public Printer<TFirst> First => first;
+  public Printer<TSecond> Second => second;
+  
   public PrintResult Print(T value) {
     var t = destruct(value);
     if (t == null) {
@@ -169,18 +176,18 @@ class SequenceW<TFirst, TSecond, T>(Printer<TFirst> first, Printer<TSecond> seco
     var (firstValue, secondValue) = t.Value;
     var firstDoc = first.Print(firstValue);
     if (firstDoc.Success == null) {
-      return new PrintResult();
-    }
-    var secondDoc = second.Print(secondValue);
-    if (secondDoc.Success == null) {
-      return firstDoc with { Success = null };
+      return firstDoc;
     }
 
-    return new PrintResult(firstDoc.Success.Then(secondDoc.Success, separator));
+    var secondResult = second.Print(secondValue);
+    return secondResult.Continue(s => firstDoc.Success.Then(s, separator));
   }
 }
 
 class SkipLeftW<T>(VoidPrinter first, Printer<T> second, Separator separator) : Printer<T> {
+  public VoidPrinter First => first;
+  public Printer<T> Second => second;
+  
   public PrintResult Print(T value) {
     var firstValue = first.Print();
     var secondValue = second.Print(value);
@@ -189,6 +196,9 @@ class SkipLeftW<T>(VoidPrinter first, Printer<T> second, Separator separator) : 
 }
 
 class SkipRightW<T>(Printer<T> first, VoidPrinter second, Separator separator) : Printer<T> {
+  public Printer<T> First => first;
+  public VoidPrinter Second => second;
+  
   public PrintResult Print(T value) {
     var firstValue = first.Print(value);
     return firstValue.Continue(f => f.Then(second.Print(), separator));
