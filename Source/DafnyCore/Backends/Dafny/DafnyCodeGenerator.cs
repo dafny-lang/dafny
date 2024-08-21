@@ -973,10 +973,6 @@ namespace Microsoft.Dafny.Compilers {
         } else {
           var parameters = GenFormals(s.Method.Ins);
           var callBuilder = stmtContainer.Builder.Call(parameters);
-          if (s.Method.IsStatic) {
-            // Need to emit the companion as an expression
-
-          }
           base.TrCallStmt(s, receiverReplacement, new BuilderSyntaxTree<ExprContainer>(callBuilder, this), wrStmts, wrStmtsAfterCall);
         }
       } else {

@@ -35,7 +35,9 @@ module {:extern "DAST"} DAST {
   // Make it a newtype once newtypes are compatible with standard library
   // See issue https://github.com/dafny-lang/dafny/issues/5345
   datatype Name = Name(dafny_name: string)
-  // None would need to be escaped.
+
+  // A special Dafny name wrapper for variable names.
+  // For example, the identifier 'None' needs to be escaped in Rust, but not as a constructor.
   datatype VarName = VarName(dafny_name: string)
 
   datatype Module = Module(name: Name, attributes: seq<Attribute>, requiresExterns: bool, body: Option<seq<ModuleItem>>)

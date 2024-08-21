@@ -37,6 +37,16 @@ public class RustBackend : DafnyExecutableBackend {
     return new RustCodeGenerator(Options);
   }
 
+  // Knowing that the result of the compilation will be placed in a dafnyProgramName.rs,
+  // and that Dafny needs to import all the OtherFileNames into the same folder, but does not really care about their names,
+  // this function returns a mapping from full paths of Rust files to a unique resulting name.
+  //
+  // For example, if OtherFiles == ["C:\Users\myextern.rs", "C:\Users\path\myextern.rs", "C:\Users\nonconflictextern.rs"] and dafnyProgramName == "myextern.dfy", it will create the dictionary
+  // new Dictionary() {
+  // { "C:\Users\myextern.rs", "myextern_1.rs" },
+  // { "C:\Users\path\myextern.rs", "myextern_2.rs" },
+  // { "C:\Users\myotherextern.rs", "nonconflictingextern.rs" }
+  // }
   public override Dictionary<string, string> ImportFilesMapping(string dafnyProgramName) {
     Dictionary<string, string> importedFilesMapping = new();
     var baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);

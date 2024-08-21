@@ -4973,11 +4973,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           return;
         }
         case SelectFn(on, field, isDatatype, isStatic, isConstant, arguments) => {
+          // Transforms a function member into a lambda
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
           var s: string;
           var onString := onExpr.ToString(IND);
 
           if isStatic {
+            // Generates |x0: &tp0, ...xn: &tpn| on::field(x0, .... xn) (possibly with some .clone())
             var lEnv := env;
             var args := [];
             s := "|";
@@ -5004,6 +5006,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             }
             s := s + ")";
           } else {
+            // Generates
+            // {
+            //   let callTarget = (on); //or (on.clone()) if it was owned.
+            //   move |arg0, ...argn| {
+            //     callTarget.field(arg0, .... argn) (possibly with some .clone())
+            //   }
+            // }
             s := "{\n";
             s := s + "let callTarget = (" + onString + (if onOwned == OwnershipOwned then ")" else ").clone()") + ";\n";
             var args := "";
