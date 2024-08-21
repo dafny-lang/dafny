@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
@@ -121,6 +122,7 @@ public class Program : TokenNode {
   public override IEnumerable<INode> Children => new[] { DefaultModule };
 
   public override IEnumerable<INode> PreResolveChildren => DefaultModuleDef.Includes.Concat<INode>(Files);
+  public Program AfterParsing { get; set; }
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     return Modules().SelectMany(m => m.Assumptions(decl));

@@ -4,6 +4,12 @@ public interface Document {
   public void Render(TextWriter writer, int desiredWidth = 120) {
     Render(desiredWidth, new IndentationWriter(writer, 2));
   }
+
+  public string RenderAsString() {
+    var writer = new StringWriter();
+    Render(writer);
+    return writer.ToString();
+  }
   
   // TODO make internal
   public void Render(int desiredWidth, IndentationWriter writer);

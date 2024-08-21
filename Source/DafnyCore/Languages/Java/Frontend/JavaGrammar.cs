@@ -216,13 +216,19 @@ public class JavaGrammar {
       Then(blockResult, s => s.Thn).
       Then(Keyword("else").Then(self).Option(), s => s.Els);
 
-    var expressionStatement = expression.DownCast<Expression, ApplySuffix>().
+    // TODO why does call here not work instead of expression?
+    // Seems like call can't be used at all because it's not a Recursive
+    var voidCallStatement = expression.DownCast<Expression, ApplySuffix>().
       Then(";", Separator.Nothing).Map(
       (t, a) => new UpdateStmt(Convert(t), new List<Expression>(), [new ExprRhs(a) {
         tok = Convert(t.From)
       }]),
-      updateStmt => MapResult<ApplySuffix>.FromNullable((updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix)
-      );
+      updateStmt => {
+        if (updateStmt.Lhss.Any()) {
+          return new MapFail<ApplySuffix>();
+        }
+        return MapResult<ApplySuffix>.FromNullable((updateStmt.Rhss[0] as ExprRhs)?.Expr as ApplySuffix);
+      });
     
     var oneLiteral = Expression.CreateIntLiteral(Token.NoToken, 1);
 
@@ -292,7 +298,7 @@ public class JavaGrammar {
       Then(blockResult, w => w.Body, Separator.Linebreak).FinishRangeNode(uri);
       
     var result = Fail<Statement>("a statement").OrCast(returnStatement).
-      OrCast(ifStatement).OrCast(blockResult).OrCast(expressionStatement).OrCast(assert).OrCast(varDecl).
+      OrCast(ifStatement).OrCast(blockResult).OrCast(voidCallStatement).OrCast(assert).OrCast(varDecl).
       OrCast(whileStatement).OrCast(assignmentStatement).OrCast(incrementStatement);
     return (result, blockResult);
   }
@@ -311,7 +317,8 @@ public class JavaGrammar {
       (r, v) => new NameSegment(Convert(r), v, null), 
       ie => ie.Name);
     var number = Number.Map(
-      (r, v) => new LiteralExpr(Convert(r), v), l => (int)(BigInteger)l.Value);
+      (r, v) => new LiteralExpr(Convert(r), v), 
+      l => l.Value is BigInteger value ? new MapSuccess<int>((int)value) : new MapFail<int>());
     var nonGhostBinding = self.Map((t, e) => new ActualBinding(null, e) {
       RangeToken = Convert(t),
       tok = ConvertToken(t)
@@ -321,10 +328,10 @@ public class JavaGrammar {
         RangeToken = Convert(t)
       }, a => a.ArgumentBindings);
 
-    Grammar<T> SpecificMethodCall<T>(string name, Func<T> constructor, Expression<Func<T, Expression>> bodyGetter, 
+    Grammar<T> SpecificMethodCall<T>(string methodName, Func<T> constructor, Expression<Func<T, Expression>> bodyGetter, 
       Expression<Func<T, Expression>> firstArgument) where T : TokenNode {
       return self.Assign(constructor, bodyGetter).
-        Then(".", Separator.Nothing).Then(name, Separator.Nothing).
+        Then(".", Separator.Nothing).Then(methodName, Separator.Nothing).
         Then(self.InParens(), firstArgument, Separator.Nothing).
         FinishTokenNode(uri);
     }
@@ -337,7 +344,7 @@ public class JavaGrammar {
       s => s.Seq,
       s => s.E1);
     
-    var get = SpecificMethodCall("take", () => new SeqSelectExpr(true),
+    var get = SpecificMethodCall("get", () => new SeqSelectExpr(true),
       s => s.Seq,
       s => s.E0);
     
@@ -346,7 +353,7 @@ public class JavaGrammar {
       Then(Empty.InParens(), Separator.Nothing).
       FinishTokenNode(uri);
     
-    var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
+    var callExpression = self.Assign(() => new ApplySuffix(), s => s.Lhs)
       .Then(nonGhostBindings.InParens(), s => s.Bindings, Separator.Nothing).
       FinishTokenNode(uri);
 
@@ -383,7 +390,7 @@ public class JavaGrammar {
     
     Grammar<Expression> code = Fail<Expression>("an expression").
       OrCast(variableRef).OrCast(number).OrCast(lambda).OrCast(charLiteral).OrCast(truee).OrCast(falsee).
-      OrCast(drop).OrCast(take).OrCast(get).OrCast(parenthesis).OrCast(length).OrCast(exprDotName).OrCast(callResult);
+      OrCast(drop).OrCast(take).OrCast(get).OrCast(parenthesis).OrCast(length).OrCast(exprDotName).OrCast(callExpression);
     
     
     // postfix expr++ expr--
@@ -391,7 +398,7 @@ public class JavaGrammar {
     // unary ++expr --expr +expr -expr ~ !
     var unary = Recursive<Expression>(unarySelf => {
       var unicodeOpcode =
-        Keyword("!").Then(Constant(UnaryOpExpr.Opcode.Not));
+        Keyword("!").Then(Constant(UnaryOpExpr.Opcode.Not), Separator.Nothing);
       var prefixUnary = unicodeOpcode.Assign(() => new UnaryOpExpr(), b => b.Op).
         Then(unarySelf, u => u.E);
 
@@ -493,7 +500,7 @@ public class JavaGrammar {
     }
 
     
-    return (ternary, callResult);
+    return (ternary, callExpression);
   }
 
   private Grammar<Type> TypeGrammar()

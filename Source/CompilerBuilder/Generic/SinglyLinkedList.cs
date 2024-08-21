@@ -83,7 +83,6 @@ public record Nil<T> : SinglyLinkedList<T> {
 
 record LinkedListFromList<T>(IReadOnlyList<T> Source, int Offset = 0) : SinglyLinkedList<T> {
   
-
   public override U Fold<U>(Func<T, SinglyLinkedList<T>, U> cons, Func<U> nil) {
     if (Source.Count > Offset) {
       return cons(Source[Offset], new LinkedListFromList<T>(Source, Offset + 1));

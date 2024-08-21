@@ -53,6 +53,8 @@ namespace Microsoft.Dafny {
         return (program, err);
       }
 
+      var cloner = new Cloner(true);
+      program.AfterParsing = new Program(cloner, program);
       return (program, Resolve(program));
     }
 

@@ -237,10 +237,12 @@ public class Compilation : IDisposable {
   }
 
   private async Task<ResolutionResult?> ResolveAsync() {
-    await ParsedProgram;
+    var parsed = await ParsedProgram;
     if (transformedProgram == null) {
       return null;
     }
+
+    transformedProgram.AfterParsing = parsed;
     var resolution = await documentLoader.ResolveAsync(this, transformedProgram!, cancellationSource.Token);
     if (resolution == null) {
       return null;

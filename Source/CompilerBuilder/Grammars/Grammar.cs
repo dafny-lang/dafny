@@ -173,7 +173,9 @@ class Choice<T>(Grammar<T> first, Grammar<T> second) : Grammar<T> {
 }
 
 class Constructor<T>(Func<T> construct) : Grammar<T> {
+  
   internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {
+    // TODO this is wrong. It'll succeed too easily.
     return new IgnoreW<T>(EmptyW.Instance);
   }
 
@@ -285,7 +287,7 @@ public static class GrammarExtensions {
     Separator beforeSep = Separator.Space, 
     Separator afterSep = Separator.Space) {
     var some = inner.Then<T, SinglyLinkedList<T>, SinglyLinkedList<T>>(
-      ManyInner(separator.Then(inner, afterSep), beforeSep, "separated"),
+      ManyLinkedList(separator.Then(inner, afterSep), beforeSep, "separated"),
       (e, l) => new Cons<T>(e, l), 
       l => l.Fold((head, tail) => (head, tail), () => ((T, SinglyLinkedList<T>)?)null), beforeSep);
     var someOrNone = some.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
@@ -293,11 +295,11 @@ public static class GrammarExtensions {
   }
   
   public static Grammar<List<T>> Many<T>(this Grammar<T> one, Separator separator = Separator.Space, string debugString = "many") {
-    var numerable = ManyInner(one, separator, debugString);
+    var numerable = ManyLinkedList(one, separator, debugString);
     return numerable.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
 
-  private static Grammar<SinglyLinkedList<T>> ManyInner<T>(Grammar<T> one, Separator separator, string debugString)
+  private static Grammar<SinglyLinkedList<T>> ManyLinkedList<T>(Grammar<T> one, Separator separator, string debugString)
   {
     return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
       new Constructor<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, 

@@ -79,5 +79,9 @@ class Fib {
     var parser = programGrammar.ToParser();
     var parseResult = parser.Parse(input);
     Assert.NotNull(parseResult.ForceSuccess.Value);
+    var cloner = new Cloner();
+    var cloned = new FileModuleDefinition(cloner, parseResult.ForceSuccess.Value);
+    var printer = programGrammar.ToPrinter();
+    var s = printer.Print(cloned)!.RenderAsString();
   }
 }

@@ -26,14 +26,13 @@ public class VerifiedJavaBackend : JavaBackend {
     public bool SupportsDatatypeWrapperErasure { get; }
 
     public void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-      RemoveGhost(dafnyProgram);
+      var afterParsing = dafnyProgram.AfterParsing;
+      // RemoveGhost(afterParsing);
       
-      var grammar = new JavaGrammar(dafnyProgram.GetStartOfFirstFileToken().Uri, dafnyProgram.Options).GetFinalGrammar();
-      var fileModuleDefinition = new FileModuleDefinition(Token.NoToken) {
-        
-      };
+      var grammar = new JavaGrammar(afterParsing.GetStartOfFirstFileToken().Uri, afterParsing.Options).GetFinalGrammar();
+      var fileModuleDefinition = new FileModuleDefinition(Token.NoToken);
       fileModuleDefinition.SourceDecls.AddRange(
-        dafnyProgram.DefaultModuleDef.SourceDecls.Where(td => !td.IsExtern(dafnyProgram.Options)));
+        afterParsing.DefaultModuleDef.SourceDecls.Where(td => !td.IsExtern(afterParsing.Options)));
       var outputStringWriter = new StringWriter();
       grammar.ToPrinter().Print(fileModuleDefinition)!.Render(outputStringWriter);
       output.Write(outputStringWriter.ToString());
@@ -49,7 +48,22 @@ public class VerifiedJavaBackend : JavaBackend {
 
   static void RemoveGhost(Program program) {
     var visitor = new RemoveGhostVisitor();
-    foreach (var module in program.CompileModules) {
+
+    IEnumerable<ModuleDefinition> GetDefs(ModuleDefinition def) {
+      return def.TopLevelDecls.OfType<ModuleDecl>().SelectMany(m => {
+        if (m is LiteralModuleDecl literalModuleDecl) {
+          return GetDefs(literalModuleDecl.ModuleDef);
+        }
+
+        return [];
+      }).Concat([def]);
+    }
+    var modules = GetDefs(program.DefaultModuleDef);
+    foreach (var module in modules) {
+      if (!module.ShouldCompile(program.Compilation)) {
+        continue;
+      }
+      
       foreach (var withMembers in module.TopLevelDecls.OfType<TopLevelDeclWithMembers>()) {
         foreach (var member in withMembers.Members.OfType<MethodOrFunction>()) {
           if (member is Method method) {
@@ -68,18 +82,30 @@ public class VerifiedJavaBackend : JavaBackend {
     public override void Visit(Method method, Unit st) {
       method.Req.Clear();
       method.Ens.Clear();
+      method.Decreases.Expressions.Clear();
+      method.Reads.Expressions.Clear();
+      method.Mod.Expressions.Clear();
       base.Visit(method, st);
     }
 
     public override void Visit(Function function, Unit st) {
       function.Req.Clear();
+      function.Reads.Expressions.Clear();
       function.Ens.Clear();
       base.Visit(function, st);
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref Unit st) {
       if (stmt is BlockStmt blockStmt) {
-        blockStmt.Body = blockStmt.Body.Where(s => !s.IsGhost).ToList();
+        blockStmt.Body = blockStmt.Body.Where(s => {
+          var isGhost = s.IsGhost;
+          return !isGhost;
+        }).ToList();
+      }
+
+      if (stmt is LoopStmt loopStmt) {
+        loopStmt.Decreases.Expressions.Clear();
+        loopStmt.Invariants.Clear();
       }
       return base.VisitOneStmt(stmt, ref st);
     }
