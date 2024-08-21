@@ -1103,9 +1103,8 @@ namespace Microsoft.Dafny {
         return (null, null);
       }
 
-      var receiverDecl = dReceiver.Decl;
+      var receiverDecl = dReceiver.DeclWithMembersBypassInternalSynonym();
       if (receiverDecl is TopLevelDeclWithMembers receiverDeclWithMembers) {
-        // TODO: does this case need to do something like this?  var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
 
         var members = resolver.GetClassMembers(receiverDeclWithMembers);
         if (members == null || !members.TryGetValue(memberName, out var member)) {
@@ -1121,6 +1120,9 @@ namespace Microsoft.Dafny {
           // TODO: We should return the original "member", not an overridden member. Alternatively, we can just return "member" so that the
           // caller can figure out the types, and then a later pass can figure out which particular "member" is intended.
           return (member, dReceiver);
+        } else if (reportErrorOnMissingMember) {
+          ReportError(tok, $"member '{memberName}' has not been imported in this scope and cannot be accessed here");
+          return (null, null);
         }
       }
       if (reportErrorOnMissingMember) {
