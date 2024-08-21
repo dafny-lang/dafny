@@ -457,7 +457,7 @@ module ComparableTypes1 {
 
   method NonReferenceEquality(a: TraitA, b: TraitB) {
     var r;
-    r := a == b; // error: TraitA and TraitB are incomparable
+    r := a == b; // error: TraitA and TraitB don't necessarily support equality
   }
 }
 

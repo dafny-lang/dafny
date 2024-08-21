@@ -61,5 +61,5 @@ method Bad1() returns (c: C1, t: T2)
 method Bad2() returns (c: C1, t: T1)
   ensures c == t
 {
-  c := t;  // OK for type resolution, but must be proved
+  c := t as C1;  // OK for type resolution, but must be proved
 }
