@@ -26,9 +26,7 @@ public interface ITextPointer : IPosition {
   }
 
   ParseResult<Unit> ParseWithCache(VoidParser parser);
-  ParseResult<T> ParseWithCache<T>(Parser<T> grammar);
-  ParseResult<Unit> ParseWithCache2(VoidParser parser);
-  ParseResult<T> ParseWithCache2<T>(Parser<T> grammar);
+  ParseResult<T> ParseWithCache<T>(Parser<T> parser);
 
   void Ref();
   void UnRef();

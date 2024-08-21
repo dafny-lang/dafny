@@ -13,6 +13,40 @@ class EmptyResult<T> : ParseResult<T> {
   public IEnumerable<IFoundRecursion<T>> Recursions => [];
 }
 
+class DeadPointer : ITextPointer {
+  public int Offset => 0;
+  public int Line => 0;
+  public int Column => 0;
+  public ITextPointer Drop(int amount) {
+    return this;
+  }
+
+  public char First => throw new InvalidOperationException();
+  public int Length => 0;
+  public char At(int offset) {
+    throw new InvalidOperationException();
+  }
+
+  public ReadOnlySpan<char> Remainder => ReadOnlySpan<char>.Empty;
+  public ReadOnlySpan<char> SubSequence(int length) {
+    return ReadOnlySpan<char>.Empty;
+  }
+
+  public ParseResult<Unit> ParseWithCache(VoidParser parser) {
+    return parser.Parse(this);
+  }
+
+  public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
+    return parser.Parse(this);
+  }
+
+  public void Ref() {
+  }
+
+  public void UnRef() {
+  }
+}
+
 class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   private readonly string debugName = debugName;
   private Parser<T>? inner;
@@ -36,7 +70,7 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
   /// base = 'bc' | 'a' expr 'c' | 'abc'
   /// grow = grow 'c'
   /// </summary>
-  private IFoundRecursion<T>? leftRecursion;
+  private FoundRecursion<T, T>? leftRecursion;
   private bool checkedLeftRecursion;
   enum RecursionState { FindingLeftRecursions, Parsing }
   private readonly ThreadLocal<RecursionState> findingRecursionState = new(() => RecursionState.Parsing);
@@ -62,8 +96,11 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
     }
     
     if (!checkedLeftRecursion) {
+      if (typeof(T).Name == "Statement") {
+        var d = 3;
+      }
       findingRecursionState.Value = RecursionState.FindingLeftRecursions;
-      leftRecursion = Inner.Parse(PointerFromString.DeadPointer) as IFoundRecursion<T>;
+      leftRecursion = (FoundRecursion<T, T>?)Inner.Parse(new DeadPointer()).FoundRecursion;
       findingRecursionState.Value = RecursionState.Parsing;
       checkedLeftRecursion = true;
     }
@@ -75,12 +112,12 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
     }
 
     if (leftRecursion == null) {
-      return text.ParseWithCache2(Inner);
+      return text.ParseWithCache(Inner);
     }
 
     enteredStack.Value = new Cons<int>(text.Offset, startingStack!);
     // TODO caching here seems pointless
-    var seedResult = text.ParseWithCache2(Inner);
+    var seedResult = text.ParseWithCache(Inner);
     enteredStack.Value = startingStack;
     if (seedResult.Success == null) {
       return seedResult;

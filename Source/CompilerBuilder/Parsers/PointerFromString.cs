@@ -11,7 +11,6 @@ namespace CompilerBuilder;
  * Or maybe we can use the C# dispose mechanic
  */
 class PointerFromString : ITextPointer {
-  public static readonly ITextPointer DeadPointer = new PointerFromString("");
   
   public PointerFromString(string text) {
     Text = text;

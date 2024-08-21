@@ -18,7 +18,7 @@ class IgnoreR<T>(Parser<T> parser) : VoidParser {
   public Parser<T> Parser => parser;
 
   internal override ParseResult<Unit> Parse(ITextPointer text) {
-    return text.ParseWithCache2(parser).Continue(
+    return text.ParseWithCache(parser).Continue(
       s => new ConcreteSuccess<Unit>(Unit.Instance, s.Remainder));
   }
 }
@@ -72,7 +72,7 @@ public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> sec
   public override ParseResult<T> Parse(ITextPointer text) {
     var leftResult = text.ParseWithCache(First);
     return leftResult.Continue(leftConcrete => {
-      var rightResult = leftConcrete.Remainder.ParseWithCache2(Second);
+      var rightResult = leftConcrete.Remainder.ParseWithCache(Second);
       return rightResult.Continue(rightConcrete => {
         var value = combine(leftConcrete.Value, rightConcrete.Value);
         return new ConcreteSuccess<T>(value, rightConcrete.Remainder);
@@ -91,9 +91,9 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
   
   public override ParseResult<T> Parse(ITextPointer text) {
     text.Ref();
-    var firstResult = text.ParseWithCache2(First);
+    var firstResult = text.ParseWithCache(First);
     text.UnRef();
-    var secondResult = text.ParseWithCache2(Second);
+    var secondResult = text.ParseWithCache(Second);
     return firstResult.Combine(secondResult);
   }
 }
@@ -137,7 +137,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
 class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
   public override ParseResult<T> Parse(ITextPointer text) {
     var leftResult = text.ParseWithCache(left);
-    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache2(right));
+    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache(right));
   }
 }
 
@@ -148,7 +148,7 @@ class SkipRight<T>(Parser<T> first, VoidParser second) : Parser<T> {
   
   public override ParseResult<T> Parse(ITextPointer text) {
     var leftResult = text.ParseWithCache(First);
-    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache2(Second).
+    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache(Second).
       Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
   }
 }

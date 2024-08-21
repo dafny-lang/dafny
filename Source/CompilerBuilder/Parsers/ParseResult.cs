@@ -34,14 +34,10 @@ public interface ParseResult<T> : ParseResult {
     return combine(left, right);
   }
   internal ParseResult<T> Combine(ParseResult<T> other) {
-    if (this is IFoundRecursion<T> fr && other is IFoundRecursion<T> or) {
-      return new FoundRecursion<T, T>(s => fr.Apply(s.Value, s.Remainder).Combine(
-        or.Apply(s.Value, s.Remainder)));
-    }
-
     var recursion = Combine(FoundRecursion, other.FoundRecursion, (l, r) => {
-      return new FoundRecursion<T, T>(s => l.Apply(s.Value, s.Remainder).Combine(
-        r.Apply(s.Value, s.Remainder)));
+      dynamic ld = l;
+      dynamic rd = r;
+      return ld.Combine(rd);
     });
 
     var concreteSuccess = Combine(Success, other.Success, (l,r) => 
@@ -87,7 +83,6 @@ public record ConcreteSuccess<T>(T Value, ITextPointer Remainder) : ConcreteResu
 }
 
 interface IFoundRecursion<T> : ParseResult<T> {
-  ParseResult<T> Apply(object value, ITextPointer remainder);
 }
 
 /// <summary>
@@ -111,8 +106,12 @@ record FoundRecursion<TA, TB>(Func<ConcreteSuccess<TA>, ParseResult<TB>> Recursi
   IFoundRecursion<TB>? ParseResult<TB>.FoundRecursion => this;
   public IEnumerable<IFoundRecursion<TB>> Recursions => new IFoundRecursion<TB>[]{ this };
 
-  public ParseResult<TB> Apply(object value, ITextPointer remainder) {
-    return Recursion(new ConcreteSuccess<TA>((TA)value, remainder));
+  public ParseResult<TB> Apply(TA value, ITextPointer remainder) {
+    return Recursion(new ConcreteSuccess<TA>(value, remainder));
+  }
+  public ParseResult<TB> Combine(FoundRecursion<TA, TB> other) {
+    return new FoundRecursion<TA, TB>(s => Apply(s.Value, s.Remainder).Combine(
+      other.Apply(s.Value, s.Remainder)));
   }
 }
 
