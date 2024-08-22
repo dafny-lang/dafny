@@ -238,7 +238,7 @@ public class JavaGrammar {
         tok = Convert(t.From)
       }]),
       updateStmt => updateStmt.Rhss.Count == 1 && ((updateStmt.Rhss[0] as ExprRhs)?.Expr 
-        is BinaryExpr { Op: BinaryExpr.Opcode.Add } binaryExpr) && binaryExpr.E1 == oneLiteral
+        is BinaryExpr { Op: BinaryExpr.Opcode.Add } binaryExpr) && binaryExpr.E1.Equals(oneLiteral)
                     ? new MapSuccess<Expression>(updateStmt.Lhss[0]) : new MapFail<Expression>());
 
     var initializer = Keyword("=").Then(expression).Option();
@@ -348,7 +348,8 @@ public class JavaGrammar {
       s => s.Seq,
       s => s.E0);
     
-    var length = self.Assign(() => new UnaryOpExpr(UnaryOpExpr.Opcode.Cardinality), s => s.E).
+    var length = self.Assign(() => new UnaryOpExpr(), s => s.E).
+      Then(Constant(UnaryOpExpr.Opcode.Cardinality), e => e.Op).
       Then(".", Separator.Nothing).Then("size", Separator.Nothing).
       Then(Empty.InParens(), Separator.Nothing).
       FinishTokenNode(uri);

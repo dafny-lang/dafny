@@ -342,7 +342,7 @@ public static class GrammarExtensions {
     where TSub : TSuper
   {
     return grammar.Map<TSub, TSuper>(t => t, 
-      u => u is TSub s ? new MapSuccess<TSub>(s) : new MapFail<TSub>());
+      u => u is TSub s ? new MapSuccess<TSub>(s) : new MapFail<TSub>($"{u} is not a {typeof(TSub)}"));
   }
   
   public static Grammar<U> Map<T, U>(this Grammar<T> grammar, Func<T, U> construct, Func<U, T?> destruct)
@@ -458,7 +458,7 @@ public interface MapResult<T> {
 }
 
 public record MapSuccess<T>(T Value) : MapResult<T>;
-public record MapFail<T>() : MapResult<T>;
+public record MapFail<T>(string Message = null) : MapResult<T>;
 
 class Fail<T>(string expectation) : Grammar<T> {
   internal override Printer<T> ToPrinter(Func<Grammar, Printer> recurse) {

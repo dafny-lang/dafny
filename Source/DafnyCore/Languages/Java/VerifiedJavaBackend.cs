@@ -26,13 +26,21 @@ public class VerifiedJavaBackend : JavaBackend {
     public bool SupportsDatatypeWrapperErasure { get; }
 
     public void Compile(Program dafnyProgram, ConcreteSyntaxTree output) {
-      var afterParsing = dafnyProgram.AfterParsing;
-      // RemoveGhost(afterParsing);
-      
-      var grammar = new JavaGrammar(afterParsing.GetStartOfFirstFileToken().Uri, afterParsing.Options).GetFinalGrammar();
       var fileModuleDefinition = new FileModuleDefinition(Token.NoToken);
+      
+      var parsed = false;
+      Program programToCompile;
+      if (parsed) {
+        programToCompile = dafnyProgram.AfterParsing;
+      } else {
+        programToCompile = dafnyProgram;
+      }
+      RemoveGhost(programToCompile);
+        
       fileModuleDefinition.SourceDecls.AddRange(
-        afterParsing.DefaultModuleDef.SourceDecls.Where(td => !td.IsExtern(afterParsing.Options)));
+        programToCompile.DefaultModuleDef.SourceDecls.Where(td => !td.IsExtern(programToCompile.Options)));
+      
+      var grammar = new JavaGrammar(dafnyProgram.GetStartOfFirstFileToken().Uri, dafnyProgram.Options).GetFinalGrammar();
       var outputStringWriter = new StringWriter();
       grammar.ToPrinter().Print(fileModuleDefinition).ForceSuccess.Render(outputStringWriter);
       output.Write(outputStringWriter.ToString());
@@ -79,6 +87,7 @@ public class VerifiedJavaBackend : JavaBackend {
   }
 
   class RemoveGhostVisitor : TopDownVisitor<Unit> {
+    
     public override void Visit(Method method, Unit st) {
       method.Req.Clear();
       method.Ens.Clear();
@@ -109,10 +118,6 @@ public class VerifiedJavaBackend : JavaBackend {
       }
       return base.VisitOneStmt(stmt, ref st);
     }
-  } 
-
-  static void RemoveGhost(Statement statement) {
-    
   }
 
   public VerifiedJavaBackend(DafnyOptions options) : base(options) {
