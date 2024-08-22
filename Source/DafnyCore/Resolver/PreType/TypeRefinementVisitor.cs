@@ -163,6 +163,21 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
           "map display"));
       }
 
+    } else if (expr is SeqUpdateExpr seqUpdateExpr) {
+      if (expr.Type is MultiSetType multiSetType) {
+        flows.Add(new FlowBetweenExpressions(expr, seqUpdateExpr.Seq, "multiset update (source)"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+          () => new MultiSetType(TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Index)),
+          "multiset update (element)"));
+      } else if (expr.Type is MapType mapType) {
+        flows.Add(new FlowBetweenExpressions(expr, seqUpdateExpr.Seq, "map update (source)"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapType.Finite,
+            TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Index), TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Value)),
+          "map update (element)"));
+      } else {
+        // nothing to do for sequences
+      }
+
     } else if (expr is SetComprehension setComprehension) {
       flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
         () => new SetType(setComprehension.Finite, TypeRefinementWrapper.NormalizeSansBottom(setComprehension.Term)),

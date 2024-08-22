@@ -1031,6 +1031,28 @@ module TypeInferenceViaInAndEquals {
   method MagicAssign<X>() returns (r: X)
 }
 
+module CollectionUpdates {
+  method P(n: nat) returns (m: map<nat, nat>, j: multiset<nat>) {
+    m := map[n := n];
+    j := multiset{n, n, n};
+    
+    m := m[n := 10];
+    m := m[10 := n];
+    m := m[n := n];
+    j := j[n := 38];
+  }
+
+  trait Trait extends object { }
+
+  method Q(n: Trait) returns (m: map<Trait, Trait>, j: multiset<Trait>) {
+    m := map[n := n];
+    j := multiset{n, n, n};
+    
+    m := m[n := n];
+    j := j[n := 38];
+  }
+}
+
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************
