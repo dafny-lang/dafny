@@ -1676,7 +1676,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       ASSIGNED_PREFIX + "_" + rustName
   }
 
-  datatype ObjectType = RawPointers | RcMut
+  datatype PointerType = Raw | RcMut
+  datatype CharType = UTF16 | Unicode
+  datatype RootType = RootCrate | RootPath(moduleName: string)
 
   datatype GenTypeContext =
     GenTypeContext(forTraitParents: bool)
@@ -1789,43 +1791,47 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   }
 
   class COMP {
-    const UnicodeChars: bool
-    const DafnyChar := if UnicodeChars then "DafnyChar" else "DafnyCharUTF16"
-    const DafnyCharUnderlying := if UnicodeChars then R.RawType("char") else R.RawType("u16")
-    const string_of := if UnicodeChars then "string_of" else "string_utf16_of"
+    const charType: CharType
+    const pointerType: PointerType
+    const rootType: RootType
+
+    const thisFile: R.Path := if rootType.RootCrate? then R.crate else R.crate.MSel(rootType.moduleName)
+
+    const DafnyChar := if charType.Unicode? then "DafnyChar" else "DafnyCharUTF16"
+    const DafnyCharUnderlying := if charType.Unicode? then R.RawType("char") else R.RawType("u16")
+    const string_of := if charType.Unicode? then "string_of" else "string_utf16_of"
     const allocate :=
-      if ObjectType.RawPointers? then "allocate" else "allocate_object"
+      if pointerType.Raw? then "allocate" else "allocate_object"
     const allocate_fn := "_" + allocate
     const update_field_uninit_macro :=
-      if ObjectType.RawPointers? then "update_field_uninit!" else "update_field_uninit_object!"
+      if pointerType.Raw? then "update_field_uninit!" else "update_field_uninit_object!"
     const thisInConstructor :=
-      if ObjectType.RawPointers? then R.Identifier("this") else R.Identifier("this").Clone()
+      if pointerType.Raw? then R.Identifier("this") else R.Identifier("this").Clone()
     const array_construct :=
-      if ObjectType.RawPointers? then "construct" else "construct_object"
-    const modify_macro := R.dafny_runtime.MSel(if ObjectType.RawPointers? then "modify!" else "md!").AsExpr()
-    const read_macro := R.dafny_runtime.MSel(if ObjectType.RawPointers? then "read!" else "rd!").AsExpr()
+      if pointerType.Raw? then "construct" else "construct_object"
+    const modify_macro := R.dafny_runtime.MSel(if pointerType.Raw? then "modify!" else "md!").AsExpr()
+    const read_macro := R.dafny_runtime.MSel(if pointerType.Raw? then "read!" else "rd!").AsExpr()
     function Object(underlying: R.Type): R.Type {
-      if ObjectType.RawPointers? then R.PtrType(underlying) else R.ObjectType(underlying)
+      if pointerType.Raw? then R.PtrType(underlying) else R.ObjectType(underlying)
     }
-    const placebos_usize := if ObjectType.RawPointers? then "placebos_usize" else "placebos_usize_object"
+    const placebos_usize := if pointerType.Raw? then "placebos_usize" else "placebos_usize_object"
     const update_field_if_uninit_macro :=
-      if ObjectType.RawPointers? then "update_field_if_uninit!" else "update_field_if_uninit_object!"
+      if pointerType.Raw? then "update_field_if_uninit!" else "update_field_if_uninit_object!"
     const Upcast :=
-      if ObjectType.RawPointers? then "Upcast" else "UpcastObject"
+      if pointerType.Raw? then "Upcast" else "UpcastObject"
     const UpcastFnMacro :=
       Upcast + "Fn!"
     const upcast :=
-      if ObjectType.RawPointers? then "upcast" else "upcast_object"
+      if pointerType.Raw? then "upcast" else "upcast_object"
 
     const downcast :=
-      if ObjectType.RawPointers? then "cast!" else "cast_object!"
+      if pointerType.Raw? then "cast!" else "cast_object!"
 
     function UnreachablePanicIfVerified(optText: string := ""): string {
-      if ObjectType.RawPointers? then "unsafe { ::std::hint::unreachable_unchecked() }" else
+      if pointerType.Raw? then "unsafe { ::std::hint::unreachable_unchecked() }" else
       if optText == "" then "panic!()" else "panic!(\"" + optText + "\")"
     }
 
-    const ObjectType: ObjectType
 
     static const TailRecursionPrefix := "_r"
 
@@ -1835,9 +1841,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     static const DAFNY_EXTERN_MODULE := "_dafny_externs"
 
-    constructor(unicodeChars: bool, objectType: ObjectType) {
-      this.UnicodeChars := unicodeChars;
-      this.ObjectType := objectType;
+    constructor(charType: CharType, pointerType: PointerType, rootType: RootType) {
+      this.charType := charType;
+      this.pointerType := pointerType;
+      this.rootType := rootType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
       this.optimizations := [FactorPathsOptimization.apply];
       new;
@@ -1865,7 +1872,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
           if mod.requiresExterns {
-            body := [R.UseDecl(R.Use(R.PUB, R.crate.MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
+            body := [R.UseDecl(R.Use(R.PUB, thisFile.MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
           }
         } else if optExtern.AdvancedExtern? {
           error := Some("Externs on modules can only have 1 string argument");
@@ -2945,7 +2952,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           else if p[0].id.dafny_name == "_System" then
             R.dafny_runtime
           else
-            R.Crate();
+            thisFile;
         for i := 0 to |p| {
           var name := p[i].id;
           if escape {
@@ -3218,7 +3225,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         } else {
           var tpe := GenType(instanceType, GenTypeContext.default());
           if selfId == "this" {
-            if ObjectType.RcMut? {
+            if pointerType.RcMut? {
               tpe := R.Borrowed(tpe);
             }
             // For raw pointers, no borrowing is necessary, because it implements the Copy type
@@ -3931,7 +3938,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case Literal(CharLiteral(c)) => {
           r := R.LiteralInt(Strings.OfNat(c as nat));
-          if !UnicodeChars {
+          if !charType.Unicode? {
             r := R.TypeAscription(r, R.U16);
           } else {
             r :=
@@ -3946,7 +3953,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case Literal(Null(tpe)) => {
           var tpeGen := GenType(tpe, GenTypeContext.default());
-          if ObjectType.RawPointers? {
+          if pointerType.Raw? {
             r := R.std.MSel("ptr").FSel("null_mut");
           } else {
             r := R.TypeAscription(R.dafny_runtime.MSel("Object").AsExpr().Apply1(R.RawExpr("None")), tpeGen);
@@ -4080,7 +4087,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             match op {
               case Eq(referential) => {
                 if (referential) {
-                  if ObjectType.RawPointers? {
+                  if pointerType.Raw? {
                     error := Some("Cannot compare raw pointers yet - need to wrap them with a structure to ensure they are compared properly");
                     r := R.RawExpr(error.value);
                   } else {
@@ -4442,7 +4449,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case (Primitive(Int), Primitive(Char)) => {
             var rhsType := GenType(toTpe, GenTypeContext.default());
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.RawExpr("::dafny_runtime::" + DafnyChar + "(" + (if UnicodeChars then "char::from_u32(<u32" else "<u16") + " as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap())" + if UnicodeChars then ".unwrap())" else "");
+            r := R.RawExpr("::dafny_runtime::" + DafnyChar + "(" + (if charType.Unicode? then "char::from_u32(<u32" else "<u16") + " as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap())" + if charType.Unicode? then ".unwrap())" else "");
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }
@@ -5136,7 +5143,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   r := R.Identifier("this");
                 case _ =>
               }
-              if this.ObjectType.RcMut?  {
+              if this.pointerType.RcMut?  {
                 r := r.Clone();
               }
               r := read_macro.Apply1(r);
@@ -5186,7 +5193,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case IndexRange(on, isArray, low, high) => {
           var onExpectedOwnership :=
             if isArray then
-              if ObjectType.RawPointers? then
+              if pointerType.Raw? then
                 OwnershipOwned
               else
                 OwnershipBorrowed
@@ -5224,7 +5231,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               methodName := "_" + methodName;
             }
             var object_suffix :=
-              if ObjectType.RawPointers? then "" else "_object";
+              if pointerType.Raw? then "" else "_object";
             r := R.dafny_runtime_Sequence.FSel("from_array"+methodName+object_suffix).Apply([onExpr] + arguments);
           } else {
             if methodName != "" {
