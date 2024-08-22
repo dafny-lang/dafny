@@ -182,7 +182,7 @@ module M1 {
     ghost var x: (int, int) := c.w;
   }
 
-  trait Tr<X(0)> {
+  trait Tr<X(0)> extends object {
     var w: X
   }
   /*-- non-null type
@@ -289,7 +289,7 @@ module P1 {
     ghost var x: (int, int) := c.w;
   }
 
-  trait TrX<X(0)> {
+  trait TrX<X(0)> extends object {
     var w: X
   }
   /*-- non-null type

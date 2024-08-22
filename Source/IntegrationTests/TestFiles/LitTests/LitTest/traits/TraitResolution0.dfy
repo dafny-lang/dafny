@@ -18,7 +18,7 @@ module M0 {
 }
 
 module M1 {
-  trait Tr<X(0)> {
+  trait Tr<X(0)> extends object {
     var w: X
   }
 
@@ -65,7 +65,7 @@ module P0 {
 }
 
 module P1 {
-  trait TrX<X(0)> {
+  trait TrX<X(0)> extends object {
     var w: X
   }
 
