@@ -2879,7 +2879,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    static method GenPath(p: seq<Ident>, escape: bool := true) returns (r: R.Path) {
+    method GenPath(p: seq<Ident>, escape: bool := true) returns (r: R.Path) {
       if |p| == 0 {
         return R.Self();
       } else {
@@ -2906,12 +2906,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
-    static method GenPathType(p: seq<Ident>) returns (t: R.Type) {
+    method GenPathType(p: seq<Ident>) returns (t: R.Type) {
       var p := GenPath(p, true);
       t := p.AsType();
     }
 
-    static method GenPathExpr(p: seq<Ident>, escape: bool := true) returns (e: R.Expr) {
+    method GenPathExpr(p: seq<Ident>, escape: bool := true) returns (e: R.Expr) {
       if |p| == 0 {
         return R.self;
       }
