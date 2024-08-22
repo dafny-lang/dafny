@@ -46,7 +46,7 @@ module NamesThatDontExist {
     provides Dt.Cons?  // error: datatype discriminators cannot be individually exported
     provides Dt.u  // error: datatype denstructors cannot be individually exported
 
-  trait Trait {
+  trait Trait extends object {
     ghost predicate Valid() { true }
     method M() { }
     var x: int
@@ -132,7 +132,7 @@ module ConsistencyErrors {
     provides Trait.M, Trait.N, Trait.x
     provides Klass.M, Klass.N, Klass.x
 
-  trait Trait {
+  trait Trait extends object {
     ghost predicate Valid() { true }
     const M := 100
     static const N := 101
@@ -209,7 +209,7 @@ module GoodExports {
     reveals Klass
     provides Klass.FromInt
 
-  trait Trait {
+  trait Trait extends object {
     ghost predicate Valid() { true }
     const M := 100
     static const N := 101
