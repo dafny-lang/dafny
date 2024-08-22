@@ -45,6 +45,32 @@ module M2 {
   }
 }
 
+module M3 {
+  trait Tr<X(0)> {
+    const w: X // const in non-reference trait
+  }
+
+  class Cl<Y(0)> extends Tr<(Y,Y)> {
+  }
+
+  lemma M(c: Cl<int>) {
+    var x := c.w;  // (int, int)
+  }
+}
+
+module M4 {
+  trait Tr<X(0)> extends object {
+    const w: X // const in reference trait
+  }
+
+  class Cl<Y(0)> extends Tr<(Y,Y)> {
+  }
+
+  lemma M(c: Cl<int>) {
+    var x := c.w;  // (int, int)
+  }
+}
+
 module P0 {
   trait TrX<X> {
     ghost function F(x: X): int { 15 }
