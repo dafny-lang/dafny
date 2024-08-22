@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
 
-trait Automobile {
+trait Automobile extends object {
   ghost var Repr: set<object>
   ghost predicate Valid()
     reads this, Repr

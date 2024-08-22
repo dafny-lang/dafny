@@ -19,7 +19,7 @@ module M0 {
 }
 
 module M1 {
-  trait TrX<X(0)> {
+  trait TrX<X(0)> extends object {
     var w: X
   }
   trait Tr<X(0)> extends TrX<X> {
@@ -75,7 +75,7 @@ module NewMustMentionAClassName {
   trait TrX<X> {
     method Make() { }
   }
-  trait Tr<X> extends TrX<X> { }
+  trait Tr<X> extends TrX<X>, object { }
   class A extends Tr<int> { }
   class B extends Tr<int> { constructor () { } }
   class C<G> extends Tr<G> { }
