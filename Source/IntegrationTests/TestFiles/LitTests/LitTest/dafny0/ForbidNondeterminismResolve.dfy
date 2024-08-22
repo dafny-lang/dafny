@@ -143,3 +143,7 @@ ghost method M2(c: C)
   }
   modify c;  // error: nondeterministic
 }
+
+trait t { // no error: traits can't have constructors
+  var f: real
+}
