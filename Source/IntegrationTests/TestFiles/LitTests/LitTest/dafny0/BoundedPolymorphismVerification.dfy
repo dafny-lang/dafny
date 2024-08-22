@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --type-system-refresh --general-traits=datatype "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh=true --general-traits=datatype "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module As {
