@@ -1,4 +1,4 @@
-// RUN: %verify --allow-deprecation "%s" > "%t"
+// RUN: %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
@@ -10,7 +10,7 @@ ghost function BigTree(): Tree
   Node(BigTrees())
 }
 ghost function BigTrees(): Stream<Tree>
-  decreases 0;
+  decreases 0
 {
   SCons(BigTree(), BigTrees())
 }
@@ -34,18 +34,18 @@ ghost function SmallTree(n: nat): Tree
   Node(SmallTrees(n))
 }
 ghost function SmallTrees(n: nat): Stream<Tree>
-  decreases -1;
+  decreases -1
 {
   if n == 0 then SNil else SCons(SmallTree(n-1), SmallTrees(n))
 }
 // prove that the tree returned by SmallTree is finite
 lemma Theorem(n: nat)
-  ensures HasBoundedHeight(SmallTree(n));
+  ensures HasBoundedHeight(SmallTree(n))
 {
   Lemma(n);
 }
 greatest lemma Lemma(n: nat)
-  ensures LowerThan(SmallTrees(n), n);
+  ensures LowerThan(SmallTrees(n), n)
 {
   if 0 < n {
     Lemma(n-1);
