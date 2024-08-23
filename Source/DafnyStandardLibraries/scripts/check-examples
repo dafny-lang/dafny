@@ -268,7 +268,7 @@ do
               fi
               msg=
               if [ "$actualec" != "$ec" ]; then
-                echo EXPECTED EXIT CODE $ec, got $actualec
+                echo EXPECTED EXIT CODE $ec, got "$actualec"
                 FAIL=1
               fi
             else 

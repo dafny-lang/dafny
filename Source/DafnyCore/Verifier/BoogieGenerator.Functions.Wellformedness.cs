@@ -56,6 +56,15 @@ public partial class BoogieGenerator {
           }
         }
       }
+      
+      var selfCall = GetSelfCall(f, etran, procedureParameters);
+      // Enforce 'older' conditions
+      var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, procedureParameters);
+      if (olderParameterCount != 0) {
+        generator.AddEnsures(ens, new Ensures(false, olderCondition) {
+          Description = new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))
+        });
+      }
 
       var proc = new Procedure(f.tok, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
         new List<TypeVariable>(),
@@ -218,12 +227,6 @@ public partial class BoogieGenerator {
             }
           }
 
-          // Enforce 'older' conditions
-          var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, parameters);
-          if (olderParameterCount != 0) {
-            innerBuilder.Add(generator.Assert(f.tok, olderCondition,
-              new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))));
-          }
           innerBuilder.Add(new ReturnCmd(innerBody.Tok));
         }
 
