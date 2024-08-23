@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(stmt.Source.tok, mc.Pat, stmt.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(stmt.Source.tok, mc.Pat, stmt.Source.PreType, false, false, resolutionContext);
 
         DominatingStatementLabels.PushMarker();
         mc.Body.ForEach(ss => ResolveStatementWithLabels(ss, resolutionContext));
@@ -39,7 +39,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(mc, resolutionContext, false);
 
         scope.PushMarker();
-        ResolveExtendedPattern(expr.Source.tok, mc.Pat, expr.Source.PreType, false, resolutionContext);
+        ResolveExtendedPattern(expr.Source.tok, mc.Pat, expr.Source.PreType, false, false, resolutionContext);
 
         ResolveExpression(mc.Body, resolutionContext);
         AddSubtypeConstraint(expr.PreType, mc.Body.PreType, mc.Body.tok,
@@ -69,10 +69,16 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Resolve "pattern" and push onto "scope" all its bound variables.
     /// </summary>
-    public void ResolveExtendedPattern(IToken sourceExprToken, ExtendedPattern pattern, PreType preType, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+    public void ResolveExtendedPattern(IToken sourceExprToken, ExtendedPattern pattern, PreType preType,
+      bool inPattern, bool inDisjunctivePattern, ResolutionContext resolutionContext) {
+
       if (pattern is DisjunctivePattern dp) {
+        if (inPattern) {
+          ReportError(dp.Tok, "Disjunctive patterns are not allowed inside other patterns");
+        }
+
         foreach (var alt in dp.Alternatives) {
-          ResolveExtendedPattern(sourceExprToken, alt, preType, true, resolutionContext);
+          ResolveExtendedPattern(sourceExprToken, alt, preType, true, true, resolutionContext);
         }
         return;
       }
@@ -149,7 +155,7 @@ namespace Microsoft.Dafny {
       var subst = PreType.PreTypeSubstMap(dtd.TypeArgs, dpreType.Arguments);
       for (var i = 0; i < idPattern.Arguments.Count; i++) {
         var argumentPreType = ctor.Formals[i].PreType.Substitute(subst);
-        ResolveExtendedPattern(sourceExprToken, idPattern.Arguments[i], argumentPreType, inDisjunctivePattern, resolutionContext);
+        ResolveExtendedPattern(sourceExprToken, idPattern.Arguments[i], argumentPreType, true, inDisjunctivePattern, resolutionContext);
       }
     }
 
