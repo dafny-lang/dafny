@@ -25,8 +25,8 @@ public interface ITextPointer : IPosition {
     return new FailureResult<T>($"'{LocationDescription}' is not {expected}", this);
   }
 
-  ParseResult<Unit> ParseWithCache(VoidParser parser);
-  ParseResult<T> ParseWithCache<T>(Parser<T> parser);
+  ParseResult<Unit> ParseWithCache(VoidParser parser, string reason);
+  ParseResult<T> ParseWithCache<T>(Parser<T> parser, string reason);
 
   void Ref();
   void UnRef();

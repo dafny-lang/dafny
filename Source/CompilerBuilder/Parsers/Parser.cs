@@ -18,7 +18,7 @@ class IgnoreR<T>(Parser<T> parser) : VoidParser {
   public Parser<T> Parser => parser;
 
   internal override ParseResult<Unit> Parse(ITextPointer text) {
-    return text.ParseWithCache(parser).Continue(
+    return text.ParseWithCache(parser, "ignoreInner").Continue(
       s => new ConcreteSuccess<Unit>(Unit.Instance, s.Remainder));
   }
 }
@@ -70,9 +70,9 @@ public class SequenceR<TLeft, TRight, T>(Parser<TLeft> first, Parser<TRight> sec
   public Parser<TRight> Second { get; set; } = second;
   
   public override ParseResult<T> Parse(ITextPointer text) {
-    var leftResult = text.ParseWithCache(First);
+    var leftResult = text.ParseWithCache(First, "sequenceLeft");
     return leftResult.Continue(leftConcrete => {
-      var rightResult = leftConcrete.Remainder.ParseWithCache(Second);
+      var rightResult = leftConcrete.Remainder.ParseWithCache(Second, "sequenceRight");
       return rightResult.Continue(rightConcrete => {
         var value = combine(leftConcrete.Value, rightConcrete.Value);
         return new ConcreteSuccess<T>(value, rightConcrete.Remainder);
@@ -91,9 +91,9 @@ class ChoiceR<T>(Parser<T> first, Parser<T> second): Parser<T> {
   
   public override ParseResult<T> Parse(ITextPointer text) {
     text.Ref();
-    var firstResult = text.ParseWithCache(First);
+    var firstResult = First.Parse(text);
     text.UnRef();
-    var secondResult = text.ParseWithCache(Second);
+    var secondResult = Second.Parse(text);
     return firstResult.Combine(secondResult);
   }
 }
@@ -122,7 +122,7 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
   
   public override ParseResult<U> Parse(ITextPointer text) {
     var start = text;
-    var innerResult = text.ParseWithCache(Parser);
+    var innerResult = text.ParseWithCache(Parser, "withRange");
     return innerResult.Continue<U>(success => {
       var end = success.Remainder;
       var newValue = map(new ParseRange(start, end), success.Value);
@@ -134,10 +134,14 @@ class WithRangeR<T, U>(Parser<T> parser, Func<ParseRange, T, MapResult<U>> map) 
   }
 }
 
-class SkipLeft<T>(VoidParser left, Parser<T> right) : Parser<T> {
+class SkipLeft<T>(VoidParser first, Parser<T> second) : Parser<T> {
+
+  public VoidParser First { get; set; } = first;
+  public Parser<T> Second { get; set; } = second;
+  
   public override ParseResult<T> Parse(ITextPointer text) {
-    var leftResult = text.ParseWithCache(left);
-    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache(right));
+    var leftResult = text.ParseWithCache(First, "skipLeftLeft");
+    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache(Second, "skipLeftRight"));
   }
 }
 
@@ -147,8 +151,8 @@ class SkipRight<T>(Parser<T> first, VoidParser second) : Parser<T> {
   public VoidParser Second { get; set; } = second;
   
   public override ParseResult<T> Parse(ITextPointer text) {
-    var leftResult = text.ParseWithCache(First);
-    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache(Second).
+    var leftResult = text.ParseWithCache(First, "skipRightLeft");
+    return leftResult.Continue(leftConcrete => leftConcrete.Remainder.ParseWithCache(Second, "skipRightRight").
       Continue(rightSuccess => leftConcrete with { Remainder = rightSuccess.Remainder }));
   }
 }

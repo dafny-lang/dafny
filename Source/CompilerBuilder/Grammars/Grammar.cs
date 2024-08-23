@@ -280,8 +280,8 @@ public static class GrammarExtensions {
       ManyInner(separator.Then(inner, afterSep), beforeSep, "separated"),
       (e, l) => new Cons<T>(e, l), 
       l => l.Fold((head, tail) => (head, tail), () => ((T, SinglyLinkedList<T>)?)null), beforeSep);
-    var llResult = some.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
-    return llResult.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
+    var someOrNone = some.Or(GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()));
+    return someOrNone.Map(e => e.ToList(), l => new LinkedListFromList<T>(l));
   }
   
   public static Grammar<List<T>> Many<T>(this Grammar<T> one, Separator separator = Separator.Space, string debugString = "many") {

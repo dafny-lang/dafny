@@ -1,3 +1,4 @@
+using CompilerBuilder;
 using Microsoft.Dafny;
 using Microsoft.VisualStudio.TestPlatform.Utilities;
 

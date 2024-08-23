@@ -10,7 +10,7 @@ namespace CompilerBuilder;
  * That enable the cache to know when a text pointer is disposed
  * Or maybe we can use the C# dispose mechanic
  */
-class PointerFromString : ITextPointer {
+public class PointerFromString : ITextPointer {
   
   public PointerFromString(string text) {
     Text = text;
@@ -104,10 +104,15 @@ class PointerFromString : ITextPointer {
   private readonly Dictionary<Parser, ParseResult> cache;
   private readonly Dictionary<int, PointerFromString> pointerCache;
 
-  public ParseResult<Unit> ParseWithCache(VoidParser parser) {
+  public static HashSet<string> hitReasons = new();
+  public static HashSet<string> misReasons = new();
+  public ParseResult<Unit> ParseWithCache(VoidParser parser, string reason) {
     if (cache.TryGetValue(parser, out var result)) {
+      hitReasons.Add(reason);
       return (ParseResult<Unit>)result;
     }
+
+    misReasons.Add(reason);
     
     result = parser.Parse(this);
     cache[parser] = result;
@@ -115,10 +120,15 @@ class PointerFromString : ITextPointer {
     return (ParseResult<Unit>)result;
   }
   
-  public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
+  public ParseResult<T> ParseWithCache<T>(Parser<T> parser, string reason) {
     if (cache.TryGetValue(parser, out var result)) {
+      hitReasons.Add(reason);
+      if (reason == "sequenceRight") {
+        var d = 3;
+      }
       return (ParseResult<T>)result;
     }
+    misReasons.Add(reason);
     
     result = parser.Parse(this);
     cache[parser] = result;

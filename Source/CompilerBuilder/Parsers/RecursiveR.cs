@@ -32,11 +32,11 @@ class DeadPointer : ITextPointer {
     return ReadOnlySpan<char>.Empty;
   }
 
-  public ParseResult<Unit> ParseWithCache(VoidParser parser) {
+  public ParseResult<Unit> ParseWithCache(VoidParser parser, string reason) {
     return parser.Parse(this);
   }
 
-  public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
+  public ParseResult<T> ParseWithCache<T>(Parser<T> parser, string reason) {
     return parser.Parse(this);
   }
 
@@ -112,12 +112,12 @@ class RecursiveR<T>(Func<Parser<T>> get, string debugName) : Parser<T> {
     }
 
     if (leftRecursion == null) {
-      return text.ParseWithCache(Inner);
+      return Inner.Parse(text);
     }
 
     enteredStack.Value = new Cons<int>(text.Offset, startingStack!);
     // TODO caching here seems pointless
-    var seedResult = text.ParseWithCache(Inner);
+    var seedResult = Inner.Parse(text);
     enteredStack.Value = startingStack;
     if (seedResult.Success == null) {
       return seedResult;
