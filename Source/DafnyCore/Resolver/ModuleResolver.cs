@@ -1524,6 +1524,17 @@ namespace Microsoft.Dafny {
         }
       }
 
+      foreach (var member in ModuleDefinition.AllMembers(declarations)) {
+        if (member.HasUserAttribute("only", out var attribute)) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.RangeToken.ToToken(),
+            "Members with {:only} temporarily disable the verification of other members in the entire file");
+          if (attribute.Args.Count >= 1) {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].RangeToken.ToToken(),
+              "{:only} on members does not support arguments");
+          }
+        }
+      }
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that class constructors are called when required.
         new ObjectConstructorChecker(reporter).VisitDeclarations(declarations);
