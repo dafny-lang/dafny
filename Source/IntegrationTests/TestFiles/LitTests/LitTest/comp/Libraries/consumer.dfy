@@ -1,4 +1,4 @@
-// RUN: %translate cs --allow-warnings --library "%S/Inputs/directLibrary.dfy" --library "%S/Inputs/secondLibrary.dfy" "%s" > "%t"
+// RUN: %translate cs --use-basename-for-filename --allow-warnings --library "%S/Inputs/directLibrary.dfy" --library "%S/Inputs/secondLibrary.dfy" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck "%s" --file-to-check="%S/consumer.cs"
 // CHECK: GloballyUniqueProducer
