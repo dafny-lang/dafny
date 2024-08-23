@@ -182,16 +182,18 @@ namespace Microsoft.Dafny.Compilers {
         case ExpectStmt expectStmt: {
             // TODO there's potential here to use target-language specific features such as exceptions
             // to make it more target-language idiomatic and improve performance
+            // For now, this code prints nicely only in the Rust code generator until we make it work for every code generator
+            var specialExpectEqualHandling = Options.Backend.TargetId == "rs";
             if (
-              Options.Get(CommonOptionBag.Verbose) &&
+              specialExpectEqualHandling &&
               expectStmt.Expr is BinaryExpr { Op: BinaryExpr.Opcode.Eq, ResolvedOp: var resolvedOp, E0: var e0, E1: var e1 }) {
               // If it finds "expect a == b", it will rewrite the code to
               // var _e0 = a;
               // var _e1 = b;
               // if _e0 != _e1 {
-              //   print "Left:"
+              //   print "\nLeft:\n"
               //   print _e0;
-              //   print "Right:"
+              //   print "\nRight:\n"
               //   print _e1;
               //   <Halt statement>
               // }
@@ -221,9 +223,13 @@ namespace Microsoft.Dafny.Compilers {
                 Type = Type.Bool
               };
               EmitExpr(negated, false, guardWriter, wStmts);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, "Left:\\n", false) { Type = Type.String() });
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e0.tok, @"\nLeft:\n", false) {
+                Type = new SeqType(new CharType())
+              });
               EmitPrintStmt(bodyWriter, e0Ident);
-              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, "Right:\\n", false) { Type = Type.String() });
+              EmitPrintStmt(bodyWriter, new StringLiteralExpr(e1.tok, @"\nRight:\n", false) {
+                Type = new SeqType(new CharType())
+              });
               EmitPrintStmt(bodyWriter, e1Ident);
 
               EmitHalt(expectStmt.Tok, expectStmt.Message, bodyWriter);

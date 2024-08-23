@@ -1,6 +1,9 @@
-// NONUNIFORM: Temporary development of the Rust compiler
+// NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// Checks that, despite module B being prefixed with A, there will be a "mod B" somewhere
+// and not an encoding like "mod A_B".
+// This module will automatically be in mod A and referred to as "A::B"
 // RUN: %OutputCheck --file-to-check "%S/nestedmodules-rust/src/nestedmodules.rs" "%S/nestedmodules.check"
 
 module A.B {

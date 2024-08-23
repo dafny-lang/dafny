@@ -88,7 +88,7 @@ update-cs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module)
 
 update-rs-module:
-	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module-rs)
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeRust; make update-system-module)
 
 update-go-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)

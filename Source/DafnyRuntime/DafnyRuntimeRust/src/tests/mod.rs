@@ -182,7 +182,7 @@ mod tests {
         assert!(!(t != s));
 
         let s = multiset! {55, 56, 57, 58, 59};
-        let s = multiset! {55, 56, 57, 58, 58};
+        let t = multiset! {55, 56, 57, 58, 58};
         assert!(s != t);
         assert!(t != s);
 
@@ -857,5 +857,22 @@ mod tests {
             crate::dafny_runtime_conversions::object::dafny_class_to_struct(x)
         };
         assert_eq!(s2.message, "Hello, World!");
+    }
+
+    fn object_borrower(c: &Object<dyn SuperTrait>) {
+        //let scnt = std::rc::Rc::strong_count(&c.0.as_ref().unwrap());
+        //println!("Strong count: {}", scnt);
+    }
+
+    #[test]
+    fn problematic_case() {
+        let mut c: Object<NodeRcMut> = allocate_object::<NodeRcMut>();
+        NodeRcMut::_ctor(c.clone(), int!(53));
+        let scnt = std::rc::Rc::strong_count(&c.0.as_ref().unwrap());
+        println!("Strong count: {}", scnt);
+        object_borrower(&upcast_object::<NodeRcMut, dyn SuperTrait>()(c.clone()));
+        let scnt = std::rc::Rc::strong_count(&c.0.as_ref().unwrap());
+        println!("Strong count: {}", scnt);
+        assert!(false);
     }
 }

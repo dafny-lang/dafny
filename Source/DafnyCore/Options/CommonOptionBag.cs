@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -197,9 +198,9 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
   };
 
   public static readonly Option<bool> RawPointers = new("--raw-pointers", () => false,
-    @"
+    @"(backend-specific: Rust)
 false - All class instances are reference-counted or garbage collected
-true - All class instances are raw pointers and need to be manually deallocated".TrimStart()) {
+true - All class instances are raw pointers and need to be manually deallocated") {
     IsHidden = true
   };
 
@@ -569,6 +570,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
       options.ShowProofObligationExpressions = value;
+    });
+
+    DafnyOptions.RegisterLegacyBinding(RawPointers, (options, value) => {
+      if (options.Backend.TargetId != "rs") {
+        Console.Error.WriteLine("Error:  --raw-pointers can only be used after --target:rs or -t:rs");
+        System.Environment.Exit(1);
+      }
     });
 
     OptionRegistry.RegisterGlobalOption(UnicodeCharacters, OptionCompatibility.CheckOptionMatches);

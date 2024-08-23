@@ -52,6 +52,9 @@ For maximum flexibility, Dafny follows these rules to encode types in Rust:
 
 For each construct, the third column indicates if it's in the Dafny runtime, is native built-in in Rust, or is a Rust crate.
 If runtime, it also indicates in parentheses what it is roughly equivalent to. `[[U]]` notation indicates the Rust equivalent of the Dafny type `U`.
+The exact runtime types are subject to change, and code that is not Dafny-generated should not rely on those details.
+
+For guaranteed stability, code interfacting with Dafny structures should use types and conversions from `pub mod dafny_runtime_conversions`, such as `::dafny_runtime::dafny_runtime_conversions::DafnySequence<T>` and `::dafny_runtime::dafny_runtime_conversions::vec_to_dafny_sequence(array: &Vec<X>, elem_converter: fn(&X) -> T) -> DafnySequence<T>` for example.
 
 |  Dafny type                   |   Rust type                 | Defined in       |
 |-------------------------------|-----------------------------|------------------|
@@ -69,10 +72,10 @@ If runtime, it also indicates in parentheses what it is roughly equivalent to. `
 | `newtype T = u: int | <range>`| `u8` ... `i128`             | Native           |
 | `ORDINAL`                     | N/A                         | TODO             |
 | `real`                        | Partially supported         | TODO             |
-| `seq<T>`                      | `Sequence<[[T]]>           `| Runtime (`enum`, either Array or Concat) |
-| `set<T>`, `iset<T>`           | `Set<[[T]]>`                | Runtime (`HashSet`) |
-| `multiset<T>`                 | `Multiset<[[T]]>`           | Runtime (`HashMap<[[T]], DafnyInt>`) |
-| `map<T>`, `imap<T>`           | `Map<[[T]]>`                | Runtime (`HashMap`) |
+| `seq<T>`                      | `Sequence<[[T]]>           `| Runtime |
+| `set<T>`, `iset<T>`           | `Set<[[T]]>`                | Runtime |
+| `multiset<T>`                 | `Multiset<[[T]]>`           | Runtime |
+| `map<T>`, `imap<T>`           | `Map<[[T]]>`                | Runtime |
 | `string`                      | `DafnyString`           | Runtime (`Sequence<DafnyCharUTF16>`) |
 | `string` (`--unicode-chars=false`)| `DafnyStringUTF16`      | Runtime (`Sequence<DafnyCharUTF16>`) |
 | (co)datatype `D`              | `std::rc::Rc<D>`            | Native wrapped struct |

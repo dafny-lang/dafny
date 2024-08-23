@@ -1,4 +1,4 @@
-// NONUNIFORM: Temporary development of the Rust compiler
+// NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // RUN: %OutputCheck --file-to-check "%S/subsetconstraints-rust/src/subsetconstraints.rs" "%S/subsetconstraints.check"

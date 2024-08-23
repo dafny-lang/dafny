@@ -75,4 +75,4 @@ jobs:
       - name: Test DafnyRuntimeRust
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeRust
-          cargo test
+          make all

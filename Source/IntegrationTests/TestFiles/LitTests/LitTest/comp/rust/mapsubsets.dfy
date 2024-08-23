@@ -1,4 +1,4 @@
-// NONUNIFORM: Temporary development of the Rust compiler
+// NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs --unicode-char=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
