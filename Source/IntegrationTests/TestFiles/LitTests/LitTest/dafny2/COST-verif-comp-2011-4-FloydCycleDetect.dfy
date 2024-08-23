@@ -153,7 +153,7 @@ class Node {
 
   method Cyclic(ghost S: set<Node?>) returns (reachesCycle: bool)
     requires IsClosed(S)
-    ensures reachesCycle <==> exists n :: Reaches(n, S) && n.next != null && n.next.Reaches(n, S)
+    ensures reachesCycle <==> exists n: Node :: Reaches(n, S) && n.next != null && n.next.Reaches(n, S)
   {
     ghost var A, B := AnalyzeList(S);
     var tortoise, hare:= this, next;
