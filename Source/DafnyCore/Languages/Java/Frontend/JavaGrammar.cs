@@ -24,7 +24,7 @@ public class JavaGrammar {
   private Grammar<ApplySuffix> call;
   private readonly Grammar<AttributedExpression> attributedExpression;
 
-  private readonly ISet<string> keywords = new HashSet<string>() { "return" };
+  private readonly ISet<string> keywords = new HashSet<string> { "return", "true", "false" };
   private readonly Grammar<string> identifier;
 
   public JavaGrammar(Uri uri, DafnyOptions options) {

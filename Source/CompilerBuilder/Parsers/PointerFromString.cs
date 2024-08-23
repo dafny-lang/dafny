@@ -115,14 +115,6 @@ class PointerFromString : ITextPointer {
     return (ParseResult<Unit>)result;
   }
   
-  public ParseResult<Unit> ParseWithCache2(VoidParser parser) {
-    return ParseWithCache(parser);
-  }
-
-  public ParseResult<T> ParseWithCache2<T>(Parser<T> parser) {
-    return ParseWithCache(parser);
-  }
-  
   public ParseResult<T> ParseWithCache<T>(Parser<T> parser) {
     if (cache.TryGetValue(parser, out var result)) {
       return (ParseResult<T>)result;
