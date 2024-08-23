@@ -251,7 +251,7 @@ module Std.Unicode.Utf8EncodingForm refines UnicodeEncodingForm {
     assert EncodeScalarValueQuadrupleByte(r)[0] == m[0];
     assert EncodeScalarValueQuadrupleByte(r)[1] == m[1];
     assert EncodeScalarValueQuadrupleByte(r)[2] == m[2];
-    assert EncodeScalarValueQuadrupleByte(r)[3] == m[3]; 
+    assert EncodeScalarValueQuadrupleByte(r)[3] == m[3];
     r
   }
 }
