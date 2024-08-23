@@ -573,7 +573,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     });
 
     DafnyOptions.RegisterLegacyBinding(RawPointers, (options, value) => {
-      if (value && options.Backend.TargetId != "rs") {
+      if (value && options.Get(CommonOptionBag.Target) != "rs") {
         Console.Error.WriteLine("Error:  --raw-pointers can only be used after --target:rs or -t:rs");
         System.Environment.Exit(1);
       }
