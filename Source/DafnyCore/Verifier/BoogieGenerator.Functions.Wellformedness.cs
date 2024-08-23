@@ -61,7 +61,7 @@ public partial class BoogieGenerator {
       // Enforce 'older' conditions
       var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, procedureParameters);
       if (olderParameterCount != 0) {
-        generator.AddEnsures(ens, new Ensures(false, olderCondition) {
+        generator.AddEnsures(ens, new Ensures(f.tok, false, olderCondition, null) {
           Description = new PODesc.IsOlderProofObligation(olderParameterCount, f.Ins.Count + (f.IsStatic ? 0 : 1))
         });
       }
