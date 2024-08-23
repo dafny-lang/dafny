@@ -56,7 +56,7 @@ public partial class BoogieGenerator {
           }
         }
       }
-      
+
       var selfCall = GetSelfCall(f, etran, procedureParameters);
       // Enforce 'older' conditions
       var (olderParameterCount, olderCondition) = generator.OlderCondition(f, selfCall, procedureParameters);

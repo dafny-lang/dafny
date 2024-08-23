@@ -400,7 +400,8 @@ namespace Microsoft.Dafny {
           Contract.Assert(pat.Expr.Type != null);
           var bResult = etran.TrExpr(result);
           CheckSubrange(result.tok, bResult, rhs.Type, pat.Expr.Type, rhs, returnBuilder);
-          returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs, e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
+          returnBuilder.Add(TrAssumeCmdWithDependenciesAndExtend(etran, rhs.tok, rhs,
+            e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
         }
 
         CheckWellformedWithResult(rhs, new WFOptions(null, false, false), locals, builder, etran, AddResultCommands);
@@ -2644,9 +2645,6 @@ namespace Microsoft.Dafny {
               returnBuilder.Add(Assert(result.Tok, cre, desc));
             }
           });
-        if (cre != null) {
-          builder.Add(new AssumeCmd(tok, cre));
-        }
 
         if (bGivenLhs != null) {
           Contract.Assert(bGivenLhs == bLhs);
