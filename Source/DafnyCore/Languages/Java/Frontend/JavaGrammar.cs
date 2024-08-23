@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Numerics;
 using CompilerBuilder;
 using CompilerBuilder.Grammars;
@@ -225,7 +226,7 @@ public class JavaGrammar {
     
     var oneLiteral = Expression.CreateIntLiteral(Token.NoToken, 1);
 
-    var incrementStatement = expression.Then("++").Then(";").Map(
+    var incrementStatement = expression.Then("++", Separator.Nothing).Then(";", Separator.Nothing).Map(
       (t, e) => new UpdateStmt(Convert(t), [e], [new ExprRhs(new BinaryExpr(ConvertToken(t),
         BinaryExpr.Opcode.Add, e, oneLiteral)) {
         tok = Convert(t.From)
@@ -319,22 +320,30 @@ public class JavaGrammar {
       Map((t, b) => new ActualBindings(b) {
         RangeToken = Convert(t)
       }, a => a.ArgumentBindings);
+
+    Grammar<T> SpecificMethodCall<T>(string name, Func<T> constructor, Expression<Func<T, Expression>> bodyGetter, 
+      Expression<Func<T, Expression>> firstArgument) where T : TokenNode {
+      return self.Assign(constructor, bodyGetter).
+        Then(".", Separator.Nothing).Then(name, Separator.Nothing).
+        Then(self.InParens(), firstArgument, Separator.Nothing).
+        FinishTokenNode(uri);
+    }
+
+    var drop = SpecificMethodCall("drop", () => new SeqSelectExpr(false),
+      s => s.Seq,
+      s => s.E0);
+
+    var take = SpecificMethodCall("take", () => new SeqSelectExpr(false),
+      s => s.Seq,
+      s => s.E1);
     
-    var drop = self.Assign(() => new SeqSelectExpr(false), s => s.Seq).
-      Then(".").Then("drop")
-      .Then(self.InParens(), s => s.E0).
-      FinishTokenNode(uri);
-    var take = self.Assign(() => new SeqSelectExpr(false), s => s.Seq).
-      Then(".").Then("take").
-      Then(self.InParens(), s => s.E1).
-      FinishTokenNode(uri);
-    var get = self.Assign(() => new SeqSelectExpr(true), s => s.Seq).
-      Then(".").Then("get").
-      Then(self.InParens(), s => s.E0).
-      FinishTokenNode(uri);
+    var get = SpecificMethodCall("take", () => new SeqSelectExpr(true),
+      s => s.Seq,
+      s => s.E0);
+    
     var length = self.Assign(() => new UnaryOpExpr(UnaryOpExpr.Opcode.Cardinality), s => s.E).
-      Then(".").Then("size").
-      Then("(").Then(")").
+      Then(".", Separator.Nothing).Then("size", Separator.Nothing).
+      Then(Empty.InParens(), Separator.Nothing).
       FinishTokenNode(uri);
     
     var callResult = self.Assign(() => new ApplySuffix(), s => s.Lhs)
@@ -342,8 +351,8 @@ public class JavaGrammar {
       FinishTokenNode(uri);
 
     var exprDotName = self.Assign(() => new ExprDotName(), c => c.Lhs).
-      Then(".").
-      Then(identifier, c => c.SuffixName).
+      Then(".", Separator.Nothing).
+      Then(identifier, c => c.SuffixName, Separator.Nothing).
       FinishTokenNode(uri);
     
     var lambdaParameter = Constructor<BoundVar>().
@@ -363,7 +372,7 @@ public class JavaGrammar {
       (r, c) => new CharLiteralExpr(ConvertToken(r), c),
       e => (string)e.Value);
 
-    var parenthesis = Keyword("(").Then(self).Then(")").Map(
+    var parenthesis = self.InParens().Map(
       (t, e) => new ParensExpression(ConvertToken(t), e),
       p => p.E);
 
@@ -393,7 +402,7 @@ public class JavaGrammar {
     var downcast = Recursive<Expression>(castSelf => {
       var cast = Constructor<ConversionExpr>().
         Then(type.InParens(), c => c.ToType).
-        Then(castSelf, c => c.E);
+        Then(castSelf, c => c.E, Separator.Nothing);
       return unary.OrCast(cast);
     }, "cast");
     

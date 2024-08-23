@@ -252,6 +252,10 @@ public static class GrammarExtensions {
     return new Choice<T>(grammar, other);
   }
   
+  public static VoidGrammar InParens(this VoidGrammar grammar) {
+    return GrammarBuilder.Keyword("(").Then(grammar, Separator.Nothing).Then(")", Separator.Nothing);
+  }  
+  
   public static Grammar<T> InParens<T>(this Grammar<T> grammar) {
     return GrammarBuilder.Keyword("(").Then(grammar, Separator.Nothing).Then(")", Separator.Nothing);
   }  
@@ -261,12 +265,16 @@ public static class GrammarExtensions {
     return GrammarBuilder.Keyword("{").Then(inner, Separator.Linebreak).Then("}", Separator.Linebreak);
   }  
   
-  public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Separator mode = Separator.Space) {
-    return new SkipRightG<T>(left, right, mode);
+  public static Grammar<T> Then<T>(this Grammar<T> left, VoidGrammar right, Separator separator = Separator.Space) {
+    return new SkipRightG<T>(left, right, separator);
   }  
   
-  public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Separator mode = Separator.Space) {
-    return new SkipLeftG<T>(left, right, mode);
+  public static VoidGrammar Then(this VoidGrammar left, VoidGrammar right, Separator separator = Separator.Space) {
+    return new NeitherG(left, right, separator);
+  }
+  
+  public static Grammar<T> Then<T>(this VoidGrammar left, Grammar<T> right, Separator separator = Separator.Space) {
+    return new SkipLeftG<T>(left, right, separator);
   }
   
   public static Grammar<List<T>> CommaSeparated<T>(this Grammar<T> inner) {
@@ -487,6 +495,7 @@ public static class GrammarBuilder {
   public static Grammar<bool> Modifier(string keyword) => new TextG(keyword).Then(Constant(true)).Or(Constant(false));
   
   public static Grammar<T> Fail<T>(string expectation) => new Fail<T>(expectation);
+  public static readonly VoidGrammar Empty = new EmptyG();
   public static readonly Grammar<string> Identifier = new IdentifierG();
   public static readonly Grammar<int> Number = new NumberG();
   public static readonly Grammar<string> CharInSingleQuotes = new ExplicitGrammar<string>(ParserBuilder.CharInSingleQuotes, 
@@ -498,4 +507,16 @@ public static class GrammarBuilder {
   
   public static readonly Grammar<IPosition> Position = 
     new ExplicitGrammar<IPosition>(PositionR.Instance, new IgnoreW<IPosition>(EmptyW.Instance));
+}
+
+public class EmptyG : VoidGrammar {
+  public override VoidPrinter ToPrinter(Func<Grammar, Printer> recurse) {
+    return EmptyW.Instance;
+  }
+
+  public override VoidParser ToParser(Func<Grammar, Parser> recurse) {
+    return EmptyR.Instance;
+  }
+
+  public override IEnumerable<Grammar> Children => [];
 }

@@ -14,6 +14,23 @@ public abstract class VoidParser : Parser {
   internal abstract ParseResult<Unit> Parse(ITextPointer text);
 }
 
+class NeitherR(VoidParser left, VoidParser right) : VoidParser {
+  internal override ParseResult<Unit> Parse(ITextPointer text) {
+    return text.ParseWithCache(left, "neitherLeft").
+      Continue(r => r.Remainder.ParseWithCache(right, "neitherRight"));
+  }
+}
+
+class EmptyR : VoidParser {
+  public static readonly EmptyR Instance = new();
+
+  private EmptyR() { }
+
+  internal override ParseResult<Unit> Parse(ITextPointer text) {
+    return new ConcreteSuccess<Unit>(Unit.Instance, text);
+  }
+}
+
 class IgnoreR<T>(Parser<T> parser) : VoidParser {
   public Parser<T> Parser => parser;
 

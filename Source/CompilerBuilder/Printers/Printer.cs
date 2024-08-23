@@ -166,6 +166,12 @@ class SkipRightW<T>(Printer<T> first, VoidPrinter second, Separator separator) :
   }
 }
 
+class NeitherW(VoidPrinter first, VoidPrinter second, Separator separator) : VoidPrinter {
+  public Document Print() {
+    return first.Print().Then(second.Print(), separator);
+  }
+}
+
 public static class PrinterExtensions {
   public static Printer<U> Map<T, U>(this Printer<T> printer, Func<U, MapResult<T>> map) {
     return new OptionMapW<T, U>(printer, map);

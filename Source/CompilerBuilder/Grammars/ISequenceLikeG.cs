@@ -77,6 +77,37 @@ class SkipLeftG<T>(VoidGrammar first, Grammar<T> second, Separator mode = Separa
   public override IEnumerable<Grammar> Children => [First, Second];
 }
 
+class NeitherG(VoidGrammar first, VoidGrammar second, Separator separator = Separator.Space) : VoidGrammar, ISequenceLikeG {
+  public Type FirstType => typeof(Unit);
+  public Type SecondType => typeof(Unit);
+  public Type Type => typeof(Unit);
+  Grammar ISequenceLikeG.First {
+    get => First;
+    set => First = (VoidGrammar)value;
+  }
+
+  Grammar ISequenceLikeG.Second {
+    get => Second;
+    set => Second = (VoidGrammar)value;
+  }
+
+  public Separator Mode { get; set; }
+  public VoidGrammar First { get; set; } = first;
+  public VoidGrammar Second { get; set; } = second;
+
+  public override VoidPrinter ToPrinter(Func<Grammar, Printer> recurse) {
+    var first = (VoidPrinter)recurse(First);
+    var second = (VoidPrinter)recurse(Second);
+    return new NeitherW(first, second, separator);
+  }
+
+  public override VoidParser ToParser(Func<Grammar, Parser> recurse) {
+    return new NeitherR((VoidParser)recurse(First), (VoidParser)recurse(Second));
+  }
+
+  public override IEnumerable<Grammar> Children => [First, Second];
+}
+
 class SkipRightG<T>(Grammar<T> first, VoidGrammar second, Separator mode = Separator.Space) : Grammar<T>, ISequenceLikeG {
   public Type FirstType => typeof(T);
   public Type SecondType => typeof(Unit);
