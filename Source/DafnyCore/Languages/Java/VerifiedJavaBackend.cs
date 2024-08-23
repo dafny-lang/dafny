@@ -34,7 +34,7 @@ public class VerifiedJavaBackend : JavaBackend {
       fileModuleDefinition.SourceDecls.AddRange(
         afterParsing.DefaultModuleDef.SourceDecls.Where(td => !td.IsExtern(afterParsing.Options)));
       var outputStringWriter = new StringWriter();
-      grammar.ToPrinter().Print(fileModuleDefinition)!.Render(outputStringWriter);
+      grammar.ToPrinter().Print(fileModuleDefinition).ForceSuccess.Render(outputStringWriter);
       output.Write(outputStringWriter.ToString());
     }
 

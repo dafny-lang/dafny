@@ -101,32 +101,32 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return new LiteralExpr(cloner, this);
   }
 
-  // protected bool Equals(LiteralExpr other)
-  // {
-  //   return Equals(Value, other.Value);
-  // }
-  //
-  // public override bool Equals(object obj)
-  // {
-  //   if (ReferenceEquals(null, obj)) {
-  //     return false;
-  //   }
-  //
-  //   if (ReferenceEquals(this, obj)) {
-  //     return true;
-  //   }
-  //
-  //   if (obj.GetType() != this.GetType()) {
-  //     return false;
-  //   }
-  //
-  //   return Equals((LiteralExpr)obj);
-  // }
-  //
-  // public override int GetHashCode()
-  // {
-  //   return (Value != null ? Value.GetHashCode() : 0);
-  // }
+  protected bool Equals(LiteralExpr other)
+  {
+    return Equals(Value, other.Value);
+  }
+  
+  public override bool Equals(object obj)
+  {
+    if (ReferenceEquals(null, obj)) {
+      return false;
+    }
+  
+    if (ReferenceEquals(this, obj)) {
+      return true;
+    }
+  
+    if (obj.GetType() != this.GetType()) {
+      return false;
+    }
+  
+    return Equals((LiteralExpr)obj);
+  }
+  
+  public override int GetHashCode()
+  {
+    return (Value != null ? Value.GetHashCode() : 0);
+  }
 }
 
 public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {

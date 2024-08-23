@@ -82,6 +82,6 @@ class Fib {
     var cloner = new Cloner();
     var cloned = new FileModuleDefinition(cloner, parseResult.ForceSuccess.Value);
     var printer = programGrammar.ToPrinter();
-    var s = printer.Print(cloned)!.RenderAsString();
+    var s = printer.Print(cloned).ForceSuccess.RenderAsString();
   }
 }

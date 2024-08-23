@@ -302,7 +302,7 @@ public static class GrammarExtensions {
   private static Grammar<SinglyLinkedList<T>> ManyLinkedList<T>(Grammar<T> one, Separator separator, string debugString)
   {
     return GrammarBuilder.Recursive<SinglyLinkedList<T>>(self => 
-      new Constructor<SinglyLinkedList<T>>(() => new Nil<T>()).Or(one.Then(self, 
+      GrammarBuilder.Constant<SinglyLinkedList<T>>(new Nil<T>()).Or(one.Then(self, 
         
         (head, tail) => (SinglyLinkedList<T>)new Cons<T>(head, tail),
         // Reading the code, it seems that l.Skip checks if l is a list, and if so does the optimal thing

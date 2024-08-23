@@ -14,6 +14,7 @@ public interface Document {
   // TODO make internal
   public void Render(int desiredWidth, IndentationWriter writer);
   public bool IsEmpty { get; }
+  public int Size { get; }
 
   public Document Indent(int amount) {
     return this is Empty ? this : new IndentD(this, amount);
@@ -38,6 +39,7 @@ record Verbatim(string Value) : Document {
   }
 
   public bool IsEmpty => !Value.Any();
+  public int Size => Value.Length;
 }
 
 record IndentD(Document Inner, int Amount) : Document {
@@ -48,13 +50,19 @@ record IndentD(Document Inner, int Amount) : Document {
   }
 
   public bool IsEmpty => Inner.IsEmpty;
+  public int Size => Inner.Size;
 }
 
 record Empty : Document {
+  public static readonly Document Instance = new Empty();
+
+  private Empty() { }
+
   public void Render(int desiredWidth, IndentationWriter writer) {
   }
 
   public bool IsEmpty => true;
+  public int Size => 0;
 }
 
 public enum Separator {
@@ -121,4 +129,5 @@ record SequenceD(Document Left, Document Right, Separator Separator) : Document 
   }
 
   public bool IsEmpty => Left.IsEmpty && Right.IsEmpty;
+  public int Size { get; } = Left.Size + Right.Size;
 }
