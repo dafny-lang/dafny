@@ -371,8 +371,10 @@ namespace Microsoft.Dafny {
             (UnaryOpExpr.Opcode.Fresh, _) => UnaryOpExpr.ResolvedOpcode.Fresh,
             (UnaryOpExpr.Opcode.Allocated, _) => UnaryOpExpr.ResolvedOpcode.Allocated,
             (UnaryOpExpr.Opcode.Lit, _) => UnaryOpExpr.ResolvedOpcode.Lit,
+            (UnaryOpExpr.Opcode.Assigned, _) => UnaryOpExpr.ResolvedOpcode.Assigned,
             _ => UnaryOpExpr.ResolvedOpcode.YetUndetermined // Unreachable
           };
+          Contract.Assert(resolvedOp != UnaryOpExpr.ResolvedOpcode.YetUndetermined);
           if (uop.Op == UnaryOpExpr.Opcode.Not && PreTypeResolver.IsBitvectorName(familyDeclName)) {
             resolvedOp = UnaryOpExpr.ResolvedOpcode.BVNot;
           }
