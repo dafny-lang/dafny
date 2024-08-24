@@ -1160,7 +1160,11 @@ public partial class BoogieGenerator {
     } else if (fromType is CollectionType && toType is CollectionType) {
       // the Boogie representation of collection types is the same for all element types
       return r;
-    } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
+    } else if (fromType.IsArrowType && toType.IsArrowType) {
+      // the Boogie representation of arrow types (of the same arity) is the same for all argument types
+      Contract.Assert(fromType.AsArrowType.Arity == toType.AsArrowType.Arity);
+      return r;
+    } else if (fromType.Equals(toType, true) || fromType.AsNewtype != null || toType.AsNewtype != null) {
       return r;
     } else {
       Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
@@ -1216,11 +1220,7 @@ public partial class BoogieGenerator {
     Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
                     fromType.IsRefType == toType.IsRefType ||
                     (fromType.IsTypeParameter && toType.IsTraitType));
-    if (toType.IsRefType) {
-      PutSourceIntoLocal();
-      CheckSubrange(tok, o, fromType, toType, expr, builder, errorMsgPrefix);
-      return;
-    } else if (fromType.IsTraitType) {
+    if (toType.IsRefType || fromType.IsTraitType || toType.IsArrowType) {
       PutSourceIntoLocal();
       CheckSubrange(tok, o, fromType, toType, expr, builder, errorMsgPrefix);
       return;
