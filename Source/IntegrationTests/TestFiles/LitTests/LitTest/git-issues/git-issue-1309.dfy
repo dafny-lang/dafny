@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %baredafny verify --allow-axioms --show-snippets:false --use-basename-for-filename "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Example for Issue 1309 -- not yet fixed
@@ -12,7 +12,6 @@ module A {
 module B {
   module C {
     datatype Option<T> = None | Some(x : T)
-
   }
 }
 
@@ -21,6 +20,6 @@ module D {
   import B
 
   lemma Bad(x: int)
-  ensures A.C.Some(x) == B.C.Some(x)
+    ensures A.C.Some(x) == B.C.Some(x) // error, but gives a confusing error message
 }
 

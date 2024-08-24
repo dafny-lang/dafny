@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %run "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-trait H<Y> { var data: Y }
+trait H<Y> extends object { var data: Y }
 class K extends H<int> { }
 
 type Singleton = ()

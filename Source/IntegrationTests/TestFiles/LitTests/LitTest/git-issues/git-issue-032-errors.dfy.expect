@@ -1,7 +1,7 @@
-git-issue-032-errors.dfy(8,17): Error: the case pattern is a 0-element tuple, while the match expression is a 2-element tuple
-git-issue-032-errors.dfy(9,17): Error: the case pattern is a 2-element tuple, while the match expression is a 0-element tuple
-git-issue-032-errors.dfy(10,18): Error: the case pattern is a 2-element tuple, while the match expression is a 0-element tuple
-git-issue-032-errors.dfy(11,26): Error: the case pattern is a 0-element tuple, while the match expression is a 2-element tuple
-git-issue-032-errors.dfy(12,26): Error: the case pattern is a 2-element tuple, while the match expression is a 0-element tuple
-git-issue-032-errors.dfy(13,27): Error: the case pattern is a 2-element tuple, while the match expression is a 0-element tuple
+git-issue-032-errors.dfy(8,17): Error: tuple type does not match type '(int, int)'
+git-issue-032-errors.dfy(9,17): Error: tuple type does not match type '()'
+git-issue-032-errors.dfy(10,18): Error: tuple type does not match type '()'
+git-issue-032-errors.dfy(11,26): Error: tuple type does not match type '(int, int)'
+git-issue-032-errors.dfy(12,26): Error: tuple type does not match type '()'
+git-issue-032-errors.dfy(13,27): Error: tuple type does not match type '()'
 6 resolution/type errors detected in git-issue-032-errors.dfy

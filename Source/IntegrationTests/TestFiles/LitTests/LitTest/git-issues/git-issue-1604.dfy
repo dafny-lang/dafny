@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachCompiler "%s"
 
-trait Tr { }
+trait Tr extends object { }
 class A extends Tr { }
 class B extends Tr { }
 
@@ -11,7 +11,7 @@ ghost predicate SpecialA(a: A)
 type Ap  = x : A | SpecialA(x) witness *
 
 function testSpecial(x: Tr): bool
-  requires x is A && SpecialA(x)
+  requires x is A && SpecialA(x as A)
 {
   1/0 == 0
 }
