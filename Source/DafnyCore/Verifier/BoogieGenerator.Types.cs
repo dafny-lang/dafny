@@ -1157,19 +1157,16 @@ public partial class BoogieGenerator {
       return UnboxUnlessInherentlyBoxed(r, toType);
     } else if (fromType.IsSubtypeOf(toType, false, false)) {
       return AdaptBoxing(r.tok, r, fromType, toType);
-    } else if (fromType is CollectionType && toType is CollectionType) {
-      // the Boogie representation of collection types is the same for all element types
-      return r;
-    } else if (fromType.IsArrowType && toType.IsArrowType) {
-      // the Boogie representation of arrow types (of the same arity) is the same for all argument types
-      Contract.Assert(fromType.AsArrowType.Arity == toType.AsArrowType.Arity);
-      return r;
-    } else if (fromType.Equals(toType, true) || fromType.AsNewtype != null || toType.AsNewtype != null) {
-      return r;
     } else {
-      Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+      // In all other legal cases, the representations of "fromType" and "toType" are the same.
+      // The following assertion shows which cases we expect.
+      Contract.Assert(
+        Type.SameHead(fromType, toType) ||
+        fromType.AsNewtype != null ||
+        toType.AsNewtype != null
+      );
+      return r;
     }
-    return r;
   }
 
   private Bpl.Expr IntToBV(IToken tok, Bpl.Expr r, Type toType) {
