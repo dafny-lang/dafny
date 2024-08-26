@@ -133,7 +133,6 @@ public static class PreType2TypeUtil {
       if ((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass) {
         Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
         for (var i = 0; i < type.TypeArgs.Count; i++) {
-          // TODO: the following should take variance into consideration
           Combine(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
         }
       } else {
