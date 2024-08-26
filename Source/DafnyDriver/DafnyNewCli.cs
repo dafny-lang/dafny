@@ -109,9 +109,6 @@ public static class DafnyNewCli {
       }
 
       ProcessOption(context, DafnyProject.FindProjectOption, dafnyOptions);
-      if (dafnyOptions.Get(DafnyProject.FindProjectOption)) {
-        var xc = 3;
-      }
       var firstFile = dafnyOptions.CliRootSourceUris.FirstOrDefault();
       if (dafnyOptions.DafnyProject == null && dafnyOptions.Get(DafnyProject.FindProjectOption) && firstFile != null) {
         var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
