@@ -120,7 +120,7 @@ public partial class BoogieGenerator {
       // assume each one of them.  After all that (in particular, after assuming all
       // of them), do the postponed reads checks.
       delayer.DoWithDelayedReadsChecks(false, wfo => {
-        builder.Add(new CommentCmd("Check Wfness of preconditions, and then assume them"));
+        builder.Add(new CommentCmd("Check well-formedness of preconditions, and then assume them"));
         foreach (AttributedExpression require in f.Req) {
           if (require.Label != null) {
             require.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(require.E);
@@ -135,14 +135,14 @@ public partial class BoogieGenerator {
       // the preconditions.  In other words, the well-formedness of the reads clause is
       // allowed to assume the precondition (yet, the requires clause is checked to
       // read only those things indicated in the reads clause).
-      builder.Add(new CommentCmd("Check Wfness of the reads clause"));
+      builder.Add(new CommentCmd("Check well-formedness of the reads clause"));
       delayer.DoWithDelayedReadsChecks(false,
         wfo => { generator.CheckFrameWellFormed(wfo, f.Reads.Expressions, locals, builder, etran); });
 
       ConcurrentAttributeCheck(f, etran, builder);
 
       // check well-formedness of the decreases clauses (including termination, but no reads checks)
-      builder.Add(new CommentCmd("Check Wfness of the decreases clause"));
+      builder.Add(new CommentCmd("Check well-formedness of the decreases clause"));
       foreach (Expression p in f.Decreases.Expressions) {
         generator.CheckWellformed(p, new WFOptions(null, false), locals, builder, etran);
       }
@@ -172,7 +172,6 @@ public partial class BoogieGenerator {
       generator.Reset();
     }
 
-    // TODO should be moved so its injected
     private void ConcurrentAttributeCheck(Function f, ExpressionTranslator etran, BoogieStmtListBuilder builder) {
       // If the function is marked as {:concurrent}, check that the reads clause is empty.
       if (Attributes.Contains(f.Attributes, Attributes.ConcurrentAttributeName)) {
@@ -208,7 +207,7 @@ public partial class BoogieGenerator {
       var selfCall = GetSelfCall(f, etran, parameters);
       var context = new BodyTranslationContext(f.ContainsHide);
       var bodyCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
-      bodyCheckBuilder.Add(new CommentCmd("Check Wfness of body and result subset type constraint"));
+      bodyCheckBuilder.Add(new CommentCmd("Check well-formedness of body and result subset type constraint"));
       if (f.Body != null && generator.RevealedInScope(f)) {
         var doReadsChecks = etran.readsFrame != null;
         var wfo = new WFOptions(null, doReadsChecks, doReadsChecks, false);
@@ -278,7 +277,7 @@ public partial class BoogieGenerator {
     private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, List<Variable> locals) {
       var context = new BodyTranslationContext(f.ContainsHide);
       var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
-      postCheckBuilder.Add(new CommentCmd("Check Wfness of postcondition and assume false"));
+      postCheckBuilder.Add(new CommentCmd("Check well-formedness of postcondition and assume false"));
 
       // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
       var args = new List<Expr>();

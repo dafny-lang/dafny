@@ -1560,10 +1560,10 @@ namespace Microsoft.Dafny {
         var letBody = Substitute(e.Body, null, substMap);
         CheckWellformed(letBody, wfOptions, locals, builder, etran);
         if (e.Constraint_Bounds != null) {
-          var substMapPrime = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
+          var substMap2 = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
           var nonGhostMapPrime = new Dictionary<IVariable, Expression>();
           foreach (BoundVar bv in lhsVars) {
-            nonGhostMapPrime.Add(bv, bv.IsGhost ? substMap[bv] : substMapPrime[bv]);
+            nonGhostMapPrime.Add(bv, bv.IsGhost ? substMap[bv] : substMap2[bv]);
           }
           var rhsPrime = Substitute(e.RHSs[0], null, nonGhostMapPrime);
           var letBodyPrime = Substitute(e.Body, null, nonGhostMapPrime);
