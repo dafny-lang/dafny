@@ -7,4 +7,4 @@ git-issue-3855.dfy(434,36): Related location: this is the precondition that coul
 git-issue-3855.dfy(1335,20): Error: a precondition for this call could not be proved
 git-issue-3855.dfy(434,36): Related location: this is the precondition that could not be proved
 
-Dafny program verifier finished with 101 verified, 3 errors, 1 time out
+Dafny program verifier finished with 99 verified, 3 errors, 1 time out

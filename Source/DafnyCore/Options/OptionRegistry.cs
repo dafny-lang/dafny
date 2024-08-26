@@ -1,6 +1,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Linq;
@@ -30,12 +31,14 @@ public class OptionRegistry {
   // Note that legacy CLI options are not as cleanly enumerated and therefore
   // more difficult to completely categorize, which is the main reason the LibraryBackend
   // is restricted to only the new CLI.
-  private static readonly Dictionary<Option, GlobalOptionCheck> GlobalOptionChecks = new();
-  private static readonly Dictionary<Option, OptionScope> OptionScopes = new();
+  private static readonly ConcurrentDictionary<Option, GlobalOptionCheck> GlobalOptionChecks = new();
+  private static readonly ConcurrentDictionary<Option, OptionScope> OptionScopes = new();
 
-  public static IEnumerable<Option> GlobalOptions => GlobalOptionChecks.Keys;
-  public static IEnumerable<Option> TranslationOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key);
-  public static IEnumerable<Option> ModuleOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Module).Select(kv => kv.Key);
+  public static IEnumerable<Option> GlobalOptions => GlobalOptionChecks.Keys.OrderBy(o => o.Name);
+  public static IEnumerable<Option> TranslationOptions =>
+    OptionScopes.Where(kv => kv.Value == OptionScope.Translation).Select(kv => kv.Key).OrderBy(o => o.Name);
+  public static IEnumerable<Option> ModuleOptions => OptionScopes.Where(kv => kv.Value == OptionScope.Module).
+    Select(kv => kv.Key).OrderBy(o => o.Name);
 
   public static GlobalOptionCheck? GlobalCheck(Option option) {
     return GlobalOptionChecks.GetValueOrDefault(option);

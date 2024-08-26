@@ -1479,16 +1479,16 @@ namespace Microsoft.Dafny {
       // ----------------------------------------------------------------------------
 
       foreach (TopLevelDecl d in declarations) {
-        if (d is ClassLikeDecl classLikeDecl) {
-          var classIsExtern = !Options.DisallowExterns && Attributes.Contains(classLikeDecl.Attributes, "extern");
+        if (d is ClassDecl classDecl) {
+          var classIsExtern = !Options.DisallowExterns && Attributes.Contains(classDecl.Attributes, "extern");
           if (Options.ForbidNondeterminism &&
               !classIsExtern &&
-              !classLikeDecl.Members.Exists(member => member is Constructor) &&
-              classLikeDecl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+              !classDecl.Members.Exists(member => member is Constructor) &&
+              classDecl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
             // This check should be moved to the resolver once we have a language construct to indicate the type is imported
             // Instead of the extern attribute
             Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_constructorless_class_forbidden,
-              classLikeDecl.tok,
+              classDecl.tok,
               "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option");
           }
         }
