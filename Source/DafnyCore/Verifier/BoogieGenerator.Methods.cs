@@ -1898,43 +1898,51 @@ namespace Microsoft.Dafny {
 
     internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IToken tok, List<TypeParameter> typeParameters) {
       foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
-        {
-          // (forall bx: Box ::
-          //   { $IsBox(bx, X) }
-          //   $IsBox(bx, X) ==>
-          //     $IsBox(bx, Bound0) && $IsBox(bx, Bound1) && ...);
-          var vars = new List<Bpl.Variable>();
-          var bx = BplBoundVar("bx", predef.BoxType, vars);
-          var isBox = MkIs(bx, new UserDefinedType(typeParameter));
-          Bpl.Expr bounds = Bpl.Expr.True;
-          foreach (var typeBound in typeParameter.TypeBounds) {
-            bounds = BplAnd(bounds, MkIs(bx, TypeToTy(typeBound), true));
-          }
+        TypeBoundAxiomExpressions(tok, new List<Variable>(), new UserDefinedType(typeParameter), typeParameter.TypeBounds,
+          out var isBoxExpr, out var isAllocBoxExpr);
+        yield return isBoxExpr;
+        yield return isAllocBoxExpr;
+      }
+    }
 
-          var body = BplImp(isBox, bounds);
-          var q = new Bpl.ForallExpr(tok, vars, BplTrigger(isBox), body);
-          yield return q;
+    public void TypeBoundAxiomExpressions(IToken tok, List<Bpl.Variable> bvarsTypeParameters, Type type, List<Type> typeBounds,
+      out Bpl.Expr isBoxExpr, out Bpl.Expr isAllocBoxExpr) {
+      {
+        // (forall bvarsTypeParameters, bx: Box ::
+        //   { $IsBox(bx, typeExpression) }
+        //   $IsBox(bx, typeExpression) ==>
+        //     $IsBox(bx, Bound0) && $IsBox(bx, Bound1) && ...);
+        var vars = new List<Bpl.Variable>();
+        vars.AddRange(bvarsTypeParameters);
+        var bx = BplBoundVar("bx", predef.BoxType, vars);
+        var isBox = MkIs(bx, TypeToTy(type), true);
+        Bpl.Expr bounds = Bpl.Expr.True;
+        foreach (var typeBound in typeBounds) {
+          bounds = BplAnd(bounds, MkIs(bx, TypeToTy(typeBound), true));
         }
 
-        {
-          // (forall bx: Box, $Heap: Heap ::
-          //   { $IsAllocBox(bx, X, $h) }
-          //   $IsAllocBox(bx, X, $h) && $IsGoodHeap($h) ==>
-          //     $IsAllocBox(bx, Bound0, $h) && $IsAllocBox(bx, Bound1, $h) && ...);
-          var vars = new List<Bpl.Variable>();
-          var bx = BplBoundVar("bx", predef.BoxType, vars);
-          var heap = BplBoundVar("$h", predef.HeapType, vars);
-          var isGoodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, heap);
-          var isAllocBox = MkIsAlloc(bx, new UserDefinedType(typeParameter), heap);
-          Bpl.Expr bounds = Bpl.Expr.True;
-          foreach (var typeBound in typeParameter.TypeBounds) {
-            bounds = BplAnd(bounds, MkIsAlloc(bx, TypeToTy(typeBound), heap, true));
-          }
+        var body = BplImp(isBox, bounds);
+        isBoxExpr = new Bpl.ForallExpr(tok, vars, BplTrigger(isBox), body);
+      }
 
-          var body = BplImp(BplAnd(isAllocBox, isGoodHeap), bounds);
-          var q = new Bpl.ForallExpr(tok, vars, BplTrigger(isAllocBox), body);
-          yield return q;
+      {
+        // (forall bx: Box, $Heap: Heap ::
+        //   { $IsAllocBox(bx, X, $h) }
+        //   $IsAllocBox(bx, X, $h) && $IsGoodHeap($h) ==>
+        //     $IsAllocBox(bx, Bound0, $h) && $IsAllocBox(bx, Bound1, $h) && ...);
+        var vars = new List<Bpl.Variable>();
+        vars.AddRange(bvarsTypeParameters);
+        var bx = BplBoundVar("bx", predef.BoxType, vars);
+        var heap = BplBoundVar("$h", predef.HeapType, vars);
+        var isGoodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, heap);
+        var isAllocBox = MkIsAlloc(bx, TypeToTy(type), heap, true);
+        Bpl.Expr bounds = Bpl.Expr.True;
+        foreach (var typeBound in typeBounds) {
+          bounds = BplAnd(bounds, MkIsAlloc(bx, TypeToTy(typeBound), heap, true));
         }
+
+        var body = BplImp(BplAnd(isAllocBox, isGoodHeap), bounds);
+        isAllocBoxExpr = new Bpl.ForallExpr(tok, vars, BplTrigger(isAllocBox), body);
       }
     }
   }
