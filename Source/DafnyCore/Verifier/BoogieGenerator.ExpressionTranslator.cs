@@ -1714,7 +1714,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         // first add type arguments
         var tyParams = GetTypeParams(e.Function);
         var tySubst = e.TypeArgumentSubstitutionsWithParents();
-        args.AddRange(BoogieGenerator.trTypeArgs(tySubst, tyParams));
+        args.AddRange(BoogieGenerator.TrTypeArgs(tySubst, tyParams));
 
         if (layerArgument != null) {
           args.Add(layerArgument);

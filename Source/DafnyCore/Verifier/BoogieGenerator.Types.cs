@@ -862,6 +862,8 @@ public partial class BoogieGenerator {
     } else if (typ.IsTraitType) {
       Contract.Assert(options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy);
       return null;
+    } else if (typ.IsTypeParameter) {
+      return null;
     } else {
       Contract.Assume(false);  // unexpected type
       return null;
@@ -921,9 +923,7 @@ public partial class BoogieGenerator {
     FuelContext oldFuelContext = this.fuelContext;
     this.fuelContext = FuelSetting.NewFuelContext(dd);
 
-    if (dd.Var != null) {
-      AddWellformednessCheck(dd);
-    }
+    AddWellformednessCheck(dd);
 
     // Add $Is and $IsAlloc axioms for the newtype
     currentModule = dd.EnclosingModuleDefinition;
@@ -1421,24 +1421,24 @@ public partial class BoogieGenerator {
       return;
     }
 
-    // If there's no constraint, there's nothing to do
-    if (decl.Var == null) {
-      Contract.Assert(decl.Constraint == null);  // there's a constraint only if there's a variable to be constrained
-      Contract.Assert(decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero);  // a witness makes sense only if there is a constraint
-      Contract.Assert(decl.Witness == null);  // a witness makes sense only if there is a constraint
-      return;
-    }
-    Contract.Assert(decl.Constraint != null);  // follows from the test above and the RedirectingTypeDecl class invariant
-
     currentModule = decl.Module;
     codeContext = new CallableWrapper(decl, true);
     var etran = new ExpressionTranslator(this, predef, decl.tok, null);
 
     // parameters of the procedure
     var inParams = MkTyParamFormals(decl.TypeArgs, true);
-    Bpl.Type varType = TrType(decl.Var.Type);
-    Bpl.Expr wh = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), decl.Var.Type, etran, NOALLOC);
-    inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType, wh), true));
+    Type baseType;
+    Bpl.Expr wh;
+    if (decl.Var != null) {
+      baseType = decl.Var.Type;
+      Bpl.Type varType = TrType(baseType);
+      wh = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), baseType, etran, NOALLOC);
+      // Do NOT use a where-clause in this declaration, because that would spoil the witness checking.
+      inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), true));
+    } else {
+      baseType = ((NewtypeDecl)decl).BaseType;
+      wh = null;
+    }
 
     // the procedure itself
     var req = new List<Bpl.Requires>();
@@ -1474,6 +1474,7 @@ public partial class BoogieGenerator {
     // define frame;
     // if (*) {
     //   // The following is collected in constraintCheckBuilder:
+    //   assume the where-clause for the bound variable
     //   check constraint is well-formed;
     //   assume constraint;
     //   do reads checks;
@@ -1485,15 +1486,24 @@ public partial class BoogieGenerator {
     // check well-formedness of the constraint (including termination, and delayed reads checks)
     var constraintCheckBuilder = new BoogieStmtListBuilder(this, options, context);
     var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
-    var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
-    delayer.DoWithDelayedReadsChecks(false, wfo => {
-      CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
-    });
+    if (decl.Constraint == null) {
+      constraintCheckBuilder.Add(new Bpl.CommentCmd($"well-formedness of {decl.WhatKind} constraint is trivial"));
+    } else {
+      constraintCheckBuilder.Add(new Bpl.CommentCmd($"check well-formedness of {decl.WhatKind} constraint"));
+      if (wh != null) {
+        constraintCheckBuilder.Add(new Bpl.AssumeCmd(decl.tok, wh));
+      }
+      var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
+      delayer.DoWithDelayedReadsChecks(false, wfo => {
+        CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
+      });
+    }
 
     // Check that the type is inhabited.
     // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
     Expression witnessExpr = null;
     var witnessCheckBuilder = new BoogieStmtListBuilder(this, options, context);
+    witnessCheckBuilder.Add(new Bpl.CommentCmd($"check well-formedness of {decl.WhatKind} witness, and that it satisfies the constraint"));
     string witnessString = null;
     if (decl.Witness != null) {
       // check well-formedness of the witness expression (including termination, and reads checks)
@@ -1502,28 +1512,24 @@ public partial class BoogieGenerator {
       CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
       codeContext = ghostCodeContext;
       // check that the witness is assignable to the type of the given bound variable
-      if (decl is SubsetTypeDecl) {
-        // Note, for new-types, this has already been checked by CheckWellformed.
-        CheckResultToBeInType(decl.Witness.tok, decl.Witness, decl.Var.Type, locals, witnessCheckBuilder, etran);
-      }
+      CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
       // check that the witness expression checks out
-      witnessExpr = Substitute(decl.Constraint, decl.Var, decl.Witness);
+      witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
     } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
-      var witness = Zero(decl.tok, decl.Var.Type);
+      var witness = Zero(decl.tok, baseType);
       if (witness == null) {
         witnessString = "";
         witnessCheckBuilder.Add(Assert(decl.tok, Bpl.Expr.False, new PODesc.WitnessCheck(witnessString)));
       } else {
-        // before trying 0 as a witness, check that 0 can be assigned to decl.Var
+        // before trying 0 as a witness, check that 0 can be assigned to baseType
         witnessString = Printer.ExprToString(options, witness);
-        CheckResultToBeInType(decl.tok, witness, decl.Var.Type, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
-        witnessExpr = Substitute(decl.Constraint, decl.Var, witness);
+        CheckResultToBeInType(decl.tok, witness, baseType, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
+        witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, witness) : null;
       }
     }
     if (witnessExpr != null) {
       var witnessCheckTok = decl.Witness != null ? GetToken(decl.Witness) : decl.tok;
       witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessCheckTok, etran.CanCallAssumption(witnessExpr)));
-      var witnessCheck = etran.TrExpr(witnessExpr);
 
       bool splitHappened;
       var ss = TrSplitExpr(context, witnessExpr, etran, true, out splitHappened);
