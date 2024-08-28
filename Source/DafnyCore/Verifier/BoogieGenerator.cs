@@ -1074,44 +1074,46 @@ namespace Microsoft.Dafny {
     /// </summary>
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
-        foreach (TopLevelDecl d in m.TopLevelDecls) {
-          var c = d as TopLevelDeclWithMembers;
-          if (c == null || !RevealedInScope(d)) {
-            continue;
-          }
-          foreach (var parentType in c.ParentTraits) {
+        foreach (var c in m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().Where(RevealedInScope)) {
+          foreach (var parentTypeInExtendsClause in c.ParentTraits) {
             var childType = UserDefinedType.FromTopLevelDecl(c.tok, c);
+            var parentType = (UserDefinedType)parentTypeInExtendsClause;
+            if (parentType.IsRefType) {
+              // use the nullable versions of the types
+              Contract.Assert(childType.IsRefType);
+              parentType = UserDefinedType.CreateNullableType(parentType);
+            } else {
+              childType = UserDefinedType.CreateNonNullTypeIfReferenceType(childType);
+            }
 
-            Bpl.Expr heap; var heapVar = BplBoundVar("$heap", predef.HeapType, out heap);
-            Bpl.Expr o; var oVar = BplBoundVar("$o", TrType(childType), out o);
-            Bpl.Expr oNotNull = childType.IsRefType ? Bpl.Expr.Neq(o, predef.Null) : Bpl.Expr.True;
+            var heapVar = BplBoundVar("$heap", predef.HeapType, out var heap);
+            var oVar = BplBoundVar("$o", TrType(childType), out var o);
 
             var oj = BoxifyForTraitParent(c.tok, o, ((UserDefinedType)parentType.NormalizeExpand()).ResolvedClass, childType);
 
-            List<Bpl.Expr> tyexprs;
-            var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+            var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out _);
 
             // axioms with "$IsBox(...) ==> ..." and "$IsAllocBox(...) ==> ..."
-            TypeBoundAxiomExpressions(c.tok, bvarsTypeParameters, childType, c.ParentTraits, out var isBoxExpr, out var isAllocBoxExpr);
+            //            TypeBoundAxiomExpressions(c.tok, bvarsTypeParameters, childType, c.ParentTraits, out var isBoxExpr, out var isAllocBoxExpr);
 
             // axiom (forall T: Ty, $o: ref ::
             //     { $Is($o, C(T)) }
-            //     $o != null && $Is($o, C(T)) ==> $Is($o, J(G(T)));
+            //     $Is($o, C(T)) ==> $Is($o, J(G(T)));
             var isC = MkIs(o, childType);
             var isJ = MkIs(oj, parentType);
             var bvs = new List<Bpl.Variable>();
             bvs.AddRange(bvarsTypeParameters);
             bvs.Add(oVar);
             var tr = BplTrigger(isC);
-            var body = BplImp(BplAnd(oNotNull, isC), isJ);
+            var body = BplImp(isC, isJ);
 
             sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
-              $"type axiom for trait parent: {d} extends {parentType}"));
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isBoxExpr));
+              $"type axiom for trait parent: {childType.Name} extends {parentType}"));
+            //            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isBoxExpr));
 
             // axiom (forall T: Ty, $Heap: Heap, $o: ref ::
             //     { $IsAlloc($o, C(T), $Heap) }
-            //     $o != null && $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
+            //     $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
             var isAllocC = MkIsAlloc(o, childType, heap);
             var isAllocJ = MkIsAlloc(oj, parentType, heap);
             bvs = new List<Bpl.Variable>();
@@ -1119,10 +1121,10 @@ namespace Microsoft.Dafny {
             bvs.Add(oVar);
             bvs.Add(heapVar);
             tr = BplTrigger(isAllocC);
-            body = BplImp(BplAnd(oNotNull, isAllocC), isAllocJ);
+            body = BplImp(isAllocC, isAllocJ);
             sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
-              $"allocation axiom for trait parent: {d} extends {parentType}"));
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isAllocBoxExpr));
+              $"allocation axiom for trait parent: {childType.Name} extends {parentType}"));
+            //            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isAllocBoxExpr));
           }
         }
       }
