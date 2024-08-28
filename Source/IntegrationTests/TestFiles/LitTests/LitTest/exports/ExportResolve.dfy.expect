@@ -50,14 +50,10 @@ ExportResolve.dfy(115,9): Error: This export set is not consistent: P2
 ExportResolve.dfy(162,19): Error: Raised while checking export set P3: member 'N' does not exist in abstract type 'Trait'
 ExportResolve.dfy(162,30): Error: Raised while checking export set P3: member 'N' does not exist in abstract type 'Klass'
 ExportResolve.dfy(162,38): Error: Raised while checking export set P3: member 'N' does not exist in abstract type 'Dt'
-ExportResolve.dfy(162,21): Error: Raised while checking export set P3: arguments must have comparable types (got ?0 and ?1)
-ExportResolve.dfy(162,32): Error: Raised while checking export set P3: arguments must have comparable types (got ?1 and ?3)
 ExportResolve.dfy(117,9): Error: This export set is not consistent: P3
 ExportResolve.dfy(164,15): Error: Raised while checking export set P4: member 'M' does not exist in abstract type 'Trait'
 ExportResolve.dfy(164,22): Error: Raised while checking export set P4: member 'M' does not exist in abstract type 'Klass'
 ExportResolve.dfy(164,29): Error: Raised while checking export set P4: member 'M' does not exist in abstract type 'Dt'
-ExportResolve.dfy(164,17): Error: Raised while checking export set P4: arguments must have comparable types (got ?0 and ?1)
-ExportResolve.dfy(164,24): Error: Raised while checking export set P4: arguments must have comparable types (got ?1 and ?3)
 ExportResolve.dfy(119,9): Error: This export set is not consistent: P4
 ExportResolve.dfy(123,19): Error: Cannot export type member 'FromInt' without providing its enclosing class 'Klass'
 ExportResolve.dfy(126,19): Error: Cannot export mutable field 'x' without revealing its enclosing trait 'Trait'
@@ -82,8 +78,6 @@ ExportResolve.dfy(254,44): Error: member 'N' has not been imported in this scope
 ExportResolve.dfy(256,15): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(256,22): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(256,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(256,17): Error: arguments must have comparable types (got ?20 and ?21)
-ExportResolve.dfy(256,24): Error: arguments must have comparable types (got ?21 and ?23)
 ExportResolve.dfy(258,19): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(273,15): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(273,28): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
@@ -94,8 +88,6 @@ ExportResolve.dfy(275,44): Error: member 'N' has not been imported in this scope
 ExportResolve.dfy(277,15): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(277,22): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(277,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(277,17): Error: arguments must have comparable types (got ?24 and ?25)
-ExportResolve.dfy(277,24): Error: arguments must have comparable types (got ?25 and ?27)
 ExportResolve.dfy(288,20): Error: unresolved identifier: X
 ExportResolve.dfy(288,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(288,39): Error: member 'u' has not been imported in this scope and cannot be accessed here
@@ -125,4 +117,4 @@ ExportResolve.dfy(620,11): Error: new can be applied only to class types (got S.
 ExportResolve.dfy(624,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(634,6): Error: when allocating an object of type 'D', one of its constructor methods must be called
 ExportResolve.dfy(637,10): Error: when allocating an object of imported type 'E', one of its constructor methods must be called
-127 resolution/type errors detected in ExportResolve.dfy
+119 resolution/type errors detected in ExportResolve.dfy

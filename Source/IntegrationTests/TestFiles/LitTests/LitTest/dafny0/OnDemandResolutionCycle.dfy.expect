@@ -1,15 +1,13 @@
 OnDemandResolutionCycle.dfy(5,6): Error: Cyclic dependency among declarations: a -> A -> a
-OnDemandResolutionCycle.dfy(4,15): Error: arguments must have comparable types (got ?1 and ?0)
 OnDemandResolutionCycle.dfy(9,9): Error: Cyclic dependency among declarations: FB -> B -> FB -> b
 OnDemandResolutionCycle.dfy(7,5): Error: Cyclic dependency among declarations: B -> B -> FB -> b
 OnDemandResolutionCycle.dfy(11,6): Error: Cyclic dependency among declarations: c0 -> c1 -> c0
 OnDemandResolutionCycle.dfy(15,6): Error: Cyclic dependency among declarations: d -> D -> d
 OnDemandResolutionCycle.dfy(14,8): Error: base type of newtype 'D' is not fully determined; add an explicit type for bound variable 'x'
-OnDemandResolutionCycle.dfy(14,18): Error: arguments must have comparable types (got ?1 and ?0)
 OnDemandResolutionCycle.dfy(19,9): Error: Cyclic dependency among declarations: FE -> E -> FE -> e
 OnDemandResolutionCycle.dfy(17,8): Error: Cyclic dependency among declarations: E -> E -> FE -> e
 OnDemandResolutionCycle.dfy(22,9): Error: Cyclic dependency among declarations: f -> F -> f
 OnDemandResolutionCycle.dfy(21,8): Error: Cyclic dependency among declarations: F -> F -> f
 OnDemandResolutionCycle.dfy(24,6): Error: Cyclic dependency among declarations: g -> g
 OnDemandResolutionCycle.dfy(15,14): Error: integer literal used as if it had type D
-14 resolution/type errors detected in OnDemandResolutionCycle.dfy
+12 resolution/type errors detected in OnDemandResolutionCycle.dfy
