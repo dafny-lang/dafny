@@ -11,5 +11,8 @@ Newtypes.dfy(223,21): Error: new number of occurrences might be negative
 Newtypes.dfy(226,39): Error: result of operation might violate newtype constraint for 'Even'
 Newtypes.dfy(238,18): Error: result of operation might violate newtype constraint for 'N'
 Newtypes.dfy(278,18): Error: result of operation might violate newtype constraint for 'R'
+Newtypes.dfy(367,10): Error: trying witness 0: result of operation might violate newtype constraint for 'A'
+Newtypes.dfy(372,24): Error: result of operation might violate newtype constraint for 'A'
+Newtypes.dfy(373,30): Error: result of operation might violate newtype constraint for 'A'
 
-Dafny program verifier finished with 37 verified, 13 errors
+Dafny program verifier finished with 43 verified, 16 errors
