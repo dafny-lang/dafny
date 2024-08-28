@@ -52,9 +52,9 @@ module Module1 {
 
   datatype Kt =
     Kt0(x: int) |
-    Kt1(ghost x: int) |  // (duplicated destructors must agree on ghost/non-ghost, but this is not report until a later pass; see Module2)
+    Kt1(ghost x: int) |  // error: duplicated destructors must agree on ghost/non-ghost
     Kt2(ghost g: int) |
-    Kt3(g: int) |  // (duplicated destructors must agree on ghost/non-ghost, but this is not report until a later pass; see Module2)
+    Kt3(g: int) |  // error: duplicated destructors must agree on ghost/non-ghost
     Kt4(k: Kt) |
     Kt5(k: SKt) |  // fine, because SKt and Kt are synonyms
     Kt6(k: S'Kt)  // fine, because S'Kt and Kt are synonyms

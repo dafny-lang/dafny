@@ -1,18 +1,19 @@
-SubsetTypesERR.dfy(11,8): Error: type array<Person> is not assignable to LHS (of type array<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(13,8): Error: type array<Person> is not assignable to LHS (of type array<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(15,8): Error: type array<Person> is not assignable to LHS (of type array<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(17,8): Error: RHS (of type array<Person>) not assignable to LHS (of type array<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(23,8): Error: type array<Person?> is not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(25,8): Error: type array<Person?> is not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(27,8): Error: type array<Person?> is not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(29,8): Error: RHS (of type array<Person?>) not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(37,8): Error: RHS (of type array<Person>) not assignable to LHS (of type array<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(39,8): Error: RHS (of type array<Person?>) not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(42,8): Error: RHS (of type array<Person?>) not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(44,8): Error: type array<Person> is not assignable to LHS (of type array<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(46,8): Error: type array<Person?> is not assignable to LHS (of type array<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(57,8): Error: type Cell<Person?> is not assignable to LHS (of type Cell<Person>) (nonvariance for type parameter expects Person = Person?)
-SubsetTypesERR.dfy(59,8): Error: type Cell<Person> is not assignable to LHS (of type Cell<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(63,8): Error: RHS (of type Cell<Person>) not assignable to LHS (of type Cell<Person?>) (nonvariance for type parameter expects Person? = Person)
-SubsetTypesERR.dfy(65,8): Error: RHS (of type Cell<Person?>) not assignable to LHS (of type Cell<Person>) (nonvariance for type parameter expects Person = Person?)
-17 resolution/type errors detected in SubsetTypesERR.dfy
+SubsetTypesERR.dfy(11,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
+SubsetTypesERR.dfy(13,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
+SubsetTypesERR.dfy(15,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
+SubsetTypesERR.dfy(17,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
+SubsetTypesERR.dfy(23,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(25,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(27,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(29,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(37,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
+SubsetTypesERR.dfy(39,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(42,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(44,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
+SubsetTypesERR.dfy(46,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
+SubsetTypesERR.dfy(57,11): Error: value of expression (of type 'Cell<Person?>') is not known to be an instance of type 'Cell<Person>'
+SubsetTypesERR.dfy(59,11): Error: value of expression (of type 'Cell<Person>') is not known to be an instance of type 'Cell<Person?>'
+SubsetTypesERR.dfy(63,11): Error: value of expression (of type 'Cell<Person>') is not known to be an instance of type 'Cell<Person?>'
+SubsetTypesERR.dfy(65,11): Error: value of expression (of type 'Cell<Person?>') is not known to be an instance of type 'Cell<Person>'
+
+Dafny program verifier finished with 0 verified, 17 errors

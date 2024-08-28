@@ -12,7 +12,6 @@ SubsetTypes.dfy(31,7): Error: value does not satisfy the subset constraints of '
 SubsetTypes.dfy(42,24): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(44,15): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(49,15): Error: value does not satisfy the subset constraints of 'nat'
-SubsetTypes.dfy(51,9): Error: value does not satisfy the subset constraints of 'int -> nat' (possible cause: it may be partial or have read effects)
 SubsetTypes.dfy(56,4): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(63,23): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
 SubsetTypes.dfy(64,9): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
@@ -49,11 +48,11 @@ SubsetTypes.dfy(216,11): Error: value of expression (of type 'array<Person?>') i
 SubsetTypes.dfy(232,11): Error: value of expression (of type 'seq<Person?>') is not known to be an instance of type 'seq<Person>'
 SubsetTypes.dfy(241,11): Error: value of expression (of type 'seq<Person?>') is not known to be an instance of type 'seq<Person>'
 SubsetTypes.dfy(270,28): Error: value does not satisfy the subset constraints of 'byte'
-SubsetTypes.dfy(271,30): Error: value does not satisfy the subset constraints of 'byte'
-SubsetTypes.dfy(272,30): Error: value does not satisfy the subset constraints of 'byte'
-SubsetTypes.dfy(273,38): Error: value does not satisfy the subset constraints of 'byte'
-SubsetTypes.dfy(278,33): Error: value does not satisfy the subset constraints of 'byte'
-SubsetTypes.dfy(279,39): Error: value does not satisfy the subset constraints of 'byte'
+SubsetTypes.dfy(271,29): Error: value of expression (of type 'seq<int>') is not known to be an instance of type 'seq<byte>'
+SubsetTypes.dfy(272,29): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<byte>'
+SubsetTypes.dfy(273,29): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<byte>'
+SubsetTypes.dfy(278,29): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<byte, byte>'
+SubsetTypes.dfy(279,29): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<byte, byte>'
 SubsetTypes.dfy(284,28): Error: value does not satisfy the subset constraints of 'byte'
 SubsetTypes.dfy(285,29): Error: value of expression (of type 'seq<int>') is not known to be an instance of type 'seq<byte>'
 SubsetTypes.dfy(286,29): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<byte>'
@@ -90,6 +89,6 @@ SubsetTypes.dfy(452,15): Error: assertion might not hold
 SubsetTypes.dfy(459,15): Error: assertion might not hold
 SubsetTypes.dfy(464,13): Error: assertion might not hold
 
-Dafny program verifier finished with 13 verified, 91 errors
-Total resources used is 738270
-Max resources used by VC is 67520
+Dafny program verifier finished with 13 verified, 90 errors
+Total resources used is 751720
+Max resources used by VC is 80750

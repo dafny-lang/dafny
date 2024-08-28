@@ -41,11 +41,11 @@ method Generic<T>(i: int, t0: T, t1: T) returns (r: T) {
     var n: nat := 5;
     if
     case true =>
-      var j := Generic(i-1, n, -4);  // error: the type parameter is inferred as nat, but -4 is not a nat
-      assert 0 <= j;
+      var j := Generic(i-1, n, -4);  // type parameter inferred to be "int", so "j" will be "int"
+      assert 0 <= j; // error: "j" has type "int"
     case true =>
-      var j := Generic(i-1, n, 4);
-      assert 0 <= j;  // fine, since type parameter was inferred as nat in previous call
+      var j := Generic(i-1, n, 4);  // type parameter is inferred as "int"
+      assert 0 <= j; // error: "j" has type "int"
     case true =>
       var j := Generic(i-1, n as int, -4);  // now, the type parameter is inferred as int
       assert 0 <= j;  // error: result may not be a nat
@@ -61,8 +61,8 @@ method HenEric<T>(i: int, t0: T, t1: T) returns (r: T) {
     var n: nat := 5;
     if
     case true =>
-      var q := FenEric(n, -4);  // error: type parameter is inferred as nat, but -4 is not a nat
-      assert 0 <= q;
+      var q := FenEric(n, -4);  // type parameter inferred to be "int", so "j" will be "int"
+      assert 0 <= q; // error: "j" has type "int"
     case true =>
       var q := FenEric(n, 4);
       assert 0 <= q;  // fine, since type parameter was inferred as nat in previous call
@@ -122,8 +122,8 @@ function GE<T>(d: GenEric?<T>): bool { true }
 method TestGenEric() {
   var ge;
   if (ge != null) {
-    var b := GE(ge);
-    var n: nat := ge.f;  // the generic instantiation is inferred to be nat, so this is okay
+    var b := GE(ge); // type parameter inferred as "int"
+    var n: nat := ge.f;  // error: ge.f has type "int"
   }
 }
 
