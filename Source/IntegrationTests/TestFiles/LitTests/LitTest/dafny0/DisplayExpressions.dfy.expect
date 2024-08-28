@@ -1,8 +1,8 @@
-DisplayExpressions.dfy(7,8): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(12,8): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(17,8): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(22,8): Error: the type of this variable is underspecified
-DisplayExpressions.dfy(27,14): Error: the type of this expression is underspecified
-DisplayExpressions.dfy(42,6): Error: RHS (of type seq<int>) not assignable to LHS (of type seq<byte>) (covariant type parameter would require int <: byte)
+DisplayExpressions.dfy(7,8): Error: the type ('map<?0, ?1>') of this variable is underspecified
+DisplayExpressions.dfy(12,8): Error: the type ('multiset<?6>') of this variable is underspecified
+DisplayExpressions.dfy(17,8): Error: the type ('seq<?10>') of this variable is underspecified
+DisplayExpressions.dfy(22,8): Error: the type ('set<?14>') of this variable is underspecified
+DisplayExpressions.dfy(27,14): Error: the type ('map<?21, ?22>') of this expression is underspecified
+DisplayExpressions.dfy(41,13): Error: element type of seq display expected to be byte (got int)
 DisplayExpressions.dfy(74,18): Error: arguments must have comparable types (got seq<byte> and seq<int>)
 7 resolution/type errors detected in DisplayExpressions.dfy

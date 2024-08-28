@@ -24,7 +24,7 @@ module AA {
 
   method Q()
   {
-    assert (((map[]))) == (((((map[])))));  // 2 errors (but not 10 errors)
+    assert (((map[]))) == (((((map[])))));  // error: underspecified type (but not 10 errors)
   }
 }
 
@@ -38,8 +38,8 @@ module BB {
   method B1() returns (s: seq<byte>) {
     var b := 10;  // int
     var u: int := 30;
-    var t := [b, 20, u];  // seq<int>
-    s := t;  // error: type mismatch
+    var t := [b, 20, u];  // error: type mismatch
+    s := t;
   }
 
   method B2() returns (s: seq<byte>) {
