@@ -88,10 +88,10 @@ namespace Microsoft.Dafny {
       Add $Is and $IsAlloc for this class :
          axiom (forall p: ref, G: Ty ::
             { $Is(p, TClassA(G), h) }
-            $Is(p, TClassA(G), h) <=> (p == null || dtype(p) == TClassA(G));
+            $Is(p, TClassA(G), h) <==> (p == null || dtype(p) == TClassA(G));
          axiom (forall p: ref, h: Heap, G: Ty ::
             { $IsAlloc(p, TClassA(G), h) }
-            $IsAlloc(p, TClassA(G), h) => (p == null || h[p, alloc]);
+            $IsAlloc(p, TClassA(G), h) ==> (p == null || h[p, alloc]);
      */
     private void AddIsAndIsAllocForReferenceType(ClassLikeDecl c) {
       Contract.Requires(c.IsReferenceTypeDecl);
