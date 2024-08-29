@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
           scope.AllowInstance = false;
           ResolveExpression(newtypeDecl.Witness, new ResolutionContext(codeContext, false));
           scope.PopMarker();
-          ConstrainSubtypeRelation(newtypeDecl.Var.Type, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.Var.Type, newtypeDecl.Witness.Type);
+          ConstrainSubtypeRelation(newtypeDecl.BaseType, newtypeDecl.Witness.Type, newtypeDecl.Witness, "witness expression must have type '{0}' (got '{1}')", newtypeDecl.BaseType, newtypeDecl.Witness.Type);
         }
         SolveAllTypeConstraints();
 
@@ -4305,7 +4305,8 @@ namespace Microsoft.Dafny {
         if (option.Opt == ResolveTypeOptionEnum.AllowPrefixExtend) {
           // extend defaultTypeArguments, if needed
           for (int i = defaultTypeArguments.Count; i < n; i++) {
-            var tp = new TypeParameter(tok.ToRange(), new Name(tok.ToRange(), "_T" + i), i, option.Parent);
+            var parentToken = option.Parent.Tok;
+            var tp = new TypeParameter(parentToken.ToRange(), new Name(parentToken.ToRange(), "_T" + i), i, option.Parent);
             if (option.Parent is IteratorDecl) {
               tp.Characteristics.AutoInit = Type.AutoInitInfo.CompilableValue;
             }

@@ -768,10 +768,11 @@ namespace Microsoft.Dafny {
 
       if (allowBaseTypeCast && sub.Decl is NewtypeDecl newtypeDecl) {
         var subst = PreType.PreTypeSubstMap(newtypeDecl.TypeArgs, sub.Arguments);
-        var basePreType = (DPreType)newtypeDecl.BasePreType.Substitute(subst);
-        var arguments = GetTypeArgumentsForSuperType(super, basePreType, true);
-        if (arguments != null) {
-          return arguments;
+        if (newtypeDecl.BasePreType.Substitute(subst) is DPreType basePreType) {
+          var arguments = GetTypeArgumentsForSuperType(super, basePreType, true);
+          if (arguments != null) {
+            return arguments;
+          }
         }
       }
 

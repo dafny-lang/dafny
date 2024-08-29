@@ -1788,7 +1788,7 @@ namespace Microsoft.Dafny {
         ins.Add(etran.HeapExpr);
       }
       // Add type arguments
-      ins.AddRange(trTypeArgs(tySubst, tyArgs));
+      ins.AddRange(TrTypeArgs(tySubst, tyArgs));
 
       // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
