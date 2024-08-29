@@ -1094,7 +1094,7 @@ namespace Microsoft.Dafny {
             var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out _);
 
             // axioms with "$IsBox(...) ==> ..." and "$IsAllocBox(...) ==> ..."
-            //            TypeBoundAxiomExpressions(c.tok, bvarsTypeParameters, childType, c.ParentTraits, out var isBoxExpr, out var isAllocBoxExpr);
+            TypeBoundAxiomExpressions(c.tok, bvarsTypeParameters, childType, c.ParentTraits, out var isBoxExpr, out var isAllocBoxExpr);
 
             // axiom (forall T: Ty, $o: ref ::
             //     { $Is($o, C(T)) }
@@ -1109,7 +1109,7 @@ namespace Microsoft.Dafny {
 
             sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
               $"type axiom for trait parent: {childType.Name} extends {parentType}"));
-            //            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isBoxExpr));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isBoxExpr));
 
             // axiom (forall T: Ty, $Heap: Heap, $o: ref ::
             //     { $IsAlloc($o, C(T), $Heap) }
@@ -1124,7 +1124,7 @@ namespace Microsoft.Dafny {
             body = BplImp(isAllocC, isAllocJ);
             sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body),
               $"allocation axiom for trait parent: {childType.Name} extends {parentType}"));
-            //            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isAllocBoxExpr));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, isAllocBoxExpr));
           }
         }
       }
