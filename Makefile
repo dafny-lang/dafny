@@ -103,5 +103,4 @@ update-standard-libraries:
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
-# - Rebuild the standard libraries
 pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module
