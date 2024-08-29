@@ -340,7 +340,7 @@ class TailRecursion {
       if (formal != actual) {
         if (reportErrors) {
           reporter.Error(MessageSource.Resolver, tok,
-            "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
+            "the recursive call to '{0}' is not tail recursive because the actual type argument{1} is not the formal type parameter '{2}'",
             method.Name, method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
         }
         return TailRecursionStatus.NotTailRecursive;
