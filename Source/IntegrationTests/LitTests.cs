@@ -137,6 +137,8 @@ namespace IntegrationTests {
         }, {
           "%rm", (args, config) => RmCommand.Parse(args.ToArray())
         }, {
+          "%cp", (args, config) => CpCommand.Parse(args.ToArray())
+        }, {
           "%OutputCheck", OutputCheckCommand.Parse
         }
       };

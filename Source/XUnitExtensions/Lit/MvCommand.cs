@@ -44,7 +44,7 @@ namespace XUnitExtensions.Lit {
           return 1;
         }
       } else {
-        throw new ArgumentException("File " + fileOrFolder + " not found");
+        throw new ArgumentException("File or folder " + fileOrFolder + " not found");
       }
 
       return 0;
