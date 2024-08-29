@@ -40,8 +40,7 @@ namespace XUnitExtensions.Lit {
       }
       return new CpCommand(options, fileOrFolder, destination);
     }
-    static void CopyDirectory(string sourceDir, string destinationDir, bool recursive, bool force)
-    {
+    static void CopyDirectory(string sourceDir, string destinationDir, bool recursive, bool force) {
       // Get information about the source directory
       var dir = new DirectoryInfo(sourceDir);
 
@@ -56,8 +55,7 @@ namespace XUnitExtensions.Lit {
       Directory.CreateDirectory(destinationDir);
 
       // Get the files in the source directory and copy to the destination directory
-      foreach (FileInfo file in dir.GetFiles())
-      {
+      foreach (FileInfo file in dir.GetFiles()) {
         string targetFilePath = Path.Combine(destinationDir, file.Name);
         if (force && File.Exists(targetFilePath)) {
           File.Delete(targetFilePath);

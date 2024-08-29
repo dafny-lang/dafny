@@ -93,6 +93,9 @@ update-go-module:
 update-runtime-dafny:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
 
+update-standard-libraries:
+	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make update-binary)
+
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
 # - Use the build to convert core .dfy files to .cs
@@ -100,4 +103,5 @@ update-runtime-dafny:
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
+# - Rebuild the standard libraries
 pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module

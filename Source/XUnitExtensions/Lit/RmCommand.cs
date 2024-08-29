@@ -35,8 +35,7 @@ namespace XUnitExtensions.Lit {
 
       return new RmCommand(options, fileOrFolder);
     }
-    private static void RecursiveDelete(DirectoryInfo baseDir)
-    {
+    private static void RecursiveDelete(DirectoryInfo baseDir) {
       if (!baseDir.Exists) {
         return;
       }

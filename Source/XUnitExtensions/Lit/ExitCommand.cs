@@ -19,7 +19,7 @@ public class ExitCommand : ILitCommand {
     var exitCode = 1;
     try {
       exitCode = await operand.Execute(inputReader, outputWriter, errorWriter);
-    } catch(Win32Exception) {
+    } catch (Win32Exception) {
       if (expectedExitCode == "-any") {
       } else {
         throw;

@@ -1,0 +1,52 @@
+{} 2 4 true 4 false
+[false, true, true] {} true
+0 0 true true
+true true false true
+false true
+15
+iset: {} {19} {} true
+{} {} true true
+true true false true
+false true
+Ends in B
+K is done
+multiset{} 3 false true
+2 1 0
+1 3 0
+5
+multiset{} true
+0 0 true true
+true true false true
+false true
+[] 3 false true
+6 19 6
+0 3 1
+6 [0, 3, 1, 0, 3, 1]
+6 6 3 true true
+false false true true
+false true
+[3, 11, 19, 27]
+[3, 11] [19, 27] [11, 19] [3, 11, 19, 27]
+[11, 13] [17, 19] [13, 17] [11, 13, 17, 19]
+true 3
+true 3
+true 4
+true 4
+map[] 2 false true
+2.0 2.1
+1.0 2.1 3.0
+4 2.0
+2 4.1
+2 2 true true
+true false
+true false true true
+6.0 7.0
+map[] false true
+2.0 2.1
+1.0 2.1 3.0
+2.0
+4.1
+true true
+true false
+true false true true
+6.0 7.0
