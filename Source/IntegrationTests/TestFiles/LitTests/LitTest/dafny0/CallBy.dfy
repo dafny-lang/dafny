@@ -65,3 +65,15 @@ greatest lemma F(x: int)
   F(x-2) by { ProveP(); }
   assert P(); // should fail
 }
+
+method H(x: int, y: int, s: set<object>, t: set<object>)
+  requires y % 2 == 0
+  modifies s
+  decreases x
+{
+  H(y, x, t, t) by {
+    assume x % 2 == 0; // to prove the precondition of the call
+    assume t <= s; // to prove the modifies clause of the call
+    assume 0 <= y < x; // to prove termination of the call
+  }
+}

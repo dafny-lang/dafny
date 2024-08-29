@@ -1912,48 +1912,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      var directSub = new Substituter(null, directSubstMap, tySubst);
-
-      // Check that the reads clause of a subcall is a subset of the current reads frame,
-      // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
-      if (etran.readsFrame != null) {
-        // substitute actual args for parameters in description expression frames...
-        var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
-        var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
-
-        // ... but that substitution isn't needed for frames passed to CheckFrameSubset
-        var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-        CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
-          receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
-      }
-      // Check that the modifies clause of a subcall is a subset of the current modifies frame,
-      // but only if we're in a context that defines a modifies frame.
-      if (codeContext is IMethodCodeContext methodCodeContext) {
-        // substitute actual args for parameters in description expression frames...
-        var desc = new PODesc.ModifyFrameSubset(
-          "call",
-          callee.Mod.Expressions.ConvertAll(directSub.SubstFrameExpr),
-          methodCodeContext.Modifies.Expressions
-        );
-        // ... but that substitution isn't needed for frames passed to CheckFrameSubset
-        var modifiesSubst = new Substituter(null, new(), tySubst);
-        CheckFrameSubset(
-          tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
-          receiver, substMap, etran, etran.ModifiesFrame(tok), builder, desc, null);
-      }
-
-      // Check termination
-      if (isRecursiveCall) {
-        Contract.Assert(codeContext != null);
-        if (codeContext is DatatypeDecl) {
-          builder.Add(Assert(tok, Bpl.Expr.False, new PODesc.IsNonRecursive()));
-        } else {
-          List<Expression> contextDecreases = codeContext.Decreases.Expressions;
-          List<Expression> calleeDecreases = callee.Decreases.Expressions;
-          CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, directSubstMap, tySubst, etran, true, builder, codeContext.InferredDecreases, null);
-        }
-      }
-
       // Create variables to hold the output parameters of the call, so that appropriate unboxes can be introduced.
       var outs = new List<Bpl.IdentifierExpr>();
       var tmpOuts = new List<Bpl.IdentifierExpr>();
@@ -1990,7 +1948,7 @@ namespace Microsoft.Dafny {
       }
 
       void AddCall(BoogieStmtListBuilder callBuilder) {
-        callBuilder.Add(new CommentCmd($"ProcessCallStmt: Check precondition"));
+        callBuilder.Add(new CommentCmd("ProcessCallStmt: Check precondition"));
         // Make the call
         AddReferencedMember(callee);
         Bpl.CallCmd call = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPre : MethodTranslationKind.CallPre), ins, new List<Bpl.IdentifierExpr>());
@@ -2006,6 +1964,50 @@ namespace Microsoft.Dafny {
           call.IsFree = true;
         }
         callBuilder.Add(call);
+
+        callBuilder.Add(new CommentCmd("ProcessCallStmt: Check frame and termination"));
+
+        var directSub = new Substituter(null, directSubstMap, tySubst);
+
+        // Check that the reads clause of a subcall is a subset of the current reads frame,
+        // but support the optimization that we don't define a reads frame at all if it's `reads *`.
+        if (etran.readsFrame != null) {
+          // substitute actual args for parameters in description expression frames...
+          var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
+          var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
+
+          // ... but that substitution isn't needed for frames passed to CheckFrameSubset
+          var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
+          CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
+            receiver, substMap, etran, etran.ReadsFrame(tok), callBuilder, desc, null);
+        }
+        // Check that the modifies clause of a subcall is a subset of the current modifies frame,
+        // but only if we're in a context that defines a modifies frame.
+        if (codeContext is IMethodCodeContext methodCodeContext) {
+          // substitute actual args for parameters in description expression frames...
+          var desc = new PODesc.ModifyFrameSubset(
+            "call",
+            callee.Mod.Expressions.ConvertAll(directSub.SubstFrameExpr),
+            methodCodeContext.Modifies.Expressions
+          );
+          // ... but that substitution isn't needed for frames passed to CheckFrameSubset
+          var modifiesSubst = new Substituter(null, new(), tySubst);
+          CheckFrameSubset(
+            tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
+            receiver, substMap, etran, etran.ModifiesFrame(tok), callBuilder, desc, null);
+        }
+
+        // Check termination
+        if (isRecursiveCall) {
+          Contract.Assert(codeContext != null);
+          if (codeContext is DatatypeDecl) {
+            callBuilder.Add(Assert(tok, Bpl.Expr.False, new PODesc.IsNonRecursive()));
+          } else {
+            List<Expression> contextDecreases = codeContext.Decreases.Expressions;
+            List<Expression> calleeDecreases = callee.Decreases.Expressions;
+            CheckCallTermination(tok, contextDecreases, calleeDecreases, null, receiver, substMap, directSubstMap, tySubst, etran, true, callBuilder, codeContext.InferredDecreases, null);
+          }
+        }
       }
 
       builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
