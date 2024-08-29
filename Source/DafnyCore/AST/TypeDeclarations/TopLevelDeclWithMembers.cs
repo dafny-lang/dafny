@@ -104,15 +104,23 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     MembersBeforeResolution = Members.ToImmutableList();
   }
 
-  private List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
+  public List<Type> RawTraitsWithArgument(List<Type> typeArgs, bool treatReferenceTypeAsNonNull = false) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => {
-      var ty = (UserDefinedType)traitType.Subst(subst);
-      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
-    });
+    var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
+    var results = new List<Type>();
+    foreach (var traitType in ParentTraits) {
+      // For a reference type: include the trait parent only if the trait parent is a reference type, too, and if so, include the
+      // nullable version of the parent trait.
+      if (treatReferenceTypeAsNonNull || !isReferenceType || traitType.IsRefType) {
+        var ty = (UserDefinedType)traitType.Subst(subst);
+        Contract.Assert(isReferenceType || !ty.IsRefType);
+        results.Add(isReferenceType && !treatReferenceTypeAsNonNull ? UserDefinedType.CreateNullableType(ty) : ty);
+      }
+    }
+    return results;
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {

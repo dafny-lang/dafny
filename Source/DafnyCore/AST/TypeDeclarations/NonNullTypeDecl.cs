@@ -35,14 +35,8 @@ public class NonNullTypeDecl : SubsetTypeDecl {
   }
 
   public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
-    List<Type> result = new List<Type>(base.ParentTypes(typeArgs, includeTypeBounds));
-
-    foreach (var rhsParentType in Class.ParentTypes(typeArgs, includeTypeBounds)) {
-      var rhsParentUdt = (UserDefinedType)rhsParentType; // all parent types of .Class are expected to be possibly-null class types
-      Contract.Assert(rhsParentUdt.ResolvedClass is TraitDecl);
-      result.Add(UserDefinedType.CreateNonNullTypeIfReferenceType(rhsParentUdt));
-    }
-
+    var result = new List<Type>(base.ParentTypes(typeArgs, includeTypeBounds));
+    result.AddRange(Class.RawTraitsWithArgument(typeArgs, true));
     return result;
   }
 
