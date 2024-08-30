@@ -17,4 +17,4 @@ BoundedPolymorphismVerification.dfy(408,69): Error: value of expression (of type
 BoundedPolymorphismVerification.dfy(409,72): Error: value of expression (of type 'ReferenceTrait?') is not known to be an instance of type 'ConstrainedReferenceTrait'
 BoundedPolymorphismVerification.dfy(420,9): Error: value of expression (of type 'E?') is not known to be an instance of type 'E', because it might be null
 
-Dafny program verifier finished with 34 verified, 17 errors
+Dafny program verifier finished with 33 verified, 18 errors
