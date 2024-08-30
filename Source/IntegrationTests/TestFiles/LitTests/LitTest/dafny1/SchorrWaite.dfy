@@ -262,13 +262,17 @@ method SchorrWaite(root: Node, ghost S: set<Node>)
       if p == null {
         return;
       }
+      assert {:split_here} true;
       var oldP := p.children[p.childrenVisited];
       p.children := p.children[p.childrenVisited := t];
+      assert {:split_here} true;
       t := p;
       p := oldP;
       stackNodes := stackNodes[..|stackNodes| - 1];
+      assert {:split_here} true;
       t.childrenVisited := t.childrenVisited + 1;
       path := t.pathFromRoot;
+      assert {:split_here} true;
 
     } else if t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked {
       assert {:focus} true;
