@@ -1086,15 +1086,16 @@ namespace Microsoft.Dafny {
               childType = UserDefinedType.CreateNonNullTypeIfReferenceType(childType);
             }
 
+            var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out _);
+
+            // axioms with "$IsBox(...) ==> ..." and "$IsAllocBox(...) ==> ..."
+            TypeBoundAxiomExpressions(c.tok, bvarsTypeParameters, childType, new List<Type>() { parentType },
+              out var isBoxExpr, out var isAllocBoxExpr);
+
             var heapVar = BplBoundVar("$heap", predef.HeapType, out var heap);
             var oVar = BplBoundVar("$o", TrType(childType), out var o);
 
             var oj = BoxifyForTraitParent(c.tok, o, ((UserDefinedType)parentType.NormalizeExpand()).ResolvedClass, childType);
-
-            var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out _);
-
-            // axioms with "$IsBox(...) ==> ..." and "$IsAllocBox(...) ==> ..."
-            TypeBoundAxiomExpressions(c.tok, bvarsTypeParameters, childType, c.ParentTraits, out var isBoxExpr, out var isAllocBoxExpr);
 
             // axiom (forall T: Ty, $o: ref ::
             //     { $Is($o, C(T)) }

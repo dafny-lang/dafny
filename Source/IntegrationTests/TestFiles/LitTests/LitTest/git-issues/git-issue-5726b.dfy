@@ -16,6 +16,14 @@ module Example1 {
     print g.Six, "\n";
   }
 
+  method CheckIt0<G1 extends G?>(g1: G1) {
+    assert g1 is G?;
+  }
+
+  method CheckIt1<G1 extends G?>(g1: G1) {
+    assert g1 is G; // error: g1 is a G?, but it might not be a G (because it might be null)
+  }
+
   method Test() {
     DoIt<E?>(null);
   }
