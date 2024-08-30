@@ -112,13 +112,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
     var results = new List<Type>();
     foreach (var traitType in ParentTraits) {
-      // For a reference type: include the trait parent only if the trait parent is a reference type, too, and if so, include the
-      // nullable version of the parent trait.
-      if (treatReferenceTypeAsNonNull || !isReferenceType || traitType.IsRefType) {
-        var ty = (UserDefinedType)traitType.Subst(subst);
-        Contract.Assert(isReferenceType || !ty.IsRefType);
-        results.Add(isReferenceType && !treatReferenceTypeAsNonNull ? UserDefinedType.CreateNullableType(ty) : ty);
-      }
+      var ty = (UserDefinedType)traitType.Subst(subst);
+      Contract.Assert(isReferenceType || !ty.IsRefType);
+      results.Add(UserDefinedType.CreateNullableTypeIfReferenceType(ty));
     }
     return results;
   }
