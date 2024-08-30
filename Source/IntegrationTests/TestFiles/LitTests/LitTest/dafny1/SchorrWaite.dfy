@@ -269,6 +269,7 @@ method {:isolate_assertions} SchorrWaite(root: Node, ghost S: set<Node>)
       stackNodes := stackNodes[..|stackNodes| - 1];
       t.childrenVisited := t.childrenVisited + 1;
       path := t.pathFromRoot;
+
     } else if t.children[t.childrenVisited] == null || t.children[t.childrenVisited].marked {
       assert {:focus} true;
       // just advance to next child
