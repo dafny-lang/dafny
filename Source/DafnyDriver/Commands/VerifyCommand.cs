@@ -10,6 +10,7 @@ using DafnyCore;
 using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -21,6 +22,13 @@ public static class VerifyCommand {
     OptionRegistry.RegisterOption(FilterSymbol, OptionScope.Cli);
     OptionRegistry.RegisterOption(FilterPosition, OptionScope.Cli);
     OptionRegistry.RegisterOption(PerformanceStatisticsOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExtractTarget, OptionScope.Cli);
+
+    DafnyOptions.RegisterLegacyBinding(ExtractTarget, (options, f) => {
+      options.BoogieExtractionTargetFile = f;
+      options.ExpandFilename(options.BoogieExtractionTargetFile, x => options.BoogieExtractionTargetFile = x, options.LogPrefix,
+        options.FileTimestamp);
+    });
   }
 
   public static readonly Option<int> PerformanceStatisticsOption = new("--performance-stats",
@@ -34,6 +42,13 @@ public static class VerifyCommand {
 
   public static readonly Option<string> FilterPosition = new("--filter-position",
     @"Filter what gets verified based on a source location. The location is specified as a file path suffix, optionally followed by a colon and a line number. For example, `dafny verify dfyconfig.toml --filter-position=source1.dfy:5` will only verify things that range over line 5 in the file `source1.dfy`. In combination with `--isolate-assertions`, individual assertions can be verified by filtering on the line that contains them. When processing a single file, the filename can be skipped, for example: `dafny verify MyFile.dfy --filter-position=:23`");
+
+  public static readonly Option<string> ExtractTarget = new("--extract", @"
+Extract Dafny types, functions, and lemmas to Boogie.
+(use - as <file> to output to console.)".TrimStart()) {
+    IsHidden = true,
+    ArgumentHelpName = "file",
+  };
 
   public static Command Create() {
     var result = new Command("verify", "Verify the program.");
@@ -50,6 +65,7 @@ public static class VerifyCommand {
         PerformanceStatisticsOption,
         FilterSymbol,
         FilterPosition,
+        ExtractTarget,
         DafnyFile.DoNotVerifyDependencies
       }.Concat(DafnyCommands.VerificationOptions).
       Concat(DafnyCommands.ConsoleOutputOptions).
@@ -76,6 +92,18 @@ public static class VerifyCommand {
       await verificationSummarized;
       await verificationResultsLogged;
       await proofDependenciesReported;
+
+      if (!resolution.HasErrors && options.BoogieExtractionTargetFile != null) {
+        using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
+          try {
+            var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
+            engine.PrintBplFile(options.BoogieExtractionTargetFile, extractedProgram, true, pretty: true);
+          } catch (ExtractorError extractorError) {
+            options.OutputWriter.WriteLine($"Boogie axiom extraction error: {extractorError.Message}");
+            return 1;
+          }
+        }
+      }
     }
 
     return await compilation.GetAndReportExitCode();

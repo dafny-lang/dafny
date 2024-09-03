@@ -451,6 +451,116 @@ module Bitvectors {
     se3 := set x | x in dd;
   }
 }
+
+module TypeParametersForNewtype {
+  newtype Wrapper<G> = g: G | true witness *
+  method CallMe<U>(u: Wrapper<U>) returns (v: Wrapper<U>)
+
+  method Test(x: bool) returns (y: Wrapper<bool>) {
+    var b: Wrapper<bool>;
+    b := x as Wrapper<bool>;
+    y := CallMe(b);
+  }
+}
+
+module TypeParametersForSubsetType {
+  type Wrapper<G> = g: G | true witness *
+  method CallMe<U>(u: Wrapper<U>) returns (v: Wrapper<U>)
+
+  method Test(x: bool) returns (y: Wrapper<bool>) {
+    var b: Wrapper<bool>;
+    b := x as Wrapper<bool>;
+    y := CallMe(b);
+  }
+}
+
+module TypeParametersForTypeSynonym {
+  type Wrapper<G> = G
+  method CallMe<U>(u: Wrapper<U>) returns (v: Wrapper<U>)
+
+  method Test(x: bool) returns (y: Wrapper<bool>) {
+    var b: Wrapper<bool>;
+    b := x as Wrapper<bool>;
+    y := CallMe(b);
+  }
+}
+
+module ExpandToTypeParameterWithoutWitness {
+  // The following two lines once had caused a crash in the verifier
+  type A<Y> = y: Y | true // error: 
+  newtype B<Z> = z: Z | true // error: 
+}
+
+module AutoInitValueSubsetType {
+  type Never = x: int | false witness *
+  type Impossible = n: Never | true // error: default witness 0 does not satisfy constraint of base type
+
+  method Test() {
+    var x: Impossible := *;
+    assert false;
+    print 10 / x;
+  }
+}
+
+module AutoInitValueNewtype {
+  newtype Never = x: int | false witness *
+  newtype Impossible = n: Never | true // error: default witness 0 does not satisfy constraint of base type
+
+  method Test() {
+    var x: Impossible := *;
+    assert false;
+    print 10 / x;
+  }
+}
+
+module AutoInitValueNewtypeWithoutVar {
+  newtype Never = x: int | false witness *
+  newtype Impossible = Never // error: default witness 0 does not satisfy constraint of base type
+
+  method Test() {
+    var x: Impossible := *;
+    assert false;
+    print 10 / x;
+  }
+}
+
+module BaseTypeConstraintHelpsWellformednessSubsetType {
+  predicate P(x: NotSeven)
+    requires x != 6
+  {
+    true
+  }
+
+  type NotSeven = x: int | x != 7 witness *
+  type Okay = n: NotSeven | P(if 8 <= n then n else n - 1)
+  type NotWellformed = n: NotSeven | P(n) // error: precondition violation
+}
+
+module BaseTypeConstraintHelpsWellformednessNewtype {
+  predicate P(x: NotSeven)
+    requires x != 6
+  {
+    true
+  }
+
+  newtype NotSeven = x: int | x != 7 witness *
+  newtype Okay = n: NotSeven | P(if 8 <= n then n else n - 1)
+  newtype NotWellformed = n: NotSeven | P(n) // error: precondition violation
+}
+
+module SimpleNewtypeWitness {
+  newtype A = x: int | 100 <= x witness 102
+  newtype B = a: A | true witness 103
+
+  newtype C = A // error: default witness 0 does not satisfy constraint
+  newtype D = A witness 104
+  newtype E = A ghost witness 104
+  newtype F = A witness *
+
+  newtype G = A witness 13 // error: 13 does not satisfy constraint
+  newtype H = A ghost witness 13 // error: 13 does not satisfy constraint
+}
+
 /*
 module RealConversions {
   method TestRealIsInt0(r: real)
