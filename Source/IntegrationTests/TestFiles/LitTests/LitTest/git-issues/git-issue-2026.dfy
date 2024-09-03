@@ -15,8 +15,8 @@ method foo(n: nat) returns (ret: array<string>)
     var i := 0;
     while i < n - 1
         invariant 0 <= i < n
-        invariant forall j :: 0 <= j < i ==> j % 2 == 0 ==> ret[j] == "even"
         invariant forall j :: 0 <= j < i ==> j % 2 == 1 ==> ret[j] == "odd"
+        invariant forall j :: 0 <= j < i ==> j % 2 == 0 ==> ret[j] == "even"
     {
         if i % 2 == 0 {
             ret[i] := "odd";
