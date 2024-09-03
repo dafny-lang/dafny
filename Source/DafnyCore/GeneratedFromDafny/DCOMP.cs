@@ -6563,7 +6563,11 @@ namespace DCOMP {
                 if (((this).ObjectType).is_RcMut) {
                   r = (r).Clone();
                 }
-                r = ((this).read__macro).Apply1(r);
+                if (((this).ObjectType).is_RawPointers) {
+                  r = ((this).read__macro).Apply1(r);
+                } else {
+                  r = ((this).modify__macro).Apply1(r);
+                }
               }
               r = (r).Sel(DCOMP.__default.escapeVar(_217_field));
               if (_218_isConstant) {
@@ -7022,7 +7026,7 @@ namespace DCOMP {
                   goto after__ASSIGN_SUCH_THAT_1;
                 }
               }
-              throw new System.Exception("assign-such-that search produced no value (line 5268)");
+              throw new System.Exception("assign-such-that search produced no value (line 5272)");
             after__ASSIGN_SUCH_THAT_1: ;
               if ((!object.Equals(selfIdent, DCOMP.SelfInfo.create_NoSelf())) && ((_310_next).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_this")))) {
                 RAST._IExpr _311_selfCloned;
