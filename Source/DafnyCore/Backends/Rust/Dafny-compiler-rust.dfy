@@ -3159,7 +3159,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         if (forTrait) {
           // Mutability is required when not using raw pointers, even for functione, because
           // --release optimisations sometimes removes the code to increment the reference counting on upcasting
-          var selfFormal := if m.wasFunction && ObjectType.RawPointers? then R.Formal.selfBorrowed else R.Formal.selfBorrowedMut;
+          var selfFormal := if m.wasFunction && pointerType.Raw? then R.Formal.selfBorrowed else R.Formal.selfBorrowedMut;
           params := [selfFormal] + params;
         } else {
           var tpe := GenType(instanceType, GenTypeContext.default());
@@ -3170,7 +3170,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // For raw pointers, no borrowing is necessary, because it implements the Copy type
           } else if selfId == "self" {
             if tpe.IsObjectOrPointer() { // For classes and traits
-              if m.wasFunction && ObjectType.RawPointers? {
+              if m.wasFunction && pointerType.Raw? {
                 tpe := R.SelfBorrowed;
               } else {
                 tpe := R.SelfBorrowedMut;
@@ -5215,14 +5215,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               var onExpr, recOwnership, recIdents;
               if base.Trait? || base.Class? {
                 onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipOwned);
-                if ObjectType.RawPointers? {
+                if pointerType.Raw? {
                   onExpr := read_macro.Apply1(onExpr);
                 } else {
                   onExpr := modify_macro.Apply1(onExpr);
                 }
                 readIdents := readIdents + recIdents;
               } else {
-                var expectedOnOwnership := if ObjectType.RawPointers? then OwnershipBorrowed else OwnershipBorrowedMut;
+                var expectedOnOwnership := if pointerType.Raw? then OwnershipBorrowed else OwnershipBorrowedMut;
                 onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, expectedOnOwnership);
                 readIdents := readIdents + recIdents;
               }
@@ -5243,7 +5243,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       case CallName(_, Some(tpe), _, _, _) =>
                         var typ := GenType(tpe, GenTypeContext.default());
                         if typ.IsObjectOrPointer() {
-                          if ObjectType.RawPointers? {
+                          if pointerType.Raw? {
                             onExpr := read_macro.Apply1(onExpr);
                           } else {
                             onExpr := modify_macro.Apply1(onExpr);
