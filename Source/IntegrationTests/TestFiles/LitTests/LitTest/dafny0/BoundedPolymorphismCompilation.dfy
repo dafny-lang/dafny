@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh --general-traits=datatype
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=true --general-traits=datatype
 
 method Main() {
   As.Test();
