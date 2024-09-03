@@ -82,11 +82,10 @@ trait Object {
   // Join the universe
   ghost method join()
     requires universe.globalBaseInv() && this as object != universe
-    requires this is OwnedObject ==> (
+    requires this is OwnedObject ==>
       var o := this as OwnedObject;
       && o.owner in universe.content
       && (!o.closed ==> o.owner is Thread)
-    )
     modifies universe
     ensures baseInv() && universe.content == old(universe.content) + { this }
     ensures unchanged(universe.content) // This method doesnt modify fields of objects in the universe
