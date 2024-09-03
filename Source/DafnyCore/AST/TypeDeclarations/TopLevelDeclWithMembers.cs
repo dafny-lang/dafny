@@ -104,7 +104,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     MembersBeforeResolution = Members.ToImmutableList();
   }
 
-  public List<Type> RawTraitsWithArgument(List<Type> typeArgs, bool treatReferenceTypeAsNonNull = false) {
+  public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
