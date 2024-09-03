@@ -5083,12 +5083,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   r := R.Identifier("this");
                 case _ =>
               }
-              if pointerType.RcMut?  {
-                r := r.Clone();
-              }
-              if ObjectType.RawPointers? {
+              if pointerType.Raw? {
                 r := read_macro.Apply1(r);
               } else {
+                r := r.Clone();
                 r := modify_macro.Apply1(r); // Functions have to take &mut because of upcasting
               }
             }
