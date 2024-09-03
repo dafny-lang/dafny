@@ -431,7 +431,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (e.Opaque && (decl is DatatypeDecl or TypeSynonymDecl)) {
+        if (e.Opaque && (decl is DatatypeDecl or TypeSynonymDecl or NewtypeDecl)) {
           // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
           // declaration is never provided, then either it isn't visible outside the module at all or its whole
           // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
@@ -1479,16 +1479,16 @@ namespace Microsoft.Dafny {
       // ----------------------------------------------------------------------------
 
       foreach (TopLevelDecl d in declarations) {
-        if (d is ClassLikeDecl classLikeDecl) {
-          var classIsExtern = !Options.DisallowExterns && Attributes.Contains(classLikeDecl.Attributes, "extern");
+        if (d is ClassDecl classDecl) {
+          var classIsExtern = !Options.DisallowExterns && Attributes.Contains(classDecl.Attributes, "extern");
           if (Options.ForbidNondeterminism &&
               !classIsExtern &&
-              !classLikeDecl.Members.Exists(member => member is Constructor) &&
-              classLikeDecl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+              !classDecl.Members.Exists(member => member is Constructor) &&
+              classDecl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
             // This check should be moved to the resolver once we have a language construct to indicate the type is imported
             // Instead of the extern attribute
             Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_constructorless_class_forbidden,
-              classLikeDecl.tok,
+              classDecl.tok,
               "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option");
           }
         }
@@ -2156,8 +2156,8 @@ namespace Microsoft.Dafny {
           // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
           var baseType = newtypeDecl.BaseType.NormalizeExpand();
           baseTypeArguments = baseType.TypeArgs;
-          if (baseType is UserDefinedType udtBaseType) {
-            baseTypeDecl = (TopLevelDeclWithMembers)udtBaseType.ResolvedClass;
+          if (baseType is UserDefinedType { ResolvedClass: TopLevelDeclWithMembers topLevelDeclWithMembers }) {
+            baseTypeDecl = topLevelDeclWithMembers;
           } else if (Options.Get(CommonOptionBag.GeneralNewtypes) || baseType.IsIntegerType || baseType.IsRealType) {
             baseTypeDecl = GetSystemValuetypeDecl(baseType);
           }
@@ -2576,7 +2576,7 @@ namespace Microsoft.Dafny {
         for (var i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          CheckOverride_TypeBounds(tok, o, n, name, thing, typeMap);
+          CheckOverride_TypeBounds(n.tok, o, n, name, thing, typeMap);
         }
       }
       return typeMap;
@@ -3619,7 +3619,7 @@ namespace Microsoft.Dafny {
         }
 
         if (udt.ResolvedClass is NewtypeDecl newtypeDecl) {
-          return CombineConstraints(newtypeDecl.BaseType, newtypeDecl.Var, newtypeDecl.Constraint);
+          return CombineConstraints(newtypeDecl.RhsWithArgument(udt.TypeArgs), newtypeDecl.Var, newtypeDecl.Constraint);
         }
         if (udt.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
           return CombineConstraints(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), subsetTypeDecl.Var, subsetTypeDecl.Constraint);
