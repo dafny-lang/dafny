@@ -256,9 +256,9 @@ module Operators {
 
   method P9<Z(==) extends Trait>(z: Z, t: Trait) returns (m: map<Trait, Trait>, mi: map<Trait, Trait>) {
     m := map[z := z];
-    m := m[z := z];
+    m := m[z as Trait := z as Trait]; // TODO: these casts should not be needed
     mi := map[z := z];
-    mi := mi[z := z];
+    mi := mi[z as Trait := z as Trait]; // TODO: these casts should not be needed
 
     m := map[z as Trait := t];
     m := m[z as Trait := t];
@@ -277,7 +277,7 @@ module Operators {
   method P10<Z(==) extends Trait>(z: Z, t: Trait) returns (m: multiset<Trait>) {
     m := multiset{z, z};
     m := multiset{z as Trait, t}; // TODO: this cast should not be needed
-    m := m[z := 13];
+    m := m[z as Trait := 13]; // TODO: this cast should not be needed
 
     var count := m[z];
     count := m[t];
