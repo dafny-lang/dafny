@@ -250,8 +250,7 @@ namespace Microsoft.Dafny {
             ResolveExpression(e.Index, resolutionContext);
             ResolveExpression(e.Value, resolutionContext);
             Constraints.AddGuardedConstraint(() => {
-              var sourcePreType = e.Seq.PreType.NormalizeWrtScope() as DPreType;
-              var ancestorPreType = sourcePreType == null ? null : AncestorPreType(sourcePreType);
+              var ancestorPreType = e.Seq.PreType.NormalizeWrtScope() is not DPreType sourcePreType ? null : AncestorPreType(sourcePreType);
               var familyDeclName = ancestorPreType?.Decl.Name;
               if (familyDeclName == PreType.TypeNameSeq) {
                 var elementPreType = ancestorPreType.Arguments[0];
@@ -387,8 +386,7 @@ namespace Microsoft.Dafny {
             Constraints.AddGuardedConstraint(() => {
               if (e.E.PreType.NormalizeWrtScope() is DPreType dp) {
                 var familyDeclName = AncestorName(dp);
-                if (familyDeclName is PreType.TypeNameSet or PreType.TypeNameSeq) {
-                  var ancestorPreType = AncestorPreType(dp);
+                if (familyDeclName is PreType.TypeNameSet or PreType.TypeNameSeq && AncestorPreType(dp) is { } ancestorPreType) {
                   Contract.Assert(ancestorPreType.Arguments.Count == 1);
                   var sourceElementPreType = ancestorPreType.Arguments[0];
                   AddSubtypeConstraint(targetElementPreType, sourceElementPreType, e.E.tok, "expecting element type {0} (got {1})");
@@ -470,28 +468,34 @@ namespace Microsoft.Dafny {
             var prevErrorCount = ErrorCount;
             resolver.ResolveType(e.tok, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
             if (ErrorCount == prevErrorCount) {
-              string errorMessageFormat;
-              var toPreType = (DPreType)Type2PreType(e.ToType);
-              var ancestorDecl = AncestorDecl(toPreType.Decl);
-              var familyDeclName = ancestorDecl.Name;
-              if (familyDeclName == PreType.TypeNameInt) {
-                errorMessageFormat = "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
-              } else if (familyDeclName == PreType.TypeNameReal) {
-                errorMessageFormat = "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
-              } else if (IsBitvectorName(familyDeclName)) {
-                errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
-              } else if (familyDeclName == PreType.TypeNameChar) {
-                errorMessageFormat = "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
-              } else if (familyDeclName == PreType.TypeNameORDINAL) {
-                errorMessageFormat = "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
-              } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
-                errorMessageFormat = "type cast to reference type '{0}' must be from an expression of a compatible type (got '{1}')";
-              } else if (ancestorDecl is TraitDecl) {
-                errorMessageFormat = "type cast to trait type '{0}' must be from an expression of a compatible type (got '{1}')";
-              } else {
-                errorMessageFormat = "type cast to type '{0}' must be from an expression of a compatible type (got '{1}')";
-              }
-              AddComparableConstraint(toPreType, e.E.PreType, conversionExpr.tok, true, errorMessageFormat);
+              var toPreType = Type2PreType(e.ToType);
+              var errorMessage = () => {
+                string errorMessageFormat;
+                if (toPreType.Normalize() is DPreType dtoPreType && AncestorPreType(dtoPreType)?.Decl is { } ancestorDecl) {
+                  var familyDeclName = ancestorDecl.Name;
+                  if (familyDeclName == PreType.TypeNameInt) {
+                    errorMessageFormat = "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                  } else if (familyDeclName == PreType.TypeNameReal) {
+                    errorMessageFormat = "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                  } else if (IsBitvectorName(familyDeclName)) {
+                    errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                  } else if (familyDeclName == PreType.TypeNameChar) {
+                    errorMessageFormat = "type conversion to a char type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                  } else if (familyDeclName == PreType.TypeNameORDINAL) {
+                    errorMessageFormat = "type conversion to an ORDINAL type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
+                  } else if (DPreType.IsReferenceTypeDecl(ancestorDecl)) {
+                    errorMessageFormat = "type cast to reference type '{0}' must be from an expression of a compatible type (got '{1}')";
+                  } else if (ancestorDecl is TraitDecl) {
+                    errorMessageFormat = "type cast to trait type '{0}' must be from an expression of a compatible type (got '{1}')";
+                  } else {
+                    errorMessageFormat = "type cast to type '{0}' must be from an expression of a compatible type (got '{1}')";
+                  }
+                } else {
+                  errorMessageFormat = "type conversion target type not determined (got '{0}')";
+                }
+                return string.Format(errorMessageFormat, toPreType, e.E.PreType);
+              };
+              AddComparableConstraint(toPreType, e.E.PreType, expr.tok, true, errorMessage);
               e.PreType = toPreType;
             } else {
               e.PreType = CreatePreTypeProxy("'as' target type");
@@ -2144,8 +2148,7 @@ namespace Microsoft.Dafny {
       var resultPreType = CreatePreTypeProxy("selection []");
       Constraints.AddGuardedConstraint(() => {
         var sourcePreType = Constraints.ApproximateReceiverType(collectionPreType, null);
-        if (sourcePreType != null) {
-          var ancestorPreType = AncestorPreType(sourcePreType);
+        if (sourcePreType != null && AncestorPreType(sourcePreType) is { } ancestorPreType) {
           var familyDeclName = ancestorPreType.Decl.Name;
           switch (familyDeclName) {
             case PreType.TypeNameArray:
@@ -2198,7 +2201,7 @@ namespace Microsoft.Dafny {
                 "resulting sequence ({0}) type does not agree with source sequence type ({1})");
               break;
             case PreType.TypeNameArray:
-              AddSubtypeConstraint(resultElementPreType, AncestorPreType(sourcePreType).Arguments[0], tok,
+              AddSubtypeConstraint(resultElementPreType, AncestorPreType(sourcePreType)!.Arguments[0], tok,
                 "type does not agree with element type {1} (got {0})");
               break;
             default:

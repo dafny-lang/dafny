@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Disjoint:
           return operandFamilyName == PreType.TypeNameMultiset ? BinaryExpr.ResolvedOpcode.MultiSetDisjoint : BinaryExpr.ResolvedOpcode.Disjoint;
         case BinaryExpr.Opcode.Lt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
               return BinaryExpr.ResolvedOpcode.RankLt;
             }
             return operandFamilyName switch {
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny {
             _ => BinaryExpr.ResolvedOpcode.Mul
           };
         case BinaryExpr.Opcode.Gt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorDecl(dp.Decl) is IndDatatypeDecl) {
+            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
               return BinaryExpr.ResolvedOpcode.RankGt;
             }
             return operandFamilyName switch {
