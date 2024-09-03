@@ -1,1 +1,0 @@
-Optimize the compilation of single-LHS assignment statements to allow the RHS to be a deeply nested expression. This solves a problem in compiling to Java, since `javac` does not deal gracefully with nested lambda expressions.
