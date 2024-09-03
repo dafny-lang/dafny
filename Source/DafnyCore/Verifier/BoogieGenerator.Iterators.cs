@@ -58,9 +58,9 @@ namespace Microsoft.Dafny {
       // wellformedness check for method specification
       Bpl.Procedure proc = AddIteratorProc(iter, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
-      /*if (InVerificationScope(iter)) {
+      if (InVerificationScope(iter)) {
         AddIteratorWellformednessCheck(iter, proc);
-      }*/
+      }
       // the method itself
       if (iter.Body != null && InVerificationScope(iter)) {
         proc = AddIteratorProc(iter, MethodTranslationKind.Implementation);
@@ -250,7 +250,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var p in iter.YieldEnsures) {
-        yeBuilder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType))));
+        //yeBuilder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldEnsuresOldHeap", predef.HeapType))));
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, yeBuilder, yeEtran, "iterator yield-ensures clause");
       }
 
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
       // where the old state is before the havoc
       foreach (var p in iter.YieldRequires) {
         //builder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.Old.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType))));
-        builder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType))));
+        //builder.Add(TrAssumeCmd(iter.tok, HeapSameOrSucc(etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType))));
         CheckWellformedAndAssume(p.E, new WFOptions(), localVariables, builder,
           new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.tok, "$_YieldRequiresOldHeap", predef.HeapType), iter), "iterator yield-requires clause");
       }
