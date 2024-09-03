@@ -858,21 +858,4 @@ mod tests {
         };
         assert_eq!(s2.message, "Hello, World!");
     }
-
-    fn object_borrower(c: &Object<dyn SuperTrait>) {
-        //let scnt = std::rc::Rc::strong_count(&c.0.as_ref().unwrap());
-        //println!("Strong count: {}", scnt);
-    }
-
-    #[test]
-    fn problematic_case() {
-        let mut c: Object<NodeRcMut> = allocate_object::<NodeRcMut>();
-        NodeRcMut::_ctor(c.clone(), int!(53));
-        let scnt = std::rc::Rc::strong_count(&c.0.as_ref().unwrap());
-        println!("Strong count: {}", scnt);
-        object_borrower(&upcast_object::<NodeRcMut, dyn SuperTrait>()(c.clone()));
-        let scnt = std::rc::Rc::strong_count(&c.0.as_ref().unwrap());
-        println!("Strong count: {}", scnt);
-        assert!(false);
-    }
 }
