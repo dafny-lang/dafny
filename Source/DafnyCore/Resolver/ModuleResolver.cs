@@ -1110,6 +1110,11 @@ namespace Microsoft.Dafny {
 
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
+      if (Options.Get(CommonOptionBag.GeneralNewtypes) && !Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        reporter.Error(MessageSource.Resolver, Token.NoToken, "use of --general-newtypes requires --type-system-refresh");
+        return;
+      }
+
       // ---------------------------------- Pass 0 ----------------------------------
       // This pass:
       // * resolves names, introduces (and may solve) type constraints
