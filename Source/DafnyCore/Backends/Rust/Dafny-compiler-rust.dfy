@@ -5076,10 +5076,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   r := R.Identifier("this");
                 case _ =>
               }
-              if this.ObjectType.RcMut?  {
+              if ObjectType.RcMut?  {
                 r := r.Clone();
               }
-              r := read_macro.Apply1(r);
+              if ObjectType.RawPointers? {
+                r := read_macro.Apply1(r);
+              } else {
+                r := modify_macro.Apply1(r); // Functions have to take &mut because of upcasting
+              }
             }
             r := r.Sel(escapeVar(field));
             if isConstant {
