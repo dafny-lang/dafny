@@ -26,6 +26,10 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 tests:
 	(cd "${DIR}"; dotnet test Source/IntegrationTests)
 
+# make test name=<part of the path of an integration test>
+test:
+	(cd "${DIR}"; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
 
