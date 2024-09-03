@@ -14,7 +14,7 @@ trait Universe {
   // without having to check the object invariants.
   ghost predicate globalBaseInv() reads this, content {
     && (forall o: Object | o in content :: && o.universe == this && o as object != this)
-    && (forall o: OwnedObject | o in content :: o.owner in content && (!o.closed ==> o.owner is Thread))
+    && (forall o: OwnedObject | o in content :: o.owner in this.content && (!o.closed ==> o.owner is Thread))
   }
 
   // Global 1-state invariant: all objects satisfy their individual invariants.
