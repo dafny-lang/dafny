@@ -1,4 +1,4 @@
-﻿// RUN: %exits-with 4 %verify --show-proof-obligation-expressions "%s" > "%t"
+﻿// RUN: %exits-with 4 %verify --show-proof-obligation-expressions --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method SubrangeCheck<T, U>(o: object?, p: T --> U, r: T ~> U, i: int) {
