@@ -1522,6 +1522,41 @@ namespace Microsoft.Dafny.Compilers {
       EmitFooter(program, wrx);
     }
 
+    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(ClassLikeDecl cl) {
+      var include = true;
+      var classIsExtern = false;
+      if (include) {
+        classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+        if (classIsExtern && cl.Members.TrueForAll(member =>
+              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+          include = false;
+        }
+      }
+
+      return (classIsExtern, include);
+    }
+
+    protected bool HasCompilationMaterial(MemberDecl memberDecl) {
+      return !memberDecl.IsGhost && (Options.DisallowExterns || !Attributes.Contains(memberDecl.Attributes, "extern"));
+    }
+
+    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(DefaultClassDecl defaultClassDecl) {
+      var hasCompilationMaterial = defaultClassDecl.Members.Exists(HasCompilationMaterial);
+      var include = hasCompilationMaterial;
+      var classIsExtern = false;
+      if (include) {
+        classIsExtern =
+          (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
+          Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
+        if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
+              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+          include = false;
+        }
+      }
+
+      return (classIsExtern, include);
+    }
+
     private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
       if (!module.CanCompile()) {
         // the purpose of an abstract module is to skip compilation
@@ -1548,10 +1583,10 @@ namespace Microsoft.Dafny.Compilers {
         return;
       }
 
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, programNode);
-      var v = new CheckHasNoAssumes_Visitor(this, wr);
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
+      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, programNode);
+      var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
           continue;
@@ -1626,19 +1661,7 @@ namespace Microsoft.Dafny.Compilers {
           w.Finish();
         } else if (d is DefaultClassDecl defaultClassDecl) {
           Contract.Assert(defaultClassDecl.InheritedMembers.Count == 0);
-          Predicate<MemberDecl> compilationMaterial = x =>
-            !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
-          var include = defaultClassDecl.Members.Exists(compilationMaterial);
-          var classIsExtern = false;
-          if (include) {
-            classIsExtern =
-              (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
-              Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
-            if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
-                  member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-              include = false;
-            }
-          }
+          var (classIsExtern, include) = GetIsExternAndIncluded(defaultClassDecl);
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
@@ -1654,15 +1677,7 @@ namespace Microsoft.Dafny.Compilers {
             CompileClassMembers(program, defaultClassDecl, abyss);
           }
         } else if (d is ClassLikeDecl cl) {
-          var include = true;
-          var classIsExtern = false;
-          if (include) {
-            classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-            if (classIsExtern && cl.Members.TrueForAll(member =>
-                  member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-              include = false;
-            }
-          }
+          var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
@@ -4317,6 +4332,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected virtual void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
+      wr.Write(qual);
+    }
+
     /// <summary>
     /// Emit translation of a call statement.
     /// The "receiverReplacement" parameter is allowed to be "null". It must be null for tail recursive calls.
@@ -4448,7 +4467,8 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(s.Receiver, false, wReceiver, wStmts);
           wr.Write($"){InstanceClassAccessor}");
         } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
-          wr.Write("{0}{1}", qual, StaticClassAccessor);
+          EmitStaticExternMethodQualifier(qual, wr);
+          wr.Write("{0}", StaticClassAccessor);
           protectedName = compileName;
         } else {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
@@ -5035,7 +5055,7 @@ namespace Microsoft.Dafny.Compilers {
       return wrArguments;
     }
 
-    protected ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
       Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
       Contract.Requires(declWithConstraints.ConstraintIsCompilable);
@@ -5221,7 +5241,8 @@ namespace Microsoft.Dafny.Compilers {
       string qual = "";
       string compileName = "";
       if (f.IsExtern(Options, out qual, out compileName) && qual != null) {
-        wr.Write("{0}{1}", qual, ModuleSeparator);
+        EmitStaticExternMethodQualifier(qual, wr);
+        wr.Write("{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
         wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), StaticClassAccessor);
         compileName = customReceiver ? CompanionMemberIdName(f) : IdName(f);
