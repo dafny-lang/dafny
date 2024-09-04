@@ -145,6 +145,8 @@ public interface RedirectingTypeDecl : ICallable {
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
+  PreType BasePreType { get; }
+  Type BaseType { get; }
   Expression/*?*/ Constraint { get; }
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost

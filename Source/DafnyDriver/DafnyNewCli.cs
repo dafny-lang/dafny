@@ -51,9 +51,7 @@ public static class DafnyNewCli {
     AddCommand(CoverageReportCommand.Create());
     AddCommand(DocumentationCommand.Create());
 
-    // Check that the .doo file format is aware of all options,
-    // and therefore which have to be saved to safely support separate verification/compilation.
-    DooFile.CheckOptions(AllOptions);
+    OptionRegistry.CheckOptionsAreKnown(AllOptions);
 
     // This SHOULD find the same method but returns null for some reason:
     // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });

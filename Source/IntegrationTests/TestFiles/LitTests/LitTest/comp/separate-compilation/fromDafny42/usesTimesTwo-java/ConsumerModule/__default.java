@@ -12,7 +12,7 @@ public class __default {
     java.math.BigInteger _0_n = java.math.BigInteger.ZERO;
     _0_n = java.math.BigInteger.valueOf(21L);
     java.math.BigInteger _1_TwoN = java.math.BigInteger.ZERO;
-    _1_TwoN = LibraryModule.__default.TimesTwo(_0_n);
+    _1_TwoN = CoolLibraryName_mLibraryModule.__default.TimesTwo(_0_n);
     System.out.print((dafny.DafnySequence.asUnicodeString("Two times ")).verbatimString());
     System.out.print(java.lang.String.valueOf(_0_n));
     System.out.print((dafny.DafnySequence.asUnicodeString(" is ")).verbatimString());
@@ -46,13 +46,13 @@ public class __default {
   }
   public static void MakeAResult()
   {
-    LibraryModule.Result<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>> _3_r;
-    _3_r = LibraryModule.Result.<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>>create_Success(java.math.BigInteger.valueOf(42L));
+    CoolLibraryName_mLibraryModule.Result<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>> _3_r;
+    _3_r = CoolLibraryName_mLibraryModule.Result.<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>>create_Success(java.math.BigInteger.valueOf(42L));
   }
   public static void MakeAPair()
   {
-    LibraryModule.Pair<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>> _4_p;
-    _4_p = LibraryModule.Pair.<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>>create(java.math.BigInteger.ONE, dafny.DafnySequence.asUnicodeString("partridge in a pair tree"));
+    CoolLibraryName_mLibraryModule.Pair<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>> _4_p;
+    _4_p = CoolLibraryName_mLibraryModule.Pair.<java.math.BigInteger, dafny.DafnySequence<? extends dafny.CodePoint>>create(java.math.BigInteger.ONE, dafny.DafnySequence.asUnicodeString("partridge in a pair tree"));
   }
   @Override
   public java.lang.String toString() {

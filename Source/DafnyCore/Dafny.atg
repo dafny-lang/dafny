@@ -771,10 +771,12 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      CheckDeclModifiers(ref dmod, "newtype", AllowedDeclModifiers.None);
      List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
+     var typeParameters = new List<TypeParameter>();
   .)
   "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref attrs> }
   NewtypeName<out name>
+  [ GenericParameters<typeParameters, true> ]
   [ ExtendsClause<parentTraits, out _, "newtype"> ]
   (
   "="
@@ -786,29 +788,25 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     [ ":" Type<out baseType> ]
     "|"
     Expression<out constraint, false, true>
-    (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
-    [ IF(IsWitness())
-      ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-        Expression<out witness, false, true>
-      | "witness"
-        ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-        | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
-        )
-      )
-    ]
+    WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, 
-         new BoundVar(bvId, bvId.val, baseType), 
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
+         new BoundVar(bvId, bvId.val, baseType),
          constraint, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
     .)
   | Type<out baseType>
+    WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: false); .)
+    (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
+         baseType, witnessKind, witness, parentTraits, members, attrs, isRefining: false);
+    .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, module, baseType, parentTraits, members, attrs, isRefining: true);
+       td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module, baseType,
+         SubsetTypeDecl.WKind.CompiledZero, null,
+         parentTraits, members, attrs, isRefining: true);
     .)
   )  (. if (td != null) {
           td.TokenWithTrailingDocString = t; 
@@ -844,16 +842,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       [ ":" Type<out ty> ]
       "|"
       Expression<out constraint, false, true>
-      (. var witnessKind = SubsetTypeDecl.WKind.CompiledZero; .)
-      [ IF(IsWitness())
-        ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-          Expression<out witness, false, true>
-        | "witness"
-          ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-          | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
-          )
-        )
-      ]
+      WitnessClause<out var witnessKind, out witness>
       (. td = new SubsetTypeDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, 
             new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
          kind = "subset type";
@@ -880,6 +869,21 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      td.TokenWithTrailingDocString = t;
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
+  .
+
+WitnessClause<out SubsetTypeDecl.WKind witnessKind, out Expression witness>
+= (. witnessKind = SubsetTypeDecl.WKind.CompiledZero;
+     witness = null;
+  .)
+  [ IF(IsWitness())
+    ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
+      Expression<out witness, false, true>
+    | "witness"
+      ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
+      | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
+      )
+    )
+  ]
   .
 
 /*------------------------------------------------------------------------*/
@@ -2297,6 +2301,7 @@ UpdateStmt<out Statement/*!*/ s>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      Expression e;
      AssignmentRhs r;
+     BlockStmt proof = null;
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      IToken startToken = Token.NoToken;
@@ -2334,10 +2339,16 @@ UpdateStmt<out Statement/*!*/ s>
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
-    ";"                            (. endTok = t; .)
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
-    ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)   
+    (
+      "by" BlockStmt<out proof, out _, out _>
+    | ";"
+    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
@@ -2352,18 +2363,21 @@ UpdateStmt<out Statement/*!*/ s>
    { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
-   ";"                             (. endTok = t; .)
+   (
+     "by" BlockStmt<out proof, out _, out _>
+   | ";"                           (. endTok = t; .)
+   )                           
 )
   (. var rangeToken = new RangeToken(startToken, t);
      if (suchThat != null) {
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
-       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss, proof);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(rangeToken, lhss, rhss);
+         s = new UpdateStmt(rangeToken, lhss, rhss, proof);
        }
      }
   .)
@@ -2463,6 +2477,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      ExprRhs exceptionRhs = null;
      Attributes attrs = null;
      Attributes tokenAttrs = null;
+     BlockStmt proof = null;
      IToken endTok;
      IToken startToken = null;
      s = dummyStmt;
@@ -2499,7 +2514,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
-    SYNC ";"                         (. endTok = t; .)
+    SYNC ( "by"
+      BlockStmt<out proof, out _, out _>
+    | ";"                            (. endTok = t; .)
+    )
     (. ConcreteUpdateStatement update;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
@@ -2516,11 +2534,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
+         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss, proof);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
+         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss, proof);
        }
        s = new VarDeclStmt(rangeToken, lhss, update);
     .)
