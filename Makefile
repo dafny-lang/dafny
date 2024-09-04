@@ -102,6 +102,9 @@ update-runtime-dafny:
 
 pr-nogeneration: format-dfy format update-runtime-dafny update-cs-module update-rs-module update-go-module
 
+update-standard-libraries:
+	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make update-binary)
+
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
 # - Use the build to convert core .dfy files to .cs
