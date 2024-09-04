@@ -1,4 +1,4 @@
-git-issue-227.dfy(89,22): Error: all lines in a calculation must have the same type (got seq<AbstractMap.View> after AbstractMap.Variables)
-git-issue-227.dfy(88,16): Error: arguments must have comparable types (got AbstractMap.Variables and seq<AbstractMap.View>)
-git-issue-227.dfy(89,22): Error: arguments must have comparable types (got seq<AbstractMap.View> and AbstractMap.Variables)
+git-issue-227.dfy(89,22): Error: all lines in a calculation must have the same type (got seq<View> after Variables)
+git-issue-227.dfy(88,16): Error: arguments must have comparable types (got Variables and seq<View>)
+git-issue-227.dfy(89,22): Error: arguments must have comparable types (got seq<View> and Variables)
 3 resolution/type errors detected in git-issue-227.dfy
