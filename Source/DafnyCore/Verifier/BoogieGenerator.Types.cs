@@ -1587,7 +1587,7 @@ public partial class BoogieGenerator {
         CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
       });
     }
-    
+
     // var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
     // delayer.DoWithDelayedReadsChecks(false, wfo => {
     //   CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
