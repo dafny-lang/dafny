@@ -26,7 +26,7 @@ Send notifications about the verification status of each line in the program.
   public static DocumentVerificationTree UpdateTree(DafnyOptions options, Program program, DocumentVerificationTree rootVerificationTree) {
     var previousTrees = rootVerificationTree.Children;
 
-    ConcurrentBag<VerificationTree> result = new ();
+    ConcurrentBag<VerificationTree> result = new();
 
     HashSet<Position> recordedPositions = new HashSet<Position>();
 
