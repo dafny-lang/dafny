@@ -25,8 +25,6 @@ public class VerificationStatusTest : ClientBasedLanguageServerTest {
     Directory.CreateDirectory(directory);
     await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "");
     await File.WriteAllTextAsync(Path.Combine(directory, "a.dfy"), "module A {}");
-    // var project = CreateAndOpenTestDocument("", Path.Combine(directory, "dfyconfig.toml"));
-    // var a = CreateAndOpenTestDocument("module A {}", Path.Combine(directory, "a.dfy"));
     var b = CreateAndOpenTestDocument("module A.B { \n  method Test() { assert true; }\n}", Path.Combine(directory, "b.dfy"));
 
     var methodHeader = new Position(1, 11);

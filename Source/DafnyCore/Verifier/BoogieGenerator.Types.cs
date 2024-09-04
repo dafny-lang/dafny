@@ -1428,16 +1428,16 @@ public partial class BoogieGenerator {
     // parameters of the procedure
     var inParams = MkTyParamFormals(decl.TypeArgs, true);
     Type baseType;
-    Bpl.Expr wh;
+    Bpl.Expr whereClause;
     if (decl.Var != null) {
       baseType = decl.Var.Type;
       Bpl.Type varType = TrType(baseType);
-      wh = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), baseType, etran, NOALLOC);
+      whereClause = GetWhereClause(decl.Var.tok, new Bpl.IdentifierExpr(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), baseType, etran, NOALLOC);
       // Do NOT use a where-clause in this declaration, because that would spoil the witness checking.
       inParams.Add(new Bpl.Formal(decl.Var.tok, new Bpl.TypedIdent(decl.Var.tok, decl.Var.AssignUniqueName(decl.IdGenerator), varType), true));
     } else {
       baseType = ((NewtypeDecl)decl).BaseType;
-      wh = null;
+      whereClause = null;
     }
 
     // the procedure itself
@@ -1484,20 +1484,7 @@ public partial class BoogieGenerator {
     // }
 
     // check well-formedness of the constraint (including termination, and delayed reads checks)
-    var constraintCheckBuilder = new BoogieStmtListBuilder(this, options, context);
-    var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
-    if (decl.Constraint == null) {
-      constraintCheckBuilder.Add(new Bpl.CommentCmd($"well-formedness of {decl.WhatKind} constraint is trivial"));
-    } else {
-      constraintCheckBuilder.Add(new Bpl.CommentCmd($"check well-formedness of {decl.WhatKind} constraint"));
-      if (wh != null) {
-        constraintCheckBuilder.Add(new Bpl.AssumeCmd(decl.tok, wh));
-      }
-      var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
-      delayer.DoWithDelayedReadsChecks(false, wfo => {
-        CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
-      });
-    }
+    var builderInitializationArea = CheckConstraintWellformedness(decl, context, whereClause, etran, locals, builder);
 
     // Check that the type is inhabited.
     // Note, the possible witness in this check should be coordinated with the compiler, so the compiler knows how to do the initialization
@@ -1509,12 +1496,25 @@ public partial class BoogieGenerator {
       // check well-formedness of the witness expression (including termination, and reads checks)
       var ghostCodeContext = codeContext;
       codeContext = decl.WitnessKind == SubsetTypeDecl.WKind.Compiled ? new CallableWrapper(decl, false) : ghostCodeContext;
-      CheckWellformed(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran);
+      CheckWellformedWithResult(decl.Witness, new WFOptions(null, true), locals, witnessCheckBuilder, etran,
+        (returnBuilder, result) => {
+          // check that the witness is assignable to the type of the given bound variable
+          if (decl is SubsetTypeDecl) {
+            // Note, for new-types, this has already been checked by CheckWellformed.
+            CheckResultToBeInType(result.Tok, result, decl.Var.Type, locals, returnBuilder, etran);
+          }
+
+          // check that the witness is assignable to the type of the given bound variable
+          CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
+          // check that the witness expression checks out
+          witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
+          if (witnessExpr != null) {
+            witnessExpr.tok = result.Tok;
+            var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
+            SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
+          }
+        });
       codeContext = ghostCodeContext;
-      // check that the witness is assignable to the type of the given bound variable
-      CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
-      // check that the witness expression checks out
-      witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
     } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
       var witness = Zero(decl.tok, baseType);
       if (witness == null) {
@@ -1525,28 +1525,14 @@ public partial class BoogieGenerator {
         witnessString = Printer.ExprToString(options, witness);
         CheckResultToBeInType(decl.tok, witness, baseType, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
         witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, witness) : null;
-      }
-    }
-    if (witnessExpr != null) {
-      var witnessCheckTok = decl.Witness != null ? GetToken(decl.Witness) : decl.tok;
-      witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessCheckTok, etran.CanCallAssumption(witnessExpr)));
-
-      bool splitHappened;
-      var ss = TrSplitExpr(context, witnessExpr, etran, true, out splitHappened);
-      var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
-      if (!splitHappened) {
-        witnessCheckBuilder.Add(Assert(witnessCheckTok, etran.TrExpr(witnessExpr), desc));
-      } else {
-        foreach (var split in ss) {
-          if (split.IsChecked) {
-            var tok = witnessCheckTok is IToken t ? new NestedToken(t, split.Tok) : witnessCheckTok;
-            witnessCheckBuilder.Add(AssertNS(tok, split.E, desc));
-          }
+        if (witnessExpr != null) {
+          witnessExpr.tok = decl.tok;
+          var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
+          SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
         }
       }
     }
-
-    builder.Add(new Bpl.IfCmd(decl.tok, null, constraintCheckBuilder.Collect(decl.tok), null, witnessCheckBuilder.Collect(decl.tok)));
+    PathAsideBlock(decl.Tok, witnessCheckBuilder, builder);
 
     var s0 = builderInitializationArea.Collect(decl.tok);
     var s1 = builder.Collect(decl.tok);
@@ -1565,5 +1551,43 @@ public partial class BoogieGenerator {
     Contract.Assert(CodeContextWrapper.Unwrap(codeContext) == decl);
     isAllocContext = null;
     Reset();
+  }
+
+  private void SplitAndAssertExpression(BoogieStmtListBuilder witnessCheckBuilder, Expression witnessExpr,
+    ExpressionTranslator etran, BodyTranslationContext context, PODesc.WitnessCheck desc) {
+    witnessCheckBuilder.Add(new Bpl.AssumeCmd(witnessExpr.tok, etran.CanCallAssumption(witnessExpr)));
+
+    var ss = TrSplitExpr(context, witnessExpr, etran, true, out var splitHappened);
+    if (!splitHappened) {
+      witnessCheckBuilder.Add(Assert(witnessExpr.tok, etran.TrExpr(witnessExpr), desc));
+    } else {
+      foreach (var split in ss) {
+        if (split.IsChecked) {
+          var tok = witnessExpr.tok is { } t ? new NestedToken(t, split.Tok) : witnessExpr.tok;
+          witnessCheckBuilder.Add(AssertNS(tok, split.E, desc));
+        }
+      }
+    }
+  }
+
+  private BoogieStmtListBuilder CheckConstraintWellformedness(RedirectingTypeDecl decl, BodyTranslationContext context,
+    Bpl.Expr whereClause, ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder builder) {
+    var constraintCheckBuilder = new BoogieStmtListBuilder(this, options, context);
+    var builderInitializationArea = new BoogieStmtListBuilder(this, options, context);
+    if (decl.Constraint == null) {
+      constraintCheckBuilder.Add(new Bpl.CommentCmd($"well-formedness of {decl.WhatKind} constraint is trivial"));
+    } else {
+      constraintCheckBuilder.Add(new Bpl.CommentCmd($"check well-formedness of {decl.WhatKind} constraint"));
+      if (whereClause != null) {
+        constraintCheckBuilder.Add(new Bpl.AssumeCmd(decl.tok, whereClause));
+      }
+      var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
+      delayer.DoWithDelayedReadsChecks(false, wfo => {
+        CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
+      });
+    }
+
+    PathAsideBlock(decl.Tok, constraintCheckBuilder, builder);
+    return builderInitializationArea;
   }
 }

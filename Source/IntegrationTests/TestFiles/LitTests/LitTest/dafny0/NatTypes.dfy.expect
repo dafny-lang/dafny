@@ -11,7 +11,7 @@ NatTypes.dfy(91,15): Error: assertion might not hold
 NatTypes.dfy(105,15): Error: assertion might not hold
 NatTypes.dfy(126,21): Error: value does not satisfy the subset constraints of 'nat'
 NatTypes.dfy(141,44): Error: value does not satisfy the subset constraints of 'nat'
-NatTypes.dfy(164,34): Error: value does not satisfy the subset constraints of 'nat'
+NatTypes.dfy(164,20): Error: value does not satisfy the subset constraints of 'nat'
 NatTypes.dfy(184,16): Error: value does not satisfy the subset constraints of 'nat'
 
 Dafny program verifier finished with 6 verified, 15 errors
