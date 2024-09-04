@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
@@ -193,6 +194,13 @@ Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
     @"
 false - The char type represents any UTF-16 code unit.
 true - The char type represents any Unicode scalar value.".TrimStart()) {
+    IsHidden = true
+  };
+
+  public static readonly Option<bool> RawPointers = new("--raw-pointers", () => false,
+    @"(backend-specific: Rust)
+false - All class instances are reference-counted or garbage collected
+true - All class instances are raw pointers and need to be manually deallocated") {
     IsHidden = true
   };
 
@@ -564,6 +572,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.ShowProofObligationExpressions = value;
     });
 
+    DafnyOptions.RegisterLegacyBinding(RawPointers, (options, value) => {
+      if (value && options.Get(CommonOptionBag.Target) != "rs") {
+        Console.Error.WriteLine("Error:  --raw-pointers can only be used with --target:rs or -t:rs");
+        System.Environment.Exit(1);
+      }
+    });
+
     OptionRegistry.RegisterGlobalOption(UnicodeCharacters, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterGlobalOption(EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary);
     OptionRegistry.RegisterGlobalOption(RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError);
@@ -600,6 +615,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(NewTypeInferenceDebug, OptionScope.Cli);
     OptionRegistry.RegisterOption(UseBaseFileName, OptionScope.Cli);
     OptionRegistry.RegisterOption(EmitUncompilableCode, OptionScope.Cli);
+    OptionRegistry.RegisterOption(RawPointers, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnMissingConstructorParenthesis, OptionScope.Module);
     OptionRegistry.RegisterOption(IncludeRuntimeOption, OptionScope.Cli);
     OptionRegistry.RegisterOption(InternalIncludeRuntimeOptionForExecution, OptionScope.Cli);
