@@ -364,6 +364,7 @@ namespace Microsoft.Dafny {
         if (expr is UnaryOpExpr uop) {
           var resolvedOp = (uop.Op, PreTypeResolver.AncestorName(uop.E.PreType)) switch {
             (UnaryOpExpr.Opcode.Not, PreType.TypeNameBool) => UnaryOpExpr.ResolvedOpcode.BoolNot,
+            (UnaryOpExpr.Opcode.Not, _) => UnaryOpExpr.ResolvedOpcode.BVNot,
             (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameSet) => UnaryOpExpr.ResolvedOpcode.SetCard,
             (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameSeq) => UnaryOpExpr.ResolvedOpcode.SeqLength,
             (UnaryOpExpr.Opcode.Cardinality, PreType.TypeNameMultiset) => UnaryOpExpr.ResolvedOpcode.MultiSetCard,
