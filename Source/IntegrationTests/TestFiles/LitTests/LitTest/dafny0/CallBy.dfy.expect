@@ -5,4 +5,4 @@ CallBy.dfy(50,10): Error: assertion might not hold
 CallBy.dfy(56,10): Error: assertion might not hold
 CallBy.dfy(66,10): Error: assertion might not hold
 
-Dafny program verifier finished with 3 verified, 6 errors
+Dafny program verifier finished with 5 verified, 6 errors
