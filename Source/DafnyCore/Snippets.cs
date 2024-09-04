@@ -5,6 +5,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using DafnyCore.Options;
 using Microsoft.Dafny;
 
 namespace DafnyCore;
@@ -14,7 +15,7 @@ public class Snippets {
     "Show a source code snippet for each Dafny message.");
 
   static Snippets() {
-    DooFile.RegisterNoChecksNeeded(ShowSnippets, false);
+    OptionRegistry.RegisterOption(ShowSnippets, OptionScope.Cli);
   }
 
   public static void WriteSourceCodeSnippet(DafnyOptions options, IToken tok, TextWriter tw) {

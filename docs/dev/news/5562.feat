@@ -1,1 +1,0 @@
-Introduce `hide` statements that enable hiding the body of a function at a particular proof location, which allows simplifying the verification of that proof in case the body of the function is not needed for the proof. `Hide` statements make the opaque keyword on functions obsolete.

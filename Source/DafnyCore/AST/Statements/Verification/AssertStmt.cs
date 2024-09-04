@@ -89,16 +89,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
     base.GenResolve(resolver, context);
 
-    if (Proof != null) {
-      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
-      var prevLblStmts = resolver.EnclosingStatementLabels;
-      var prevLoopStack = resolver.LoopStack;
-      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      resolver.LoopStack = new List<Statement>();
-      resolver.ResolveStatement(Proof, context);
-      resolver.EnclosingStatementLabels = prevLblStmts;
-      resolver.LoopStack = prevLoopStack;
-    }
+    ModuleResolver.ResolveByProof(resolver, Proof, context);
   }
 
   public bool HasAssertOnlyAttribute(out AssertOnlyKind assertOnlyKind) {

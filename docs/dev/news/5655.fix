@@ -1,1 +1,0 @@
-Fix NRE that would occur when using --legacy-data-constructors

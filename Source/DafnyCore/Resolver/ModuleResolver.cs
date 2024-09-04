@@ -431,7 +431,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (e.Opaque && (decl is DatatypeDecl or TypeSynonymDecl)) {
+        if (e.Opaque && (decl is DatatypeDecl or TypeSynonymDecl or NewtypeDecl)) {
           // Datatypes and type synonyms are marked as _provided when they appear in any provided export.  If a
           // declaration is never provided, then either it isn't visible outside the module at all or its whole
           // definition is.  Datatype and type-synonym declarations undergo some inference from their definitions.
@@ -1478,6 +1478,22 @@ namespace Microsoft.Dafny {
       // Further checks
       // ----------------------------------------------------------------------------
 
+      foreach (TopLevelDecl d in declarations) {
+        if (d is ClassDecl classDecl) {
+          var classIsExtern = !Options.DisallowExterns && Attributes.Contains(classDecl.Attributes, "extern");
+          if (Options.ForbidNondeterminism &&
+              !classIsExtern &&
+              !classDecl.Members.Exists(member => member is Constructor) &&
+              classDecl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
+            // This check should be moved to the resolver once we have a language construct to indicate the type is imported
+            // Instead of the extern attribute
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_constructorless_class_forbidden,
+              classDecl.tok,
+              "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option");
+          }
+        }
+      }
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type-parameter variance is respected in type definitions
         foreach (TopLevelDecl d in declarations) {
@@ -2140,8 +2156,8 @@ namespace Microsoft.Dafny {
           // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
           var baseType = newtypeDecl.BaseType.NormalizeExpand();
           baseTypeArguments = baseType.TypeArgs;
-          if (baseType is UserDefinedType udtBaseType) {
-            baseTypeDecl = (TopLevelDeclWithMembers)udtBaseType.ResolvedClass;
+          if (baseType is UserDefinedType { ResolvedClass: TopLevelDeclWithMembers topLevelDeclWithMembers }) {
+            baseTypeDecl = topLevelDeclWithMembers;
           } else if (Options.Get(CommonOptionBag.GeneralNewtypes) || baseType.IsIntegerType || baseType.IsRealType) {
             baseTypeDecl = GetSystemValuetypeDecl(baseType);
           }
@@ -2560,7 +2576,7 @@ namespace Microsoft.Dafny {
         for (var i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
-          CheckOverride_TypeBounds(tok, o, n, name, thing, typeMap);
+          CheckOverride_TypeBounds(n.tok, o, n, name, thing, typeMap);
         }
       }
       return typeMap;
@@ -2966,7 +2982,7 @@ namespace Microsoft.Dafny {
       ScopePushAndReport(scope, v.Name, v, v.Tok, kind);
     }
 
-    void ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
+    public Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IToken tok, string kind) where Thing : class {
       Contract.Requires(scope != null);
       Contract.Requires(name != null);
       Contract.Requires(thing != null);
@@ -2983,6 +2999,8 @@ namespace Microsoft.Dafny {
           reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
+
+      return r;
     }
 
     /// <summary>
@@ -3311,6 +3329,21 @@ namespace Microsoft.Dafny {
       return LetPatIn(tok, lhs, rhs, body);
     }
 
+    internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
+      if (proof == null) {
+        return;
+      }
+
+      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
+      var prevLblStmts = resolver.EnclosingStatementLabels;
+      var prevLoopStack = resolver.LoopStack;
+      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+      resolver.LoopStack = new List<Statement>();
+      resolver.ResolveStatement(proof, resolutionContext);
+      resolver.EnclosingStatementLabels = prevLblStmts;
+      resolver.LoopStack = prevLoopStack;
+    }
+
     /// <summary>
     ///  If expr.Lhs != null: Desugars "var x: T :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else var x: T := temp.Extract(); F"
     ///  If expr.Lhs == null: Desugars "         :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else                             F"
@@ -3586,7 +3619,7 @@ namespace Microsoft.Dafny {
         }
 
         if (udt.ResolvedClass is NewtypeDecl newtypeDecl) {
-          return CombineConstraints(newtypeDecl.BaseType, newtypeDecl.Var, newtypeDecl.Constraint);
+          return CombineConstraints(newtypeDecl.RhsWithArgument(udt.TypeArgs), newtypeDecl.Var, newtypeDecl.Constraint);
         }
         if (udt.ResolvedClass is SubsetTypeDecl subsetTypeDecl) {
           return CombineConstraints(subsetTypeDecl.RhsWithArgument(udt.TypeArgs), subsetTypeDecl.Var, subsetTypeDecl.Constraint);
