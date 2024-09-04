@@ -2,6 +2,37 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.8.0
+
+## New features
+
+- Introduce `hide` statements that enable hiding the body of a function at a particular proof location, which allows simplifying the verification of that proof in case the body of the function is not needed for the proof. `Hide` statements make the opaque keyword on functions obsolete. (https://github.com/dafny-lang/dafny/pull/5562)
+
+- Let the command `measure-complexity` output which verification tasks performed the worst in terms of resource count. Output looks like:
+  ...
+  Verification task on line 8 in file measure-complexity.dfy consumed 9984 resources
+  Verification task on line 7 in file measure-complexity.dfy consumed 9065 resources
+  ...
+  (https://github.com/dafny-lang/dafny/pull/5631)
+
+- Enable the option `--enforce-determinism` for the commands `resolve` and `verify` (https://github.com/dafny-lang/dafny/pull/5632)
+
+- Method calls get an optional by-proof that hides the precondtion and its proof (https://github.com/dafny-lang/dafny/pull/5662)
+
+## Bug fixes
+
+- Clarify error location of inlined `is` predicates. (https://github.com/dafny-lang/dafny/pull/5587)
+
+- Optimize the compilation of single-LHS assignment statements to allow the RHS to be a deeply nested expression. This solves a problem in compiling to Java, since `javac` does not deal gracefully with nested lambda expressions. (https://github.com/dafny-lang/dafny/pull/5589)
+
+- Crash when compiling an empty source file while including testing code (https://github.com/dafny-lang/dafny/pull/5638)
+
+- Let the options --print-mode=NoGhostOrIncludes and --print-mode=NoIncludes work (https://github.com/dafny-lang/dafny/pull/5645)
+
+- Verification in the IDE now works correctly when declaring nested module in a different file than their parent. (https://github.com/dafny-lang/dafny/pull/5650)
+
+- Fix NRE that would occur when using --legacy-data-constructors (https://github.com/dafny-lang/dafny/pull/5655)
+
 # 4.7.0
 
 ## New features

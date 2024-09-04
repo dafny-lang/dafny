@@ -63,10 +63,10 @@ SubsetTypes.dfy(318,18): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(323,20): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(330,20): Error: result of operation might violate newtype constraint for 'Nat'
 SubsetTypes.dfy(337,20): Error: result of operation might violate newtype constraint for 'Nat'
-SubsetTypes.dfy(343,18): Error: value does not satisfy the subset constraints of 'Nat'
 SubsetTypes.dfy(342,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-SubsetTypes.dfy(348,18): Error: result of operation might violate newtype constraint for 'Nat'
+SubsetTypes.dfy(343,18): Error: value does not satisfy the subset constraints of 'Nat'
 SubsetTypes.dfy(347,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
+SubsetTypes.dfy(348,18): Error: result of operation might violate newtype constraint for 'Nat'
 SubsetTypes.dfy(352,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(360,21): Error: possible division by zero
 SubsetTypes.dfy(365,23): Error: possible division by zero
@@ -91,3 +91,5 @@ SubsetTypes.dfy(459,15): Error: assertion might not hold
 SubsetTypes.dfy(464,13): Error: assertion might not hold
 
 Dafny program verifier finished with 13 verified, 91 errors
+Total resources used is 738020
+Max resources used by VC is 67520

@@ -755,11 +755,11 @@ namespace Microsoft.Dafny.Compilers {
 
       if (xType.AsNewtype != null && member == null) {
         // when member is given, use UserDefinedType case below
-        var nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
+        var newtypeDecl = xType.AsNewtype;
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok, member);
+        return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok);
       }
 
       switch (xType) {
@@ -855,7 +855,7 @@ namespace Microsoft.Dafny.Compilers {
                 if (td.Witness != null) {
                   return TypeName_UDT(FullName(cl), udt, wr, udt.tok) + ".default()";
                 } else {
-                  return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+                  return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
                 }
 
               case DatatypeDecl dt:

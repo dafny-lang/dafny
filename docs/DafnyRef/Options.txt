@@ -448,6 +448,10 @@ Usage: dafny [ option ... ] [ filename ... ]
 
   /loopUnroll:<n>
                 unroll loops, following up to n back edges (and then some)
+                default is -1, which means loops are not unrolled
+  /extractLoops
+                extract reducible loops into recursive procedures and
+                inline irreducible loops using the bound supplied by /loopUnroll:<n>
   /soundLoopUnrolling
                 sound loop unrolling
   /doModSetAnalysis
