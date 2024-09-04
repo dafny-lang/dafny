@@ -28,7 +28,7 @@ DefaultParameters.dfy(178,41): Error: value does not satisfy the subset constrai
 DefaultParameters.dfy(179,33): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(180,35): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(180,35): Error: value does not satisfy the subset constraints of 'nat'
-DefaultParameters.dfy(181,40): Error: value does not satisfy the subset constraints of 'nat'
+DefaultParameters.dfy(181,37): Error: value does not satisfy the subset constraints of 'nat'
 DefaultParameters.dfy(194,39): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(200,40): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(211,62): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
