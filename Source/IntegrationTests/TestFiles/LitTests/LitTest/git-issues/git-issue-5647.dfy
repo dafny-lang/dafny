@@ -24,5 +24,5 @@ function GetSumAuto(x: nat, y: nat): nat
 
 method Main() {
   print GetSum(10, ""), "\n";
-  print GetSumAuto(0, 5), "\n";
+  print GetSumAuto(0, 5);
 }
