@@ -1,5 +1,5 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=2 --refresh-exit-code=4 "%s"
-// RUN: %diff "%s.expect" "%t"
+
 
 method h(n: nat) {
   var a: array<nat> := new [n](i => i); // OK, element type inferred as "nat" (in legacy resolver, i is nat, which gives gives RHS as nat)

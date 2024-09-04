@@ -1,0 +1,3 @@
+git-issue-321.dfy(21,23): Error: value of expression (of type 'array<int>') is not known to be an instance of type 'array<nat>'
+
+Dafny program verifier finished with 3 verified, 1 error
