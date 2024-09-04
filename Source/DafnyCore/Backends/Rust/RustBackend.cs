@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.CommandLine;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -23,6 +24,15 @@ public class RustBackend : DafnyExecutableBackend {
   public override int TargetIndentSize => 4;
   public override bool SupportsInMemoryCompilation => false;
   public override bool TextualTargetIsExecutable => false;
+
+  public static readonly Option<string> RustModuleNameOption = new("--rust-module-name",
+    @"This Option is used to specify the Rust Module Name for the currently translated code, i.e. what goes between crate:: ...  ::module_name".TrimStart()) {
+  };
+  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { RustModuleNameOption };
+
+  static RustBackend() {
+    OptionRegistry.RegisterOption(RustModuleNameOption, OptionScope.Translation);
+  }
 
   public override IReadOnlySet<string> SupportedNativeTypes =>
     new HashSet<string> { "byte", "sbyte", "ushort", "short", "uint", "int", "ulong", "long", "udoublelong", "doublelong" };
