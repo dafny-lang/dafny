@@ -8,7 +8,7 @@ namespace Microsoft.Dafny.Compilers;
 
 class ResolvedDesugaredExecutableDafnyCodeGenerator : DafnyWrittenCodeGenerator {
 
-  public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
+  public override ISequence<Rune> Compile(Sequence<DAST.Module> program, Sequence<ISequence<Rune>> otherFiles) {
     return COMP.Compile(program);
   }
 
