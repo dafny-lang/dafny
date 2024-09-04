@@ -2445,7 +2445,7 @@ namespace Microsoft.Dafny.Compilers {
           var signature = Sequence<_IFormal>.FromArray(new _IFormal[] { });
           var c = exprBuilder.Builder.Call(signature);
           c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("_AllSingletonConstructors"),
-            Option<_IType>.create_None(), Option<_IFormal>.create_None(), signature));
+            Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
           var wrc = new BuilderSyntaxTree<ExprContainer>(c, this);
           EmitTypeName_Companion(bv.Type, wrc, wr, bv.Tok, null);
         } else {
