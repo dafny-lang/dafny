@@ -189,7 +189,7 @@ public class CliCompilation {
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verification part {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
+            $"Verified part #{boogieUpdate.VerificationTask.Split.SplitIndex}, {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
             $", on line {token.line}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
@@ -315,4 +315,6 @@ record VerificationStatistics {
   public int OutOfResourceCount;
   public int OutOfMemoryCount;
   public int SolverExceptionCount;
+  public int TotalResourcesUsed;
+  public int MaxVcResourcesUsed;
 }

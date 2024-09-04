@@ -48,7 +48,7 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
-      - name: Test DafnyRuntime (C#)
+      - name: Test DafnyRuntime (C#, Rust)
         run: |
           cd ./Source/DafnyRuntime
           make all
@@ -71,4 +71,8 @@ jobs:
       - name: Test DafnyRuntimeJs
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJs
+          make all
+      - name: Test DafnyRuntimeRust
+        run: |
+          cd ./Source/DafnyRuntime/DafnyRuntimeRust
           make all

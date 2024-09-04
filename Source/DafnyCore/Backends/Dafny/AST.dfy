@@ -36,7 +36,11 @@ module {:extern "DAST"} DAST {
   // See issue https://github.com/dafny-lang/dafny/issues/5345
   datatype Name = Name(dafny_name: string)
 
-  datatype Module = Module(name: Name, attributes: seq<Attribute>, body: Option<seq<ModuleItem>>)
+  // A special Dafny name wrapper for variable names.
+  // For example, the identifier 'None' needs to be escaped in Rust, but not as a constructor.
+  datatype VarName = VarName(dafny_name: string)
+
+  datatype Module = Module(name: Name, attributes: seq<Attribute>, requiresExterns: bool, body: Option<seq<ModuleItem>>)
 
   datatype ModuleItem =
     | Module(Module)
@@ -45,6 +49,28 @@ module {:extern "DAST"} DAST {
     | Newtype(Newtype)
     | SynonymType(SynonymType)
     | Datatype(Datatype)
+  {
+    function name(): Name {
+      match this {
+        case Module(m) => m.name
+        case Class(m) => m.name
+        case Trait(m) => m.name
+        case Newtype(m) => m.name
+        case SynonymType(m) => m.name
+        case Datatype(m) => m.name
+      }
+    }
+    function attributes(): seq<Attribute> {
+      match this {
+        case Module(m) => m.attributes
+        case Class(m) => m.attributes
+        case Trait(m) => m.attributes
+        case Newtype(m) => m.attributes
+        case SynonymType(m) => m.attributes
+        case Datatype(m) => m.attributes
+      }
+    }
+  }
 
   datatype Type =
     UserDefined(resolved: ResolvedType) |
@@ -127,7 +153,7 @@ module {:extern "DAST"} DAST {
     typeArgs: seq<Type>,
     kind: ResolvedTypeBase,
     attributes: seq<Attribute>,
-    properMethods: seq<Ident>,
+    properMethods: seq<Name>,
     extendedTypes: seq<Type>) {
     function Replace(mapping: map<Type, Type>): ResolvedType {
       ResolvedType(
@@ -175,7 +201,7 @@ module {:extern "DAST"} DAST {
 
   datatype Field = Field(formal: Formal, defaultValue: Option<Expression>)
 
-  datatype Formal = Formal(name: Name, typ: Type, attributes: seq<Attribute>)
+  datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
   datatype Method = Method(
     attributes: seq<Attribute>,
@@ -189,22 +215,22 @@ module {:extern "DAST"} DAST {
     params: seq<Formal>,
     body: seq<Statement>,
     outTypes: seq<Type>,
-    outVars: Option<seq<Ident>>)
+    outVars: Option<seq<VarName>>)
 
   datatype CallSignature = CallSignature(parameters: seq<Formal>)
 
   datatype CallName =
-    CallName(name: Name, onType: Option<Type>, receiverArgs: Option<Formal>, signature: CallSignature) |
+    CallName(name: Name, onType: Option<Type>, receiverArg: Option<Formal>, receiverAsArgument: bool, signature: CallSignature) |
     MapBuilderAdd | MapBuilderBuild | SetBuilderAdd | SetBuilderBuild
 
   datatype Statement =
-    DeclareVar(name: Name, typ: Type, maybeValue: Option<Expression>) |
+    DeclareVar(name: VarName, typ: Type, maybeValue: Option<Expression>) |
     Assign(lhs: AssignLhs, value: Expression) |
     If(cond: Expression, thn: seq<Statement>, els: seq<Statement>) |
     Labeled(lbl: string, body: seq<Statement>) |
     While(cond: Expression, body: seq<Statement>) |
-    Foreach(boundName: Name, boundType: Type, over: Expression, body: seq<Statement>) |
-    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<Ident>>) |
+    Foreach(boundName: VarName, boundType: Type, over: Expression, body: seq<Statement>) |
+    Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>, outs: Option<seq<VarName>>) |
     Return(expr: Expression) |
     EarlyReturn() |
     Break(toLabel: Option<string>) |
@@ -217,8 +243,8 @@ module {:extern "DAST"} DAST {
   }
 
   datatype AssignLhs =
-    Ident(ident: Ident) |
-    Select(expr: Expression, field: Name) |
+    Ident(ident: VarName) |
+    Select(expr: Expression, field: VarName) |
     Index(expr: Expression, indices: seq<Expression>)
 
   datatype CollKind = Seq | Array | Map
@@ -245,14 +271,15 @@ module {:extern "DAST"} DAST {
 
   datatype Expression =
     Literal(Literal) |
-    Ident(name: Name) |
+    Ident(name: VarName) |
     Companion(seq<Ident>, typeArgs: seq<Type>) |
+    ExternCompanion(seq<Ident>) |
     Tuple(seq<Expression>) |
     New(path: seq<Ident>, typeArgs: seq<Type>, args: seq<Expression>) |
     NewUninitArray(dims: seq<Expression>, typ: Type) |
     ArrayIndexToInt(value: Expression) |
     FinalizeNewArray(value: Expression, typ: Type) |
-    DatatypeValue(datatypeType: ResolvedType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(string, Expression)>) |
+    DatatypeValue(datatypeType: ResolvedType, typeArgs: seq<Type>, variant: Name, isCo: bool, contents: seq<(VarName, Expression)>) |
     Convert(value: Expression, from: Type, typ: Type) |
     SeqConstruct(length: Expression, elem: Expression) |
     SeqValue(elements: seq<Expression>, typ: Type) |
@@ -271,23 +298,25 @@ module {:extern "DAST"} DAST {
     ArrayLen(expr: Expression, exprType: Type, dim: nat, native: bool) |
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
-    Select(expr: Expression, field: Name, isConstant: bool, onDatatype: bool, fieldType: Type) |
-    SelectFn(expr: Expression, field: Name, onDatatype: bool, isStatic: bool, arity: nat) |
+    MapItems(expr: Expression) |
+    Select(expr: Expression, field: VarName, isConstant: bool, onDatatype: bool, fieldType: Type) |
+    SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
     TupleSelect(expr: Expression, index: nat, fieldType: Type) |
     Call(on: Expression, callName: CallName, typeArgs: seq<Type>, args: seq<Expression>) |
     Lambda(params: seq<Formal>, retType: Type, body: seq<Statement>) |
     BetaRedex(values: seq<(Formal, Expression)>, retType: Type, expr: Expression) |
-    IIFE(ident: Ident, typ: Type, value: Expression, iifeBody: Expression) |
+    IIFE(ident: VarName, typ: Type, value: Expression, iifeBody: Expression) |
     Apply(expr: Expression, args: seq<Expression>) |
     TypeTest(on: Expression, dType: seq<Ident>, variant: Name) |
+    Is(expr: Expression, fromType: Type, toType: Type) |
     InitializationValue(typ: Type) |
     BoolBoundedPool() |
     SetBoundedPool(of: Expression) |
     MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
-    IntRange(lo: Expression, hi: Expression, up: bool) |
+    IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |
     Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
 

@@ -61,7 +61,7 @@ index 4a8b2f89b..a308be9bf 100644
        <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
        <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
        <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
--      <PackageReference Include="Boogie.ExecutionEngine" Version="3.2.3" />
+-      <PackageReference Include="Boogie.ExecutionEngine" Version="3.2.4" />
 +      <ProjectReference Include="..\..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj" />
 +      <ProjectReference Include="..\..\boogie\Source\BaseTypes\BaseTypes.csproj" />
 +      <ProjectReference Include="..\..\boogie\Source\Core\Core.csproj" />

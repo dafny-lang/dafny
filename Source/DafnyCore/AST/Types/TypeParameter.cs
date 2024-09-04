@@ -7,9 +7,12 @@ namespace Microsoft.Dafny;
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }
+    IToken Tok { get; }
   }
 
   public override string WhatKind => "type parameter";
+
+  public bool IsAutoCompleted => Name.StartsWith("_");
 
   ParentType parent;
   public ParentType Parent {

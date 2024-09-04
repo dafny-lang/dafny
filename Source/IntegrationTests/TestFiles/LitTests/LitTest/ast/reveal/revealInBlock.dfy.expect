@@ -9,4 +9,4 @@ revealInBlock.dfy(81,10): Error: assertion might not hold
 revealInBlock.dfy(91,14): Error: assertion might not hold
 revealInBlock.dfy(94,10): Error: assertion might not hold
 
-Dafny program verifier finished with 26 verified, 10 errors
+Dafny program verifier finished with 19 verified, 10 errors

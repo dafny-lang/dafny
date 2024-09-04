@@ -25,7 +25,7 @@ namespace Microsoft.Dafny {
     private List<Statement> loopStack = new();  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
-    void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
+    public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -252,8 +252,8 @@ namespace Microsoft.Dafny {
           var rr = (TypeRhs)s.Rhs;
           ResolveTypeRhs(rr, stmt, resolutionContext);
           AddSubtypeConstraint(lhsPreType, rr.PreType, stmt.Tok, "type {1} is not assignable to LHS (of type {0})");
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
+        } else if (s.Rhs is HavocRhs havocRhs) {
+          havocRhs.Resolve(this, resolutionContext);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
@@ -266,41 +266,22 @@ namespace Microsoft.Dafny {
         ResolveBlockStatement(blockStmt, resolutionContext);
         scope.PopMarker();
 
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, resolutionContext);
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
-        }
-
-        scope.PushMarker();
-        if (s.IsBindingGuard) {
-          var exists = (ExistsExpr)s.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", false);
-          }
-        }
-        DominatingStatementLabels.PushMarker();
-        ResolveBlockStatement(s.Thn, resolutionContext);
-        DominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-
-        if (s.Els != null) {
-          DominatingStatementLabels.PushMarker();
-          ResolveStatement(s.Els, resolutionContext);
-          DominatingStatementLabels.PopMarker();
-        }
-
+      } else if (stmt is IfStmt ifStmt) {
+        ifStmt.Resolve(this, resolutionContext);
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        ResolveAlternatives(s.Alternatives, null, resolutionContext);
+        s.Resolve(this, resolutionContext);
 
       } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
         ResolveOneBodyLoopStmt(oneBodyLoopStmt, resolutionContext);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        ResolveAlternatives(s.Alternatives, s, resolutionContext);
+        if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+          Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Tok,
+            "case-based loop forbidden by the --enforce-determinism option");
+        }
+        AlternativeStmt.ResolveAlternatives(this, s.Alternatives, s, resolutionContext);
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       } else if (stmt is ForallStmt) {
@@ -391,6 +372,12 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ModifyStmt modifyStmt) {
+        if (modifyStmt.Body == null) {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_bodyless_modify_statement_forbidden,
+              modifyStmt.Tok, "modify statement without a body forbidden by the --enforce-determinism option");
+          }
+        }
         ResolveAttributes(modifyStmt.Mod, resolutionContext, false);
         foreach (FrameExpression fe in modifyStmt.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext.CodeContext);
@@ -424,11 +411,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
-      if (s is WhileStmt whileS && whileS.Guard != null) {
-        ResolveExpression(whileS.Guard, resolutionContext);
-        ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
-
-      } else if (s is ForLoopStmt forS) {
+      if (s is WhileStmt whileS) {
+        if (whileS.Guard != null) {
+          ResolveExpression(whileS.Guard, resolutionContext);
+          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+        } else {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Tok,
+              "nondeterministic loop forbidden by the --enforce-determinism option");
+          }
+        }
+      }
+      if (s is ForLoopStmt forS) {
         var loopIndex = forS.LoopIndex;
         resolver.ResolveType(loopIndex.tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
@@ -621,7 +615,8 @@ namespace Microsoft.Dafny {
     /// errorCountBeforeCheckingStmt is passed in so that this method can determine if any resolution errors were found during
     /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
     /// </summary>
-    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext, int errorCountBeforeCheckingStmt) {
+    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext,
+      int errorCountBeforeCheckingStmt) {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
@@ -643,6 +638,7 @@ namespace Microsoft.Dafny {
             isEffectful = false;
           }
         }
+
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Tok;
         }
@@ -650,13 +646,17 @@ namespace Microsoft.Dafny {
         ResolveAttributes(rhs, resolutionContext, false);
       }
 
+      // resolve proof
+      ModuleResolver.ResolveByProof(this, update.Proof, resolutionContext);
+
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
         if (update.Lhss.Count == 0) {
-          Contract.Assert(update.Rhss.Count == 1);  // guaranteed by the parser
+          Contract.Assert(update.Rhss.Count == 1); // guaranteed by the parser
           ReportError(update, "expected method call, found expression");
         } else if (update.Lhss.Count != update.Rhss.Count) {
-          ReportError(update, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
+          ReportError(update,
+            "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
             update.Lhss.Count, update.Rhss.Count);
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
@@ -669,7 +669,8 @@ namespace Microsoft.Dafny {
       } else if (update.CanMutateKnownState) {
         if (1 < update.Rhss.Count) {
           ReportError(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
-        } else { // it might be ok, if it is a TypeRhs
+        } else {
+          // it might be ok, if it is a TypeRhs
           Contract.Assert(update.Rhss.Count == 1);
           if (methodCallInfo != null) {
             ReportError(methodCallInfo.Tok, "cannot have method call in return statement.");
@@ -689,12 +690,16 @@ namespace Microsoft.Dafny {
       } else {
         // if there was an effectful RHS, that must be the only RHS
         if (update.Rhss.Count != 1) {
-          ReportError(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+          ReportError(firstEffectfulRhs,
+            "an update statement is allowed an effectful RHS only if there is just one RHS");
         } else if (methodCallInfo == null) {
           // must be a single TypeRhs
           if (update.Lhss.Count != 1) {
-            Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-            ReportError(update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
+            Contract.Assert(2 <=
+                            update.Lhss
+                              .Count); // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+            ReportError(update.Lhss[1].tok,
+              "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
               update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingStmt) {
             var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
@@ -703,7 +708,8 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters,
+            methodCallInfo.Tok, update.Proof);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -929,6 +935,8 @@ namespace Microsoft.Dafny {
         return;
       }
 
+      ModuleResolver.ResolveByProof(this, s.Proof, resolutionContext);
+
       Expression lhsExtract = null;
       if (expectExtract) {
         if (enclosingMethod.Outs.Count == 0 && s.KeywordToken == null) {
@@ -991,7 +999,7 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2);
+      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2, s.Proof);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
@@ -1250,40 +1258,6 @@ namespace Microsoft.Dafny {
         // nothing to check; this can only denote an array element
       } else {
         ReportError(lhs, "LHS of assignment must denote a mutable variable or field");
-      }
-    }
-
-    void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
-      Contract.Requires(alternatives != null);
-      Contract.Requires(resolutionContext != null);
-
-      // first, resolve the guards
-      foreach (var alternative in alternatives) {
-        ResolveExpression(alternative.Guard, resolutionContext);
-        ConstrainExpressionToBoolFamily(alternative.Guard, "condition is expected to be of type bool, but is {0}");
-      }
-
-      if (loopToCatchBreaks != null) {
-        loopStack.Add(loopToCatchBreaks);  // push
-      }
-      foreach (var alternative in alternatives) {
-        scope.PushMarker();
-        DominatingStatementLabels.PushMarker();
-        if (alternative.IsBindingGuard) {
-          var exists = (ExistsExpr)alternative.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", false);
-          }
-        }
-        ResolveAttributes(alternative, resolutionContext, false);
-        foreach (Statement ss in alternative.Body) {
-          ResolveStatementWithLabels(ss, resolutionContext);
-        }
-        DominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-      }
-      if (loopToCatchBreaks != null) {
-        loopStack.RemoveAt(loopStack.Count - 1);  // pop
       }
     }
   }

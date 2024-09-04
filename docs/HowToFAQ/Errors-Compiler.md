@@ -74,7 +74,7 @@ For example, [`type T(00)` indicates that the type `T` is non-empty](../DafnyRef
 
 ## **Error: since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option** {#c_iterators_are_not_deterministic}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 iterator Gen(start: int) yields (x: int)
   yield ensures |xs| <= 10 && x == start + |xs| - 1
@@ -110,7 +110,7 @@ Furthermore, if the iterator is non-ghost, it cannot be compiled if it does not 
 
 ## **Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option** {#c_constructorless_class_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 class A { var j: int }
 ```
@@ -298,7 +298,7 @@ Body-less loops in ghost methods are similar to unchecked assumptions.
 
 ## **Error: nondeterministic assignment forbidden by the --enforce-determinism option** {#c_nondeterminism_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m() {
   var x: int;
@@ -319,7 +319,7 @@ There are a few different forms of this kind of assignment:
 
 ## **Error: assign-such-that statement forbidden by the --enforce-determinism option** {#c_assign_such_that_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m() {
   var x: int;
@@ -342,7 +342,7 @@ However, in this case the expression is too complex for Dafny's heuristics.
 
 ## **Error: nondeterministic if statement forbidden by the --enforce-determinism option** {#c_nondeterministic_if_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m() {
 var y: int;
@@ -379,7 +379,7 @@ whether there is a reasonable way to compute a value.)
 
 ## **Error: case-based if statement forbidden by the --enforce-determinism option** {#c_case_based_if_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m(k: int) {
   var i := k;
@@ -401,7 +401,7 @@ To enforce a deterministic order to the evaluation, use a chain of if-then-else 
 
 ## **Error: nondeterministic loop forbidden by the --enforce-determinism option** {#c_non_deterministic_loop_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m(b: bool) decreases * {
   while * 
@@ -416,7 +416,7 @@ Hence this 'non-deterministic while' (`while *`) statement is not permitted with
 
 ## **Error: case-based loop forbidden by the --enforce-determinism option** {#c_case_based_loop_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 method m(k: int) {
   var i := k;
@@ -445,7 +445,7 @@ _The documentation of this problem is in progress._
 
 ## **Error: modify statement without a body forbidden by the --enforce-determinism option** {#c_bodyless_modify_statement_forbidden}
 
-<!-- %check-run %options --enforce-determinism -->
+<!-- %check-resolve %options --enforce-determinism -->
 ```dafny
 class A { constructor A(){}}
 
