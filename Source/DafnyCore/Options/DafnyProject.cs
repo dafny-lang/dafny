@@ -17,8 +17,8 @@ using Tomlyn.Model;
 namespace Microsoft.Dafny;
 
 public class DafnyProject : IEquatable<DafnyProject> {
-  public static Option<FileInfo> FindProjectOption = new("--find-project",
-    "Given a filesystem path, search for a project file by traversing up the file tree.");
+  public static Option<bool> FindProjectOption = new("--find-project",
+    "Uses the first specified input file as a starting path, from which to search for a project file by traversing up the file tree.");
 
   static DafnyProject() {
     OptionRegistry.RegisterOption(FindProjectOption, OptionScope.Cli);
