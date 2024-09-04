@@ -1511,10 +1511,11 @@ public partial class BoogieGenerator {
           CheckResultToBeInType(decl.Witness.tok, decl.Witness, baseType, locals, witnessCheckBuilder, etran);
           // check that the witness expression checks out
           witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, decl.Witness) : null;
-          witnessExpr.tok = result.Tok;
-          var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
-
-          SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
+          if (witnessExpr != null) {
+            witnessExpr.tok = result.Tok;
+            var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
+            SplitAndAssertExpression(returnBuilder, witnessExpr, etran, context, desc);
+          }
         });
       codeContext = ghostCodeContext;
     } else if (decl.WitnessKind == SubsetTypeDecl.WKind.CompiledZero) {
@@ -1527,10 +1528,11 @@ public partial class BoogieGenerator {
         witnessString = Printer.ExprToString(options, witness);
         CheckResultToBeInType(decl.tok, witness, baseType, locals, witnessCheckBuilder, etran, $"trying witness {witnessString}: ");
         witnessExpr = decl.Constraint != null ? Substitute(decl.Constraint, decl.Var, witness) : null;
-
-        witnessExpr.tok = decl.tok;
-        var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
-        SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
+        if (witnessExpr != null) {
+          witnessExpr.tok = decl.tok;
+          var desc = new PODesc.WitnessCheck(witnessString, witnessExpr);
+          SplitAndAssertExpression(witnessCheckBuilder, witnessExpr, etran, context, desc);
+        }
       }
     }
     PathAsideBlock(decl.Tok, witnessCheckBuilder, builder);
@@ -1588,10 +1590,6 @@ public partial class BoogieGenerator {
       });
     }
 
-    // var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, constraintCheckBuilder);
-    // delayer.DoWithDelayedReadsChecks(false, wfo => {
-    //   CheckWellformedAndAssume(decl.Constraint, wfo, locals, constraintCheckBuilder, etran, "predicate subtype constraint");
-    // });
     PathAsideBlock(decl.Tok, constraintCheckBuilder, builder);
     return builderInitializationArea;
   }
