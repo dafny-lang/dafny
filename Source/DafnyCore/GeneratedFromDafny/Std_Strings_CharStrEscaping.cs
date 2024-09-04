@@ -14,27 +14,27 @@ namespace Std.Strings.CharStrEscaping {
   public partial class __default {
     public static Dafny.ISequence<Dafny.Rune> Escape(Dafny.ISequence<Dafny.Rune> str, Dafny.ISet<Dafny.Rune> mustEscape, Dafny.Rune escape)
     {
-      Dafny.ISequence<Dafny.Rune> _177___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
+      Dafny.ISequence<Dafny.Rune> _0___accumulator = Dafny.Sequence<Dafny.Rune>.FromElements();
     TAIL_CALL_START: ;
       if ((str).Equals(Dafny.Sequence<Dafny.Rune>.FromElements())) {
-        return Dafny.Sequence<Dafny.Rune>.Concat(_177___accumulator, str);
+        return Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, str);
       } else if ((mustEscape).Contains((str).Select(BigInteger.Zero))) {
-        _177___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_177___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements(escape, (str).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in56 = (str).Drop(BigInteger.One);
-        Dafny.ISet<Dafny.Rune> _in57 = mustEscape;
-        Dafny.Rune _in58 = escape;
-        str = _in56;
-        mustEscape = _in57;
-        escape = _in58;
+        _0___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements(escape, (str).Select(BigInteger.Zero)));
+        Dafny.ISequence<Dafny.Rune> _in0 = (str).Drop(BigInteger.One);
+        Dafny.ISet<Dafny.Rune> _in1 = mustEscape;
+        Dafny.Rune _in2 = escape;
+        str = _in0;
+        mustEscape = _in1;
+        escape = _in2;
         goto TAIL_CALL_START;
       } else {
-        _177___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_177___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)));
-        Dafny.ISequence<Dafny.Rune> _in59 = (str).Drop(BigInteger.One);
-        Dafny.ISet<Dafny.Rune> _in60 = mustEscape;
-        Dafny.Rune _in61 = escape;
-        str = _in59;
-        mustEscape = _in60;
-        escape = _in61;
+        _0___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)));
+        Dafny.ISequence<Dafny.Rune> _in3 = (str).Drop(BigInteger.One);
+        Dafny.ISet<Dafny.Rune> _in4 = mustEscape;
+        Dafny.Rune _in5 = escape;
+        str = _in3;
+        mustEscape = _in4;
+        escape = _in5;
         goto TAIL_CALL_START;
       }
     }
@@ -44,23 +44,23 @@ namespace Std.Strings.CharStrEscaping {
         return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(str);
       } else if (((str).Select(BigInteger.Zero)) == (escape)) {
         if ((new BigInteger((str).Count)) > (BigInteger.One)) {
-          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _178_valueOrError0 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(new BigInteger(2)), escape);
-          if ((_178_valueOrError0).IsFailure()) {
-            return (_178_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+          Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _0_valueOrError0 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(new BigInteger(2)), escape);
+          if ((_0_valueOrError0).IsFailure()) {
+            return (_0_valueOrError0).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
           } else {
-            Dafny.ISequence<Dafny.Rune> _179_tl = (_178_valueOrError0).Extract();
-            return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.One)), _179_tl));
+            Dafny.ISequence<Dafny.Rune> _1_tl = (_0_valueOrError0).Extract();
+            return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.One)), _1_tl));
           }
         } else {
           return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None();
         }
       } else {
-        Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _180_valueOrError1 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(BigInteger.One), escape);
-        if ((_180_valueOrError1).IsFailure()) {
-          return (_180_valueOrError1).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
+        Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> _2_valueOrError1 = Std.Strings.CharStrEscaping.__default.Unescape((str).Drop(BigInteger.One), escape);
+        if ((_2_valueOrError1).IsFailure()) {
+          return (_2_valueOrError1).PropagateFailure<Dafny.ISequence<Dafny.Rune>>();
         } else {
-          Dafny.ISequence<Dafny.Rune> _181_tl = (_180_valueOrError1).Extract();
-          return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)), _181_tl));
+          Dafny.ISequence<Dafny.Rune> _3_tl = (_2_valueOrError1).Extract();
+          return Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.FromElements((str).Select(BigInteger.Zero)), _3_tl));
         }
       }
     }
