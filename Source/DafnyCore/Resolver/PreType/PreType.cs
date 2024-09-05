@@ -274,6 +274,14 @@ namespace Microsoft.Dafny {
       PrintablePreType = printablePreType;
     }
 
+    public DPreType SansPrintablePreType() {
+      if (PrintablePreType == null) {
+        return this;
+      } else {
+        return new DPreType(Decl, Arguments);
+      }
+    }
+
     public override string ToString() {
       if (PrintablePreType != null) {
         return PrintablePreType.ToString();
