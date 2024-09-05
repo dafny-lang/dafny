@@ -1419,6 +1419,9 @@ namespace Microsoft.Dafny {
           }
         }
 
+        // Check that type arguments satisfy their required
+        //   - type characteristics, and
+        //   - type bounds
         TypeCharacteristicChecker.InferAndCheck(declarations, isAnExport, reporter);
 
         // Check that functions claiming to be abstemious really are, and check that 'older' parameters are used only when allowed

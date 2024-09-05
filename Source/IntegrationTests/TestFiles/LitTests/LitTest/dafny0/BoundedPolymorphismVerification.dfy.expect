@@ -12,5 +12,9 @@ BoundedPolymorphismVerification.dfy(364,11): Error: value of expression (of type
 BoundedPolymorphismVerification.dfy(366,11): Error: value of expression (of type 'Generic<int>') is not known to be an instance of type 'Generic<nat>'
 BoundedPolymorphismVerification.dfy(375,13): Error: value of expression (of type 'Generic<nat>') is not known to be an instance of type 'Generic<int>'
 BoundedPolymorphismVerification.dfy(377,13): Error: value of expression (of type 'Generic<int>') is not known to be an instance of type 'Generic<nat>'
+BoundedPolymorphismVerification.dfy(407,72): Error: value of expression (of type 'ReferenceTrait') is not known to be an instance of type 'ConstrainedReferenceTrait'
+BoundedPolymorphismVerification.dfy(408,69): Error: value of expression (of type 'ReferenceTrait?') is not known to be an instance of type 'ReferenceTrait', because it might be null
+BoundedPolymorphismVerification.dfy(409,72): Error: value of expression (of type 'ReferenceTrait?') is not known to be an instance of type 'ConstrainedReferenceTrait'
+BoundedPolymorphismVerification.dfy(420,9): Error: value of expression (of type 'E?') is not known to be an instance of type 'E', because it might be null
 
-Dafny program verifier finished with 32 verified, 14 errors
+Dafny program verifier finished with 33 verified, 18 errors

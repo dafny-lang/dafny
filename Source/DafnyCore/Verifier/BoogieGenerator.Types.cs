@@ -983,22 +983,28 @@ public partial class BoogieGenerator {
 
     Bpl.Expr body, is_o;
     string comment;
+    Trigger trigger;
 
     if (is_alloc) {
       comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
       var h = BplBoundVar("$h", predef.HeapType, vars);
       // $IsAlloc(o, ..)
       is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(baseType));
+      trigger = BplTrigger(is_o);
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
         body = is_o;
       } else {
         Bpl.Expr rhs = MkIsAlloc(o, baseType, h);
+        if (dd is NonNullTypeDecl) {
+          trigger.Next = BplTrigger(rhs);
+        }
         body = BplIff(is_o, rhs);
       }
     } else {
       comment = $"$Is axiom for {dd.WhatKind} {fullName}";
       // $Is(o, ..)
       is_o = MkIs(o, o_ty, ModeledAsBoxType(baseType));
+      trigger = BplTrigger(is_o);
       var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(dd.tok), null);
       Bpl.Expr parentConstraint, constraint;
       if (baseType.IsNumericBased() || baseType.IsBitVectorType || baseType.IsBoolType || baseType.IsCharType) {
@@ -1009,13 +1015,16 @@ public partial class BoogieGenerator {
         constraint = etran.TrExpr(ModuleResolver.GetImpliedTypeConstraint(substitutee, udt));
       } else {
         parentConstraint = MkIs(o, baseType);
+        if (dd is NonNullTypeDecl) {
+          trigger.Next = BplTrigger(parentConstraint);
+        }
         // conjoin the constraint
         constraint = etran.TrExpr(dd.Constraint ?? Expression.CreateBoolLiteral(dd.tok, true));
       }
       body = BplIff(is_o, BplAnd(parentConstraint, constraint));
     }
 
-    var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, BplTrigger(is_o), body), comment);
+    var axiom = new Bpl.Axiom(dd.tok, BplForall(vars, trigger, body), comment);
     AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
   }
 

@@ -1704,7 +1704,7 @@ namespace Microsoft.Dafny {
           var preTypeBoundWithSubst = preTypeBound.Substitute(subst);
           var actualPreType = subst[typeParameter];
           AddSubtypeConstraint(preTypeBoundWithSubst, actualPreType, tok,
-            $"actual type parameter '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
+            $"actual type argument '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
         }
       }
     }

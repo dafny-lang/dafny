@@ -245,9 +245,9 @@ module MoreBoxing {
 
   method P9<Z(==) extends Trait>(z: Z, t: Trait) returns (m: map<Trait, Trait>, mi: map<Trait, Trait>) {
     m := map[z := z];
-    m := m[z as Trait := z as Trait]; // TODO: this cast should not be needed
+    m := m[z as Trait := z as Trait]; // TODO: these casts should not be needed
     mi := map[z := z];
-    mi := mi[z as Trait := z as Trait]; // TODO: this cast should not be needed
+    mi := mi[z as Trait := z as Trait]; // TODO: these casts should not be needed
 
     m := map[z as Trait := t];
     m := m[z as Trait := t];
@@ -269,7 +269,7 @@ module MoreBoxing {
 
   method P10<Z(==) extends Trait>(z: Z, t: Trait) returns (m: multiset<Trait>) {
     m := multiset{z, z};
-    m := multiset{z as Trait, t};
+    m := multiset{z as Trait, t}; // TODO: this cast should not be needed
     m := m[z as Trait := 13]; // TODO: this cast should not be needed
     assert z in m;
     assert !(z !in m);
@@ -388,5 +388,35 @@ module Variance {
       h := g;
       h := g as Covariant<nat>; // (legacy error)
     }
+  }
+}
+
+module BadBounds {
+  trait ReferenceTrait extends object {
+    const u: int
+  }
+
+  type ConstrainedReferenceTrait = r: ReferenceTrait | r.u < 100 witness *
+
+  method P<R extends ReferenceTrait?, S extends ReferenceTrait, T extends ConstrainedReferenceTrait>(r: R, s: S, t: T) { }
+
+  method PCaller(r: ReferenceTrait?, s: ReferenceTrait, t: ConstrainedReferenceTrait) {
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, s, t);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(t, t, t);
+    // The following errors are ordinary parameter-type-mismatch errors; the explicit type arguments do satisfy their required bounds
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(s, s, s); // error: argument 2 is not a ConstrainedReferenceTrait
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, r, t); // error: argument 1 is not a ReferenceTrait
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, s, r); // error: argument 2 is not a ConstrainedReferenceTrait
+  }
+
+  trait GoodTrait { }
+
+  class E extends GoodTrait { }
+
+  method Q<G extends GoodTrait>(g: G) { }
+
+  method QCaller(e: E, eMaybe: E?) {
+    Q<E>(e);
+    Q<E>(eMaybe); // error: eMaybe may be null
   }
 }
