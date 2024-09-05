@@ -221,7 +221,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
           DocumentUri.From(uri),
           fileVersion,
-          tree.Children,
+          tree.Children.ToList(),
           errors,
           linesCount,
           verificationStarted
