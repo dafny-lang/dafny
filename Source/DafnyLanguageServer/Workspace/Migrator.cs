@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -373,7 +374,7 @@ public class Migrator : IMigrator {
     var migratedChildren = MigrateVerificationTrees(originalVerificationTree.Children);
     var migratedRange = MigrateRange(originalVerificationTree.Range, true);
     return originalVerificationTree with {
-      Children = migratedChildren.ToList(),
+      Children = new ConcurrentBag<VerificationTree>(migratedChildren),
       Range = migratedRange!,
       StatusCurrent = CurrentStatus.Obsolete
     };
@@ -394,7 +395,7 @@ public class Migrator : IMigrator {
       }
       var newNodeDiagnostic = verificationTree with {
         Range = newRange,
-        Children = MigrateVerificationTrees(verificationTree.Children, change).ToList(),
+        Children = new ConcurrentBag<VerificationTree>(MigrateVerificationTrees(verificationTree.Children, change)),
         StatusVerification = verificationTree.StatusVerification,
         StatusCurrent = CurrentStatus.Obsolete,
         Finished = false,
