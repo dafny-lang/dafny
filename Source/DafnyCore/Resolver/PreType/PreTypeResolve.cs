@@ -519,8 +519,16 @@ namespace Microsoft.Dafny {
       // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
       Constraints.AddGuardedConstraint(() => ApproximateComparableConstraints(a, b, tok, allowBaseTypeCast,
         "(Duplicate error message) " + errorMessage(), false));
+      if (!allowBaseTypeCast) {
+        // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
+        if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
+          Constraints.AddCompatibleBounds(aPreTypeProxy, b);
+        }
+        if (b.Normalize() is PreTypeProxy bPreTypeProxy) {
+          Constraints.AddCompatibleBounds(bPreTypeProxy, a);
+        }
+      }
       Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), errorMessage);
-      //Func<string> errorMessage
     }
 
     /// <summary>
