@@ -94,4 +94,12 @@ BoundedPolymorphismResolution.dfy(378,15): Error: type parameters are not allowe
 BoundedPolymorphismResolution.dfy(399,11): Error: type parameters are not allowed to be renamed from the names given in the type in the module being refined (expected 'X', found 'Z')
 BoundedPolymorphismResolution.dfy(401,12): Error: type parameters are not allowed to be renamed from the names given in the class in the module being refined (expected 'X', found 'Y')
 BoundedPolymorphismResolution.dfy[YY](394,23): Error: incorrect argument type for constructor in-parameter 'x' (expected X, found char)
-96 resolution/type errors detected in BoundedPolymorphismResolution.dfy
+BoundedPolymorphismResolution.dfy(425,5): Error: type parameter ('G') passed to method 'M' must meet type bound 'GoodTrait' (got 'real')
+BoundedPolymorphismResolution.dfy(426,5): Error: type parameter ('G') passed to method 'M' must meet type bound 'GoodTrait' (got 'nat')
+BoundedPolymorphismResolution.dfy(440,5): Error: type parameter 2 ('T') passed to method 'P' must meet type bound 'ConstrainedReferenceTrait' (got 'ReferenceTrait')
+BoundedPolymorphismResolution.dfy(441,5): Error: type parameter 1 ('S') passed to method 'P' must meet type bound 'ReferenceTrait' (got 'ReferenceTrait?')
+BoundedPolymorphismResolution.dfy(442,5): Error: type parameter 2 ('T') passed to method 'P' must meet type bound 'ConstrainedReferenceTrait' (got 'ReferenceTrait?')
+BoundedPolymorphismResolution.dfy(459,5): Error: type parameter ('G') passed to method 'Q' must meet type bound 'GoodTrait' (got 'E?')
+BoundedPolymorphismResolution.dfy(462,9): Error: type parameter ('G') passed to method 'Q' must meet type bound 'GoodTrait' (got 'E?')
+BoundedPolymorphismResolution.dfy(463,9): Error: type parameter ('G') passed to method 'Q' must meet type bound 'GoodTrait' (got 'E?')
+104 resolution/type errors detected in BoundedPolymorphismResolution.dfy
