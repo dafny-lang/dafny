@@ -129,6 +129,12 @@ pub mod _System {
     }
   }
 
+  impl Tuple0 {
+    pub fn _AllSingletonConstructors() -> crate::SequenceIter<::std::rc::Rc<Tuple0>> {
+      crate::seq![::std::rc::Rc::new(Tuple0::_T0 {})].iter()
+    }
+  }
+
   impl Eq
     for Tuple0 {}
 
