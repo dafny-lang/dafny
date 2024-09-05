@@ -174,7 +174,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
 
     // Case: fixed pre-type type
-    if (expr is LiteralExpr or ThisExpr or UnaryExpr or BinaryExpr or NegationExpression or DisplayExpression or MapDisplayExpr) {
+    if (expr is LiteralExpr or ThisExpr or UnaryExpr or BinaryExpr or NegationExpression or DisplayExpression or MapDisplayExpr or SeqUpdateExpr) {
       // Note, for the LiteralExpr "null", we expect to get a possibly-null type, whereas for a reference-type ThisExpr, we expect
       // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
       // field that gives the non-null type.
