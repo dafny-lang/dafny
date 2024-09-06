@@ -3405,9 +3405,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     rhs]);
                 newEnv := newEnv.RemoveAssigned(isAssignedVar);
               } else {
-                error := Some("Unespected field to assign whose isAssignedVar is not in the environment: " + isAssignedVar);
-                generated :=
-                  R.AssignMember(R.RawExpr(error.value), fieldName, rhs);
+                // Already assigned, safe to override
+                generated := R.Assign(Some(R.SelectMember(modify_macro.Apply1(thisInConstructor), fieldName)), rhs);
               }
             case _ =>
               if onExpr != R.Identifier("self") {
