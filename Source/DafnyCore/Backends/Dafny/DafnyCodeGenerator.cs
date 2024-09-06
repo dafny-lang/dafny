@@ -730,6 +730,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    public override string TailRecursiveVar(int inParamIndex, IVariable variable) {
+      return preventShadowing ? base.TailRecursiveVar(inParamIndex, variable) : DCOMP.COMP.TailRecursionPrefix.ToVerbatimString(false) + inParamIndex;
+    }
+
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         stmtContainer.Builder.AddStatement((DAST.Statement)DAST.Statement.create_JumpTailCallStart());
