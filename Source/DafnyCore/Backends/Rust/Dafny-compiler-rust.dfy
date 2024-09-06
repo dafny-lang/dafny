@@ -2391,11 +2391,21 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var datatypeName := escapeName(c.name);
       var ctors: seq<R.EnumCase> := [];
       var variances := Std.Collections.Seq.Map((typeParamDecl: TypeArgDecl) => typeParamDecl.variance, c.typeParams);
+      var singletonConstructors := [];
       var usedTypeParams: set<string> := {};
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
         var ctorArgs: seq<R.Field> := [];
         var isNumeric := false;
+        if |ctor.args| == 0 {
+          var instantiation := R.StructBuild(R.Identifier(datatypeName).FSel(escapeName(ctor.name)), []);
+          if IsRcWrapped(c.attributes) {
+            instantiation := R.RcNew(instantiation);
+          }
+          singletonConstructors := singletonConstructors + [
+            instantiation
+          ];
+        }
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
           var formalType := GenType(dtor.formal.typ, GenTypeContext.default());
@@ -2785,6 +2795,31 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                                       coerceImplBody)))))]
             ))
         ];
+      }
+
+      if |singletonConstructors| == |c.ctors| {
+        var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
+        var instantiationType :=
+          if IsRcWrapped(c.attributes) then
+            R.Rc(datatypeType)
+          else
+            datatypeType;
+        s := s + [
+          R.ImplDecl(
+            R.Impl(
+              rTypeParamsDecls,
+              datatypeType,
+              "",
+              [R.FnDecl(
+                 R.PUB,
+                 R.Fn(
+                   "_AllSingletonConstructors", [],
+                   [],
+                   Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
+                   "",
+                   Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply([]))
+                 )
+               )]))];
       }
 
       // Implementation of Eq when c supports equality

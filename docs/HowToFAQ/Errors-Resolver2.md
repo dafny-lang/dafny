@@ -108,7 +108,7 @@ Part of the pattern that is amenable to this optimization is that the last thing
 in the body of a recursive method (or function) is a call of the recursive function with the
 value returned being assigned to the out-parameter.
 
-## **Error: the recursive call to '_name_' is not tail recursive because the actual type parameter _typeparam_ is not the formal type parameter '_formal_'**
+## **Error: the recursive call to '_name_' is not tail recursive because the actual type argument _typeparam_ is not the formal type parameter '_formal_'**
 
 ```dafny
 method {:tailrecursion} m<T,U>(n: nat) returns (r: nat)

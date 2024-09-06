@@ -25,6 +25,7 @@ namespace Microsoft.Dafny {
     private Queue<EqualityConstraint> equalityConstraints = new();
     private List<Func<bool>> guardedConstraints = new();
     private readonly List<Advice> defaultAdvice = new();
+    private readonly List<(PreTypeProxy, PreType)> compatibleBounds = new();
     private List<Confirmation> confirmations = new();
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
@@ -87,6 +88,15 @@ namespace Microsoft.Dafny {
             return super;
           } else if (memberName == null && md is not TraitDecl) {
             return super;
+          }
+        }
+      }
+
+      // As a final possibility, if there is a compatible-types constraint "ty ~~ proxy", then pick "ty" as the bound
+      foreach (var (compatibleBoundsProxy, compatibleBoundsType) in compatibleBounds) {
+        if (compatibleBoundsProxy.Normalize() == proxy && compatibleBoundsType.Normalize() is DPreType { Decl: TopLevelDeclWithMembers md } dPreType) {
+          if (memberName == null || PreTypeResolver.resolver.GetClassMembers(md).ContainsKey(memberName)) {
+            return dPreType;
           }
         }
       }
@@ -157,6 +167,8 @@ namespace Microsoft.Dafny {
         return true;
       } else if (TryApplyDefaultAdvice()) {
         return true;
+      } else if (TryUseCompatibleTypesAsBounds()) {
+        return true;
       }
       return false;
     }
@@ -177,6 +189,7 @@ namespace Microsoft.Dafny {
       equalityConstraints.Clear();
       guardedConstraints.Clear();
       defaultAdvice.Clear();
+      compatibleBounds.Clear();
       confirmations.Clear();
       PreTypeResolver.allPreTypeProxies.Clear();
     }
@@ -512,6 +525,19 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    bool TryUseCompatibleTypesAsBounds() {
+      // if there is a compatible-types constraint "ty ~~ proxy", then decide on the bound "ty :> proxy"
+      bool anythingChanged = false;
+      foreach (var (compatibleBoundsProxy, compatibleBoundsType) in compatibleBounds) {
+        if (compatibleBoundsProxy.Normalize() is PreTypeProxy proxy && compatibleBoundsType.Normalize() is DPreType dPreType) {
+          // make a decision to set this proxy
+          proxy.Set(dPreType);
+          anythingChanged = true;
+        }
+      }
+      return anythingChanged;
+    }
+
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IToken tok, string errorFormatString, Action onProxyAction) {
       confirmations.Add(new Confirmation(
         () => ConfirmConstraint(check, preType, null),
@@ -528,6 +554,14 @@ namespace Microsoft.Dafny {
     public void AddConfirmation(IToken tok, Func<bool> check, Func<string> errorMessage) {
       confirmations.Add(new Confirmation(check, errorMessage,
         (ResolverPass reporter) => { reporter.ReportError(tok, errorMessage()); }));
+    }
+
+    /// <summary>
+    /// Make a note that a possible super bound for "proxy" is "possibleSuperBound". It can later be consulted and
+    /// acted on if "proxy" is not constrained in any other way.
+    /// </summary>
+    public void AddCompatibleBounds(PreTypeProxy proxy, PreType possibleSuperBound) {
+      compatibleBounds.Add((proxy, possibleSuperBound));
     }
 
     void ConfirmTypeConstraints() {

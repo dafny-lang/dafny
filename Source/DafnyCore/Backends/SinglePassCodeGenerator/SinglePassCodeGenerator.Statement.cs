@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
               }
             } else {
               Contract.Assert(s.Bounds != null);
-              TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+              TrAssignSuchThat(lhss, s.Expr, s.Bounds, wr, false);
             }
 
             break;
