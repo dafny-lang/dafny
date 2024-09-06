@@ -278,7 +278,10 @@ namespace Microsoft.Dafny {
               }
               return false;
             });
-            updateExpr.PreType = e.Seq.PreType;
+
+            updateExpr.PreType = CreatePreTypeProxy("result of _[_:=_]");
+            AddSubtypeConstraint(updateExpr.PreType, e.Seq.PreType, e.tok,
+              $"result of update expression must agree with the source type ({{0}})");
             break;
           }
         case DatatypeUpdateExpr datatypeUpdateExpr: {
@@ -1584,7 +1587,7 @@ namespace Microsoft.Dafny {
               resolutionContext, allowMethodCall);
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, new InferredTypeProxy(), true) {
-              PreType = tentativeReceiverPreType,
+              PreType = tentativeReceiverPreType.SansPrintablePreType(),
               ObjectToDiscard = lhs
             };
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext,
@@ -1697,7 +1700,7 @@ namespace Microsoft.Dafny {
           var preTypeBoundWithSubst = preTypeBound.Substitute(subst);
           var actualPreType = subst[typeParameter];
           AddSubtypeConstraint(preTypeBoundWithSubst, actualPreType, tok,
-            $"actual type parameter '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
+            $"actual type argument '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
         }
       }
     }

@@ -46,7 +46,7 @@ namespace FactorPathsOptimization {
             goto after__ASSIGN_SUCH_THAT_0;
           }
         }
-        throw new System.Exception("assign-such-that search produced no value (line 105)");
+        throw new System.Exception("assign-such-that search produced no value");
       after__ASSIGN_SUCH_THAT_0: ;
         return _0_e;
       }
