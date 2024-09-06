@@ -20,7 +20,6 @@ namespace DafnyToRustCompilerCoverage.RASTCoverage {
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestOptimizeToString();
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestPrintingInfo();
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestNoExtraSemicolonAfter();
-      FactorPathsOptimizationTest.__default.TestApply();
     }
     public static void TestNoOptimize(RAST._IExpr e)
     {
