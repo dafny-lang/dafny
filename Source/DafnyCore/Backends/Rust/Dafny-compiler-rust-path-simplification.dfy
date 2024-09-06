@@ -2,6 +2,7 @@ module FactorPathsOptimizationTest {
   export provides TestApply
   import opened RAST
   import opened FactorPathsOptimization
+  import opened Std.Wrappers
 
   method ShouldBeEqual(a: Mod, b: Mod) {
     var sA := a.ToString("");
@@ -19,42 +20,100 @@ module FactorPathsOptimizationTest {
     var T := TIdentifier("T");
     var std_any_Any := global.MSel("std").MSel("any").MSel("Any");
     var Any := TIdentifier("Any");
-    ShouldBeEqual(apply(
-                    Mod("onemodule", [], [
-                          StructDecl(
-                            Struct([], "test", [T_Decl],
-                                   NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
-                          //                                   ::std::any::Any ==> Any
-                          ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
-                          ImplDecl(
-                            ImplFor(
-                              [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
-                          //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
-                        ])),
-                  Mod("onemodule", [], [
-                        UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
-                        UseDecl(Use(PUB, std_any_Any)),
-                        StructDecl(
-                          Struct([], "test", [T_Decl_simp],
-                                 NamedFields([Field(PUB, Formal("a", Any))]))),
-                        ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
-                        ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
-                      ]));
-    ShouldBeEqual(apply(
-                    Mod("onemodule", [], [
-                          ImplDecl(
-                            ImplFor(
-                              [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
-                              TIdentifier("test").Apply([T]), "", []))
-                        ])),
-                  Mod("onemodule", [], [
-                        UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
-                        UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
-                        ImplDecl(
-                          ImplFor(
-                            [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
-                            TIdentifier("test").Apply([T]), "", []))
-                      ]));
+    ShouldBeEqual(
+      apply(
+        Mod(
+          "onemodule", [], [
+            StructDecl(
+              Struct([], "test", [T_Decl],
+                     NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
+            //                                   ::std::any::Any ==> Any
+            ImplDecl(Impl([T_Decl], TIdentifier("test").Apply([T]), "", [])),
+            ImplDecl(
+              ImplFor(
+                [T_Decl], std_any_Any.AsType(), crate.MSel("onemodule").MSel("test").AsType().Apply([T]), "", []))
+            //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
+          ])),
+      Mod(
+        "onemodule", [], [
+          UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
+          UseDecl(Use(PUB, std_any_Any)),
+          StructDecl(
+            Struct([], "test", [T_Decl_simp],
+                   NamedFields([Field(PUB, Formal("a", Any))]))),
+          ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
+          ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
+        ]));
+    ShouldBeEqual(
+      apply(
+        Mod(
+          "onemodule", [], [
+            ImplDecl(
+              ImplFor(
+                [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
+                TIdentifier("test").Apply([T]), "", []))
+          ])),
+      Mod(
+        "onemodule", [], [
+          UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
+          UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
+          ImplDecl(
+            ImplFor(
+              [T_Decl_simp], TIdentifier("UpcastObject").Apply([TIdentifier("x")]),
+              TIdentifier("test").Apply([T]), "", []))
+        ]));
+    ShouldBeEqual(
+      apply(
+        Mod(
+          "onemodule", [], [
+            ConstDecl(
+              Constant(
+                [],
+                "dummy", std_any_Any.AsType(),
+                StmtExpr(
+                  DeclareVar(
+                    MUT, "doit", Some(std_rc_Rc.AsType().Apply1(TIdentifier("unknown"))),
+                    Some(
+                      Identifier("something").ApplyType(
+                        [ DynType(DefaultPath.AsType())
+                        ]).Apply([
+                          std_Default_default,
+                          dafny_runtime.MSel("rd!").AsExpr().Apply1(Identifier("obj"))
+                        ])
+                    )),
+                  TypeAscription(
+                    ExprFromType(
+                      dafny_runtime.MSel("DafnyString").AsType()),
+                    dafny_runtime.MSel("DafnyType").AsType()))))
+          ])),
+      Mod(
+        "onemodule", [], [
+          UseDecl(Use(PUB, std_any_Any)),
+          UseDecl(Use(PUB, std_rc_Rc)),
+          UseDecl(Use(PUB, DefaultPath)),
+          UseDecl(Use(PUB, dafny_runtime.MSel("rd"))),
+          UseDecl(Use(PUB, dafny_runtime.MSel("DafnyString"))),
+          UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
+          ConstDecl(
+            Constant(
+              [],
+              "dummy", TIdentifier("Any"),
+              StmtExpr(
+                DeclareVar(
+                  MUT, "doit", Some(TIdentifier("Rc").Apply1(TIdentifier("unknown"))),
+                  Some(
+                    Identifier("something").ApplyType(
+                      [ DynType(TIdentifier("Default"))
+                      ]).Apply([
+                        Identifier("Default").FSel("default").Apply([]),
+                        Identifier("rd!").Apply1(Identifier("obj"))
+                      ])
+                  )),
+                TypeAscription(
+                  ExprFromType(
+                    TIdentifier("DafnyString")),
+                    TIdentifier("DafnyType")))))
+        ]));
   }
 }
 
@@ -64,32 +123,22 @@ module FactorPathsOptimization {
   import opened RAST
   export Std
 
-  /*function Debug<T>(s: T, msg: string): T {
-    s
-  } by method {
-    print msg, ":", s, "\n";
-    return s;
-  }*/
-
   function apply(mod: Mod): Mod {
     applyPrefix(mod, crate.MSel(mod.name))
   }
 
-  function applyPrefix(mod: Mod, SelfPath: Path): Mod {
+  function applyPrefix(mod: Mod, SelfPath: Path): Mod
+    decreases mod, 1
+  {
     if mod.ExternMod? then mod else
-    var initialMapping: Mapping := Mapping(map[], []);
-    var mappings: Mapping :=
-      mod.Fold(initialMapping, (current, modDecl) => GatherModMapping(SelfPath, modDecl, current));
-    //var _ := Debug(mappings, "Mappings");
+    var mappings: Mapping := PathsVisitor().VisitMod(Mapping(map[], []), mod, SelfPath);
     var pathsToRemove := mappings.ToFinalReplacement();
     var imports := mappings.ToUseStatements(pathsToRemove, SelfPath);
-    var rewrittenDeclarations :=
-      mod.Fold([], (current, modDecl) requires modDecl < mod =>
-                 current + [ReplaceModDecl(modDecl, SelfPath, pathsToRemove)]
-      );
-    mod.(body := imports + rewrittenDeclarations)
+    var mod := PathSimplifier(mod, pathsToRemove).ReplaceMod(mod, SelfPath);
+    mod.(body := imports + mod.body)
   }
 
+  // Retrieves the unique element of a singleton set
   opaque function UniqueElementOf<T>(s: set<T>): (r: T)
     requires |s| == 1
     ensures r in s
@@ -106,6 +155,8 @@ module FactorPathsOptimization {
     e
   }
 
+  type FinalReplacement = map<string, Path>
+
   datatype Mapping = Mapping(
     provenance: map<string, set<Path>>,
     keys: seq<string>
@@ -117,6 +168,9 @@ module FactorPathsOptimization {
         this.(provenance := provenance[k := {path}], keys := keys + [k])
     }
 
+    // For any mapping identifier -> full paths,
+    // we will perform the replacement either if there is exactly one full path,
+    // or if the path is the dafny runtime (in which cases, all other homonyms remain fully prefixed)
     function ToFinalReplacement(): FinalReplacement {
       map identifier <- provenance, paths
         | paths == provenance[identifier] &&
@@ -125,6 +179,8 @@ module FactorPathsOptimization {
         ::
           identifier := if |paths| == 1 then UniqueElementOf(paths) else dafny_runtime
     }
+    // Given a final replacement map,
+    // creates a sequence of use statements to be inserted at the beginning of the module
     function ToUseStatements(finalReplacement: FinalReplacement, SelfPath: Path): seq<ModDecl>
       requires finalReplacement == ToFinalReplacement()
     {
@@ -135,141 +191,79 @@ module FactorPathsOptimization {
     }
   }
 
-  type FinalReplacement = map<string, Path>
-
-  function GatherTypeParams(typeParams: seq<TypeParamDecl>, current: Mapping): Mapping {
-    FoldLeft( (current: Mapping, t: TypeParamDecl) =>
-                FoldLeft( (current: Mapping, t: Type) =>
-                            GatherTypeMapping(t, current),
-                          current, t.constraints),
-              current, typeParams)
-  }
-
-  function GatherFields(fields: Fields, current: Mapping): Mapping {
-    match fields {
-      case NamedFields(sFields) =>
-        FoldLeft( (current: Mapping, f: Field) =>
-                    GatherTypeMapping(f.formal.tpe, current),
-                  current, sFields)
-      case NamelessFields(sFields) =>
-        FoldLeft( (current: Mapping, f: NamelessField) =>
-                    GatherTypeMapping(f.tpe, current),
-                  current, sFields)
-    }
-  }
-
-  function GatherModMapping(prefix: Path, modDecl: ModDecl, current: Mapping): Mapping {
-    match modDecl {
-      case ModDecl(mod) =>
-        current.Add(mod.name, prefix) // Modules must be handled independently
-      case StructDecl(struct) =>
-        GatherStructMapping(struct, current.Add(struct.name, prefix))
-      case TypeDecl(tpe) =>
-        current.Add(tpe.name, prefix)
-      case ConstDecl(c) =>
-        current.Add(c.name, prefix)
-      case EnumDecl(enum) =>
-        current.Add(enum.name, prefix)
-      case ImplDecl(impl) =>
-        GatherImplMapping(impl, current)
-      case TraitDecl(tr) =>
-        current
-      case TopFnDecl(fn) =>
-        current.Add(fn.fn.name, prefix)
-      case UseDecl(use) => // Used for externs with *, we can't extract any name
-        current
-    }
-  }
-
-  function GatherStructMapping(struct: Struct, current: Mapping): Mapping {
-    GatherTypeParams(struct.typeParams, current)
-  }
-
-  function GatherTypeMapping(tpe: Type, current: Mapping): Mapping {
-    tpe.Fold(current, (current: Mapping, t: Type) =>
-               match t {
-                 case TypeFromPath(PMemberSelect(base, name)) => current.Add(name, base)
-                 case _ => current
-               }
+  function PathsVisitor(): RASTTopDownVisitor<Mapping> {
+    RASTTopDownVisitor(
+      VisitTypeSingle := (current: Mapping, t: Type) =>
+        match t {
+          case TypeFromPath(PMemberSelect(base, name)) => current.Add(name, base)
+          case _ => current
+        },
+      VisitExprSingle := (current: Mapping, e: Expr) =>
+        match e {
+          case ExprFromPath(PMemberSelect(base, id)) =>
+            if |id| > 0 && id[|id|-1] == '!' then
+              current.Add(id[..|id|-1], base)
+            else
+              current.Add(id, base)
+          case _ => current
+        }
+      ,
+      VisitModDeclSingle := (current: Mapping, modDecl: ModDecl, prefix: Path) =>
+        match modDecl {
+          case ModDecl(mod) =>
+            current.Add(mod.name, prefix) // Modules must be handled independently
+          case StructDecl(struct) =>
+            current.Add(struct.name, prefix)
+          case TypeDecl(tpe) =>
+            current.Add(tpe.name, prefix)
+          case ConstDecl(c) =>
+            current.Add(c.name, prefix)
+          case EnumDecl(enum) =>
+            current.Add(enum.name, prefix)
+          case ImplDecl(impl) =>
+            current
+          case TraitDecl(tr) =>
+            current
+          case TopFnDecl(fn) =>
+            current.Add(fn.fn.name, prefix)
+          case UseDecl(use) => // Used for externs with *, we can't extract any name
+            current
+        },
+      recurseSubmodules := false // Recursion is done manually
     )
   }
 
-  function GatherImplMapping(impl: Impl, current: Mapping): Mapping {
-    match impl {
-      case ImplFor(typeParams, tpe, forType, where, body) =>
-        var current := GatherTypeParams(typeParams, current);
-        var current := GatherTypeMapping(tpe, current);
-        GatherTypeMapping(forType, current)
-      // TODO: Add body
-      case Impl(typeParams, tpe, where, body) =>
-        GatherTypeMapping(tpe, current)
-    }
-  }
-
-  function ReplaceModDecl(modDecl: ModDecl, SelfPath: Path, replacement: FinalReplacement): ModDecl {
-    match modDecl {
-      case ModDecl(mod) =>
-        ModDecl(applyPrefix(mod, SelfPath.MSel(mod.name))) // We optimize independently submodules
-      case StructDecl(struct) => StructDecl(ReplaceStruct(struct, replacement))
-      case TypeDecl(tpe) => modDecl // TODO
-      case ConstDecl(c) => modDecl // TODO
-      case EnumDecl(enum) => modDecl // TODO
-      case ImplDecl(impl) => ImplDecl(ReplaceImplDecl(impl, replacement))
-      case TraitDecl(tr) => modDecl // TODO
-      case TopFnDecl(fn) => modDecl // TODO
-      case UseDecl(use) => modDecl
-    }
-  }
-
-  function ReplaceType(t: Type, replacement: FinalReplacement): Type {
-    match t {
-      case TypeFromPath(PMemberSelect(base, id)) =>
-        if id in replacement && replacement[id] == base then
-          TSynonym(TIdentifier(id), t)
-        else
-          t
-      case _ => t
-    }
-  }
-
-  const typeReplacer: FinalReplacement -> Type -> Type :=
-    (replacement: FinalReplacement) => (t: Type) => ReplaceType(t, replacement)
-
-  function ReplaceTypeParams(typeParams: seq<TypeParamDecl>, replacement: FinalReplacement): seq<TypeParamDecl> {
-    Std.Collections.Seq.Map((t: TypeParamDecl) =>
-                              t.(constraints := Std.Collections.Seq.Map((constraint: Type) =>
-                                                                          ReplaceType(constraint, replacement), t.constraints)),
-                            typeParams)
-  }
-
-  function ReplaceImplDecl(impl: Impl, replacement: FinalReplacement): Impl {
-    match impl {
-      case ImplFor(typeParams, tpe, forType, where, body) =>
-        ImplFor(ReplaceTypeParams(typeParams, replacement), tpe.Replace(typeReplacer(replacement)), forType.Replace(typeReplacer(replacement)), where, body)
-      // TODO: Replace body
-      case Impl(typeParams, tpe, where, body) =>
-        Impl(ReplaceTypeParams(typeParams, replacement), tpe.Replace(typeReplacer(replacement)), where, body)
-    }
-  }
-
-  function ReplaceStruct(struct: Struct, replacement: FinalReplacement): Struct {
-    match struct {
-      case Struct(attributes, name, typeParams, fields) =>
-        Struct(attributes, name,
-               ReplaceTypeParams(typeParams, replacement),
-               ReplaceFields(fields, replacement)
-        )
-    }
-  }
-  function ReplaceFields(fields: Fields, replacement: FinalReplacement): Fields {
-    match fields {
-      case NamedFields(sFields) =>
-        NamedFields(Std.Collections.Seq.Map((f: Field) =>
-                                              f.(formal := f.formal.(tpe := ReplaceType(f.formal.tpe, replacement))), sFields
-                    ))
-      case NamelessFields(sFields) =>
-        NamelessFields(Std.Collections.Seq.Map((f: NamelessField) =>
-                                                 f.(tpe := ReplaceType(f.tpe, replacement)), sFields))
-    }
+  function PathSimplifier(ghost mParent: Mod, replacement: FinalReplacement): RASTBottomUpReplacer
+    decreases mParent, 0
+  {
+    RASTBottomUpReplacer(
+      ReplaceModSingle :=
+        (m: Mod, SelfPath: Path) requires m < mParent =>
+          applyPrefix(m, SelfPath.MSel(m.name)),
+      ReplaceTypeSingle := (t: Type) =>
+        match t {
+          case TypeFromPath(PMemberSelect(base, id)) =>
+            if id in replacement && replacement[id] == base then
+              TSynonym(TIdentifier(id), t)
+            else
+              t
+          case _ => t
+        },
+      ReplaceExprSingle :=
+        (e: Expr) =>
+          match e {
+            case ExprFromPath(PMemberSelect(base, id)) =>
+              if id in replacement && replacement[id] == base then
+                Identifier(id)
+              else if |id| > 0 && id[|id|-1] == '!' then
+                var macro_id := id[..|id|-1];
+                if macro_id in replacement && replacement[macro_id] == base then
+                  Identifier(id)
+                else e
+              else e
+          case _ => e
+          }
+          
+    )
   }
 }

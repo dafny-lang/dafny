@@ -6,13 +6,11 @@ module DafnyToRustCompilerCoverage {
     import opened Std.Wrappers
     import opened DAST.Format
     import Strings = Std.Strings
-    import FactorPathsOptimizationTest
 
     method TestExpr() {
       TestOptimizeToString();
       TestPrintingInfo();
       TestNoExtraSemicolonAfter();
-      FactorPathsOptimizationTest.TestApply();
     }
 
     method TestNoOptimize(e: Expr)

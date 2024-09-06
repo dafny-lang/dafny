@@ -20,7 +20,7 @@ if not os.path.exists(output + '.cs'):
   print(f"File {output} was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
   exit()
 
-with open (output + '.cs', 'r' ) as f:
+with open(output + '.cs', 'r' ) as f:
   content = f.read()
   content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content, flags = re.M)
   content_new = re.sub('\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \\1', '', content_trimmed, flags = re.M)
@@ -70,3 +70,16 @@ with open (output + '.cs', 'r' ) as f:
 # Now delete the file output.cs
 os.remove(output + '.cs')
 print("File deleted: " + output + '.cs')
+
+# Finally, copy the file ../DafnyRuntime/DafnyRuntimeSystemModule.cs into output/DafnyRuntimeSystemModules.cs
+# Then remove all preprocessor directives
+file = "DafnyRuntimeSystemModule.cs"
+inputFile = "../DafnyRuntime/" + file
+outputFile = output + "/" + file
+
+with open(inputFile, 'r' ) as f:
+  content = f.read()
+  content_wo_preprocessing = re.sub(r'\r?\n#.*', '', content, flags = re.M)
+  with open(outputFile, 'w') as f:
+      f.write(content_wo_preprocessing)
+      print("File moved from '" + inputFile + "' to '" + outputFile + "'")
