@@ -344,7 +344,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       VisitType(tok, actual, inGhostContext);
       foreach (var typeBound in formal.TypeBounds) {
         var bound = typeBound.Subst(typeMap);
-        if (!actual.IsSubtypeOf(bound, false, false)) {
+        if (!Type.IsSupertype(bound, actual) || (actual.IsRefType && !actual.IsNonNullRefType && !bound.IsRefType)) {
           var index = actualTypeArgs.Count == 1 ? "" : " " + i;
           reporter.Error(MessageSource.Resolver, tok,
             $"type parameter{index} ('{formal.Name}') passed to {what} '{className}' must meet type bound '{bound}' (got '{actual}')");
