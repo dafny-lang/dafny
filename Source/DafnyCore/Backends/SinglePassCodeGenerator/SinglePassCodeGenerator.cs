@@ -183,7 +183,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr);
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
     /// Called when a module is out of scope for compilation, such as when using --library.
@@ -1585,7 +1585,7 @@ namespace Microsoft.Dafny.Compilers {
 
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, programNode);
+      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
