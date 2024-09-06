@@ -5,7 +5,12 @@ namespace DafnyCore.Test;
 
 public class GeneratedDafnyTest {
   [Fact]
-  public void TestDafnyGeneratedCode() {
+  public void TestDafnyCoverage() {
     DafnyToRustCompilerCoverage.RASTCoverage.__default.TestExpr();
+  }
+  
+  [Fact]
+  public void TestPathSimplification() {
+    FactorPathsOptimizationTest.__default.TestApply();
   }
 }

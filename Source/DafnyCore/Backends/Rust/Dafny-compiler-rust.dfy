@@ -19,6 +19,330 @@ module RAST
   // Default Indentation
   const IND := "  "
 
+  datatype RASTTopDownVisitor<!T(!new)> =
+    RASTTopDownVisitor(
+      nameonly VisitTypeSingle: (T, Type) -> T,
+      nameonly VisitExprSingle: (T, Expr) -> T,
+      nameonly VisitModDeclSingle: (T, ModDecl, Path) -> T,
+      nameonly recurseSubmodules: bool := false
+    )
+  {
+    function VisitMod(acc: T, mod: Mod, SelfPath: Path): T {
+      mod.Fold(acc, (acc, modDecl) requires modDecl < mod => VisitModMapping(acc, modDecl, SelfPath))
+    }
+    function VisitTypeParams(acc: T, typeParams: seq<TypeParamDecl>): T {
+      FoldLeft( (acc: T, t: TypeParamDecl) =>
+                  FoldLeft( (acc: T, t: Type) =>
+                              VisitType(acc, t),
+                            acc, t.constraints),
+                acc, typeParams)
+    }
+    function VisitFields(acc: T, fields: Fields): T {
+      match fields {
+        case NamedFields(sFields) =>
+          FoldLeft( (acc: T, f: Field) =>
+                      VisitType(acc, f.formal.tpe),
+                    acc, sFields)
+        case NamelessFields(sFields) =>
+          FoldLeft( (acc: T, f: NamelessField) =>
+                      VisitType(acc, f.tpe),
+                    acc, sFields)
+      }
+    }
+
+    function VisitModMapping(acc: T, modDecl: ModDecl, SelfPath: Path): T {
+      var acc := VisitModDeclSingle(acc, modDecl, SelfPath);
+      match modDecl {
+        case ModDecl(mod) =>
+          if recurseSubmodules then VisitMod(acc, mod, SelfPath.MSel(mod.name)) else acc
+        case StructDecl(struct) =>
+          VisitStructMapping(acc, struct)
+        case TypeDecl(TypeSynonym(attributes, name, typeParams, tpe)) =>
+          var acc := VisitTypeParams(acc, typeParams);
+          var acc := VisitType(acc, tpe);
+          acc
+        case ConstDecl(Constant(attributes, name, tpe, value)) =>
+          var acc := VisitType(acc, tpe);
+          var acc := value.Fold(acc, VisitExprSingle, VisitTypeSingle);
+          acc
+        case EnumDecl(Enum(attributes, name, typeParams, variants)) =>
+          FoldLeft(
+            (acc: T, enumCase: EnumCase) requires enumCase in variants =>
+              VisitFields(acc, enumCase.fields),
+            VisitTypeParams(acc, typeParams),
+            variants
+          )
+        case ImplDecl(impl) => VisitImplMapping(acc, impl)
+        case TraitDecl(tr) => VisitTraitDecl(acc, tr)
+        case TopFnDecl(fn) => VisitTopFn(acc, fn)
+        case UseDecl(use) => VisitUse(acc, use)
+      }
+    }
+
+    function VisitStructMapping(acc: T, struct: Struct): T {
+      VisitTypeParams(acc, struct.typeParams)
+    }
+
+    function VisitTraitDecl(acc: T, tr: Trait): T {
+      match tr {
+        case Trait(typeParams, tpe, parents, body) =>
+          var acc := VisitTypeParams(acc, typeParams);
+          var acc := tpe.Fold(acc, VisitTypeSingle);
+          var acc :=
+            FoldLeft(
+              (acc: T, parent: Type) =>
+              parent.Fold(acc, VisitTypeSingle),
+              acc,
+              parents
+            );
+          VisitBody(acc, body)
+      }
+    }
+
+    function VisitTopFn(acc: T, t: TopFnDecl): T {
+      match t {
+        case TopFn(attributes, visibility, fn) =>
+          VisitFn(acc, fn)
+      }
+    }
+
+    function VisitUse(acc: T, u: Use): T {
+      acc // Nothing to visit for now
+    }
+
+    function VisitType(acc: T, tpe: Type): T {
+      tpe.Fold(acc, (acc: T, t: Type) => VisitTypeSingle(acc, t))
+    }
+
+    function VisitImplMapping(acc: T, impl: Impl): T {
+      match impl {
+        case ImplFor(typeParams, tpe, forType, where, body) =>
+          var acc := VisitTypeParams(acc, typeParams);
+          var acc := VisitType(acc, tpe);
+          var acc := VisitType(acc, forType);
+          VisitBody(acc, body)
+        // TODO: Add body
+        case Impl(typeParams, tpe, where, body) =>
+          var acc := VisitType(acc, tpe);
+          VisitBody(acc, body)
+      }
+    }
+    function VisitBody(acc: T, members: seq<ImplMember>): T {
+      FoldLeft(
+        (acc: T, member: ImplMember) requires member in members =>
+          VisitMember(acc, member),
+        acc,
+        members
+      )
+    }
+    function VisitMember(acc: T, member: ImplMember): T {
+      match member {
+        case RawImplMember(content) => acc
+        case FnDecl(pub, fun) =>
+          VisitFn(acc, fun)
+        case ImplMemberMacro(expr: Expr) =>
+          expr.Fold(acc, VisitExprSingle, VisitTypeSingle)
+      }
+    }
+    function VisitFn(acc: T, fn: Fn): T {
+      match fn {
+        case Fn(name, typeParams, formals, returnType, where, body) =>
+          var acc := VisitTypeParams(acc, typeParams);
+          var acc := FoldLeft(
+            (acc: T, f: Formal) requires f in formals => f.tpe.Fold(acc, VisitTypeSingle),
+            acc, formals
+          );
+          var acc := if returnType.None? then acc else returnType.value.Fold(acc, VisitTypeSingle);
+          var acc := if body.None? then acc else body.value.Fold(acc, VisitExprSingle, VisitTypeSingle);
+          acc
+      }
+    }
+  }
+
+  datatype RASTBottomUpReplacer =
+    RASTBottomUpReplacer(
+      nameonly ReplaceModSingle: (Mod, Path) --> Mod := (m: Mod, p: Path) => m,
+      nameonly ReplaceTypeSingle: Type -> Type := (t: Type) => t,
+      nameonly ReplaceExprSingle: Expr -> Expr := (e: Expr) => e
+    ) {
+    function ReplaceMod(mod: Mod, SelfPath: Path): Mod
+      requires forall m: Mod, p: Path | m < mod ::
+        ReplaceModSingle.requires(m, p)
+    {
+      var newModDeclarations := mod.Fold([], (current, modDecl) requires modDecl < mod =>
+          assert forall mod: Mod, p: Path | mod < modDecl :: this.ReplaceModSingle.requires(mod, p);
+                 current + [ReplaceModDecl(modDecl, SelfPath)]
+      );
+      mod.(body := newModDeclarations)
+    }
+    function ReplaceModDecl(modDecl: ModDecl, SelfPath: Path): ModDecl
+      requires forall mod: Mod, p: Path | mod < modDecl ::
+        ReplaceModSingle.requires(mod, p)
+    {
+      match modDecl {
+        case ModDecl(mod) =>
+          ModDecl(ReplaceModSingle(mod, SelfPath.MSel(mod.name))) // We optimize independently submodules
+        case StructDecl(struct) =>
+          StructDecl(ReplaceStruct(struct))
+        case TypeDecl(tpe) =>
+          TypeDecl(ReplaceTypeDecl(tpe))
+        case ConstDecl(c) =>
+          ConstDecl(ReplaceConst(c))
+        case EnumDecl(enum) =>
+          EnumDecl(ReplaceEnum(enum))
+        case ImplDecl(impl) =>
+          ImplDecl(ReplaceImplDecl(impl))
+        case TraitDecl(tr) =>
+          TraitDecl(ReplaceTrait(tr))
+        case TopFnDecl(fn) =>
+          TopFnDecl(ReplaceTopFn(fn))
+        case UseDecl(use) =>
+          UseDecl(ReplaceUse(use))
+      }
+    }
+
+    function ReplaceStruct(struct: Struct): Struct {
+      match struct {
+        case Struct(attributes, name, typeParams, fields) =>
+          Struct(attributes, name,
+                ReplaceTypeParams(typeParams),
+                ReplaceFields(fields)
+          )
+      }
+    }
+
+    function ReplaceTypeDecl(t: TypeSynonym): TypeSynonym {
+      match t {
+        case TypeSynonym(attributes, name, typeParams, tpe) =>
+          TypeSynonym(attributes, name, ReplaceTypeParams(typeParams), ReplaceType(tpe))
+      }
+    }
+
+    function ReplaceConst(t: Constant): Constant {
+      match t {
+        case Constant(attributes, name, tpe, value) =>
+          Constant(attributes, name, ReplaceType(tpe), ReplaceExpr(value))
+      }
+    }
+
+    function ReplaceEnum(enum: Enum): Enum {
+      match enum {
+        case Enum(attributes, name, typeParams, variants) =>
+          Enum(attributes, name,
+                ReplaceTypeParams(typeParams),
+                Std.Collections.Seq.Map(
+                   (t: EnumCase) => ReplaceEnumCase(t), variants))
+      }
+    }
+
+    function ReplaceEnumCase(enumCase: EnumCase): EnumCase {
+      match enumCase {
+        case EnumCase(name, fields) =>
+          EnumCase(name, ReplaceFields(fields))
+      }
+    }
+
+    function ReplaceImplDecl(impl: Impl): Impl {
+      match impl {
+        case ImplFor(typeParams, tpe, forType, where, body) =>
+          ImplFor(
+            ReplaceTypeParams(typeParams),
+            ReplaceType(tpe),
+            ReplaceType(forType),
+            where,
+            ReplaceBody(body))
+        case Impl(typeParams, tpe, where, body) =>
+          Impl(ReplaceTypeParams(typeParams), ReplaceType(tpe), where, body)
+      }
+    }
+
+    function ReplaceTrait(tr: Trait): Trait {
+      match tr {
+        case Trait(typeParams, tpe, parents, body) =>
+          Trait(
+            ReplaceTypeParams(typeParams),
+            ReplaceType(tpe),
+            Std.Collections.Seq.Map(
+              (t: Type) => ReplaceType(t), parents),
+            ReplaceBody(body))
+      }
+    }
+    
+    function ReplaceTopFn(t: TopFnDecl): TopFnDecl {
+      match t {
+        case TopFn(attributes, visibility, fn) =>
+          TopFn(attributes, visibility, ReplaceFn(fn))
+      }
+    }
+
+    function ReplaceFn(t: Fn): Fn {
+      match t {
+        case Fn(name, typeParams, formals, returnType, where, body) =>
+          Fn(
+            name,
+            ReplaceTypeParams(typeParams),
+            Std.Collections.Seq.Map(
+              (f: Formal) requires f in formals => f.Replace(ReplaceType),
+              formals
+            ),
+            if returnType.None? then None else Some(returnType.value.Replace(ReplaceType)),
+            where,
+            if body.None? then None else Some(body.value.Replace(ReplaceExpr, ReplaceType))
+          )
+      }
+    }
+
+    function ReplaceUse(use: Use): Use {
+      match use {
+        case Use(visibility, path) =>
+          Use(visibility, path)
+      }
+    }
+
+    function ReplaceBody(decls: seq<ImplMember>): seq<ImplMember> {
+      Std.Collections.Seq.Map(
+        (t: ImplMember) => ReplaceImplMember(t), decls)
+    }
+
+    function ReplaceImplMember(t: ImplMember): ImplMember {
+      match t {
+        case RawImplMember(content) => t
+        case FnDecl(pub, fun) =>
+          FnDecl(pub, ReplaceFn(fun))
+        case ImplMemberMacro(expr: Expr) =>
+          ImplMemberMacro(ReplaceExpr(expr))
+      }
+    }
+    function ReplaceExpr(e: Expr): Expr {
+      e.Replace(ReplaceExprSingle, ReplaceTypeSingle)
+    }
+    function ReplaceTypeParams(typeParams: seq<TypeParamDecl>): seq<TypeParamDecl> {
+      Std.Collections.Seq.Map(
+        (t: TypeParamDecl) =>
+          t.(constraints := Std.Collections.Seq.Map(
+               (constraint: Type) =>
+                 ReplaceType(constraint), t.constraints)), typeParams)
+    }
+    function ReplaceType(t: Type): Type {
+      t.Replace(this.ReplaceTypeSingle)
+    }
+    function ReplaceFields(fields: Fields): Fields {
+      match fields {
+        case NamedFields(sFields) =>
+          NamedFields(
+            Std.Collections.Seq.Map(
+              (f: Field) =>
+                f.(formal := f.formal.(tpe := ReplaceType(f.formal.tpe))), sFields
+              ))
+        case NamelessFields(sFields) =>
+          NamelessFields(
+            Std.Collections.Seq.Map(
+              (f: NamelessField) =>
+                f.(tpe := ReplaceType(f.tpe)), sFields))
+      }
+    }
+  }
+
   opaque function FoldLeft<A(!new), T>(f: (A, T) --> A, init: A, xs: seq<T>): A
     requires forall t: T <- xs, a: A :: f.requires(a, t)
   {
@@ -142,7 +466,7 @@ module RAST
   {
     function ToString(ind: string): string {
       Attribute.ToStringMultiple(attributes, ind) +
-      "pub const " + name + ": " + tpe.ToString(ind) + "=" +
+      "pub const " + name + ": " + tpe.ToString(ind) + " = " +
       value.ToString(ind) + ";"
     }
   }
@@ -408,7 +732,7 @@ module RAST
       mapping(r)
     }
 
-    function Fold<T>(acc: T, f: (T, Type) -> T): T
+    function Fold<T(!new)>(acc: T, f: (T, Type) -> T): T
       // Traverses all types in a random order
     {
       var newAcc := f(acc, this);
@@ -417,22 +741,23 @@ module RAST
         case TIdentifier(_) => newAcc
         case TypeFromPath(path) => newAcc
         case TypeApp(baseName, arguments) =>
-          Std.Collections.Seq.FoldLeft(
-            (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
-            baseName.Fold(newAcc, f),
+          var newAcc := baseName.Fold(newAcc, f);
+          FoldLeft(
+            (acc: T, argType: Type) requires argType in arguments => argType.Fold(acc, f),
+            newAcc,
             arguments)
         case Borrowed(underlying) => underlying.Fold(newAcc, f)
         case BorrowedMut(underlying) => underlying.Fold(newAcc, f)
         case ImplType(underlying) => underlying.Fold(newAcc, f)
         case DynType(underlying) => underlying.Fold(newAcc, f)
         case TupleType(arguments) =>
-          Std.Collections.Seq.FoldLeft(
-            (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
+          FoldLeft(
+            (acc: T, argType: Type) requires argType in arguments => argType.Fold(acc, f),
             newAcc, arguments)
         case FnType(arguments, returnType) =>
           returnType.Fold(
-            Std.Collections.Seq.FoldLeft(
-              (acc: T, argType: Type) => assume {:axiom} argType in arguments; argType.Fold(acc, f),
+            FoldLeft(
+              (acc: T, argType: Type) requires argType in arguments => argType.Fold(acc, f),
               newAcc, arguments),
             f)
         case IntersectionType(left, right) =>
@@ -778,6 +1103,12 @@ module RAST
   datatype Formal =
     Formal(name: string, tpe: Type)
   {
+    function Replace(ft: Type -> Type): Formal {
+      Formal(name, tpe.Replace(ft))
+    }
+    function Fold<T(!new)>(acc: T, ft: (T, Type) -> T): T {
+      tpe.Fold(acc, ft)
+    }
     function ToString(ind: string): string {
       if name == "self" && tpe == SelfOwned then name
       else if name == "self" && tpe == SelfBorrowed then "&" + name
@@ -801,6 +1132,12 @@ module RAST
   datatype MatchCase =
     MatchCase(pattern: Pattern, rhs: Expr)
   {
+    function Replace(mapping: Expr -> Expr, mappingType: Type -> Type): MatchCase {
+      MatchCase(pattern, rhs.Replace(mapping, mappingType))
+    }
+    function Fold<T(!new)>(acc: T, f: (T, Expr) -> T, ft: (T, Type) -> T): T {
+      rhs.Fold(acc, f, ft)
+    }
     ghost function Height(): nat {
       1 + rhs.Height()
     }
@@ -819,6 +1156,12 @@ module RAST
   datatype AssignIdentifier =
     AssignIdentifier(identifier: string, rhs: Expr)
   {
+    function Replace(f: Expr -> Expr, ft: Type -> Type): AssignIdentifier {
+      AssignIdentifier(identifier, rhs.Replace(f, ft))
+    }
+    function Fold<T(!new)>(acc: T, f: (T, Expr) -> T, ft: (T, Type) -> T): T {
+      rhs.Fold(acc, f, ft)
+    }
     ghost function Height(): nat {
       1 + rhs.Height()
     }
@@ -931,7 +1274,7 @@ module RAST
     | Break(optLbl: Option<string>)                  // break lbl;
     | Continue(optLbl: Option<string>)               // continue optLabel;
     | Return(optExpr: Option<Expr>)                  // return optExpr;
-    | CallType(obj: Expr, typeParameters: seq<Type>) // obj::<...type parameters>
+    | CallType(obj: Expr, typeArguments: seq<Type>) // obj::<...type parameters>
     | Call(obj: Expr, arguments: seq<Expr>)          // obj(...arguments)
     | Select(obj: Expr, name: string)                // obj.name
     | SelectIndex(obj: Expr, range: Expr)            // obj[range]
@@ -939,6 +1282,159 @@ module RAST
     | FunctionSelect(obj: Expr, name: string)        // objType::name
     | Lambda(params: seq<Formal>, retType: Option<Type>, body: Expr) // move |<params>| -> retType { body }
   {
+    function Replace(f: Expr -> Expr, ft: Type -> Type): Expr {
+      var r :=
+        match this {
+          case RawExpr(content) => this
+          case ExprFromType(tpe) => ExprFromType(tpe.Replace(ft))
+          case Identifier(name) => this
+          case Match(matchee, cases) =>
+            Match(matchee.Replace(f, ft),
+                Std.Collections.Seq.Map(
+              c requires c in cases => c.Replace(f, ft), cases))
+          case StmtExpr(stmt, rhs) =>
+            StmtExpr(stmt.Replace(f, ft), rhs.Replace(f, ft))
+          case Block(underlying) =>
+            Block(underlying.Replace(f, ft))
+          case StructBuild(underlying, assignments) =>
+            StructBuild(underlying.Replace(f, ft), Std.Collections.Seq.Map(
+              a requires a in assignments =>
+                a.Replace(f, ft),
+              assignments))
+          case Tuple(arguments) =>
+            Tuple(
+              Std.Collections.Seq.Map(
+                e requires e in arguments =>
+                  e.Replace(f, ft), arguments))
+          case UnaryOp(op1, underlying, format) =>
+            UnaryOp(op1, underlying.Replace(f, ft), format)
+          case BinaryOp(op2, left, right, format2) =>
+            BinaryOp(op2, left.Replace(f, ft), right.Replace(f, ft), format2)
+          case TypeAscription(left, tpe) => TypeAscription(left.Replace(f, ft), tpe.Replace(ft))
+          case LiteralInt(value) => this
+          case LiteralBool(bvalue) => this
+          case LiteralString(value, binary, verbatim) => this
+          case DeclareVar(declareType, name, optType, optRhs) =>
+            DeclareVar(
+              declareType, name,
+              if optType.None? then optType else Some(optType.value.Replace(ft)),
+              if optRhs.None? then optRhs else Some(optRhs.value.Replace(f, ft)))
+          case Assign(names, rhs) => Assign(names, rhs.Replace(f, ft))
+          case IfExpr(cond, thn, els) => IfExpr(cond.Replace(f, ft), thn.Replace(f, ft), els.Replace(f, ft))
+          case Loop(optCond, underlying) =>
+            Loop(if optCond.None? then None else Some(optCond.value.Replace(f, ft)), underlying.Replace(f, ft))
+          case For(name, range, body) =>
+            For(name, range.Replace(f, ft), body.Replace(f, ft))
+          case Labelled(lbl, underlying) =>
+            Labelled(lbl, underlying.Replace(f, ft))
+          case Break(optLbl) => this
+          case Continue(optLbl) => this
+          case Return(optExpr) => Return(if optExpr.None? then None else Some(optExpr.value.Replace(f, ft)))
+          case CallType(obj, typeArguments) =>
+            CallType(obj.Replace(f, ft), Std.Collections.Seq.Map((tp: Type) => tp.Replace(ft), typeArguments))
+          case Call(obj, arguments) =>
+            Call(
+              obj.Replace(f, ft),
+              Std.Collections.Seq.Map((a: Expr) requires a < this => a.Replace(f, ft), arguments))
+          case Select(obj, name) => Select(obj.Replace(f, ft), name)
+          case SelectIndex(obj, range) => SelectIndex(obj.Replace(f, ft), range.Replace(f, ft))
+          case ExprFromPath(path) => ExprFromPath(path)
+          case FunctionSelect(obj, name) => FunctionSelect(obj.Replace(f, ft), name)
+          case Lambda(params, retType, body) =>
+            Lambda(
+              Std.Collections.Seq.Map(
+                (f: Formal) requires f < this => f.Replace(ft),
+                params),
+              if retType.None? then None else Some(retType.value.Replace(ft)),
+              body.Replace(f, ft))
+        };
+      f(r)
+    }
+    function Fold<T(!new)>(acc: T, f: (T, Expr) -> T, ft: (T, Type) -> T): T {
+      var acc := f(acc, this);
+      match this {
+        case RawExpr(content) => acc
+        case ExprFromType(tpe) => tpe.Fold(acc, ft)
+        case Identifier(name) => acc
+        case Match(matchee, cases) =>
+          var acc := matchee.Fold(acc, f, ft);
+          FoldLeft(
+            (acc: T, c: MatchCase) requires c in cases => c.Fold(acc, f, ft),
+            acc,
+            cases)
+        case StmtExpr(stmt, rhs) =>
+          rhs.Fold(stmt.Fold(acc, f, ft), f, ft)
+        case Block(underlying) => underlying.Fold(acc, f, ft)
+        case StructBuild(underlying, assignments) =>
+          FoldLeft(
+            (acc: T, c: AssignIdentifier) requires c in assignments => c.Fold(acc, f, ft),
+            underlying.Fold(acc, f, ft),
+            assignments
+          )
+        case Tuple(arguments) =>
+          FoldLeft(
+            (acc: T, e: Expr) requires e in arguments => e.Fold(acc, f, ft),
+            acc,
+            arguments
+          )
+        case UnaryOp(op1, underlying, format) => underlying.Fold(acc, f, ft)
+        case BinaryOp(op2, left, right, format2) =>
+          right.Fold(left.Fold(acc, f, ft), f, ft)
+        case TypeAscription(left, tpe) => tpe.Fold(left.Fold(acc, f, ft), ft)
+        case LiteralInt(value) => acc
+        case LiteralBool(bvalue) => acc
+        case LiteralString(value, binary, verbatim) => acc
+        case DeclareVar(declareType, name, optType, optRhs) =>
+          var acc := if optType.None? then acc else optType.value.Fold(acc, ft);
+          if optRhs.None? then acc else optRhs.value.Fold(acc, f, ft)
+        case Assign(names, rhs) => rhs.Fold(acc, f, ft)
+        case IfExpr(cond, thn, els) =>
+          var acc := cond.Fold(acc, f, ft);
+          var acc := thn.Fold(acc, f, ft);
+          els.Fold(acc, f, ft)
+        case Loop(optCond, underlying) =>
+          var acc := if optCond.None? then acc else optCond.value.Fold(acc, f, ft);
+          underlying.Fold(acc, f, ft)
+        case For(name, range, body) =>
+          var acc := range.Fold(acc, f, ft);
+          body.Fold(acc, f, ft)
+        case Labelled(lbl, underlying) => underlying.Fold(acc, f, ft)
+        case Break(optLbl) => acc
+        case Continue(optLbl) => acc
+        case Return(optExpr) => if optExpr.None? then acc else optExpr.value.Fold(acc, f, ft)
+        case CallType(obj, typeArguments) =>
+          var acc := obj.Fold(acc, f, ft);
+          FoldLeft(
+            (acc: T, t: Type) requires t in typeArguments =>
+              t.Fold(acc, ft),
+            acc,
+            typeArguments
+          )
+        case Call(obj, arguments) =>
+          var acc := obj.Fold(acc, f, ft);
+          FoldLeft(
+            (acc: T, e: Expr) requires e in arguments =>
+              e.Fold(acc, f, ft),
+            acc,
+            arguments
+          )
+        case Select(obj, name) =>
+          obj.Fold(acc, f, ft)
+        case SelectIndex(obj, range) =>
+          range.Fold(obj.Fold(acc, f, ft), f, ft)
+        case ExprFromPath(path) => acc
+        case FunctionSelect(obj, name) =>
+          obj.Fold(acc, f, ft)
+        case Lambda(params, retType, body) =>
+          var acc := FoldLeft(
+            (acc: T, param: Formal) requires param in params =>
+              param.Fold(acc, ft),
+            acc, params);
+          var acc := if retType.None? then acc else retType.value.Fold(acc, ft);
+          body.Fold(acc, f, ft)
+      }
+    }
+    
     predicate NoExtraSemicolonAfter() {
       DeclareVar? || Assign? || Break? || Continue? || Return? || For? ||
       (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
@@ -1378,12 +1874,12 @@ module RAST
     function FSel(name: string): Expr {
       FunctionSelect(this, name)
     }
-    function ApplyType(typeParameters: seq<Type>): Expr {
-      if |typeParameters| == 0 then this else
-      CallType(this, typeParameters)
+    function ApplyType(typeArguments: seq<Type>): Expr {
+      if |typeArguments| == 0 then this else
+      CallType(this, typeArguments)
     }
-    function ApplyType1(typeParameter: Type): Expr {
-      CallType(this, [typeParameter])
+    function ApplyType1(typeArgument: Type): Expr {
+      CallType(this, [typeArgument])
     }
     function Apply(arguments: seq<Expr>): Expr {
       Call(this, arguments)
