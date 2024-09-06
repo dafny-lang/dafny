@@ -1005,6 +1005,12 @@ method test() {
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithTimeoutReportsTimeoutDiagnostic.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
+      if (diagnostics.Length > 1) {
+        throw new Exception(
+          "There should be only one diagnostic, got :" +
+          string.Join(", ", diagnostics.Select(diagnostic => diagnostic.ToString() + "(" + diagnostic.Message + ")"))
+        );
+      }
       Assert.Single(diagnostics);
       Assert.Contains("timed out", diagnostics[0].Message);
     }
