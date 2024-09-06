@@ -415,3 +415,51 @@ module RefinementRegressions {
   }
 
 }
+
+module BadBounds {
+  trait GoodTrait { }
+
+  method M<G extends GoodTrait>(g: G) { }
+
+  method MCaller(r: real, n: nat) {
+    M(r); // error: type argument does not satisfy bound GoodTrait
+    M(n); // error: type argument does not satisfy bound GoodTrait
+  }
+
+  trait ReferenceTrait extends object {
+    const u: int
+  }
+
+  type ConstrainedReferenceTrait = r: ReferenceTrait | r.u < 100 witness *
+
+  method P<R extends ReferenceTrait?, S extends ReferenceTrait, T extends ConstrainedReferenceTrait>(r: R, s: S, t: T) { }
+
+  method PCaller(r: ReferenceTrait?, s: ReferenceTrait, t: ConstrainedReferenceTrait) {
+    P(r, s, t);
+    P(t, t, t);
+    P(s, s, s); // error: type argument 2 is not a ConstrainedReferenceTrait
+    P(r, r, t); // error: type argument 1 is not a ReferenceTrait
+    P(r, s, r); // error: type argument 2 is not a ConstrainedReferenceTrait
+
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, s, t);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(t, t, t);
+    // The value parameters passed into the following three calls are incorrect. However, these are checked
+    // by the verifier, so the resolver does not flag these. (See BoundedPolymorphismVerification.dfy.)
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(s, s, s);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, r, t);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, s, r);
+  }
+
+  class E extends GoodTrait { }
+
+  method Q<G extends GoodTrait>(g: G) { }
+
+  method QCaller(e: E, eMaybe: E?) {
+    Q(e);
+    Q(eMaybe); // error: type E? does not satisfy GoodTrait (because an E? may be null)
+    Q<E>(e);
+    Q<E>(eMaybe); // parameter "eMaybe" might not be of the type E, but that's checked by the verifier
+    Q<E?>(e); // error: type E? does not satisfy GoodTrait (because an E? may be null)
+    Q<E?>(eMaybe); // error: type E? does not satisfy GoodTrait (because an E? may be null)
+  }
+}
