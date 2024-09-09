@@ -70,6 +70,9 @@ method Main() {
   expect forall ch <- c :: ch !in "e";
 
   Remap();
+
+  expect forall i: int | i == 1 :: i % 2 == 1;
+  expect (map i: int | i == 1 :: i % 2 := 2) == map[1 := 2];
 }
 
 method Remap() {
