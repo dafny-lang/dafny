@@ -1757,16 +1757,15 @@ module RAST
           (if |arguments| > 0 then "\n" + ind else "") + ")"
 
         case UnaryOp(op, underlying, format) =>
+          var isPattern := |op| >= 1 && op[0..1] == "{";
           var (leftP, rightP) :=
-            if printingInfo.NeedParenthesesFor(underlying.Optimize().printingInfo) then
+            if !isPattern && printingInfo.NeedParenthesesFor(underlying.Optimize().printingInfo) then
               ("(", ")")
             else
               ("", "");
           var opToRight := op == "?" || (
             |op| >= 2 && op[0..2] == "/*" // comment
-          ) || (
-            |op| >= 1 && op[0..1] == "{" // Pattern matching
-          );
+          ) || isPattern;
           var leftOp := if opToRight then "" else op;
           var leftOp := if (op == "&mut" || op == "unsafe") && leftP != "(" then leftOp + " " else leftOp;
           var rightOp := if opToRight then op else "";
@@ -2353,6 +2352,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     }
 
     const ObjectType: ObjectType
+
+    static const TailRecursionPrefix := "_r"
 
     var error: Option<string>
 
@@ -3949,9 +3950,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     rhs]);
                 newEnv := newEnv.RemoveAssigned(isAssignedVar);
               } else {
-                error := Some("Unespected field to assign whose isAssignedVar is not in the environment: " + isAssignedVar);
-                generated :=
-                  R.AssignMember(R.RawExpr(error.value), fieldName, rhs);
+                // Already assigned, safe to override
+                generated := R.Assign(Some(R.SelectMember(modify_macro.Apply1(thisInConstructor), fieldName)), rhs);
               }
             case _ =>
               if onExpr != R.Identifier("self") {
@@ -4139,22 +4139,31 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             generated := generated.Then(R.DeclareVar(R.MUT, "_this", None, Some(selfClone)));
           }
           newEnv := env;
+          var loopBegin := R.RawExpr("");
           for paramI := 0 to |env.names| {
             var param := env.names[paramI];
+            if param == "_accumulator" {
+              continue; // This is an already mutable variable handled by SinglePassCodeGenerator
+            }
             var paramInit, _, _ := GenIdent(param, selfIdent, env, OwnershipOwned);
-            generated := generated.Then(R.DeclareVar(R.MUT, param, None, Some(paramInit)));
+            var recVar := TailRecursionPrefix + Strings.OfNat(paramI);
+            generated := generated.Then(R.DeclareVar(R.MUT, recVar, None, Some(paramInit)));
             if param in env.types {
               // We made the input type owned by the variable.
               // so we can remove borrow annotations.
               var declaredType := env.types[param].ToOwned();
               newEnv := newEnv.AddAssigned(param, declaredType);
+              newEnv := newEnv.AddAssigned(recVar, declaredType);
             }
+            // Redeclare the input parameter, take ownership of the recursive value
+            loopBegin := loopBegin.Then(R.DeclareVar(R.CONST, param, None, Some(R.Identifier(recVar))));
           }
           var bodyExpr, bodyIdents, bodyEnv := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, newEnv, false, earlyReturn);
           readIdents := bodyIdents;
           generated := generated.Then(
             R.Labelled("TAIL_CALL_START",
-                       R.Loop(None, bodyExpr)));
+                       R.Loop(None,
+                              loopBegin.Then(bodyExpr))));
         }
         case JumpTailCallStart() => {
           generated := R.Continue(Some("TAIL_CALL_START"));
@@ -5386,12 +5395,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.dafny_runtime.MSel("Zero").AsExpr().FSel("zero").Apply0(),
             lengthGen
           ]);
-          range := range.FSel("map");
+          range := range.Sel("map");
           var rangeMap := R.Lambda([R.Formal.ImplicitlyTyped("i")], None, R.Identifier("_initializer").Apply1(R.Borrow(R.Identifier("i"))));
           range := range.Apply1(
             rangeMap
           );
-          range := range.FSel("collect").ApplyType([
+          range := range.Sel("collect").ApplyType([
               R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
             ]).Apply0();
           r := R.Block(r.Then(range));
@@ -6027,6 +6036,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
+        case ExactBoundedPool(of) => {
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipOwned);
+          r := R.std.MSel("iter").AsExpr().FSel("once").Apply1(exprGen);
+          readIdents := recIdents;
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
         case IntRange(typ, lo, hi, up) => {
           var lo, _, recIdentsLo := GenExpr(lo, selfIdent, env, OwnershipOwned);
           var hi, _, recIdentsHi := GenExpr(hi, selfIdent, env, OwnershipOwned);
@@ -6077,7 +6092,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           // Integer collections are owned because they are computed number by number.
           // Sequence bounded pools are also owned
           var extraAttributes := [];
-          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? {
+          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? || collection.ExactBoundedPool? {
             extraAttributes := [AttributeOwned];
           }
 
