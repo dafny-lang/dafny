@@ -75,9 +75,9 @@ module FactorPathsOptimizationTest {
                     MUT, "doit", Some(std_rc_Rc.AsType().Apply1(TIdentifier("unknown"))),
                     Some(
                       Identifier("something").ApplyType(
-                        [ DynType(DefaultPath.AsType())
+                        [ DynType(std_default_Default.AsType())
                         ]).Apply([
-                          std_Default_default,
+                          std_default_Default_default,
                           dafny_runtime.MSel("rd!").AsExpr().Apply1(Identifier("obj"))
                         ])
                     )),
@@ -90,7 +90,7 @@ module FactorPathsOptimizationTest {
         "onemodule", [
           UseDecl(Use(PUB, std_any_Any)),
           UseDecl(Use(PUB, std_rc_Rc)),
-          UseDecl(Use(PUB, DefaultPath)),
+          UseDecl(Use(PUB, std_default_Default)),
           UseDecl(Use(PUB, dafny_runtime.MSel("rd"))),
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyString"))),
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
@@ -195,12 +195,14 @@ module FactorPathsOptimization {
     RASTTopDownVisitor(
       VisitTypeSingle := (current: Mapping, t: Type) =>
         match t {
-          case TypeFromPath(PMemberSelect(base, name)) => current.Add(name, base)
+          case TypeFromPath(PMemberSelect(base, name)) =>
+            if base == Self() then current else current.Add(name, base)
           case _ => current
         },
       VisitExprSingle := (current: Mapping, e: Expr) =>
         match e {
           case ExprFromPath(PMemberSelect(base, id)) =>
+            if base == Self() then current else
             if |id| > 0 && id[|id|-1] == '!' then
               current.Add(id[..|id|-1], base)
             else
