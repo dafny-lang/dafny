@@ -3401,12 +3401,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
-      var cmd = Assert(tok, condition, description, tok, kv);
+    Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, 
+      Bpl.QKeyValue kv = null, bool remember = false) {
+      var cmd = Assert(tok, condition, description, tok, kv, remember);
       return cmd;
     }
 
-    Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, IToken refinesToken, Bpl.QKeyValue kv = null) {
+    PredicateCmd Assert(IToken tok, Expr condition, PODesc.ProofObligationDescription description, IToken refinesToken,
+      QKeyValue kv = null, bool remember = false) {
       Contract.Requires(tok != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
@@ -3419,7 +3421,9 @@ namespace Microsoft.Dafny {
         cmd = TrAssumeCmd(tok, condition, kv);
         proofDependencies?.AddProofDependencyId(cmd, tok, new AssumedProofObligationDependency(tok, description));
       } else {
-        cmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
+        var assertCmd = TrAssertCmdDesc(ForceCheckToken.Unwrap(tok), condition, description, kv);
+        assertCmd.Remember = remember;
+        cmd = assertCmd;
         proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, description));
       }
       return cmd;
@@ -3429,7 +3433,8 @@ namespace Microsoft.Dafny {
       return AssertNS(tok, condition, desc, tok, null);
     }
 
-    Bpl.PredicateCmd AssertNS(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc, IToken refinesTok, Bpl.QKeyValue kv) {
+    Bpl.PredicateCmd AssertNS(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc, IToken refinesTok, 
+      Bpl.QKeyValue kv, bool remember = false) {
       Contract.Requires(tok != null);
       Contract.Requires(desc != null);
       Contract.Requires(condition != null);
@@ -3442,9 +3447,8 @@ namespace Microsoft.Dafny {
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
       } else {
         tok = ForceCheckToken.Unwrap(tok);
-        var args = new List<object>();
-        args.Add(Bpl.Expr.Literal(0));
-        cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv));
+        var args = new List<object> { Bpl.Expr.Literal(0) };
+        cmd = TrAssertCmdDesc(tok, condition, desc, new Bpl.QKeyValue(tok, "subsumption", args, kv), remember);
         proofDependencies?.AddProofDependencyId(cmd, tok, new ProofObligationDependency(tok, desc));
       }
 
@@ -3565,9 +3569,12 @@ namespace Microsoft.Dafny {
       return attributes == null ? new Bpl.AssertCmd(tok, expr) : new Bpl.AssertCmd(tok, expr, attributes);
     }
 
-    Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, PODesc.ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
+    Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, PODesc.ProofObligationDescription description, 
+      Bpl.QKeyValue attributes = null, bool remember = false) {
       ReportAssertion(tok, description);
-      return new Bpl.AssertCmd(tok, expr, description, attributes);
+      return new Bpl.AssertCmd(tok, expr, description, attributes) {
+        Remember = remember
+      };
     }
 
     private ISet<(Uri, int)> reportedAssertions = new HashSet<(Uri, int)>();

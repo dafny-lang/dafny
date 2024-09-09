@@ -166,14 +166,14 @@ namespace Microsoft.Dafny {
         var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
         var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
         proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
-          etran.TrAttributes(stmt.Attributes, null)));
+          etran.TrAttributes(stmt.Attributes, null), remember: true));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
             var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
             var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
             proofBuilder.Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
-              etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
+              etran.TrAttributes(stmt.Attributes, null), remember: true)); // attributes go on every split
           }
         }
       }

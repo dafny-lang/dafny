@@ -115,7 +115,7 @@ module Std.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
   }
 
   function
-    {:resource_limit 1200000}
+    {:isolate_assertions}
   DecodeMinimalWellFormedCodeUnitSubsequenceDoubleWord(m: MinimalWellFormedCodeUnitSeq): (v: ScalarValue)
     requires |m| == 2
     ensures 0x10000 <= v <= 0x10FFFF
@@ -128,8 +128,8 @@ module Std.Unicode.Utf16EncodingForm refines UnicodeEncodingForm {
     var w := ((firstWord & 0x3C0) >> 6) as bv24;
     var u := (w + 1) as bv24;
     var v := (u << 16) | (x1 << 10) | x2 as ScalarValue;
-    assert {:split_here} true;
-    assert EncodeScalarValueDoubleWord(v) == m;
+    assert EncodeScalarValueDoubleWord(v)[0] == m[0];
+    assert EncodeScalarValueDoubleWord(v)[1] == m[1];
     v
   }
 }
