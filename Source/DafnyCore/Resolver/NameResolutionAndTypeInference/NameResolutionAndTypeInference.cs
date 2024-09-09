@@ -5308,7 +5308,7 @@ namespace Microsoft.Dafny {
           }
         }
         r = new IdentifierExpr(expr.tok, v);
-      } else if (currentClass is TopLevelDeclWithMembers cl && GetClassMembers(cl)?.TryGetValue(name, out member) == true) {
+      } else if (!(currentClass is DefaultClassDecl) && currentClass is TopLevelDeclWithMembers cl && GetClassMembers(cl)?.TryGetValue(name, out member) == true) {
         // ----- 1. member of the enclosing class
 
         if (!member.IsStatic) {
