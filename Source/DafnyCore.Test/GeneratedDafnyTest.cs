@@ -8,7 +8,7 @@ public class GeneratedDafnyTest {
   public void TestDafnyCoverage() {
     DafnyToRustCompilerCoverage.RASTCoverage.__default.TestExpr();
   }
-  
+
   [Fact]
   public void TestPathSimplification() {
     FactorPathsOptimizationTest.__default.TestApply();
