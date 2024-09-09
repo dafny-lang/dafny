@@ -57,7 +57,11 @@ namespace FactorPathsOptimization {
         if (path0.is_PMemberSelect) {
           RAST._IPath _2_base = path0.dtor_base;
           Dafny.ISequence<Dafny.Rune> _3_name = path0.dtor_name;
-          return (_0_current).Add(_3_name, _2_base);
+          if (object.Equals(_2_base, RAST.Path.create_Self())) {
+            return _0_current;
+          } else {
+            return (_0_current).Add(_3_name, _2_base);
+          }
         }
       }
     }
@@ -74,7 +78,9 @@ namespace FactorPathsOptimization {
         if (path1.is_PMemberSelect) {
           RAST._IPath _6_base = path1.dtor_base;
           Dafny.ISequence<Dafny.Rune> _7_id = path1.dtor_name;
-          if (((new BigInteger((_7_id).Count)).Sign == 1) && (((_7_id).Select((new BigInteger((_7_id).Count)) - (BigInteger.One))) == (new Dafny.Rune('!')))) {
+          if (object.Equals(_6_base, RAST.Path.create_Self())) {
+            return _4_current;
+          } else if (((new BigInteger((_7_id).Count)).Sign == 1) && (((_7_id).Select((new BigInteger((_7_id).Count)) - (BigInteger.One))) == (new Dafny.Rune('!')))) {
             return (_4_current).Add((_7_id).Take((new BigInteger((_7_id).Count)) - (BigInteger.One)), _6_base);
           } else {
             return (_4_current).Add(_7_id, _6_base);
