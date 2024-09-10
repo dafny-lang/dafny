@@ -2476,4 +2476,7 @@ the expressions is to provide hints to aid Dafny in proving that
 step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
+## 8.23. Opaque Block ([grammar](#g-calc-statement)) {#sec-opaque-block}
+As a Dafny sequence of statements grows in length, it can become harder to verify later statements in the block, because with each statement, new information can become available or the definition of the heap may become more complex. The enable long lists of statements to maintain a verification cost linear in their size, Dafny users can either extract part of this block into a separate method or lemma, or they can use opaque blocks, which achieve a similar effect but are less work to use. 
 
+An opaque block is similar to a block statement, in that it contains a sequence of zero or more statements encloserd by curly braces, enclosed by curly braces. However, an opaque block is preceded by the keyword 'opaque', and may define ensures and modifies clauses before the curly braces. Anything that happens inside the block is invisible to the statements that come after it, so any effect that you wish to capture, must be captured by the ensures clauses of the block. 
