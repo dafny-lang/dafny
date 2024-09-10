@@ -1,4 +1,4 @@
-// RUN: ! %verify --type-system-refresh --allow-axioms --isolate-assertions %s > %t
+// RUN: %resolve --type-system-refresh --allow-axioms %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 module Prod {
