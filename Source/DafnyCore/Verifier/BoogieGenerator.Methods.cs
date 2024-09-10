@@ -657,7 +657,7 @@ namespace Microsoft.Dafny {
       if (!(m is TwoStateLemma)) {
         var modifies = m.Mod;
         var allowsAllocation = m.AllowsAllocation;
-        
+
         ApplyModifiesEffect(m, etran, builder, modifies, allowsAllocation, m.IsGhost);
       }
 
@@ -688,8 +688,7 @@ namespace Microsoft.Dafny {
     }
 
     public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
-      Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext)
-    {
+      Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
       // play havoc with the heap according to the modifies clause
       builder.Add(new Boogie.HavocCmd(node.Tok, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
       // assume the usual two-state boilerplate information

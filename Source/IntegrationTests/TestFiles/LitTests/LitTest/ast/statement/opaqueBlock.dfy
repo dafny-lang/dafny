@@ -1,4 +1,4 @@
-// RUN: ! %verify %s --bprint /Users/rwillems/SourceCode/dafny/opaque.bpl &> "%t"
+// RUN: ! %verify %s --bprint /Users/rwillems/SourceCode/dafny3/opaque.bpl &> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() returns (x: int)

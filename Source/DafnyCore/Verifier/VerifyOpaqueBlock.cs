@@ -29,7 +29,7 @@ public static class VerifyOpaqueBlock {
     } else {
       bodyTranslator = etran;
     }
-    
+
     var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
     generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
@@ -37,7 +37,7 @@ public static class VerifyOpaqueBlock {
       ensures.Tok, etran.TrExpr(ensures.E),
       new OpaqueEnsuresDescription(),
       etran.TrAttributes(ensures.Attributes, null))).ToList();
-    
+
     foreach (var assert in asserts) {
       blockBuilder.Add(assert);
     }
@@ -63,15 +63,16 @@ public static class VerifyOpaqueBlock {
     var ifCmd = new IfCmd(block.Tok, null, blockCommands, null, null);
     builder.Add(ifCmd);
     var commands = blockCommands.BigBlocks.SelectMany(bb => bb.simpleCmds);
-    List<Variable> assignedVariables = new();
+    List<IdentifierExpr> assignedVariables = new();
     foreach (var command in commands) {
-      command.AddAssignedVariables(assignedVariables);
+      command.AddAssignedIdentifiers(assignedVariables);
     }
 
-    builder.Add(new HavocCmd(Token.NoToken, 
-      assignedVariables.Select(v => new IdentifierExpr(Token.NoToken, v)).ToList()));
+    var havocVariables = assignedVariables.
+      Where(a => !a.Name.Contains("defass#")).
+      DistinctBy(a => a.Name);
+    builder.Add(new HavocCmd(Token.NoToken, havocVariables.ToList()));
 
-    // HAVOC the modified variables
     foreach (var assert in asserts) {
       /* It's inefficient to place the ensures clauses in the generated Boogie twice.
        * We could avoid that by adding an OpaqueBlock construct to Boogie
@@ -86,7 +87,7 @@ public static class VerifyOpaqueBlock {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
     }
   }
-  
+
   class OpaqueEnsuresDescription : ProofObligationDescription {
     public override string SuccessDescription => "ensures always holds";
 
@@ -95,20 +96,19 @@ public static class VerifyOpaqueBlock {
     public override string ShortDescription => "opaque block ensure clause";
     public override bool IsImplicit => false;
   }
-  
+
   class OpaqueBlockContext : CallableWrapper, IMethodCodeContext {
     private readonly IMethodCodeContext callable;
     private readonly OpaqueBlock opaqueBlock;
-    
-    public OpaqueBlockContext(IMethodCodeContext callable, OpaqueBlock opaqueBlock) 
-      : base(callable, callable.IsGhost) 
-    {
+
+    public OpaqueBlockContext(IMethodCodeContext callable, OpaqueBlock opaqueBlock)
+      : base(callable, callable.IsGhost) {
       this.callable = callable;
       this.opaqueBlock = opaqueBlock;
     }
 
     public List<Formal> Outs => callable.Outs;
-    
+
     public Specification<FrameExpression> Modifies => opaqueBlock.Modifies;
   }
 }

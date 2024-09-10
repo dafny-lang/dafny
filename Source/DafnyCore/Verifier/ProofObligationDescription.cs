@@ -12,7 +12,7 @@ namespace Microsoft.Dafny.ProofObligationDescription;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
   public virtual bool IsImplicit => true;
-  
+
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public virtual Expression GetAssertedExpr(DafnyOptions options) {
