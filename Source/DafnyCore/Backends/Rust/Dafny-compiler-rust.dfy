@@ -5459,6 +5459,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
+        case ExactBoundedPool(of) => {
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipOwned);
+          r := R.std.MSel("iter").AsExpr().FSel("once").Apply1(exprGen);
+          readIdents := recIdents;
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
         case IntRange(typ, lo, hi, up) => {
           var lo, _, recIdentsLo := GenExpr(lo, selfIdent, env, OwnershipOwned);
           var hi, _, recIdentsHi := GenExpr(hi, selfIdent, env, OwnershipOwned);
@@ -5509,7 +5515,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           // Integer collections are owned because they are computed number by number.
           // Sequence bounded pools are also owned
           var extraAttributes := [];
-          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? {
+          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? || collection.ExactBoundedPool? {
             extraAttributes := [AttributeOwned];
           }
 
