@@ -1429,6 +1429,7 @@ namespace DAST {
     bool is_String { get; }
     bool is_Bool { get; }
     bool is_Char { get; }
+    bool is_Native { get; }
     _IPrimitive DowncastClone();
   }
   public abstract class Primitive : _IPrimitive {
@@ -1457,11 +1458,15 @@ namespace DAST {
     public static _IPrimitive create_Char() {
       return new Primitive_Char();
     }
+    public static _IPrimitive create_Native() {
+      return new Primitive_Native();
+    }
     public bool is_Int { get { return this is Primitive_Int; } }
     public bool is_Real { get { return this is Primitive_Real; } }
     public bool is_String { get { return this is Primitive_String; } }
     public bool is_Bool { get { return this is Primitive_Bool; } }
     public bool is_Char { get { return this is Primitive_Char; } }
+    public bool is_Native { get { return this is Primitive_Native; } }
     public static System.Collections.Generic.IEnumerable<_IPrimitive> AllSingletonConstructors {
       get {
         yield return Primitive.create_Int();
@@ -1469,6 +1474,7 @@ namespace DAST {
         yield return Primitive.create_String();
         yield return Primitive.create_Bool();
         yield return Primitive.create_Char();
+        yield return Primitive.create_Native();
       }
     }
     public abstract _IPrimitive DowncastClone();
@@ -1578,6 +1584,27 @@ namespace DAST {
       return s;
     }
   }
+  public class Primitive_Native : Primitive {
+    public Primitive_Native() : base() {
+    }
+    public override _IPrimitive DowncastClone() {
+      if (this is _IPrimitive dt) { return dt; }
+      return new Primitive_Native();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Primitive_Native;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 5;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Primitive.Native";
+      return s;
+    }
+  }
 
   public interface _INewtypeRange {
     bool is_U8 { get; }
@@ -1590,6 +1617,7 @@ namespace DAST {
     bool is_I64 { get; }
     bool is_U128 { get; }
     bool is_I128 { get; }
+    bool is_USIZE { get; }
     bool is_BigInt { get; }
     bool is_NoRange { get; }
     _INewtypeRange DowncastClone();
@@ -1635,6 +1663,9 @@ namespace DAST {
     public static _INewtypeRange create_I128() {
       return new NewtypeRange_I128();
     }
+    public static _INewtypeRange create_USIZE() {
+      return new NewtypeRange_USIZE();
+    }
     public static _INewtypeRange create_BigInt() {
       return new NewtypeRange_BigInt();
     }
@@ -1651,6 +1682,7 @@ namespace DAST {
     public bool is_I64 { get { return this is NewtypeRange_I64; } }
     public bool is_U128 { get { return this is NewtypeRange_U128; } }
     public bool is_I128 { get { return this is NewtypeRange_I128; } }
+    public bool is_USIZE { get { return this is NewtypeRange_USIZE; } }
     public bool is_BigInt { get { return this is NewtypeRange_BigInt; } }
     public bool is_NoRange { get { return this is NewtypeRange_NoRange; } }
     public static System.Collections.Generic.IEnumerable<_INewtypeRange> AllSingletonConstructors {
@@ -1665,6 +1697,7 @@ namespace DAST {
         yield return NewtypeRange.create_I64();
         yield return NewtypeRange.create_U128();
         yield return NewtypeRange.create_I128();
+        yield return NewtypeRange.create_USIZE();
         yield return NewtypeRange.create_BigInt();
         yield return NewtypeRange.create_NoRange();
       }
@@ -1881,6 +1914,27 @@ namespace DAST {
       return s;
     }
   }
+  public class NewtypeRange_USIZE : NewtypeRange {
+    public NewtypeRange_USIZE() : base() {
+    }
+    public override _INewtypeRange DowncastClone() {
+      if (this is _INewtypeRange dt) { return dt; }
+      return new NewtypeRange_USIZE();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.NewtypeRange_USIZE;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 10;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.NewtypeRange.USIZE";
+      return s;
+    }
+  }
   public class NewtypeRange_BigInt : NewtypeRange {
     public NewtypeRange_BigInt() : base() {
     }
@@ -1894,7 +1948,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 10;
+      hash = ((hash << 5) + hash) + 11;
       return (int) hash;
     }
     public override string ToString() {
@@ -1915,7 +1969,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 11;
+      hash = ((hash << 5) + hash) + 12;
       return (int) hash;
     }
     public override string ToString() {

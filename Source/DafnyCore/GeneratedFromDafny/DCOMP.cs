@@ -3666,6 +3666,11 @@ namespace DCOMP {
         }
       }
       {
+        if (_source0.is_USIZE) {
+          return Std.Wrappers.Option<RAST._IType>.create_Some(RAST.Type.create_USIZE());
+        }
+      }
+      {
         return Std.Wrappers.Option<RAST._IType>.create_None();
       }
     }
