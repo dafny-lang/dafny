@@ -169,6 +169,7 @@ module RAST
       requires forall m: Mod, p: Path | m < mod ::
         ReplaceModSingle.requires(m, p)
     {
+      if mod.ExternMod? then mod else
       var newModDeclarations := mod.Fold([], (current, modDecl) requires modDecl < mod =>
           assert forall mod: Mod, p: Path | mod < modDecl :: this.ReplaceModSingle.requires(mod, p);
                  current + [ReplaceModDecl(modDecl, SelfPath)]
@@ -1758,16 +1759,15 @@ module RAST
           (if |arguments| > 0 then "\n" + ind else "") + ")"
 
         case UnaryOp(op, underlying, format) =>
+          var isPattern := |op| >= 1 && op[0..1] == "{";
           var (leftP, rightP) :=
-            if printingInfo.NeedParenthesesFor(underlying.Optimize().printingInfo) then
+            if !isPattern && printingInfo.NeedParenthesesFor(underlying.Optimize().printingInfo) then
               ("(", ")")
             else
               ("", "");
           var opToRight := op == "?" || (
             |op| >= 2 && op[0..2] == "/*" // comment
-          ) || (
-            |op| >= 1 && op[0..1] == "{" // Pattern matching
-          );
+          ) || isPattern;
           var leftOp := if opToRight then "" else op;
           var leftOp := if (op == "&mut" || op == "unsafe") && leftP != "(" then leftOp + " " else leftOp;
           var rightOp := if opToRight then op else "";
@@ -1776,7 +1776,7 @@ module RAST
           var (leftLeftP, leftRightP) := LeftParentheses(left);
           leftLeftP + left.ToString(IND) + leftRightP + " as " + tpe.ToString(IND)
         case TraitCast(leftTpe, tpe) =>
-          leftTpe.ToString(IND) + " as " + tpe.ToString(IND)
+          "<" + leftTpe.ToString(IND) + " as " + tpe.ToString(IND) + ">"
         case BinaryOp(op2, left, right, format) =>
           var (leftLeftP, leftRighP) := LeftParentheses(left);
           var (rightLeftP, rightRightP) := RightParentheses(right);
@@ -5433,12 +5433,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             R.dafny_runtime.MSel("Zero").AsExpr().FSel("zero").Apply0(),
             lengthGen
           ]);
-          range := range.FSel("map");
+          range := range.Sel("map");
           var rangeMap := R.Lambda([R.Formal.ImplicitlyTyped("i")], None, R.Identifier("_initializer").Apply1(R.Borrow(R.Identifier("i"))));
           range := range.Apply1(
             rangeMap
           );
-          range := range.FSel("collect").ApplyType([
+          range := range.Sel("collect").ApplyType([
               R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
             ]).Apply0();
           r := R.Block(r.Then(range));
