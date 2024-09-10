@@ -1,10 +1,14 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.ProofObligationDescription;
 using Formal = Microsoft.Dafny.Formal;
+using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
+using IToken = Microsoft.Dafny.IToken;
 using ProofObligationDescription = Microsoft.Dafny.ProofObligationDescription.ProofObligationDescription;
+using Token = Microsoft.Dafny.Token;
 
 namespace DafnyCore.Verifier;
 
@@ -52,9 +56,22 @@ public static class VerifyOpaqueBlock {
           null, null, etran, etran.ModifiesFrame(block.Tok), blockBuilder, desc, null);
       }
     }
-    
-    generator.PathAsideBlock(block.Tok, blockBuilder, builder);
-    
+
+
+    blockBuilder.Add(new AssumeCmd(block.Tok, Expr.False));
+    var blockCommands = blockBuilder.Collect(block.Tok);
+    var ifCmd = new IfCmd(block.Tok, null, blockCommands, null, null);
+    builder.Add(ifCmd);
+    var commands = blockCommands.BigBlocks.SelectMany(bb => bb.simpleCmds);
+    List<Variable> assignedVariables = new();
+    foreach (var command in commands) {
+      command.AddAssignedVariables(assignedVariables);
+    }
+
+    builder.Add(new HavocCmd(Token.NoToken, 
+      assignedVariables.Select(v => new IdentifierExpr(Token.NoToken, v)).ToList()));
+
+    // HAVOC the modified variables
     foreach (var assert in asserts) {
       /* It's inefficient to place the ensures clauses in the generated Boogie twice.
        * We could avoid that by adding an OpaqueBlock construct to Boogie
