@@ -1774,7 +1774,7 @@ module RAST
           var (leftLeftP, leftRightP) := LeftParentheses(left);
           leftLeftP + left.ToString(IND) + leftRightP + " as " + tpe.ToString(IND)
         case TraitCast(leftTpe, tpe) =>
-          leftTpe.ToString(IND) + " as " + tpe.ToString(IND)
+          "<" + leftTpe.ToString(IND) + " as " + tpe.ToString(IND) + ">"
         case BinaryOp(op2, left, right, format) =>
           var (leftLeftP, leftRighP) := LeftParentheses(left);
           var (rightLeftP, rightRightP) := RightParentheses(right);
