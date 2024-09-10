@@ -6,6 +6,7 @@ module DafnyToRustCompilerCoverage {
     import opened Std.Wrappers
     import opened DAST.Format
     import Strings = Std.Strings
+    import ExpressionOptimization
 
     method TestExpr() {
       TestOptimizeToString();
@@ -33,21 +34,25 @@ module DafnyToRustCompilerCoverage {
       Call(ExprFromPath(PMemberSelect(dafny_runtime, "int!")), [LiteralInt("1")])
     }
 
+    function Optimize(e: Expr): Expr {
+      ExpressionOptimization.ExprSimplifier().ReplaceExpr(e)
+    }
+
     method TestOptimizeToString() {
       var x := Identifier("x");
       var y := Identifier("y");
-      AssertCoverage(UnaryOp("&", Call(Select(x, "clone"), []), UnaryOpFormat.NoFormat).Optimize()
+      AssertCoverage(Optimize(UnaryOp("&", Call(Select(x, "clone"), []), UnaryOpFormat.NoFormat))
                      == UnaryOp("&", x, UnaryOpFormat.NoFormat));
       TestNoOptimize(UnaryOp("&", Call(Select(x, "clone"), [y]), UnaryOpFormat.NoFormat));
-      AssertCoverage(UnaryOp("!", BinaryOp("==", x, y, BinaryOpFormat.NoFormat),
-                             CombineFormat()).Optimize() == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat));
-      AssertCoverage(UnaryOp("!", BinaryOp("<", x, y, BinaryOpFormat.NoFormat),
-                             CombineFormat()).Optimize() == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat()));
-      AssertCoverage(UnaryOp("!", BinaryOp("<", x, y, ReverseFormat()),
-                             CombineFormat()).Optimize() == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat()));
-      AssertCoverage(ConversionNum(I128, DafnyIntLiteral("1")).Optimize() == LiteralInt("1"));
+      AssertCoverage(Optimize(UnaryOp("!", BinaryOp("==", x, y, BinaryOpFormat.NoFormat),
+                             CombineFormat())) == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat));
+      AssertCoverage(Optimize(UnaryOp("!", BinaryOp("<", x, y, BinaryOpFormat.NoFormat),
+                             CombineFormat())) == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat()));
+      AssertCoverage(Optimize(UnaryOp("!", BinaryOp("<", x, y, ReverseFormat()),
+                             CombineFormat())) == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat()));
+      AssertCoverage(Optimize(ConversionNum(I128, DafnyIntLiteral("1"))) == LiteralInt("1"));
       TestNoOptimize(ConversionNum(I128, x));
-      AssertCoverage(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))).Optimize()
+      AssertCoverage(Optimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))))
                      == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
       TestNoOptimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("w", y), RawExpr("return"))));
 
@@ -62,7 +67,7 @@ module DafnyToRustCompilerCoverage {
       TestNoOptimize(StmtExpr(LiteralInt("1"), x));
       TestNoOptimize(StmtExpr(LiteralString("2", true, false), x));
       TestNoOptimize(StmtExpr(LiteralString("3", false, true), x));
-      AssertCoverage(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))).Optimize()
+      AssertCoverage(Optimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))))
                      == StmtExpr(DeclareVar(MUT, "z", Some(I128), Some(y)), RawExpr("return")));
 
       var coverageExpression := [
@@ -103,14 +108,14 @@ module DafnyToRustCompilerCoverage {
       for i := 0 to |coverageExpression| {
         var c := coverageExpression[i];
         var _ := c.printingInfo;
-        var _ := c.Optimize();
+        var _ := Optimize(c);
         var _ := map[c := c.ToString("")];
-        var _ := StmtExpr(DeclareVar(MUT, "abc", Some(I128), None), c).Optimize();
-        var _ := StmtExpr(DeclareVar(MUT, "abc", Some(I128), None), StmtExpr(AssignVar("abc", c), RawExpr(""))).Optimize();
-        var _ := UnaryOp("&", c, UnaryOpFormat.NoFormat()).Optimize();
-        var _ := UnaryOp("!", c, UnaryOpFormat.NoFormat()).Optimize();
-        var _ := ConversionNum(U8, c).Optimize();
-        var _ := ConversionNum(U8, Call(c, [])).Optimize();
+        var _ := Optimize(StmtExpr(DeclareVar(MUT, "abc", Some(I128), None), c));
+        var _ := Optimize(StmtExpr(DeclareVar(MUT, "abc", Some(I128), None), StmtExpr(AssignVar("abc", c), RawExpr(""))));
+        var _ := Optimize(UnaryOp("&", c, UnaryOpFormat.NoFormat()));
+        var _ := Optimize(UnaryOp("!", c, UnaryOpFormat.NoFormat()));
+        var _ := Optimize(ConversionNum(U8, c));
+        var _ := Optimize(ConversionNum(U8, Call(c, [])));
         var _ := c.RightMostIdentifier();
 
       }
@@ -171,8 +176,8 @@ module DafnyToRustCompilerCoverage {
     }
 
     method AssertCoverage(x: bool)
-      //requires x // Too expensive
     {
+      expect x;
     }
 
     method TestNoExtraSemicolonAfter() {
