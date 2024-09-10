@@ -70,16 +70,3 @@ with open(output + '.cs', 'r' ) as f:
 # Now delete the file output.cs
 os.remove(output + '.cs')
 print("File deleted: " + output + '.cs')
-
-# Finally, copy the file ../DafnyRuntime/DafnyRuntimeSystemModule.cs into output/DafnyRuntimeSystemModules.cs
-# Then remove all preprocessor directives
-file = "DafnyRuntimeSystemModule.cs"
-inputFile = "../DafnyRuntime/" + file
-outputFile = output + "/" + file
-
-with open(inputFile, 'r' ) as f:
-  content = f.read()
-  content_wo_preprocessing = re.sub(r'\r?\n#.*', '', content, flags = re.M)
-  with open(outputFile, 'w') as f:
-      f.write(content_wo_preprocessing)
-      print("File moved from '" + inputFile + "' to '" + outputFile + "'")
