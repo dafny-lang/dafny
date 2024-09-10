@@ -21,7 +21,7 @@ module FactorPathsOptimizationTest {
     var std_any_Any := global.MSel("std").MSel("any").MSel("Any");
     var Any := TIdentifier("Any");
     ShouldBeEqual(
-      apply(
+      apply(crate)(
         Mod(
           "onemodule", [
             StructDecl(
@@ -45,7 +45,7 @@ module FactorPathsOptimizationTest {
           ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
         ]));
     ShouldBeEqual(
-      apply(
+      apply(crate)(
         Mod(
           "onemodule", [
             ImplDecl(
@@ -63,7 +63,7 @@ module FactorPathsOptimizationTest {
               TIdentifier("test").Apply([T]), "", []))
         ]));
     ShouldBeEqual(
-      apply(
+      apply(crate)(
         Mod(
           "onemodule", [
             ConstDecl(
@@ -123,8 +123,8 @@ module FactorPathsOptimization {
   import opened RAST
   export Std
 
-  function apply(mod: Mod): Mod {
-    applyPrefix(mod, crate.MSel(mod.name))
+  function apply(root: Path): Mod -> Mod {
+    (mod: Mod) => applyPrefix(mod, root.MSel(mod.name))
   }
 
   function applyPrefix(mod: Mod, SelfPath: Path): Mod

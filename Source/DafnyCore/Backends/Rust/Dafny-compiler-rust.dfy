@@ -1595,76 +1595,8 @@ module RAST
       }
     }
 
-    // Wish: Prove that Optimize() preserves semantics, if any
-    // TODO: Ensure that even without Optimize(), tests pass
-    // Wish: Optimize as a pass on the generated AST.
-    opaque function Optimize(): (r: Expr)
-      ensures this == r || r.Height() < this.Height()
-    {
-      match this {
-        case UnaryOp("!", BinaryOp("==", left, right, format),
-          CombineFormat()) =>
-          assert BinaryOp("==", left, right, format).Height()
-              == BinaryOp("!=", left, right, BinaryOpFormat.NoFormat()).Height();
-          BinaryOp("!=", left, right, BinaryOpFormat.NoFormat())
-
-        case UnaryOp("!", BinaryOp("<", left, right, NoFormat()),
-          CombineFormat()) =>
-          assert BinaryOp(">=", left, right, BinaryOpFormat.NoFormat()).Height()
-              == BinaryOp("<", left, right, BinaryOpFormat.NoFormat()).Height();
-          BinaryOp(">=", left, right, BinaryOpFormat.NoFormat())
-
-        case UnaryOp("!", BinaryOp("<", left, right, ReverseFormat()),
-          CombineFormat()) =>
-          assert BinaryOp("<=", right, left, BinaryOpFormat.NoFormat()).Height()
-              == BinaryOp("<", left, right, BinaryOpFormat.ReverseFormat()).Height();
-          BinaryOp("<=", right, left, BinaryOpFormat.NoFormat())
-        case Call(ExprFromPath(PMemberSelect(r, "truncate!")), args) =>
-          if (r != dafny_runtime && r != global) || |args| != 2  then
-            this
-          else
-            var expr := args[0];
-            var tpeExpr := args[1];
-            if !tpeExpr.ExprFromType? then this else
-            var tpe := tpeExpr.tpe;
-            if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
-               || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? || tpe.USIZE? then
-              match expr {
-                case Call(ExprFromPath(PMemberSelect(base, "int!")), args) =>
-                  if |args| == 1 && (base == dafny_runtime || base == global) then
-                    match args[0] {
-                      case LiteralInt(number) => LiteralInt(number)
-                      case LiteralString(number, _, _) => LiteralInt(number)
-                      case _ => this
-                    }
-                  else this
-                case _ => this
-              }
-            else
-              this
-        case StmtExpr(DeclareVar(mod, name, Some(tpe), None), StmtExpr(Assign(name2, rhs), last)) =>
-          if name2 == Some(LocalVar(name)) then
-            var rewriting := StmtExpr(DeclareVar(mod, name, Some(tpe), Some(rhs)), last);
-            assert rewriting.Height() < this.Height() by {
-              assert StmtExpr(Assign(name2, rhs), last).Height() ==
-                     1 + max(Assign(name2, rhs).Height(), last.Height()) ==
-                     1 + max(1 + rhs.Height(), last.Height());
-              assert this.Height() == 2 + max(1, 1 + max(1 + rhs.Height(), last.Height()));
-              assert rewriting.Height() == 1 + max(1 + rhs.Height(), last.Height());
-            }
-            rewriting
-          else
-            this
-        case StmtExpr(IfExpr(UnaryOp("!", BinaryOp("==", a, b, f), of), RawExpr("panic!(\"Halt\");"), RawExpr("")), last) =>
-          var rewriting := StmtExpr(Identifier("assert_eq!").Apply([a, b]), last);
-          assume {:axiom} rewriting.Height() < this.Height(); // TODO: Need to prove formally
-          rewriting
-        case _ => this
-      }
-    }
-
     predicate LeftRequiresParentheses(left: Expr) {
-      printingInfo.NeedParenthesesForLeft(left.Optimize().printingInfo)
+      printingInfo.NeedParenthesesForLeft(left.printingInfo)
     }
     function LeftParentheses(left: Expr): (string, string) {
       if LeftRequiresParentheses(left) then
@@ -1674,7 +1606,7 @@ module RAST
     }
 
     predicate RightRequiresParentheses(right: Expr) {
-      printingInfo.NeedParenthesesForRight(right.Optimize().printingInfo)
+      printingInfo.NeedParenthesesForRight(right.printingInfo)
     }
 
 
@@ -1707,9 +1639,8 @@ module RAST
     }
 
     function ToString(ind: string): string
-      decreases Height()
     {
-      match this.Optimize() {
+      match this {
         case Identifier(name) => name
         case ExprFromType(t) => t.ToString(ind)
         case LiteralInt(number) => number
@@ -1762,7 +1693,7 @@ module RAST
         case UnaryOp(op, underlying, format) =>
           var isPattern := |op| >= 1 && op[0..1] == "{";
           var (leftP, rightP) :=
-            if !isPattern && printingInfo.NeedParenthesesFor(underlying.Optimize().printingInfo) then
+            if !isPattern && printingInfo.NeedParenthesesFor(underlying.printingInfo) then
               ("(", ")")
             else
               ("", "");
@@ -2004,6 +1935,7 @@ module RAST
 
 module {:extern "DCOMP"} DafnyToRustCompiler {
   import FactorPathsOptimization
+  import ExpressionOptimization
 
   import opened DAST
   import Strings = Std.Strings
@@ -2368,7 +2300,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.UnicodeChars := unicodeChars;
       this.ObjectType := objectType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
-      this.optimizations := [FactorPathsOptimization.apply];
+      this.optimizations := [
+        ExpressionOptimization.apply,
+        FactorPathsOptimization.apply(R.crate)];
       new;
     }
 
@@ -3651,6 +3585,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             case Real => s := R.dafny_runtime.MSel("BigRational").AsType();
             case String => s := R.TypeApp(R.dafny_runtime.MSel("Sequence").AsType(),
                                           [R.dafny_runtime.MSel(DafnyChar).AsType()]);
+            case Native => s := R.Type.USIZE;
             case Bool => s := R.Type.Bool;
             case Char => s := R.dafny_runtime.MSel(DafnyChar).AsType();
           }
