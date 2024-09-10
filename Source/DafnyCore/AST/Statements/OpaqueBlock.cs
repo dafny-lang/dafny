@@ -3,13 +3,24 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class OpaqueBlock : BlockStmt {
+public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
   public readonly List<AttributedExpression> Ensures;
   public readonly Specification<FrameExpression> Modifies;
 
   protected OpaqueBlock(Cloner cloner, OpaqueBlock original) : base(cloner, original) {
     Ensures = original.Ensures.Select(cloner.CloneAttributedExpr).ToList();
     Modifies = cloner.CloneSpecFrameExpr(original.Modifies);
+  }
+
+  public override IEnumerable<Expression> SpecificationSubExpressions {
+    get {
+      foreach (var e in Ensures) {
+        yield return e.E;
+      }
+      foreach (var e in Modifies.Expressions) {
+        yield return e.E;
+      }
+    }
   }
 
   public OpaqueBlock(RangeToken rangeToken, List<Statement> body,
@@ -32,10 +43,10 @@ public class OpaqueBlock : BlockStmt {
       resolver.ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext);
     }
 
-    foreach (var e in Ensures) {
-      resolver.ResolveAttributes(e, resolutionContext);
-      resolver.ResolveExpression(e.E, resolutionContext);
-      resolver.ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
+    foreach (var ensure in Ensures) {
+      resolver.ResolveAttributes(ensure, resolutionContext);
+      resolver.ResolveExpression(ensure.E, resolutionContext);
+      resolver.ConstrainTypeExprBool(ensure.E, "Postcondition must be a boolean (got {0})");
     }
     base.GenResolve(resolver, resolutionContext);
   }

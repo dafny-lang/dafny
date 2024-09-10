@@ -1754,7 +1754,9 @@ namespace Microsoft.Dafny {
     ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
-    readonly Dictionary<string, Bpl.IdentifierExpr> definiteAssignmentTrackers = new Dictionary<string, Bpl.IdentifierExpr>();
+
+    public Dictionary<string, Bpl.IdentifierExpr> DefiniteAssignmentTrackers { get; } = new();
+
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     Func<IToken, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
     public enum StmtType { NONE, ASSERT, ASSUME };
@@ -2045,7 +2047,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void DefineFrame(IToken/*!*/ tok, Boogie.IdentifierExpr frameIdentifier, List<FrameExpression/*!*/>/*!*/ frameClause,
+    public void DefineFrame(IToken/*!*/ tok, Boogie.IdentifierExpr frameIdentifier, List<FrameExpression/*!*/>/*!*/ frameClause,
       BoogieStmtListBuilder/*!*/ builder, List<Variable>/*!*/ localVariables, string name, ExpressionTranslator/*?*/ etran = null) {
       Contract.Requires(tok != null);
       Contract.Requires(frameIdentifier != null);
@@ -2079,7 +2081,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
     }
 
-    void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
+    public void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression /*!*/> substMap,
                           ExpressionTranslator /*!*/ etran, Boogie.IdentifierExpr /*!*/ enclosingFrame,
                           BoogieStmtListBuilder /*!*/ builder,
@@ -2092,14 +2094,14 @@ namespace Microsoft.Dafny {
     void CheckFrameSubset(IToken tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
                           ExpressionTranslator/*!*/ etran, Boogie.IdentifierExpr /*!*/ enclosingFrame,
-                          Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> MakeAssert,
+                          Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> makeAssert,
                           PODesc.ProofObligationDescription desc,
                           Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
       Contract.Requires(calleeFrame != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Requires(etran != null);
-      Contract.Requires(MakeAssert != null);
+      Contract.Requires(makeAssert != null);
       Contract.Requires(predef != null);
 
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> enclosingFrame[o,f]);
@@ -2116,7 +2118,7 @@ namespace Microsoft.Dafny {
       if (IsExprAlways(q, true)) {
         return;
       }
-      MakeAssert(tok, q, desc, kv);
+      makeAssert(tok, q, desc, kv);
     }
 
     void CheckFrameEmpty(IToken tok,
@@ -2967,7 +2969,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (includeOutParams) {
-        Contract.Assume(definiteAssignmentTrackers.Count == 0);
+        Contract.Assume(DefiniteAssignmentTrackers.Count == 0);
         foreach (Formal p in m.Outs) {
           Contract.Assert(VisibleInScope(p.Type));
           Contract.Assert(!p.IsOld);  // out-parameters are never old (perhaps we want to relax this condition in the future)
@@ -2985,7 +2987,7 @@ namespace Microsoft.Dafny {
         }
         // tear down definite-assignment trackers
         m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
-        Contract.Assert(definiteAssignmentTrackers.Count == 0);
+        Contract.Assert(DefiniteAssignmentTrackers.Count == 0);
 
         if (kind == MethodTranslationKind.Implementation) {
           outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));
@@ -3401,7 +3403,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
+    public Bpl.PredicateCmd Assert(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription description, Bpl.QKeyValue kv = null) {
       var cmd = Assert(tok, condition, description, tok, kv);
       return cmd;
     }
@@ -3513,7 +3515,7 @@ namespace Microsoft.Dafny {
     ///     if (*) { S ; assume false; }
     /// where "S" is the given "builderToCollect".  This method consumes what has been built up in "builderToCollect".
     /// </summary>
-    void PathAsideBlock(IToken tok, BoogieStmtListBuilder builderToCollect, BoogieStmtListBuilder builder) {
+    public void PathAsideBlock(IToken tok, BoogieStmtListBuilder builderToCollect, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
       Contract.Requires(builderToCollect != null);
       Contract.Requires(builderToCollect != null);

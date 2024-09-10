@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is DividedBlockStmt) {
         var s = (DividedBlockStmt)stmt;
         AddComment(builder, stmt, "divided block before new;");
-        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
+        var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
         var tok = s.SeparatorTok ?? s.Tok;
         // a DividedBlockStmt occurs only inside a Constructor body of a class
         var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
@@ -286,8 +286,10 @@ namespace Microsoft.Dafny {
         TrStmtList(s.BodyProper, builder, locals, etran);
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
+      } else if (stmt is OpaqueBlock opaqueBlock) {
+        VerifyOpaqueBlock.Translate(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
       } else if (stmt is BlockStmt blockStmt) {
-        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
+        var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
         TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
         RemoveDefiniteAssignmentTrackers(blockStmt.Body, prevDefiniteAssignmentTrackerCount);
       } else if (stmt is IfStmt ifStmt) {
@@ -748,7 +750,7 @@ namespace Microsoft.Dafny {
         }
 
         // translate the body into b
-        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
+        var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
         TrStmtList(mc.Body, b, locals, etran);
         RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
 
@@ -1385,7 +1387,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
       var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
-      foreach (var dat in definiteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change between invocations of Dafny
+      foreach (var dat in DefiniteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change between invocations of Dafny
         var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
         locals.Add(preLoopDat);
         var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
@@ -1660,7 +1662,7 @@ namespace Microsoft.Dafny {
         } else {
           b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
         }
-        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
+        var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
         TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
         RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
         Bpl.StmtList thn = b.Collect(alternative.Tok);
@@ -1949,13 +1951,15 @@ namespace Microsoft.Dafny {
         CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
           receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
       }
+
+      // substitute actual args for parameters in description expression frames...
+      var frameExpressions = callee.Mod.Expressions.ConvertAll(directSub.SubstFrameExpr);
       // Check that the modifies clause of a subcall is a subset of the current modifies frame,
       // but only if we're in a context that defines a modifies frame.
       if (codeContext is IMethodCodeContext methodCodeContext) {
-        // substitute actual args for parameters in description expression frames...
         var desc = new PODesc.ModifyFrameSubset(
           "call",
-          callee.Mod.Expressions.ConvertAll(directSub.SubstFrameExpr),
+          frameExpressions,
           methodCodeContext.Modifies.Expressions
         );
         // ... but that substitution isn't needed for frames passed to CheckFrameSubset
@@ -2837,7 +2841,7 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(exists.tok, etran.TrExpr(exists.Term)));
     }
 
-    void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+    public void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
       RangeToken scopeRange = null, bool processLabels = true) {
       Contract.Requires(stmts != null);
       Contract.Requires(builder != null);

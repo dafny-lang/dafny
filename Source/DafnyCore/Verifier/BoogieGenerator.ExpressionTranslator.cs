@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
       /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
       /// </summary>
       ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, IFrameScope scope,
+        Function applyLimitedCurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, IFrameScope scope,
         string readsFrame, string modifiesFrame, bool stripLits) {
 
         Contract.Requires(boogieGenerator != null);
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny {
         this.predef = predef;
         this._the_heap_expr = heap;
         this.This = thisVar;
-        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
+        this.applyLimited_CurrentFunction = applyLimitedCurrentFunction;
         this.layerInterCluster = layerInterCluster;
         if (layerIntraCluster == null) {
           this.layerIntraCluster = layerInterCluster;
@@ -850,7 +850,7 @@ namespace Microsoft.Dafny {
                   if (name == null) {
                     return Expr.True;
                   }
-                  BoogieGenerator.definiteAssignmentTrackers.TryGetValue(name, out var defass);
+                  BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
                   return defass;
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
