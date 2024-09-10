@@ -18,6 +18,13 @@ module Prod {
     reveal Foo.P;
     reveal Foo.Q;
   }
+
+  method InstanceRevealWorks(foo: Foo) {
+    hide *;
+      
+    reveal foo.P;
+    reveal foo.Q;
+  }
 }
 
 module Cons {
