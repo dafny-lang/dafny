@@ -73,6 +73,10 @@ public static class VerifyOpaqueBlock {
       DistinctBy(a => a.Name);
     builder.Add(new HavocCmd(Token.NoToken, havocVariables.ToList()));
 
+    if (hasModifiesClause) {
+      generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
+    }
+
     foreach (var assert in asserts) {
       /* It's inefficient to place the ensures clauses in the generated Boogie twice.
        * We could avoid that by adding an OpaqueBlock construct to Boogie
@@ -81,10 +85,6 @@ public static class VerifyOpaqueBlock {
        */
       // TODO missing proof dependency id
       builder.Add(BoogieGenerator.TrAssumeCmd(assert.tok, assert.Expr));
-    }
-
-    if (hasModifiesClause) {
-      generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
     }
   }
 
