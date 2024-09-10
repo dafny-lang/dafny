@@ -372,6 +372,11 @@ impl Into<i128> for DafnyInt {
         self.data.to_i128().unwrap()
     }
 }
+impl Into<usize> for DafnyInt {
+    fn into(self) -> usize {
+        self.data.to_usize().unwrap()
+    }
+}
 
 impl ToPrimitive for DafnyInt {
     fn to_i64(&self) -> Option<i64> {
