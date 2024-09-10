@@ -15,8 +15,10 @@ using System.Collections;
 namespace FactorPathsOptimization {
 
   public partial class __default {
-    public static RAST._IMod apply(RAST._IMod mod) {
-      return FactorPathsOptimization.__default.applyPrefix(mod, (RAST.__default.crate).MSel((mod).dtor_name));
+    public static Func<RAST._IMod, RAST._IMod> apply(RAST._IPath root) {
+      return Dafny.Helpers.Id<Func<RAST._IPath, Func<RAST._IMod, RAST._IMod>>>((_0_root) => ((System.Func<RAST._IMod, RAST._IMod>)((_1_mod) => {
+        return FactorPathsOptimization.__default.applyPrefix(_1_mod, (_0_root).MSel((_1_mod).dtor_name));
+      })))(root);
     }
     public static RAST._IMod applyPrefix(RAST._IMod mod, RAST._IPath SelfPath)
     {
