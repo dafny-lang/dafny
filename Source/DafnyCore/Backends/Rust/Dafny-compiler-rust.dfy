@@ -669,7 +669,7 @@ module RAST
   const SelfOwned := Self().AsType()
 
   datatype Type =
-    | U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128
+    | U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | USIZE
     | Bool
     | TIdentifier(name: string)
     | TypeFromPath(path: Path)
@@ -705,7 +705,7 @@ module RAST
     function Replace(mapping: Type -> Type): Type {
       var r :=
         match this {
-          case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | Bool => this
+          case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | USIZE | Bool => this
           case TIdentifier(_) => this
           case TypeFromPath(path) => this
           case TypeApp(baseName, arguments) =>
@@ -739,7 +739,7 @@ module RAST
     {
       var newAcc := f(acc, this);
       match this {
-        case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | Bool => newAcc
+        case U8 | U16 | U32 | U64 | U128 | I8 | I16 | I32 | I64 | I128 | USIZE | Bool => newAcc
         case TIdentifier(_) => newAcc
         case TypeFromPath(path) => newAcc
         case TypeApp(baseName, arguments) =>
@@ -770,7 +770,7 @@ module RAST
     }
 
     predicate CanReadWithoutClone() {
-      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || Bool?
+      U8? || U16? || U32? || U64? || U128? || I8? || I16? || I32? || I64? || I128? || USIZE? || Bool?
       || (TSynonym? && base.CanReadWithoutClone()) || IsPointer()
     }
     predicate IsRcOrBorrowedRc() {
@@ -844,6 +844,7 @@ module RAST
         case I32() => "i32"
         case I64() => "i64"
         case I128() => "i128"
+        case USIZE() => "usize"
         case Array(underlying, size) => "[" + underlying.ToString(ind) + (if size.Some? then "; " + size.value else "") + "]"
         case TSynonym(display, base) => display.ToString(ind)
       }
@@ -1597,6 +1598,7 @@ module RAST
 
     // Wish: Prove that Optimize() preserves semantics, if any
     // TODO: Ensure that even without Optimize(), tests pass
+    // Wish: Optimize as a pass on the generated AST.
     opaque function Optimize(): (r: Expr)
       ensures this == r || r.Height() < this.Height()
     {
@@ -1627,7 +1629,7 @@ module RAST
             if !tpeExpr.ExprFromType? then this else
             var tpe := tpeExpr.tpe;
             if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
-               || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? then
+               || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? || tpe.USIZE? then
               match expr {
                 case Call(ExprFromPath(PMemberSelect(base, "int!")), args) =>
                   if |args| == 1 && (base == dafny_runtime || base == global) then
@@ -4356,6 +4358,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case I32() => Some(R.Type.I32)
         case I64() => Some(R.Type.I64)
         case I128() => Some(R.Type.I128)
+        case USIZE() => Some(R.Type.USIZE)
         case _ => None
       }
     }
