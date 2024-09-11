@@ -370,7 +370,7 @@ namespace Microsoft.Dafny.Compilers {
                 }
 
                 TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0],
-                  e.Constraint_Bounds, e.tok.line, w, inLetExprBody);
+                  e.Constraint_Bounds, w, inLetExprBody);
                 EmitReturnExpr(e.Body, e.Body.Type, true, w);
               }
             }
