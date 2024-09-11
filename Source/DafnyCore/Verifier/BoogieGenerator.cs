@@ -2774,14 +2774,24 @@ namespace Microsoft.Dafny {
     /// This method is expected to be called just once for each function in the program.
     /// </summary>
     Bpl.Function GetOrCreateFunction(Function f) {
-      if (this.declarationMapping.TryGetValue(f, out var result)) {
+      if (declarationMapping.TryGetValue(f, out var result)) {
         return result;
       }
 
       Contract.Requires(f != null);
       Contract.Requires(predef != null && sink != null);
 
-      // declare the function
+      var func = GetFunctionBoogieDefinition(f);
+      sink.AddTopLevelDeclaration(func);
+
+      sink.AddTopLevelDeclaration(GetCanCallFunction(f));
+
+      declarationMapping[f] = func;
+      return func;
+    }
+
+    private Bpl.Function GetFunctionBoogieDefinition(Function f)
+    {
       Bpl.Function func;
       {
         var formals = new List<Variable>();
@@ -2810,10 +2820,13 @@ namespace Microsoft.Dafny {
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
-        sink.AddTopLevelDeclaration(func);
       }
+      return func;
+    }
 
-      // declare the corresponding canCall function
+    private Bpl.Function GetCanCallFunction(Function f)
+    {
+      Bpl.Function canCallF;
       {
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
@@ -2830,12 +2843,9 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        var canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<Bpl.TypeVariable>(), formals, res);
-        sink.AddTopLevelDeclaration(canCallF);
+        canCallF = new Bpl.Function(f.tok, f.FullSanitizedName + "#canCall", new List<Bpl.TypeVariable>(), formals, res);
       }
-
-      declarationMapping[f] = func;
-      return func;
+      return canCallF;
     }
 
     /// <summary>
