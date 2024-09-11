@@ -4161,7 +4161,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 onExpr := modify_macro.Apply1(onExpr);
                 readIdents := readIdents + recIdents;
               } else {
-                onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowedMut);
+                onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
                 readIdents := readIdents + recIdents;
               }
               generated := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
@@ -4414,11 +4414,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 R.dafny_runtime.MSel("BigInt").AsExpr().FSel("parse_bytes").Apply([
                   R.LiteralString(n, binary := true, verbatim := false),
                   R.LiteralInt("10")
-                ]).FSel("unwrap").Apply0(),
+                ]).Sel("unwrap").Apply0(),
                 R.dafny_runtime.MSel("BigInt").AsExpr().FSel("parse_bytes").Apply([
                   R.LiteralString(d, binary := true, verbatim := false),
                   R.LiteralInt("10")
-                ]).FSel("unwrap").Apply0()
+                ]).Sel("unwrap").Apply0()
               ]);
             }
             case o => {
@@ -4944,7 +4944,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case (Primitive(Int), Passthrough(_)) => {
             var rhsType := GenType(toTpe, GenTypeContext.default());
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.TraitCast(rhsType, R.dafny_runtime.MSel("NumCast").AsType()).FSel("from").Apply1(recursiveGen).FSel("unwrap").Apply0();
+            r := R.TraitCast(rhsType, R.dafny_runtime.MSel("NumCast").AsType()).FSel("from").Apply1(recursiveGen).Sel("unwrap").Apply0();
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }
@@ -4964,9 +4964,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r := R.TraitCast(uType, R.dafny_runtime.MSel("NumCast").AsType());
             r := r.FSel("from").Apply1(
               recursiveGen
-            ).FSel("unwrap").Apply0();
+            ).Sel("unwrap").Apply0();
             if charType.Unicode? {
-              r := R.Identifier("char").FSel("from_u32").Apply1(r.FSel("unwrap").Apply0());
+              r := R.Identifier("char").FSel("from_u32").Apply1(r.Sel("unwrap").Apply0());
             }
             r := R.dafny_runtime.MSel(DafnyChar).AsExpr().Apply1(r);
             r, resultingOwnership := FromOwned(r, expectedOwnership);
@@ -5815,8 +5815,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 }
                 readIdents := readIdents + recIdents;
               } else {
-                var expectedOnOwnership := if pointerType.Raw? then OwnershipBorrowed else OwnershipBorrowedMut;
-                onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, expectedOnOwnership);
+                onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
                 readIdents := readIdents + recIdents;
               }
               r := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
