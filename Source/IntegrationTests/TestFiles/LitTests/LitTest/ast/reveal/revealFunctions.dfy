@@ -85,3 +85,21 @@ method ReadsClause() {
     }
   }
 }
+
+module M1 {
+    ghost function RecFunc(x: nat): nat { 
+        if x == 0 then 0
+        else 1 + RecFunc(x - 1)
+    }
+}
+module M2 {
+    import opened M1
+    lemma Lemma(x: nat) 
+    ensures RecFunc(0) == 0
+    {
+        hide *;
+        reveal RecFunc;
+        // reveal *
+        // ^ this makes the assertion pass
+    }
+}
