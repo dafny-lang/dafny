@@ -163,89 +163,10 @@ namespace ExpressionOptimization {
       }
     }
     {
-      if (_source0.is_StmtExpr) {
-        RAST._IExpr stmt2 = _source0.dtor_stmt;
-        if (stmt2.is_IfExpr) {
-          RAST._IExpr cond0 = stmt2.dtor_cond;
-          if (cond0.is_UnaryOp) {
-            Dafny.ISequence<Dafny.Rune> op11 = cond0.dtor_op1;
-            if (object.Equals(op11, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("!"))) {
-              RAST._IExpr underlying1 = cond0.dtor_underlying;
-              if (underlying1.is_BinaryOp) {
-                Dafny.ISequence<Dafny.Rune> op20 = underlying1.dtor_op2;
-                if (object.Equals(op20, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="))) {
-                  RAST._IExpr _23_a = underlying1.dtor_left;
-                  RAST._IExpr _24_b = underlying1.dtor_right;
-                  DAST.Format._IBinaryOpFormat _25_f = underlying1.dtor_format2;
-                  DAST.Format._IUnaryOpFormat _26_uf = cond0.dtor_format;
-                  RAST._IExpr _27_maybePanic = stmt2.dtor_thn;
-                  RAST._IExpr els0 = stmt2.dtor_els;
-                  if (els0.is_RawExpr) {
-                    Dafny.ISequence<Dafny.Rune> content0 = els0.dtor_content;
-                    if (object.Equals(content0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
-                      RAST._IExpr _28_last = _source0.dtor_rhs;
-                      if (ExpressionOptimization.__default.EndsWithPanic(_27_maybePanic)) {
-                        return RAST.Expr.create_StmtExpr((RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("assert_eq!"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(_23_a, _24_b)), _28_last);
-                      } else {
-                        return _3_e;
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    {
       return _3_e;
     }
   }))();
 })));
-    }
-    public static bool EndsWithPanic(RAST._IExpr maybePanic) {
-    TAIL_CALL_START: ;
-      RAST._IExpr _source0 = maybePanic;
-      {
-        if (_source0.is_StmtExpr) {
-          RAST._IExpr _0_stmt = _source0.dtor_stmt;
-          RAST._IExpr _1_rhs = _source0.dtor_rhs;
-          RAST._IExpr _in0 = _1_rhs;
-          maybePanic = _in0;
-          goto TAIL_CALL_START;
-        }
-      }
-      {
-        if (_source0.is_Call) {
-          RAST._IExpr obj0 = _source0.dtor_obj;
-          if (obj0.is_Identifier) {
-            Dafny.ISequence<Dafny.Rune> name0 = obj0.dtor_name;
-            if (object.Equals(name0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!"))) {
-              Dafny.ISequence<RAST._IExpr> _2_args = _source0.dtor_arguments;
-              if ((new BigInteger((_2_args).Count)) == (BigInteger.One)) {
-                RAST._IExpr _source1 = (_2_args).Select(BigInteger.Zero);
-                {
-                  if (_source1.is_LiteralString) {
-                    Dafny.ISequence<Dafny.Rune> value0 = _source1.dtor_value;
-                    if (object.Equals(value0, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Halt"))) {
-                      return true;
-                    }
-                  }
-                }
-                {
-                  return false;
-                }
-              } else {
-                return false;
-              }
-            }
-          }
-        }
-      }
-      {
-        return false;
-      }
     }
   }
 } // end of namespace ExpressionOptimization
