@@ -1146,11 +1146,7 @@ module RAST
     function Fold<T(!new)>(acc: T, f: (T, Expr) -> T, ft: (T, Type) -> T): T {
       rhs.Fold(acc, f, ft)
     }
-    ghost function Height(): nat {
-      1 + rhs.Height()
-    }
     function ToString(ind: string): string
-      decreases Height()
     {
       var newIndent := if rhs.Block? then ind else ind + IND;
       var rhsString := rhs.ToString(newIndent);
@@ -1170,12 +1166,7 @@ module RAST
     function Fold<T(!new)>(acc: T, f: (T, Expr) -> T, ft: (T, Type) -> T): T {
       rhs.Fold(acc, f, ft)
     }
-    ghost function Height(): nat {
-      1 + rhs.Height()
-    }
-
     function ToString(ind: string): string
-      decreases Height()
     {
       identifier + ": " + rhs.ToString(ind + IND)
     }
@@ -1510,92 +1501,6 @@ module RAST
         case _ => UnknownPrecedence()
       }
 
-    ghost function Height(): nat {
-      match this {
-        case Identifier(_) => 1
-        case ExprFromType(_) => 1
-        case LiteralInt(_) => 1
-        case LiteralBool(_) => 1
-        case LiteralString(_, _, _) => 1
-        case Match(matchee, cases) =>
-          1 + max(matchee.Height(),
-                  SeqToHeight(cases, (oneCase: MatchCase)
-                              requires oneCase < this
-                              => oneCase.Height()))
-        case StmtExpr(stmt, rhs) =>
-          var default := 1 + max(stmt.Height(), rhs.Height());
-          match this {
-            case StmtExpr(DeclareVar(mod, name, Some(tpe), None), StmtExpr(Assign(name2, rhs), last)) =>
-              if name2 == Some(LocalVar(name)) then
-                1 + default
-              else default
-            case StmtExpr(IfExpr(UnaryOp("!", BinaryOp("==", a, b, f), of), RawExpr("panic!(\"Halt\");"), RawExpr("")), last) =>
-              1 + default
-            case _ => default
-          }
-
-        case Block(underlying) =>
-          1 + underlying.Height()
-        case StructBuild(name, assignments) =>
-          1 + max(name.Height(), SeqToHeight(assignments, (assignment: AssignIdentifier)
-                                             requires assignment < this
-                                             => assignment.Height()))
-        case Tuple(arguments) =>
-          1 + SeqToHeight(arguments, (argument: Expr)
-                          requires argument < this
-                          => argument.Height())
-        // Special cases
-        case UnaryOp(_, underlying, _) => 1 + underlying.Height()
-        case TypeAscription(left, tpe) => 1 + left.Height()
-        case TraitCast(leftTpe, tpe) => 1
-        case BinaryOp(op, left, right, format) =>
-          1 + max(left.Height(), right.Height())
-        case IfExpr(cond, thn, els) =>
-          1 + max(cond.Height(), max(thn.Height(), els.Height()))
-        case DeclareVar(declareType, name, tpe, expr) =>
-          1 + (match expr {
-                 case Some(e) => e.Height()
-                 case None => 0
-               })
-        case Assign(names, expr) =>
-          match names {
-            case Some(SelectMember(on, field)) => 1 + max(on.Height(), expr.Height())
-            case Some(Index(arr, indices)) => 1 + max(expr.Height(), max(arr.Height(), SeqToHeight(indices,  (index: Expr) requires index < this => index.Height())))
-            case _ => 1 + expr.Height()
-          }
-        case Loop(optCond, underlying) =>
-          1 + if optCond.Some? then max(optCond.value.Height(), underlying.Height()) else underlying.Height()
-        case Labelled(lbl, underlying) =>
-          1 + underlying.Height()
-        case Break(_) => 1
-        case Continue(_) => 1
-        case For(name, range, body) =>
-          1 + max(range.Height(), body.Height())
-        case Return(optExpr) =>
-          if optExpr.Some? then 1 + optExpr.value.Height() else 1
-        case CallType(obj, tpes) =>
-          1 + max(obj.Height(),
-                  SeqToHeight(tpes, (tpe: Type) requires tpe < this => 1))
-        case Call(obj, args) =>
-          1 + max(obj.Height(),
-                  SeqToHeight(args, (arg: Expr) requires arg < this => arg.Height()))
-        case Select(expression, name) =>
-          1 + expression.Height()
-        case SelectIndex(expression, range) =>
-          1 + max(expression.Height(), range.Height())
-        case ExprFromPath(underlying) =>
-          1
-        case FunctionSelect(expression, name) =>
-          1 + expression.Height()
-        case Lambda(params, retType, body) =>
-          if body.Block? || retType.None? then 1 + body.Height()
-          else 2 + body.Height()
-        case _ =>
-          assert RawExpr?;
-          1
-      }
-    }
-
     predicate LeftRequiresParentheses(left: Expr) {
       printingInfo.NeedParenthesesForLeft(left.printingInfo)
     }
@@ -1653,7 +1558,7 @@ module RAST
         case Match(matchee, cases) =>
           "match " + matchee.ToString(ind + IND) + " {" +
           SeqToString(cases,
-                      (c: MatchCase) requires c.Height() < this.Height() =>
+                      (c: MatchCase) requires c in cases =>
                         "\n" + ind + IND + c.ToString(ind + IND) + ",", "") +
           "\n" + ind + "}"
         case StmtExpr(stmt, rhs) => // They are built like StmtExpr(1, StmtExpr(2, StmtExpr(3, ...)))
@@ -1672,21 +1577,21 @@ module RAST
             // Numeric
             name.ToString(ind) + " (" +
             SeqToString(assignments, (assignment: AssignIdentifier)
-                        requires assignment.Height() < this.Height()
+                        requires assignment in assignments
                         =>
                           "\n" + ind + IND + assignment.rhs.ToString(ind + IND), ",") +
             (if |assignments| > 1 then "\n" + ind else "") + ")"
           else
             name.ToString(ind) + " {" +
             SeqToString(assignments, (assignment: AssignIdentifier)
-                        requires assignment.Height() < this.Height()
+                        requires assignment in assignments
                         =>
                           "\n" + ind + IND + assignment.ToString(ind + IND), ",") +
             (if |assignments| > 0 then "\n" + ind else "") + "}"
         case Tuple(arguments) =>
           "(" +
           SeqToString(arguments, (arg: Expr)
-                      requires arg.Height() < this.Height()
+                      requires arg in arguments
                       =>
                         "\n" + ind + IND + arg.ToString(ind + IND), ",") +
           (if |arguments| > 0 then "\n" + ind else "") + ")"
@@ -1740,7 +1645,7 @@ module RAST
             case Some(Index(e, indices)) =>
               var (leftP, rightP) := Call(e, indices).LeftParentheses(e);
               leftP + e.ToString(ind) + rightP + "[" + SeqToString(indices,
-                                                                   (index: Expr) requires index.Height() < this.Height() => index.ToString(ind + IND), "][")
+                                                                   (index: Expr) requires index in indices => index.ToString(ind + IND), "][")
               + "] = "
             case None => "_ = "
           };
@@ -1784,7 +1689,7 @@ module RAST
               ("(", ")")
           };
           leftP + expr.ToString(ind) + rightP +
-          leftCallP + SeqToString(args, (arg: Expr) requires arg.Height() < this.Height() => arg.ToString(ind + IND), ", ")+ rightCallP
+          leftCallP + SeqToString(args, (arg: Expr) requires arg in args => arg.ToString(ind + IND), ", ")+ rightCallP
         case Select(expression, name) =>
           var (leftP, rightP) := LeftParentheses(expression);
           leftP + expression.ToString(ind) + rightP + "." + name
@@ -1803,7 +1708,7 @@ module RAST
              "-> " + retType.value.ToString(ind)
            else "") +
           (if retType.Some? && !body.Block? then
-             Block(body).ToString(ind)
+             "{\n" + ind + IND + body.ToString(ind + IND) + "\n" + ind + "}"
            else body.ToString(ind))
         case r =>
           assert r.RawExpr?; AddIndent(r.content, ind)

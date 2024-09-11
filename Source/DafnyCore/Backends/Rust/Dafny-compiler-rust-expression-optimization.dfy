@@ -59,29 +59,8 @@ module ExpressionOptimization {
                 StmtExpr(DeclareVar(mod, name, Some(tpe), Some(rhs)), last)
               else
                 e
-            case StmtExpr(IfExpr(UnaryOp("!", BinaryOp("==", a, b, f), uf), maybePanic, RawExpr("")), last) =>
-              if EndsWithPanic(maybePanic) then
-                StmtExpr(Identifier("assert_eq!").Apply([a, b]), last)
-              else
-                e
             case _ => e
           }
-          
     )
-  }
-
-  predicate EndsWithPanic(maybePanic: Expr) {
-    match maybePanic {
-      case StmtExpr(stmt, rhs) => EndsWithPanic(rhs)
-      case Call(Identifier("panic!"), args) => 
-        if |args| == 1 then
-          match args[0] {
-            case LiteralString("Halt", _, _) => true
-            case _ => false
-          }
-        else
-          false
-      case _ => false
-    }
   }
 }
