@@ -97,9 +97,9 @@ module M2 {
     lemma Lemma(x: nat) 
     ensures RecFunc(0) == 0
     {
+        // Because RecFunc is recursive, it uses the fuel related $LS function, 
+        // this was previously hidden by 'hide *', so that the ensures could not be proven
         hide *;
         reveal RecFunc;
-        // reveal *
-        // ^ this makes the assertion pass
     }
 }
