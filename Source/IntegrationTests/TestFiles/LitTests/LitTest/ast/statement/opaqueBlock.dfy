@@ -57,3 +57,20 @@ method ModifiesTooMuch(wrapper: Wrapper, unchangedWrapper: Wrapper)
     unchangedWrapper.x := 10;
   }
 }
+
+method DefiniteAssignment()
+{
+  var x: int; 
+  opaque
+    ensures x == 3
+  {
+    x := 3;
+  } 
+  var target := x;
+  var y: int;
+  opaque
+  {
+    y := 4;
+  }
+  target := y;
+}

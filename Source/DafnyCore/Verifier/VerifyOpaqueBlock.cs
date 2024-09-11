@@ -68,10 +68,14 @@ public static class VerifyOpaqueBlock {
       command.AddAssignedIdentifiers(assignedVariables);
     }
 
+    var defAssVariables = assignedVariables.Where(v => v.Name.StartsWith(BoogieGenerator.DefassPrefix)).ToHashSet();
     var havocVariables = assignedVariables.
-      Where(a => !a.Name.Contains("defass#")).
+      Where(a => !defAssVariables.Contains(a)).
       DistinctBy(a => a.Name);
     builder.Add(new HavocCmd(Token.NoToken, havocVariables.ToList()));
+    foreach (var assigned in defAssVariables) {
+      builder.Add(Cmd.SimpleAssign(Token.NoToken, assigned, Expr.True));
+    }
 
     if (hasModifiesClause) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);

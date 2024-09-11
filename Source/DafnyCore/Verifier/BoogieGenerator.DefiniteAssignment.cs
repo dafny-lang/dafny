@@ -17,6 +17,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
+    public const string DefassPrefix = "defass#";
 
     #region Definite-assignment tracking
 
@@ -48,9 +49,9 @@ namespace Microsoft.Dafny {
 
       Bpl.Variable tracker;
       if (isOutParam) {
-        tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool), false);
+        tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool), false);
       } else {
-        tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool));
+        tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool));
       }
 
       localVariables.Add(tracker);
@@ -63,7 +64,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(p != null);
 
       if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
-        var ie = new Bpl.IdentifierExpr(p.Tok, "defass#" + p.UniqueName, Bpl.Type.Bool);
+        var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
         DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
       }
     }
@@ -79,7 +80,7 @@ namespace Microsoft.Dafny {
       }
 
       var nm = SurrogateName(field);
-      var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, "defass#" + nm, Bpl.Type.Bool));
+      var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, DefassPrefix + nm, Bpl.Type.Bool));
       localVariables.Add(tracker);
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
       DefiniteAssignmentTrackers.Add(nm, ie);
