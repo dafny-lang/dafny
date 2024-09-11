@@ -58,6 +58,19 @@ method ModifiesTooMuch(wrapper: Wrapper, unchangedWrapper: Wrapper)
   }
 }
 
+method Nested(w1: Wrapper, w2: Wrapper)
+  modifies w1, w2
+{
+  opaque
+    modifies w1 
+  {
+    opaque modifies w2 // error 
+    {
+      w2.x := 10;
+    }
+  }
+}
+
 method DefiniteAssignment()
 {
   var x: int; 
