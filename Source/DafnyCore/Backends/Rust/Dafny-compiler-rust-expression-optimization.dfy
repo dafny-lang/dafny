@@ -40,7 +40,7 @@ module ExpressionOptimization {
                 if !tpeExpr.ExprFromType? then e else
                 var tpe := tpeExpr.tpe;
                 if || tpe.U8? || tpe.U16? || tpe.U32? || tpe.U64? || tpe.U128?
-                  || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? || tpe.USIZE? then
+                   || tpe.I8? || tpe.I16? || tpe.I32? || tpe.I64? || tpe.I128? || tpe.USIZE? then
                   match expr {
                     case Call(ExprFromPath(PMemberSelect(base, "int!")), args) =>
                       if |args| == 1 && (base == dafny_runtime || base == global) then
