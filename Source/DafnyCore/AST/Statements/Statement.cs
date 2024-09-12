@@ -21,7 +21,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       attributes = value;
     }
   }
-  
+
   // public abstract IEnumerable<IVariable> AssignedVariables { get; }
 
   [ContractInvariantMethod]
@@ -79,19 +79,15 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     get { yield break; }
   }
 
-  public IEnumerable<Statement> DescendantsAndSelf
-  {
-    get
-    {
+  public IEnumerable<Statement> DescendantsAndSelf {
+    get {
       Stack<Statement> todo = new();
       List<Statement> result = new();
       todo.Push(this);
-      while (todo.Any())
-      {
+      while (todo.Any()) {
         var current = todo.Pop();
         result.Add(current);
-        foreach (var child in current.SubStatements)
-        {
+        foreach (var child in current.SubStatements) {
           todo.Push(child);
         }
       }

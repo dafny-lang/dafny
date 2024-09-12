@@ -11,7 +11,7 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    return new [] { Lhs }.OfType<IdentifierExpr>();
+    return new[] { Lhs }.OfType<IdentifierExpr>();
   }
 
   [ContractInvariantMethod]

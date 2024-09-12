@@ -2793,8 +2793,7 @@ namespace Microsoft.Dafny {
       return func;
     }
 
-    private Bpl.Function GetFunctionBoogieDefinition(Function f)
-    {
+    private Bpl.Function GetFunctionBoogieDefinition(Function f) {
       Bpl.Function func;
       {
         var formals = new List<Variable>();
@@ -2827,8 +2826,7 @@ namespace Microsoft.Dafny {
       return func;
     }
 
-    private Bpl.Function GetCanCallFunction(Function f)
-    {
+    private Bpl.Function GetCanCallFunction(Function f) {
       Bpl.Function canCallF;
       {
         var formals = new List<Variable>();

@@ -18,7 +18,7 @@ using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
-  
+
   /// <summary>
   /// Instances of WFOptions are used as an argument to CheckWellformed, supplying options for the
   /// checks to be performed.
@@ -129,7 +129,7 @@ namespace Microsoft.Dafny {
       }
     }
   }
-    
+
   public partial class BoogieGenerator {
 
     public void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {

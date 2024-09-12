@@ -26,9 +26,9 @@ public static class OpaqueBlockVerifier {
       v => generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName)).Select(v =>
       new AttributedExpression(Expression.CreateAssigned(v.Tok, v)));
     var totalEnsures = implicitEnsures.Concat(block.Ensures).ToList();
-    
+
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
-    
+
     var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, hasModifiesClause, blockBuilder);
     var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
@@ -52,7 +52,7 @@ public static class OpaqueBlockVerifier {
           ), null);
       }
     }
-    
+
     generator.PathAsideBlock(block.Tok, blockBuilder, builder);
     builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(ie => new IdentifierExpr(ie.Tok, ie.Var.UniqueName)).ToList()));
 
@@ -67,8 +67,7 @@ public static class OpaqueBlockVerifier {
   }
 
   private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, List<Variable> locals,
-    BoogieGenerator.ExpressionTranslator etran, bool hasModifiesClause, BoogieStmtListBuilder blockBuilder)
-  {
+    BoogieGenerator.ExpressionTranslator etran, bool hasModifiesClause, BoogieStmtListBuilder blockBuilder) {
     BoogieGenerator.ExpressionTranslator bodyTranslator;
     if (hasModifiesClause) {
       string modifyFrameName = BoogieGenerator.FrameVariablePrefix + generator.CurrentIdGenerator.FreshId("opaque#");
