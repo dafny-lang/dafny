@@ -181,4 +181,4 @@ fn main() {
 # Tests
 
 * Methods with the `{:test}` attribute will produce an equivalent `#[test]` method that can be run via `cargo test` on the code produced by `dafny build`.
-* Modules with the `{:rust_cfg_test}` attribute will have the attribute`#[cfg(test)]` when translated to Rust
+* Modules with the `{:rust_cfg_test}` attribute will have the attribute `#[cfg(test)]` when translated to Rust.
