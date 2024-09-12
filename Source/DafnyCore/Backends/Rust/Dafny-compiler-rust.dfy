@@ -5902,7 +5902,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipBorrowed);
           r := exprGen.Sel("iter").Apply0();
           if !includeDuplicates {
-            r := R.dafny_runtime.MSel("itertools").MSel("Itertools").MSel("unique").AsExpr().Apply1(r);
+            r := R.dafny_runtime.MSel("itertools").MSel("Itertools").AsExpr().FSel("unique").Apply1(r);
           }
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
