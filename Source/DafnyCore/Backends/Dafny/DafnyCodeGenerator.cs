@@ -125,9 +125,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName, ConcreteSyntaxTree wr) {
+      string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (currentBuilder is ModuleContainer moduleBuilder) {
-        var attributes = (Sequence<DAST.Attribute>)Sequence<DAST.Attribute>.Empty;
+        var attributes = (Sequence<DAST.Attribute>)ParseAttributes(moduleAttributes);
         if (externModule != null) {
           attributes = (Sequence<DAST.Attribute>)ParseAttributes(externModule.Attributes);
         }
@@ -551,9 +551,12 @@ namespace Microsoft.Dafny.Compilers {
             GenType(md.GetType())
           ).ToList();*/
         }
+
+        var attributes = compiler.ParseAttributes(m.Attributes);
         var builder = this.builder.Method(
           m.IsStatic, createBody, m is Constructor, false,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          attributes,
           m.GetCompileName(compiler.Options),
           astTypeArgs, params_,
           outTypes, outVars
@@ -586,10 +589,11 @@ namespace Microsoft.Dafny.Compilers {
         var params_ = compiler.GenFormals(formals);
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
-
+        var attributes = compiler.ParseAttributes(member.Attributes);
         var builder = this.builder.Method(
           isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          attributes,
           name,
           astTypeArgs, params_,
           new() {
@@ -614,9 +618,12 @@ namespace Microsoft.Dafny.Compilers {
 
         var overridingTrait = member.OverriddenMember?.EnclosingClass;
 
+        var attributes = compiler.ParseAttributes(enclosingDecl.Attributes);
+
         var builder = this.builder.Method(
           isStatic, createBody, false, true,
           overridingTrait != null ? compiler.PathFromTopLevel(overridingTrait) : null,
+          attributes,
           name,
           new(), (Sequence<DAST.Formal>)Sequence<DAST.Formal>.Empty,
           new() {

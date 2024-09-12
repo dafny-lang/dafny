@@ -34,11 +34,11 @@ namespace FactorPathsOptimization {
         })))(SelfPath, _5_pathsToRemove, mod));
         RAST._IMod _13_dt__update__tmp_h0 = mod;
         Dafny.ISequence<RAST._IModDecl> _14_dt__update_hbody_h0 = Dafny.Sequence<RAST._IModDecl>.Concat(_6_imports, _7_rewrittenDeclarations);
-        return RAST.Mod.create_Mod((_13_dt__update__tmp_h0).dtor_name, _14_dt__update_hbody_h0);
+        return RAST.Mod.create_Mod((_13_dt__update__tmp_h0).dtor_name, (_13_dt__update__tmp_h0).dtor_attributes, _14_dt__update_hbody_h0);
       }
     }
     public static __T UniqueElementOf<__T>(Dafny.ISet<__T> s) {
-      return Dafny.Helpers.Let<int, __T>(0, _let_dummy_9 =>  {
+      return Dafny.Helpers.Let<int, __T>(0, _let_dummy_14 =>  {
         __T _0_e = default(__T);
         foreach (__T _assign_such_that_0 in (s).Elements) {
           _0_e = (__T)_assign_such_that_0;
@@ -262,9 +262,9 @@ namespace FactorPathsOptimization {
     public static Dafny.ISequence<RAST._ITypeParamDecl> ReplaceTypeParams(Dafny.ISequence<RAST._ITypeParamDecl> typeParams, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
     {
       return Std.Collections.Seq.__default.Map<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>>>((_0_replacement) => ((System.Func<RAST._ITypeParamDecl, RAST._ITypeParamDecl>)((_1_t) => {
-        return Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_1_t, _pat_let10_0 => Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_pat_let10_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(Std.Collections.Seq.__default.Map<RAST._IType, RAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_3_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_4_constraint) => {
+        return Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_1_t, _pat_let15_0 => Dafny.Helpers.Let<RAST._ITypeParamDecl, RAST._ITypeParamDecl>(_pat_let15_0, _2_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(Std.Collections.Seq.__default.Map<RAST._IType, RAST._IType>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IType, RAST._IType>>>((_3_replacement) => ((System.Func<RAST._IType, RAST._IType>)((_4_constraint) => {
           return FactorPathsOptimization.__default.ReplaceType(_4_constraint, _3_replacement);
-        })))(_0_replacement), (_1_t).dtor_constraints), _pat_let11_0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(_pat_let11_0, _5_dt__update_hconstraints_h0 => RAST.TypeParamDecl.create((_2_dt__update__tmp_h0).dtor_name, _5_dt__update_hconstraints_h0)))));
+        })))(_0_replacement), (_1_t).dtor_constraints), _pat_let16_0 => Dafny.Helpers.Let<Dafny.ISequence<RAST._IType>, RAST._ITypeParamDecl>(_pat_let16_0, _5_dt__update_hconstraints_h0 => RAST.TypeParamDecl.create((_2_dt__update__tmp_h0).dtor_name, _5_dt__update_hconstraints_h0)))));
       })))(replacement), typeParams);
     }
     public static RAST._IImpl ReplaceImplDecl(RAST._IImpl impl, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> replacement)
@@ -306,14 +306,14 @@ namespace FactorPathsOptimization {
         if (_source0.is_NamedFields) {
           Dafny.ISequence<RAST._IField> _0_sFields = _source0.dtor_fields;
           return RAST.Fields.create_NamedFields(Std.Collections.Seq.__default.Map<RAST._IField, RAST._IField>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._IField, RAST._IField>>>((_1_replacement) => ((System.Func<RAST._IField, RAST._IField>)((_2_f) => {
-  return Dafny.Helpers.Let<RAST._IField, RAST._IField>(_2_f, _pat_let12_0 => Dafny.Helpers.Let<RAST._IField, RAST._IField>(_pat_let12_0, _3_dt__update__tmp_h0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>((_2_f).dtor_formal, _pat_let14_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>(_pat_let14_0, _4_dt__update__tmp_h1 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(FactorPathsOptimization.__default.ReplaceType(((_2_f).dtor_formal).dtor_tpe, _1_replacement), _pat_let15_0 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(_pat_let15_0, _5_dt__update_htpe_h0 => RAST.Formal.create((_4_dt__update__tmp_h1).dtor_name, _5_dt__update_htpe_h0))))), _pat_let13_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(_pat_let13_0, _6_dt__update_hformal_h0 => RAST.Field.create((_3_dt__update__tmp_h0).dtor_visibility, _6_dt__update_hformal_h0)))));
+  return Dafny.Helpers.Let<RAST._IField, RAST._IField>(_2_f, _pat_let17_0 => Dafny.Helpers.Let<RAST._IField, RAST._IField>(_pat_let17_0, _3_dt__update__tmp_h0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>((_2_f).dtor_formal, _pat_let19_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IFormal>(_pat_let19_0, _4_dt__update__tmp_h1 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(FactorPathsOptimization.__default.ReplaceType(((_2_f).dtor_formal).dtor_tpe, _1_replacement), _pat_let20_0 => Dafny.Helpers.Let<RAST._IType, RAST._IFormal>(_pat_let20_0, _5_dt__update_htpe_h0 => RAST.Formal.create((_4_dt__update__tmp_h1).dtor_name, _5_dt__update_htpe_h0))))), _pat_let18_0 => Dafny.Helpers.Let<RAST._IFormal, RAST._IField>(_pat_let18_0, _6_dt__update_hformal_h0 => RAST.Field.create((_3_dt__update__tmp_h0).dtor_visibility, _6_dt__update_hformal_h0)))));
 })))(replacement), _0_sFields));
         }
       }
       {
         Dafny.ISequence<RAST._INamelessField> _7_sFields = _source0.dtor_types;
         return RAST.Fields.create_NamelessFields(Std.Collections.Seq.__default.Map<RAST._INamelessField, RAST._INamelessField>(Dafny.Helpers.Id<Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>, Func<RAST._INamelessField, RAST._INamelessField>>>((_8_replacement) => ((System.Func<RAST._INamelessField, RAST._INamelessField>)((_9_f) => {
-  return Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_9_f, _pat_let16_0 => Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_pat_let16_0, _10_dt__update__tmp_h2 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(FactorPathsOptimization.__default.ReplaceType((_9_f).dtor_tpe, _8_replacement), _pat_let17_0 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(_pat_let17_0, _11_dt__update_htpe_h1 => RAST.NamelessField.create((_10_dt__update__tmp_h2).dtor_visibility, _11_dt__update_htpe_h1)))));
+  return Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_9_f, _pat_let21_0 => Dafny.Helpers.Let<RAST._INamelessField, RAST._INamelessField>(_pat_let21_0, _10_dt__update__tmp_h2 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(FactorPathsOptimization.__default.ReplaceType((_9_f).dtor_tpe, _8_replacement), _pat_let22_0 => Dafny.Helpers.Let<RAST._IType, RAST._INamelessField>(_pat_let22_0, _11_dt__update_htpe_h1 => RAST.NamelessField.create((_10_dt__update__tmp_h2).dtor_visibility, _11_dt__update_htpe_h1)))));
 })))(replacement), _7_sFields));
       }
     }
