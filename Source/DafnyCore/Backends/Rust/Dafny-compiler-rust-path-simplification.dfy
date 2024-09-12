@@ -77,9 +77,9 @@ module FactorPathsOptimizationTest {
                       Identifier("something").ApplyType(
                         [ DynType(std_default_Default.AsType())
                         ]).Apply([
-                          std_default_Default_default,
-                          dafny_runtime.MSel("rd!").AsExpr().Apply1(Identifier("obj"))
-                        ])
+                                 std_default_Default_default,
+                                 dafny_runtime.MSel("rd!").AsExpr().Apply1(Identifier("obj"))
+                               ])
                     )),
                   TypeAscription(
                     ExprFromType(
@@ -105,14 +105,14 @@ module FactorPathsOptimizationTest {
                     Identifier("something").ApplyType(
                       [ DynType(TIdentifier("Default"))
                       ]).Apply([
-                        Identifier("Default").FSel("default").Apply([]),
-                        Identifier("rd!").Apply1(Identifier("obj"))
-                      ])
+                               Identifier("Default").FSel("default").Apply([]),
+                               Identifier("rd!").Apply1(Identifier("obj"))
+                             ])
                   )),
                 TypeAscription(
                   ExprFromType(
                     TIdentifier("DafnyString")),
-                    TIdentifier("DafnyType")))))
+                  TIdentifier("DafnyType")))))
         ]));
   }
 }
@@ -209,7 +209,7 @@ module FactorPathsOptimization {
               current.Add(id, base)
           case _ => current
         }
-      ,
+    ,
       VisitModDeclSingle := (current: Mapping, modDecl: ModDecl, prefix: Path) =>
         match modDecl {
           case ModDecl(mod) =>
@@ -263,9 +263,9 @@ module FactorPathsOptimization {
                   Identifier(id)
                 else e
               else e
-          case _ => e
+            case _ => e
           }
-          
+
     )
   }
 }

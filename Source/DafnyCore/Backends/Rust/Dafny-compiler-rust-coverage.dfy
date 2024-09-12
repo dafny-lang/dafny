@@ -45,11 +45,11 @@ module DafnyToRustCompilerCoverage {
                      == UnaryOp("&", x, UnaryOpFormat.NoFormat));
       TestNoOptimize(UnaryOp("&", Call(Select(x, "clone"), [y]), UnaryOpFormat.NoFormat));
       AssertCoverage(Optimize(UnaryOp("!", BinaryOp("==", x, y, BinaryOpFormat.NoFormat),
-                             CombineFormat())) == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat));
+                                      CombineFormat())) == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat));
       AssertCoverage(Optimize(UnaryOp("!", BinaryOp("<", x, y, BinaryOpFormat.NoFormat),
-                             CombineFormat())) == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat()));
+                                      CombineFormat())) == BinaryOp(">=", x, y, BinaryOpFormat.NoFormat()));
       AssertCoverage(Optimize(UnaryOp("!", BinaryOp("<", x, y, ReverseFormat()),
-                             CombineFormat())) == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat()));
+                                      CombineFormat())) == BinaryOp("<=", y, x, BinaryOpFormat.NoFormat()));
       AssertCoverage(Optimize(ConversionNum(I128, DafnyIntLiteral("1"))) == LiteralInt("1"));
       TestNoOptimize(ConversionNum(I128, x));
       AssertCoverage(Optimize(StmtExpr(DeclareVar(MUT, "z", Some(I128), None), StmtExpr(AssignVar("z", y), RawExpr("return"))))

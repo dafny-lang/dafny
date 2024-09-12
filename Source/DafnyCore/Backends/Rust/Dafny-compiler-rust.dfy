@@ -91,7 +91,7 @@ module RAST
           var acc :=
             FoldLeft(
               (acc: T, parent: Type) =>
-              parent.Fold(acc, VisitTypeSingle),
+                parent.Fold(acc, VisitTypeSingle),
               acc,
               parents
             );
@@ -149,9 +149,9 @@ module RAST
         case Fn(name, typeParams, formals, returnType, where, body) =>
           var acc := VisitTypeParams(acc, typeParams);
           var acc := FoldLeft(
-            (acc: T, f: Formal) requires f in formals => f.tpe.Fold(acc, VisitTypeSingle),
-            acc, formals
-          );
+                       (acc: T, f: Formal) requires f in formals => f.tpe.Fold(acc, VisitTypeSingle),
+                       acc, formals
+                     );
           var acc := if returnType.None? then acc else returnType.value.Fold(acc, VisitTypeSingle);
           var acc := if body.None? then acc else body.value.Fold(acc, VisitExprSingle, VisitTypeSingle);
           acc
@@ -167,18 +167,18 @@ module RAST
     ) {
     function ReplaceMod(mod: Mod, SelfPath: Path): Mod
       requires forall m: Mod, p: Path | m < mod ::
-        ReplaceModSingle.requires(m, p)
+                 ReplaceModSingle.requires(m, p)
     {
       if mod.ExternMod? then mod else
       var newModDeclarations := mod.Fold([], (current, modDecl) requires modDecl < mod =>
-          assert forall mod: Mod, p: Path | mod < modDecl :: this.ReplaceModSingle.requires(mod, p);
-                 current + [ReplaceModDecl(modDecl, SelfPath)]
-      );
+                                           assert forall mod: Mod, p: Path | mod < modDecl :: this.ReplaceModSingle.requires(mod, p);
+                                           current + [ReplaceModDecl(modDecl, SelfPath)]
+                                );
       mod.(body := newModDeclarations)
     }
     function ReplaceModDecl(modDecl: ModDecl, SelfPath: Path): ModDecl
       requires forall mod: Mod, p: Path | mod < modDecl ::
-        ReplaceModSingle.requires(mod, p)
+                 ReplaceModSingle.requires(mod, p)
     {
       match modDecl {
         case ModDecl(mod) =>
@@ -206,8 +206,8 @@ module RAST
       match struct {
         case Struct(attributes, name, typeParams, fields) =>
           Struct(attributes, name,
-                ReplaceTypeParams(typeParams),
-                ReplaceFields(fields)
+                 ReplaceTypeParams(typeParams),
+                 ReplaceFields(fields)
           )
       }
     }
@@ -230,9 +230,9 @@ module RAST
       match enum {
         case Enum(attributes, name, typeParams, variants) =>
           Enum(attributes, name,
-                ReplaceTypeParams(typeParams),
-                Std.Collections.Seq.Map(
-                   (t: EnumCase) => ReplaceEnumCase(t), variants))
+               ReplaceTypeParams(typeParams),
+               Std.Collections.Seq.Map(
+                 (t: EnumCase) => ReplaceEnumCase(t), variants))
       }
     }
 
@@ -268,7 +268,7 @@ module RAST
             ReplaceBody(body))
       }
     }
-    
+
     function ReplaceTopFn(t: TopFnDecl): TopFnDecl {
       match t {
         case TopFn(attributes, visibility, fn) =>
@@ -321,8 +321,8 @@ module RAST
       Std.Collections.Seq.Map(
         (t: TypeParamDecl) =>
           t.(constraints := Std.Collections.Seq.Map(
-               (constraint: Type) =>
-                 ReplaceType(constraint), t.constraints)), typeParams)
+            (constraint: Type) =>
+              ReplaceType(constraint), t.constraints)), typeParams)
     }
     function ReplaceType(t: Type): Type {
       t.Replace(this.ReplaceTypeSingle)
@@ -334,7 +334,7 @@ module RAST
             Std.Collections.Seq.Map(
               (f: Field) =>
                 f.(formal := f.formal.(tpe := ReplaceType(f.formal.tpe))), sFields
-              ))
+            ))
         case NamelessFields(sFields) =>
           NamelessFields(
             Std.Collections.Seq.Map(
@@ -1108,7 +1108,7 @@ module RAST
   {
     static function ImplicitlyTyped(name: string): Formal {
       Formal(name, TIdentifier("_"))
-    } 
+    }
     function Replace(ft: Type -> Type): Formal {
       Formal(name, tpe.Replace(ft))
     }
@@ -1290,17 +1290,17 @@ module RAST
           case Identifier(name) => this
           case Match(matchee, cases) =>
             Match(matchee.Replace(f, ft),
-                Std.Collections.Seq.Map(
-              c requires c in cases => c.Replace(f, ft), cases))
+                  Std.Collections.Seq.Map(
+                    c requires c in cases => c.Replace(f, ft), cases))
           case StmtExpr(stmt, rhs) =>
             StmtExpr(stmt.Replace(f, ft), rhs.Replace(f, ft))
           case Block(underlying) =>
             Block(underlying.Replace(f, ft))
           case StructBuild(underlying, assignments) =>
             StructBuild(underlying.Replace(f, ft), Std.Collections.Seq.Map(
-              a requires a in assignments =>
-                a.Replace(f, ft),
-              assignments))
+                          a requires a in assignments =>
+                            a.Replace(f, ft),
+                          assignments))
           case Tuple(arguments) =>
             Tuple(
               Std.Collections.Seq.Map(
@@ -1429,14 +1429,14 @@ module RAST
           obj.Fold(acc, f, ft)
         case Lambda(params, retType, body) =>
           var acc := FoldLeft(
-            (acc: T, param: Formal) requires param in params =>
-              param.Fold(acc, ft),
-            acc, params);
+                       (acc: T, param: Formal) requires param in params =>
+                         param.Fold(acc, ft),
+                       acc, params);
           var acc := if retType.None? then acc else retType.value.Fold(acc, ft);
           body.Fold(acc, f, ft)
       }
     }
-    
+
     predicate NoExtraSemicolonAfter() {
       DeclareVar? || Assign? || Break? || Continue? || Return? || For? ||
       (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
@@ -1604,8 +1604,8 @@ module RAST
             else
               ("", "");
           var opToRight := op == "?" || (
-            |op| >= 2 && op[0..2] == "/*" // comment
-          ) || isPattern;
+                             |op| >= 2 && op[0..2] == "/*" // comment
+                           ) || isPattern;
           var leftOp := if opToRight then "" else op;
           var leftOp := if (op == "&mut" || op == "unsafe") && leftP != "(" then leftOp + " " else leftOp;
           var rightOp := if opToRight then op else "";
@@ -2711,10 +2711,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     Some(R.std.MSel("fmt").MSel("Result").AsType()),
                     "",
                     Some(R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply(
-                      [ R.Borrow(R.self.Sel("0")),
-                        R.Identifier("_formatter"),
-                        R.Identifier("in_seq")])))
-               )]))];
+                           [ R.Borrow(R.self.Sel("0")),
+                             R.Identifier("_formatter"),
+                             R.Identifier("in_seq")])))
+             )]))];
       s := s + [
         R.ImplDecl(
           R.ImplFor(
@@ -2796,8 +2796,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     function write(r: R.Expr, final: bool := false): R.Expr {
       var result :=
         R.Identifier("write!").Apply([
-          R.Identifier("_formatter"),
-          r]);
+                                       R.Identifier("_formatter"),
+                                       r]);
       if final then
         result
       else
@@ -3062,16 +3062,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
 
           printRhs := printRhs.Then(
-              if formalType.Arrow? then
-                writeStr("<function>")
-              else
-                R.UnaryOp("?",
-                  R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply([
-                    R.Identifier(patternName),
-                    R.Identifier("_formatter"),
-                    R.LiteralBool(false)
-                  ]), Format.UnaryOpFormat.NoFormat)
-            );
+            if formalType.Arrow? then
+              writeStr("<function>")
+            else
+              R.UnaryOp("?",
+                        R.dafny_runtime.MSel("DafnyPrint").AsExpr().FSel("fmt_print").Apply([
+                                                                                              R.Identifier(patternName),
+                                                                                              R.Identifier("_formatter"),
+                                                                                              R.LiteralBool(false)
+                                                                                            ]), Format.UnaryOpFormat.NoFormat)
+          );
 
           var coerceRhsArg: R.Expr;
 
@@ -3126,7 +3126,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var extraCases := [
           R.MatchCase(
             R.RawPattern(datatypeName + "::_PhantomVariant(..)"),
-              R.Block(UnreachablePanicIfVerified()))
+            R.Block(UnreachablePanicIfVerified()))
         ];
         printImplBodyCases := printImplBodyCases + extraCases;
         hashImplBodyCases := hashImplBodyCases + extraCases;
@@ -4319,22 +4319,22 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           match t {
             case Primitive(Real) => {
               r := R.dafny_runtime.MSel("BigRational").AsExpr().FSel("new").Apply([
-                R.dafny_runtime.MSel("BigInt").AsExpr().FSel("parse_bytes").Apply([
-                  R.LiteralString(n, binary := true, verbatim := false),
-                  R.LiteralInt("10")
-                ]).Sel("unwrap").Apply0(),
-                R.dafny_runtime.MSel("BigInt").AsExpr().FSel("parse_bytes").Apply([
-                  R.LiteralString(d, binary := true, verbatim := false),
-                  R.LiteralInt("10")
-                ]).Sel("unwrap").Apply0()
-              ]);
+                                                                                    R.dafny_runtime.MSel("BigInt").AsExpr().FSel("parse_bytes").Apply([
+                                                                                                                                                        R.LiteralString(n, binary := true, verbatim := false),
+                                                                                                                                                        R.LiteralInt("10")
+                                                                                                                                                      ]).Sel("unwrap").Apply0(),
+                                                                                    R.dafny_runtime.MSel("BigInt").AsExpr().FSel("parse_bytes").Apply([
+                                                                                                                                                        R.LiteralString(d, binary := true, verbatim := false),
+                                                                                                                                                        R.LiteralInt("10")
+                                                                                                                                                      ]).Sel("unwrap").Apply0()
+                                                                                  ]);
             }
             case o => {
               var genType := GenType(o, GenTypeContext.default());
               r := R.TypeAscription(
                 R.BinaryOp("/",
-                  R.LiteralInt(n).Sel("0"),
-                  R.LiteralInt(d).Sel("0"), Format.BinaryOpFormat.NoFormat), genType);
+                           R.LiteralInt(n).Sel("0"),
+                           R.LiteralInt(d).Sel("0"), Format.BinaryOpFormat.NoFormat), genType);
             }
           }
 
@@ -4860,8 +4860,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             var rhsType := GenType(fromTpe, GenTypeContext.default());
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
             r := R.dafny_runtime.MSel("DafnyInt").AsExpr().FSel("new")
-              .Apply1(R.std.MSel("rc").MSel("Rc").AsExpr().FSel("new")
-              .Apply1(R.dafny_runtime.MSel("BigInt").AsExpr().FSel("from").Apply1(recursiveGen)));
+            .Apply1(R.std.MSel("rc").MSel("Rc").AsExpr().FSel("new")
+                    .Apply1(R.dafny_runtime.MSel("BigInt").AsExpr().FSel("from").Apply1(recursiveGen)));
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }
@@ -5276,17 +5276,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           r := R.DeclareVar(R.CONST, "_initializer", None, Some(recursiveGen));
           var range := R.dafny_runtime.MSel("integer_range").AsExpr();
           range := range.Apply([
-            R.dafny_runtime.MSel("Zero").AsExpr().FSel("zero").Apply0(),
-            lengthGen
-          ]);
+                                 R.dafny_runtime.MSel("Zero").AsExpr().FSel("zero").Apply0(),
+                                 lengthGen
+                               ]);
           range := range.Sel("map");
           var rangeMap := R.Lambda([R.Formal.ImplicitlyTyped("i")], None, R.Identifier("_initializer").Apply1(R.Borrow(R.Identifier("i"))));
           range := range.Apply1(
             rangeMap
           );
           range := range.Sel("collect").ApplyType([
-              R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
-            ]).Apply0();
+                                                    R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
+                                                  ]).Apply0();
           r := R.Block(r.Then(range));
 
           readIdents := recIdents + lengthIdents;
