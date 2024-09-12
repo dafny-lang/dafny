@@ -2042,28 +2042,33 @@ namespace DCOMP {
         r = RAST.Path.create_Self();
         return r;
       } else {
-        if (((((p).Select(BigInteger.Zero)))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("std"))) {
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _0_p;
+        _0_p = p;
+        Dafny.ISequence<Dafny.Rune> _1_name;
+        _1_name = (((_0_p).Select(BigInteger.Zero)));
+        if (((new BigInteger((_1_name).Count)) >= (new BigInteger(2))) && (((_1_name).Subsequence(BigInteger.Zero, new BigInteger(2))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")))) {
           r = RAST.Path.create_Global();
-        } else if (((((p).Select(BigInteger.Zero)))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))) {
+          _0_p = Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Update(_0_p, BigInteger.Zero, (_1_name).Drop(new BigInteger(2)));
+        } else if (((((_0_p).Select(BigInteger.Zero)))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))) {
           r = RAST.__default.dafny__runtime;
         } else {
           r = RAST.Path.create_Crate();
         }
-        BigInteger _hi0 = new BigInteger((p).Count);
-        for (BigInteger _0_i = BigInteger.Zero; _0_i < _hi0; _0_i++) {
-          Dafny.ISequence<Dafny.Rune> _1_name;
-          _1_name = ((p).Select(_0_i));
+        BigInteger _hi0 = new BigInteger((_0_p).Count);
+        for (BigInteger _2_i = BigInteger.Zero; _2_i < _hi0; _2_i++) {
+          Dafny.ISequence<Dafny.Rune> _3_name;
+          _3_name = ((_0_p).Select(_2_i));
           if (escape) {
-            _System._ITuple2<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs0 = DafnyCompilerRustUtils.__default.DafnyNameToContainingPathAndName(_1_name, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
-            Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _2_modules = _let_tmp_rhs0.dtor__0;
-            Dafny.ISequence<Dafny.Rune> _3_finalName = _let_tmp_rhs0.dtor__1;
-            BigInteger _hi1 = new BigInteger((_2_modules).Count);
-            for (BigInteger _4_j = BigInteger.Zero; _4_j < _hi1; _4_j++) {
-              r = (r).MSel(DCOMP.__default.escapeName(((_2_modules).Select(_4_j))));
+            _System._ITuple2<Dafny.ISequence<Dafny.ISequence<Dafny.Rune>>, Dafny.ISequence<Dafny.Rune>> _let_tmp_rhs0 = DafnyCompilerRustUtils.__default.DafnyNameToContainingPathAndName(_3_name, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements());
+            Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _4_modules = _let_tmp_rhs0.dtor__0;
+            Dafny.ISequence<Dafny.Rune> _5_finalName = _let_tmp_rhs0.dtor__1;
+            BigInteger _hi1 = new BigInteger((_4_modules).Count);
+            for (BigInteger _6_j = BigInteger.Zero; _6_j < _hi1; _6_j++) {
+              r = (r).MSel(DCOMP.__default.escapeName(((_4_modules).Select(_6_j))));
             }
-            r = (r).MSel(DCOMP.__default.escapeName(_3_finalName));
+            r = (r).MSel(DCOMP.__default.escapeName(_5_finalName));
           } else {
-            r = (r).MSel(DCOMP.__default.ReplaceDotByDoubleColon((_1_name)));
+            r = (r).MSel(DCOMP.__default.ReplaceDotByDoubleColon((_3_name)));
           }
         }
       }
