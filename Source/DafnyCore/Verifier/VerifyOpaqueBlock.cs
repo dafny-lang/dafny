@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
@@ -17,7 +16,6 @@ public static class VerifyOpaqueBlock {
     List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
 
     var context = new OpaqueBlockContext(codeContext, block);
-    var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
     BoogieGenerator.ExpressionTranslator bodyTranslator;
     var hasModifiesClause = block.Modifies.Expressions.Any();
@@ -29,14 +27,35 @@ public static class VerifyOpaqueBlock {
     } else {
       bodyTranslator = etran;
     }
-
+    
+    
+    
+    var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
+    foreach (var ensure in block.Ensures) {
+      generator.CheckWellformed(ensure.E, new WFOptions(null, false),
+        locals, blockBuilder, etran);
+    }
+    
     var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
     generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
-    var asserts = block.Ensures.Select(ensures => generator.Assert(
+    
+    var commands = blockBuilder.Commands.SelectMany(AllCommands);
+    List<IdentifierExpr> assignedVariables = new();
+    foreach (var command in commands) {
+      command.AddAssignedIdentifiers(assignedVariables);
+    }
+    var defAssVariables = assignedVariables.Where(v => v.Name.StartsWith(BoogieGenerator.DefassPrefix)).ToHashSet();
+
+    var assignedAsserts = defAssVariables.Select(ie =>
+      generator.Assert((IToken)ie.tok, Expr.Binary(BinaryOperator.Opcode.Eq, ie, Expr.True),
+        new DefiniteAssignment("variable", ie.Name, "here")
+      ));
+    var assertsFromEnsures = block.Ensures.Select(ensures => generator.Assert(
       ensures.Tok, etran.TrExpr(ensures.E),
       new OpaqueEnsuresDescription(),
-      etran.TrAttributes(ensures.Attributes, null))).ToList();
+      etran.TrAttributes(ensures.Attributes, null)));
+    var asserts = assignedAsserts.Concat(assertsFromEnsures).ToList();
 
     foreach (var assert in asserts) {
       blockBuilder.Add(assert);
@@ -62,20 +81,11 @@ public static class VerifyOpaqueBlock {
     var blockCommands = blockBuilder.Collect(block.Tok);
     var ifCmd = new IfCmd(block.Tok, null, blockCommands, null, null);
     builder.Add(ifCmd);
-    var commands = blockCommands.BigBlocks.SelectMany(bb => bb.simpleCmds);
-    List<IdentifierExpr> assignedVariables = new();
-    foreach (var command in commands) {
-      command.AddAssignedIdentifiers(assignedVariables);
-    }
 
-    var defAssVariables = assignedVariables.Where(v => v.Name.StartsWith(BoogieGenerator.DefassPrefix)).ToHashSet();
     var havocVariables = assignedVariables.
       Where(a => !defAssVariables.Contains(a)).
       DistinctBy(a => a.Name);
     builder.Add(new HavocCmd(Token.NoToken, havocVariables.ToList()));
-    foreach (var assigned in defAssVariables) {
-      builder.Add(Cmd.SimpleAssign(Token.NoToken, assigned, Expr.True));
-    }
 
     if (hasModifiesClause) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
@@ -90,6 +100,30 @@ public static class VerifyOpaqueBlock {
       // TODO missing proof dependency id
       builder.Add(BoogieGenerator.TrAssumeCmd(assert.tok, assert.Expr));
     }
+  }
+
+  private static IEnumerable<Cmd> AllCommands(object command) {
+    if (command is StmtList stmtList) {
+      var prefix = stmtList.PrefixCommands ?? Enumerable.Empty<Cmd>();
+      return prefix.Concat(stmtList.BigBlocks.SelectMany(AllCommands));
+    }
+
+    if (command is BigBlock bigBlock) {
+      return bigBlock.simpleCmds.Concat(AllCommands(bigBlock.ec));
+    }
+    if (command is WhileCmd whileCmd) {
+      return AllCommands(whileCmd.Body);
+    }
+
+    if (command is IfCmd ifCmd) {
+      return AllCommands(ifCmd.Thn).Concat(AllCommands(ifCmd.ElseBlock));
+    }
+
+    if (command is Cmd cmd) {
+      return new[] { cmd };
+    }
+
+    return Enumerable.Empty<Cmd>();
   }
 
   class OpaqueEnsuresDescription : ProofObligationDescription {

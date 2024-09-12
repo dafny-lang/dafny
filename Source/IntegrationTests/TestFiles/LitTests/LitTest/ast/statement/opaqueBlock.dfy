@@ -1,4 +1,4 @@
-// RUN: ! %verify %s --bprint /Users/rwillems/SourceCode/dafny3/opaque.bpl &> "%t"
+// RUN: ! %verify %s &> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() returns (x: int)
@@ -14,6 +14,45 @@ method Foo() returns (x: int)
   }
   assert x == 4; // error
   x := x + 1;
+}
+
+method StructuredCommandsIf(t: bool)
+{
+  var x := 1;
+  opaque 
+  {
+    if (t) {
+      x := x + 2;
+    } 
+  }
+  assert x >= 1; // error
+}
+
+method StructuredCommandsWhile()
+{
+  var x := 1;
+  opaque 
+  {
+    while (x > 0)
+      decreases x 
+    {
+      x := x - 1;
+    } 
+  }
+  assert x >= 1; // error
+}
+
+method BadlyFormedSpec()
+{
+  var x := 1;
+  opaque 
+    ensures 3 / x == 1 // error: possible division by zero
+  {
+    x := 3;
+  }
+  var y;
+  opaque ensures y == y { } // error: y is not assigned
+  y := 1;
 }
 
 class Wrapper {
