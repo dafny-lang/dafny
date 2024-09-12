@@ -185,9 +185,14 @@ namespace Microsoft.Dafny.Compilers {
     //   }
     // They aren't in any namespace to make them universally accessible.
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
+      var name = Options.IncludeRuntime ? "FuncExtensions" : "FuncExtensionsAfterArity16";
+      var funcExtensions = wr.NewNamedBlock("public static class "+name);
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         int arity = kv.Key;
+        if (!Options.IncludeRuntime && arity <= 16) {
+          // An extension for this arity will be provided in the Runtime which has to be linked.
+          continue;
+        }
 
         List<string> TypeParameterList(string prefix) {
           var l = arity switch {
