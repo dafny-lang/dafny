@@ -10,8 +10,8 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public override IEnumerable<INode> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public override IEnumerable<IdentifierExpr> GetAssignedVariables() {
-    return Lhs.GetAssignPositionIdentifiers();
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return new [] { Lhs }.OfType<IdentifierExpr>();
   }
 
   [ContractInvariantMethod]

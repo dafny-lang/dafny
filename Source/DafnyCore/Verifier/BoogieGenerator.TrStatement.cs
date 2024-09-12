@@ -289,7 +289,7 @@ namespace Microsoft.Dafny {
         RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
       } else if (stmt is OpaqueBlock opaqueBlock) {
-        VerifyOpaqueBlock.Translate(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
+        OpaqueBlockVerifier.EmitBoogie(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
       } else if (stmt is BlockStmt blockStmt) {
         var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
         TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);

@@ -199,5 +199,5 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
-  public virtual IEnumerable<IdentifierExpr> GetAssignedVariables() => Enumerable.Empty<IdentifierExpr>();
+  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();
 }

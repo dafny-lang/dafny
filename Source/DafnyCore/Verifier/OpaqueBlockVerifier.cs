@@ -10,8 +10,8 @@ using Token = Microsoft.Dafny.Token;
 
 namespace DafnyCore.Verifier;
 
-public static class VerifyOpaqueBlock {
-  public static void Translate(BoogieGenerator generator, OpaqueBlock block, BoogieStmtListBuilder builder,
+public static class OpaqueBlockVerifier {
+  public static void EmitBoogie(BoogieGenerator generator, OpaqueBlock block, BoogieStmtListBuilder builder,
     List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
 
     var context = new OpaqueBlockContext(codeContext, block);
@@ -25,9 +25,10 @@ public static class VerifyOpaqueBlock {
     } else {
       bodyTranslator = etran;
     }
-    
+
     var assignedVariables = block.DescendantsAndSelf.
-      SelectMany(s => s.GetAssignedVariables()).DistinctBy(ie => ie.Var).ToList();
+      SelectMany(s => s.GetAssignedLocals()).DistinctBy(ie => ie.Var)
+      .ToList();
 
     var implicitEnsures = assignedVariables.Where(
       v => generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName)).Select(v =>

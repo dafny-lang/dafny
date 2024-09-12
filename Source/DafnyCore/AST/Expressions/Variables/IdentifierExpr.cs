@@ -58,9 +58,6 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 
   public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();
-  public override IEnumerable<IdentifierExpr> GetAssignPositionIdentifiers() {
-    return new[] { this };
-  }
 }
 
 /// <summary>
