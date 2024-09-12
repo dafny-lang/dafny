@@ -49,7 +49,7 @@ public abstract class Expression : TokenNode {
   public Type Type {
     get {
       Contract.Ensures(type != null || Contract.Result<Type>() == null);  // useful in conjunction with postcondition of constructor
-      return type == null ? null : type.Normalize();
+      return type?.Normalize();
     }
     set {
       Contract.Requires(!WasResolved());  // set it only once
@@ -136,9 +136,7 @@ public abstract class Expression : TokenNode {
     get { yield break; }
   }
 
-  public virtual bool IsImplicit {
-    get { return false; }
-  }
+  public virtual bool IsImplicit => false;
 
   public static IEnumerable<Expression> Conjuncts(Expression expr) {
     Contract.Requires(expr != null);
@@ -769,7 +767,7 @@ public abstract class Expression : TokenNode {
   /// Wrap the resolved MemberSelectExpr in the usual unresolved structure, in case the expression is cloned and re-resolved.
   /// </summary>
   public static Expression WrapResolvedMemberSelect(MemberSelectExpr memberSelectExpr) {
-    List<Type> optTypeArguments = memberSelectExpr.TypeApplication_JustMember.Count == 0 ? null : memberSelectExpr.TypeApplication_JustMember;
+    List<Type> optTypeArguments = memberSelectExpr.TypeApplicationJustMember.Count == 0 ? null : memberSelectExpr.TypeApplicationJustMember;
     return new ExprDotName(memberSelectExpr.tok, memberSelectExpr.Obj, memberSelectExpr.MemberName, optTypeArguments) {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type

@@ -1625,12 +1625,12 @@ namespace Microsoft.Dafny {
       // Now, fill in rr.PreType.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      rr.PreTypeApplication_AtEnclosingClass = new List<PreType>();
-      rr.PreTypeApplication_JustMember = new List<PreType>();
+      rr.PreTypeApplicationAtEnclosingClass = new List<PreType>();
+      rr.PreTypeApplicationJustMember = new List<PreType>();
       var rType = receiverPreTypeBound;
       var subst = PreType.PreTypeSubstMap(rType.Decl.TypeArgs, rType.Arguments);
       Contract.Assert(member.EnclosingClass != null);
-      rr.PreTypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass, this).Arguments);
+      rr.PreTypeApplicationAtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass, this).Arguments);
 
       if (member is Field field) {
         if (optTypeArguments != null) {
@@ -1646,7 +1646,7 @@ namespace Microsoft.Dafny {
         if (optTypeArguments != null) {
           if (suppliedTypeArguments == function.TypeArgs.Count) {
             // preserve the given types in the resolved MemberSelectExpr
-            rr.TypeApplication_JustMember = optTypeArguments;
+            rr.TypeApplicationJustMember = optTypeArguments;
           } else {
             ReportError(tok, "function '{0}' expects {1} type argument{2} (got {3})",
               member.Name, function.TypeArgs.Count, Util.Plural(function.TypeArgs.Count), suppliedTypeArguments);
@@ -1655,7 +1655,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < function.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? Type2PreType(optTypeArguments[i]) :
             CreatePreTypeProxy($"function call to {function.Name}, type argument {i}");
-          rr.PreTypeApplication_JustMember.Add(ta);
+          rr.PreTypeApplicationJustMember.Add(ta);
           subst.Add(function.TypeArgs[i], ta);
         }
         subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
@@ -1675,7 +1675,7 @@ namespace Microsoft.Dafny {
         if (optTypeArguments != null) {
           if (suppliedTypeArguments == method.TypeArgs.Count) {
             // preserve the given types in the resolved MemberSelectExpr
-            rr.TypeApplication_JustMember = optTypeArguments;
+            rr.TypeApplicationJustMember = optTypeArguments;
           } else {
             ReportError(tok, "method '{0}' expects {1} type argument{2} (got {3})",
               member.Name, method.TypeArgs.Count, Util.Plural(method.TypeArgs.Count), suppliedTypeArguments);
@@ -1684,7 +1684,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < method.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? Type2PreType(optTypeArguments[i]) :
             CreatePreTypeProxy($"method call to {method.Name}, type argument {i}");
-          rr.PreTypeApplication_JustMember.Add(ta);
+          rr.PreTypeApplicationJustMember.Add(ta);
           subst.Add(method.TypeArgs[i], ta);
         }
         subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
@@ -1753,8 +1753,8 @@ namespace Microsoft.Dafny {
             // resolve as a FunctionCallExpr instead of as an ApplyExpr(MemberSelectExpr)
             var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
-              PreTypeApplication_AtEnclosingClass = mse.PreTypeApplication_AtEnclosingClass,
-              PreTypeApplication_JustFunction = mse.PreTypeApplication_JustMember
+              PreTypeApplication_AtEnclosingClass = mse.PreTypeApplicationAtEnclosingClass,
+              PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember
             };
             var typeMap = mse.PreTypeArgumentSubstitutionsAtMemberDeclaration();
             var preTypeMap = BuildPreTypeArgumentSubstitute(

@@ -372,8 +372,8 @@ namespace Microsoft.Dafny {
 
       var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
       rr.Member = f;
-      rr.TypeApplication_AtEnclosingClass = typeApplication;
-      rr.TypeApplication_JustMember = typeApplication_JustForMember;
+      rr.TypeApplicationAtEnclosingClass = typeApplication;
+      rr.TypeApplicationJustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();
       for (int i = 0; i < f.Ins.Count; i++) {
         args.Add(new IntType());
@@ -571,8 +571,8 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
           }
           // build the type substitution map
-          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
-          e.TypeApplication_JustMember = new List<Type>();
+          e.TypeApplicationAtEnclosingClass = tentativeReceiverType.TypeArgs;
+          e.TypeApplicationJustMember = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
           var ctype = tentativeReceiverType as UserDefinedType;
           if (ctype == null) {
@@ -583,15 +583,15 @@ namespace Microsoft.Dafny {
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
             subst[tp] = prox;
-            e.TypeApplication_JustMember.Add(prox);
+            e.TypeApplicationJustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
           e.Type = SelectAppropriateArrowTypeForFunction(fn, subst, SystemModuleManager);
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
-          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
-          e.TypeApplication_JustMember = new List<Type>();
+          e.TypeApplicationAtEnclosingClass = tentativeReceiverType.TypeArgs;
+          e.TypeApplicationJustMember = new List<Type>();
           if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
           }
@@ -5810,8 +5810,8 @@ namespace Microsoft.Dafny {
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      rr.TypeApplication_AtEnclosingClass = new List<Type>();
-      rr.TypeApplication_JustMember = new List<Type>();
+      rr.TypeApplicationAtEnclosingClass = new List<Type>();
+      rr.TypeApplicationJustMember = new List<Type>();
       Dictionary<TypeParameter, Type> subst;
       var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
       if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
@@ -5819,14 +5819,14 @@ namespace Microsoft.Dafny {
         if (member.EnclosingClass == null) {
           // this can happen for some special members, like real.Floor
         } else {
-          rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
+          rr.TypeApplicationAtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
         var vtd = ProgramResolver.SystemModuleManager.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeParameter.SubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
-          rr.TypeApplication_AtEnclosingClass.AddRange(rType.TypeArgs);
+          rr.TypeApplicationAtEnclosingClass.AddRange(rType.TypeArgs);
         } else {
           Contract.Assert(rType.TypeArgs.Count == 0);
           subst = new Dictionary<TypeParameter, Type>();
@@ -5852,7 +5852,7 @@ namespace Microsoft.Dafny {
         }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication_JustMember.Add(ta);
+          rr.TypeApplicationJustMember.Add(ta);
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
@@ -5871,7 +5871,7 @@ namespace Microsoft.Dafny {
         }
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication_JustMember.Add(ta);
+          rr.TypeApplicationJustMember.Add(ta);
           subst.Add(m.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
@@ -5953,8 +5953,8 @@ namespace Microsoft.Dafny {
             // produce a FunctionCallExpr instead of an ApplyExpr(MemberSelectExpr)
             var rr = new FunctionCallExpr(e.Lhs.Tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
-              TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass,
-              TypeApplication_JustFunction = mse.TypeApplication_JustMember
+              TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
+              TypeApplication_JustFunction = mse.TypeApplicationJustMember
             };
             var typeMap = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
             ResolveActualParameters(rr.Bindings, callee.Ins, e.tok, callee, resolutionContext, typeMap, callee.IsStatic ? null : mse.Obj);

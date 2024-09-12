@@ -649,8 +649,8 @@ namespace Microsoft.Dafny {
                   return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.CloseParen, e.Args) {
                     Function = fn,
                     Type = e.Type,
-                    TypeApplication_AtEnclosingClass = mem.TypeApplication_AtEnclosingClass,
-                    TypeApplication_JustFunction = mem.TypeApplication_JustMember
+                    TypeApplication_AtEnclosingClass = mem.TypeApplicationAtEnclosingClass,
+                    TypeApplication_JustFunction = mem.TypeApplicationJustMember
                   });
                 }
               }

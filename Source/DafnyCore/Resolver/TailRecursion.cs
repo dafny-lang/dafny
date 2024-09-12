@@ -136,7 +136,7 @@ class TailRecursion {
       var s = (CallStmt)stmt;
       if (s.Method == enclosingMethod) {
         DisallowRecursiveCallsInExpressions(s, enclosingMethod, reportErrors);
-        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplication_JustMember, s.Lhs, reportErrors);
+        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplicationJustMember, s.Lhs, reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
         }
