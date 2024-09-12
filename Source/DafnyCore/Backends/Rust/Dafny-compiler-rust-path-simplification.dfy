@@ -19,7 +19,7 @@ module FactorPathsOptimizationTest {
     var T := TIdentifier("T");
     var std_any_Any := global.MSel("std").MSel("any").MSel("Any");
     var Any := TIdentifier("Any");
-    ShouldBeEqual(apply(
+    ShouldBeEqual(apply(crate)(
                     Mod("onemodule", [
                           StructDecl(
                             Struct([], "test", [T_Decl],
@@ -40,7 +40,7 @@ module FactorPathsOptimizationTest {
                         ImplDecl(Impl([T_Decl_simp], TIdentifier("test").Apply([T]), "", [])),
                         ImplDecl(ImplFor([T_Decl_simp], Any, TIdentifier("test").Apply([T]), "", []))
                       ]));
-    ShouldBeEqual(apply(
+    ShouldBeEqual(apply(crate)(
                     Mod("onemodule", [
                           ImplDecl(
                             ImplFor(
@@ -71,8 +71,8 @@ module FactorPathsOptimization {
     return s;
   }*/
 
-  function apply(mod: Mod): Mod {
-    applyPrefix(mod, crate.MSel(mod.name))
+  function apply(thisFile: Path): (Mod -> Mod) {
+    (mod: Mod) => applyPrefix(mod, thisFile.MSel(mod.name))
   }
 
   function applyPrefix(mod: Mod, SelfPath: Path): Mod {

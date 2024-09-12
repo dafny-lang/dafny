@@ -23,7 +23,7 @@ namespace Microsoft.Dafny.Compilers {
       var pointerType = Options.Get(CommonOptionBag.RawPointers)
         ? PointerType.create_Raw()
         : PointerType.create_RcMut();
-      var rootType = Options.Get(RustBackend.RustModuleNameOption) is {} opt && opt != "" ?
+      var rootType = Options.Get(RustBackend.RustModuleNameOption) is { } opt && opt != "" ?
           RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
           : RootType.create_RootCrate();
       c.__ctor(charType, pointerType, rootType);

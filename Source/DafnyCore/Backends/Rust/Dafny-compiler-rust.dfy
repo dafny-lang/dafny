@@ -1847,7 +1847,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.pointerType := pointerType;
       this.rootType := rootType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
-      this.optimizations := [FactorPathsOptimization.apply];
+      this.optimizations := [FactorPathsOptimization.apply(thisFile)];
       new;
     }
 
