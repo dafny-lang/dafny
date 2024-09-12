@@ -6,7 +6,7 @@
 // RUN: %OutputCheck --file-to-check "%t" "%S/cargotest3.check"
 // RUN: %OutputCheck --file-to-check "%S/cargotest-rust/src/cargotest.rs" "%S/cargotestoutput.check"
 
-module {:test} Tests {
+module {:rust_cfg_test} Tests {
   method {:test} TestFail1() {
     expect true == false;
   }
