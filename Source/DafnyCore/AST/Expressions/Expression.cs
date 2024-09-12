@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 
 namespace Microsoft.Dafny;
@@ -906,4 +907,12 @@ public abstract class Expression : TokenNode {
 
   public override IEnumerable<INode> Children => SubExpressions;
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  public virtual IEnumerable<IdentifierExpr> GetAssignPositionIdentifiers() => Enumerable.Empty<IdentifierExpr>();
+
+  public static Expression CreateAssigned(IToken tok, IdentifierExpr inner) {
+    return new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Assigned, inner) {
+      Type = Type.Bool
+    };
+  }
 }

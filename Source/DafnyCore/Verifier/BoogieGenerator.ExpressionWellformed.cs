@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
     
   public partial class BoogieGenerator {
 
-    void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
+    public void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type != null && expr.Type.IsBoolType);
       Contract.Requires(wfOptions != null);

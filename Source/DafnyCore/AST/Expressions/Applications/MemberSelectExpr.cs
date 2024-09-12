@@ -290,6 +290,9 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   }
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplicationAtEnclosingClass, TypeApplicationJustMember);
+  public override IEnumerable<IdentifierExpr> GetAssignPositionIdentifiers() {
+    return Obj.GetAssignPositionIdentifiers();
+  }
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 

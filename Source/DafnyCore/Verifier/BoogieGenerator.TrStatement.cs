@@ -12,6 +12,8 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
+    public const string FrameVariablePrefix = "$Frame$";
+
     private void TrStmt(Statement stmt, BoogieStmtListBuilder builder,
       List<Variable> locals, ExpressionTranslator etran) {
 
@@ -336,7 +338,7 @@ namespace Microsoft.Dafny {
         CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, desc, null);
         // cause the change of the heap according to the given frame
         var suffix = CurrentIdGenerator.FreshId("modify#");
-        string modifyFrameName = "$Frame$" + suffix;
+        string modifyFrameName = FrameVariablePrefix + suffix;
         var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType));
         locals.Add(preModifyHeapVar);
         DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, modifyFrameName);
@@ -1371,7 +1373,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
       ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap, etran.scope);
       ExpressionTranslator updatedFrameEtran;
-      string loopFrameName = "$Frame$" + suffix;
+      string loopFrameName = FrameVariablePrefix + suffix;
       if (s.Mod.Expressions != null) {
         updatedFrameEtran = etran.WithModifiesFrame(loopFrameName);
       } else {

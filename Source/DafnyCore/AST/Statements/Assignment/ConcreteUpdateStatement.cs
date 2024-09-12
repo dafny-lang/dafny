@@ -22,6 +22,9 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
 
   public override IEnumerable<INode> Children => Lhss;
   public override IEnumerable<INode> PreResolveChildren => Lhss;
+  public override IEnumerable<IdentifierExpr> GetAssignedVariables() {
+    return Lhss.SelectMany(lhs => lhs.GetAssignPositionIdentifiers());
+  }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);

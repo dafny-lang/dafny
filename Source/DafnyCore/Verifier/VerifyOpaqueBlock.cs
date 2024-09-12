@@ -5,7 +5,6 @@ using Microsoft.Dafny;
 using Microsoft.Dafny.ProofObligationDescription;
 using Formal = Microsoft.Dafny.Formal;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
-using IToken = Microsoft.Dafny.IToken;
 using ProofObligationDescription = Microsoft.Dafny.ProofObligationDescription.ProofObligationDescription;
 using Token = Microsoft.Dafny.Token;
 
@@ -20,38 +19,32 @@ public static class VerifyOpaqueBlock {
     BoogieGenerator.ExpressionTranslator bodyTranslator;
     var hasModifiesClause = block.Modifies.Expressions.Any();
     if (hasModifiesClause) {
-      var suffix = generator.CurrentIdGenerator.FreshId("modify#");
-      string modifyFrameName = "$Frame$" + suffix;
+      string modifyFrameName = BoogieGenerator.FrameVariablePrefix + generator.CurrentIdGenerator.FreshId("opaque#");
       generator.DefineFrame(block.Tok, etran.ModifiesFrame(block.Tok), block.Modifies.Expressions, builder, locals, modifyFrameName);
       bodyTranslator = etran.WithModifiesFrame(modifyFrameName);
     } else {
       bodyTranslator = etran;
     }
+    
+    var assignedVariables = block.DescendantsAndSelf.
+      SelectMany(s => s.GetAssignedVariables()).DistinctBy(ie => ie.Var).ToList();
 
-    IEnumerable<Microsoft.Dafny.IdentifierExpr> assignedVariables;
-    //DistinctBy(a => a.Name);
-
-    var implicitEnsures = assignedVariables.Select(v =>
-      new AttributedExpression(new UnaryOpExpr(v.Tok, UnaryOpExpr.Opcode.Assigned, v)));
+    var implicitEnsures = assignedVariables.Where(
+      v => generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName)).Select(v =>
+      new AttributedExpression(Expression.CreateAssigned(v.Tok, v)));
     var totalEnsures = implicitEnsures.Concat(block.Ensures).ToList();
     
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
-    foreach (var ensure in totalEnsures) {
-      generator.CheckWellformed(ensure.E, new WFOptions(null, false),
-        locals, blockBuilder, etran);
-    }
     
     var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
     generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
-    
-    var asserts = totalEnsures.Select(ensures => generator.Assert(
-      ensures.Tok, etran.TrExpr(ensures.E),
-      new OpaqueEnsuresDescription(),
-      etran.TrAttributes(ensures.Attributes, null))).ToList();
 
-    foreach (var assert in asserts) {
-      blockBuilder.Add(assert);
+    foreach (var ensure in totalEnsures) {
+      blockBuilder.Add(generator.Assert(
+        ensure.Tok, etran.TrExpr(ensure.E),
+        new OpaqueEnsuresDescription(),
+        etran.TrAttributes(ensure.Attributes, null)));
     }
 
     if (hasModifiesClause) {
@@ -68,52 +61,18 @@ public static class VerifyOpaqueBlock {
           null, null, etran, etran.ModifiesFrame(block.Tok), blockBuilder, desc, null);
       }
     }
-
-
-    blockBuilder.Add(new AssumeCmd(block.Tok, Expr.False));
-    var blockCommands = blockBuilder.Collect(block.Tok);
-    var ifCmd = new IfCmd(block.Tok, null, blockCommands, null, null);
-    builder.Add(ifCmd);
-
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(ie => new IdentifierExpr(ie.Tok, ie.Name)).ToList()));
+    
+    generator.PathAsideBlock(block.Tok, blockBuilder, builder);
+    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(ie => new IdentifierExpr(ie.Tok, ie.Var.UniqueName)).ToList()));
 
     if (hasModifiesClause) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
     }
 
-    foreach (var assert in asserts) {
-      /* It's inefficient to place the ensures clauses in the generated Boogie twice.
-       * We could avoid that by adding an OpaqueBlock construct to Boogie
-       * Placing the clauses in a function does not seem like an option,
-       * because then we would have to add arguments based on the statements preceding this opaque block.
-       */
-      // TODO missing proof dependency id
-      builder.Add(BoogieGenerator.TrAssumeCmd(assert.tok, assert.Expr));
+    foreach (var ensure in totalEnsures) {
+      generator.CheckWellformedAndAssume(ensure.E, new WFOptions(null, false),
+        locals, builder, etran, null);
     }
-  }
-
-  private static IEnumerable<Cmd> AllCommands(object command) {
-    if (command is StmtList stmtList) {
-      var prefix = stmtList.PrefixCommands ?? Enumerable.Empty<Cmd>();
-      return prefix.Concat(stmtList.BigBlocks.SelectMany(AllCommands));
-    }
-
-    if (command is BigBlock bigBlock) {
-      return bigBlock.simpleCmds.Concat(AllCommands(bigBlock.ec));
-    }
-    if (command is WhileCmd whileCmd) {
-      return AllCommands(whileCmd.Body);
-    }
-
-    if (command is IfCmd ifCmd) {
-      return AllCommands(ifCmd.Thn).Concat(AllCommands(ifCmd.ElseBlock));
-    }
-
-    if (command is Cmd cmd) {
-      return new[] { cmd };
-    }
-
-    return Enumerable.Empty<Cmd>();
   }
 
   class OpaqueEnsuresDescription : ProofObligationDescription {

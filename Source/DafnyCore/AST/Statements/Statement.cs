@@ -79,6 +79,27 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     get { yield break; }
   }
 
+  public IEnumerable<Statement> DescendantsAndSelf
+  {
+    get
+    {
+      Stack<Statement> todo = new();
+      List<Statement> result = new();
+      todo.Push(this);
+      while (todo.Any())
+      {
+        var current = todo.Pop();
+        result.Add(current);
+        foreach (var child in current.SubStatements)
+        {
+          todo.Push(child);
+        }
+      }
+
+      return result;
+    }
+  }
+
   /// <summary>
   /// Returns the non-null substatements of the Statements, before resolution occurs
   /// </summary>
@@ -177,4 +198,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public override IEnumerable<INode> PreResolveChildren =>
     (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
+
+  public virtual IEnumerable<IdentifierExpr> GetAssignedVariables() => Enumerable.Empty<IdentifierExpr>();
 }

@@ -833,10 +833,8 @@ namespace Microsoft.Dafny {
                   // by $IsAllocBox.
                   return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
                 case UnaryOpExpr.ResolvedOpcode.Assigned:
-                  var ns = e.E as NameSegment;
-                  Contract.Assert(ns != null);
                   string name = null;
-                  switch (ns.Resolved) {
+                  switch (e.E.Resolved) {
                     case IdentifierExpr ie:
                       name = ie.Var.UniqueName;
                       break;

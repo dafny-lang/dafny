@@ -9,11 +9,10 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly AssignmentRhs Rhs;
   public override IEnumerable<INode> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
   public override IEnumerable<INode> PreResolveChildren => Children;
-  // public override IEnumerable<IVariable> AssignedVariables {
-  //   get {
-  //     return Lhs
-  //   }
-  // }
+
+  public override IEnumerable<IdentifierExpr> GetAssignedVariables() {
+    return Lhs.GetAssignPositionIdentifiers();
+  }
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
