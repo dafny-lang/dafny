@@ -85,6 +85,9 @@ namespace Microsoft.Dafny {
       Bpl.Program boogieProgram = ReadPrelude();
       if (boogieProgram != null) {
         sink = boogieProgram;
+        foreach (var function in boogieProgram.TopLevelDeclarations.OfType<Bpl.Function>()) {
+          function.AlwaysRevealed = true;
+        }
         predef = FindPredefinedDecls(boogieProgram);
       }
     }
