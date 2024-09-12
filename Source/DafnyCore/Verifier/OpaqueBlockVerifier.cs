@@ -16,15 +16,7 @@ public static class OpaqueBlockVerifier {
 
     var context = new OpaqueBlockContext(codeContext, block);
 
-    BoogieGenerator.ExpressionTranslator bodyTranslator;
     var hasModifiesClause = block.Modifies.Expressions.Any();
-    if (hasModifiesClause) {
-      string modifyFrameName = BoogieGenerator.FrameVariablePrefix + generator.CurrentIdGenerator.FreshId("opaque#");
-      generator.DefineFrame(block.Tok, etran.ModifiesFrame(block.Tok), block.Modifies.Expressions, builder, locals, modifyFrameName);
-      bodyTranslator = etran.WithModifiesFrame(modifyFrameName);
-    } else {
-      bodyTranslator = etran;
-    }
 
     var assignedVariables = block.DescendantsAndSelf.
       SelectMany(s => s.GetAssignedLocals()).DistinctBy(ie => ie.Var)
@@ -37,6 +29,7 @@ public static class OpaqueBlockVerifier {
     
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
     
+    var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, hasModifiesClause, blockBuilder);
     var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
     generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
@@ -50,16 +43,13 @@ public static class OpaqueBlockVerifier {
 
     if (hasModifiesClause) {
       if (context is IMethodCodeContext methodCodeContext) {
-        // We do this modifies check inside the already isolated block
-        // TODO combine this part with the CheckFrameSubset check from method calls
-        var desc = new ModifyFrameSubset(
-          "opaque block",
-          block.Modifies.Expressions,
-          methodCodeContext.Modifies.Expressions
-        );
         generator.CheckFrameSubset(
           block.Tok, block.Modifies.Expressions,
-          null, null, etran, etran.ModifiesFrame(block.Tok), blockBuilder, desc, null);
+          null, null, etran, etran.ModifiesFrame(block.Tok), blockBuilder, new ModifyFrameSubset(
+            "opaque block",
+            block.Modifies.Expressions,
+            methodCodeContext.Modifies.Expressions
+          ), null);
       }
     }
     
@@ -74,6 +64,21 @@ public static class OpaqueBlockVerifier {
       generator.CheckWellformedAndAssume(ensure.E, new WFOptions(null, false),
         locals, builder, etran, null);
     }
+  }
+
+  private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, List<Variable> locals,
+    BoogieGenerator.ExpressionTranslator etran, bool hasModifiesClause, BoogieStmtListBuilder blockBuilder)
+  {
+    BoogieGenerator.ExpressionTranslator bodyTranslator;
+    if (hasModifiesClause) {
+      string modifyFrameName = BoogieGenerator.FrameVariablePrefix + generator.CurrentIdGenerator.FreshId("opaque#");
+      generator.DefineFrame(block.Tok, etran.ModifiesFrame(block.Tok), block.Modifies.Expressions, blockBuilder, locals, modifyFrameName);
+      bodyTranslator = etran.WithModifiesFrame(modifyFrameName);
+    } else {
+      bodyTranslator = etran;
+    }
+
+    return bodyTranslator;
   }
 
   class OpaqueEnsuresDescription : ProofObligationDescription {
