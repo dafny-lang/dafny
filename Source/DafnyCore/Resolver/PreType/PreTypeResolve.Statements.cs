@@ -178,7 +178,7 @@ namespace Microsoft.Dafny {
                 ident.PreType = Type2PreType(ident.Var.Type);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.tok), f.Name);
+                var yieldIdent = new ExprDotName(f.tok, new ImplicitThisExpr(f.tok), f.Name, null);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
@@ -1006,17 +1006,18 @@ namespace Microsoft.Dafny {
       s.ResolvedStatements.Add(up);
 
       if (s.KeywordToken != null) {
-        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(s.Tok, temp, "IsFailure"));
+        var token = s.KeywordToken.Token;
+        var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
-        if (s.KeywordToken.Token.val == "expect") {
+        if (token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(new RangeToken(token, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
+          ss = new AssumeStmt(new RangeToken(token, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new RangeToken(token, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
+          Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {
@@ -1118,7 +1119,7 @@ namespace Microsoft.Dafny {
       }
 
       if (rr.ArrayDimensions != null) {
-        // ---------- new T[EE]    OR    new T[EE] (elementInit)
+        // ---------- new T[EE]    OR    new T[EE] (elementInit)    OR    new T[EE] [elements...]
         var dims = rr.ArrayDimensions.Count;
         Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
         resolver.ResolveType(stmt.Tok, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -1130,14 +1131,16 @@ namespace Microsoft.Dafny {
             $"new must use an integer-based expression for the array size (got {{0}}{indexHint})");
           i++;
         }
-        rr.PreType = BuiltInArrayType(dims, Type2PreType(rr.EType));
+
+        var elementPreType = Type2PreType(rr.EType);
+        rr.PreType = BuiltInArrayType(dims, elementPreType);
         if (rr.ElementInit != null) {
           ResolveExpression(rr.ElementInit, resolutionContext);
           // Check (the pre-type version of)
           //     nat^N -> rr.EType  :>  rr.ElementInit.Type
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
-          var arrowPreType = BuiltInArrowType(indexPreTypes, Type2PreType(rr.EType));
+          var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType);
           Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
             var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",
@@ -1147,7 +1150,7 @@ namespace Microsoft.Dafny {
         } else if (rr.InitDisplay != null) {
           foreach (var v in rr.InitDisplay) {
             ResolveExpression(v, resolutionContext);
-            AddSubtypeConstraint(Type2PreType(rr.EType), v.PreType, v.tok, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+            AddSubtypeConstraint(elementPreType, v.PreType, v.tok, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
           }
         }
       } else {
@@ -1199,7 +1202,7 @@ namespace Microsoft.Dafny {
               PreType = rr.PreType
             };
             var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret?.LastComponent.OptTypeArguments);
-            ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+            ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;

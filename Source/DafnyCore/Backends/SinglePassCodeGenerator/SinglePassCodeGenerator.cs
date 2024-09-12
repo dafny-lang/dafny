@@ -3538,7 +3538,7 @@ namespace Microsoft.Dafny.Compilers {
         TrLocalVar(bv, false, wr);
       }
       var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
-      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
+      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, wr, false);
     }
 
     private bool CanSequentializeForall(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
@@ -3665,7 +3665,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, int debuginfoLine, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(lhss != null);
       Contract.Requires(constraint != null);
       Contract.Requires(bounds != null);
@@ -3741,7 +3741,7 @@ namespace Microsoft.Dafny.Compilers {
       copyInstrWriters.Pop();
 
       // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
-      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
+      EmitAbsurd("assign-such-that search produced no value", wrOuter, needIterLimit);
     }
 
     protected interface ILvalue {
@@ -4554,6 +4554,10 @@ namespace Microsoft.Dafny.Compilers {
       TrTailCall(tok, method.IsStatic, method.Ins, receiver, args, wr);
     }
 
+    public virtual string TailRecursiveVar(int inParamIndex, IVariable variable) {
+      return IdName(variable);
+    }
+
     void TrTailCall(IToken tok, bool isStatic, List<Formal> inParameters, Expression receiver, List<Expression> args, ConcreteSyntaxTree wr) {
       // assign the actual in-parameters to temporary variables
       var inTmps = new List<string>();
@@ -4593,13 +4597,18 @@ namespace Microsoft.Dafny.Compilers {
         EndStmt(wr);
         n++;
       }
+
+      var inParamIndex = 0;
       foreach (var p in inParameters) {
         if (!p.IsGhost) {
-          EmitIdentifier(
-            inTmps[n],
-            EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, tok)
-          );
+          // We want to assign the value to input parameters. However, if input parameters were shadowed
+          // for the compilers that support the same shadowing rules as Dafny (e.g. the Dafny-to-Rust compiler)
+          // we need to assign the result to the temporary and mutable variables instead
+          var wrAssignRhs =
+            EmitAssignment(IdentLvalue(TailRecursiveVar(inParamIndex, p)), p.Type, inTypes[n], wr, tok);
+          EmitIdentifier(inTmps[n], wrAssignRhs);
           n++;
+          inParamIndex++;
         }
       }
       Contract.Assert(n == inTmps.Count);

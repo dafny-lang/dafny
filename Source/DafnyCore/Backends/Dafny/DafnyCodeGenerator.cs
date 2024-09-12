@@ -81,7 +81,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.NonSequentializableForallStatements,
       Feature.MapItems,
       Feature.RunAllTests,
-      Feature.ExactBoundedPool,
       Feature.SequenceDisplaysOfCharacters,
       Feature.TypeTests,
       Feature.SubsetTypeTests,
@@ -735,6 +734,10 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new InvalidOperationException();
       }
+    }
+
+    public override string TailRecursiveVar(int inParamIndex, IVariable variable) {
+      return preventShadowing ? base.TailRecursiveVar(inParamIndex, variable) : DCOMP.COMP.TailRecursionPrefix.ToVerbatimString(false) + inParamIndex;
     }
 
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
@@ -2446,7 +2449,21 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitDatatypeBoundedPool(IVariable bv, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AddUnsupported("<i>EmitDatatypeBoundedPool</i>");
+      if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
+        if (bv.Type.IsDatatype && bv.Type.AsDatatype is { } datatypeDecl) {
+
+          var signature = Sequence<_IFormal>.FromArray(new _IFormal[] { });
+          var c = exprBuilder.Builder.Call(signature);
+          c.SetName((DAST.CallName)DAST.CallName.create_CallName(Sequence<Rune>.UnicodeFromString("_AllSingletonConstructors"),
+            Option<_IType>.create_None(), Option<_IFormal>.create_None(), false, signature));
+          var wrc = new BuilderSyntaxTree<ExprContainer>(c, this);
+          EmitTypeName_Companion(bv.Type, wrc, wr, bv.Tok, null);
+        } else {
+          throw new InvalidOperationException("Datatype Bounded pool on non-datatype value");
+        }
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void CreateIIFE(string bvName, Type bvType, IToken bvTok, Type bodyType, IToken bodyTok,
@@ -3080,7 +3097,12 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AddUnsupportedFeature(e.Tok, Feature.ExactBoundedPool);
+      if (GetExprConverter(wr, wStmts, out var builder, out var convert)) {
+        var eBuild = convert(e);
+        builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ExactBoundedPool(eBuild));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules) {

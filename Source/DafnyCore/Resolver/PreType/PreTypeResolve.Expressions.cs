@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
           }
         case ExprDotName name: {
             var e = name;
-            ResolveDotSuffix(e, true, null, resolutionContext, false);
+            ResolveDotSuffix(e, false, true, null, resolutionContext, false);
             if (e.PreType is PreTypePlaceholderModule) {
               ReportError(e.tok, "name of module ({0}) is used as a variable", e.SuffixName);
               ResetTypeAssignment(e);  // the rest of type checking assumes actual types
@@ -278,7 +278,10 @@ namespace Microsoft.Dafny {
               }
               return false;
             });
-            updateExpr.PreType = e.Seq.PreType;
+
+            updateExpr.PreType = CreatePreTypeProxy("result of _[_:=_]");
+            AddSubtypeConstraint(updateExpr.PreType, e.Seq.PreType, e.tok,
+              $"result of update expression must agree with the source type ({{0}})");
             break;
           }
         case DatatypeUpdateExpr datatypeUpdateExpr: {
@@ -1443,7 +1446,7 @@ namespace Microsoft.Dafny {
     /// <param name="resolutionContext"></param>
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a Resolver_MethodCall.</param>
-    public Expression ResolveDotSuffix(ExprDotName expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall) {
+    public Expression ResolveDotSuffix(ExprDotName expr, bool allowStaticReferenceToInstance, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
@@ -1455,7 +1458,7 @@ namespace Microsoft.Dafny {
       if (expr.Lhs is NameSegment) {
         ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
       } else if (expr.Lhs is ExprDotName) {
-        ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, nonRevealOpts, false);
+        ResolveDotSuffix((ExprDotName)expr.Lhs, false, false, null, nonRevealOpts, false);
       } else {
         ResolveExpression(expr.Lhs, nonRevealOpts);
       }
@@ -1558,7 +1561,7 @@ namespace Microsoft.Dafny {
             if (!resolver.VisibleInScope(member)) {
               ReportError(expr.tok, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
-            if (!member.IsStatic) {
+            if (!member.IsStatic && !allowStaticReferenceToInstance) {
               ReportError(expr.tok, $"accessing member '{name}' requires an instance expression"); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
@@ -1584,7 +1587,7 @@ namespace Microsoft.Dafny {
               resolutionContext, allowMethodCall);
           } else {
             var receiver = new StaticReceiverExpr(expr.tok, new InferredTypeProxy(), true) {
-              PreType = tentativeReceiverPreType,
+              PreType = tentativeReceiverPreType.SansPrintablePreType(),
               ObjectToDiscard = lhs
             };
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, resolutionContext,
@@ -1697,7 +1700,7 @@ namespace Microsoft.Dafny {
           var preTypeBoundWithSubst = preTypeBound.Substitute(subst);
           var actualPreType = subst[typeParameter];
           AddSubtypeConstraint(preTypeBoundWithSubst, actualPreType, tok,
-            $"actual type parameter '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
+            $"actual type argument '{{1}}' for formal type parameter '{typeParameter.Name}' must satisfy the type bound '{{0}}'");
         }
       }
     }
@@ -1717,7 +1720,7 @@ namespace Microsoft.Dafny {
         r = ResolveNameSegment((NameSegment)e.Lhs, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
         // note, if r is non-null, then e.Args have been resolved and r is a resolved expression that incorporates e.Args
       } else if (e.Lhs is ExprDotName) {
-        r = ResolveDotSuffix((ExprDotName)e.Lhs, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
+        r = ResolveDotSuffix((ExprDotName)e.Lhs, false, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
         // note, if r is non-null, then e.Args have been resolved and r is a resolved expression that incorporates e.Args
       } else {
         ResolveExpression(e.Lhs, resolutionContext);

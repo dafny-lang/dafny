@@ -36,7 +36,6 @@ public static class VerifyCommand {
     "The given argument is used to divide all the output with, which can help ignore small differences.") {
     IsHidden = true
   };
-
   public static readonly Option<string> FilterSymbol = new("--filter-symbol",
     @"Filter what gets verified by selecting only symbols whose fully qualified name contains the given argument. For example: ""--filter-symbol=MyNestedModule.MyFooFunction""");
 
@@ -99,7 +98,7 @@ Extract Dafny types, functions, and lemmas to Boogie.
             var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
             engine.PrintBplFile(options.BoogieExtractionTargetFile, extractedProgram, true, pretty: true);
           } catch (ExtractorError extractorError) {
-            options.OutputWriter.WriteLine($"Boogie axiom extraction error: {extractorError.Message}");
+            await options.OutputWriter.WriteLineAsync($"Boogie axiom extraction error: {extractorError.Message}");
             return 1;
           }
         }

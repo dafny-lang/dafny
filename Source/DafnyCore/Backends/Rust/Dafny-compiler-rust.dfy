@@ -1829,6 +1829,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     const ObjectType: ObjectType
 
+    static const TailRecursionPrefix := "_r"
+
     var error: Option<string>
 
     var optimizations: seq<R.Mod -> R.Mod>
@@ -2419,11 +2421,21 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var datatypeName := escapeName(c.name);
       var ctors: seq<R.EnumCase> := [];
       var variances := Std.Collections.Seq.Map((typeParamDecl: TypeArgDecl) => typeParamDecl.variance, c.typeParams);
+      var singletonConstructors := [];
       var usedTypeParams: set<string> := {};
       for i := 0 to |c.ctors| {
         var ctor := c.ctors[i];
         var ctorArgs: seq<R.Field> := [];
         var isNumeric := false;
+        if |ctor.args| == 0 {
+          var instantiation := R.StructBuild(R.Identifier(datatypeName).FSel(escapeName(ctor.name)), []);
+          if IsRcWrapped(c.attributes) {
+            instantiation := R.RcNew(instantiation);
+          }
+          singletonConstructors := singletonConstructors + [
+            instantiation
+          ];
+        }
         for j := 0 to |ctor.args| {
           var dtor := ctor.args[j];
           var formalType := GenType(dtor.formal.typ, GenTypeContext.default());
@@ -2813,6 +2825,31 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                                       coerceImplBody)))))]
             ))
         ];
+      }
+
+      if |singletonConstructors| == |c.ctors| {
+        var datatypeType := R.TypeApp(R.TIdentifier(datatypeName), rTypeParams);
+        var instantiationType :=
+          if IsRcWrapped(c.attributes) then
+            R.Rc(datatypeType)
+          else
+            datatypeType;
+        s := s + [
+          R.ImplDecl(
+            R.Impl(
+              rTypeParamsDecls,
+              datatypeType,
+              "",
+              [R.FnDecl(
+                 R.PUB,
+                 R.Fn(
+                   "_AllSingletonConstructors", [],
+                   [],
+                   Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
+                   "",
+                   Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply([]))
+                 )
+               )]))];
       }
 
       // Implementation of Eq when c supports equality
@@ -3391,9 +3428,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                     rhs]);
                 newEnv := newEnv.RemoveAssigned(isAssignedVar);
               } else {
-                error := Some("Unespected field to assign whose isAssignedVar is not in the environment: " + isAssignedVar);
-                generated :=
-                  R.AssignMember(R.RawExpr(error.value), fieldName, rhs);
+                // Already assigned, safe to override
+                generated := R.Assign(Some(R.SelectMember(modify_macro.Apply1(thisInConstructor), fieldName)), rhs);
               }
             case _ =>
               if onExpr != R.Identifier("self") {
@@ -3581,22 +3617,31 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             generated := generated.Then(R.DeclareVar(R.MUT, "_this", None, Some(selfClone)));
           }
           newEnv := env;
+          var loopBegin := R.RawExpr("");
           for paramI := 0 to |env.names| {
             var param := env.names[paramI];
+            if param == "_accumulator" {
+              continue; // This is an already mutable variable handled by SinglePassCodeGenerator
+            }
             var paramInit, _, _ := GenIdent(param, selfIdent, env, OwnershipOwned);
-            generated := generated.Then(R.DeclareVar(R.MUT, param, None, Some(paramInit)));
+            var recVar := TailRecursionPrefix + Strings.OfNat(paramI);
+            generated := generated.Then(R.DeclareVar(R.MUT, recVar, None, Some(paramInit)));
             if param in env.types {
               // We made the input type owned by the variable.
               // so we can remove borrow annotations.
               var declaredType := env.types[param].ToOwned();
               newEnv := newEnv.AddAssigned(param, declaredType);
+              newEnv := newEnv.AddAssigned(recVar, declaredType);
             }
+            // Redeclare the input parameter, take ownership of the recursive value
+            loopBegin := loopBegin.Then(R.DeclareVar(R.CONST, param, None, Some(R.Identifier(recVar))));
           }
           var bodyExpr, bodyIdents, bodyEnv := GenStmts(body, if selfIdent != NoSelf then ThisTyped("_this", selfIdent.dafnyType) else NoSelf, newEnv, false, earlyReturn);
           readIdents := bodyIdents;
           generated := generated.Then(
             R.Labelled("TAIL_CALL_START",
-                       R.Loop(None, bodyExpr)));
+                       R.Loop(None,
+                              loopBegin.Then(bodyExpr))));
         }
         case JumpTailCallStart() => {
           generated := R.Continue(Some("TAIL_CALL_START"));
@@ -5439,6 +5484,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           r, resultingOwnership := FromOwned(r, expectedOwnership);
         }
+        case ExactBoundedPool(of) => {
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipOwned);
+          r := R.std.MSel("iter").AsExpr().FSel("once").Apply1(exprGen);
+          readIdents := recIdents;
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+        }
         case IntRange(typ, lo, hi, up) => {
           var lo, _, recIdentsLo := GenExpr(lo, selfIdent, env, OwnershipOwned);
           var hi, _, recIdentsHi := GenExpr(hi, selfIdent, env, OwnershipOwned);
@@ -5489,7 +5540,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           // Integer collections are owned because they are computed number by number.
           // Sequence bounded pools are also owned
           var extraAttributes := [];
-          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? {
+          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? || collection.ExactBoundedPool? {
             extraAttributes := [AttributeOwned];
           }
 

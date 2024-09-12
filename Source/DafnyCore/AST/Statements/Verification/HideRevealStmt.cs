@@ -96,7 +96,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
           if (effectiveExpr is NameSegment) {
             resolver.ResolveNameSegment((NameSegment)effectiveExpr, true, null, resolutionContext, true);
           } else {
-            resolver.ResolveDotSuffix((ExprDotName)effectiveExpr, true, null, resolutionContext, true);
+            resolver.ResolveDotSuffix((ExprDotName)effectiveExpr, true, true, null, resolutionContext, true);
           }
           var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)effectiveExpr).ResolvedExpression;
           if (callee == null) {
@@ -110,7 +110,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
                 if (exprClone is NameSegment) {
                   resolver.ResolveNameSegment((NameSegment)exprClone, true, null, revealResolutionContext, true);
                 } else {
-                  resolver.ResolveDotSuffix((ExprDotName)exprClone, true, null, revealResolutionContext, true);
+                  resolver.ResolveDotSuffix((ExprDotName)exprClone, true, true, null, revealResolutionContext, true);
                 }
 
                 var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);

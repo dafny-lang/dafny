@@ -187,7 +187,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private QKeyValue? GetKeyValues(IToken tok, Attributes attributes) {
-      Boogie.QKeyValue kv = null;
+      QKeyValue? kv = null;
       var extractAttributes = Attributes.FindAllExpressions(attributes, AttributeAttribute);
       if (extractAttributes != null) {
         if (extractAttributes.Count == 0) {
