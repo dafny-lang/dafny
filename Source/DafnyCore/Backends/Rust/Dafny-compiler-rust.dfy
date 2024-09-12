@@ -1849,8 +1849,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
     }
 
-    predicate HasTestAttribute(attributes: seq<Attribute>) {
-      exists attribute <- attributes :: attribute.name == "test" && |attribute.args| == 0
+    predicate HasAttribute(attributes: seq<Attribute>, name: string) {
+      exists attribute <- attributes :: attribute.name == name && |attribute.args| == 0
     }
 
     // Returns a top-level gathering module that can be merged with other gathering modules
@@ -1867,7 +1867,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         assume {:axiom} forall m: ModuleItem <- mod.body.value :: m < mod;
         var optExtern: ExternAttribute := ExtractExternMod(mod);
         var attributes := [];
-        if HasTestAttribute(mod.attributes) {
+        if HasAttribute(mod.attributes, "rust_cfg_test") {
           attributes := [R.RawAttribute("#[cfg(test)]")];
         }
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
@@ -2098,7 +2098,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if className == "_default" {
         for i := 0 to |c.body| {
           var m := match c.body[i] case Method(m) => m;
-          if HasTestAttribute(m.attributes) && |m.params| == 0 {
+          if HasAttribute(m.attributes, "test") && |m.params| == 0 {
             var fnName := escapeName(m.name);
             testMethods := testMethods + [
               R.TopFnDecl(
