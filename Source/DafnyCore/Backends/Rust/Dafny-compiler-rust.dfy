@@ -3307,13 +3307,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if |p| == 0 {
         return R.Self();
       } else {
-        r :=
-          if p[0].id.dafny_name == "std" then
-            R.Global()
-          else if p[0].id.dafny_name == "_System" then
-            R.dafny_runtime
-          else
-            R.Crate();
+        var p := p; // Make p mutable
+        var name := p[0].id.dafny_name;
+        if |name| >= 2 && name[0..2] == "::" {
+          r := R.Global();
+          p := p[0 := Ident.Ident(Name(name[2..]))];
+        } else if p[0].id.dafny_name == "_System" {
+          r := R.dafny_runtime;
+        } else {
+          r := R.Crate();
+        }
         for i := 0 to |p| {
           var name := p[i].id;
           if escape {
