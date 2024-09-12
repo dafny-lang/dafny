@@ -21,6 +21,8 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       attributes = value;
     }
   }
+  
+  // public abstract IEnumerable<IVariable> AssignedVariables { get; }
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

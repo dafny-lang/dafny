@@ -27,11 +27,16 @@ public static class VerifyOpaqueBlock {
     } else {
       bodyTranslator = etran;
     }
-    
-    
+
+    IEnumerable<Microsoft.Dafny.IdentifierExpr> assignedVariables;
+    //DistinctBy(a => a.Name);
+
+    var implicitEnsures = assignedVariables.Select(v =>
+      new AttributedExpression(new UnaryOpExpr(v.Tok, UnaryOpExpr.Opcode.Assigned, v)));
+    var totalEnsures = implicitEnsures.Concat(block.Ensures).ToList();
     
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
-    foreach (var ensure in block.Ensures) {
+    foreach (var ensure in totalEnsures) {
       generator.CheckWellformed(ensure.E, new WFOptions(null, false),
         locals, blockBuilder, etran);
     }
@@ -40,22 +45,10 @@ public static class VerifyOpaqueBlock {
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
     generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
     
-    var commands = blockBuilder.Commands.SelectMany(AllCommands);
-    List<IdentifierExpr> assignedVariables = new();
-    foreach (var command in commands) {
-      command.AddAssignedIdentifiers(assignedVariables);
-    }
-    var defAssVariables = assignedVariables.Where(v => v.Name.StartsWith(BoogieGenerator.DefassPrefix)).ToHashSet();
-
-    var assignedAsserts = defAssVariables.Select(ie =>
-      generator.Assert((IToken)ie.tok, Expr.Binary(BinaryOperator.Opcode.Eq, ie, Expr.True),
-        new DefiniteAssignment("variable", ie.Name, "here")
-      ));
-    var assertsFromEnsures = block.Ensures.Select(ensures => generator.Assert(
+    var asserts = totalEnsures.Select(ensures => generator.Assert(
       ensures.Tok, etran.TrExpr(ensures.E),
       new OpaqueEnsuresDescription(),
-      etran.TrAttributes(ensures.Attributes, null)));
-    var asserts = assignedAsserts.Concat(assertsFromEnsures).ToList();
+      etran.TrAttributes(ensures.Attributes, null))).ToList();
 
     foreach (var assert in asserts) {
       blockBuilder.Add(assert);
@@ -82,10 +75,7 @@ public static class VerifyOpaqueBlock {
     var ifCmd = new IfCmd(block.Tok, null, blockCommands, null, null);
     builder.Add(ifCmd);
 
-    var havocVariables = assignedVariables.
-      Where(a => !defAssVariables.Contains(a)).
-      DistinctBy(a => a.Name);
-    builder.Add(new HavocCmd(Token.NoToken, havocVariables.ToList()));
+    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(ie => new IdentifierExpr(ie.Tok, ie.Name)).ToList()));
 
     if (hasModifiesClause) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
