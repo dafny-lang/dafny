@@ -26,7 +26,7 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
 
   public static readonly Option<string> RustModuleNameOption = new("--rust-module-name",
-    @"This Option is used to specify the Rust Module Name for the currently translated code, i.e. what goes between crate:: ...  ::module_name".TrimStart()) {
+    @"The enclosing Rust module name for the currently translated code, i.e. what goes between crate:: ...  ::module_name".TrimStart()) {
   };
   public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { RustModuleNameOption };
 
