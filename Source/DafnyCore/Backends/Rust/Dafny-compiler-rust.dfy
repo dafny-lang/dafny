@@ -639,6 +639,10 @@ module RAST
     function MSel(name: string): Path {
       PMemberSelect(this, name)
     }
+    function MSels(names: seq<string>): Path {
+      if |names| == 0 then this else
+      this.MSel(names[0]).MSels(names[1..])
+    }
     function FSel(name: string): Expr {
       AsExpr().FSel(name)
     }
@@ -2100,7 +2104,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   datatype ExternAttribute =
     | NoExtern()
     | SimpleExtern(overrideName: string)
-    | AdvancedExtern(enclosingModule: string, overrideName: string)
+    | AdvancedExtern(enclosingModule: seq<string>, overrideName: string)
     | UnsupportedExtern(reason: string)
 
   opaque function OptExtern(attr: Attribute, dafnyName: Name): Option<ExternAttribute> {
@@ -2108,7 +2112,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       Some(
         if |attr.args| == 0 then SimpleExtern(escapeName(dafnyName)) else
         if |attr.args| == 1 then SimpleExtern(attr.args[0]) else
-        if |attr.args| == 2 then AdvancedExtern(ReplaceDotByDoubleColon(attr.args[0]), attr.args[1]) else
+        if |attr.args| == 2 then AdvancedExtern(SplitRustPathElement(ReplaceDotByDoubleColon(attr.args[0])), attr.args[1]) else
         UnsupportedExtern("{:extern} supports only 0, 1 or 2 attributes, got " + Std.Strings.OfNat(|attr.args|))
       )
     else
@@ -2122,6 +2126,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     if |s| == 0 then "" else
     if s[0] == ' ' then s else
     (if s[0] == '.' then "::" else [s[0]]) + ReplaceDotByDoubleColon(s[1..])
+  }
+
+  function SplitRustPathElement(s: string, result: seq<string> := [], acc: string := ""): seq<string> {
+    if |s| == 0 then
+      if acc == "" then result else result + [acc]
+    else
+      if |s| >= 2 && s[0..2] =="::" then
+        SplitRustPathElement(s[2..], result + [acc], "")
+      else
+        SplitRustPathElement(s[1..], result, acc + [s[0]])
   }
 
   function ExtractExtern(attributes: seq<Attribute>, dafnyName: Name): (res: ExternAttribute) {
@@ -2247,7 +2261,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
           if mod.requiresExterns {
-            body := [R.UseDecl(R.Use(R.PUB, thisFile.MSel(DAFNY_EXTERN_MODULE).MSel(ReplaceDotByDoubleColon(optExtern.overrideName)).MSel("*")))] + body;
+            body := [R.UseDecl(R.Use(R.PUB, thisFile.MSel(DAFNY_EXTERN_MODULE).MSels(SplitRustPathElement(ReplaceDotByDoubleColon(optExtern.overrideName))).MSel("*")))] + body;
           }
         } else if optExtern.AdvancedExtern? {
           error := Some("Externs on modules can only have 1 string argument");
@@ -2454,7 +2468,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       if extern.NoExtern? || extern.UnsupportedExtern? {
         selfTypeForImpl := R.TIdentifier(className);
       } else if extern.AdvancedExtern? {
-        selfTypeForImpl := R.crate.MSel(extern.enclosingModule).MSel(extern.overrideName).AsType();
+        selfTypeForImpl := R.crate.MSels(extern.enclosingModule).MSel(extern.overrideName).AsType();
       } else if extern.SimpleExtern? {
         selfTypeForImpl := R.TIdentifier(extern.overrideName);
       }
@@ -3364,7 +3378,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r := r.MSel(escapeName(finalName));
           } else {
             // TODO: Try removing this else branch and the escape test.
-            r := r.MSel(ReplaceDotByDoubleColon(name.dafny_name));
+            r := r.MSels(SplitRustPathElement(ReplaceDotByDoubleColon(name.dafny_name)));
           }
         }
       }

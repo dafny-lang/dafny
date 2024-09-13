@@ -114,6 +114,45 @@ module FactorPathsOptimizationTest {
                     TIdentifier("DafnyString")),
                   TIdentifier("DafnyType")))))
         ]));
+
+    // Edge case: There is a trait in the current module
+    // And we have a constant of the type of this trait
+    // and another the type of another trait in another module but with the same name.
+    ShouldBeEqual(
+      apply(crate)(
+        Mod(
+          "onemodule", [], [
+            TraitDecl(
+              Trait([], TIdentifier("Something"), [], [])
+            ),
+            ConstDecl(
+              Constant(
+                [],
+                "dummyExtern", crate.MSel("anothermodule").MSel("Something").AsType(),
+                RawExpr("nothing"))),
+            ConstDecl(
+              Constant(
+                [],
+                "dummyIntern", crate.MSel("onemodule").MSel("Something").AsType(),
+                RawExpr("nothing")))
+          ])),
+      Mod(
+        "onemodule", [], [
+          TraitDecl(
+            Trait([], TIdentifier("Something"), [], [])
+          ),
+          ConstDecl(
+            Constant(
+              [],
+              "dummyExtern", crate.MSel("anothermodule").MSel("Something").AsType(), // No simplification
+              RawExpr("nothing"))),
+          ConstDecl(
+            Constant(
+              [],
+              "dummyIntern", TIdentifier("Something"),
+              RawExpr("nothing")))
+        ])
+    );
   }
 }
 
@@ -132,7 +171,7 @@ module FactorPathsOptimization {
   {
     if mod.ExternMod? then mod else
     var mappings: Mapping := PathsVisitor().VisitMod(Mapping(map[], []), mod, SelfPath);
-    var pathsToRemove := mappings.ToFinalReplacement();
+    var pathsToRemove := mappings.ToFinalReplacement(SelfPath);
     var imports := mappings.ToUseStatements(pathsToRemove, SelfPath);
     var mod := PathSimplifier(mod, pathsToRemove).ReplaceMod(mod, SelfPath);
     mod.(body := imports + mod.body)
@@ -171,21 +210,25 @@ module FactorPathsOptimization {
     // For any mapping identifier -> full paths,
     // we will perform the replacement either if there is exactly one full path,
     // or if the path is the dafny runtime (in which cases, all other homonyms remain fully prefixed)
-    function ToFinalReplacement(): FinalReplacement {
+    function ToFinalReplacement(SelfPath: Path): FinalReplacement {
       map identifier <- provenance, paths
         | paths == provenance[identifier] &&
           (|| |paths| == 1
-           || exists p <- paths :: p == dafny_runtime)
+           || SelfPath in paths
+           || dafny_runtime in paths)
         ::
-          identifier := if |paths| == 1 then UniqueElementOf(paths) else dafny_runtime
+          identifier := if |paths| == 1 then UniqueElementOf(paths) else
+            if SelfPath in paths then SelfPath else dafny_runtime
     }
     // Given a final replacement map,
     // creates a sequence of use statements to be inserted at the beginning of the module
     function ToUseStatements(finalReplacement: FinalReplacement, SelfPath: Path): seq<ModDecl>
-      requires finalReplacement == ToFinalReplacement()
+      requires finalReplacement == ToFinalReplacement(SelfPath)
     {
-      var toUse := Std.Collections.Seq.Filter(
-                     (key: string) => key in finalReplacement && finalReplacement[key] != SelfPath, keys);
+      var toUse :=
+        Std.Collections.Seq.Filter(
+          (key: string) => key in finalReplacement && finalReplacement[key] != SelfPath,
+          keys);
       seq(|toUse|, i requires 0 <= i < |toUse| =>
         UseDecl(Use(PUB, finalReplacement[toUse[i]].MSel(toUse[i]))))
     }
@@ -225,7 +268,14 @@ module FactorPathsOptimization {
           case ImplDecl(impl) =>
             current
           case TraitDecl(tr) =>
-            current
+            match tr.tpe {
+              case TypeApp(TIdentifier(name), _) =>
+                current.Add(name, prefix)
+              case TIdentifier(name) =>
+                current.Add(name, prefix)
+              case _ =>
+                current
+            }
           case TopFnDecl(fn) =>
             current.Add(fn.fn.name, prefix)
           case UseDecl(use) => // Used for externs with *, we can't extract any name
