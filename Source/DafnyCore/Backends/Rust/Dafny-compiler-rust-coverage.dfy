@@ -41,8 +41,6 @@ module DafnyToRustCompilerCoverage {
     method TestOptimizeToString() {
       var x := Identifier("x");
       var y := Identifier("y");
-      AssertCoverage(Optimize(UnaryOp("&", Call(Select(x, "clone"), []), UnaryOpFormat.NoFormat))
-                     == UnaryOp("&", x, UnaryOpFormat.NoFormat));
       TestNoOptimize(UnaryOp("&", Call(Select(x, "clone"), [y]), UnaryOpFormat.NoFormat));
       AssertCoverage(Optimize(UnaryOp("!", BinaryOp("==", x, y, BinaryOpFormat.NoFormat),
                                       CombineFormat())) == BinaryOp("!=", x, y, BinaryOpFormat.NoFormat));

@@ -185,12 +185,13 @@ namespace Microsoft.Dafny.Compilers {
     //   }
     // They aren't in any namespace to make them universally accessible.
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      var name = Options.IncludeRuntime ? "FuncExtensions" : "FuncExtensionsAfterArity16";
-      var funcExtensions = wr.NewNamedBlock("public static class "+name);
+      // An extension for this arity will be provided in the Runtime which has to be linked.
+      var omitAritiesBefore16 = !Options.IncludeRuntime && Options.SystemModuleTranslationMode is not CommonOptionBag.SystemModuleMode.OmitAllOtherModules;
+      var name = omitAritiesBefore16 ? "FuncExtensionsAfterArity16" : "FuncExtensions";
+      var funcExtensions = wr.NewNamedBlock("public static class " + name);
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         int arity = kv.Key;
-        if (!Options.IncludeRuntime && arity <= 16) {
-          // An extension for this arity will be provided in the Runtime which has to be linked.
+        if (omitAritiesBefore16 && arity <= 16) {
           continue;
         }
 
