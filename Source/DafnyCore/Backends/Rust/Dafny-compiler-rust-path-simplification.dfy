@@ -23,7 +23,7 @@ module FactorPathsOptimizationTest {
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          "onemodule", [
+          "onemodule", [], [
             StructDecl(
               Struct([], "test", [T_Decl],
                      NamedFields([Field(PUB, Formal("a", std_any_Any.AsType()))]))),
@@ -35,7 +35,7 @@ module FactorPathsOptimizationTest {
             //         ::std::any::Any ==> Any  crate::onemodule::test ==> test
           ])),
       Mod(
-        "onemodule", [
+        "onemodule", [], [
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
           UseDecl(Use(PUB, std_any_Any)),
           StructDecl(
@@ -47,14 +47,14 @@ module FactorPathsOptimizationTest {
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          "onemodule", [
+          "onemodule", [], [
             ImplDecl(
               ImplFor(
                 [T_Decl], dafny_runtime.MSel("UpcastObject").AsType().Apply([TIdentifier("x")]),
                 TIdentifier("test").Apply([T]), "", []))
           ])),
       Mod(
-        "onemodule", [
+        "onemodule", [], [
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyType"))),
           UseDecl(Use(PUB, dafny_runtime.MSel("UpcastObject"))),
           ImplDecl(
@@ -65,7 +65,7 @@ module FactorPathsOptimizationTest {
     ShouldBeEqual(
       apply(crate)(
         Mod(
-          "onemodule", [
+          "onemodule", [], [
             ConstDecl(
               Constant(
                 [],
@@ -87,7 +87,7 @@ module FactorPathsOptimizationTest {
                     dafny_runtime.MSel("DafnyType").AsType()))))
           ])),
       Mod(
-        "onemodule", [
+        "onemodule", [], [
           UseDecl(Use(PUB, std_any_Any)),
           UseDecl(Use(PUB, std_rc_Rc)),
           UseDecl(Use(PUB, std_default_Default)),

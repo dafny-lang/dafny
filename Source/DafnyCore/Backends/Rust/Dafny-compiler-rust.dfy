@@ -353,7 +353,7 @@ module RAST
 
   datatype Mod =
       // Rust modules
-    | Mod(name: string, body: seq<ModDecl>)
+    | Mod(name: string, attributes: seq<Attribute>, body: seq<ModDecl>)
     | ExternMod(name: string)
   {
     function Fold<T(!new)>(acc: T, accBuilder: (T, ModDecl) --> T): T
@@ -368,7 +368,8 @@ module RAST
       match this {
         case ExternMod(name) =>
           "pub mod " + name + ";"
-        case Mod(name, body) =>
+        case Mod(name, attributes, body) =>
+          Attribute.ToStringMultiple(attributes, ind) +
           /* If the module does not start with "use", just separate declarations by one blank line
              If the module starts with "use", add blank lines only after use declarations */
           var startWithUse := |body| > 0 && body[0].UseDecl?;
@@ -2215,6 +2216,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
     }
 
+    predicate HasAttribute(attributes: seq<Attribute>, name: string) {
+      exists attribute <- attributes :: attribute.name == name && |attribute.args| == 0
+    }
+
     // Returns a top-level gathering module that can be merged with other gathering modules
     method GenModule(mod: Module, containingPath: seq<Ident>) returns (s: SeqMap<string, GatheringModule>)
       decreases mod, 1
@@ -2228,6 +2233,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       } else {
         assume {:axiom} forall m: ModuleItem <- mod.body.value :: m < mod;
         var optExtern: ExternAttribute := ExtractExternMod(mod);
+        var attributes := [];
+        if HasAttribute(mod.attributes, "rust_cfg_test") {
+          attributes := [R.RawAttribute("#[cfg(test)]")];
+        }
         var body, allmodules := GenModuleBody(mod, mod.body.value, containingPath + [Ident.Ident(innerName)]);
         if optExtern.SimpleExtern? {
           if mod.requiresExterns {
@@ -2239,7 +2248,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           error := Some(optExtern.reason);
         }
         s := GatheringModule.MergeSeqMap(
-          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(modName, body)),
+          GatheringModule.Wrap(ContainingPathToRust(containingPath), R.Mod(modName, attributes, body)),
           allmodules);
       }
     }
@@ -2450,6 +2459,27 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           implBody
         );
         s := s + [R.ImplDecl(i)];
+      }
+      // Add test methods
+      var testMethods := [];
+      if className == "_default" {
+        for i := 0 to |c.body| {
+          var m := match c.body[i] case Method(m) => m;
+          if HasAttribute(m.attributes, "test") && |m.params| == 0 {
+            var fnName := escapeName(m.name);
+            testMethods := testMethods + [
+              R.TopFnDecl(
+                R.TopFn(
+                  [R.RawAttribute("#[test]")], R.PUB,
+                  R.Fn(
+                    fnName, [], [], None,
+                    "",
+                    Some(R.Identifier("_default").FSel(fnName).Apply([])))
+                ))
+            ];
+          }
+        }
+        s := s + testMethods;
       }
       var genSelfPath := GenPathType(path);
       // TODO: If general traits, check whether the trait extends object or not.
@@ -6002,7 +6032,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       if externUseDecls != [] {
-        s := s + R.Mod(DAFNY_EXTERN_MODULE, externUseDecls).ToString("") + "\n";
+        s := s + R.Mod(DAFNY_EXTERN_MODULE, [], externUseDecls).ToString("") + "\n";
       }
 
       var allModules := SeqMap<string, GatheringModule>.Empty();
