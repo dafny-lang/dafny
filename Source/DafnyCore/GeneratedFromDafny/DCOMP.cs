@@ -172,7 +172,7 @@ namespace DCOMP {
     public static Std.Wrappers._IOption<DCOMP._IExternAttribute> OptExtern(DAST._IAttribute attr, Dafny.ISequence<Dafny.Rune> dafnyName)
     {
       if (((attr).dtor_name).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("extern"))) {
-        return Std.Wrappers.Option<DCOMP._IExternAttribute>.create_Some((((new BigInteger(((attr).dtor_args).Count)).Sign == 0) ? (DCOMP.ExternAttribute.create_SimpleExtern(DCOMP.__default.escapeName(dafnyName))) : ((((new BigInteger(((attr).dtor_args).Count)) == (BigInteger.One)) ? (DCOMP.ExternAttribute.create_SimpleExtern(((attr).dtor_args).Select(BigInteger.Zero))) : ((((new BigInteger(((attr).dtor_args).Count)) == (new BigInteger(2))) ? (DCOMP.ExternAttribute.create_AdvancedExtern(DCOMP.__default.ReplaceDotByDoubleColon(((attr).dtor_args).Select(BigInteger.Zero)), ((attr).dtor_args).Select(BigInteger.One))) : (DCOMP.ExternAttribute.create_UnsupportedExtern(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{:extern} supports only 0, 1 or 2 attributes, got "), Std.Strings.__default.OfNat(new BigInteger(((attr).dtor_args).Count)))))))))));
+        return Std.Wrappers.Option<DCOMP._IExternAttribute>.create_Some((((new BigInteger(((attr).dtor_args).Count)).Sign == 0) ? (DCOMP.ExternAttribute.create_SimpleExtern(DCOMP.__default.escapeName(dafnyName))) : ((((new BigInteger(((attr).dtor_args).Count)) == (BigInteger.One)) ? (DCOMP.ExternAttribute.create_SimpleExtern(((attr).dtor_args).Select(BigInteger.Zero))) : ((((new BigInteger(((attr).dtor_args).Count)) == (new BigInteger(2))) ? (DCOMP.ExternAttribute.create_AdvancedExtern(DCOMP.__default.SplitRustPathElement(DCOMP.__default.ReplaceDotByDoubleColon(((attr).dtor_args).Select(BigInteger.Zero)), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")), ((attr).dtor_args).Select(BigInteger.One))) : (DCOMP.ExternAttribute.create_UnsupportedExtern(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{:extern} supports only 0, 1 or 2 attributes, got "), Std.Strings.__default.OfNat(new BigInteger(((attr).dtor_args).Count)))))))))));
       } else {
         return Std.Wrappers.Option<DCOMP._IExternAttribute>.create_None();
       }
@@ -188,6 +188,33 @@ namespace DCOMP {
         _0___accumulator = Dafny.Sequence<Dafny.Rune>.Concat(_0___accumulator, ((((s).Select(BigInteger.Zero)) == (new Dafny.Rune('.'))) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")) : (Dafny.Sequence<Dafny.Rune>.FromElements((s).Select(BigInteger.Zero)))));
         Dafny.ISequence<Dafny.Rune> _in0 = (s).Drop(BigInteger.One);
         s = _in0;
+        goto TAIL_CALL_START;
+      }
+    }
+    public static Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> SplitRustPathElement(Dafny.ISequence<Dafny.Rune> s, Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> result, Dafny.ISequence<Dafny.Rune> acc)
+    {
+    TAIL_CALL_START: ;
+      if ((new BigInteger((s).Count)).Sign == 0) {
+        if ((acc).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
+          return result;
+        } else {
+          return Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat(result, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(acc));
+        }
+      } else if (((new BigInteger((s).Count)) >= (new BigInteger(2))) && (((s).Subsequence(BigInteger.Zero, new BigInteger(2))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::")))) {
+        Dafny.ISequence<Dafny.Rune> _in0 = (s).Drop(new BigInteger(2));
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _in1 = Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat(result, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(acc));
+        Dafny.ISequence<Dafny.Rune> _in2 = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
+        s = _in0;
+        result = _in1;
+        acc = _in2;
+        goto TAIL_CALL_START;
+      } else {
+        Dafny.ISequence<Dafny.Rune> _in3 = (s).Drop(BigInteger.One);
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _in4 = result;
+        Dafny.ISequence<Dafny.Rune> _in5 = Dafny.Sequence<Dafny.Rune>.Concat(acc, Dafny.Sequence<Dafny.Rune>.FromElements((s).Select(BigInteger.Zero)));
+        s = _in3;
+        result = _in4;
+        acc = _in5;
         goto TAIL_CALL_START;
       }
     }
@@ -749,7 +776,7 @@ namespace DCOMP {
     bool is_AdvancedExtern { get; }
     bool is_UnsupportedExtern { get; }
     Dafny.ISequence<Dafny.Rune> dtor_overrideName { get; }
-    Dafny.ISequence<Dafny.Rune> dtor_enclosingModule { get; }
+    Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_enclosingModule { get; }
     Dafny.ISequence<Dafny.Rune> dtor_reason { get; }
     _IExternAttribute DowncastClone();
   }
@@ -770,7 +797,7 @@ namespace DCOMP {
     public static _IExternAttribute create_SimpleExtern(Dafny.ISequence<Dafny.Rune> overrideName) {
       return new ExternAttribute_SimpleExtern(overrideName);
     }
-    public static _IExternAttribute create_AdvancedExtern(Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<Dafny.Rune> overrideName) {
+    public static _IExternAttribute create_AdvancedExtern(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> enclosingModule, Dafny.ISequence<Dafny.Rune> overrideName) {
       return new ExternAttribute_AdvancedExtern(enclosingModule, overrideName);
     }
     public static _IExternAttribute create_UnsupportedExtern(Dafny.ISequence<Dafny.Rune> reason) {
@@ -787,7 +814,7 @@ namespace DCOMP {
         return ((ExternAttribute_AdvancedExtern)d)._overrideName;
       }
     }
-    public Dafny.ISequence<Dafny.Rune> dtor_enclosingModule {
+    public Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_enclosingModule {
       get {
         var d = this;
         return ((ExternAttribute_AdvancedExtern)d)._enclosingModule;
@@ -850,9 +877,9 @@ namespace DCOMP {
     }
   }
   public class ExternAttribute_AdvancedExtern : ExternAttribute {
-    public readonly Dafny.ISequence<Dafny.Rune> _enclosingModule;
+    public readonly Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _enclosingModule;
     public readonly Dafny.ISequence<Dafny.Rune> _overrideName;
-    public ExternAttribute_AdvancedExtern(Dafny.ISequence<Dafny.Rune> enclosingModule, Dafny.ISequence<Dafny.Rune> overrideName) : base() {
+    public ExternAttribute_AdvancedExtern(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> enclosingModule, Dafny.ISequence<Dafny.Rune> overrideName) : base() {
       this._enclosingModule = enclosingModule;
       this._overrideName = overrideName;
     }
@@ -874,7 +901,7 @@ namespace DCOMP {
     public override string ToString() {
       string s = "DafnyToRustCompiler.ExternAttribute.AdvancedExtern";
       s += "(";
-      s += this._enclosingModule.ToVerbatimString(true);
+      s += Dafny.Helpers.ToString(this._enclosingModule);
       s += ", ";
       s += this._overrideName.ToVerbatimString(true);
       s += ")";
@@ -982,7 +1009,7 @@ namespace DCOMP {
         _7_allmodules = _out1;
         if ((_4_optExtern).is_SimpleExtern) {
           if ((mod).dtor_requiresExterns) {
-            _6_body = Dafny.Sequence<RAST._IModDecl>.Concat(Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (((RAST.__default.crate).MSel(DCOMP.COMP.DAFNY__EXTERN__MODULE)).MSel(DCOMP.__default.ReplaceDotByDoubleColon((_4_optExtern).dtor_overrideName))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))))), _6_body);
+            _6_body = Dafny.Sequence<RAST._IModDecl>.Concat(Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (((RAST.__default.crate).MSel(DCOMP.COMP.DAFNY__EXTERN__MODULE)).MSels(DCOMP.__default.SplitRustPathElement(DCOMP.__default.ReplaceDotByDoubleColon((_4_optExtern).dtor_overrideName), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))))), _6_body);
           }
         } else if ((_4_optExtern).is_AdvancedExtern) {
           (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Externs on modules can only have 1 string argument"));
@@ -1243,7 +1270,7 @@ namespace DCOMP {
       if (((_21_extern).is_NoExtern) || ((_21_extern).is_UnsupportedExtern)) {
         _26_selfTypeForImpl = RAST.Type.create_TIdentifier(_22_className);
       } else if ((_21_extern).is_AdvancedExtern) {
-        _26_selfTypeForImpl = (((RAST.__default.crate).MSel((_21_extern).dtor_enclosingModule)).MSel((_21_extern).dtor_overrideName)).AsType();
+        _26_selfTypeForImpl = (((RAST.__default.crate).MSels((_21_extern).dtor_enclosingModule)).MSel((_21_extern).dtor_overrideName)).AsType();
       } else if ((_21_extern).is_SimpleExtern) {
         _26_selfTypeForImpl = RAST.Type.create_TIdentifier((_21_extern).dtor_overrideName);
       }
@@ -2100,7 +2127,7 @@ namespace DCOMP {
             }
             r = (r).MSel(DCOMP.__default.escapeName(_5_finalName));
           } else {
-            r = (r).MSel(DCOMP.__default.ReplaceDotByDoubleColon((_3_name)));
+            r = (r).MSels(DCOMP.__default.SplitRustPathElement(DCOMP.__default.ReplaceDotByDoubleColon((_3_name)), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")));
           }
         }
       }

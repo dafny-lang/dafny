@@ -26,7 +26,7 @@ namespace FactorPathsOptimization {
         return mod;
       } else {
         FactorPathsOptimization._IMapping _0_mappings = (FactorPathsOptimization.__default.PathsVisitor()).VisitMod(FactorPathsOptimization.Mapping.create(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.FromElements(), Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements()), mod, SelfPath);
-        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> _1_pathsToRemove = (_0_mappings).ToFinalReplacement();
+        Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> _1_pathsToRemove = (_0_mappings).ToFinalReplacement(SelfPath);
         Dafny.ISequence<RAST._IModDecl> _2_imports = (_0_mappings).ToUseStatements(_1_pathsToRemove, SelfPath);
         RAST._IMod _3_mod = (FactorPathsOptimization.__default.PathSimplifier(_1_pathsToRemove)).ReplaceMod(mod, SelfPath);
         RAST._IMod _4_dt__update__tmp_h0 = _3_mod;
@@ -136,17 +136,35 @@ namespace FactorPathsOptimization {
     {
       if (_source2.is_TraitDecl) {
         RAST._ITrait _17_tr = _source2.dtor_tr;
-        return _8_current;
+        RAST._IType _source3 = (_17_tr).dtor_tpe;
+        {
+          if (_source3.is_TypeApp) {
+            RAST._IType baseName0 = _source3.dtor_baseName;
+            if (baseName0.is_TIdentifier) {
+              Dafny.ISequence<Dafny.Rune> _18_name = baseName0.dtor_name;
+              return (_8_current).Add(_18_name, _10_prefix);
+            }
+          }
+        }
+        {
+          if (_source3.is_TIdentifier) {
+            Dafny.ISequence<Dafny.Rune> _19_name = _source3.dtor_name;
+            return (_8_current).Add(_19_name, _10_prefix);
+          }
+        }
+        {
+          return _8_current;
+        }
       }
     }
     {
       if (_source2.is_TopFnDecl) {
-        RAST._ITopFnDecl _18_fn = _source2.dtor_fn;
-        return (_8_current).Add(((_18_fn).dtor_fn).dtor_name, _10_prefix);
+        RAST._ITopFnDecl _20_fn = _source2.dtor_fn;
+        return (_8_current).Add(((_20_fn).dtor_fn).dtor_name, _10_prefix);
       }
     }
     {
-      RAST._IUse _19_use = _source2.dtor_use;
+      RAST._IUse _21_use = _source2.dtor_use;
       return _8_current;
     }
   }))();
@@ -215,7 +233,7 @@ namespace FactorPathsOptimization {
     Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> dtor_keys { get; }
     _IMapping DowncastClone();
     FactorPathsOptimization._IMapping Add(Dafny.ISequence<Dafny.Rune> k, RAST._IPath path);
-    Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> ToFinalReplacement();
+    Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> ToFinalReplacement(RAST._IPath SelfPath);
     Dafny.ISequence<RAST._IModDecl> ToUseStatements(Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> finalReplacement, RAST._IPath SelfPath);
   }
   public class Mapping : _IMapping {
@@ -287,25 +305,22 @@ namespace FactorPathsOptimization {
         return FactorPathsOptimization.Mapping.create(_4_dt__update_hprovenance_h1, _3_dt__update_hkeys_h0);
       }
     }
-    public Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> ToFinalReplacement() {
-      return ((System.Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>)(() => {
+    public Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> ToFinalReplacement(RAST._IPath SelfPath) {
+      return Dafny.Helpers.Id<Func<RAST._IPath, Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>>((_0_SelfPath) => ((System.Func<Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>)(() => {
         var _coll0 = new System.Collections.Generic.List<Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>>();
         foreach (Dafny.ISequence<Dafny.Rune> _compr_0 in ((this).dtor_provenance).Keys.Elements) {
-          Dafny.ISequence<Dafny.Rune> _0_identifier = (Dafny.ISequence<Dafny.Rune>)_compr_0;
-          if (((this).dtor_provenance).Contains(_0_identifier)) {
-            foreach (Dafny.ISet<RAST._IPath> _compr_1 in Dafny.Helpers.SingleValue<Dafny.ISet<RAST._IPath>>(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_0_identifier))) {
-              Dafny.ISet<RAST._IPath> _1_paths = (Dafny.ISet<RAST._IPath>)_compr_1;
-              if (((_1_paths).Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_0_identifier))) && (((new BigInteger((_1_paths).Count)) == (BigInteger.One)) || (Dafny.Helpers.Id<Func<Dafny.ISet<RAST._IPath>, bool>>((_2_paths) => Dafny.Helpers.Quantifier<RAST._IPath>(Dafny.Helpers.SingleValue<RAST._IPath>(RAST.__default.dafny__runtime), false, (((_exists_var_0) => {
-                RAST._IPath _3_p = (RAST._IPath)_exists_var_0;
-                return ((_2_paths).Contains(_3_p)) && (object.Equals(_3_p, RAST.__default.dafny__runtime));
-              }))))(_1_paths)))) {
-                _coll0.Add(new Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>(_0_identifier, (((new BigInteger((_1_paths).Count)) == (BigInteger.One)) ? (FactorPathsOptimization.__default.UniqueElementOf<RAST._IPath>(_1_paths)) : (RAST.__default.dafny__runtime))));
+          Dafny.ISequence<Dafny.Rune> _1_identifier = (Dafny.ISequence<Dafny.Rune>)_compr_0;
+          if (((this).dtor_provenance).Contains(_1_identifier)) {
+            foreach (Dafny.ISet<RAST._IPath> _compr_1 in Dafny.Helpers.SingleValue<Dafny.ISet<RAST._IPath>>(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_1_identifier))) {
+              Dafny.ISet<RAST._IPath> _2_paths = (Dafny.ISet<RAST._IPath>)_compr_1;
+              if (((_2_paths).Equals(Dafny.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISet<RAST._IPath>>.Select((this).dtor_provenance,_1_identifier))) && ((((new BigInteger((_2_paths).Count)) == (BigInteger.One)) || ((_2_paths).Contains(_0_SelfPath))) || ((_2_paths).Contains(RAST.__default.dafny__runtime)))) {
+                _coll0.Add(new Dafny.Pair<Dafny.ISequence<Dafny.Rune>,RAST._IPath>(_1_identifier, (((new BigInteger((_2_paths).Count)) == (BigInteger.One)) ? (FactorPathsOptimization.__default.UniqueElementOf<RAST._IPath>(_2_paths)) : ((((_2_paths).Contains(_0_SelfPath)) ? (_0_SelfPath) : (RAST.__default.dafny__runtime))))));
               }
             }
           }
         }
         return Dafny.Map<Dafny.ISequence<Dafny.Rune>,RAST._IPath>.FromCollection(_coll0);
-      }))();
+      }))())(SelfPath);
     }
     public Dafny.ISequence<RAST._IModDecl> ToUseStatements(Dafny.IMap<Dafny.ISequence<Dafny.Rune>,RAST._IPath> finalReplacement, RAST._IPath SelfPath)
     {
