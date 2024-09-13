@@ -8,6 +8,11 @@ module DafnyToRustCompilerCoverage {
     import Strings = Std.Strings
     import ExpressionOptimization
 
+    method AssertCoverage(x: bool)
+    {
+      expect x;
+    }
+
     method TestExpr() {
       TestOptimizeToString();
       TestPrintingInfo();
@@ -171,11 +176,6 @@ module DafnyToRustCompilerCoverage {
       AssertCoverage(BinaryOp(">>=", x, y, bnf).printingInfo == PrecedenceAssociativity(110, RightToLeft));
       AssertCoverage(BinaryOp("?!?", x, y, bnf).printingInfo == PrecedenceAssociativity(0, RequiresParentheses));
       AssertCoverage(Break(None).printingInfo == UnknownPrecedence());
-    }
-
-    method AssertCoverage(x: bool)
-    {
-      expect x;
     }
 
     method TestNoExtraSemicolonAfter() {

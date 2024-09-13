@@ -15,6 +15,11 @@ using System.Collections;
 namespace DafnyToRustCompilerCoverage.RASTCoverage {
 
   public partial class __default {
+    public static void AssertCoverage(bool x)
+    {
+      if (!(x)) {
+        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(13,6): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
+    }
     public static void TestExpr()
     {
       DafnyToRustCompilerCoverage.RASTCoverage.__default.TestOptimizeToString();
@@ -144,11 +149,6 @@ namespace DafnyToRustCompilerCoverage.RASTCoverage {
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage(object.Equals((RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(">>="), _0_x, _1_y, _2_bnf)).printingInfo, RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(110), RAST.Associativity.create_RightToLeft())));
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage(object.Equals((RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("?!?"), _0_x, _1_y, _2_bnf)).printingInfo, RAST.PrintingInfo.create_PrecedenceAssociativity(BigInteger.Zero, RAST.Associativity.create_RequiresParentheses())));
       DafnyToRustCompilerCoverage.RASTCoverage.__default.AssertCoverage(object.Equals((RAST.Expr.create_Break(Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None())).printingInfo, RAST.PrintingInfo.create_UnknownPrecedence()));
-    }
-    public static void AssertCoverage(bool x)
-    {
-      if (!(x)) {
-        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(180,6): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
     }
     public static void TestNoExtraSemicolonAfter()
     {
