@@ -639,7 +639,9 @@ module RAST
     function MSel(name: string): Path {
       PMemberSelect(this, name)
     }
-    function MSels(names: seq<string>): Path {
+    function MSels(names: seq<string>): Path
+      decreases |names|
+    {
       if |names| == 0 then this else
       this.MSel(names[0]).MSels(names[1..])
     }
