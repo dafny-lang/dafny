@@ -71,11 +71,11 @@ pub mod dafny_runtime_conversions {
         pub type DafnyArray2<T> = crate::Object<crate::Array2<T>>;
         pub type DafnyArray3<T> = crate::Object<crate::Array3<T>>;
         // Conversion to and from Dafny reference-counted classes. All these methods take ownership of the class.
-        pub unsafe fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
+        pub fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
             let t: &T = crate::rd!(ptr);
             t.clone()
         }
-        pub unsafe fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
+        pub fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
             Box::new(dafny_class_to_struct(ptr))
         }
         pub unsafe fn dafny_class_to_rc_struct<T: Clone + ?Sized>(ptr: DafnyClass<T>) -> ::std::rc::Rc<T> {
@@ -87,7 +87,7 @@ pub mod dafny_runtime_conversions {
         pub fn boxed_struct_to_dafny_class<T>(t: Box<T>) -> DafnyClass<T> {
             struct_to_dafny_class(*t)
         }
-        pub unsafe fn rc_struct_to_dafny_class<T>(t: ::std::rc::Rc<T>) -> DafnyClass<T> {
+        pub unsafe fn rc_struct_to_dafny_class<T: ?Sized>(t: ::std::rc::Rc<T>) -> DafnyClass<T> {
             crate::Object::from_rc(t)
         }
         // Conversions to and from Dafny arrays. They all take ownership
