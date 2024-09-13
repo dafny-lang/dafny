@@ -1676,7 +1676,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   }
 
   datatype PointerType = Raw | RcMut
-  datatype CharType = UTF16 | Unicode
+  datatype CharType = UTF16 | UTF32
   datatype RootType = RootCrate | RootPath(moduleName: string)
 
   datatype GenTypeContext =
@@ -1798,9 +1798,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
 
     const thisFile: R.Path := if rootType.RootCrate? then R.crate else R.crate.MSel(rootType.moduleName)
 
-    const DafnyChar := if charType.Unicode? then "DafnyChar" else "DafnyCharUTF16"
-    const DafnyCharUnderlying := if charType.Unicode? then R.RawType("char") else R.RawType("u16")
-    const string_of := if charType.Unicode? then "string_of" else "string_utf16_of"
+    const DafnyChar := if charType.UTF32? then "DafnyChar" else "DafnyCharUTF16"
+    const DafnyCharUnderlying := if charType.UTF32? then R.RawType("char") else R.RawType("u16")
+    const string_of := if charType.UTF32? then "string_of" else "string_utf16_of"
     const allocate :=
       if pointerType.Raw? then "allocate" else "allocate_object"
     const allocate_fn := "_" + allocate
@@ -3914,7 +3914,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         }
         case Literal(CharLiteral(c)) => {
           r := R.LiteralInt(Strings.OfNat(c as nat));
-          if !charType.Unicode? {
+          if !charType.UTF32? {
             r := R.TypeAscription(r, R.U16);
           } else {
             r :=
@@ -4425,7 +4425,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case (Primitive(Int), Primitive(Char)) => {
             var rhsType := GenType(toTpe, GenTypeContext.default());
             var recursiveGen, _, recIdents := GenExpr(expr, selfIdent, env, OwnershipOwned);
-            r := R.RawExpr("::dafny_runtime::" + DafnyChar + "(" + (if charType.Unicode? then "char::from_u32(<u32" else "<u16") + " as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap())" + if charType.Unicode? then ".unwrap())" else "");
+            r := R.RawExpr("::dafny_runtime::" + DafnyChar + "(" + (if charType.UTF32? then "char::from_u32(<u32" else "<u16") + " as ::dafny_runtime::NumCast>::from(" + recursiveGen.ToString(IND) + ").unwrap())" + if charType.UTF32? then ".unwrap())" else "");
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }

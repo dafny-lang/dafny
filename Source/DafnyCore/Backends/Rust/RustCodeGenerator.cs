@@ -18,7 +18,7 @@ namespace Microsoft.Dafny.Compilers {
     public override void Compile(Sequence<DAST.Module> program, Sequence<ISequence<Rune>> otherFiles, ConcreteSyntaxTree w) {
       var c = new DCOMP.COMP();
       var charType = Options.Get(CommonOptionBag.UnicodeCharacters)
-        ? DCOMP.CharType.create_Unicode()
+        ? DCOMP.CharType.create_UTF32()
         : DCOMP.CharType.create_UTF16();
       var pointerType = Options.Get(CommonOptionBag.RawPointers)
         ? PointerType.create_Raw()
