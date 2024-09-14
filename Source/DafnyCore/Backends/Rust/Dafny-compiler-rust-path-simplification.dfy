@@ -218,7 +218,7 @@ module FactorPathsOptimization {
            || dafny_runtime in paths)
         ::
           identifier := if |paths| == 1 then UniqueElementOf(paths) else
-            if SelfPath in paths then SelfPath else dafny_runtime
+                        if SelfPath in paths then SelfPath else dafny_runtime
     }
     // Given a final replacement map,
     // creates a sequence of use statements to be inserted at the beginning of the module

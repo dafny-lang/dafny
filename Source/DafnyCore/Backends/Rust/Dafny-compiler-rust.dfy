@@ -2132,10 +2132,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     if |s| == 0 then
       if acc == "" then result else result + [acc]
     else
-      if |s| >= 2 && s[0..2] =="::" then
-        SplitRustPathElement(s[2..], result + [acc], "")
-      else
-        SplitRustPathElement(s[1..], result, acc + [s[0]])
+    if |s| >= 2 && s[0..2] =="::" then
+      SplitRustPathElement(s[2..], result + [acc], "")
+    else
+      SplitRustPathElement(s[1..], result, acc + [s[0]])
   }
 
   function ExtractExtern(attributes: seq<Attribute>, dafnyName: Name): (res: ExternAttribute) {
