@@ -55,13 +55,12 @@ public abstract class DafnyExecutableBackend : ExecutableBackend {
     ((DafnyCodeGenerator)codeGenerator).Start();
     codeGenerator.Compile(dafnyProgram, new ConcreteSyntaxTree());
     var dast = ((DafnyCodeGenerator)codeGenerator).Build();
-    var o = DafnyCodeGenerator.Compile(
+    DafnyCodeGenerator.Compile(
       (Sequence<DAST.Module>)Sequence<DAST.Module>.FromArray(dast.ToArray()),
       (Sequence<ISequence<Rune>>)Sequence<ISequence<Rune>>.FromArray(
         ImportFiles(dafnyProgramName).Select(fileName =>
           Sequence<Rune>.UnicodeFromString(Path.GetFileName(fileName))).ToArray()
-      ));
-    output.Write(o.ToVerbatimString(false));
+      ), output);
   }
 
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree output) {
