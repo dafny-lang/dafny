@@ -1,2 +1,0 @@
-Dafny-to-Rust: `{:test}` methods generate `#[test]` wrappers in Rust that can be invoked using `cargo test`.
-Similarly, `{:rust_cfg_test}` on modules generates a `#[cfg(test)]` in the resulting rust module.
