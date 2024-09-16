@@ -365,15 +365,14 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
 
-    public MethodBuilder Method(
-      bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
+    public MethodBuilder Method(bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      ISequence<_IAttribute> attributes,
       string name,
-      List<DAST.TypeArgDecl> typeArgs,
+      List<TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
-      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
-    ) {
-      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeArgs, params_, outTypes, outVars);
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, attributes, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -392,11 +391,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
+    private ISequence<_IAttribute> attributes;
 
     public MethodBuilder(
       ClassLike parent,
       bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      ISequence<_IAttribute> attributes,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
@@ -408,6 +409,7 @@ namespace Microsoft.Dafny.Compilers {
       this.outVarsAreUninitFieldsToAssign = outVarsAreUninitFieldsToAssign;
       this.wasFunction = wasFunction;
       this.overridingPath = overridingPath;
+      this.attributes = attributes;
       this.name = name;
       this.typeArgs = typeArgs;
       this.params_ = params_;
@@ -434,6 +436,7 @@ namespace Microsoft.Dafny.Compilers {
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Method)DAST.Method.create(
+        attributes,
         isStatic,
         hasBody,
         outVarsAreUninitFieldsToAssign,
