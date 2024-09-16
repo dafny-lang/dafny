@@ -1005,8 +1005,10 @@ method test() {
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithTimeoutReportsTimeoutDiagnostic.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Single(diagnostics);
-      Assert.Contains("timed out", diagnostics[0].Message);
+      Assert.True(diagnostics.Length == 1 || diagnostics.Length == 2); // Ack and Test sometimes time out at the same time
+      for (var i = 0; i < diagnostics.Length; i++) {
+        Assert.Contains("timed out", diagnostics[i].Message);
+      }
     }
 
     [Fact]
