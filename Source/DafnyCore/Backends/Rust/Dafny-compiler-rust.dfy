@@ -3224,9 +3224,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case _ => enclosingType
         };
         if (forTrait) {
-          // Mutability is required when not using raw pointers, even for functione, because
-          // --release optimisations sometimes removes the code to increment the reference counting on upcasting
-          var selfFormal := if m.wasFunction && pointerType.Raw? then R.Formal.selfBorrowed else R.Formal.selfBorrowedMut;
+          var selfFormal := if m.wasFunction then R.Formal.selfBorrowed else R.Formal.selfBorrowedMut;
           params := [selfFormal] + params;
         } else {
           var tpe := GenType(instanceType, GenTypeContext.default());
@@ -3237,7 +3235,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // For raw pointers, no borrowing is necessary, because it implements the Copy type
           } else if selfId == "self" {
             if tpe.IsObjectOrPointer() { // For classes and traits
-              if m.wasFunction && pointerType.Raw? {
+              if m.wasFunction {
                 tpe := R.SelfBorrowed;
               } else {
                 tpe := R.SelfBorrowedMut;
@@ -3960,7 +3958,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         case Literal(Null(tpe)) => {
           var tpeGen := GenType(tpe, GenTypeContext.default());
           if pointerType.Raw? {
-            r := R.std.MSel("ptr").FSel("null_mut");
+            r := R.dafny_runtime.MSel("Ptr").AsExpr().FSel("null").Apply([]);
           } else {
             r := R.TypeAscription(R.dafny_runtime.MSel("Object").AsExpr().Apply1(R.RawExpr("None")), tpeGen);
           }
@@ -5158,12 +5156,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                   r := R.Identifier("this");
                 case _ =>
               }
-              if pointerType.Raw? {
-                r := read_macro.Apply1(r);
-              } else {
+              if pointerType.RcMut?  {
                 r := r.Clone();
-                r := modify_macro.Apply1(r); // Functions have to take &mut because of upcasting
               }
+              r := read_macro.Apply1(r);
             }
             r := r.Sel(escapeVar(field));
             if isConstant {
@@ -5288,15 +5284,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               var onExpr, recOwnership, recIdents;
               if base.Trait? || base.Class? {
                 onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipOwned);
-                if pointerType.Raw? {
-                  onExpr := read_macro.Apply1(onExpr);
-                } else {
-                  onExpr := modify_macro.Apply1(onExpr);
-                }
+                onExpr := read_macro.Apply1(onExpr);
                 readIdents := readIdents + recIdents;
               } else {
-                var expectedOnOwnership := if pointerType.Raw? then OwnershipBorrowed else OwnershipBorrowedMut;
-                onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, expectedOnOwnership);
+                onExpr, recOwnership, recIdents := GenExpr(on, selfIdent, env, OwnershipBorrowed);
                 readIdents := readIdents + recIdents;
               }
               r := fullPath.ApplyType(onTypeExprs).FSel(escapeName(name.name)).ApplyType(typeExprs).Apply([onExpr] + argExprs);
@@ -5316,11 +5307,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       case CallName(_, Some(tpe), _, _, _) =>
                         var typ := GenType(tpe, GenTypeContext.default());
                         if typ.IsObjectOrPointer() {
-                          if pointerType.Raw? {
-                            onExpr := read_macro.Apply1(onExpr);
-                          } else {
-                            onExpr := modify_macro.Apply1(onExpr);
-                          }
+                          onExpr := read_macro.Apply1(onExpr);
                         }
                       case _ =>
                     }
