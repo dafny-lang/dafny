@@ -329,8 +329,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
     var rr = new MemberSelectExpr(func.Tok, receiver, callableName);
     rr.Type = new InferredTypeProxy();
     rr.Member = member;
-    rr.TypeApplication_JustMember = new List<Type>();
-    rr.TypeApplication_AtEnclosingClass = args;
+    rr.TypeApplicationJustMember = new List<Type>();
+    rr.TypeApplicationAtEnclosingClass = args;
 
     var call = new CallStmt(func.RangeToken, new List<Expression>(), rr, new List<ActualBinding>(),
       func.Tok);

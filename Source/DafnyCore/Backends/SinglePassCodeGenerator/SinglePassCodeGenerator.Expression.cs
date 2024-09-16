@@ -86,7 +86,7 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write(preStr);
 
               if (sf.IsStatic && !SupportsStaticsInGenericClasses && sf.EnclosingClass.TypeArgs.Count != 0) {
-                var typeArgs = e.TypeApplication_AtEnclosingClass;
+                var typeArgs = e.TypeApplicationAtEnclosingClass;
                 Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
                 wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
                 EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, null, false, wr);
@@ -100,8 +100,8 @@ namespace Microsoft.Dafny.Compilers {
                   TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
                 }
 
-                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass,
-                  e.TypeApplication_JustMember);
+                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
+                  e.TypeApplicationJustMember);
                 EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
                   selectExpr.Type).EmitRead(wr);
               }
@@ -109,7 +109,7 @@ namespace Microsoft.Dafny.Compilers {
               wr.Write(postStr);
             } else {
               var typeArgs =
-                CombineAllTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
+                CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass, e.TypeApplicationJustMember);
               var typeMap = e.TypeArgumentSubstitutionsWithParents();
               var customReceiver = NeedsCustomReceiverNotTrait(e.Member);
               if (!customReceiver && !e.Member.IsStatic) {

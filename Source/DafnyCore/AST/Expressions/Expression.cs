@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 
 namespace Microsoft.Dafny;
@@ -49,7 +50,7 @@ public abstract class Expression : TokenNode {
   public Type Type {
     get {
       Contract.Ensures(type != null || Contract.Result<Type>() == null);  // useful in conjunction with postcondition of constructor
-      return type == null ? null : type.Normalize();
+      return type?.Normalize();
     }
     set {
       Contract.Requires(!WasResolved());  // set it only once
@@ -127,6 +128,23 @@ public abstract class Expression : TokenNode {
     get { yield break; }
   }
 
+  public IEnumerable<Expression> DescendantsAndSelf {
+    get {
+      Stack<Expression> todo = new();
+      List<Expression> result = new();
+      todo.Push(this);
+      while (todo.Any()) {
+        var current = todo.Pop();
+        result.Add(current);
+        foreach (var child in current.SubExpressions) {
+          todo.Push(child);
+        }
+      }
+
+      return result;
+    }
+  }
+
   /// <summary>
   /// Returns the list of types that appear in this expression proper (that is, not including types that
   /// may appear in subexpressions). Types occurring in substatements of the expression are not included.
@@ -136,9 +154,7 @@ public abstract class Expression : TokenNode {
     get { yield break; }
   }
 
-  public virtual bool IsImplicit {
-    get { return false; }
-  }
+  public virtual bool IsImplicit => false;
 
   public static IEnumerable<Expression> Conjuncts(Expression expr) {
     Contract.Requires(expr != null);
@@ -769,7 +785,7 @@ public abstract class Expression : TokenNode {
   /// Wrap the resolved MemberSelectExpr in the usual unresolved structure, in case the expression is cloned and re-resolved.
   /// </summary>
   public static Expression WrapResolvedMemberSelect(MemberSelectExpr memberSelectExpr) {
-    List<Type> optTypeArguments = memberSelectExpr.TypeApplication_JustMember.Count == 0 ? null : memberSelectExpr.TypeApplication_JustMember;
+    List<Type> optTypeArguments = memberSelectExpr.TypeApplicationJustMember.Count == 0 ? null : memberSelectExpr.TypeApplicationJustMember;
     return new ExprDotName(memberSelectExpr.tok, memberSelectExpr.Obj, memberSelectExpr.MemberName, optTypeArguments) {
       ResolvedExpression = memberSelectExpr,
       Type = memberSelectExpr.Type
@@ -908,4 +924,10 @@ public abstract class Expression : TokenNode {
 
   public override IEnumerable<INode> Children => SubExpressions;
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  public static Expression CreateAssigned(IToken tok, IdentifierExpr inner) {
+    return new UnaryOpExpr(tok, UnaryOpExpr.Opcode.Assigned, inner) {
+      Type = Type.Bool
+    };
+  }
 }

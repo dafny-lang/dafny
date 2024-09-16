@@ -102,7 +102,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       return false;
     } else if (stmt is CallStmt) {
       var s = (CallStmt)stmt;
-      CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
+      CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplicationJustMember, inGhostContext);
       // recursively visit all subexpressions, noting that some of them may correspond to ghost formal parameters
       Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
       for (var i = 0; i < s.Method.Outs.Count; i++) {
@@ -243,7 +243,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     } else if (expr is MemberSelectExpr) {
       var e = (MemberSelectExpr)expr;
       if (e.Member is Function || e.Member is Method) {
-        CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember, inGhostContext);
+        CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplicationJustMember, inGhostContext);
       }
     } else if (expr is FunctionCallExpr) {
       var e = (FunctionCallExpr)expr;

@@ -877,7 +877,7 @@ namespace Microsoft.Dafny {
         if (callee != null) {
           // We're looking at a method call
           if (callee.Outs.Count != 0) {
-            var typeMap = PreType.PreTypeSubstMap(callee.TypeArgs, methodCallInfo.Callee.PreTypeApplication_JustMember);
+            var typeMap = PreType.PreTypeSubstMap(callee.TypeArgs, methodCallInfo.Callee.PreTypeApplicationJustMember);
             firstPreType = callee.Outs[0].PreType.Substitute(typeMap);
           } else {
             ReportError(s.Rhs.tok, $"Expected '{callee.Name}' to have a success/failure output value, but the method returns nothing.");

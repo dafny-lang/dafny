@@ -513,47 +513,47 @@ namespace DCOMP {
     }
   }
 
-  public interface _IObjectType {
-    bool is_RawPointers { get; }
+  public interface _IPointerType {
+    bool is_Raw { get; }
     bool is_RcMut { get; }
-    _IObjectType DowncastClone();
+    _IPointerType DowncastClone();
   }
-  public abstract class ObjectType : _IObjectType {
-    public ObjectType() {
+  public abstract class PointerType : _IPointerType {
+    public PointerType() {
     }
-    private static readonly DCOMP._IObjectType theDefault = create_RawPointers();
-    public static DCOMP._IObjectType Default() {
+    private static readonly DCOMP._IPointerType theDefault = create_Raw();
+    public static DCOMP._IPointerType Default() {
       return theDefault;
     }
-    private static readonly Dafny.TypeDescriptor<DCOMP._IObjectType> _TYPE = new Dafny.TypeDescriptor<DCOMP._IObjectType>(DCOMP.ObjectType.Default());
-    public static Dafny.TypeDescriptor<DCOMP._IObjectType> _TypeDescriptor() {
+    private static readonly Dafny.TypeDescriptor<DCOMP._IPointerType> _TYPE = new Dafny.TypeDescriptor<DCOMP._IPointerType>(DCOMP.PointerType.Default());
+    public static Dafny.TypeDescriptor<DCOMP._IPointerType> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IObjectType create_RawPointers() {
-      return new ObjectType_RawPointers();
+    public static _IPointerType create_Raw() {
+      return new PointerType_Raw();
     }
-    public static _IObjectType create_RcMut() {
-      return new ObjectType_RcMut();
+    public static _IPointerType create_RcMut() {
+      return new PointerType_RcMut();
     }
-    public bool is_RawPointers { get { return this is ObjectType_RawPointers; } }
-    public bool is_RcMut { get { return this is ObjectType_RcMut; } }
-    public static System.Collections.Generic.IEnumerable<_IObjectType> AllSingletonConstructors {
+    public bool is_Raw { get { return this is PointerType_Raw; } }
+    public bool is_RcMut { get { return this is PointerType_RcMut; } }
+    public static System.Collections.Generic.IEnumerable<_IPointerType> AllSingletonConstructors {
       get {
-        yield return ObjectType.create_RawPointers();
-        yield return ObjectType.create_RcMut();
+        yield return PointerType.create_Raw();
+        yield return PointerType.create_RcMut();
       }
     }
-    public abstract _IObjectType DowncastClone();
+    public abstract _IPointerType DowncastClone();
   }
-  public class ObjectType_RawPointers : ObjectType {
-    public ObjectType_RawPointers() : base() {
+  public class PointerType_Raw : PointerType {
+    public PointerType_Raw() : base() {
     }
-    public override _IObjectType DowncastClone() {
-      if (this is _IObjectType dt) { return dt; }
-      return new ObjectType_RawPointers();
+    public override _IPointerType DowncastClone() {
+      if (this is _IPointerType dt) { return dt; }
+      return new PointerType_Raw();
     }
     public override bool Equals(object other) {
-      var oth = other as DCOMP.ObjectType_RawPointers;
+      var oth = other as DCOMP.PointerType_Raw;
       return oth != null;
     }
     public override int GetHashCode() {
@@ -562,19 +562,19 @@ namespace DCOMP {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "DafnyToRustCompiler.ObjectType.RawPointers";
+      string s = "DafnyToRustCompiler.PointerType.Raw";
       return s;
     }
   }
-  public class ObjectType_RcMut : ObjectType {
-    public ObjectType_RcMut() : base() {
+  public class PointerType_RcMut : PointerType {
+    public PointerType_RcMut() : base() {
     }
-    public override _IObjectType DowncastClone() {
-      if (this is _IObjectType dt) { return dt; }
-      return new ObjectType_RcMut();
+    public override _IPointerType DowncastClone() {
+      if (this is _IPointerType dt) { return dt; }
+      return new PointerType_RcMut();
     }
     public override bool Equals(object other) {
-      var oth = other as DCOMP.ObjectType_RcMut;
+      var oth = other as DCOMP.PointerType_RcMut;
       return oth != null;
     }
     public override int GetHashCode() {
@@ -583,7 +583,164 @@ namespace DCOMP {
       return (int) hash;
     }
     public override string ToString() {
-      string s = "DafnyToRustCompiler.ObjectType.RcMut";
+      string s = "DafnyToRustCompiler.PointerType.RcMut";
+      return s;
+    }
+  }
+
+  public interface _ICharType {
+    bool is_UTF16 { get; }
+    bool is_UTF32 { get; }
+    _ICharType DowncastClone();
+  }
+  public abstract class CharType : _ICharType {
+    public CharType() {
+    }
+    private static readonly DCOMP._ICharType theDefault = create_UTF16();
+    public static DCOMP._ICharType Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DCOMP._ICharType> _TYPE = new Dafny.TypeDescriptor<DCOMP._ICharType>(DCOMP.CharType.Default());
+    public static Dafny.TypeDescriptor<DCOMP._ICharType> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _ICharType create_UTF16() {
+      return new CharType_UTF16();
+    }
+    public static _ICharType create_UTF32() {
+      return new CharType_UTF32();
+    }
+    public bool is_UTF16 { get { return this is CharType_UTF16; } }
+    public bool is_UTF32 { get { return this is CharType_UTF32; } }
+    public static System.Collections.Generic.IEnumerable<_ICharType> AllSingletonConstructors {
+      get {
+        yield return CharType.create_UTF16();
+        yield return CharType.create_UTF32();
+      }
+    }
+    public abstract _ICharType DowncastClone();
+  }
+  public class CharType_UTF16 : CharType {
+    public CharType_UTF16() : base() {
+    }
+    public override _ICharType DowncastClone() {
+      if (this is _ICharType dt) { return dt; }
+      return new CharType_UTF16();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DCOMP.CharType_UTF16;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DafnyToRustCompiler.CharType.UTF16";
+      return s;
+    }
+  }
+  public class CharType_UTF32 : CharType {
+    public CharType_UTF32() : base() {
+    }
+    public override _ICharType DowncastClone() {
+      if (this is _ICharType dt) { return dt; }
+      return new CharType_UTF32();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DCOMP.CharType_UTF32;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DafnyToRustCompiler.CharType.UTF32";
+      return s;
+    }
+  }
+
+  public interface _IRootType {
+    bool is_RootCrate { get; }
+    bool is_RootPath { get; }
+    Dafny.ISequence<Dafny.Rune> dtor_moduleName { get; }
+    _IRootType DowncastClone();
+  }
+  public abstract class RootType : _IRootType {
+    public RootType() {
+    }
+    private static readonly DCOMP._IRootType theDefault = create_RootCrate();
+    public static DCOMP._IRootType Default() {
+      return theDefault;
+    }
+    private static readonly Dafny.TypeDescriptor<DCOMP._IRootType> _TYPE = new Dafny.TypeDescriptor<DCOMP._IRootType>(DCOMP.RootType.Default());
+    public static Dafny.TypeDescriptor<DCOMP._IRootType> _TypeDescriptor() {
+      return _TYPE;
+    }
+    public static _IRootType create_RootCrate() {
+      return new RootType_RootCrate();
+    }
+    public static _IRootType create_RootPath(Dafny.ISequence<Dafny.Rune> moduleName) {
+      return new RootType_RootPath(moduleName);
+    }
+    public bool is_RootCrate { get { return this is RootType_RootCrate; } }
+    public bool is_RootPath { get { return this is RootType_RootPath; } }
+    public Dafny.ISequence<Dafny.Rune> dtor_moduleName {
+      get {
+        var d = this;
+        return ((RootType_RootPath)d)._moduleName;
+      }
+    }
+    public abstract _IRootType DowncastClone();
+  }
+  public class RootType_RootCrate : RootType {
+    public RootType_RootCrate() : base() {
+    }
+    public override _IRootType DowncastClone() {
+      if (this is _IRootType dt) { return dt; }
+      return new RootType_RootCrate();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DCOMP.RootType_RootCrate;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DafnyToRustCompiler.RootType.RootCrate";
+      return s;
+    }
+  }
+  public class RootType_RootPath : RootType {
+    public readonly Dafny.ISequence<Dafny.Rune> _moduleName;
+    public RootType_RootPath(Dafny.ISequence<Dafny.Rune> moduleName) : base() {
+      this._moduleName = moduleName;
+    }
+    public override _IRootType DowncastClone() {
+      if (this is _IRootType dt) { return dt; }
+      return new RootType_RootPath(_moduleName);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DCOMP.RootType_RootPath;
+      return oth != null && object.Equals(this._moduleName, oth._moduleName);
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 1;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._moduleName));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DafnyToRustCompiler.RootType.RootPath";
+      s += "(";
+      s += this._moduleName.ToVerbatimString(true);
+      s += ")";
       return s;
     }
   }
@@ -913,18 +1070,19 @@ namespace DCOMP {
     public COMP() {
       this.error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.Default();
       this.optimizations = Dafny.Sequence<Func<RAST._IMod, RAST._IMod>>.Empty;
-      this._UnicodeChars = false;
-      this._ObjectType = DCOMP.ObjectType.Default();
+      this._charType = DCOMP.CharType.Default();
+      this._pointerType = DCOMP.PointerType.Default();
+      this._rootType = DCOMP.RootType.Default();
     }
     public RAST._IType Object(RAST._IType underlying) {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return RAST.__default.PtrType(underlying);
       } else {
         return RAST.__default.ObjectType(underlying);
       }
     }
     public Dafny.ISequence<Dafny.Rune> UnreachablePanicIfVerified(Dafny.ISequence<Dafny.Rune> optText) {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("unsafe { ::std::hint::unreachable_unchecked() }");
       } else if ((optText).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString(""))) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("panic!()");
@@ -934,12 +1092,13 @@ namespace DCOMP {
     }
     public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> error {get; set;}
     public Dafny.ISequence<Func<RAST._IMod, RAST._IMod>> optimizations {get; set;}
-    public void __ctor(bool unicodeChars, DCOMP._IObjectType objectType)
+    public void __ctor(DCOMP._ICharType charType, DCOMP._IPointerType pointerType, DCOMP._IRootType rootType)
     {
-      (this)._UnicodeChars = unicodeChars;
-      (this)._ObjectType = objectType;
+      (this)._charType = charType;
+      (this)._pointerType = pointerType;
+      (this)._rootType = rootType;
       (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_None();
-      (this).optimizations = Dafny.Sequence<Func<RAST._IMod, RAST._IMod>>.FromElements(FactorPathsOptimization.__default.apply);
+      (this).optimizations = Dafny.Sequence<Func<RAST._IMod, RAST._IMod>>.FromElements(FactorPathsOptimization.__default.apply((this).thisFile));
     }
     public static Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> ContainingPathToRust(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> containingPath) {
       return Std.Collections.Seq.__default.Map<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>(((System.Func<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>>)((_0_i) => {
@@ -982,7 +1141,7 @@ namespace DCOMP {
         _7_allmodules = _out1;
         if ((_4_optExtern).is_SimpleExtern) {
           if ((mod).dtor_requiresExterns) {
-            _6_body = Dafny.Sequence<RAST._IModDecl>.Concat(Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (((RAST.__default.crate).MSel(DCOMP.COMP.DAFNY__EXTERN__MODULE)).MSel(DCOMP.__default.ReplaceDotByDoubleColon((_4_optExtern).dtor_overrideName))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))))), _6_body);
+            _6_body = Dafny.Sequence<RAST._IModDecl>.Concat(Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), ((((this).thisFile).MSel(DCOMP.COMP.DAFNY__EXTERN__MODULE)).MSel(DCOMP.__default.ReplaceDotByDoubleColon((_4_optExtern).dtor_overrideName))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("*"))))), _6_body);
           }
         } else if ((_4_optExtern).is_AdvancedExtern) {
           (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Externs on modules can only have 1 string argument"));
@@ -1274,7 +1433,7 @@ namespace DCOMP {
       }
       RAST._IType _33_genSelfPath;
       RAST._IType _out13;
-      _out13 = DCOMP.COMP.GenPathType(path);
+      _out13 = (this).GenPathType(path);
       _33_genSelfPath = _out13;
       if (!(_22_className).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_default"))) {
         s = Dafny.Sequence<RAST._IModDecl>.Concat(s, Dafny.Sequence<RAST._IModDecl>.FromElements(RAST.ModDecl.create_ImplDecl(RAST.Impl.create_ImplFor(_2_rTypeParamsDecls, (((RAST.__default.dafny__runtime).MSel((this).Upcast)).AsType()).Apply(Dafny.Sequence<RAST._IType>.FromElements(RAST.Type.create_DynType(RAST.__default.AnyTrait))), RAST.Type.create_TypeApp(_33_genSelfPath, _1_rTypeParams), _3_whereConstraints, Dafny.Sequence<RAST._IImplMember>.FromElements(RAST.ImplMember.create_ImplMemberMacro((((RAST.__default.dafny__runtime).MSel((this).UpcastFnMacro)).AsExpr()).Apply1(RAST.Expr.create_ExprFromType(RAST.Type.create_DynType(RAST.__default.AnyTrait)))))))));
@@ -1301,7 +1460,7 @@ namespace DCOMP {
               {
                 RAST._IType _40_pathStr;
                 RAST._IType _out14;
-                _out14 = DCOMP.COMP.GenPathType(_37_traitPath);
+                _out14 = (this).GenPathType(_37_traitPath);
                 _40_pathStr = _out14;
                 Dafny.ISequence<RAST._IType> _41_typeArgs;
                 Dafny.ISequence<RAST._IType> _out15;
@@ -2054,7 +2213,7 @@ namespace DCOMP {
       }
       return s;
     }
-    public static RAST._IPath GenPath(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p, bool escape)
+    public RAST._IPath GenPath(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p, bool escape)
     {
       RAST._IPath r = RAST.Path.Default();
       if ((new BigInteger((p).Count)).Sign == 0) {
@@ -2066,7 +2225,7 @@ namespace DCOMP {
         } else if (((((p).Select(BigInteger.Zero)))).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))) {
           r = RAST.__default.dafny__runtime;
         } else {
-          r = RAST.Path.create_Crate();
+          r = (this).thisFile;
         }
         BigInteger _hi0 = new BigInteger((p).Count);
         for (BigInteger _0_i = BigInteger.Zero; _0_i < _hi0; _0_i++) {
@@ -2088,17 +2247,17 @@ namespace DCOMP {
       }
       return r;
     }
-    public static RAST._IType GenPathType(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p)
+    public RAST._IType GenPathType(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p)
     {
       RAST._IType t = RAST.Type.Default();
       RAST._IPath _0_p;
       RAST._IPath _out0;
-      _out0 = DCOMP.COMP.GenPath(p, true);
+      _out0 = (this).GenPath(p, true);
       _0_p = _out0;
       t = (_0_p).AsType();
       return t;
     }
-    public static RAST._IExpr GenPathExpr(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p, bool escape)
+    public RAST._IExpr GenPathExpr(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> p, bool escape)
     {
       RAST._IExpr e = RAST.Expr.Default();
       if ((new BigInteger((p).Count)).Sign == 0) {
@@ -2107,7 +2266,7 @@ namespace DCOMP {
       }
       RAST._IPath _0_p;
       RAST._IPath _out0;
-      _out0 = DCOMP.COMP.GenPath(p, escape);
+      _out0 = (this).GenPath(p, escape);
       _0_p = _out0;
       e = (_0_p).AsExpr();
       return e;
@@ -2139,7 +2298,7 @@ namespace DCOMP {
           {
             RAST._IType _1_t;
             RAST._IType _out0;
-            _out0 = DCOMP.COMP.GenPathType((_0_resolved).dtor_path);
+            _out0 = (this).GenPathType((_0_resolved).dtor_path);
             _1_t = _out0;
             Dafny.ISequence<RAST._IType> _2_typeArgs;
             Dafny.ISequence<RAST._IType> _out1;
@@ -2568,7 +2727,7 @@ namespace DCOMP {
           _out1 = (this).GenType(_10_instanceType, DCOMP.GenTypeContext.@default());
           _15_tpe = _out1;
           if ((_9_selfId).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("this"))) {
-            if (((this).ObjectType).is_RcMut) {
+            if (((this).pointerType).is_RcMut) {
               _15_tpe = RAST.Type.create_Borrowed(_15_tpe);
             }
           } else if ((_9_selfId).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) {
@@ -3404,7 +3563,7 @@ namespace DCOMP {
                 DAST._IResolvedTypeBase _100_base = value0.dtor_kind;
                 RAST._IExpr _101_fullPath;
                 RAST._IExpr _out56;
-                _out56 = DCOMP.COMP.GenPathExpr(_98_path, true);
+                _out56 = (this).GenPathExpr(_98_path, true);
                 _101_fullPath = _out56;
                 Dafny.ISequence<RAST._IType> _102_onTypeExprs;
                 Dafny.ISequence<RAST._IType> _out57;
@@ -3913,7 +4072,7 @@ namespace DCOMP {
             Dafny.Rune _13_c = _h175.dtor_CharLiteral_a0;
             {
               r = RAST.Expr.create_LiteralInt(Std.Strings.__default.OfNat(new BigInteger((_13_c).Value)));
-              if (!((this).UnicodeChars)) {
+              if (!(((this).charType).is_UTF32)) {
                 r = RAST.Expr.create_TypeAscription(r, RAST.Type.create_U16());
               } else {
                 r = (((((((RAST.__default.@global).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("std"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("primitive"))).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("char"))).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("from_u32"))).Apply1(r)).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("unwrap"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements());
@@ -3939,7 +4098,7 @@ namespace DCOMP {
           RAST._IType _out14;
           _out14 = (this).GenType(_14_tpe, DCOMP.GenTypeContext.@default());
           _15_tpeGen = _out14;
-          if (((this).ObjectType).is_RawPointers) {
+          if (((this).pointerType).is_Raw) {
             r = ((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Ptr"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("null"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements());
           } else {
             r = RAST.Expr.create_TypeAscription((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Object"))).AsExpr()).Apply1(RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("None"))), _15_tpeGen);
@@ -4292,7 +4451,7 @@ namespace DCOMP {
                 bool _15_referential = _source4.dtor_referential;
                 {
                   if (_15_referential) {
-                    if (((this).ObjectType).is_RawPointers) {
+                    if (((this).pointerType).is_Raw) {
                       (this).error = Std.Wrappers.Option<Dafny.ISequence<Dafny.Rune>>.create_Some(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Cannot compare raw pointers yet - need to wrap them with a structure to ensure they are compared properly"));
                       r = RAST.Expr.create_RawExpr((this.error).dtor_value);
                     } else {
@@ -5042,7 +5201,7 @@ namespace DCOMP {
                     _29_recursiveGen = _out34;
                     _30___v144 = _out35;
                     _31_recIdents = _out36;
-                    r = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::"), (this).DafnyChar), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), (((this).UnicodeChars) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("char::from_u32(<u32")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<u16")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" as ::dafny_runtime::NumCast>::from(")), (_29_recursiveGen)._ToString(DCOMP.__default.IND)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap())")), (((this).UnicodeChars) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".unwrap())")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))));
+                    r = RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("::dafny_runtime::"), (this).DafnyChar), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("(")), ((((this).charType).is_UTF32) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("char::from_u32(<u32")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<u16")))), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(" as ::dafny_runtime::NumCast>::from(")), (_29_recursiveGen)._ToString(DCOMP.__default.IND)), Dafny.Sequence<Dafny.Rune>.UnicodeFromString(").unwrap())")), ((((this).charType).is_UTF32) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString(".unwrap())")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("")))));
                     RAST._IExpr _out37;
                     DCOMP._IOwnership _out38;
                     (this).FromOwned(r, expectedOwnership, out _out37, out _out38);
@@ -5383,7 +5542,7 @@ namespace DCOMP {
           Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _1_path = _source0.dtor_ExternCompanion_a0;
           {
             RAST._IExpr _out6;
-            _out6 = DCOMP.COMP.GenPathExpr(_1_path, false);
+            _out6 = (this).GenPathExpr(_1_path, false);
             r = _out6;
             if (object.Equals(expectedOwnership, DCOMP.Ownership.create_OwnershipBorrowed())) {
               resultingOwnership = DCOMP.Ownership.create_OwnershipBorrowed();
@@ -5408,7 +5567,7 @@ namespace DCOMP {
           Dafny.ISequence<DAST._IType> _3_typeArgs = _source0.dtor_typeArgs;
           {
             RAST._IExpr _out9;
-            _out9 = DCOMP.COMP.GenPathExpr(_2_path, true);
+            _out9 = (this).GenPathExpr(_2_path, true);
             r = _out9;
             if ((new BigInteger((_3_typeArgs).Count)).Sign == 1) {
               Dafny.ISequence<RAST._IType> _4_typeExprs;
@@ -5508,7 +5667,7 @@ namespace DCOMP {
           Dafny.ISequence<DAST._IExpression> _17_args = _source0.dtor_args;
           {
             RAST._IExpr _out21;
-            _out21 = DCOMP.COMP.GenPathExpr(_15_path, true);
+            _out21 = (this).GenPathExpr(_15_path, true);
             r = _out21;
             if ((new BigInteger((_16_typeArgs).Count)).Sign == 1) {
               Dafny.ISequence<RAST._IType> _18_typeExprs;
@@ -5687,7 +5846,7 @@ namespace DCOMP {
           Dafny.ISequence<_System._ITuple2<Dafny.ISequence<Dafny.Rune>, DAST._IExpression>> _52_values = _source0.dtor_contents;
           {
             RAST._IExpr _out45;
-            _out45 = DCOMP.COMP.GenPathExpr((_48_datatypeType).dtor_path, true);
+            _out45 = (this).GenPathExpr((_48_datatypeType).dtor_path, true);
             r = _out45;
             Dafny.ISequence<RAST._IType> _53_genTypeArgs;
             _53_genTypeArgs = Dafny.Sequence<RAST._IType>.FromElements();
@@ -6623,7 +6782,7 @@ namespace DCOMP {
                 {
                 }
               after_match2: ;
-                if (((this).ObjectType).is_RcMut) {
+                if (((this).pointerType).is_RcMut) {
                   r = (r).Clone();
                 }
                 r = ((this).read__macro).Apply1(r);
@@ -6725,7 +6884,7 @@ namespace DCOMP {
           {
             DCOMP._IOwnership _249_onExpectedOwnership;
             if (_246_isArray) {
-              if (((this).ObjectType).is_RawPointers) {
+              if (((this).pointerType).is_Raw) {
                 _249_onExpectedOwnership = DCOMP.Ownership.create_OwnershipOwned();
               } else {
                 _249_onExpectedOwnership = DCOMP.Ownership.create_OwnershipBorrowed();
@@ -6812,7 +6971,7 @@ namespace DCOMP {
                 _253_methodName = Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), _253_methodName);
               }
               Dafny.ISequence<Dafny.Rune> _263_object__suffix;
-              if (((this).ObjectType).is_RawPointers) {
+              if (((this).pointerType).is_Raw) {
                 _263_object__suffix = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("");
               } else {
                 _263_object__suffix = Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_object");
@@ -6908,7 +7067,7 @@ namespace DCOMP {
                 DAST._IResolvedTypeBase _282_base = value0.dtor_kind;
                 RAST._IExpr _283_fullPath;
                 RAST._IExpr _out228;
-                _out228 = DCOMP.COMP.GenPathExpr(_280_path, true);
+                _out228 = (this).GenPathExpr(_280_path, true);
                 _283_fullPath = _out228;
                 Dafny.ISequence<RAST._IType> _284_onTypeExprs;
                 Dafny.ISequence<RAST._IType> _out229;
@@ -7289,7 +7448,7 @@ namespace DCOMP {
             _362_recIdents = _out283;
             RAST._IType _363_dTypePath;
             RAST._IType _out284;
-            _out284 = DCOMP.COMP.GenPathType(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat(_358_dType, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(_359_variant)));
+            _out284 = (this).GenPathType(Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.Concat(_358_dType, Dafny.Sequence<Dafny.ISequence<Dafny.Rune>>.FromElements(_359_variant)));
             _363_dTypePath = _out284;
             r = (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("matches!"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements(((_360_exprGen).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("as_ref"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements()), RAST.Expr.create_RawExpr(Dafny.Sequence<Dafny.Rune>.Concat((_363_dTypePath)._ToString(DCOMP.__default.IND), Dafny.Sequence<Dafny.Rune>.UnicodeFromString("{ .. }")))));
             RAST._IExpr _out285;
@@ -7734,37 +7893,48 @@ namespace DCOMP {
       s = Dafny.Sequence<Dafny.Rune>.Concat(s, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("();\n}"));
       return s;
     }
-    public bool _UnicodeChars {get; set;}
-    public bool UnicodeChars { get {
-      return this._UnicodeChars;
+    public DCOMP._ICharType _charType {get; set;}
+    public DCOMP._ICharType charType { get {
+      return this._charType;
+    } }
+    public DCOMP._IPointerType _pointerType {get; set;}
+    public DCOMP._IPointerType pointerType { get {
+      return this._pointerType;
+    } }
+    public DCOMP._IRootType _rootType {get; set;}
+    public DCOMP._IRootType rootType { get {
+      return this._rootType;
+    } }
+    public RAST._IPath thisFile { get {
+      if (((this).rootType).is_RootCrate) {
+        return RAST.__default.crate;
+      } else {
+        return (RAST.__default.crate).MSel(((this).rootType).dtor_moduleName);
+      }
     } }
     public Dafny.ISequence<Dafny.Rune> DafnyChar { get {
-      if ((this).UnicodeChars) {
+      if (((this).charType).is_UTF32) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyChar");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("DafnyCharUTF16");
       }
     } }
     public RAST._IType DafnyCharUnderlying { get {
-      if ((this).UnicodeChars) {
+      if (((this).charType).is_UTF32) {
         return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("char"));
       } else {
         return RAST.__default.RawType(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("u16"));
       }
     } }
     public Dafny.ISequence<Dafny.Rune> string__of { get {
-      if ((this).UnicodeChars) {
+      if (((this).charType).is_UTF32) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("string_of");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("string_utf16_of");
       }
     } }
-    public DCOMP._IObjectType _ObjectType {get; set;}
-    public DCOMP._IObjectType ObjectType { get {
-      return this._ObjectType;
-    } }
     public Dafny.ISequence<Dafny.Rune> allocate { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("allocate");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("allocate_object");
@@ -7774,48 +7944,48 @@ namespace DCOMP {
       return Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), (this).allocate);
     } }
     public Dafny.ISequence<Dafny.Rune> update__field__uninit__macro { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_field_uninit!");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_field_uninit_object!");
       }
     } }
     public RAST._IExpr thisInConstructor { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("this"));
       } else {
         return (RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("this"))).Clone();
       }
     } }
     public Dafny.ISequence<Dafny.Rune> array__construct { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("construct");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("construct_object");
       }
     } }
     public RAST._IExpr modify__macro { get {
-      return ((RAST.__default.dafny__runtime).MSel(((((this).ObjectType).is_RawPointers) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("modify!")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("md!"))))).AsExpr();
+      return ((RAST.__default.dafny__runtime).MSel(((((this).pointerType).is_Raw) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("modify!")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("md!"))))).AsExpr();
     } }
     public RAST._IExpr read__macro { get {
-      return ((RAST.__default.dafny__runtime).MSel(((((this).ObjectType).is_RawPointers) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("read!")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("rd!"))))).AsExpr();
+      return ((RAST.__default.dafny__runtime).MSel(((((this).pointerType).is_Raw) ? (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("read!")) : (Dafny.Sequence<Dafny.Rune>.UnicodeFromString("rd!"))))).AsExpr();
     } }
     public Dafny.ISequence<Dafny.Rune> placebos__usize { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("placebos_usize");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("placebos_usize_object");
       }
     } }
     public Dafny.ISequence<Dafny.Rune> update__field__if__uninit__macro { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_field_if_uninit!");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_field_if_uninit_object!");
       }
     } }
     public Dafny.ISequence<Dafny.Rune> Upcast { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Upcast");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("UpcastObject");
@@ -7825,14 +7995,14 @@ namespace DCOMP {
       return Dafny.Sequence<Dafny.Rune>.Concat((this).Upcast, Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Fn!"));
     } }
     public Dafny.ISequence<Dafny.Rune> upcast { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("upcast");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("upcast_object");
       }
     } }
     public Dafny.ISequence<Dafny.Rune> downcast { get {
-      if (((this).ObjectType).is_RawPointers) {
+      if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cast!");
       } else {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("cast_object!");
