@@ -22,8 +22,6 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     }
   }
 
-  // public abstract IEnumerable<IVariable> AssignedVariables { get; }
-
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Tok != null);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Numerics;
 
 namespace Microsoft.Dafny;
@@ -125,6 +126,23 @@ public abstract class Expression : TokenNode {
   /// </summary>
   public virtual IEnumerable<Expression> SubExpressions {
     get { yield break; }
+  }
+
+  public IEnumerable<Expression> DescendantsAndSelf {
+    get {
+      Stack<Expression> todo = new();
+      List<Expression> result = new();
+      todo.Push(this);
+      while (todo.Any()) {
+        var current = todo.Pop();
+        result.Add(current);
+        foreach (var child in current.SubExpressions) {
+          todo.Push(child);
+        }
+      }
+
+      return result;
+    }
   }
 
   /// <summary>

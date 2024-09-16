@@ -1,4 +1,4 @@
-// RUN: ! %verify %s &> "%t"
+// RUN: ! %verify --standard-libraries=true %s &> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() returns (x: int)
@@ -124,5 +124,42 @@ method DefiniteAssignment()
   {
     y := 4;
   }
-  target := y;
+  target := y; // error: !assigned(y) 
+  var z: int;
+  opaque 
+    ensures z == z // error !assigned(z)
+  {
+    if (*) {
+      z := 5;
+    }
+  }
+  target := z;
+}
+
+method EnsuresDoesNotHold() {
+  var x: int;
+  opaque 
+    ensures false
+  {
+    x := 3;
+  }
+}
+
+import opened Std.Wrappers
+method Returns(input: Option<int>) returns (r: Option<int>)
+  requires input.Some? ==> input == Some(3)
+{
+  var x: int; 
+  opaque
+    ensures x == 3
+  {
+    x :- input;
+  } 
+  var y: int;
+  opaque
+  {
+    y := 4;
+    return Some(y);
+  }
+  r := Some(3);
 }

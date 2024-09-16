@@ -4,7 +4,8 @@ using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.ProofObligationDescription;
 using Formal = Microsoft.Dafny.Formal;
-using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
+using DafnyIdentifierExpr = Microsoft.Dafny.IdentifierExpr;
+using BoogieIdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using ProofObligationDescription = Microsoft.Dafny.ProofObligationDescription.ProofObligationDescription;
 using Token = Microsoft.Dafny.Token;
 
@@ -18,14 +19,6 @@ public static class OpaqueBlockVerifier {
 
     var hasModifiesClause = block.Modifies.Expressions.Any();
 
-    var assignedVariables = block.DescendantsAndSelf.
-      SelectMany(s => s.GetAssignedLocals()).DistinctBy(ie => ie.Var)
-      .ToList();
-
-    var implicitEnsures = assignedVariables.Where(
-      v => generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName)).Select(v =>
-      new AttributedExpression(Expression.CreateAssigned(v.Tok, v)));
-    var totalEnsures = implicitEnsures.Concat(block.Ensures).ToList();
 
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
@@ -34,7 +27,25 @@ public static class OpaqueBlockVerifier {
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
     generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
 
-    foreach (var ensure in totalEnsures) {
+    var assignedVariables = block.DescendantsAndSelf.
+      SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)
+      .ToHashSet();
+    List<AttributedExpression> totalEnsures = new();
+
+    var variablesUsedInEnsures = block.Ensures.SelectMany(ae => ae.E.DescendantsAndSelf).
+      OfType<DafnyIdentifierExpr>().DistinctBy(ie => ie.Var);
+    var implicitAssignedIdentifiers = variablesUsedInEnsures.Where(
+      v => assignedVariables.Contains(v.Var) && generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName));
+    foreach (var v in implicitAssignedIdentifiers) {
+      var expression = new AttributedExpression(Expression.CreateAssigned(v.Tok, v));
+      totalEnsures.Add(expression);
+      blockBuilder.Add(generator.Assert(
+        v.Tok, etran.TrExpr(expression.E),
+        new DefiniteAssignment("variable", v.Var.Name, "here")));
+    }
+
+    foreach (var ensure in block.Ensures) {
+      totalEnsures.Add(ensure);
       blockBuilder.Add(generator.Assert(
         ensure.Tok, etran.TrExpr(ensure.E),
         new OpaqueEnsuresDescription(),
@@ -54,7 +65,7 @@ public static class OpaqueBlockVerifier {
     }
 
     generator.PathAsideBlock(block.Tok, blockBuilder, builder);
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(ie => new IdentifierExpr(ie.Tok, ie.Var.UniqueName)).ToList()));
+    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Tok, v.UniqueName)).ToList()));
 
     if (hasModifiesClause) {
       generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
