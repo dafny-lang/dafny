@@ -316,11 +316,11 @@ namespace Microsoft.Dafny {
         var e = (MemberSelectExpr)expr;
         if (e.Member is Function || e.Member is Method) {
           var i = 0;
-          foreach (var p in Util.Concat(e.PreTypeApplication_AtEnclosingClass, e.PreTypeApplication_JustMember)) {
+          foreach (var p in Util.Concat(e.PreTypeApplicationAtEnclosingClass, e.PreTypeApplicationJustMember)) {
             var tp =
-              i < e.PreTypeApplication_AtEnclosingClass.Count
+              i < e.PreTypeApplicationAtEnclosingClass.Count
                 ? e.Member.EnclosingClass.TypeArgs[i]
-                : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplication_AtEnclosingClass.Count];
+                : ((ICallable)e.Member).TypeArgs[i - e.PreTypeApplicationAtEnclosingClass.Count];
             if (!IsDetermined(p)) {
               cus.ReportError(e.tok, $"type parameter '{tp.Name}' (inferred to be '{p}') to the {e.Member.WhatKind} '{e.Member.Name}' could not be determined");
             } else {

@@ -113,9 +113,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       functionCallExpr.TypeApplication_JustFunction = PreType2TypeUtil.Combine(functionCallExpr.TypeApplication_JustFunction,
         functionCallExpr.PreTypeApplication_JustFunction, true);
     } else if (expr is MemberSelectExpr memberSelectExpr) {
-      memberSelectExpr.TypeApplication_AtEnclosingClass = memberSelectExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
-      memberSelectExpr.TypeApplication_JustMember =
-        PreType2TypeUtil.Combine(memberSelectExpr.TypeApplication_JustMember, memberSelectExpr.PreTypeApplication_JustMember, true);
+      memberSelectExpr.TypeApplicationAtEnclosingClass = memberSelectExpr.PreTypeApplicationAtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
+      memberSelectExpr.TypeApplicationJustMember =
+        PreType2TypeUtil.Combine(memberSelectExpr.TypeApplicationJustMember, memberSelectExpr.PreTypeApplicationJustMember, true);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       VisitVariableList(comprehensionExpr.BoundVars, false);
     } else if (expr is LetExpr letExpr) {

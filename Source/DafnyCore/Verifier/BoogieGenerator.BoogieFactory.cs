@@ -829,12 +829,12 @@ namespace Microsoft.Dafny {
       return new Bpl.Axiom(e.tok, e);
     }
 
-    static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, List<Bpl.Variable> lvars) {
+    public static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, List<Bpl.Variable> lvars) {
       lvars.Add(BplLocalVar(name, ty, out var v));
       return v;
     }
 
-    static Bpl.LocalVariable BplLocalVar(string name, Bpl.Type ty, out Bpl.Expr e) {
+    public static Bpl.LocalVariable BplLocalVar(string name, Bpl.Type ty, out Bpl.Expr e) {
       Contract.Requires(ty != null);
       var v = new Bpl.LocalVariable(ty.tok, new Bpl.TypedIdent(ty.tok, name, ty));
       e = new Bpl.IdentifierExpr(ty.tok, name, ty);

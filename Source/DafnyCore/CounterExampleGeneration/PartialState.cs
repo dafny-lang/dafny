@@ -165,7 +165,7 @@ public class PartialState {
     }
     names = names.Concat(State.Variables).Distinct().ToList();
     var notDefinitelyAssigned = new HashSet<string>();
-    foreach (var name in names.Where(name => name.StartsWith("defass#"))) {
+    foreach (var name in names.Where(name => name.StartsWith(BoogieGenerator.DefassPrefix))) {
       var val = State.TryGet(name);
       if (val == null) {
         continue;

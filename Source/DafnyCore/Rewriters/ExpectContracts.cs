@@ -170,9 +170,9 @@ public class ExpectContracts : IRewriter {
     var receiver = ModuleResolver.GetReceiver(parent, origMethod, decl.tok);
     var memberSelectExpr = new MemberSelectExpr(decl.tok, receiver, origMethod.Name);
     memberSelectExpr.Member = origMethod;
-    memberSelectExpr.TypeApplication_JustMember =
+    memberSelectExpr.TypeApplicationJustMember =
       newMethod.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
-    memberSelectExpr.TypeApplication_AtEnclosingClass =
+    memberSelectExpr.TypeApplicationAtEnclosingClass =
       parent.TypeArgs.Select(tp => (Type)new UserDefinedType(tp)).ToList();
     var callStmt = new CallStmt(decl.RangeToken, outs, memberSelectExpr, args);
 

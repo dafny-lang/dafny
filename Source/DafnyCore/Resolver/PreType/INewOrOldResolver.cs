@@ -27,4 +27,8 @@ public interface INewOrOldResolver {
   }
 
   void ResolveStatementWithLabels(Statement statement, ResolutionContext resolutionContext);
+  void ResolveFrameExpression(
+    FrameExpression frameExpression,
+    FrameExpressionUse frameExpressionUse,
+    ResolutionContext context);
 }
