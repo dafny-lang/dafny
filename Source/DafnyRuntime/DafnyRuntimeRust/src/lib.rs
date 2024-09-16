@@ -3107,7 +3107,7 @@ macro_rules! is_object {
 #[macro_export]
 macro_rules! cast_any {
     ($raw:expr) => {
-        $crate::Upcast::<dyn Any>::upcast($crate::modify!($raw))
+        $crate::Upcast::<dyn Any>::upcast($crate::read!($raw))
     };
 }
 // cast_any_object is meant to be used on references only, to convert any references (classes or traits)*
@@ -3228,7 +3228,7 @@ impl <T: ?Sized + 'static + Upcast<dyn Any>> Ptr<T> {
         if self.is_null() {
             false
         } else {
-            read!(Upcast::<dyn Any>::upcast(modify!(self)))
+            read!(Upcast::<dyn Any>::upcast(read!(self)))
                 .downcast_ref::<U>()
                 .is_some()
         }
@@ -3367,7 +3367,7 @@ impl <T: ?Sized> Object<T> {
 impl <T: ?Sized + 'static + UpcastObject<dyn Any>> Object<T> {
     pub fn is_instance_of<U: 'static>(self) -> bool {
     // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-        rd!(UpcastObject::<dyn Any>::upcast(md!(self)))
+        rd!(UpcastObject::<dyn Any>::upcast(rd!(self)))
             .downcast_ref::<U>()
             .is_some()
     }
@@ -3442,11 +3442,19 @@ impl <T: ?Sized> AsRef<T> for Object<T> {
     }
 }
 
+// Never inline because, when compiling with cargo --release, sometimes it gets rid of this statement
+#[inline(never)]
+fn increment_strong_count<T: ?Sized>(data: *const T) {
+    // SAFETY: This method is called only on values that were constructed from an Rc
+    unsafe {
+       Rc::increment_strong_count(data);
+    }
+}
 
 impl <T: ?Sized> Object<T> {
-    pub fn from_ref(r: &mut T) -> Object<T> {
-        let pt = r as *mut T as *mut UnsafeCell<T>;
-        unsafe { ::std::rc::Rc::increment_strong_count(pt) }
+    pub fn from_ref(r: &T) -> Object<T> {
+        let pt = r as *const T as *const UnsafeCell<T>;
+        crate::increment_strong_count(pt);
         let rebuilt = unsafe { Rc::from_raw(pt) };
         Object(Some(rebuilt))
     }
@@ -3741,13 +3749,13 @@ macro_rules! maybe_placebos_from {
 pub fn upcast_object<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Object<A>) -> Object<B>>
   where A : UpcastObject<B>
 {
-    Rc::new(|mut x: Object<A>| x.as_mut().upcast())
+    Rc::new(|x: Object<A>| x.as_ref().upcast())
 }
 
 pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Ptr<A>) -> Ptr<B>>
   where A: Upcast<B>
 {
-    Rc::new(|x: Ptr<A>| modify!(x).upcast())
+    Rc::new(|x: Ptr<A>| read!(x).upcast())
 }
 
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
@@ -3775,19 +3783,19 @@ pub fn fn1_coerce<T: Clone + 'static, A: Clone + 'static, R: Clone + 'static>(
 
 // For pointers
 pub trait Upcast<T: ?Sized> {
-    fn upcast(&mut self) -> Ptr<T>;
+    fn upcast(&self) -> Ptr<T>;
 }
 pub trait UpcastObject<T: ?Sized> {
-    fn upcast(&mut self) -> Object<T>;
+    fn upcast(&self) -> Object<T>;
 }
 
 impl <T: ?Sized> Upcast<T> for T {
-    fn upcast(&mut self) -> Ptr<T> {
-        Ptr::from_raw_nonnull(self as *mut T)
+    fn upcast(&self) -> Ptr<T> {
+        Ptr::from_raw_nonnull(self as *const T as *mut T)
     }
 }
 impl <T: ?Sized> UpcastObject<T> for T {
-    fn upcast(&mut self) -> Object<T> {
+    fn upcast(&self) -> Object<T> {
         Object::from_ref(self)
     }
 }
@@ -3802,8 +3810,8 @@ macro_rules! Extends {
 #[macro_export]
 macro_rules! UpcastFn {
     ($B:ty) => {
-        fn upcast(&mut self) -> $crate::Ptr<$B> {
-            $crate::Ptr::from_raw_nonnull(self as *mut Self as *mut $B)
+        fn upcast(&self) -> $crate::Ptr<$B> {
+            $crate::Ptr::from_raw_nonnull(self as *const Self as *mut Self as *mut $B)
         }
     };
 }
@@ -3811,8 +3819,8 @@ macro_rules! UpcastFn {
 #[macro_export]
 macro_rules! UpcastObjectFn {
     ($B:ty) => {
-        fn upcast(&mut self) -> $crate::Object<$B> {
-            $crate::Object::from_ref(self as &mut $B)
+        fn upcast(&self) -> $crate::Object<$B> {
+            $crate::Object::from_ref(self as &$B)
         }
     };
 }

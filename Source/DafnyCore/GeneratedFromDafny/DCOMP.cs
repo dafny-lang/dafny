@@ -2766,7 +2766,7 @@ namespace DCOMP {
       after_match0: ;
         if (forTrait) {
           RAST._IFormal _14_selfFormal;
-          if (((m).dtor_wasFunction) && (((this).pointerType).is_Raw)) {
+          if ((m).dtor_wasFunction) {
             _14_selfFormal = RAST.Formal.selfBorrowed;
           } else {
             _14_selfFormal = RAST.Formal.selfBorrowedMut;
@@ -2783,7 +2783,7 @@ namespace DCOMP {
             }
           } else if ((_9_selfId).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("self"))) {
             if ((_15_tpe).IsObjectOrPointer()) {
-              if (((m).dtor_wasFunction) && (((this).pointerType).is_Raw)) {
+              if ((m).dtor_wasFunction) {
                 _15_tpe = RAST.__default.SelfBorrowed;
               } else {
                 _15_tpe = RAST.__default.SelfBorrowedMut;
@@ -4158,7 +4158,7 @@ namespace DCOMP {
           _out14 = (this).GenType(_14_tpe, DCOMP.GenTypeContext.@default());
           _15_tpeGen = _out14;
           if (((this).pointerType).is_Raw) {
-            r = ((RAST.__default.std).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("ptr"))).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("null_mut"));
+            r = ((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Ptr"))).AsExpr()).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("null"))).Apply(Dafny.Sequence<RAST._IExpr>.FromElements());
           } else {
             r = RAST.Expr.create_TypeAscription((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Object"))).AsExpr()).Apply1(RAST.Expr.create_Identifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("None"))), _15_tpeGen);
           }
@@ -6851,12 +6851,10 @@ namespace DCOMP {
                 {
                 }
               after_match2: ;
-                if (((this).pointerType).is_Raw) {
-                  r = ((this).read__macro).Apply1(r);
-                } else {
+                if (((this).pointerType).is_RcMut) {
                   r = (r).Clone();
-                  r = ((this).modify__macro).Apply1(r);
                 }
+                r = ((this).read__macro).Apply1(r);
               }
               r = (r).Sel(DCOMP.__default.escapeVar(_219_field));
               if (_220_isConstant) {
@@ -7155,11 +7153,7 @@ namespace DCOMP {
                   _287_onExpr = _out235;
                   _288_recOwnership = _out236;
                   _289_recIdents = _out237;
-                  if (((this).pointerType).is_Raw) {
-                    _287_onExpr = ((this).read__macro).Apply1(_287_onExpr);
-                  } else {
-                    _287_onExpr = ((this).modify__macro).Apply1(_287_onExpr);
-                  }
+                  _287_onExpr = ((this).read__macro).Apply1(_287_onExpr);
                   readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(readIdents, _289_recIdents);
                 } else {
                   RAST._IExpr _out238;
@@ -7224,11 +7218,7 @@ namespace DCOMP {
                           _out246 = (this).GenType(_294_tpe, DCOMP.GenTypeContext.@default());
                           _295_typ = _out246;
                           if ((_295_typ).IsObjectOrPointer()) {
-                            if (((this).pointerType).is_Raw) {
-                              _290_onExpr = ((this).read__macro).Apply1(_290_onExpr);
-                            } else {
-                              _290_onExpr = ((this).modify__macro).Apply1(_290_onExpr);
-                            }
+                            _290_onExpr = ((this).read__macro).Apply1(_290_onExpr);
                           }
                           goto after_match8;
                         }
