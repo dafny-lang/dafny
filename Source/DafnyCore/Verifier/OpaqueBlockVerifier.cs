@@ -15,11 +15,7 @@ public static class OpaqueBlockVerifier {
   public static void EmitBoogie(BoogieGenerator generator, OpaqueBlock block, BoogieStmtListBuilder builder,
     List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
 
-    var context = new OpaqueBlockContext(codeContext, block);
-
     var hasModifiesClause = block.Modifies.Expressions.Any();
-
-
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
     var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, hasModifiesClause, blockBuilder);
@@ -53,6 +49,7 @@ public static class OpaqueBlockVerifier {
     }
 
     if (hasModifiesClause) {
+      var context = new OpaqueBlockContext(codeContext, block);
       if (context is IMethodCodeContext methodCodeContext) {
         generator.CheckFrameSubset(
           block.Tok, block.Modifies.Expressions,
