@@ -1758,9 +1758,9 @@ namespace Microsoft.Dafny {
               substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
-            methodSel.TypeApplication_AtEnclosingClass =
+            methodSel.TypeApplicationAtEnclosingClass =
               prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-            methodSel.TypeApplication_JustMember =
+            methodSel.TypeApplicationJustMember =
               prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
             methodSel.Type = new InferredTypeProxy();
             var recursiveCall = new CallStmt(com.RangeToken, new List<Expression>(), methodSel,

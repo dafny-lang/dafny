@@ -1484,6 +1484,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void ResolveFrameExpression(FrameExpression frameExpression, FrameExpressionUse frameExpressionUse,
+      ResolutionContext context) {
+      ResolveFrameExpression(frameExpression, frameExpressionUse, context.CodeContext);
+    }
+
     void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       Contract.Requires(fe != null);
       Contract.Requires(codeContext != null);

@@ -160,14 +160,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       var e = (MemberSelectExpr)expr;
       if (e.Member is Function || e.Member is Method) {
         var i = 0;
-        foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
-          var tp = i < e.TypeApplication_AtEnclosingClass.Count ?
+        foreach (var p in Util.Concat(e.TypeApplicationAtEnclosingClass, e.TypeApplicationJustMember)) {
+          var tp = i < e.TypeApplicationAtEnclosingClass.Count ?
               (e.Member.EnclosingClass is DefaultClassDecl ?
                 // In a "revealedFunction" attribute, the EnclosingClass is DefaultClassDecl
                 // and does not have type arguments
                 null :
                 e.Member.EnclosingClass.TypeArgs[i])
-            : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+            : ((ICallable)e.Member).TypeArgs[i - e.TypeApplicationAtEnclosingClass.Count];
           if (tp == null) {
             continue;
           }

@@ -2142,6 +2142,7 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, ou
   ]
   .
 
+
 /*------------------------------------------------------------------------*/
 BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
@@ -2152,6 +2153,27 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
   "}"                                  (. bodyEnd = t;
                                           block = new BlockStmt(new RangeToken(bodyStart, bodyEnd), body);
                                           .)
+  .
+
+OpaqueBlock<out Statement s>
+= (.
+    List<Statement/*!*/> body = new List<Statement/*!*/>();
+    List<AttributedExpression> ensures = new();
+    List<FrameExpression/*!*/> modifies = new List<FrameExpression/*!*/>();
+    Attributes modifiesAttributes = null;
+    IToken start;
+  .)
+  "opaque" (. start = t; .)
+  { ModifiesClause<ref modifies, ref modifiesAttributes, false, false>
+  | EnsuresClause<ensures, false>
+  }
+  "{"
+  { Stmt<body> }
+  "}"
+  (. 
+    s = new OpaqueBlock(new RangeToken(start, t), body, ensures, 
+      new Specification<FrameExpression>(modifies, modifiesAttributes));
+  .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2187,6 +2209,7 @@ OneStmt<out Statement/*!*/ s>
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+  | OpaqueBlock<out s>
   | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
   | UpdateStmt<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
