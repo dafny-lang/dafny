@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
       stmtContext = StmtType.NONE; // done with translating expect stmt.
     }
 
-    private void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+    public void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
       ExpressionTranslator etran) {
       var stmtBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);

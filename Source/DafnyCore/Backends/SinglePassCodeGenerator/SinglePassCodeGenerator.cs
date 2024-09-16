@@ -531,7 +531,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (lexpr is MemberSelectExpr memberSelectExpr) {
             string target = EmitAssignmentLhs(memberSelectExpr.Obj, wr);
             var typeArgs = TypeArgumentInstantiation.ListFromMember(memberSelectExpr.Member,
-              null, memberSelectExpr.TypeApplication_JustMember);
+              null, memberSelectExpr.TypeApplicationJustMember);
             ILvalue newLhs = EmitMemberSelect(w => EmitIdentifier(target, w), memberSelectExpr.Obj.Type, memberSelectExpr.Member, typeArgs,
               memberSelectExpr.TypeArgumentSubstitutionsWithParents(), memberSelectExpr.Type, internalAccess: enclosingMethod is Constructor);
             lhssn.Add(newLhs);
@@ -3295,7 +3295,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (MemberSelectExpr)s0.Lhs;
 
-      var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
+      var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplicationJustMember);
       var lvalue = EmitMemberSelect(w => {
         var wObj = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], s0.Tok, w);
         EmitTupleSelect(tup, 0, wObj);
@@ -3936,7 +3936,7 @@ namespace Microsoft.Dafny.Compilers {
           ll.Obj.Type.IsNonNullRefType || !ll.Obj.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Obj.Type.NormalizeExpand()),
           "_obj", wr, wStmts
         );
-        var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
+        var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplicationJustMember);
         return EmitMemberSelect(writeStabilized, ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
           internalAccess: enclosingMethod is Constructor);
 
@@ -4474,7 +4474,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
           wr.Write(StaticClassAccessor);
         }
-        var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
+        var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplicationAtEnclosingClass, s.MethodSelect.TypeApplicationJustMember);
         var firstReceiverArg = receiverReplacement != null ?
           new IdentifierExpr(s.Receiver.tok, receiverReplacement) { Type = s.Receiver.Type } : s.Receiver;
         EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok,

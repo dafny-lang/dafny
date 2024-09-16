@@ -18,119 +18,121 @@ using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
-  public partial class BoogieGenerator {
-    /// <summary>
-    /// Instances of WFOptions are used as an argument to CheckWellformed, supplying options for the
-    /// checks to be performed.
-    /// If "SelfCallsAllowance" is non-null, termination checks will be omitted for calls that look
-    /// like it.  This is useful in function postconditions, where the result of the function is
-    /// syntactically given as what looks like a recursive call with the same arguments.
-    /// "DoReadsChecks" indicates whether or not to perform reads checks.  If so, the generated code
-    /// will make references to $_ReadsFrame.  If "saveReadsChecks" is true, then the reads checks will
-    /// be recorded but postponed.  In particular, CheckWellformed will append to .Locals a list of
-    /// fresh local variables and will append to .Assert assertions with appropriate error messages
-    /// that can be used later.  As a convenience, the ProcessSavedReadsChecks will make use of .Locals
-    /// and .Asserts (and AssignLocals) and update a given StmtListBuilder.
-    /// "LValueContext" indicates that the expression checked for well-formedness is an L-value of
-    /// some assignment.
-    /// </summary>
-    private class WFOptions {
-      public readonly Function SelfCallsAllowance;
-      public readonly bool DoReadsChecks;
-      public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
-      public readonly List<Bpl.Variable> Locals;
-      public readonly List<Func<Bpl.Cmd>> CreateAsserts;
-      public readonly bool LValueContext;
-      public readonly Bpl.QKeyValue AssertKv;
 
-      public WFOptions() {
-      }
+  /// <summary>
+  /// Instances of WFOptions are used as an argument to CheckWellformed, supplying options for the
+  /// checks to be performed.
+  /// If "SelfCallsAllowance" is non-null, termination checks will be omitted for calls that look
+  /// like it.  This is useful in function postconditions, where the result of the function is
+  /// syntactically given as what looks like a recursive call with the same arguments.
+  /// "DoReadsChecks" indicates whether or not to perform reads checks.  If so, the generated code
+  /// will make references to $_ReadsFrame.  If "saveReadsChecks" is true, then the reads checks will
+  /// be recorded but postponed.  In particular, CheckWellformed will append to .Locals a list of
+  /// fresh local variables and will append to .Assert assertions with appropriate error messages
+  /// that can be used later.  As a convenience, the ProcessSavedReadsChecks will make use of .Locals
+  /// and .Asserts (and AssignLocals) and update a given StmtListBuilder.
+  /// "LValueContext" indicates that the expression checked for well-formedness is an L-value of
+  /// some assignment.
+  /// </summary>
+  public class WFOptions {
+    public readonly Function SelfCallsAllowance;
+    public readonly bool DoReadsChecks;
+    public readonly bool DoOnlyCoarseGrainedTerminationChecks; // termination checks don't look at decreases clause, but reports errors for any intra-SCC call (this is used in default-value expressions)
+    public readonly List<Bpl.Variable> Locals;
+    public readonly List<Func<Bpl.Cmd>> CreateAsserts;
+    public readonly bool LValueContext;
+    public readonly Bpl.QKeyValue AssertKv;
 
-      public WFOptions(Function selfCallsAllowance, bool doReadsChecks,
-        bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
-        Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
-        SelfCallsAllowance = selfCallsAllowance;
-        DoReadsChecks = doReadsChecks;
-        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
-        if (saveReadsChecks) {
-          Locals = new List<Variable>();
-          CreateAsserts = new();
-        }
-      }
+    public WFOptions() {
+    }
 
-      private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
-        List<Bpl.Variable> locals, List<Func<Bpl.Cmd>> createAsserts, bool lValueContext, Bpl.QKeyValue assertKv) {
-        SelfCallsAllowance = selfCallsAllowance;
-        DoReadsChecks = doReadsChecks;
-        DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
-        Locals = locals;
-        CreateAsserts = createAsserts;
-        LValueContext = lValueContext;
-        AssertKv = assertKv;
-      }
-
-      public WFOptions(Bpl.QKeyValue kv) {
-        AssertKv = kv;
-      }
-
-      /// <summary>
-      /// Clones the given "options", but turns reads checks on or off.
-      /// </summary>
-      public WFOptions WithReadsChecks(bool doReadsChecks) {
-        return new WFOptions(SelfCallsAllowance, doReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
-          Locals, CreateAsserts, LValueContext, AssertKv);
-      }
-
-      /// <summary>
-      /// Clones the given "options", but sets "LValueContext" to "lValueContext".
-      /// </summary>
-      public WFOptions WithLValueContext(bool lValueContext) {
-        return new WFOptions(SelfCallsAllowance, DoReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
-          Locals, CreateAsserts, lValueContext, AssertKv);
-      }
-
-      public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
-        return (t, e, d, qk) => {
-          if (Locals != null) {
-            var b = BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);
-            CreateAsserts.Add(() => tran.Assert(t, b, d, qk));
-            builder.Add(Bpl.Cmd.SimpleAssign(e.tok, (Bpl.IdentifierExpr)b, e));
-          } else {
-            builder.Add(tran.Assert(t, e, d, qk));
-          }
-        };
-      }
-
-      public List<Bpl.AssignCmd> AssignLocals {
-        get {
-          return Map(Locals, l =>
-            Bpl.Cmd.SimpleAssign(l.tok,
-              new Bpl.IdentifierExpr(Token.NoToken, l),
-              Bpl.Expr.True)
-            );
-        }
-      }
-
-      public void ProcessSavedReadsChecks(List<Variable> locals, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
-        Contract.Requires(locals != null);
-        Contract.Requires(builderInitializationArea != null);
-        Contract.Requires(builder != null);
-        Contract.Requires(Locals != null && CreateAsserts != null);  // ProcessSavedReadsChecks should be called only if the constructor was called with saveReadsChecks
-
-        // var b$reads_guards#0 : bool  ...
-        locals.AddRange(Locals);
-        // b$reads_guards#0 := true   ...
-        foreach (var cmd in AssignLocals) {
-          builderInitializationArea.Add(cmd);
-        }
-        // assert b$reads_guards#0;  ...
-        foreach (var a in CreateAsserts) {
-          builder.Add(a());
-        }
+    public WFOptions(Function selfCallsAllowance, bool doReadsChecks,
+      bool saveReadsChecks = false, bool doOnlyCoarseGrainedTerminationChecks = false) {
+      Contract.Requires(!saveReadsChecks || doReadsChecks);  // i.e., saveReadsChecks ==> doReadsChecks
+      SelfCallsAllowance = selfCallsAllowance;
+      DoReadsChecks = doReadsChecks;
+      DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
+      if (saveReadsChecks) {
+        Locals = new List<Variable>();
+        CreateAsserts = new();
       }
     }
 
-    void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
+    private WFOptions(Function selfCallsAllowance, bool doReadsChecks, bool doOnlyCoarseGrainedTerminationChecks,
+      List<Bpl.Variable> locals, List<Func<Bpl.Cmd>> createAsserts, bool lValueContext, Bpl.QKeyValue assertKv) {
+      SelfCallsAllowance = selfCallsAllowance;
+      DoReadsChecks = doReadsChecks;
+      DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
+      Locals = locals;
+      CreateAsserts = createAsserts;
+      LValueContext = lValueContext;
+      AssertKv = assertKv;
+    }
+
+    public WFOptions(Bpl.QKeyValue kv) {
+      AssertKv = kv;
+    }
+
+    /// <summary>
+    /// Clones the given "options", but turns reads checks on or off.
+    /// </summary>
+    public WFOptions WithReadsChecks(bool doReadsChecks) {
+      return new WFOptions(SelfCallsAllowance, doReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
+        Locals, CreateAsserts, LValueContext, AssertKv);
+    }
+
+    /// <summary>
+    /// Clones the given "options", but sets "LValueContext" to "lValueContext".
+    /// </summary>
+    public WFOptions WithLValueContext(bool lValueContext) {
+      return new WFOptions(SelfCallsAllowance, DoReadsChecks, DoOnlyCoarseGrainedTerminationChecks,
+        Locals, CreateAsserts, lValueContext, AssertKv);
+    }
+
+    public Action<IToken, Bpl.Expr, PODesc.ProofObligationDescription, Bpl.QKeyValue> AssertSink(BoogieGenerator tran, BoogieStmtListBuilder builder) {
+      return (t, e, d, qk) => {
+        if (Locals != null) {
+          var b = BoogieGenerator.BplLocalVar(tran.CurrentIdGenerator.FreshId("b$reqreads#"), Bpl.Type.Bool, Locals);
+          CreateAsserts.Add(() => tran.Assert(t, b, d, qk));
+          builder.Add(Bpl.Cmd.SimpleAssign(e.tok, (Bpl.IdentifierExpr)b, e));
+        } else {
+          builder.Add(tran.Assert(t, e, d, qk));
+        }
+      };
+    }
+
+    public List<Bpl.AssignCmd> AssignLocals {
+      get {
+        return Map(Locals, l =>
+          Bpl.Cmd.SimpleAssign(l.tok,
+            new Bpl.IdentifierExpr(Token.NoToken, l),
+            Bpl.Expr.True)
+          );
+      }
+    }
+
+    public void ProcessSavedReadsChecks(List<Variable> locals, BoogieStmtListBuilder builderInitializationArea, BoogieStmtListBuilder builder) {
+      Contract.Requires(locals != null);
+      Contract.Requires(builderInitializationArea != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(Locals != null && CreateAsserts != null);  // ProcessSavedReadsChecks should be called only if the constructor was called with saveReadsChecks
+
+      // var b$reads_guards#0 : bool  ...
+      locals.AddRange(Locals);
+      // b$reads_guards#0 := true   ...
+      foreach (var cmd in AssignLocals) {
+        builderInitializationArea.Add(cmd);
+      }
+      // assert b$reads_guards#0;  ...
+      foreach (var a in CreateAsserts) {
+        builder.Add(a());
+      }
+    }
+  }
+
+  public partial class BoogieGenerator {
+
+    public void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type != null && expr.Type.IsBoolType);
       Contract.Requires(wfOptions != null);
@@ -246,7 +248,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
     /// </summary>
-    void CheckWellformed(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    public void CheckWellformed(Expression expr, WFOptions wfOptions, List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(expr != null);
       Contract.Requires(wfOptions != null);
       Contract.Requires(locals != null);

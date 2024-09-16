@@ -118,15 +118,15 @@ namespace Microsoft.Dafny {
       } else if (expr is MemberSelectExpr) {
         var mse = (MemberSelectExpr)expr;
         var newObj = Substitute(mse.Obj);
-        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplication_AtEnclosingClass);
-        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplication_JustMember);
+        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplicationAtEnclosingClass);
+        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplicationJustMember);
         if (newObj != mse.Obj ||
-            newTypeApplicationAtEnclosingClass != mse.TypeApplication_AtEnclosingClass ||
-            newTypeApplicationJustMember != mse.TypeApplication_JustMember) {
+            newTypeApplicationAtEnclosingClass != mse.TypeApplicationAtEnclosingClass ||
+            newTypeApplicationJustMember != mse.TypeApplicationJustMember) {
           var fseNew = new MemberSelectExpr(mse.tok, newObj, mse.MemberName) {
             Member = mse.Member,
-            TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
-            TypeApplication_JustMember = newTypeApplicationJustMember,
+            TypeApplicationAtEnclosingClass = newTypeApplicationAtEnclosingClass,
+            TypeApplicationJustMember = newTypeApplicationJustMember,
             AtLabel = mse.AtLabel ?? oldHeapLabel
           };
           newExpr = fseNew;

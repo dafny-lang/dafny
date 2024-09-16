@@ -93,14 +93,13 @@ Extract Dafny types, functions, and lemmas to Boogie.
       await proofDependenciesReported;
 
       if (!resolution.HasErrors && options.BoogieExtractionTargetFile != null) {
-        using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
-          try {
-            var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
-            engine.PrintBplFile(options.BoogieExtractionTargetFile, extractedProgram, true, pretty: true);
-          } catch (ExtractorError extractorError) {
-            await options.OutputWriter.WriteLineAsync($"Boogie axiom extraction error: {extractorError.Message}");
-            return 1;
-          }
+        using var engine = ExecutionEngine.CreateWithoutSharedCache(options);
+        try {
+          var extractedProgram = BoogieExtractor.Extract(resolution.ResolvedProgram);
+          engine.PrintBplFile(options.BoogieExtractionTargetFile, extractedProgram, true, pretty: true);
+        } catch (ExtractorError extractorError) {
+          await options.OutputWriter.WriteLineAsync($"Boogie axiom extraction error: {extractorError.Message}");
+          return 1;
         }
       }
     }

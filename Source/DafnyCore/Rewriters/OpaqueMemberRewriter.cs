@@ -60,8 +60,8 @@ public class OpaqueMemberRewriter : IRewriter {
     var nameSegment = new NameSegment(f.tok, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
     var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
     rr.Member = f;
-    rr.TypeApplication_AtEnclosingClass = typeApplication;
-    rr.TypeApplication_JustMember = typeApplication_JustForMember;
+    rr.TypeApplicationAtEnclosingClass = typeApplication;
+    rr.TypeApplicationJustMember = typeApplication_JustForMember;
     List<Type> args = new List<Type>();
     for (int i = 0; i < f.Ins.Count; i++) {
       args.Add(new IntType());
