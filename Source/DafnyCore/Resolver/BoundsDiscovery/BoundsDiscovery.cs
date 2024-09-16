@@ -68,7 +68,7 @@ namespace Microsoft.Dafny {
         if (stmt is ForallStmt forallStmt) {
           forallStmt.Bounds = DiscoverBestBounds_MultipleVars(forallStmt.BoundVars, forallStmt.Range, true);
           if (forallStmt.Body == null) {
-            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "note, this forall statement has no body");
+            Reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, forallStmt.Tok, "this forall statement has no body");
           }
         } else if (stmt is AssignSuchThatStmt assignSuchThatStmt) {
           if (assignSuchThatStmt.AssumeToken == null) {
@@ -497,7 +497,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(boundVariable != null);
       Contract.Requires(bounds != null);
 
-      var formals = fce.Function.Formals;
+      var formals = fce.Function.Ins;
       Contract.Assert(formals.Count == fce.Args.Count);
       if (Enumerable.Zip(formals, fce.Args).Any(t => t.Item1.IsOlder && t.Item2.Resolved is IdentifierExpr ide && ide.Var == (IVariable)boundVariable)) {
         bounds.Add(new OlderBoundedPool());

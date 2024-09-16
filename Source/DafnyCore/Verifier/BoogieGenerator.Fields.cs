@@ -119,7 +119,9 @@ namespace Microsoft.Dafny {
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
             if (!IsOpaque(cf)) {
-              sink.AddTopLevelDeclaration(ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs)));
+              var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
+              definitionAxiom.CanHide = true;
+              sink.AddTopLevelDeclaration(definitionAxiom);
             }
           }
           sink.AddTopLevelDeclaration(ff);
@@ -187,7 +189,12 @@ namespace Microsoft.Dafny {
       // the procedure itself
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
-      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null, null));
+      req.Add(Requires(decl.tok, true, null, etran.HeightContext(decl), null, null, null));
+
+      foreach (var typeBoundAxiom in TypeBoundAxioms(decl.tok, decl.EnclosingClass.TypeArgs)) {
+        req.Add(Requires(decl.tok, true, null, typeBoundAxiom, null, null, null));
+      }
+
       var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
@@ -199,7 +206,7 @@ namespace Microsoft.Dafny {
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
       var locals = new List<Variable>();
-      var builder = new BoogieStmtListBuilder(this, options);
+      var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
       builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
@@ -209,7 +216,7 @@ namespace Microsoft.Dafny {
       // check well-formedness of the RHS expression
       CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
       builder.Add(new Bpl.AssumeCmd(decl.Rhs.tok, etran.CanCallAssumption(decl.Rhs)));
-      CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, builder);
+      CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, decl.Rhs, builder);
 
       if (EmitImplementation(decl.Attributes)) {
         // emit the impl only when there are proof obligations.

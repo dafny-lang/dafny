@@ -94,7 +94,7 @@ public class ExpressionTester {
         var what = selectExpr.Member.WhatKindMentionGhost;
         ReportError(ErrorId.r_only_in_specification, selectExpr, $"a {what} is allowed only in specification contexts");
         return false;
-      } else if (selectExpr.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+      } else if (selectExpr.Member is Function function && function.Ins.Any(formal => formal.IsGhost)) {
         var what = selectExpr.Member.WhatKindMentionGhost;
         ReportError(ErrorId.r_ghost_parameters_only_in_specification, selectExpr, $"a {what} with ghost parameters can be used as a value only in specification contexts");
         return false;
@@ -164,8 +164,8 @@ public class ExpressionTester {
         }
         // function is okay, so check all NON-ghost arguments
         isCompilable = CheckIsCompilable(callExpr.Receiver, codeContext);
-        for (var i = 0; i < callExpr.Function.Formals.Count; i++) {
-          if (!callExpr.Function.Formals[i].IsGhost && i < callExpr.Args.Count) {
+        for (var i = 0; i < callExpr.Function.Ins.Count; i++) {
+          if (!callExpr.Function.Ins[i].IsGhost && i < callExpr.Args.Count) {
             isCompilable = CheckIsCompilable(callExpr.Args[i], codeContext) && isCompilable;
           }
         }
@@ -318,9 +318,9 @@ public class ExpressionTester {
             if (!function.IsStatic && functionCallExpr.Receiver.Resolved is not ThisExpr) {
               return false;
             }
-            Contract.Assert(function.Formals.Count == functionCallExpr.Args.Count);
-            for (var i = 0; i < function.Formals.Count; i++) {
-              var formal = function.Formals[i];
+            Contract.Assert(function.Ins.Count == functionCallExpr.Args.Count);
+            for (var i = 0; i < function.Ins.Count; i++) {
+              var formal = function.Ins[i];
               if (!formal.IsGhost && !IdentifierExpr.Is(functionCallExpr.Args[i], formal)) {
                 return false;
               }
@@ -351,6 +351,11 @@ public class ExpressionTester {
       // other conditions are checked below
       subexpressionsAreInsideBranchesOnlyExcept = matchExpr.Source;
 
+    } else if (expr is DecreasesToExpr _) {
+      ReportError(ErrorId.r_decreases_to_only_in_specification,
+                  expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
+      return false;
+
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
       return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
     }
@@ -377,7 +382,8 @@ public class ExpressionTester {
   ///
   /// 0. If "toType" is a supertype of "fromType", then a type test would always return "true". A similar situation
   /// is when "toType" is a non-null type and the nullable version of "toType" is a supertype of "from"; then,
-  /// the run-time type tests consists simply of a non-null check.
+  /// the run-time type tests consists simply of a non-null check. Else, if "toType" is a type parameter, then we
+  /// never allow the check in compiled code.
   ///
   /// If those simple cases don't apply, there the compilability of the type test comes down to two remaining parts:
   ///
@@ -408,6 +414,10 @@ public class ExpressionTester {
     if (fromType.IsSubtypeOf(toType, false, true)) {
       // this requires no run-time work or a simple null comparison, so it can trivially be compiled
       return true;
+    }
+    if (toType.IsTypeParameter) {
+      // this is never allowed in compiled code
+      return false;
     }
 
     // part 1
@@ -501,7 +511,7 @@ public class ExpressionTester {
         return true;
       } else if (e.Member != null && e.Member.IsGhost) {
         return true;
-      } else if (e.Member is Function function && function.Formals.Any(formal => formal.IsGhost)) {
+      } else if (e.Member is Function function && function.Ins.Any(formal => formal.IsGhost)) {
         return true;
       } else if (e.Member is DatatypeDestructor dtor) {
         return dtor.EnclosingCtors.All(ctor => ctor.IsGhost);
@@ -544,8 +554,8 @@ public class ExpressionTester {
       if (UsesSpecFeatures(e.Receiver)) {
         return true;
       }
-      for (int i = 0; i < e.Function.Formals.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost && UsesSpecFeatures(e.Args[i])) {
+      for (int i = 0; i < e.Function.Ins.Count; i++) {
+        if (!e.Function.Ins[i].IsGhost && UsesSpecFeatures(e.Args[i])) {
           return true;
         }
       }
@@ -557,7 +567,7 @@ public class ExpressionTester {
       return true;
     } else if (expr is UnaryExpr) {
       var e = (UnaryExpr)expr;
-      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated }) {
+      if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Fresh or UnaryOpExpr.Opcode.Allocated or UnaryOpExpr.Opcode.Assigned }) {
         return true;
       }
       if (expr is TypeTestExpr tte && !IsTypeTestCompilable(tte)) {

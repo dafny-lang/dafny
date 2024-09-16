@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
+public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public ModuleDefinition EnclosingModuleDefinition;
@@ -97,8 +98,10 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   ///     class C<X> extends J<X, int>
   /// C.ParentTypes(real) = J<real, int>    // non-null types C and J
   /// C?.ParentTypes(real) = J?<real, int>  // possibly-null type C? and J?
+  /// 
+  /// If "includeTypeBounds" is "true", then for a type parameter, ParentTypes() returns the type bounds.
   /// </summary>
-  public virtual List<Type> ParentTypes(List<Type> typeArgs) {
+  public virtual List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     Contract.Requires(typeArgs != null);
     Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
     return new List<Type>();

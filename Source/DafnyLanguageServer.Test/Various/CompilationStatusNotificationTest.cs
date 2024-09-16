@@ -32,7 +32,7 @@ method Bar() {
 }
 ";
 
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       await File.WriteAllTextAsync(Path.Combine(directory, "producer.dfy"), producerSource);
       await File.WriteAllTextAsync(Path.Combine(directory, DafnyProject.FileName), "");
@@ -48,6 +48,7 @@ method Bar() {
       var somethingElse = await CreateOpenAndWaitForResolve("method Foo() {}", "somethingElse");
       var a7 = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
       Assert.Equal(somethingElse.Uri, a7.Uri);
+      Directory.Delete(directory, true);
     }
 
     [Fact]
@@ -56,7 +57,7 @@ method Bar() {
 method Foo() returns (x: int) {
   return 2;
 }".TrimStart();
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -71,6 +72,7 @@ method Foo() returns (x: int) {
       };
       var documents = new[] { projectFile.Uri, documentItem1.Uri, DocumentUri.File(secondFilePath) };
       await CheckExpectedStatuses(expectedStatuses, documents);
+      Directory.Delete(directory, true);
     }
 
     private async Task CheckExpectedStatuses(CompilationStatus[] expectedStatuses, DocumentUri[] documents) {
@@ -90,7 +92,7 @@ method Foo() returns (x: int) {
 
     [Fact]
     public async Task MultipleDocumentsSuccessfulResolution() {
-      var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+      var directory = GetFreshTempPath();
       Directory.CreateDirectory(directory);
       var projectFile = await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
       var status = await compilationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
@@ -112,6 +114,7 @@ method Foo() returns (x: int) {
       foreach (var _ in new[] { documentItem1.Uri, DocumentUri.File(secondFilePath) }) {
         await WaitForStatus(null, PublishedVerificationStatus.Stale, CancellationToken);
       }
+      Directory.Delete(directory, true);
     }
 
     [Fact(Timeout = MaxTestExecutionTimeMs)]

@@ -56,7 +56,7 @@
 // CHECK:       ProofDependencies.dfy\(250,11\)-\(250,17\): ensures clause
 // CHECK:       ProofDependencies.dfy\(252,7\)-\(252,7\): let expression binding
 // CHECK:       ProofDependencies.dfy\(252,12\)-\(252,16\): let expression binding RHS well-formed
-// CHECK:       ProofDependencies.dfy\(254,3\)-\(254,3\): let expression result
+// CHECK:       ProofDependencies.dfy\(254,3\)-\(254,3\): function call result
 //
 // CHECK: Results for M.ObviouslyUnconstrainedCodeMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -139,7 +139,7 @@
 // CHECK:       ProofDependencies.dfy\(373,1\)-\(380,1\): function definition for ObviouslyUnreachableIfExpressionBranchFunc
 // CHECK:       ProofDependencies.dfy\(374,12\)-\(374,16\): requires clause
 // CHECK:       ProofDependencies.dfy\(375,11\)-\(375,15\): ensures clause
-// CHECK:       ProofDependencies.dfy\(379,8\)-\(379,12\): if expression else branch
+// CHECK:       ProofDependencies.dfy\(379,8\)-\(379,12\): function call result
 //
 // CHECK: Results for M.ObviouslyUnreachableIfStatementBranchMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -153,7 +153,7 @@
 // CHECK:       ProofDependencies.dfy\(395,1\)-\(403,1\): function definition for ObviouslyUnreachableMatchExpressionCaseFunction
 // CHECK:       ProofDependencies.dfy\(396,12\)-\(396,17\): requires clause
 // CHECK:       ProofDependencies.dfy\(397,11\)-\(397,15\): ensures clause
-// CHECK:       ProofDependencies.dfy\(401,15\)-\(401,15\): match expression branch result
+// CHECK:       ProofDependencies.dfy\(401,15\)-\(401,15\): function call result
 //
 // CHECK: Results for M.ObviouslyUnreachableMatchStatementCaseMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -172,6 +172,6 @@
 //
 // CHECK: Results for M.GetX \(well-formedness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencies.dfy\(445,5\)-\(445,5\): target object is never null
+// CHECK:       ProofDependencies.dfy\(446,5\)-\(446,5\): target object is never null
 
 include "ProofDependencies.dfy"

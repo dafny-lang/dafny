@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
-public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
+public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeContainer {
   public override string WhatKind { get { return "iterator"; } }
   public readonly List<Formal> Ins;
   public readonly List<Formal> Outs;
@@ -74,7 +74,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
     Member_Begun_Expr = new ExprDotName(rangeToken, new ThisExpr(rangeToken), "_begun", null);
 
     YieldCountVariable = new LocalVariable(rangeToken, "_yieldCount", new EverIncreasingType(), true);
-    YieldCountVariable.type = YieldCountVariable.OptionalType;  // resolve YieldCountVariable here
+    YieldCountVariable.type = YieldCountVariable.SyntacticType;  // resolve YieldCountVariable here
   }
 
   /// <summary>
@@ -157,6 +157,8 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
       return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
     }
   }
+
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
 
   public override bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     formatter.SetMethodLikeIndent(StartToken, OwnedTokens, indentBefore);
@@ -522,4 +524,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify {
   public bool ShouldVerify => true; // This could be made more accurate
   public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public string Designator => WhatKind;
+
+  [FilledInDuringResolution]
+  public bool ContainsHide { get; set; }
 }

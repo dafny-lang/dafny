@@ -15,6 +15,25 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization;
 
 public class VerificationStatusTest : ClientBasedLanguageServerTest {
 
+  [Fact]
+  public async Task ParentModuleProjectFileVerification() {
+
+    await SetUp(options => {
+      options.Set(ProjectManager.Verification, VerifyOnMode.Never);
+    });
+    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    Directory.CreateDirectory(directory);
+    await File.WriteAllTextAsync(Path.Combine(directory, "dfyconfig.toml"), "");
+    await File.WriteAllTextAsync(Path.Combine(directory, "a.dfy"), "module A {}");
+    var b = CreateAndOpenTestDocument("module A.B { \n  method Test() { assert true; }\n}", Path.Combine(directory, "b.dfy"));
+
+    var methodHeader = new Position(1, 11);
+    verificationStatusReceiver.GetLatestAndClearQueue(_ => true);
+    await client.RunSymbolVerification(new TextDocumentIdentifier(b.Uri), methodHeader, CancellationToken);
+    var result = await WaitUntilAllStatusAreCompleted(b);
+    Assert.Equal(PublishedVerificationStatus.Correct, result.NamedVerifiables[0].Status);
+  }
+
   /// <summary>
   /// The client does not correctly migrate symbolStatus information,
   /// so we have to republish it if the positions change.
@@ -127,7 +146,7 @@ method Foo() returns (x: int) ensures x / 2 == 1; {
     await SetUp(options => {
       options.Set(ProjectManager.Verification, VerifyOnMode.Never);
     });
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     await CreateOpenAndWaitForResolve("", Path.Combine(directory, DafnyProject.FileName));
     var documentItem1 = await CreateOpenAndWaitForResolve(source, Path.Combine(directory, "RunWithMultipleDocuments1.dfy"));
     var documentItem2 = await CreateOpenAndWaitForResolve(source.Replace("Foo", "Bar"), Path.Combine(directory, "RunWithMultipleDocuments2.dfy"));
@@ -173,7 +192,7 @@ module A.B.D {
       options.Set(CommonOptionBag.VerifyIncludedFiles, true);
 
     });
-    var directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+    var directory = GetFreshTempPath();
     var documentItem1 = CreateTestDocument(source, Path.Combine(directory, "A.dfy"));
     await client.OpenDocumentAndWaitAsync(documentItem1, CancellationToken);
     var documentItem2 = CreateTestDocument(source2, Path.Combine(directory, "B.dfy"));

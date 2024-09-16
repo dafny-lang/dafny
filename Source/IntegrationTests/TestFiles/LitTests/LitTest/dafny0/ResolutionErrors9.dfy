@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --allow-axioms
+
 
 // --------------- regressions: using "this" in places where there is no enclosing class/type ------------------------------
 

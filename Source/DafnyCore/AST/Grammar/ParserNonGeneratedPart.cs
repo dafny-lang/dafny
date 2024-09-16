@@ -25,6 +25,8 @@ public partial class Parser {
     theModule = new FileModuleDefinition(scanner.FirstToken);
   }
 
+  bool IsReveal(IToken nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
+
   bool IsIdentifier(int kind) {
     return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
   }
@@ -156,7 +158,12 @@ public partial class Parser {
   }
 
   bool IsFunctionDecl() {
-    switch (la.kind) {
+    var kind = la.kind;
+    return IsFunctionDecl(kind);
+  }
+
+  private bool IsFunctionDecl(int kind) {
+    switch (kind) {
       case _function:
       case _predicate:
       case _copredicate:
@@ -184,6 +191,9 @@ public partial class Parser {
   bool IsExpliesOp() => IsExpliesOp(la);
   bool IsAndOp() => IsAndOp(la);
   bool IsOrOp() => IsOrOp(la);
+  bool IsComma() {
+    return la.val == ",";
+  }
   static bool IsEquivOp(IToken la) {
     return la.val == "<==>";
   }
@@ -617,7 +627,6 @@ public partial class Parser {
     public bool IsOpaque;
     public IToken OpaqueToken;
     public IToken FirstToken;
-
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
@@ -681,6 +690,39 @@ public partial class Parser {
   bool IsAssumeTypeKeyword(IToken la) {
     return la.kind == _assume || la.kind == _assert || la.kind == _expect;
   }
+
+  Expression ProcessTupleArgs(List<ActualBinding> args, IToken lp) {
+    if (args.Count == 1 && !args[0].IsGhost) {
+      if (args[0].FormalParameterName != null) {
+        SemErr(ErrorId.p_no_parenthesized_binding, lp, "binding not allowed in parenthesized expression");
+      }
+      return args[0].Actual;
+    } else {
+      // Compute the actual position of ghost arguments
+      var ghostness = new bool[args.Count];
+      for (var i = 0; i < args.Count; i++) {
+        ghostness[i] = false;
+      }
+      for (var i = 0; i < args.Count; i++) {
+        var arg = args[i];
+        if (arg.IsGhost) {
+          if (arg.FormalParameterName == null) {
+            ghostness[i] = true;
+          } else {
+            var success = int.TryParse(arg.FormalParameterName.val, out var index);
+            if (success && 0 <= index && index < args.Count) {
+              ghostness[index] = true;
+            }
+          }
+        }
+      }
+      var argumentGhostness = ghostness.ToList();
+      // make sure the corresponding tuple type exists
+      SystemModuleModifiers.Add(b => b.TupleType(lp, args.Count, true, argumentGhostness));
+      return new DatatypeValue(lp, SystemModuleManager.TupleTypeName(argumentGhostness), SystemModuleManager.TupleTypeCtorName(args.Count), args);
+    }
+  }
+
 
   public void ApplyOptionsFromAttributes(Attributes attrs) {
     var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")

@@ -380,8 +380,8 @@ public class SystemModuleManager {
     }
     var fn = new MemberSelectExpr(tok, f, member.Name) {
       Member = member,
-      TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
-      TypeApplication_JustMember = new List<Type>(),
+      TypeApplicationAtEnclosingClass = f.Type.TypeArgs,
+      TypeApplicationJustMember = new List<Type>(),
       Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
     };
     Expression body = new ApplyExpr(tok, fn, args, tok);
@@ -405,12 +405,12 @@ public class SystemModuleManager {
     Contract.Requires(typeArgumentsClass.Count == f.EnclosingClass.TypeArgs.Count);
     Contract.Requires(typeArgumentsMember.Count == f.TypeArgs.Count);
 
-    var atd = ArrowTypeDecls[f.Formals.Count];
+    var atd = ArrowTypeDecls[f.Ins.Count];
 
     var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
     var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
     var typeMap = TypeParameter.SubstitutionMap(formals, actuals);
-    return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
+    return new ArrowType(f.tok, atd, f.Ins.ConvertAll(arg => arg.Type.Subst(typeMap)), f.ResultType.Subst(typeMap));
   }
 
   public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType, List<bool> argumentGhostness = null) {

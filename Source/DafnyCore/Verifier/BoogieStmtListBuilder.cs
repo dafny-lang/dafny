@@ -1,19 +1,40 @@
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
-  internal class BoogieStmtListBuilder {
+  public class BoogieStmtListBuilder {
     public DafnyOptions Options { get; }
+    public BodyTranslationContext Context { get; set; }
     public StmtListBuilder builder;
+    public readonly List<object> Commands;
     public BoogieGenerator tran;
 
-    public BoogieStmtListBuilder(BoogieGenerator tran, DafnyOptions options) {
-      builder = new Boogie.StmtListBuilder();
+    public BoogieStmtListBuilder WithContext(BodyTranslationContext context) {
+      if (context == Context) {
+        return this;
+      }
+      return new BoogieStmtListBuilder(Commands, builder, tran, Options, context);
+    }
+
+    private BoogieStmtListBuilder(List<object> commands, StmtListBuilder builder, BoogieGenerator tran, DafnyOptions options, BodyTranslationContext context) {
+      Commands = commands;
+      this.builder = builder;
       this.tran = tran;
-      this.Options = options;
+      Options = options;
+      Context = context;
+    }
+
+    public BoogieStmtListBuilder(BoogieGenerator tran, DafnyOptions options, BodyTranslationContext context) {
+      builder = new StmtListBuilder();
+      this.tran = tran;
+      Options = options;
+      Commands = new();
+      Context = context;
     }
 
     public void Add(Cmd cmd) {
+      Commands.Add(cmd);
       builder.Add(cmd);
       if (cmd is Boogie.AssertCmd) {
         tran.assertionCount++;
@@ -31,14 +52,22 @@ namespace Microsoft.Dafny {
     }
 
     public void Add(StructuredCmd scmd) {
+      Commands.Add(scmd);
       builder.Add(scmd);
       if (scmd is Boogie.WhileCmd whyle && whyle.Invariants.Any(inv => inv is Boogie.AssertCmd)) {
         tran.assertionCount++;
       }
     }
 
-    public void Add(TransferCmd tcmd) { builder.Add(tcmd); }
-    public void AddLabelCmd(string label) { builder.AddLabelCmd(label); }
+    public void Add(TransferCmd tcmd) {
+      Commands.Add(tcmd);
+      builder.Add(tcmd);
+    }
+
+    public void AddLabelCmd(string label) {
+      Commands.Add(label);
+      builder.AddLabelCmd(label);
+    }
     public void AddLocalVariable(string name) { builder.AddLocalVariable(name); }
 
     public StmtList Collect(Boogie.IToken tok) {

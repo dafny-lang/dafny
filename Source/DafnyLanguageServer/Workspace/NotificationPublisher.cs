@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
 
           projectDiagnostics.Add(new Diagnostic {
             Range = new Range(0, 0, 0, 1),
-            Message = $"the referenced file {uri.LocalPath} contains error(s) but is not owned by this project. The first error is:\n{errors.First().Message}",
+            Message = $"the file {uri.LocalPath} contains error(s) when used by this project, but is part of a different project. The first error is:\n{errors.First().Message}",
             Severity = DiagnosticSeverity.Error,
             Source = MessageSource.Parser.ToString()
           });
@@ -201,42 +201,49 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         return;
       }
 
-      bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
+      try {
 
-      var errors = diagnosticsPerFile.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).
-        Where(x => x.Severity == DiagnosticSeverity.Error && x.Source != MessageSource.Verifier.ToString()).ToList();
-      var tree = state.VerificationTrees.GetValueOrDefault(uri);
-      if (tree == null) {
-        return;
-      }
+        bool verificationStarted = state.Status == CompilationStatus.ResolutionSucceeded;
 
-      var linesCount = tree.Range.End.Line + 1;
-      var fileVersion = filesystem.GetVersion(uri);
-      if (linesCount == 0) {
-        return;
-      }
-
-      var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
-        DocumentUri.From(uri),
-        fileVersion,
-        tree.Children,
-        errors,
-        linesCount,
-        verificationStarted
-      );
-      if (logger.IsEnabled(LogLevel.Trace)) {
-        var icons = string.Join(' ', verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
-        logger.LogDebug($"Sending gutter icons for compilation {state.Input.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
-                        $"icons: {icons}\n" +
-                        $"stacktrace:\n{Environment.StackTrace}");
-      }
-
-      lock (previouslyPublishedIcons) {
-        var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
-        if (previous == null || !previous.PerLineStatus.SequenceEqual(verificationStatusGutter.PerLineStatus)) {
-          previouslyPublishedIcons[uri] = verificationStatusGutter;
-          languageServer.TextDocument.SendNotification(verificationStatusGutter);
+        var errors = diagnosticsPerFile.GetOrDefault(uri, Enumerable.Empty<Diagnostic>).Where(x =>
+          x.Severity == DiagnosticSeverity.Error && x.Source != MessageSource.Verifier.ToString()).ToList();
+        var tree = state.VerificationTrees.GetValueOrDefault(uri);
+        if (tree == null) {
+          return;
         }
+
+        var linesCount = tree.Range.End.Line + 1;
+        var fileVersion = filesystem.GetVersion(uri);
+        if (linesCount == 0) {
+          return;
+        }
+
+        var verificationStatusGutter = VerificationStatusGutter.ComputeFrom(
+          DocumentUri.From(uri),
+          fileVersion,
+          tree.Children.ToList(),
+          errors,
+          linesCount,
+          verificationStarted
+        );
+        if (logger.IsEnabled(LogLevel.Trace)) {
+          var icons = string.Join(' ',
+            verificationStatusGutter.PerLineStatus.Select(s => LineVerificationStatusToString[s]));
+          logger.LogDebug(
+            $"Sending gutter icons for compilation {state.Input.Project.Uri}, comp version {state.Version}, file version {fileVersion}" +
+            $"icons: {icons}\n" +
+            $"stacktrace:\n{Environment.StackTrace}");
+        }
+
+        lock (previouslyPublishedIcons) {
+          var previous = previouslyPublishedIcons.GetValueOrDefault(uri);
+          if (previous == null || !previous.PerLineStatus.SequenceEqual(verificationStatusGutter.PerLineStatus)) {
+            previouslyPublishedIcons[uri] = verificationStatusGutter;
+            languageServer.TextDocument.SendNotification(verificationStatusGutter);
+          }
+        }
+      } catch (Exception e) {
+        logger.LogError(e, "Exception while publishing gutter icons");
       }
     }
 

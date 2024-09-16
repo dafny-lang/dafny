@@ -130,11 +130,21 @@ public static class PreType2TypeUtil {
       // Even if the head type of preTypeConverted is a refinement wrapper, we're going to stick with the user-defined type, so we Normalize() here.
       preTypeConverted = preTypeConverted.Normalize();
 
-      Contract.Assert((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass);
-      Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
-      for (var i = 0; i < type.TypeArgs.Count; i++) {
-        // TODO: the following should take variance into consideration
-        Combine(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+      if ((type as UserDefinedType)?.ResolvedClass == (preTypeConverted as UserDefinedType)?.ResolvedClass) {
+        Contract.Assert(type.TypeArgs.Count == preTypeConverted.TypeArgs.Count);
+        for (var i = 0; i < type.TypeArgs.Count; i++) {
+          Combine(type.TypeArgs[i], preTypeConverted.TypeArgs[i]);
+        }
+      } else {
+        // The only way this can happen is if the user-supplied "type" is a type synonym, subset type, or newtype that expands to one of its
+        // type parameters. If so, expand "type" and recurse.
+        var udt = (UserDefinedType)type;
+        if (udt.ResolvedClass is TypeSynonymDecl typeSynonymDecl) {
+          type = typeSynonymDecl.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+        } else {
+          type = ((NewtypeDecl)udt.ResolvedClass).RhsWithArgument(udt.TypeArgs);
+        }
+        Combine(type, preTypeConverted);
       }
     }
   }

@@ -8,8 +8,9 @@
 # such as `dafny verify`.
 
 # Invoking the CLI this way just to stay platform-independent
-DAFNY = dotnet run --project ../../../../Dafny --no-build --
+DAFNY = dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor --
 
+NO_VERIFY := false
 DOO_FILE_SOURCE=../../../build/DafnyStandardLibraries-${TARGETLANG}.doo
 DOO_FILE_TARGET=../../../binaries/DafnyStandardLibraries-${TARGETLANG}.doo
 
@@ -17,8 +18,8 @@ verify: build-binary
 verify-all: update-binary-all
 
 build-binary:
-	$(DAFNY) build -t:lib dfyconfig.toml \
-		`find . -name '*-${TARGETLANG}*.dfy'` \
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) dfyconfig.toml \
+		`find . -name '*-${TARGETLANG}*.dfy' | sort` \
 		--output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary

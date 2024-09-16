@@ -13,14 +13,9 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver : INewOrOldResolver {
-    private Scope<Statement> enclosingStatementLabels;
-    private readonly Scope<Label> dominatingStatementLabels;
-    public Scope<Label> DominatingStatementLabels => dominatingStatementLabels;
+    public Scope<Label> DominatingStatementLabels { get; }
 
-    public Scope<Statement> EnclosingStatementLabels {
-      get => enclosingStatementLabels;
-      set => enclosingStatementLabels = value;
-    }
+    public Scope<Statement> EnclosingStatementLabels { get; set; }
 
     public List<Statement> LoopStack {
       get => loopStack;
@@ -30,7 +25,7 @@ namespace Microsoft.Dafny {
     private List<Statement> loopStack = new();  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
-    void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
+    public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -53,7 +48,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
+    public void ResolveStatementWithLabels(Statement stmt, ResolutionContext resolutionContext) {
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -70,10 +65,10 @@ namespace Microsoft.Dafny {
         } else {
           var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
           Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (dominatingStatementLabels.Find(lnode.Name) != null) {
+          if (DominatingStatementLabels.Find(lnode.Name) != null) {
             ReportError(lnode.Tok, "label shadows a dominating label");
           } else {
-            var rr = dominatingStatementLabels.Push(lnode.Name, lnode);
+            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
             Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           }
         }
@@ -91,7 +86,7 @@ namespace Microsoft.Dafny {
       if (!resolutionContext.IsTwoState) {
         ReportError(tok, $"{expressionDescription} expressions are not allowed in this context");
       } else if (labelName != null) {
-        label = dominatingStatementLabels.Find(labelName);
+        label = DominatingStatementLabels.Find(labelName);
         if (label == null) {
           ReportError(tok, $"no label '{labelName}' in scope at this time");
         }
@@ -117,52 +112,8 @@ namespace Microsoft.Dafny {
           ResolveExpression(e, resolutionContext);
         }
 
-      } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        foreach (var expr in s.Exprs) {
-          var name = RevealStmt.SingleName(expr);
-          var labeledAssert = name == null ? null : dominatingStatementLabels.Find(name) as AssertLabel;
-          if (labeledAssert != null) {
-            s.LabeledAsserts.Add(labeledAssert);
-          } else {
-            var revealResolutionContext = resolutionContext with { InReveal = true };
-            if (expr is ApplySuffix applySuffix) {
-              var methodCallInfo = ResolveApplySuffix(applySuffix, revealResolutionContext, true);
-              if (methodCallInfo == null) {
-                // error has already been reported
-              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-                ReportError(methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-              } else if (methodCallInfo.Callee.AtLabel != null) {
-                Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                ReportError(methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
-              } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters);
-                s.ResolvedStatements.Add(call);
-              }
-            } else if (expr is NameSegment or ExprDotName) {
-              if (expr is NameSegment) {
-                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
-              } else {
-                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
-              }
-              var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
-              if (callee == null) {
-              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
-                //The revealed member is a function
-                ReportError(callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
-              } else {
-                var call = new CallStmt(s.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-                s.ResolvedStatements.Add(call);
-              }
-            } else {
-              ResolveExpression(expr, revealResolutionContext);
-            }
-          }
-        }
-        foreach (var a in s.ResolvedStatements) {
-          ResolveStatement(a, resolutionContext);
-        }
-
+      } else if (stmt is HideRevealStmt hideRevealStmt) {
+        hideRevealStmt.Resolve(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -227,7 +178,7 @@ namespace Microsoft.Dafny {
                 ident.PreType = Type2PreType(ident.Var.Type);
                 produceLhs = ident;
               } else {
-                var yieldIdent = new MemberSelectExpr(f.tok, new ImplicitThisExpr(f.tok), f.Name);
+                var yieldIdent = new ExprDotName(f.tok, new ImplicitThisExpr(f.tok), f.Name, null);
                 ResolveExpression(yieldIdent, resolutionContext);
                 produceLhs = yieldIdent;
               }
@@ -249,8 +200,8 @@ namespace Microsoft.Dafny {
         var s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = ErrorCount;
-          resolver.ResolveType(local.Tok, local.OptionalType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = ErrorCount == prevErrorCount ? local.type = local.OptionalType : new InferredTypeProxy();
+          resolver.ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          local.type = ErrorCount == prevErrorCount ? local.type = local.SyntacticType : new InferredTypeProxy();
           local.PreType = Type2PreType(local.type);
         }
         ResolveExpression(s.RHS, resolutionContext);
@@ -301,8 +252,8 @@ namespace Microsoft.Dafny {
           var rr = (TypeRhs)s.Rhs;
           ResolveTypeRhs(rr, stmt, resolutionContext);
           AddSubtypeConstraint(lhsPreType, rr.PreType, stmt.Tok, "type {1} is not assignable to LHS (of type {0})");
-        } else if (s.Rhs is HavocRhs) {
-          // nothing else to do
+        } else if (s.Rhs is HavocRhs havocRhs) {
+          havocRhs.Resolve(this, resolutionContext);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
         }
@@ -315,41 +266,22 @@ namespace Microsoft.Dafny {
         ResolveBlockStatement(blockStmt, resolutionContext);
         scope.PopMarker();
 
-      } else if (stmt is IfStmt) {
-        var s = (IfStmt)stmt;
-        if (s.Guard != null) {
-          ResolveExpression(s.Guard, resolutionContext);
-          ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
-        }
-
-        scope.PushMarker();
-        if (s.IsBindingGuard) {
-          var exists = (ExistsExpr)s.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", false);
-          }
-        }
-        dominatingStatementLabels.PushMarker();
-        ResolveBlockStatement(s.Thn, resolutionContext);
-        dominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-
-        if (s.Els != null) {
-          dominatingStatementLabels.PushMarker();
-          ResolveStatement(s.Els, resolutionContext);
-          dominatingStatementLabels.PopMarker();
-        }
-
+      } else if (stmt is IfStmt ifStmt) {
+        ifStmt.Resolve(this, resolutionContext);
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
-        ResolveAlternatives(s.Alternatives, null, resolutionContext);
+        s.Resolve(this, resolutionContext);
 
       } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
         ResolveOneBodyLoopStmt(oneBodyLoopStmt, resolutionContext);
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
-        ResolveAlternatives(s.Alternatives, s, resolutionContext);
+        if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+          Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_case_based_loop_forbidden, s.Tok,
+            "case-based loop forbidden by the --enforce-determinism option");
+        }
+        AlternativeStmt.ResolveAlternatives(this, s.Alternatives, s, resolutionContext);
         ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, resolutionContext);
 
       } else if (stmt is ForallStmt) {
@@ -440,6 +372,12 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ModifyStmt modifyStmt) {
+        if (modifyStmt.Body == null) {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_bodyless_modify_statement_forbidden,
+              modifyStmt.Tok, "modify statement without a body forbidden by the --enforce-determinism option");
+          }
+        }
         ResolveAttributes(modifyStmt.Mod, resolutionContext, false);
         foreach (FrameExpression fe in modifyStmt.Mod.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext.CodeContext);
@@ -473,11 +411,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Requires(resolutionContext != null);
 
-      if (s is WhileStmt whileS && whileS.Guard != null) {
-        ResolveExpression(whileS.Guard, resolutionContext);
-        ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
-
-      } else if (s is ForLoopStmt forS) {
+      if (s is WhileStmt whileS) {
+        if (whileS.Guard != null) {
+          ResolveExpression(whileS.Guard, resolutionContext);
+          ConstrainTypeExprBool(whileS.Guard, "condition is expected to be of type bool, but is {0}");
+        } else {
+          if (!resolutionContext.IsGhost && Options.ForbidNondeterminism) {
+            Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_non_deterministic_loop_forbidden, s.Tok,
+              "nondeterministic loop forbidden by the --enforce-determinism option");
+          }
+        }
+      }
+      if (s is ForLoopStmt forS) {
         var loopIndex = forS.LoopIndex;
         resolver.ResolveType(loopIndex.tok, loopIndex.Type, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         loopIndex.PreType = Type2PreType(loopIndex.Type);
@@ -511,9 +456,9 @@ namespace Microsoft.Dafny {
 
       if (s.Body != null) {
         loopStack.Add(s); // push
-        dominatingStatementLabels.PushMarker();
+        DominatingStatementLabels.PushMarker();
         ResolveStatement(s.Body, resolutionContext);
-        dominatingStatementLabels.PopMarker();
+        DominatingStatementLabels.PopMarker();
         loopStack.RemoveAt(loopStack.Count - 1); // pop
       }
 
@@ -560,9 +505,9 @@ namespace Microsoft.Dafny {
         loopStack = new List<Statement>();
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {
-            dominatingStatementLabels.PushMarker();
+            DominatingStatementLabels.PushMarker();
             ResolveStatement(oneHint, resolutionContext);
-            dominatingStatementLabels.PopMarker();
+            DominatingStatementLabels.PopMarker();
           }
         }
         EnclosingStatementLabels = prevLblStmts;
@@ -616,8 +561,8 @@ namespace Microsoft.Dafny {
         // Add the locals to the scope
         foreach (var local in locals) {
           int prevErrorCount = ErrorCount;
-          resolver.ResolveType(local.Tok, local.OptionalType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = ErrorCount == prevErrorCount ? local.OptionalType : new InferredTypeProxy();
+          resolver.ResolveType(local.Tok, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          local.type = ErrorCount == prevErrorCount ? local.SyntacticType : new InferredTypeProxy();
           ScopePushAndReport(local, "local-variable", true);
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals
@@ -670,7 +615,8 @@ namespace Microsoft.Dafny {
     /// errorCountBeforeCheckingStmt is passed in so that this method can determine if any resolution errors were found during
     /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
     /// </summary>
-    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext, int errorCountBeforeCheckingStmt) {
+    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext,
+      int errorCountBeforeCheckingStmt) {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
       IToken firstEffectfulRhs = null;
@@ -692,6 +638,7 @@ namespace Microsoft.Dafny {
             isEffectful = false;
           }
         }
+
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Tok;
         }
@@ -699,13 +646,17 @@ namespace Microsoft.Dafny {
         ResolveAttributes(rhs, resolutionContext, false);
       }
 
+      // resolve proof
+      ModuleResolver.ResolveByProof(this, update.Proof, resolutionContext);
+
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
         if (update.Lhss.Count == 0) {
-          Contract.Assert(update.Rhss.Count == 1);  // guaranteed by the parser
+          Contract.Assert(update.Rhss.Count == 1); // guaranteed by the parser
           ReportError(update, "expected method call, found expression");
         } else if (update.Lhss.Count != update.Rhss.Count) {
-          ReportError(update, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
+          ReportError(update,
+            "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
             update.Lhss.Count, update.Rhss.Count);
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
@@ -718,7 +669,8 @@ namespace Microsoft.Dafny {
       } else if (update.CanMutateKnownState) {
         if (1 < update.Rhss.Count) {
           ReportError(firstEffectfulRhs, "cannot have effectful parameter in multi-return statement.");
-        } else { // it might be ok, if it is a TypeRhs
+        } else {
+          // it might be ok, if it is a TypeRhs
           Contract.Assert(update.Rhss.Count == 1);
           if (methodCallInfo != null) {
             ReportError(methodCallInfo.Tok, "cannot have method call in return statement.");
@@ -738,12 +690,16 @@ namespace Microsoft.Dafny {
       } else {
         // if there was an effectful RHS, that must be the only RHS
         if (update.Rhss.Count != 1) {
-          ReportError(firstEffectfulRhs, "an update statement is allowed an effectful RHS only if there is just one RHS");
+          ReportError(firstEffectfulRhs,
+            "an update statement is allowed an effectful RHS only if there is just one RHS");
         } else if (methodCallInfo == null) {
           // must be a single TypeRhs
           if (update.Lhss.Count != 1) {
-            Contract.Assert(2 <= update.Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
-            ReportError(update.Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
+            Contract.Assert(2 <=
+                            update.Lhss
+                              .Count); // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
+            ReportError(update.Lhss[1].tok,
+              "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
               update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingStmt) {
             var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
@@ -752,7 +708,8 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters,
+            methodCallInfo.Tok, update.Proof);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -847,6 +804,8 @@ namespace Microsoft.Dafny {
 
       if (tryToResolve) {
         var typeMap = s.MethodSelect.PreTypeArgumentSubstitutionsAtMemberDeclaration();
+        AddTypeBoundConstraints(s.Tok, callee.EnclosingClass.TypeArgs, typeMap);
+        AddTypeBoundConstraints(s.Tok, callee.TypeArgs, typeMap);
         // resolve arguments
         ResolveActualParameters(s.Bindings, callee.Ins, s.Tok, callee, resolutionContext, typeMap,
           callee.IsStatic ? null : s.Receiver);
@@ -865,25 +824,6 @@ namespace Microsoft.Dafny {
           CheckIsLvalue(lhs.Resolved, resolutionContext);
         }
 
-#if SOON
-        // Resolution termination check
-        ModuleDefinition callerModule = resolutionContext.EnclosingModule;
-        ModuleDefinition calleeModule = ((ICodeContext)callee).EnclosingModule;
-        if (callerModule == calleeModule) {
-          // intra-module call; add edge in module's call graph
-          var caller = CodeContextWrapper.Unwrap(resolutionContext) as ICallable;
-          if (caller == null) {
-            // don't add anything to the call graph after all
-          } else if (caller is IteratorDecl) {
-            callerModule.CallGraph.AddEdge(((IteratorDecl)caller).Member_MoveNext, callee);
-          } else {
-            callerModule.CallGraph.AddEdge(caller, callee);
-            if (caller == callee) {
-              callee.IsRecursive = true;  // self recursion (mutual recursion is determined elsewhere)
-            }
-          }
-        }
-#endif
       }
       if (Contract.Exists(callee.Decreases.Expressions, e => e is WildcardExpr) && !resolutionContext.CodeContext.AllowsNontermination) {
         ReportError(s.Tok, "a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating");
@@ -937,7 +877,7 @@ namespace Microsoft.Dafny {
         if (callee != null) {
           // We're looking at a method call
           if (callee.Outs.Count != 0) {
-            var typeMap = PreType.PreTypeSubstMap(callee.TypeArgs, methodCallInfo.Callee.PreTypeApplication_JustMember);
+            var typeMap = PreType.PreTypeSubstMap(callee.TypeArgs, methodCallInfo.Callee.PreTypeApplicationJustMember);
             firstPreType = callee.Outs[0].PreType.Substitute(typeMap);
           } else {
             ReportError(s.Rhs.tok, $"Expected '{callee.Name}' to have a success/failure output value, but the method returns nothing.");
@@ -994,6 +934,8 @@ namespace Microsoft.Dafny {
         ReportError(s.Tok, "Internal Error: Unknown failure type in :- statement");
         return;
       }
+
+      ModuleResolver.ResolveByProof(this, s.Proof, resolutionContext);
 
       Expression lhsExtract = null;
       if (expectExtract) {
@@ -1057,24 +999,25 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2);
+      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2, s.Proof);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
       s.ResolvedStatements.Add(up);
 
       if (s.KeywordToken != null) {
-        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(s.Tok, temp, "IsFailure"));
+        var token = s.KeywordToken.Token;
+        var notFailureExpr = new UnaryOpExpr(token, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(s.Tok, temp, "IsFailure"));
         Statement ss = null;
-        if (s.KeywordToken.Token.val == "expect") {
+        if (token.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(new RangeToken(token, s.EndToken), notFailureExpr, new IdentifierExpr(s.Tok, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
+          ss = new AssumeStmt(new RangeToken(token, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new RangeToken(s.Tok, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new RangeToken(token, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
         } else {
-          Contract.Assert(false, $"Invalid token in :- statement: {s.KeywordToken.Token.val}");
+          Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {
@@ -1176,7 +1119,7 @@ namespace Microsoft.Dafny {
       }
 
       if (rr.ArrayDimensions != null) {
-        // ---------- new T[EE]    OR    new T[EE] (elementInit)
+        // ---------- new T[EE]    OR    new T[EE] (elementInit)    OR    new T[EE] [elements...]
         var dims = rr.ArrayDimensions.Count;
         Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
         resolver.ResolveType(stmt.Tok, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -1188,14 +1131,16 @@ namespace Microsoft.Dafny {
             $"new must use an integer-based expression for the array size (got {{0}}{indexHint})");
           i++;
         }
-        rr.PreType = BuiltInArrayType(dims, Type2PreType(rr.EType));
+
+        var elementPreType = Type2PreType(rr.EType);
+        rr.PreType = BuiltInArrayType(dims, elementPreType);
         if (rr.ElementInit != null) {
           ResolveExpression(rr.ElementInit, resolutionContext);
           // Check (the pre-type version of)
           //     nat^N -> rr.EType  :>  rr.ElementInit.Type
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
-          var arrowPreType = BuiltInArrowType(indexPreTypes, Type2PreType(rr.EType));
+          var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType);
           Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.tok, () => {
             var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",
@@ -1205,7 +1150,7 @@ namespace Microsoft.Dafny {
         } else if (rr.InitDisplay != null) {
           foreach (var v in rr.InitDisplay) {
             ResolveExpression(v, resolutionContext);
-            AddSubtypeConstraint(Type2PreType(rr.EType), v.PreType, v.tok, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+            AddSubtypeConstraint(elementPreType, v.PreType, v.tok, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
           }
         }
       } else {
@@ -1257,7 +1202,7 @@ namespace Microsoft.Dafny {
               PreType = rr.PreType
             };
             var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret?.LastComponent.OptTypeArguments);
-            ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+            ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
@@ -1316,40 +1261,6 @@ namespace Microsoft.Dafny {
         // nothing to check; this can only denote an array element
       } else {
         ReportError(lhs, "LHS of assignment must denote a mutable variable or field");
-      }
-    }
-
-    void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ResolutionContext resolutionContext) {
-      Contract.Requires(alternatives != null);
-      Contract.Requires(resolutionContext != null);
-
-      // first, resolve the guards
-      foreach (var alternative in alternatives) {
-        ResolveExpression(alternative.Guard, resolutionContext);
-        ConstrainExpressionToBoolFamily(alternative.Guard, "condition is expected to be of type bool, but is {0}");
-      }
-
-      if (loopToCatchBreaks != null) {
-        loopStack.Add(loopToCatchBreaks);  // push
-      }
-      foreach (var alternative in alternatives) {
-        scope.PushMarker();
-        dominatingStatementLabels.PushMarker();
-        if (alternative.IsBindingGuard) {
-          var exists = (ExistsExpr)alternative.Guard;
-          foreach (var v in exists.BoundVars) {
-            ScopePushAndReport(v, "bound-variable", false);
-          }
-        }
-        ResolveAttributes(alternative, resolutionContext, false);
-        foreach (Statement ss in alternative.Body) {
-          ResolveStatementWithLabels(ss, resolutionContext);
-        }
-        dominatingStatementLabels.PopMarker();
-        scope.PopMarker();
-      }
-      if (loopToCatchBreaks != null) {
-        loopStack.RemoveAt(loopStack.Count - 1);  // pop
       }
     }
   }

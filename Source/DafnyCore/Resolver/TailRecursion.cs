@@ -97,7 +97,7 @@ class TailRecursion {
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
     if (stmt is PrintStmt) {
-    } else if (stmt is RevealStmt) {
+    } else if (stmt is HideRevealStmt) {
     } else if (stmt is BreakStmt) {
     } else if (stmt is ReturnStmt) {
       var s = (ReturnStmt)stmt;
@@ -136,7 +136,7 @@ class TailRecursion {
       var s = (CallStmt)stmt;
       if (s.Method == enclosingMethod) {
         DisallowRecursiveCallsInExpressions(s, enclosingMethod, reportErrors);
-        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplication_JustMember, s.Lhs, reportErrors);
+        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplicationJustMember, s.Lhs, reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
         }
@@ -340,7 +340,7 @@ class TailRecursion {
       if (formal != actual) {
         if (reportErrors) {
           reporter.Error(MessageSource.Resolver, tok,
-            "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
+            "the recursive call to '{0}' is not tail recursive because the actual type argument{1} is not the formal type parameter '{2}'",
             method.Name, method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
         }
         return TailRecursionStatus.NotTailRecursive;
@@ -424,8 +424,8 @@ class TailRecursion {
     if (expr is FunctionCallExpr) {
       var e = (FunctionCallExpr)expr;
       var status = e.Function == enclosingFunction ? Function.TailStatus.TailRecursive : Function.TailStatus.TriviallyTailRecursive;
-      for (var i = 0; i < e.Function.Formals.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost) {
+      for (var i = 0; i < e.Function.Ins.Count; i++) {
+        if (!e.Function.Ins[i].IsGhost) {
           var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
           status = TRES_Or(status, s);
         }
@@ -614,8 +614,8 @@ class TailRecursion {
         status = Function.TailStatus.NotTailRecursive;
       }
       // skip ghost subexpressions
-      for (var i = 0; i < e.Function.Formals.Count; i++) {
-        if (!e.Function.Formals[i].IsGhost) {
+      for (var i = 0; i < e.Function.Ins.Count; i++) {
+        if (!e.Function.Ins[i].IsGhost) {
           var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
           status = TRES_Or(status, s);
         }

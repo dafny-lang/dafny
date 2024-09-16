@@ -50,8 +50,8 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     return GetTriviaContainingDocstringFromStartTokenOrNull();
   }
 
-  public SymbolKind Kind => SymbolKind.EnumMember;
-  public string GetDescription(DafnyOptions options) {
+  public override SymbolKind? Kind => SymbolKind.EnumMember;
+  public override string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
     return $"{EnclosingDatatype.Name}.{Name}({formals})";
   }

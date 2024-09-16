@@ -15,4 +15,3 @@ check-system-module: build-system-module
 
 update-system-module: build-system-module
 	cp $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)
-	

@@ -336,7 +336,9 @@ public class CoverageReporter {
   }
 
   private async Task<string> HtmlReportForFile(CoverageReport report, Uri uri, string baseDirectory, string linksToOtherReports) {
-    var dafnyFile = await DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance, options, uri, Token.Cli);
+    var files = await DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance,
+        new ConsoleErrorReporter(options), options, uri, Token.Cli).ToListAsync();
+    var dafnyFile = files[0];
     var source = await dafnyFile.GetContent().ReadToEndAsync();
     var lines = source.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
     var characterLabels = new CoverageLabel[lines.Length][];

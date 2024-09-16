@@ -9,6 +9,11 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
   public readonly AssignmentRhs Rhs;
   public override IEnumerable<INode> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return new[] { Lhs.Resolved }.OfType<IdentifierExpr>();
+  }
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhs != null);
@@ -17,13 +22,15 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
 
   public override IToken Tok {
     get {
-      var previous = Rhs.StartToken.Prev;
-      // If there was a single assignment, report on the operator.
-      var singleAssignment = previous.val == ":=";
-      // If there was an implicit return assignment, report on the return.
-      var implicitAssignment = previous.val == "return";
-      if (singleAssignment || implicitAssignment) {
-        return previous;
+      if (Rhs.StartToken.Prev is not null) {
+        var previous = Rhs.StartToken.Prev;
+        // If there was a single assignment, report on the operator.
+        var singleAssignment = previous.val == ":=";
+        // If there was an implicit return assignment, report on the return.
+        var implicitAssignment = previous.val == "return";
+        if (singleAssignment || implicitAssignment) {
+          return previous;
+        }
       }
       return Rhs.StartToken;
     }

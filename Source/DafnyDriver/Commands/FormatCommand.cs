@@ -5,12 +5,36 @@ using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
 public static class FormatCommand {
 
-  public static IEnumerable<Option> Options => DafnyCommands.FormatOptions;
+  static FormatCommand() {
+    DafnyOptions.RegisterLegacyBinding(CheckOption, (options, value) => {
+      options.FormatCheck = value;
+    });
+
+    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
+      options.DafnyPrintFile = value ? "-" : null;
+    });
+    OptionRegistry.RegisterOption(CheckOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(FormatPrint, OptionScope.Cli);
+  }
+
+  public static IEnumerable<Option> Options => new Option[] {
+    CheckOption,
+    FormatPrint,
+  }.Concat(DafnyCommands.ParserOptions);
+
+  public static readonly Option<bool> CheckOption = new("--check", () => false, @"
+Instead of formatting files, verify that all files are already
+formatted through and return a non-zero exit code if it is not the case".TrimStart());
+
+  public static readonly Option<bool> FormatPrint = new("--print",
+    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
+  };
 
   public static Command Create() {
     var result = new Command("format", @"Format the dafny file in-place.
@@ -42,7 +66,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
 
     var exitValue = ExitValue.SUCCESS;
     Contract.Assert(dafnyFiles.Count > 0 || options.SourceFolders.Count > 0);
-    var folderFiles = (await Task.WhenAll(options.SourceFolders.Select(folderPath => GetFilesForFolder(options, folderPath)))).SelectMany(x => x);
+    var folderFiles = options.SourceFolders.Select(folderPath => GetFilesForFolder(options, folderPath)).SelectMany(x => x);
     dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
 
     var failedToParseFiles = new List<string>();
@@ -58,7 +82,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
         exitValue = ExitValue.PREPROCESSING_ERROR;
         continue;
       }
-      if (dafnyFile.Extension == ".doo" && !doCheck && !doPrint) {
+      if (dafnyFile.Extension == DooFile.Extension && !doCheck && !doPrint) {
         await errorWriter.WriteLineAsync("Please use the '--check' and/or '--print' option as doo files cannot be formatted in place.");
         exitValue = ExitValue.PREPROCESSING_ERROR;
         continue;
@@ -68,8 +92,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
       if (dafnyFile.Uri.Scheme == "stdin") {
         tempFileName = Path.GetTempFileName() + ".dfy";
         SynchronousCliCompilation.WriteFile(tempFileName, await Console.In.ReadToEndAsync());
-        dafnyFile = await DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options),
-          OnDiskFileSystem.Instance, options, new Uri(tempFileName), Token.NoToken);
+        dafnyFile = DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance, new ConsoleErrorReporter(options), options, new Uri(tempFileName), Token.NoToken);
       }
 
       var content = dafnyFile.GetContent();
@@ -151,9 +174,9 @@ Use '--print' to output the content of the formatted files instead of overwritin
     return exitValue;
   }
 
-  public static Task<DafnyFile[]> GetFilesForFolder(DafnyOptions options, string folderPath) {
-    return Task.WhenAll(Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
-      .Select(name => DafnyFile.CreateAndValidate(new ConsoleErrorReporter(options), OnDiskFileSystem.Instance,
-        options, new Uri(name), Token.Cli)));
+  public static IEnumerable<DafnyFile> GetFilesForFolder(DafnyOptions options, string folderPath) {
+    return Directory.GetFiles(folderPath, "*.dfy", SearchOption.AllDirectories)
+      .Select(name => DafnyFile.HandleDafnyFile(OnDiskFileSystem.Instance,
+        new ConsoleErrorReporter(options), options, new Uri(name), Token.Cli));
   }
 }

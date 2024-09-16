@@ -21,14 +21,14 @@ namespace Microsoft.Dafny {
     /// Note that this method can only be called after determining which expressions are ghosts.
     /// </summary>
     public static void InferAndCheck(List<TopLevelDecl> declarations, bool isAnExport, ErrorReporter reporter) {
-      InferEqualitySupport(declarations);
+      InferEqualitySupport(declarations, reporter);
       Check(declarations, isAnExport, reporter);
     }
 
     /// <summary>
     /// Inferred required equality support for datatypes and type synonyms, and for Function and Method signatures.
     /// </summary>
-    private static void InferEqualitySupport(List<TopLevelDecl> declarations) {
+    private static void InferEqualitySupport(List<TopLevelDecl> declarations, ErrorReporter reporter) {
       // First, do datatypes and type synonyms until a fixpoint is reached.
       bool inferredSomething;
       do {
@@ -43,8 +43,7 @@ namespace Microsoft.Dafny {
                 // here's our chance to infer the need for equality support
                 foreach (var ctor in dt.Ctors) {
                   foreach (var arg in ctor.Formals) {
-                    if (InferRequiredEqualitySupport(tp, arg.Type)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    if (InferAndSetEqualitySupport(tp, arg.Type, reporter)) {
                       inferredSomething = true;
                       goto DONE_DT; // break out of the doubly-nested loop
                     }
@@ -57,8 +56,16 @@ namespace Microsoft.Dafny {
             foreach (var tp in syn.TypeArgs) {
               if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                 // here's our chance to infer the need for equality support
-                if (InferRequiredEqualitySupport(tp, syn.Rhs)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                if (InferAndSetEqualitySupport(tp, syn.Rhs, reporter)) {
+                  inferredSomething = true;
+                }
+              }
+            }
+          } else if (d is NewtypeDecl newtypeDecl) {
+            foreach (var tp in newtypeDecl.TypeArgs) {
+              if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
+                // here's our chance to infer the need for equality support
+                if (InferAndSetEqualitySupport(tp, newtypeDecl.BaseType, reporter)) {
                   inferredSomething = true;
                 }
               }
@@ -79,10 +86,8 @@ namespace Microsoft.Dafny {
             if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
               // here's our chance to infer the need for equality support
               foreach (var p in iter.Ins) {
-                if (InferRequiredEqualitySupport(tp, p.Type)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
-                    TypeParameter.EqualitySupportValue.InferredRequired;
+                if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                   done = true;
                   break;
                 }
@@ -92,10 +97,8 @@ namespace Microsoft.Dafny {
                 if (done) {
                   break;
                 }
-                if (InferRequiredEqualitySupport(tp, p.Type)) {
-                  tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
-                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport =
-                    TypeParameter.EqualitySupportValue.InferredRequired;
+                if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
+                  correspondingNonnullIterTypeParameter.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
                   break;
                 }
               }
@@ -104,16 +107,17 @@ namespace Microsoft.Dafny {
         } else if (d is ClassLikeDecl or DefaultClassDecl) {
           var cl = (TopLevelDeclWithMembers)d;
           foreach (var member in cl.Members.Where(member => !member.IsGhost)) {
+            List<TypeParameter> memberTypeArguments = null;
             if (member is Function function) {
+              memberTypeArguments = function.TypeArgs;
               foreach (var tp in function.TypeArgs) {
                 if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
-                  if (InferRequiredEqualitySupport(tp, function.ResultType)) {
-                    tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                  if (InferAndSetEqualitySupport(tp, function.ResultType, reporter)) {
+                    // the call to InferAndSetEqualitySupport made the necessary updates
                   } else {
-                    foreach (var p in function.Formals) {
-                      if (InferRequiredEqualitySupport(tp, p.Type)) {
-                        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    foreach (var p in function.Ins) {
+                      if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
                         break;
                       }
                     }
@@ -121,13 +125,13 @@ namespace Microsoft.Dafny {
                 }
               }
             } else if (member is Method method) {
+              memberTypeArguments = method.TypeArgs;
               bool done = false;
               foreach (var tp in method.TypeArgs) {
                 if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
                   // here's our chance to infer the need for equality support
                   foreach (var p in method.Ins) {
-                    if (InferRequiredEqualitySupport(tp, p.Type)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
                       done = true;
                       break;
                     }
@@ -137,17 +141,36 @@ namespace Microsoft.Dafny {
                     if (done) {
                       break;
                     }
-                    if (InferRequiredEqualitySupport(tp, p.Type)) {
-                      tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+                    if (InferAndSetEqualitySupport(tp, p.Type, reporter)) {
                       break;
                     }
                   }
                 }
               }
             }
+
+            // Now that type characteristics have been inferred for any method/function type parameters, generate a tool tip
+            // if the type parameters were added as part of type-parameter completion.
+            if (memberTypeArguments != null && memberTypeArguments.Count != 0 && memberTypeArguments[0].IsAutoCompleted) {
+              var toolTip = $"<{memberTypeArguments.Comma(Printer.TypeParameterToString)}>";
+              reporter.Info(MessageSource.Resolver, member.tok, toolTip);
+            }
+
           }
         }
       }
+    }
+
+    private static bool InferAndSetEqualitySupport(TypeParameter tp, Type type, ErrorReporter reporter) {
+      var requiresEqualitySupport = InferRequiredEqualitySupport(tp, type);
+      if (requiresEqualitySupport) {
+        tp.Characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.InferredRequired;
+        // Note, auto-completed type parameters already get a tool tip for the enclosing method/function
+        if (reporter is not ErrorReporterWrapper && !tp.IsAutoCompleted) {
+          reporter.Info(MessageSource.Resolver, tp.tok, "(==)");
+        }
+      }
+      return requiresEqualitySupport;
     }
 
     private static bool InferRequiredEqualitySupport(TypeParameter tp, Type type) {
@@ -231,6 +254,8 @@ namespace Microsoft.Dafny {
                 syn.Rhs);
             }
           }
+        } else if (d is NewtypeDecl { BaseType: { } baseType }) {
+          visitor.VisitType(d.tok, baseType, false);
         }
 
         if (d is RedirectingTypeDecl rtd) {
@@ -254,7 +279,7 @@ namespace Microsoft.Dafny {
                 visitor.Visit(cf.Rhs, cf.IsGhost);
               }
             } else if (member is Function function) {
-              CheckFormals(function.Formals, function.IsGhost, visitor);
+              CheckFormals(function.Ins, function.IsGhost, visitor);
               visitor.VisitType(function.Result?.tok ?? function.tok, function.ResultType, function.IsGhost);
               CheckSpecification(function.Req, function.Reads, function.Ens, function.Decreases, visitor);
               if (function.Body != null) {

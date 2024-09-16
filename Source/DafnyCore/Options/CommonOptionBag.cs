@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using DafnyCore.Options;
 using Serilog.Events;
+using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -50,10 +53,6 @@ public class CommonOptionBag {
 
   public static readonly Option<bool> StdIn = new("--stdin", () => false,
     @"Read standard input and treat it as an input .dfy file.");
-
-  public static readonly Option<bool> Check = new("--check", () => false, @"
-Instead of formatting files, verify that all files are already
-formatted through and return a non-zero exit code if it is not the case".TrimStart());
 
   public static readonly Option<bool> OptimizeErasableDatatypeWrapper = new("--optimize-erasable-datatype-wrapper", () => true, @"
 false - Include all non-ghost datatype constructors in the compiled code
@@ -198,6 +197,13 @@ true - The char type represents any Unicode scalar value.".TrimStart()) {
     IsHidden = true
   };
 
+  public static readonly Option<bool> RawPointers = new("--raw-pointers", () => false,
+    @"(backend-specific: Rust)
+false - All class instances are reference-counted or garbage collected
+true - All class instances are raw pointers and need to be manually deallocated") {
+    IsHidden = true
+  };
+
   public static readonly Option<bool> AllowAxioms = new("--allow-axioms", () => false,
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
   };
@@ -248,6 +254,11 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Verify code in included files.");
   public static readonly Option<bool> UseBaseFileName = new("--use-basename-for-filename",
     "When parsing use basename of file for tokens instead of the path supplied on the command line") {
+  };
+  public static readonly Option<bool> EmitUncompilableCode = new("--emit-uncompilable-code",
+    "Rather than throwing an exception, allow compilers to emit uncompilable information including what is " +
+    "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
+    "compiler feature is missing") {
   };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
@@ -315,14 +326,6 @@ May produce spurious warnings.") {
     IsHidden = true
   };
 
-  public static readonly Option<bool> UseJavadocLikeDocstringRewriterOption = new("--javadoclike-docstring-plugin",
-    "Rewrite docstrings using a simple Javadoc-to-markdown converter"
-  );
-
-  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
-    "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
-  );
-
   public enum TestAssumptionsMode {
     None,
     Externs
@@ -357,6 +360,12 @@ Not compatible with the --unicode-char:false option.
   public static readonly Option<bool> ExtractCounterexample = new("--extract-counterexample", () => false,
     @"
 If verification fails, report a detailed counterexample for the first failing assertion (experimental).".TrimStart()) {
+  };
+
+  public static readonly Option<bool> ShowProofObligationExpressions = new("--show-proof-obligation-expressions", () => false,
+    @"
+(Experimental) Show Dafny expressions corresponding to unverified proof obligations.".TrimStart()) {
+    IsHidden = true
   };
 
   static CommonOptionBag() {
@@ -460,7 +469,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         } else if (ps.args[ps.i].Equals("NoIncludes")) {
           options.Set(option, PrintModes.NoIncludes);
         } else if (ps.args[ps.i].Equals("NoGhost")) {
-          options.Set(option, PrintModes.NoGhost);
+          options.Set(option, PrintModes.NoGhostOrIncludes);
         } else if (ps.args[ps.i].Equals("DllEmbed")) {
           // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
           // but it is now used by the LibraryBackend when building .doo files as well. 
@@ -472,10 +481,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
-
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
 
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {
@@ -497,8 +502,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
     DafnyOptions.RegisterLegacyBinding(InternalIncludeRuntimeOptionForExecution, (options, value) => { options.IncludeRuntime = value; });
     DafnyOptions.RegisterLegacyBinding(SystemModule, (options, value) => { options.SystemModuleTranslationMode = value; });
     DafnyOptions.RegisterLegacyBinding(UseBaseFileName, (o, f) => o.UseBaseNameForFileName = f);
-    DafnyOptions.RegisterLegacyBinding(UseJavadocLikeDocstringRewriterOption,
-      (options, value) => { options.UseJavadocLikeDocstringRewriter = value; });
     DafnyOptions.RegisterLegacyBinding(WarnShadowing, (options, value) => { options.WarnShadowing = value; });
     DafnyOptions.RegisterLegacyBinding(WarnMissingConstructorParenthesis,
       (options, value) => { options.DisallowConstructorCaseWithoutParentheses = value; });
@@ -518,16 +521,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(PluginOption, (options, value) => { options.AdditionalPluginArguments = value; });
 
-    DafnyOptions.RegisterLegacyBinding(Check, (options, value) => {
-      options.FormatCheck = value;
-    });
-
     DafnyOptions.RegisterLegacyBinding(StdIn, (options, value) => {
       options.UseStdin = value;
-    });
-
-    DafnyOptions.RegisterLegacyBinding(FormatPrint, (options, value) => {
-      options.DafnyPrintFile = value ? "-" : null;
     });
 
     DafnyOptions.RegisterLegacyBinding(Prelude, (options, value) => {
@@ -550,7 +545,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyBinding(EnforceDeterminism, (options, value) => {
       options.ForbidNondeterminism = value;
-      options.DefiniteAssignmentLevel = 4;
+      if (!options.Get(RelaxDefiniteAssignment)) {
+        options.DefiniteAssignmentLevel = 4;
+      }
     });
     RelaxDefiniteAssignment.AddValidator(optionResult => {
       var enforceDeterminismResult = optionResult.FindResultFor(EnforceDeterminism);
@@ -571,76 +568,68 @@ NoGhost - disable printing of functions, ghost methods, and proof
       options.EnhancedErrorMessages = 1;
     });
 
-    DooFile.RegisterLibraryChecks(
-      new Dictionary<Option, DooFile.OptionCheck>() {
-        { UnicodeCharacters, DooFile.CheckOptionMatches },
-        { EnforceDeterminism, DooFile.CheckOptionLocalImpliesLibrary },
-        { RelaxDefiniteAssignment, DooFile.CheckOptionLibraryImpliesLocal },
-        { ReadsClausesOnMethods, DooFile.CheckOptionLocalImpliesLibrary },
-        { AllowAxioms, DooFile.CheckOptionLibraryImpliesLocal },
-        { AllowWarnings, (reporter, origin, option, localValue, libraryFile, libraryValue) => {
-            if (DooFile.OptionValuesImplied(libraryValue, localValue)) {
-              return true;
-            }
-            string message = DooFile.LocalImpliesLibraryMessage(option, localValue, libraryFile, libraryValue);
-            reporter.Warning(MessageSource.Project, ResolutionErrors.ErrorId.none, origin, message);
-            return false;
-          }
-        }
-      }
-    );
-    DooFile.RegisterNoChecksNeeded(
-      WarnAsErrors,
-      ProgressOption,
-      LogLocation,
-      LogLevelOption,
-      ManualTriggerOption,
-      ShowHints,
-      Check,
-      Libraries,
-      Output,
-      PluginOption,
-      Prelude,
-      Target,
-      Verbose,
-      AllowDeprecation,
-      FormatPrint,
-      JsonDiagnostics,
-      QuantifierSyntax,
-      SpillTranslation,
-      StdIn,
-      TestAssumptions,
-      WarnShadowing,
-      ManualLemmaInduction,
-      TypeInferenceDebug,
-      GeneralTraits,
-      GeneralNewtypes,
-      TypeSystemRefresh,
-      VerificationLogFormat,
-      VerifyIncludedFiles,
-      DisableNonLinearArithmetic,
-      NewTypeInferenceDebug,
-      UseBaseFileName,
-      WarnMissingConstructorParenthesis,
-      UseJavadocLikeDocstringRewriterOption,
-      IncludeRuntimeOption,
-      InternalIncludeRuntimeOptionForExecution,
-      WarnContradictoryAssumptions,
-      WarnRedundantAssumptions,
-      VerificationCoverageReport,
-      NoTimeStampForCoverageReport,
-      DefaultFunctionOpacity,
-      UseStandardLibraries,
-      OptimizeErasableDatatypeWrapper,
-      AddCompileSuffix,
-      SystemModule,
-      ExecutionCoverageReport,
-      ExtractCounterexample
-      );
-  }
+    DafnyOptions.RegisterLegacyBinding(ShowProofObligationExpressions, (options, value) => {
+      options.ShowProofObligationExpressions = value;
+    });
 
-  public static readonly Option<bool> FormatPrint = new("--print",
-    @"Print Dafny program to stdout after formatting it instead of altering the files.") {
-  };
+    DafnyOptions.RegisterLegacyBinding(RawPointers, (options, value) => {
+      if (value && options.Get(CommonOptionBag.Target) != "rs") {
+        Console.Error.WriteLine("Error:  --raw-pointers can only be used with --target:rs or -t:rs");
+        System.Environment.Exit(1);
+      }
+    });
+
+    OptionRegistry.RegisterGlobalOption(UnicodeCharacters, OptionCompatibility.CheckOptionMatches);
+    OptionRegistry.RegisterGlobalOption(EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary);
+    OptionRegistry.RegisterGlobalOption(RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(AllowAxioms, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(AllowWarnings, OptionCompatibility.OptionLibraryImpliesLocalWarning);
+    OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
+    OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
+    OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(LogLocation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(LogLevelOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ManualTriggerOption, OptionScope.Module);
+    OptionRegistry.RegisterOption(ShowHints, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Libraries, OptionScope.Module);
+    OptionRegistry.RegisterOption(Output, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PluginOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Prelude, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Target, OptionScope.Cli);
+    OptionRegistry.RegisterOption(Verbose, OptionScope.Cli);
+    OptionRegistry.RegisterOption(JsonDiagnostics, OptionScope.Cli);
+    OptionRegistry.RegisterOption(QuantifierSyntax, OptionScope.Module);
+    OptionRegistry.RegisterOption(SpillTranslation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(StdIn, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TestAssumptions, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ManualLemmaInduction, OptionScope.Module);
+    OptionRegistry.RegisterOption(TypeInferenceDebug, OptionScope.Cli);
+    OptionRegistry.RegisterOption(GeneralTraits, OptionScope.Cli);
+    OptionRegistry.RegisterOption(GeneralNewtypes, OptionScope.Cli);
+    OptionRegistry.RegisterOption(TypeSystemRefresh, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerificationLogFormat, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerifyIncludedFiles, OptionScope.Cli);
+    OptionRegistry.RegisterOption(DisableNonLinearArithmetic, OptionScope.Module);
+    OptionRegistry.RegisterOption(NewTypeInferenceDebug, OptionScope.Cli);
+    OptionRegistry.RegisterOption(UseBaseFileName, OptionScope.Cli);
+    OptionRegistry.RegisterOption(EmitUncompilableCode, OptionScope.Cli);
+    OptionRegistry.RegisterOption(RawPointers, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WarnMissingConstructorParenthesis, OptionScope.Module);
+    OptionRegistry.RegisterOption(IncludeRuntimeOption, OptionScope.Cli);
+    OptionRegistry.RegisterOption(InternalIncludeRuntimeOptionForExecution, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WarnContradictoryAssumptions, OptionScope.Module);
+    OptionRegistry.RegisterOption(WarnRedundantAssumptions, OptionScope.Module);
+    OptionRegistry.RegisterOption(VerificationCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(NoTimeStampForCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(DefaultFunctionOpacity, OptionScope.Module);
+    OptionRegistry.RegisterOption(OptimizeErasableDatatypeWrapper, OptionScope.Cli); // TODO needs translation record registration
+    OptionRegistry.RegisterOption(AddCompileSuffix, OptionScope.Cli);  // TODO needs translation record registration
+    OptionRegistry.RegisterOption(SystemModule, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExecutionCoverageReport, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ExtractCounterexample, OptionScope.Cli);
+    OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
+  }
 }
 

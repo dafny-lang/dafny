@@ -8,6 +8,17 @@ namespace Microsoft.Dafny;
 public abstract class NonglobalVariable : TokenNode, IVariable {
   readonly string name;
 
+  protected NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
+    Contract.Requires(tok != null);
+    Contract.Requires(name != null);
+    Contract.Requires(type != null);
+    this.tok = tok;
+    this.name = name;
+    IsTypeExplicit = type != null;
+    this.type = type ?? new InferredTypeProxy();
+    this.isGhost = isGhost;
+  }
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(name != null);
@@ -27,7 +38,7 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
   private string uniqueName;
   public string UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
-  public string AssignUniqueName(FreshIdGenerator generator) {
+  public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
@@ -74,16 +85,19 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     }
   }
 
-  private string sanitizedName;
-  public virtual string SanitizedName =>
-    sanitizedName ??= $"_{IVariable.CompileNameIdGenerator.FreshNumericId()}_{SanitizeName(Name)}";
+  private string sanitizedNameShadowable;
+
+  public virtual string CompileNameShadowable =>
+    sanitizedNameShadowable ??= SanitizeName(Name);
 
   protected string compileName;
-  public virtual string CompileName =>
-    compileName ??= SanitizedName;
+
+  public virtual string GetOrCreateCompileName(CodeGenIdGenerator generator) {
+    return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
+  }
 
   Type type;
-  public bool IsTypeExplicit = false;
+  public bool IsTypeExplicit { get; set; }
   public Type SyntacticType { get { return type; } }  // returns the non-normalized type
   public PreType PreType { get; set; }
 
@@ -122,20 +136,10 @@ public abstract class NonglobalVariable : TokenNode, IVariable {
     IsGhost = true;
   }
 
-  public NonglobalVariable(IToken tok, string name, Type type, bool isGhost) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
-    this.tok = tok;
-    this.name = name;
-    this.type = type;
-    this.isGhost = isGhost;
-  }
-
-  public IToken NameToken => tok;
+  public IToken NavigationToken => tok;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
-  public SymbolKind Kind => SymbolKind.Variable;
+  public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
   }

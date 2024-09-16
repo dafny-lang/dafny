@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -15,8 +16,39 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.ChangeProcessors;
 
 public delegate Migrator CreateMigrator(DidChangeTextDocumentParams changeParams, CancellationToken cancellationToken);
 
-public class Migrator {
+public interface IMigrator {
+  VerificationTree RelocateVerificationTree(VerificationTree tree);
+  Uri MigratedUri { get; }
+  Range? MigrateRange(Range range, bool isFullRange = false);
+  IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> diagnostics);
+  LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable table);
+}
 
+class NoopMigrator : IMigrator {
+  public NoopMigrator(Uri migratedUri) {
+    MigratedUri = migratedUri;
+  }
+
+  public VerificationTree RelocateVerificationTree(VerificationTree tree) {
+    return tree;
+  }
+
+  public Uri MigratedUri { get; }
+  public Range MigrateRange(Range range, bool isFullRange = false) {
+    return range;
+  }
+
+  public IReadOnlyList<Diagnostic> MigrateDiagnostics(IReadOnlyList<Diagnostic> diagnostics) {
+    return diagnostics;
+  }
+
+  public LegacySignatureAndCompletionTable MigrateSymbolTable(LegacySignatureAndCompletionTable table) {
+    return table;
+  }
+}
+
+
+public class Migrator : IMigrator {
   private readonly ILogger<Migrator> logger;
   private readonly DidChangeTextDocumentParams changeParams;
   private readonly CancellationToken cancellationToken;
@@ -342,7 +374,7 @@ public class Migrator {
     var migratedChildren = MigrateVerificationTrees(originalVerificationTree.Children);
     var migratedRange = MigrateRange(originalVerificationTree.Range, true);
     return originalVerificationTree with {
-      Children = migratedChildren.ToList(),
+      Children = new ConcurrentBag<VerificationTree>(migratedChildren),
       Range = migratedRange!,
       StatusCurrent = CurrentStatus.Obsolete
     };
@@ -363,7 +395,7 @@ public class Migrator {
       }
       var newNodeDiagnostic = verificationTree with {
         Range = newRange,
-        Children = MigrateVerificationTrees(verificationTree.Children, change).ToList(),
+        Children = new ConcurrentBag<VerificationTree>(MigrateVerificationTrees(verificationTree.Children, change)),
         StatusVerification = verificationTree.StatusVerification,
         StatusCurrent = CurrentStatus.Obsolete,
         Finished = false,

@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.IO;
 using System.Linq;
 using DafnyCore;
+using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny;
 
@@ -19,12 +20,7 @@ public static class DafnyCommands {
     }, false, "Dafny input files and/or a Dafny project file");
   }
 
-  public static IEnumerable<Option> FormatOptions => new Option[] {
-    CommonOptionBag.Check,
-    CommonOptionBag.FormatPrint,
-  }.Concat(ParserOptions);
-
-  public static IReadOnlyList<Option> VerificationOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> VerificationOptions = new Option[] {
     CommonOptionBag.ProgressOption,
     CommonOptionBag.RelaxDefiniteAssignment,
     BoogieOptionBag.VerificationTimeLimit,
@@ -48,17 +44,20 @@ public static class DafnyCommands {
     CommonOptionBag.NoTimeStampForCoverageReport,
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
-    CommonOptionBag.ManualTriggerOption
+    CommonOptionBag.ManualTriggerOption,
+    CommonOptionBag.ShowProofObligationExpressions
   }.ToList();
 
-  public static IReadOnlyList<Option> TranslationOptions = new Option[] {
+  public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
     BoogieOptionBag.NoVerify,
-    CommonOptionBag.EnforceDeterminism,
+    BoogieOptionBag.HiddenNoVerify,
     CommonOptionBag.OptimizeErasableDatatypeWrapper,
     CommonOptionBag.TestAssumptions,
     DeveloperOptionBag.Bootstrapping,
     CommonOptionBag.AddCompileSuffix,
-    CommonOptionBag.SystemModule
+    CommonOptionBag.SystemModule,
+    IExecutableBackend.TranslationRecords,
+    ModuleDefinition.LegacyModuleNames
   }.Concat(VerificationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ExecutionOptions = new Option[] {
@@ -72,6 +71,8 @@ public static class DafnyCommands {
     Snippets.ShowSnippets,
     DeveloperOptionBag.PrintOption,
     DeveloperOptionBag.ResolvedPrint,
+    DeveloperOptionBag.SplitPrint,
+    DeveloperOptionBag.PassivePrint,
     DeveloperOptionBag.BoogiePrint,
     Printer.PrintMode,
     CommonOptionBag.AllowWarnings,
@@ -89,13 +90,15 @@ public static class DafnyCommands {
     Function.FunctionSyntaxOption,
     CommonOptionBag.QuantifierSyntax,
     CommonOptionBag.UnicodeCharacters,
+    CommonOptionBag.RawPointers,
     CommonOptionBag.UseBaseFileName,
+    CommonOptionBag.EmitUncompilableCode,
     CommonOptionBag.GeneralTraits,
     CommonOptionBag.GeneralNewtypes,
     CommonOptionBag.TypeSystemRefresh,
     CommonOptionBag.TypeInferenceDebug,
     CommonOptionBag.NewTypeInferenceDebug,
-    CommonOptionBag.ReadsClausesOnMethods,
+    Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation
@@ -107,5 +110,8 @@ public static class DafnyCommands {
     CommonOptionBag.WarnMissingConstructorParenthesis,
     PrintStmt.TrackPrintEffectsOption,
     CommonOptionBag.AllowAxioms,
+    CommonOptionBag.EnforceDeterminism,
+    MethodOrFunction.AllowExternalContracts,
+    DafnyProject.FindProjectOption
   }).Concat(ParserOptions).ToList();
 }

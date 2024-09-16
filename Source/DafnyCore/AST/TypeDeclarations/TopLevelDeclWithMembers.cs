@@ -109,13 +109,17 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
     // Instantiate with the actual type arguments
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
-    return ParentTraits.ConvertAll(traitType => {
+    var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
+    var results = new List<Type>();
+    foreach (var traitType in ParentTraits) {
       var ty = (UserDefinedType)traitType.Subst(subst);
-      return (Type)UserDefinedType.CreateNullableTypeIfReferenceType(ty);
-    });
+      Contract.Assert(isReferenceType || !ty.IsRefType);
+      results.Add(UserDefinedType.CreateNullableTypeIfReferenceType(ty));
+    }
+    return results;
   }
 
-  public override List<Type> ParentTypes(List<Type> typeArgs) {
+  public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return RawTraitsWithArgument(typeArgs);
   }
 
@@ -212,7 +216,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
           resolver.reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
           formals.Add(k);
           if (m is ExtremePredicate extremePredicate) {
-            formals.AddRange(extremePredicate.Formals.ConvertAll(f => cloner.CloneFormal(f, false)));
+            formals.AddRange(extremePredicate.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
 
             List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
@@ -267,8 +271,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
   public virtual IEnumerable<ISymbol> ChildSymbols => Members.OfType<ISymbol>();
-  public virtual SymbolKind Kind => SymbolKind.Class;
-  public virtual string GetDescription(DafnyOptions options) {
+  public override SymbolKind? Kind => SymbolKind.Class;
+  public override string GetDescription(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }
 }

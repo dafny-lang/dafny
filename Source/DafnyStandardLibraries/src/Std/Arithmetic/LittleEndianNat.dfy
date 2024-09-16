@@ -303,7 +303,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
 
   /* The nat representation of a sequence and its least significant position are
   congruent. */
-  lemma LemmaSeqLswModEquivalence(xs: seq<digit>)
+  lemma {:isolate_assertions} LemmaSeqLswModEquivalence(xs: seq<digit>)
     requires |xs| >= 1
     ensures IsModEquivalent(ToNatRight(xs), First(xs), BASE())
   {

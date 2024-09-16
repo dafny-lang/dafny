@@ -1,0 +1,4 @@
+// CHECK-L: thread 'main' panicked at library\core\src\panicking.rs:156:5:
+// CHECK-L: unsafe precondition(s) violated: hint::unreachable_unchecked must never be reached
+// CHECK-L: note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+// CHECK-L: thread caused non-unwinding panic. aborting.

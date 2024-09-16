@@ -22,7 +22,7 @@ namespace XUnitExtensions.Lit {
 
     public static ILitCommand Parse(string[] args) {
       if (args.Length != 2) {
-        throw new ArgumentException($"Wrong number of arguments for sed: {args.Length}");
+        throw new ArgumentException($"Wrong number of arguments for sed, expected 2 but got {args.Length}");
       }
       var regexpReplace = args[0];
       var delimitCharacter = regexpReplace[1];

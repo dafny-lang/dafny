@@ -28,7 +28,7 @@ public class BatchErrorReporter : ErrorReporter {
       return false;
     }
 
-    var dafnyDiagnostic = new DafnyDiagnostic(new MessageSourceBasedPhase(source), errorId, tok, msg, source, level, new List<DafnyRelatedInformation>());
+    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId, tok, msg, level, new List<DafnyRelatedInformation>());
     AllMessages.Add(dafnyDiagnostic);
     AllMessagesByLevel[level].Add(dafnyDiagnostic);
     return true;

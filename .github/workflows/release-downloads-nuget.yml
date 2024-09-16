@@ -32,7 +32,7 @@ jobs:
       fail-fast: false
       matrix:
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-22.04, ubuntu-20.04, macos-11, windows-2019 ]
+        os: [ ubuntu-22.04, ubuntu-20.04, macos-13, windows-2019 ]
 
     steps:
     - name: OS
@@ -85,7 +85,7 @@ jobs:
         excludes: prerelease, draft
     - name: Verify Dafny version
       if: "${{ steps.dafny.outputs.release != '' }}"
-      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]{5}"
+      run: version="${{ steps.dafny.outputs.release }}"; dafny -version | grep -iE "Dafny "${version:1}".[0-9]+"
       shell: bash
     ## Check that a simple program compiles and runs on each supported platform
     ## Now that the dotnet tool distribution doesn't include the Scripts,
@@ -111,7 +111,7 @@ jobs:
         # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
         # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-20.04, macos-latest, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-20.04, macos-13, windows-2019 ]
 
     steps:
     # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
