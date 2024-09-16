@@ -37,14 +37,14 @@ public static class OpaqueBlockVerifier {
       totalEnsures.Add(expression);
       blockBuilder.Add(generator.Assert(
         v.Tok, etran.TrExpr(expression.E),
-        new DefiniteAssignment("variable", v.Var.Name, "here")));
+        new DefiniteAssignment("variable", v.Var.Name, "here"), builder.Context));
     }
 
     foreach (var ensure in block.Ensures) {
       totalEnsures.Add(ensure);
       blockBuilder.Add(generator.Assert(
         ensure.Tok, etran.TrExpr(ensure.E),
-        new OpaqueEnsuresDescription(),
+        new OpaqueEnsuresDescription(), builder.Context,
         etran.TrAttributes(ensure.Attributes, null)));
     }
 

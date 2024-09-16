@@ -108,7 +108,7 @@ public partial class BoogieGenerator {
             Expr wh = generator.GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new PODesc.IsAllocated("default value", "in the two-state function's previous state", e);
-              builder.Add(generator.Assert(generator.GetToken(e), wh, desc));
+              builder.Add(generator.Assert(generator.GetToken(e), wh, desc, builder.Context));
             }
           }
         }

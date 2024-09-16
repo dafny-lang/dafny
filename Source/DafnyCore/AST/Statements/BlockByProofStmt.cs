@@ -1,13 +1,13 @@
 namespace Microsoft.Dafny;
 
-class ProofByStmt : Statement, ICanResolveNewAndOld {
-  public ProofByStmt(RangeToken range, BlockStmt proof, Statement body) : base(range) {
+public class BlockByProofStmt : Statement, ICanResolveNewAndOld {
+  public BlockByProofStmt(RangeToken range, BlockStmt proof, Statement body) : base(range) {
     Proof = proof;
     Body = body;
   }
 
-  private Statement Body { get; }
-  private BlockStmt Proof { get; }
+  public Statement Body { get; }
+  public BlockStmt Proof { get; }
 
   public override void GenResolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveStatement(Body, resolutionContext);

@@ -605,7 +605,7 @@ namespace Microsoft.Dafny {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
               var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state", e);
-              builder.Add(Assert(e.RangeToken, wh, desc));
+              builder.Add(Assert(e.RangeToken, wh, desc, builder.Context));
             }
           }
         }
@@ -632,7 +632,7 @@ namespace Microsoft.Dafny {
         } else {
           // etran.readsFrame being null indicates the default of reads *,
           // so this is an automatic failure.
-          builder.Add(Assert(m.tok, Expr.False, desc));
+          builder.Add(Assert(m.tok, Expr.False, desc, builder.Context));
         }
       }
 
@@ -1137,7 +1137,7 @@ namespace Microsoft.Dafny {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true, constraint)));
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true, constraint), builder.Context));
         }
       }
     }
@@ -1209,7 +1209,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
-      builder.Add(Assert(tok, q, new PODesc.TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps), kv));
+      var description = new PODesc.TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
+      builder.Add(Assert(tok, q, description, builder.Context, kv));
     }
 
     private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
@@ -1236,7 +1237,7 @@ namespace Microsoft.Dafny {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false, constraint)));
+          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false, constraint), builder.Context));
         }
       }
     }
@@ -1484,7 +1485,7 @@ namespace Microsoft.Dafny {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
-          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger(constraint)));
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger(constraint), builder.Context));
         }
       }
     }
@@ -1513,7 +1514,7 @@ namespace Microsoft.Dafny {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
-          builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker(constraint)));
+          builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker(constraint), builder.Context));
         }
       }
     }
@@ -1597,7 +1598,7 @@ namespace Microsoft.Dafny {
         calleeDecreases,
         true);
       var desc = new PODesc.TraitDecreases(original.WhatKind, assertedExpr);
-      builder.Add(Assert(original.RangeToken, decrChk, desc));
+      builder.Add(Assert(original.RangeToken, decrChk, desc, builder.Context));
     }
 
     private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
@@ -1642,7 +1643,8 @@ namespace Microsoft.Dafny {
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
         BplImp(BplAnd(ante, oInCallee), consequent2));
-      builder.Add(Assert(m.RangeToken, q, new PODesc.TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps), kv));
+      var description = new PODesc.TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
+      builder.Add(Assert(m.RangeToken, q, description, builder.Context, kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption

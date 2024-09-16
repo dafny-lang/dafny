@@ -92,7 +92,7 @@ namespace Microsoft.Dafny {
       }
       proofBuilder ??= b;
 
-      var splitHappened = TrAssertCondition(stmt, builder, etran, proofBuilder);
+      var splitHappened = TrAssertCondition(stmt, etran, proofBuilder);
 
       if (hiddenProof) {
         PathAsideBlock(stmt.Tok, proofBuilder, b);
@@ -153,7 +153,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private bool TrAssertCondition(PredicateStmt stmt, BoogieStmtListBuilder builder,
+    private bool TrAssertCondition(PredicateStmt stmt,
       ExpressionTranslator etran, BoogieStmtListBuilder proofBuilder) {
       IToken enclosingToken = null;
       if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
@@ -161,18 +161,18 @@ namespace Microsoft.Dafny {
       }
 
       var (errorMessage, successMessage) = CustomErrorMessage(stmt.Attributes);
-      var splits = TrSplitExpr(builder.Context, stmt.Expr, etran, true, out var splitHappened);
+      var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
         var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
         var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
-        proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok,
+        proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
             var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
             var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
-            proofBuilder.Add(AssertNS(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
+            proofBuilder.Add(AssertAndForget(ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }
         }
