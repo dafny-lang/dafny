@@ -169,3 +169,15 @@ method Returns(input: Option<int>) returns (r: Option<int>)
   }
   r := Some(z);
 }
+
+method MultipleAssignment() returns (r: int) {
+  var tuple := (3,2);
+  var x: int;
+  var y: int;  
+  opaque
+    ensures x == 3
+  {
+    x, y := tuple.0, tuple.1;
+  }
+  r := x;
+}

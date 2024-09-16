@@ -11,4 +11,4 @@ opaqueBlock.dfy(127,12): Error: variable 'y', which is subject to definite-assig
 opaqueBlock.dfy(130,17): Error: variable 'z', which is subject to definite-assignment rules, might be uninitialized here
 opaqueBlock.dfy(142,12): Error: ensures might not hold
 
-Dafny program verifier finished with 1 verified, 12 errors
+Dafny program verifier finished with 2 verified, 12 errors
