@@ -8,15 +8,19 @@ pub use once_cell::unsync::Lazy;
 use std::{
     any::Any,
     borrow::Borrow,
+    boxed::Box,
     cell::{RefCell, UnsafeCell},
+    clone::Clone,
     cmp::Ordering,
     collections::{HashMap, HashSet},
+    convert::From,
     fmt::{Debug, Display, Formatter},
     hash::{Hash, Hasher},
     ptr::NonNull,
     mem,
-    ops::{Add, Deref, Div, Mul, Neg, Rem, Sub},
+    ops::{Add, Deref, Div, Fn, Mul, Neg, Rem, Sub},
     rc::{Rc, Weak},
+    vec::Vec,
 };
 
 pub use system::*;
@@ -585,14 +589,14 @@ impl DafnyInt {
 macro_rules! impl_dafnyint_from {
     () => {};
     ($type:ident) => {
-        impl From<$type> for DafnyInt {
+        impl $crate::From<$type> for $crate::DafnyInt {
             fn from(n: $type) -> Self {
-                DafnyInt {
-                    data: Rc::new(n.into()),
+                $crate::DafnyInt {
+                    data: $crate::Rc::new(n.into()),
                 }
             }
         }
-        impl DafnyUsize for $type {
+        impl $crate::DafnyUsize for $type {
             fn into_usize(self) -> usize {
                 self as usize
             }
@@ -1981,8 +1985,8 @@ impl<A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
 // Convert the DafnyPrint above into a macro so that we can create it for functions of any input arity
 macro_rules! dafny_print_function {
     ($($n:tt)*) => {
-        impl <B, $($n),*> DafnyPrint for Rc<dyn Fn($($n),*) -> B> {
-            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        impl <B, $($n),*> $crate::DafnyPrint for $crate::Rc<dyn $crate::Fn($($n),*) -> B> {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
                 write!(f, "<function>")
             }
         }
@@ -2055,9 +2059,9 @@ impl<T> DafnyPrint for *const T {
 
 macro_rules! impl_print_display {
     ($name:ty) => {
-        impl DafnyPrint for $name {
-            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-                std::fmt::Display::fmt(&self, f)
+        impl $crate::DafnyPrint for $name {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
+                ::std::fmt::Display::fmt(&self, f)
             }
         }
     };
@@ -2402,12 +2406,12 @@ pub fn string_utf16_of(s: &str) -> DafnyStringUTF16 {
 
 macro_rules! impl_tuple_print {
     ($($items:ident)*) => {
-        impl <$($items,)*> DafnyPrint for ($($items,)*)
+        impl <$($items,)*> $crate::DafnyPrint for ($($items,)*)
         where
-            $($items: DafnyPrint,)*
+            $($items: $crate::DafnyPrint,)*
         {
             #[allow(unused_assignments)]
-            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
                 #[allow(non_snake_case)]
                 let ($($items,)*) = self;
 
@@ -2522,8 +2526,8 @@ macro_rules! int {
 macro_rules! ARRAY_GETTER_LENGTH0 {
     () => {
         #[inline]
-        pub fn length0(&self) -> DafnyInt {
-            DafnyInt::from(self.length0_usize())
+        pub fn length0(&self) -> $crate::DafnyInt {
+            $crate::DafnyInt::from(self.length0_usize())
         }
         #[inline]
         pub fn length0_usize(&self) -> usize {
@@ -2534,7 +2538,7 @@ macro_rules! ARRAY_GETTER_LENGTH0 {
 macro_rules! ARRAY_GETTER_LENGTH {
     ($field: ident, $field_usize: ident) => {
         #[inline]
-        pub fn $field(&self) -> DafnyInt {
+        pub fn $field(&self) -> $crate::DafnyInt {
             $crate::DafnyInt::from(self.$field_usize())
         }
         #[inline]
@@ -2548,14 +2552,14 @@ macro_rules! ARRAY_GETTER_LENGTH {
 #[macro_export]
 macro_rules! array {
     ($($x:expr), *) => {
-        array::from_native(Box::new([$($x), *]))
+        $crate::array::from_native($crate::Box::new([$($x), *]))
     }
 }
 
 macro_rules! ARRAY_INIT {
     {$length: ident, $inner: expr} => {
         $crate::array::initialize_box_usize($length, {
-            Rc::new(move |_| { $inner })
+            $crate::Rc::new(move |_| { $inner })
         })
     }
 }
@@ -2570,10 +2574,10 @@ macro_rules! ARRAY_INIT_INNER {
 // Box<[Box<[Box<[T]>]>]>
 macro_rules! ARRAY_DATA_TYPE {
     ($length:ident) => {
-        Box<[T]>
+        $crate::Box<[T]>
     };
     ($length:ident, $($rest_length:ident),+) => {
-        Box<[ARRAY_DATA_TYPE!($($rest_length),+)]>
+        $crate::Box<[ARRAY_DATA_TYPE!($($rest_length),+)]>
     };
 }
 
@@ -2597,18 +2601,18 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos_box_usize(
             $length0: usize,
             $($length: usize),+
-        ) -> Box<$ArrayType<$crate::MaybeUninit<T>>> {
-            Box::new($ArrayType {
+        ) -> $crate::Box<$ArrayType<$crate::MaybeUninit<T>>> {
+            $crate::Box::new($ArrayType {
                 $($length: $length),+,
                 data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
             })
         }
-        
+
         pub fn placebos_usize(
             $length0: usize,
             $($length: usize),+
-        ) -> Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
-            Ptr::from_box(Self::placebos_box_usize(
+        ) -> $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
+            $crate::Ptr::from_box(Self::placebos_box_usize(
                 $length0,
                 $($length),+
             ))
@@ -2628,7 +2632,7 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos(
             $length0: &$crate::DafnyInt,
             $($length: &$crate::DafnyInt),+
-        ) -> Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
+        ) -> $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
             Self::placebos_usize(
                 $length0.as_usize(),
                 $($length.as_usize()),+
@@ -2636,11 +2640,11 @@ macro_rules! ARRAY_METHODS {
         }
 
         // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct(p: Ptr<$ArrayType<$crate::MaybeUninit<T>>>) -> Ptr<$ArrayType<T>> {
+        pub fn construct(p: $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>>) -> $crate::Ptr<$ArrayType<T>> {
             unsafe { std::mem::transmute(p) }
         }
         // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct_object(p: $crate::Object<$ArrayType<MaybeUninit<T>>>) -> Object<$ArrayType<T>> {
+        pub fn construct_object(p: $crate::Object<$ArrayType<$crate::MaybeUninit<T>>>) -> $crate::Object<$ArrayType<T>> {
             unsafe { std::mem::transmute(p) }
         }
     };
@@ -2667,15 +2671,15 @@ macro_rules! ARRAY_TO_VEC_LOOP {
     };
     (@inner $self: ident, $outerTmp: ident, $data: expr $(, $rest_length_usize: ident)*) => {
         {
-            let mut tmp = Vec::new();
+            let mut tmp = $crate::Vec::new();
             ARRAY_TO_VEC_LOOP!(@for $self, tmp, $data $(, $rest_length_usize)*);
             $outerTmp.push(tmp);
         }
     };
-    
+
     ($self: ident, $data: expr $(, $rest_length_usize: ident)*) => {
         {
-            let mut tmp = Vec::new();
+            let mut tmp = $crate::Vec::new();
             ARRAY_TO_VEC_LOOP!(@for $self, tmp, $data $(, $rest_length_usize)*);
             tmp
         }
@@ -2684,10 +2688,10 @@ macro_rules! ARRAY_TO_VEC_LOOP {
 
 macro_rules! ARRAY_TO_VEC_TYPE {
     ($length0: ident) => {
-        Vec<T>
+        $crate::Vec<T>
     };
     ($length0: ident $(, $res_length: ident)*) => {
-        Vec<ARRAY_TO_VEC_TYPE!($($res_length), *)>
+        $crate::Vec<ARRAY_TO_VEC_TYPE!($($res_length), *)>
     }
 }
 
@@ -2742,7 +2746,7 @@ macro_rules! ARRAY_DEF {
                 $(($length, $length_usize)), +
             }
         }
-        impl<T: Clone> $ArrayType<T> {
+        impl<T: $crate::Clone> $ArrayType<T> {
             ARRAY_TO_VEC_WRAPPER!{
                 $(($length, $length_usize)), +
             }
@@ -2752,12 +2756,12 @@ macro_rules! ARRAY_DEF {
 
 // Array2 to Array16
 
-ARRAY_DEF!{Array2, 
+ARRAY_DEF!{Array2,
     (length0, length0_usize),
     (length1, length1_usize)
 }
 
-ARRAY_DEF!{Array3, 
+ARRAY_DEF!{Array3,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize)
@@ -3102,7 +3106,7 @@ macro_rules! is_object {
 #[macro_export]
 macro_rules! cast_any {
     ($raw:expr) => {
-        $crate::Upcast::<dyn Any>::upcast($crate::read!($raw))
+        $crate::Upcast::<dyn $crate::Any>::upcast($crate::read!($raw))
     };
 }
 // cast_any_object is meant to be used on references only, to convert any references (classes or traits)*
@@ -3110,7 +3114,7 @@ macro_rules! cast_any {
 #[macro_export]
 macro_rules! cast_any_object {
     ($obj:expr) => {
-        $crate::UpcastObject::<dyn Any>::upcast($crate::md!($obj))
+        $crate::UpcastObject::<dyn $crate::Any>::upcast($crate::md!($obj))
     };
 }
 
@@ -3546,7 +3550,7 @@ macro_rules! rd {
 #[macro_export]
 macro_rules! refcount {
     ($x:expr) => {
-        Rc::strong_count(unsafe { rcmut::as_rc($x.0.as_ref().unwrap()) })
+        $crate::Rc::strong_count(unsafe { $crate::rcmut::as_rc($x.0.as_ref().unwrap()) })
     };
 }
 
