@@ -63,6 +63,10 @@ See [docs/dev/news/](docs/dev/news/).
 
 ## Bug fixes
 
+- Allow hiding instance member using a static reference
+
+- Enable using "hide *" in the context of a recursive function
+
 - Support for double constant initialization in Dafny-to-Rust (https://github.com/dafny-lang/dafny/pull/5642)
 
 - Support for enumerating datatypes in the Rust backend (https://github.com/dafny-lang/dafny/pull/5643)
