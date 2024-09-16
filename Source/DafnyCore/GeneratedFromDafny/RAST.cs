@@ -2494,6 +2494,7 @@ namespace RAST {
     Dafny.ISequence<Dafny.Rune> dtor_name { get; }
     _IPath DowncastClone();
     RAST._IPath MSel(Dafny.ISequence<Dafny.Rune> name);
+    RAST._IPath MSels(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names);
     RAST._IExpr FSel(Dafny.ISequence<Dafny.Rune> name);
     RAST._IType AsType();
     RAST._IExpr AsExpr();
@@ -2542,6 +2543,20 @@ namespace RAST {
     public abstract _IPath DowncastClone();
     public RAST._IPath MSel(Dafny.ISequence<Dafny.Rune> name) {
       return RAST.Path.create_PMemberSelect(this, name);
+    }
+    public RAST._IPath MSels(Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> names) {
+      _IPath _this = this;
+    TAIL_CALL_START: ;
+      if ((new BigInteger((names).Count)).Sign == 0) {
+        return _this;
+      } else {
+        RAST._IPath _in0 = (_this).MSel((names).Select(BigInteger.Zero));
+        Dafny.ISequence<Dafny.ISequence<Dafny.Rune>> _in1 = (names).Drop(BigInteger.One);
+        _this = _in0;
+        ;
+        names = _in1;
+        goto TAIL_CALL_START;
+      }
     }
     public RAST._IExpr FSel(Dafny.ISequence<Dafny.Rune> name) {
       return ((this).AsExpr()).FSel(name);

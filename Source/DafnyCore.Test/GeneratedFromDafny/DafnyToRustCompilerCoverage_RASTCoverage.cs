@@ -148,7 +148,7 @@ namespace DafnyToRustCompilerCoverage.RASTCoverage {
     public static void AssertCoverage(bool x)
     {
       if (!(x)) {
-        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(180,6): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
+        throw new Dafny.HaltException("Backends/Rust/Dafny-compiler-rust-coverage.dfy(178,6): " + Dafny.Sequence<Dafny.Rune>.UnicodeFromString("expectation violation").ToVerbatimString(false));}
     }
     public static void TestNoExtraSemicolonAfter()
     {
