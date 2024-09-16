@@ -3834,10 +3834,10 @@ macro_rules! UpcastDef {
             $crate::UpcastFn!($B);
         }
     };
-    
+
     ($A:ty, $B:ty, $($C: ty),*) => {
-        UpcastDef!($A, $B);
-        UpcastDef!($A, $($C),*);
+        $crate::UpcastDef!($A, $B);
+        $crate::UpcastDef!($A, $($C),*);
     }
 }
 
@@ -3848,10 +3848,10 @@ macro_rules! UpcastDefObject {
             $crate::UpcastObjectFn!($B);
         }
     };
-    
+
     ($A:ty, $B:ty, $($C: ty),*) => {
-        UpcastDefObject!($A, $B);
-        UpcastDefObject!($A, $($C),*);
+        $crate::UpcastDefObject!($A, $B);
+        $crate::UpcastDefObject!($A, $($C),*);
     }
 }
 
