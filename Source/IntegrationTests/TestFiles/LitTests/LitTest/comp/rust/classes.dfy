@@ -23,7 +23,8 @@ datatype FunWrap<!T, +R> = FunWrap(
 
 datatype Tuple2<+A, +B> = Tuple2(A, B)
 method Main() {
-  var x := new Y(3);
+  var x: Y? := null;
+  x := new Y(3);
   var y := new Y.Two();
   expect x.c == 3;
   expect y.c == 2;
