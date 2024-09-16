@@ -1,6 +1,8 @@
 // NONUNIFORM: Demonstration of the use of the external Rust Option<> type
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 module {:compile false} {:extern "::std::option"} RustStdOption {
   // Define the Rust option type

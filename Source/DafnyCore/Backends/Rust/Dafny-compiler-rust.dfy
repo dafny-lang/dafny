@@ -1604,8 +1604,9 @@ module RAST
 
         case UnaryOp(op, underlying, format) =>
           var isPattern := |op| >= 1 && op[0..1] == "{";
+          var isUnsafe := op == "unsafe";
           var (leftP, rightP) :=
-            if !isPattern && printingInfo.NeedParenthesesFor(underlying.printingInfo) then
+            if !isPattern && !isUnsafe && printingInfo.NeedParenthesesFor(underlying.printingInfo) then
               ("(", ")")
             else
               ("", "");
@@ -1613,7 +1614,7 @@ module RAST
                              |op| >= 2 && op[0..2] == "/*" // comment
                            ) || isPattern;
           var leftOp := if opToRight then "" else op;
-          var leftOp := if (op == "&mut" || op == "unsafe") && leftP != "(" then leftOp + " " else leftOp;
+          var leftOp := if (op == "&mut" || isUnsafe) && leftP != "(" then leftOp + " " else leftOp;
           var rightOp := if opToRight then op else "";
           leftOp + leftP  + underlying.ToString(ind) + rightP + rightOp
         case TypeAscription(left, tpe) =>
