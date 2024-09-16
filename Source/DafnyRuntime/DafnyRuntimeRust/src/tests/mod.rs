@@ -16,6 +16,9 @@ mod tests {
         assert_eq!(x.to_i32().unwrap(), truncate!(x.clone(), i32));
         assert_eq!(x.to_i64().unwrap(), truncate!(x.clone(), i64));
         assert_eq!(x.to_i128().unwrap(), truncate!(x.clone(), i128));
+
+        let w = <crate::DafnyInt as ::std::convert::Into<usize>>::into(crate::int!(0));
+        assert_eq!(w, 0);
     }
 
     #[test]

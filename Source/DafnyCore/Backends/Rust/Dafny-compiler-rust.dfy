@@ -2230,8 +2230,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       this.rootType := rootType;
       this.error := None; // If error, then the generated code contains <i>Unsupported: .*</i>
       this.optimizations := [
-        ExpressionOptimization.apply/*,
-        FactorPathsOptimization.apply(thisFile)*/];
+        ExpressionOptimization.apply,
+        FactorPathsOptimization.apply(thisFile)];
       new;
     }
 
