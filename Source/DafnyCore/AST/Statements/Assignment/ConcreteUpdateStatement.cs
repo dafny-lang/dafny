@@ -23,7 +23,7 @@ public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
   public override IEnumerable<INode> Children => Lhss;
   public override IEnumerable<INode> PreResolveChildren => Lhss;
   public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    return Lhss.OfType<IdentifierExpr>();
+    return Lhss.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

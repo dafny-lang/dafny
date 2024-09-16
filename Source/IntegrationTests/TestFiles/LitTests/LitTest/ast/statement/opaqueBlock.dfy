@@ -161,5 +161,11 @@ method Returns(input: Option<int>) returns (r: Option<int>)
     y := 4;
     return Some(y);
   }
-  r := Some(3);
+  var z: int;
+  opaque
+    ensures z > 5
+  {
+    z :| z > 10;
+  }
+  r := Some(z);
 }
