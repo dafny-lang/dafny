@@ -853,9 +853,7 @@ mod tests {
         let o: Object<InternalOpaqueError> = Object::new(s);
         let n: Object<dyn ::std::any::Any> = upcast_object::<InternalOpaqueError, dyn ::std::any::Any>()(o);
         let x = cast_object!(n, InternalOpaqueError);
-        let s2 = unsafe {
-            crate::dafny_runtime_conversions::object::dafny_class_to_struct(x)
-        };
+        let s2 = crate::dafny_runtime_conversions::object::dafny_class_to_struct(x);
         assert_eq!(s2.message, "Hello, World!");
     }
 }
