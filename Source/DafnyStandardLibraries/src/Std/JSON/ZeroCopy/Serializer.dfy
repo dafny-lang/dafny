@@ -116,6 +116,10 @@ module Std.JSON.ZeroCopy.Serializer {
     decreases str, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.String(str)
   {
+    hide *;
+    reveal Writer.Append;
+    reveal Spec.String;
+    reveal Spec.View;
     writer
     .Append(str.lq)
     .Append(str.contents)
