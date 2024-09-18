@@ -584,7 +584,6 @@ module Std.Base64 {
       var d := DecodeBlock([e[0], e[1], e[2], 0]);
       [d[0], d[1]] == b
   {
-    
   }
 
   lemma {:resource_limit 0} Encode1PaddingIs1Padding(b: seq<bv8>)
@@ -701,8 +700,6 @@ module Std.Base64 {
     requires |b| == 1
     ensures Is2Padding(Encode2Padding(b))
   {
-    
-    
   }
 
   lemma DecodeEncodeBlock2Padding(b: seq<bv8>)
@@ -712,7 +709,6 @@ module Std.Base64 {
       var d := DecodeBlock([e[0], e[1], 0, 0]);
       [d[0]] == b
   {
-    
   }
 
   lemma EncodeDecode2Padding(b: seq<bv8>)
@@ -750,7 +746,6 @@ module Std.Base64 {
       d';
     == {
          // This argument is easiest to make by just automating it
-         
        }
       [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), '=', '='];
     == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); }
@@ -991,7 +986,6 @@ module Std.Base64 {
     var b := DecodeValid(s);
     assert b == [] by {  }
     assert EncodeBV(b) == [] by {
-      
     }
   }
 
@@ -1000,7 +994,6 @@ module Std.Base64 {
     ensures (EncodeBVIsBase64(b) ; DecodeValid(EncodeBV(b)) == b)
   {
     assert EncodeBV(b) == [] by {
-      
     }
     EncodeBVIsBase64(b);
     assert DecodeValid([]) == [] by {
