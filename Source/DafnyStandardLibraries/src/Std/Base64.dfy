@@ -553,7 +553,7 @@ module Std.Base64 {
     EncodeUnpaddedBase64(b);
     calc {
       DecodeUnpadded(EncodeUnpadded(b));
-    == {  }
+    ==
       DecodeUnpadded(FromIndicesToChars(EncodeRecursively(b)));
     == {  EncodeRecursivelyBounds(b); }
       DecodeRecursively(FromCharsToIndices(FromIndicesToChars(EncodeRecursively(b))));
@@ -574,11 +574,11 @@ module Std.Base64 {
     var fromCharsToIndicesS := FromCharsToIndices(s);
     calc {
       EncodeUnpadded(DecodeUnpadded(s));
-    == {  }
+    ==
       EncodeUnpadded(DecodeRecursively(FromCharsToIndices(s)));
     ==
       EncodeUnpadded(DecodeRecursively(fromCharsToIndicesS));
-    == {  }
+    ==
       assert |fromCharsToIndicesS| % 4 == 0;
       FromIndicesToChars(EncodeRecursively(DecodeRecursively(fromCharsToIndicesS)));
     == { DecodeEncodeRecursively(fromCharsToIndicesS); }
@@ -677,9 +677,9 @@ module Std.Base64 {
     var d' := DecodeBlock(s');
     calc {
       Decode1Padding(Encode1Padding(b));
-    == {  }
+    ==
       Decode1Padding([IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '=']);
-    == {  }
+    ==
       [d[0], d[1]];
     == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); IndexToCharToIndex(e[2]); }
       [d'[0], d'[1]];
@@ -699,9 +699,9 @@ module Std.Base64 {
     var d' := [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='];
     calc {
       Encode1Padding(Decode1Padding(s));
-    == {  }
+    ==
       Encode1Padding([d[0], d[1]]);
-    == {  }
+    ==
       d';
     == {
          // This argument is easiest to make by just automating it
@@ -795,9 +795,9 @@ module Std.Base64 {
     var e := EncodeBlock([b[0], 0, 0]);
     calc {
       Decode2Padding(Encode2Padding(b));
-    == {  }
+    ==
       Decode2Padding([IndexToChar(e[0]), IndexToChar(e[1]), '=', '=']);
-    == {  }
+    ==
       [DecodeBlock([CharToIndex(IndexToChar(e[0])), CharToIndex(IndexToChar(e[1])), 0, 0])[0]];
     == { IndexToCharToIndex(e[0]); IndexToCharToIndex(e[1]); }
       [DecodeBlock([e[0], e[1], 0, 0])[0]];
@@ -817,9 +817,9 @@ module Std.Base64 {
     var d' := [IndexToChar(e[0]), IndexToChar(e[1]), '=', '='];
     calc {
       Encode2Padding(Decode2Padding(s));
-    == {  }
+    ==
       Encode2Padding([d[0]]);
-    == {  }
+    ==
       d';
     == {
          // This argument is easiest to make by just automating it
@@ -1226,7 +1226,7 @@ module Std.Base64 {
     assert |DecodeValid(s)| % 3 == 2 by { DecodeValid1PaddingLengthMod3(s); }
     calc {
       EncodeBV(DecodeValid(s));
-    == {  }
+    ==
       EncodeUnpadded(DecodeValid(s)[..(|DecodeValid(s)| - 2)]) + Encode1Padding(DecodeValid(s)[(|DecodeValid(s)| - 2)..]);
     == { DecodeValidUnpaddedPartialFrom1PaddedSeq(s);   }
       EncodeUnpadded(DecodeUnpadded(s[..(|s| - 4)])) + Encode1Padding(DecodeValid(s)[(|DecodeValid(s)| - 2)..]);
@@ -1308,7 +1308,7 @@ module Std.Base64 {
     assert |DecodeValid(s)| % 3 == 1 by { DecodeValid2PaddingLengthMod3(s); }
     calc {
       EncodeBV(DecodeValid(s));
-    == {  }
+    ==
       EncodeUnpadded(DecodeValid(s)[..(|DecodeValid(s)| - 1)]) + Encode2Padding(DecodeValid(s)[(|DecodeValid(s)| - 1)..]);
     == { DecodeValidPartialsFrom2PaddedSeq(s);   }
       EncodeUnpadded(DecodeUnpadded(s[..(|s| - 4)])) + Encode2Padding(DecodeValid(s)[(|DecodeValid(s)| - 1)..]);
@@ -1385,7 +1385,7 @@ module Std.Base64 {
 
       calc {
         DecodeValid(EncodeBV(b));
-      == {  }
+      ==
         DecodeValid(EncodeUnpadded(prefix) + Encode2Padding(suffix));
       == {  DecodeValidPartialsFrom2PaddedSeq(s); }
         DecodeUnpadded(EncodeUnpadded(prefix)) + Decode2Padding(Encode2Padding(suffix));
@@ -1402,7 +1402,7 @@ module Std.Base64 {
 
       calc {
         DecodeValid(EncodeBV(b));
-      == {  }
+      ==
         DecodeValid(EncodeUnpadded(prefix) + Encode1Padding(suffix));
       == {  DecodeValidPartialsFrom1PaddedSeq(s); }
         DecodeUnpadded(EncodeUnpadded(prefix)) + Decode1Padding(Encode1Padding(suffix));

@@ -41,7 +41,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
   function DivRecursive(x: int, d: int): int
     requires d != 0
   {
-    
     if d > 0 then
       DivPos(x, d)
     else

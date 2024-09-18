@@ -53,8 +53,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   lemma {:isolate_assertions} LemmaToNatLeftEqToNatRight(xs: seq<digit>)
     ensures ToNatRight(xs) == ToNatLeft(xs)
   {
-    
-    
     if xs == [] {
     } else {
       if DropLast(xs) == [] {
