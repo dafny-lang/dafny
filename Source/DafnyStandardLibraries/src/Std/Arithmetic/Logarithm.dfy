@@ -3,7 +3,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
   import opened DivMod
   import opened Power
 
-  function {:opaque} Log(base: nat, pow: nat): nat
+  function Log(base: nat, pow: nat): nat
     requires base > 1
     decreases pow
   {
@@ -18,7 +18,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
     requires pow < base
     ensures Log(base, pow) == 0
   {
-    reveal Log();
+    
   }
 
   lemma {:induction false} LemmaLogS(base: nat, pow: nat)
@@ -28,7 +28,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
     ensures Log(base, pow) == 1 + Log(base, pow / base)
   {
     LemmaDivPosIsPosAuto();
-    reveal Log();
+    
   }
 
   lemma {:induction false} LemmaLogSAuto()
@@ -53,7 +53,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
     ensures Log(base, pow) <= Log(base, pow')
     decreases pow
   {
-    reveal Log();
+    
     if pow' < base {
       assert Log(base, pow) == 0 == Log(base, pow');
     } else if pow < base {
@@ -69,13 +69,13 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
     ensures (LemmaPowPositive(base, n); Log(base, Pow(base, n)) == n)
   {
     if n == 0 {
-      reveal Pow();
-      reveal Log();
+      
+      
     } else {
       LemmaPowPositive(base, n);
       calc {
         Log(base, Pow(base, n));
-        { reveal Pow(); }
+        {  }
         Log(base, base * Pow(base, n - 1));
         { LemmaPowPositive(base, n - 1);
           LemmaMulIncreases(Pow(base, n - 1), base);

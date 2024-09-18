@@ -43,13 +43,13 @@ module Std.JSON.ZeroCopy.Serializer {
     return Success(writer.length);
   }
 
-  opaque function Text(js: JSON) : (wr: Writer)
+  function Text(js: JSON) : (wr: Writer)
     ensures wr.Bytes() == Spec.JSON(js)
   {
     JSON(js)
   }
 
-  opaque function JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
+  function JSON(js: JSON, writer: Writer := Writer.Empty) : (wr: Writer)
     ensures wr.Bytes() == writer.Bytes() + Spec.JSON(js)
   {
     Seq.LemmaConcatIsAssociative2(writer.Bytes(),js.before.Bytes(), Spec.Value(js.t), js.after.Bytes());
@@ -59,7 +59,7 @@ module Std.JSON.ZeroCopy.Serializer {
     .Append(js.after)
   }
 
-  opaque function {:isolate_assertions} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
+  function {:isolate_assertions} Value(v: Grammar.Value, writer: Writer) : (wr: Writer)
     decreases v, 4
     ensures wr.Bytes() == writer.Bytes() + Spec.Value(v)
   {
@@ -112,7 +112,7 @@ module Std.JSON.ZeroCopy.Serializer {
       wr
   }
 
-  opaque function String(str: jstring, writer: Writer) : (wr: Writer)
+  function String(str: jstring, writer: Writer) : (wr: Writer)
     decreases str, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.String(str)
   {
@@ -217,7 +217,7 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function {:isolate_assertions} Number(num: jnumber, writer: Writer) : (wr: Writer)
+  function {:isolate_assertions} Number(num: jnumber, writer: Writer) : (wr: Writer)
     decreases num, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Number(num)
   {
@@ -295,7 +295,7 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function Object(obj: jobject, writer: Writer) : (wr: Writer)
+  function Object(obj: jobject, writer: Writer) : (wr: Writer)
     decreases obj, 3
     ensures wr.Bytes() == writer.Bytes() + Spec.Object(obj)
   {
@@ -324,7 +324,7 @@ module Std.JSON.ZeroCopy.Serializer {
     }
   }
 
-  opaque function Array(arr: jarray, writer: Writer) : (wr: Writer)
+  function Array(arr: jarray, writer: Writer) : (wr: Writer)
     decreases arr, 3
     ensures wr.Bytes() == writer.Bytes() + Spec.Array(arr)
   {
@@ -338,7 +338,7 @@ module Std.JSON.ZeroCopy.Serializer {
     wr
   }
 
-  opaque function Members(obj: jobject, writer: Writer) : (wr: Writer)
+  function Members(obj: jobject, writer: Writer) : (wr: Writer)
     decreases obj, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(obj.data, Spec.Member)
   {
@@ -348,7 +348,7 @@ module Std.JSON.ZeroCopy.Serializer {
     wr := MembersImpl(obj, writer);
   }
 
-  opaque function Items(arr: jarray, writer: Writer) : (wr: Writer)
+  function Items(arr: jarray, writer: Writer) : (wr: Writer)
     decreases arr, 2
     ensures wr.Bytes() == writer.Bytes() + Spec.ConcatBytes(arr.data, Spec.Item)
   {
@@ -508,7 +508,7 @@ module Std.JSON.ZeroCopy.Serializer {
     ensures xs[..j][..i] == xs[..i]
   {}
 
-  opaque function Member(ghost obj: jobject, m: jmember, writer: Writer) : (wr: Writer)
+  function Member(ghost obj: jobject, m: jmember, writer: Writer) : (wr: Writer)
     requires m < obj
     decreases obj, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Member(m)
@@ -535,7 +535,7 @@ module Std.JSON.ZeroCopy.Serializer {
     wr
   }
 
-  opaque function Item(ghost arr: jarray, m: jitem, writer: Writer) : (wr: Writer)
+  function Item(ghost arr: jarray, m: jitem, writer: Writer) : (wr: Writer)
     requires m < arr
     decreases arr, 0
     ensures wr.Bytes() == writer.Bytes() + Spec.Item(m)

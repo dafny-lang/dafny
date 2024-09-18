@@ -25,7 +25,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
   import opened MulInternals
 
   /* Performs division recursively with positive denominator. */
-  function {:opaque} DivPos(x: int, d: int): int
+  function DivPos(x: int, d: int): int
     requires d > 0
     decreases if x < 0 then (d - x) else x
   {
@@ -38,10 +38,10 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.DivInternals {
   }
 
   /* Performs division recursively. */
-  function {:opaque} DivRecursive(x: int, d: int): int
+  function DivRecursive(x: int, d: int): int
     requires d != 0
   {
-    reveal DivPos();
+    
     if d > 0 then
       DivPos(x, d)
     else

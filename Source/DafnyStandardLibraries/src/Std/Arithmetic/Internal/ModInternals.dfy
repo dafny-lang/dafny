@@ -26,7 +26,7 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.ModInternals {
   import opened DivInternalsNonlinear
 
   /* Performs modulus recursively. */
-  function {:opaque} ModRecursive(x: int, d: int): int
+  function ModRecursive(x: int, d: int): int
     requires d > 0
     decreases if x < 0 then (d - x) else x
   {
