@@ -105,7 +105,6 @@ module Std.Collections.Map {
     ensures Injective(Invert(m))
   {
     
-    
   }
 
   /* True iff a map contains all valid keys. */

@@ -29,13 +29,11 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   lemma LemmaPow0(b: int)
     ensures Pow(b, 0) == 1
   {
-    
   }
 
   lemma LemmaPow0Auto()
     ensures forall b: nat {:trigger Pow(b, 0)} :: Pow(b, 0) == 1
   {
-    
     forall b: nat {:trigger Pow(b, 0)}
       ensures Pow(b, 0) == 1
     {
@@ -61,7 +59,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   lemma LemmaPow1Auto()
     ensures forall b: nat {:trigger Pow(b, 1)} :: Pow(b, 1) == b
   {
-    
     forall b: nat {:trigger Pow(b, 1)}
       ensures Pow(b, 1) == b
     {
@@ -74,7 +71,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires e > 0
     ensures Pow(0, e) == 0
   {
-    
     LemmaMulBasicsAuto();
     if e != 1 {
       Lemma0Pow(e - 1);
@@ -84,7 +80,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   lemma Lemma0PowAuto()
     ensures forall e: nat {:trigger Pow(0, e)} :: e > 0 ==> Pow(0, e) == 0
   {
-    
     forall e: nat {:trigger Pow(0, e)} | e > 0
       ensures Pow(0, e) == 0
     {
@@ -96,7 +91,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   lemma Lemma1Pow(e: nat)
     ensures Pow(1, e) == 1
   {
-    
     LemmaMulBasicsAuto();
     if e != 0 {
       Lemma1Pow(e - 1);
@@ -106,7 +100,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   lemma Lemma1PowAuto()
     ensures forall e: nat {:trigger Pow(1, e)} :: Pow(1, e) == 1
   {
-    
     forall e: nat {:trigger Pow(1, e)}
       ensures Pow(1, e) == 1
     {
@@ -118,13 +111,11 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
   lemma LemmaSquareIsPow2(x: nat)
     ensures Pow(x, 2) == x * x
   {
-    
   }
 
   lemma LemmaSquareIsPow2Auto()
     ensures forall x: nat {:trigger Pow(x, 2)} :: Pow(x, 2) == x * x
   {
-    
     forall x: nat {:trigger Pow(x, 2)}
       ensures Pow(x, 2) == x * x
     {}
@@ -145,7 +136,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: int, e: nat {:trigger Pow(b, e)}
               :: b > 0 ==> 0 < Pow(b, e)
   {
-    
     forall b: int, e: nat {:trigger Pow(b, e)} | b > 0
       ensures 0 < Pow(b, e)
     {
@@ -186,7 +176,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: int, e1: nat, e2: nat {:trigger Pow(b, e1 + e2)}
               :: Pow(b, e1 + e2) == Pow(b, e1) * Pow(b, e2)
   {
-    
     forall b: int, e1: nat, e2: nat {:trigger Pow(b, e1 + e2)}
       ensures Pow(b, e1 + e2) == Pow(b, e1) * Pow(b, e2)
     {
@@ -206,7 +195,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: int, e1: nat, e2: nat {:trigger Pow(b, e1 - e2)} | e1 >= e2
               :: Pow(b, e1 - e2) * Pow(b, e2) == Pow(b, e1)
   {
-    
     forall b: int, e1: nat, e2: nat | e1 >= e2
     {
       LemmaPowSubAddCancel(b, e1, e2);
@@ -236,7 +224,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
               :: b > 0 && e1 <= e2 ==>
                    Pow(b, e2 - e1) == Pow(b, e2) / Pow(b, e1) > 0
   {
-    
     LemmaPowPositiveAuto();
     forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e2 - e1)}
       | b > 0 && e1 <= e2
@@ -293,7 +280,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall a: int, b: nat, c: nat {:trigger Pow(a, b * c)}
               :: Pow(Pow(a, b), c) == Pow(a, b * c)
   {
-    
     LemmaMulNonnegativeAuto();
     forall a: int, b: nat, c: nat {:trigger Pow(a, b * c)}
       ensures Pow(Pow(a, b), c) == Pow(a, b * c)
@@ -307,7 +293,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     decreases e
     ensures Pow(a * b, e) == Pow(a, e) * Pow(b, e)
   {
-    
     LemmaMulBasicsAuto();
     if e > 0 {
       calc {
@@ -326,7 +311,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall a: int, b: int, e: nat {:trigger Pow(a * b, e)}
               :: Pow(a * b, e) == Pow(a, e) * Pow(b, e)
   {
-    
     forall a: int, b: int, e: nat {:trigger Pow(a * b, e)}
       ensures Pow(a * b, e) == Pow(a, e) * Pow(b, e)
     {
@@ -346,7 +330,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall x: int, y: nat, z: nat {:trigger Pow(x, y - z)} :: y >= z ==> Pow(x, y - z) * Pow(x, z) == Pow(x, y)
     ensures forall x: int, y: int, z: nat {:trigger Pow(x * y, z)} :: Pow(x * y, z) == Pow(x, z) * Pow(y, z)
   {
-    
 
     LemmaPow0Auto();
     LemmaPow1Auto();
@@ -367,7 +350,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires e1 < e2
     ensures Pow(b, e1) < Pow(b, e2)
   {
-    
     LemmaPowAuto();
     var f := e => 0 < e ==> Pow(b, e1) < Pow(b, e1 + e);
     forall i {:trigger IsLe(0, i)} | IsLe(0, i) && f(i)
@@ -401,7 +383,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e1),
               Pow(b, e2)} :: (1 < b && e1 < e2) ==> Pow(b, e1) < Pow(b, e2)
   {
-    
     forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e1), Pow(b, e2)}
       | 1 < b && e1 < e2
       ensures Pow(b, e1) < Pow(b, e2)
@@ -416,7 +397,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires e1 <= e2
     ensures Pow(b, e1) <= Pow(b, e2)
   {
-    
     LemmaPowAuto();
     var f := e => 0 <= e ==> Pow(b, e1) <= Pow(b, e1 + e);
     forall i {:trigger IsLe(0, i)} | IsLe(0, i) && f(i)
@@ -443,7 +423,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e1),
               Pow(b, e2)} :: (1 < b && e1 <= e2) ==> Pow(b, e1) <= Pow(b, e2)
   {
-    
     forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e1), Pow(b, e2)}
       | 1 < b && e1 <= e2
       ensures Pow(b, e1) <= Pow(b, e2)
@@ -470,7 +449,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
               {:trigger Pow(b, e1), Pow(b, e2)}
               :: b > 0 && Pow(b, e1) < Pow(b, e2) ==> e1 < e2
   {
-    
     forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e1), Pow(b, e2)}
       | b > 0 && Pow(b, e1) < Pow(b, e2)
       ensures e1 < e2
@@ -496,7 +474,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
               {:trigger Pow(b, e1), Pow(b, e2)}
               :: 1 < b && Pow(b, e1) <= Pow(b, e2) ==> e1 <= e2
   {
-    
     forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e1), Pow(b, e2)}
       | 1 < b && Pow(b, e1) <= Pow(b, e2)
       ensures e1 <= e2
@@ -530,7 +507,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
               {:trigger Pow(Pow(b, x * y), z)}
               :: b > 0 ==> Pow(Pow(b, x * y), z) == Pow(Pow(b, x), y * z)
   {
-    
     LemmaMulNonnegativeAuto();
     forall b: nat, x: nat, y: nat, z: nat {:trigger Pow(Pow(b, x * y), z)}
       | b > 0 ensures Pow(Pow(b, x * y), z) == Pow(Pow(b, x), y * z)
@@ -575,7 +551,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
               :: b > 0 && e2 <= e1 && x < Pow(b, e1) ==>
                    x / Pow(b, e2) < Pow(b, e1 - e2)
   {
-    
     LemmaPowPositiveAuto();
     forall x: nat, b: nat, e1: nat, e2: nat
       {:trigger x / Pow(b, e2), Pow(b, e1 - e2)}
@@ -591,7 +566,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires b > 0 && e > 0
     ensures Pow(b, e) % b == 0
   {
-    
     calc {
       Pow(b, e) % b;
       (b * Pow(b, e - 1)) % b;
@@ -609,7 +583,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: nat, e: nat {:trigger Pow(b, e)}
               :: b > 0 && e > 0 ==> Pow(b, e) % b == 0
   {
-    
     forall b: nat, e: nat {:trigger Pow(b, e)} | b > 0 && e > 0
       ensures Pow(b, e) % b == 0
     {
@@ -623,7 +596,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     requires m > 0
     ensures Pow(b % m, e) % m == Pow(b, e) % m
   {
-    
     LemmaModPropertiesAuto();
     if e > 0 {
       calc {
@@ -645,7 +617,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power {
     ensures forall b: nat, e: nat, m: nat {:trigger Pow(b % m, e)}
               :: m > 0 ==> Pow(b % m, e) % m == Pow(b, e) % m
   {
-    
     forall b: nat, e: nat, m: nat {:trigger Pow(b % m, e)}
       | m > 0 ensures Pow(b % m, e) % m == Pow(b, e) % m
     {

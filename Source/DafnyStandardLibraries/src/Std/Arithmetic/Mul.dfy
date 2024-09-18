@@ -41,7 +41,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Mul {
     requires x >= 0
     ensures x * y == MulPos(x, y)
   {
-    
     LemmaMulInductionAuto(x, u => u >= 0 ==> u * y == MulPos(u, y));
   }
 

@@ -78,7 +78,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
           * Pow(BASE(), |xs| - 1);
           {
             assert DropFirst(DropLast(xs)) == DropLast(DropFirst(xs));
-            
             LemmaMulProperties();
           }
           ToNatLeft(DropLast(DropFirst(xs))) * BASE() + First(xs) + Last(xs)
@@ -96,7 +95,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures forall xs: seq<digit> :: ToNatRight(xs) == ToNatLeft(xs)
   {
     
-    
     forall xs: seq<digit>
       ensures ToNatRight(xs) == ToNatLeft(xs)
     {
@@ -110,7 +108,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires |xs| == 1
     ensures ToNatRight(xs) == First(xs)
   {
-    
     assert ToNatRight(DropFirst(xs)) == 0;
   }
 
@@ -120,7 +117,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires |xs| == 2
     ensures ToNatRight(xs) == First(xs) + xs[1] * BASE()
   {
-    
     LemmaSeqLen1(DropLast(xs));
   }
 
@@ -128,7 +124,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   lemma LemmaSeqAppendZero(xs: seq<digit>)
     ensures ToNatRight(xs + [0]) == ToNatRight(xs)
   {
-    
     LemmaToNatLeftEqToNatRightAuto();
     calc {
       ToNatRight(xs + [0]);
@@ -145,9 +140,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   lemma LemmaSeqNatBound(xs: seq<digit>)
     ensures ToNatRight(xs) < Pow(BASE(), |xs|)
   {
-    
     if |xs| == 0 {
-      
     } else {
       var len' := |xs| - 1;
       var pow := Pow(BASE(), len');
@@ -180,7 +173,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures ToNatRight(xs[..i]) + ToNatRight(xs[i..]) * Pow(BASE(), i) == ToNatRight(xs)
   {
     
-    
     if i == 1 {
       assert ToNatRight(xs[..1]) == First(xs);
     } else if i > 1 {
@@ -208,7 +200,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires Last(xs) < Last(ys)
     ensures ToNatRight(xs) < ToNatRight(ys)
   {
-    
     LemmaToNatLeftEqToNatRightAuto();
     var len' := |xs| - 1;
     calc {
@@ -237,7 +228,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
       assert ys[..i] == ys;
     } else {
       if xs[i] == ys[i] {
-        
         assert DropLast(xs[..i+1]) == xs[..i];
         assert DropLast(ys[..i+1]) == ys[..i];
 
@@ -248,7 +238,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
       } else {
         LemmaSeqMswInequality(ys[..i+1], xs[..i+1]);
       }
-      
       LemmaSeqPrefixNeq(xs, ys, i + 1);
     }
   }
@@ -273,7 +262,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     }
     assert ToNatLeft(xs[..i]) == ToNatLeft(ys[..i]);
 
-    
     assert xs[..i+1][..i] == xs[..i];
     assert ys[..i+1][..i] == ys[..i];
     LemmaPowPositiveAuto();
@@ -310,7 +298,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
       LemmaModEquivalenceAuto();
     } else {
       assert IsModEquivalent(ToNatRight(xs), First(xs), BASE()) by {
-        
         calc ==> {
           true;
           { LemmaModEquivalence(ToNatRight(xs), ToNatRight(DropFirst(xs)) * BASE() + First(xs), BASE()); }
@@ -342,7 +329,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures n == 0 ==> |FromNat(n)| == 0
     ensures n > 0 ==> |FromNat(n)| == Log(BASE(), n) + 1
   {
-    
     var digits := FromNat(n);
     if (n == 0) {
     } else {
@@ -367,7 +353,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires Pow(BASE(), len) > n
     ensures |FromNat(n)| <= len
   {
-    
     if n == 0 {
     } else {
       calc {
@@ -377,7 +362,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
       <= {
            LemmaMultiplyDivideLtAuto();
            LemmaDivDecreasesAuto();
-           
            LemmaFromNatLen(n / BASE(), len - 1);
          }
         len;
@@ -391,7 +375,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures ToNatRight(FromNat(n)) == n
     decreases n
   {
-    
     
     if n == 0 {
     } else {
@@ -454,7 +437,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires ToNatRight(xs) == 0
     ensures forall i :: 0 <= i < |xs| ==> xs[i] == 0
   {
-    
     if |xs| == 0 {
     } else {
       LemmaMulNonnegativeAuto();
@@ -484,7 +466,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures Pow(BASE(), |xs|) > ToNatRight(xs)
     ensures FromNatWithLen(ToNatRight(xs), |xs|) == xs
   {
-    
     
     LemmaSeqNatBound(xs);
     if |xs| > 0 {
@@ -527,9 +508,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires SeqAdd(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) + ToNatRight(ys) == ToNatRight(zs) + cout * Pow(BASE(), |xs|)
   {
-    
     if |xs| == 0 {
-      
     } else {
       var pow := Pow(BASE(), |xs| - 1);
       var (zs', cin) := SeqAdd(DropLast(xs), DropLast(ys));
@@ -537,7 +516,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
       var z := if sum < BASE() then sum else sum - BASE();
       assert sum == z + cout * BASE();
 
-      
       LemmaToNatLeftEqToNatRightAuto();
       calc {
         ToNatRight(zs);
@@ -553,7 +531,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
         ToNatLeft(xs) + ToNatLeft(ys) - cout * BASE() * pow;
         {
           LemmaMulIsAssociative(cout, BASE(), pow);
-          
         }
         ToNatLeft(xs) + ToNatLeft(ys) - cout * Pow(BASE(), |xs|);
         ToNatRight(xs) + ToNatRight(ys) - cout * Pow(BASE(), |xs|);
@@ -584,9 +561,7 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires SeqSub(xs, ys) == (zs, cout)
     ensures ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|) == ToNatRight(zs)
   {
-    
     if |xs| == 0 {
-      
     } else {
       var pow := Pow(BASE(), |xs| - 1);
       var (zs', cin) := SeqSub(DropLast(xs), DropLast(ys));
@@ -595,7 +570,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
       else BASE() + Last(xs) - Last(ys) - cin;
       assert cout * BASE() + Last(xs) - cin - Last(ys) == z;
 
-      
       LemmaToNatLeftEqToNatRightAuto();
       calc {
         ToNatRight(zs);
@@ -611,7 +585,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
         ToNatLeft(xs) - ToNatLeft(ys) + cout * BASE() * pow;
         {
           LemmaMulIsAssociative(cout, BASE(), pow);
-          
         }
         ToNatLeft(xs) - ToNatLeft(ys) + cout * Pow(BASE(), |xs|);
         ToNatRight(xs) - ToNatRight(ys) + cout * Pow(BASE(), |xs|);

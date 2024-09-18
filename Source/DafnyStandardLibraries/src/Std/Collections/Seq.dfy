@@ -164,7 +164,6 @@ module Std.Collections.Seq {
   lemma LemmaCardinalityOfSet<T>(xs: seq<T>)
     ensures |ToSet(xs)| <= |xs|
   {
-    
     if |xs| == 0 {
     } else {
       assert ToSet(xs) == ToSet(DropLast(xs)) + {Last(xs)};
@@ -177,7 +176,6 @@ module Std.Collections.Seq {
   lemma LemmaCardinalityOfEmptySetIs0<T>(xs: seq<T>)
     ensures |ToSet(xs)| == 0 <==> |xs| == 0
   {
-    
     if |xs| != 0 {
       assert xs[0] in ToSet(xs);
     }
@@ -198,7 +196,6 @@ module Std.Collections.Seq {
     requires multiset(xs) !! multiset(ys)
     ensures HasNoDuplicates(xs+ys)
   {
-    
     var zs := xs + ys;
     if |zs| > 1 {
       assert forall i :: 0 <= i < |xs| ==> zs[i] in multiset(xs);
@@ -214,7 +211,6 @@ module Std.Collections.Seq {
     ensures |ToSet(xs)| == |xs|
   {
     
-    
     if |xs| == 0 {
     } else {
       LemmaCardinalityOfSetNoDuplicates(DropLast(xs));
@@ -227,7 +223,6 @@ module Std.Collections.Seq {
     requires |ToSet(xs)| == |xs|
     ensures HasNoDuplicates(xs)
   {
-    
     
     if |xs| == 0 {
     } else {
@@ -254,10 +249,8 @@ module Std.Collections.Seq {
     } else {
       assert xs == DropLast(xs) + [Last(xs)];
       assert Last(xs) !in DropLast(xs) by {
-        
       }
       assert HasNoDuplicates(DropLast(xs)) by {
-        
       }
       LemmaMultisetHasNoDuplicates(DropLast(xs));
     }
@@ -347,7 +340,6 @@ module Std.Collections.Seq {
     ensures v in xs ==> multiset(ys)[v] == multiset(xs)[v] - 1
     ensures HasNoDuplicates(xs) ==> HasNoDuplicates(ys) && ToSet(ys) == ToSet(xs) - {v}
   {
-    
     
     if v !in xs then xs
     else
@@ -452,7 +444,6 @@ module Std.Collections.Seq {
     ensures Max(xs+ys) >= Max(ys)
     ensures forall i {:trigger i in [Max(xs + ys)]} :: i in xs + ys ==> Max(xs + ys) >= i
   {
-    
     if |xs| == 1 {
     } else {
       assert xs[1..] + ys == (xs + ys)[1..];
@@ -478,7 +469,6 @@ module Std.Collections.Seq {
     ensures Min(xs+ys) <= Min(ys)
     ensures forall i :: i in xs + ys ==> Min(xs + ys) <= i
   {
-    
     if |xs| == 1 {
     } else {
       assert xs[1..] + ys == (xs + ys)[1..];
@@ -751,7 +741,6 @@ module Std.Collections.Seq {
     requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Map(f, xs + ys) == Map(f, xs) + Map(f, ys)
   {
-    
     if |xs| == 0 {
       assert xs + ys == ys;
     } else {
@@ -820,7 +809,6 @@ module Std.Collections.Seq {
   lemma LemmaFoldLeftDistributesOverConcat<A, T>(f: (A, T) -> A, init: A, xs: seq<T>, ys: seq<T>)
     ensures FoldLeft(f, init, xs + ys) == FoldLeft(f, FoldLeft(f, init, xs), ys)
   {
-    
     if |xs| == 0 {
       assert xs + ys == ys;
     } else {
@@ -858,7 +846,6 @@ module Std.Collections.Seq {
     requires inv(b, xs)
     ensures inv(FoldLeft(f, b, xs), [])
   {
-    
     if xs == [] {
     } else {
       assert [xs[0]] + xs[1..] == xs;
@@ -880,7 +867,6 @@ module Std.Collections.Seq {
   lemma LemmaFoldRightDistributesOverConcat<A, T>(f: (T, A) -> A, init: A, xs: seq<T>, ys: seq<T>)
     ensures FoldRight(f, xs + ys, init) == FoldRight(f, xs, FoldRight(f, ys, init))
   {
-    
     if |xs| == 0 {
       assert xs + ys == ys;
     } else {
@@ -915,7 +901,6 @@ module Std.Collections.Seq {
     requires inv([], b)
     ensures inv(xs, FoldRight(f, xs, b))
   {
-    
     if xs == [] {
     } else {
       assert [xs[0]] + xs[1..] == xs;

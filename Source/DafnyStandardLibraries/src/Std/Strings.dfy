@@ -98,7 +98,6 @@ module {:disableNonlinearArithmetic} Std.Strings {
       ensures ToNat(str) < Pow(base, |str|)
     {
       if str == [] {
-        
       } else {
         calc <= {
           ToNat(str);

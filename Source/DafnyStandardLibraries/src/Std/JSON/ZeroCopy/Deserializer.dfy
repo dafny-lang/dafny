@@ -46,7 +46,6 @@ module Std.JSON.ZeroCopy.Deserializer {
     {
       cs.SkipWhile(Blank?).Split()
     } by method {
-      
       var point' := cs.point;
       var end := cs.end;
       while point' < end && Blank?(cs.s[point'])
@@ -669,7 +668,6 @@ module Std.JSON.ZeroCopy.Deserializer {
     {
       cs.SkipWhileLexer(Strings.StringBody, StringBodyLexerStart)
     } by method {
-      
       var escaped := false;
       for point' := cs.point to cs.end
         // BUG(https://github.com/dafny-lang/dafny/issues/4847)

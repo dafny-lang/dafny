@@ -90,7 +90,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures forall k :: k in keys ==> exists v :: v in knownValues && inv(k,v)
     {
-      
       keys := internal.Keys;
     }
 
@@ -98,7 +97,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures used ==> exists v :: v in knownValues && inv(k,v)
     {
-      
       used := k in internal.Keys;
     }
 
@@ -106,7 +104,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       requires Valid()
       ensures forall v :: v in values ==> exists k :: k in knownKeys && inv(k,v)
     {
-      
       values := internal.Values;
     }
 
@@ -134,7 +131,6 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       internal := internal[k := v];
       knownKeys := knownKeys + {k};
       knownValues := knownValues + {v};
-      
     }
 
     method Remove(k: K)
@@ -147,14 +143,12 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       assert exists v :: inv(k,v);
 
       internal := internal - {k};
-      
     }
 
     method Size() returns (c: nat)
       requires Valid()
     {
       // only here to mollify the auditor
-      
       assert Contained();
 
       c := |internal|;

@@ -84,7 +84,6 @@ module Std.Collections.Imap {
     ensures Injective(Invert(m))
   {
     
-    
   }
 
   /* True iff an imap contains all valid keys. */
