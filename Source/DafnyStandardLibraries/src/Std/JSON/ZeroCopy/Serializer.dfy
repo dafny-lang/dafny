@@ -117,9 +117,7 @@ module Std.JSON.ZeroCopy.Serializer {
     ensures wr.Bytes() == writer.Bytes() + Spec.String(str)
   {
     hide *;
-    reveal Writer.Append;
-    reveal Spec.String;
-    reveal Spec.View;
+    reveal Writer.Append, Spec.String, Spec.View;
     writer
     .Append(str.lq)
     .Append(str.contents)
@@ -308,7 +306,11 @@ module Std.JSON.ZeroCopy.Serializer {
     var wr := Members(obj, wr);
     var wr := StructuralView(obj.r, wr);
     Seq.LemmaConcatIsAssociative2(writer.Bytes(), Spec.Structural<View>(obj.l, Spec.View), Spec.ConcatBytes(obj.data, Spec.Member), Spec.Structural<View>(obj.r, Spec.View));
-    assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(obj, Spec.Member);
+
+    assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(obj, Spec.Member) by {
+      hide *;
+    }
+
     assert Spec.Bracketed(obj, Spec.Member) == Spec.Object(obj) by { BracketedToObject(obj); }
     wr
   }
@@ -337,6 +339,7 @@ module Std.JSON.ZeroCopy.Serializer {
     var wr := Items(arr, wr);
     var wr := StructuralView(arr.r, wr);
     Seq.LemmaConcatIsAssociative2(writer.Bytes(), Spec.Structural<View>(arr.l, Spec.View), Spec.ConcatBytes(arr.data, Spec.Item), Spec.Structural<View>(arr.r, Spec.View));
+
     assert wr.Bytes() == writer.Bytes() + Spec.Bracketed(arr, Spec.Item);
     assert Spec.Bracketed(arr, Spec.Item) == Spec.Array(arr) by { BracketedToArray(arr); }
     wr
@@ -472,7 +475,8 @@ module Std.JSON.ZeroCopy.Serializer {
     // needs to call ItemsSpec and the termination checker gets confused by
     // that.  Instead, see Items above. // DISCUSS
 
-  method {:resource_limit 10000000} MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
+  // TODO: Without isolate_assertions, only fails to verify in a group, not by itself
+  method {:isolate_assertions} MembersImpl(obj: jobject, writer: Writer) returns (wr: Writer)
     decreases obj, 1
     ensures wr == MembersSpec(obj, obj.data, writer)
   {

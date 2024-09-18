@@ -293,12 +293,13 @@ module Std.Base64 {
       assert s[i..][..4] == s[i..i+4];
       assert s[i..][4..] == s[i+4..];
       assert result[j..j+3] == block;
+
+      // Only needed for last equality
       hide *;
       reveal DecodeRecursively;
       calc {
         DecodeBlock(s[i..i+4]) + DecodeRecursively(s[i+4..]);
         DecodeBlock(s[i..][..4]) + DecodeRecursively(s[i..][4..]);
-        { }
         DecodeRecursively(s[i..]);
       }
     }
@@ -390,24 +391,30 @@ module Std.Base64 {
     }
   }
 
-  lemma EncodeDecodeRecursively(b: seq<bv8>)
+  lemma {:isolate_assertions} EncodeDecodeRecursively(b: seq<bv8>) 
     requires |b| % 3 == 0
     ensures (EncodeRecursivelyBounds(b); DecodeRecursively(EncodeRecursively(b)) == b)
   {
+    hide *;
+
     var s := EncodeRecursively(b);
     EncodeRecursivelyBounds(b);
     DecodeRecursivelyBounds(s);
+
     if |b| == 0 {
     } else {
       calc {
         DecodeRecursively(EncodeRecursively(b));
       ==
         DecodeRecursively(s);
-      == {  }
+      == { 
+        assert |s[4..]| % 4 == 0; 
+        reveal DecodeRecursively;
+      }
         DecodeBlock(s[..4]) + DecodeRecursively(s[4..]);
       == { EncodeRecursivelyBlock(b); }
         b[..3] + DecodeRecursively(s[4..]);
-      == {  }
+      == { reveal EncodeRecursively; }
         b[..3] + DecodeRecursively(EncodeRecursively(b[3..]));
       == { EncodeDecodeRecursively(b[3..]); }
         b[..3] + b[3..];
@@ -631,30 +638,30 @@ module Std.Base64 {
     
   }
 
-  lemma Encode1PaddingIs1Padding(b: seq<bv8>)
+  lemma {:resource_limit 0} Encode1PaddingIs1Padding(b: seq<bv8>)
     requires |b| == 2
     ensures Is1Padding(Encode1Padding(b))
   {
-    // TODO: reduce resource use, brittleness
+    hide *;
+
     var s := Encode1Padding(b);
     var e := EncodeBlock([b[0], b[1], 0]);
+
+    reveal Encode1Padding; // TODO make by penetrate
     assert s == [IndexToChar(e[0]), IndexToChar(e[1]), IndexToChar(e[2]), '='] by {
-      
     }
     IndexToCharIsBase64(e[0]);
     IndexToCharIsBase64(e[1]);
     IndexToCharIsBase64(e[2]);
+
+    // TODO make by penetrate
+    // TODO provide a way to reveal deeply.
+    reveal Encode1Padding, EncodeBlock, IndexToChar, CharToIndex, BV24ToIndexSeq, SeqToBV24;
     assert CharToIndex(s[2]) & 0x3 == 0 by {
-      // TODO: simplify
-      
-      
-      
-      
-      
-      
     }
+
     assert Is1Padding(s) by {
-      
+      reveal Is1Padding;
     }
   }
 
@@ -914,39 +921,29 @@ module Std.Base64 {
 
   lemma DecodeBVFailure(s: seq<char>)
     ensures !IsBase64String(s) ==> DecodeBV(s).Failure?
-  {
-    
+  { 
   }
 
-  opaque ghost predicate StringIs7Bit(s: string) {
+  ghost predicate StringIs7Bit(s: string) {
     forall c :: c in s ==> c < 128 as char
   }
 
   lemma UnpaddedBase64StringIs7Bit(s: string)
     requires IsUnpaddedBase64String(s)
     ensures StringIs7Bit(s)
-  {
-    
-    
-    
+  { 
   }
 
   lemma Is7Bit1Padding(s: string)
     requires Is1Padding(s)
     ensures StringIs7Bit(s)
   {
-    
-    
-    
   }
 
   lemma Is7Bit2Padding(s: string)
     requires Is2Padding(s)
     ensures StringIs7Bit(s)
   {
-    
-    
-    
   }
 
   function EncodeBV(b: seq<bv8>): (s: seq<char>)
@@ -1153,13 +1150,16 @@ module Std.Base64 {
     assert !Is2Padding(s[(|s| - 4)..]) by { EncodeUnpaddedNotPadded(b); }
   }
 
-  lemma EncodeDecodeValid2Padded(b: seq<bv8>)
+  lemma {:resource_limit "6e6"} EncodeDecodeValid2Padded(b: seq<bv8>)
     requires |b| % 3 == 1
     ensures
       var s := EncodeBV(b);
       && s == (EncodeUnpadded(b[..(|b| - 1)]) + Encode2Padding(b[(|b| - 1)..]))
       && Is2Padding(s[(|s| - 4)..])
   {
+    hide *;
+    reveal EncodeBV;
+
     EncodeUnpaddedBase64(b[..(|b| - 1)]);
     EncodeUnpaddedBounds(b[..(|b| - 1)]);
     
@@ -1358,6 +1358,7 @@ module Std.Base64 {
   lemma EncodeDecodeValid(b: seq<bv8>)
     ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
   {
+    hide *;
     EncodeBVIsBase64(b);
     var s := EncodeBV(b);
     if b == [] {
@@ -1371,7 +1372,7 @@ module Std.Base64 {
         DecodeValid(EncodeBV(b));
       == { EncodeBVIsUnpadded(b); }
         DecodeValid(EncodeUnpadded(b));
-      == { EncodeDecodeValidUnpadded(b);  }
+      == { reveal DecodeValid; EncodeDecodeValidUnpadded(b);  }
         DecodeUnpadded(EncodeUnpadded(b));
       == { EncodeDecodeUnpadded(b); }
         b;

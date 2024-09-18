@@ -786,17 +786,21 @@ module Std.Collections.Seq {
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)
+    decreases |xs|
   {
-    
+    hide *;
     if |xs| == 0 {
       assert xs + ys == ys;
     } else {
       calc {
         Filter(f, xs + ys);
-        { assert {:split_here} (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
+        { reveal Filter; assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         Filter(f, [xs[0]]) + Filter(f, xs[1..] + ys);
-        Filter(f, [xs[0]]) + (Filter(f, xs[1..]) + Filter(f, ys));
-        { assert {:split_here} [(xs + ys)[0]] + (xs[1..] + ys) == xs + ys; }
+        Filter(f, [xs[0]]) + Filter(f, xs[1..]) + Filter(f, ys);
+        { 
+          reveal Filter;
+          assert [(xs + ys)[0]] + (xs[1..] + ys) == xs + ys;
+        }
         Filter(f, xs) + Filter(f, ys);
       }
     }

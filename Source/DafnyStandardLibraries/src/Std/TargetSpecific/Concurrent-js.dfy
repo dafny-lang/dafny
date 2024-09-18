@@ -74,7 +74,7 @@ module {:extern "Std_Concurrent"} Std.ConcurrentDafny {
       this.knownValues := {};
     }
 
-    opaque ghost predicate Contained()
+    ghost predicate Contained()
       reads this`internal, this`knownKeys, this`knownValues
     {
       internal.Keys <= knownKeys && internal.Values <= knownValues
