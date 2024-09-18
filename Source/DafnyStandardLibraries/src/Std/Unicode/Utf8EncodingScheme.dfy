@@ -58,9 +58,12 @@ module Std.Unicode.Utf8EncodingScheme {
   LemmaDeserializeSerialize(b: seq<byte>)
     ensures Serialize(Deserialize(b)) == b
   {
+    hide *;
+    reveal BoundedInts.TWO_TO_THE_8;
     calc {
       Serialize(Deserialize(b));
     == // Definitions of Serialize, Deserialize
+      { reveal Serialize; reveal Deserialize; }
       Seq.Map(c => c as byte, Seq.Map(b => b as Utf8EncodingForm.CodeUnit, b));
     == // Compositionality of Map
       Seq.Map(b => (b as Utf8EncodingForm.CodeUnit) as byte, b);

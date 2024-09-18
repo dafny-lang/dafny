@@ -418,6 +418,7 @@ module Std.Base64 {
     requires |s| % 4 == 0
     ensures (DecodeRecursivelyBounds(s); EncodeRecursively(DecodeRecursively(s)) == s)
   {
+    hide *;
     var b := DecodeRecursively(s);
     DecodeRecursivelyBounds(s);
     EncodeRecursivelyBounds(b);
@@ -427,11 +428,11 @@ module Std.Base64 {
         EncodeRecursively(DecodeRecursively(s));
       ==
         EncodeRecursively(b);
-      == {  }
+      == { reveal EncodeRecursively; }
         EncodeBlock(b[..3]) + EncodeRecursively(b[3..]);
       == { DecodeRecursivelyBlock(s); }
         s[..4] + EncodeRecursively(b[3..]);
-      == {  }
+      == { reveal DecodeRecursively; }
         s[..4] + EncodeRecursively(DecodeRecursively(s[4..]));
       == { DecodeEncodeRecursively(s[4..]); }
         s[..4] + s[4..];
