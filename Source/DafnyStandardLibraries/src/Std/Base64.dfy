@@ -269,9 +269,6 @@ module Std.Base64 {
       assert s[i..][4..] == s[i+4..];
       assert result[j..j+3] == block;
 
-      // Only needed for last equality
-      hide *;
-      reveal DecodeRecursively;
       calc {
         DecodeBlock(s[i..i+4]) + DecodeRecursively(s[i+4..]);
         DecodeBlock(s[i..][..4]) + DecodeRecursively(s[i..][4..]);
