@@ -104,7 +104,6 @@ module Std.Collections.Map {
   lemma LemmaInvertIsInjective<X, Y>(m: map<X, Y>)
     ensures Injective(Invert(m))
   {
-    
   }
 
   /* True iff a map contains all valid keys. */

@@ -66,7 +66,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Logarithm {
     ensures (LemmaPowPositive(base, n); Log(base, Pow(base, n)) == n)
   {
     if n == 0 {
-      
     } else {
       LemmaPowPositive(base, n);
       calc {

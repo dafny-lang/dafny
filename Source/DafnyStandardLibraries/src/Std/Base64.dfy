@@ -77,7 +77,6 @@ module Std.Base64 {
   lemma IndexToCharIsBase64(i: index)
     ensures IsBase64Char(IndexToChar(i))
   {
-    
   }
 
   function CharToIndex(c: char): (i: index)
@@ -85,7 +84,6 @@ module Std.Base64 {
     // and that requirement propagates to many places.
     requires IsBase64Char(c)
   {
-    
     // Perform the inverse operations of IndexToChar
     if c == '/' then 63
     else if c == '+' then 62
@@ -100,7 +98,6 @@ module Std.Base64 {
   {
     // TODO: reduce resource use, brittleness
     Base64CharIs7Bit(c);
-    
     if c == '/' {
       assert IndexToChar(CharToIndex(c)) == c;
     } else if c == '+' {
@@ -120,7 +117,6 @@ module Std.Base64 {
     ensures (IndexToCharIsBase64(i); CharToIndex(IndexToChar(i)) == i)
   {
     // TODO: reduce resource use, brittleness
-    
     IndexToCharIsBase64(i);
     if i == 63 {
       assert CharToIndex(IndexToChar(i)) == i;
@@ -173,14 +169,12 @@ module Std.Base64 {
   lemma BV24ToSeqToBV24(x: bv24)
     ensures SeqToBV24(BV24ToSeq(x)) == x
   {
-    
   }
 
   lemma SeqToBV24ToSeq(s: seq<bv8>)
     requires |s| == 3
     ensures BV24ToSeq(SeqToBV24(s)) == s
   {
-    
   }
 
   function BV24ToIndexSeq(x: bv24): (ret: seq<index>)
@@ -205,14 +199,12 @@ module Std.Base64 {
   lemma BV24ToIndexSeqToBV24(x: bv24)
     ensures IndexSeqToBV24(BV24ToIndexSeq(x)) == x
   {
-    
   }
 
   lemma IndexSeqToBV24ToIndexSeq(s: seq<index>)
     requires |s| == 4
     ensures BV24ToIndexSeq(IndexSeqToBV24(s)) == s
   {
-    
   }
 
   function DecodeBlock(s: seq<index>): (ret: seq<bv8>)
@@ -233,7 +225,6 @@ module Std.Base64 {
     requires |s| == 3
     ensures DecodeBlock(EncodeBlock(s)) == s
   {
-    
     var b := SeqToBV24(s);
     BV24ToIndexSeqToBV24(b);
     SeqToBV24ToSeq(s);
@@ -243,7 +234,6 @@ module Std.Base64 {
     requires |s| == 4
     ensures EncodeBlock(DecodeBlock(s)) == s
   {
-    
     var b := IndexSeqToBV24(s);
     BV24ToSeqToBV24(b);
     IndexSeqToBV24ToIndexSeq(s);
@@ -450,14 +440,12 @@ module Std.Base64 {
     requires forall k :: k in s ==> IsBase64Char(k)
     ensures FromIndicesToChars(FromCharsToIndices(s)) == s
   {
-    
     CharToIndexToCharAuto();
   }
 
   lemma FromIndicesToCharsToIndices(b: seq<index>)
     ensures FromCharsToIndices(FromIndicesToChars(b)) == b
   {
-    
     IndexToCharToIndexAuto();
   }
 
@@ -472,7 +460,6 @@ module Std.Base64 {
     ensures |DecodeUnpadded(s)| == |s| / 4 * 3
     ensures |DecodeUnpadded(s)| % 3 == 0
   {
-    
     var indices := FromCharsToIndices(s);
     assert |indices| == |s|;
     DecodeRecursivelyBounds(indices);
@@ -498,7 +485,6 @@ module Std.Base64 {
     assert forall c :: c in s ==> IsBase64Char(c);
     assert IsBase64Char(s[|s| - 1]);
     assert s[|s| - 1] != '=' by {  }
-    
   }
 
   lemma EncodeUnpaddedBounds(b: seq<bv8>)
@@ -599,8 +585,6 @@ module Std.Base64 {
       [d[0], d[1]] == b
   {
     
-    
-    
   }
 
   lemma {:resource_limit 0} Encode1PaddingIs1Padding(b: seq<bv8>)
@@ -671,9 +655,6 @@ module Std.Base64 {
          // This argument is easiest to make by just automating it
          // However, the mix between % and & in padding constraints
          // makes it a little difficult
-         
-         
-         
          assert d'[0] == IndexToChar(CharToIndex(s[0]));
          assert d'[1] == IndexToChar(CharToIndex(s[1]));
          assert d'[2] == IndexToChar(CharToIndex(s[2]));
@@ -722,9 +703,6 @@ module Std.Base64 {
   {
     
     
-    
-    
-    
   }
 
   lemma DecodeEncodeBlock2Padding(b: seq<bv8>)
@@ -734,8 +712,6 @@ module Std.Base64 {
       var d := DecodeBlock([e[0], e[1], 0, 0]);
       [d[0]] == b
   {
-    
-    
     
   }
 
@@ -775,8 +751,6 @@ module Std.Base64 {
     == {
          // This argument is easiest to make by just automating it
          
-         
-         
        }
       [IndexToChar(CharToIndex(s[0])), IndexToChar(CharToIndex(s[1])), '=', '='];
     == { CharToIndexToChar(s[0]); CharToIndexToChar(s[1]); }
@@ -786,7 +760,6 @@ module Std.Base64 {
 
   predicate IsBase64String(s: string) {
     // All Base64 strings are unpadded until the final block of 4 elements, where a padded seq could exist
-    
     var finalBlockStart := |s| - 4;
     (|s| % 4 == 0) &&
     (IsUnpaddedBase64String(s) ||
@@ -796,7 +769,6 @@ module Std.Base64 {
   function DecodeValid(s: seq<char>): (b: seq<bv8>)
     requires IsBase64String(s)
   {
-    
     if s == [] then [] else
     var finalBlockStart := |s| - 4;
     var prefix, suffix := s[..finalBlockStart], s[finalBlockStart..];
@@ -816,7 +788,6 @@ module Std.Base64 {
                          && (Is2Padding(suffix) && IsUnpaddedBase64String(prefix) <==> (|b| % 3 == 1 && |b| > 0))
                          && (!Is1Padding(suffix) && !Is2Padding(suffix) && IsUnpaddedBase64String(s) <==> (|b| % 3 == 0 && |b| > 1))
   {
-    
 
     if 4 <= |s| {
       var finalBlockStart := |s| - 4;
@@ -825,7 +796,6 @@ module Std.Base64 {
       if s == [] {
       } else if Is1Padding(suffix) {
         assert !Is2Padding(suffix) by {
-          
         }
         var x, y := DecodeUnpadded(prefix), Decode1Padding(suffix);
         assert b == x + y;
@@ -937,7 +907,6 @@ module Std.Base64 {
   lemma EncodeBVIsBase64(b: seq<bv8>)
     ensures IsBase64String(EncodeBV(b))
   {
-    
     EncodeBVLengthExact(b);
     if |EncodeBV(b)| < 4 {
     } else if |b| % 3 == 0 {
@@ -960,7 +929,6 @@ module Std.Base64 {
             && (|b| % 3 == 0 ==> |s| == |b| / 3 * 4)
             && (|b| % 3 != 0 ==> |s| == |b| / 3 * 4 + 4)
   {
-    
 
     var s := EncodeBV(b);
     if |b| % 3 == 0 {
@@ -1024,7 +992,6 @@ module Std.Base64 {
     assert b == [] by {  }
     assert EncodeBV(b) == [] by {
       
-      
     }
   }
 
@@ -1033,7 +1000,6 @@ module Std.Base64 {
     ensures (EncodeBVIsBase64(b) ; DecodeValid(EncodeBV(b)) == b)
   {
     assert EncodeBV(b) == [] by {
-      
       
     }
     EncodeBVIsBase64(b);
@@ -1048,7 +1014,6 @@ module Std.Base64 {
     requires !Is2Padding(s[(|s| - 4)..])
     ensures EncodeBV(DecodeValid(s)) == s
   {
-    
     DecodeUnpaddedBounds(s);
     calc {
       EncodeBV(DecodeValid(s));
@@ -1120,7 +1085,6 @@ module Std.Base64 {
     requires Is1Padding(s[(|s| - 4)..])
     ensures    DecodeValid(s)[..(|DecodeValid(s)| - 2)] == DecodeUnpadded(s[..(|s| - 4)])
   {
-    
   }
 
   lemma DecodeValid1PaddedPartialFrom1PaddedSeq(s: seq<char>)
@@ -1173,12 +1137,10 @@ module Std.Base64 {
     requires Is2Padding(s[(|s| - 4)..])
     ensures
       (
-       
        var b := DecodeValid(s);
        b[..(|b| - 1)] == DecodeUnpadded(s[..(|s| - 4)]) &&
        b[(|b| - 1)..] == Decode2Padding(s[(|s| - 4)..]))
   {
-    
     AboutDecodeValid(s, DecodeValid(s));
     assert Is2Padding(s[(|s| - 4)..]);
   }
@@ -1189,12 +1151,10 @@ module Std.Base64 {
     requires Is1Padding(s[(|s| - 4)..])
     ensures
       (
-       
        var b := DecodeValid(s);
        b[..(|b| - 2)] == DecodeUnpadded(s[..(|s| - 4)]) &&
        b[(|b| - 2)..] == Decode1Padding(s[(|s| - 4)..]))
   {
-    
     AboutDecodeValid(s, DecodeValid(s));
   }
 
@@ -1203,7 +1163,6 @@ module Std.Base64 {
     requires |s| >= 4
     ensures IsUnpaddedBase64String(s[..(|s| - 4)])
   {
-    
   }
 
   lemma DecodeValid2PaddingLengthMod3(s: seq<char>)

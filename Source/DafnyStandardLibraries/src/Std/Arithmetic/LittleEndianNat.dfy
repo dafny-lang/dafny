@@ -94,7 +94,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
   lemma LemmaToNatLeftEqToNatRightAuto()
     ensures forall xs: seq<digit> :: ToNatRight(xs) == ToNatLeft(xs)
   {
-    
     forall xs: seq<digit>
       ensures ToNatRight(xs) == ToNatLeft(xs)
     {
@@ -172,7 +171,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     requires 0 <= i <= |xs|
     ensures ToNatRight(xs[..i]) + ToNatRight(xs[i..]) * Pow(BASE(), i) == ToNatRight(xs)
   {
-    
     if i == 1 {
       assert ToNatRight(xs[..1]) == First(xs);
     } else if i > 1 {
@@ -375,7 +373,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures ToNatRight(FromNat(n)) == n
     decreases n
   {
-    
     if n == 0 {
     } else {
       calc {
@@ -466,7 +463,6 @@ abstract module {:disableNonlinearArithmetic} Std.Arithmetic.LittleEndianNat {
     ensures Pow(BASE(), |xs|) > ToNatRight(xs)
     ensures FromNatWithLen(ToNatRight(xs), |xs|) == xs
   {
-    
     LemmaSeqNatBound(xs);
     if |xs| > 0 {
       calc {

@@ -83,7 +83,6 @@ module Std.Collections.Imap {
   lemma LemmaInvertIsInjective<X, Y>(m: imap<X, Y>)
     ensures Injective(Invert(m))
   {
-    
   }
 
   /* True iff an imap contains all valid keys. */

@@ -210,7 +210,6 @@ module Std.Collections.Seq {
     requires HasNoDuplicates(xs)
     ensures |ToSet(xs)| == |xs|
   {
-    
     if |xs| == 0 {
     } else {
       LemmaCardinalityOfSetNoDuplicates(DropLast(xs));
@@ -223,7 +222,6 @@ module Std.Collections.Seq {
     requires |ToSet(xs)| == |xs|
     ensures HasNoDuplicates(xs)
   {
-    
     if |xs| == 0 {
     } else {
       assert xs == [First(xs)] + DropFirst(xs);
@@ -340,7 +338,6 @@ module Std.Collections.Seq {
     ensures v in xs ==> multiset(ys)[v] == multiset(xs)[v] - 1
     ensures HasNoDuplicates(xs) ==> HasNoDuplicates(ys) && ToSet(ys) == ToSet(xs) - {v}
   {
-    
     if v !in xs then xs
     else
       var i := IndexOf(xs, v);

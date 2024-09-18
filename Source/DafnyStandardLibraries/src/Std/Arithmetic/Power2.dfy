@@ -26,7 +26,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
   lemma LemmaPow2(e: nat)
     ensures Pow2(e) == Pow(2, e)
   {
-    
 
     if e != 0 {
       LemmaPow2(e - 1);
@@ -36,7 +35,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
   lemma LemmaPow2Auto()
     ensures forall e: nat {:trigger Pow2(e)} :: Pow2(e) == Pow(2, e)
   {
-    
 
     forall e: nat {:trigger Pow2(e)}
       ensures Pow2(e) == Pow(2, e)
@@ -106,7 +104,6 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     ensures Pow2(32) == 0x100000000
     ensures Pow2(64) == 0x10000000000000000
   {
-    
   }
 
 }
