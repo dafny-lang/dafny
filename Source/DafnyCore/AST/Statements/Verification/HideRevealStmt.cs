@@ -5,7 +5,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat {
+public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat, ICanResolveNewAndOld {
   public const string RevealLemmaPrefix = "reveal_";
 
   public string Kind => Mode == HideRevealCmd.Modes.Hide ? "hide" : "reveal";
@@ -72,7 +72,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 
-  public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
+  public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     ((ICodeContainer)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
