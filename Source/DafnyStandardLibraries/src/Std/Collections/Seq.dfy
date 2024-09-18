@@ -772,7 +772,6 @@ module Std.Collections.Seq {
     requires forall i {:trigger xs[i]}:: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j {:trigger ys[j]}:: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)
-    decreases |xs|
   {
     hide *;
     if |xs| == 0 {

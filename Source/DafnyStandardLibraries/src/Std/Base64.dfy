@@ -484,7 +484,7 @@ module Std.Base64 {
     var suffix := s[(|s| - 4)..];
     assert forall c :: c in s ==> IsBase64Char(c);
     assert IsBase64Char(s[|s| - 1]);
-    assert s[|s| - 1] != '=' by {  }
+    assert s[|s| - 1] != '=';
   }
 
   lemma EncodeUnpaddedBounds(b: seq<bv8>)
@@ -984,14 +984,14 @@ module Std.Base64 {
   {
     assert IsBase64String(s) by {   }
     var b := DecodeValid(s);
-    assert b == [] by {  }
+    assert b == [];
     assert EncodeBV(b) == [] by {
     }
   }
 
   lemma EncodeDecodeValidEmpty(b: seq<bv8>)
     requires b == []
-    ensures (EncodeBVIsBase64(b) ; DecodeValid(EncodeBV(b)) == b)
+    ensures (EncodeBVIsBase64(b); DecodeValid(EncodeBV(b)) == b)
   {
     assert EncodeBV(b) == [] by {
     }
@@ -1360,7 +1360,7 @@ module Std.Base64 {
   {
     var bvs := UInt8sToBVs(b);
     var s := EncodeBV(bvs);
-    assert Encode(b) == s by {  }
+    assert Encode(b) == s;
     assert IsBase64String(s) by { EncodeBVIsBase64(bvs); }
     var b' := DecodeValid(s);
     assert b' == bvs by { EncodeDecodeValid(bvs); }
@@ -1377,9 +1377,9 @@ module Std.Base64 {
   {
     var b := DecodeValid(s);
     var u := BVsToUInt8s(b);
-    assert Decode(s) == Success(u) by {  }
+    assert Decode(s) == Success(u);
     var s' := EncodeBV(UInt8sToBVs(u));
-    assert s' == Encode(u) by {  }
+    assert s' == Encode(u);
     assert UInt8sToBVs(BVsToUInt8s(b)) == b by {
       BVsToUInt8sToBVs(b);
     }
