@@ -72,7 +72,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 
-  public void Resolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     ((ICodeContainer)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
