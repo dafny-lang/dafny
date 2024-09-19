@@ -5,7 +5,7 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat {
+public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat, ICanResolveNewAndOld {
   public const string RevealLemmaPrefix = "reveal_";
 
   public string Kind => Mode == HideRevealCmd.Modes.Hide ? "hide" : "reveal";
@@ -72,7 +72,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
     return formatter.SetIndentPrintRevealStmt(indentBefore, OwnedTokens);
   }
 
-  public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
+  public override void GenResolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     ((ICodeContainer)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
@@ -93,33 +93,38 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
           effectiveExpr = applySuffix.Lhs;
         }
         if (effectiveExpr is NameSegment or ExprDotName) {
-          if (effectiveExpr is NameSegment) {
-            resolver.ResolveNameSegment((NameSegment)effectiveExpr, true, null, resolutionContext, true);
+          if (effectiveExpr is NameSegment segment) {
+            resolver.ResolveNameSegment(segment, true, null, resolutionContext, true);
           } else {
             resolver.ResolveDotSuffix((ExprDotName)effectiveExpr, true, true, null, resolutionContext, true);
           }
-          var callee = (MemberSelectExpr)((ConcreteSyntaxExpression)effectiveExpr).ResolvedExpression;
-          if (callee == null) {
+
+          if (effectiveExpr.Resolved == null) {
             // error from resolving child
+          } else if (effectiveExpr.Resolved is not MemberSelectExpr callee) {
+            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
+              $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
           } else {
             if (callee.Member is Function or ConstantField) {
               OffsetMembers.Add(callee.Member);
-              if (callee.Member.IsOpaque && Mode == HideRevealCmd.Modes.Reveal) {
-                var revealResolutionContext = resolutionContext with { InReveal = true };
-                var exprClone = new Cloner().CloneExpr(effectiveExpr);
-                if (exprClone is NameSegment) {
-                  resolver.ResolveNameSegment((NameSegment)exprClone, true, null, revealResolutionContext, true);
-                } else {
-                  resolver.ResolveDotSuffix((ExprDotName)exprClone, true, true, null, revealResolutionContext, true);
-                }
+              if (!BoogieGenerator.IsOpaque(callee.Member, resolver.Options) || Mode != HideRevealCmd.Modes.Reveal) {
+                continue;
+              }
 
-                var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
-                if (revealCallee != null) {
-                  var call = new CallStmt(RangeToken, new List<Expression>(),
-                    revealCallee,
-                    new List<ActualBinding>(), effectiveExpr.tok);
-                  ResolvedStatements.Add(call);
-                }
+              var revealResolutionContext = resolutionContext with { InReveal = true };
+              var exprClone = new Cloner().CloneExpr(effectiveExpr);
+              if (exprClone is NameSegment nameSegment) {
+                resolver.ResolveNameSegment(nameSegment, true, null, revealResolutionContext, true);
+              } else {
+                resolver.ResolveDotSuffix((ExprDotName)exprClone, true, true, null, revealResolutionContext, true);
+              }
+
+              var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
+              if (revealCallee != null) {
+                var call = new CallStmt(RangeToken, new List<Expression>(),
+                  revealCallee,
+                  new List<ActualBinding>(), effectiveExpr.tok);
+                ResolvedStatements.Add(call);
               }
             } else {
               resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Tok,
