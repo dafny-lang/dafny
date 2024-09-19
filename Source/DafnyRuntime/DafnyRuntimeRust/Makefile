@@ -19,3 +19,4 @@ update-system-module: build-system-module
 
 test:
 	cargo test
+	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test)
