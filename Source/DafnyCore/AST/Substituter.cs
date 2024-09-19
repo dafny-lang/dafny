@@ -879,7 +879,9 @@ namespace Microsoft.Dafny {
         rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
         rr.OffsetMembers = revealStmt.OffsetMembers.ToList();
         r = rr;
-      } else {
+      } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+        r = SubstStmt(nestedMatchStmt.Flattened);
+      }else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
 
