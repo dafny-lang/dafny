@@ -2801,6 +2801,7 @@ namespace Microsoft.Dafny {
     /// Note that SpecWellformedness and Implementation have procedure implementations
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
+    /// Remy: TODO Simplify
     enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCallPre, CoCallPost, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
@@ -2848,14 +2849,16 @@ namespace Microsoft.Dafny {
       targetDecl.Attributes = new QKeyValue(targetDecl.tok, "smt_option", new List<object>() { name, value }, targetDecl.Attributes);
     }
 
-    private static CallCmd Call(IToken tok, string methodName, List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
+    private static CallCmd Call(BodyTranslationContext context, IToken tok, string methodName, 
+      List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
       Contract.Requires(tok != null);
       Contract.Requires(methodName != null);
       Contract.Requires(ins != null);
       Contract.Requires(outs != null);
 
-      CallCmd call;
-      call = new CallCmd(tok, methodName, ins, outs);
+      var call = new CallCmd(tok, methodName, ins, outs) {
+        IsFree = context.AssertMode == AssertMode.Assume
+      };
       // CLEMENT enable this: call.ErrorData = "possible violation of function precondition";
       return call;
     }

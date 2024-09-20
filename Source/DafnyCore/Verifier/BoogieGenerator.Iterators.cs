@@ -182,8 +182,8 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);  // resolve here
       var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
       var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
-      builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
-        new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
+      builder.Add(Call(builder.Context, iter.tok, "$IterHavoc0",
+        new List<Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(mod) },
         new List<Bpl.IdentifierExpr>()));
 
       // assume the automatic yield-requires precondition (which is always well-formed):  this.Valid()
@@ -206,7 +206,7 @@ namespace Microsoft.Dafny {
       builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
       // simulate a modifies this, this._modifies, this._new;
       var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
-      builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc1",
+      builder.Add(Call(builder.Context, iter.tok, "$IterHavoc1",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(mod), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
       // assume the implicit postconditions promised by MoveNext:
@@ -387,7 +387,7 @@ namespace Microsoft.Dafny {
       var th = new ThisExpr(iter);
       var rds = new MemberSelectExpr(tok, th, iter.Member_Reads);
       var nw = new MemberSelectExpr(tok, th, iter.Member_New);
-      builder.Add(new Bpl.CallCmd(tok, "$YieldHavoc",
+      builder.Add(Call(builder.Context, tok, "$YieldHavoc",
         new List<Bpl.Expr>() { etran.TrExpr(th), etran.TrExpr(rds), etran.TrExpr(nw) },
         new List<Bpl.IdentifierExpr>()));
       // assume YieldRequires;

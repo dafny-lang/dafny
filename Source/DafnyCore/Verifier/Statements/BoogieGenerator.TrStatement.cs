@@ -2026,7 +2026,7 @@ namespace Microsoft.Dafny {
         callBuilder.Add(new CommentCmd($"ProcessCallStmt: Check precondition"));
         // Make the call
         AddReferencedMember(callee);
-        Bpl.CallCmd call = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPre : MethodTranslationKind.CallPre), ins, new List<Bpl.IdentifierExpr>());
+        var call = Call(callBuilder.Context, tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPre : MethodTranslationKind.CallPre), ins, new List<Bpl.IdentifierExpr>());
         proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
         if (
           (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
@@ -2042,7 +2042,8 @@ namespace Microsoft.Dafny {
       }
 
       builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
-      CallCmd post = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
+      var post = Call(builder.Context, tok, 
+        MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
       proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
       builder.Add(post);
 
@@ -2220,7 +2221,7 @@ namespace Microsoft.Dafny {
       // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
       var th = new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType);
       var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-      Bpl.Cmd cmd = new CallCmd(iter.tok, "$IterCollectNewObjects",
+      var cmd = Call(builder.Context, iter.tok, "$IterCollectNewObjects",
         new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
         new List<Bpl.IdentifierExpr>() { updatedSetIE });
       builder.Add(cmd);
