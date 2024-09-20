@@ -2845,7 +2845,7 @@ namespace Microsoft.Dafny {
       targetDecl.Attributes = new QKeyValue(targetDecl.tok, "smt_option", new List<object>() { name, value }, targetDecl.Attributes);
     }
 
-    private static CallCmd Call(BodyTranslationContext context, IToken tok, string methodName, 
+    private static CallCmd Call(BodyTranslationContext context, IToken tok, string methodName,
       List<Expr> ins, List<Bpl.IdentifierExpr> outs) {
       Contract.Requires(tok != null);
       Contract.Requires(methodName != null);

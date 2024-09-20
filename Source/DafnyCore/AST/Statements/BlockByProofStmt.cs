@@ -20,14 +20,14 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld {
     });
     base.GenResolve(resolver, resolutionContext);
   }
-  
+
   // CheckLocalityUpdates
-  
+
   // GhostInterestVisitor
   // if (s.Proof != null) {
   //   Visit(s.Proof, true, "a call-by body");
   // }
-  
+
   internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
     if (proof == null) {
       return;

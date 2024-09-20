@@ -2395,12 +2395,18 @@ UpdateStmt<out Statement/*!*/ s>
      if (suchThat != null) {
        s = new AssignSuchThatStmt(rangeToken, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionRhs != null) {
-       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss, proof);
+       s = new AssignOrReturnStmt(rangeToken, lhss, exceptionRhs, keywordToken, rhss);
+       if (proof != null) {
+         s = new BlockByProofStmt(rangeToken, proof, s);
+       }
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(rangeToken, lhss, rhss, proof);
+         s = new UpdateStmt(rangeToken, lhss, rhss);
+         if (proof != null) {
+           s = new BlockByProofStmt(rangeToken, proof, s);
+         }
        }
      }
   .)
@@ -2557,13 +2563,16 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss, proof);
+         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
-         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss, proof);
+         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss);
        }
        s = new VarDeclStmt(rangeToken, lhss, update);
+       if (proof != null) {
+         s = new BlockByProofStmt(s.RangeToken, proof, s);
+       }
     .)
   | (. CasePattern<LocalVariable> pat;
        Expression e = dummyExpr;
@@ -2980,10 +2989,13 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       if (proof != null) {
+         s = new BlockByProofStmt(s.RangeToken, proof, s);
+       }
      }
   .)
   .
