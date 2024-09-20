@@ -21,7 +21,7 @@ public partial class BoogieGenerator {
       if (forallStmt.BoundVars.Count == 0) {
         TrStmt(forallStmt.Body, builder, locals, etran);
       } else {
-        var s0 = (AssignStmt)forallStmt.S0;
+        var s0 = (SingleAssignStmt)forallStmt.S0;
         var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
         var updater = new BoogieStmtListBuilder(this, options, builder.Context);
         DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
@@ -209,7 +209,7 @@ public partial class BoogieGenerator {
     }
   }
     
-  void TrForallAssign(ForallStmt s, AssignStmt s0,
+  void TrForallAssign(ForallStmt s, SingleAssignStmt s0,
     BoogieStmtListBuilder definedness, BoogieStmtListBuilder updater, List<Variable> locals, ExpressionTranslator etran) {
     // The statement:
     //   forall (x,y | Range(x,y)) {

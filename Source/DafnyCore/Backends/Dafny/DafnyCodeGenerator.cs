@@ -1591,7 +1591,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L,
-      string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+      string tupleTypeArgs, ForallStmt s, SingleAssignStmt s0, Expression rhs) {
       AddUnsupportedFeature(Token.NoToken, Feature.NonSequentializableForallStatements);
       return wr;
     }

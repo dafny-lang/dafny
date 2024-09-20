@@ -72,7 +72,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
         var node = nodesTillFailure[i];
         var nextNode = i < nodesTillFailure.Count - 1 ? nodesTillFailure[i + 1] : null;
         if (node is Statement or LetExpr &&
-            node is not UpdateStmt && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt) {
+            node is not AssignStatement && nextNode is not VarDeclStmt && nextNode is not AssignSuchThatStmt) {
           insertionNode = node;
           break;
         }
