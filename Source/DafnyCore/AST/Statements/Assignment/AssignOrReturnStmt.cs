@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Parsed from ":-"
+/// </summary>
 public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;

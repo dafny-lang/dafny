@@ -5,6 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Parsed from ":|"
+/// </summary>
 public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;

@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Parsed from ":="
+/// </summary>
 public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStatement>, ICanResolve {
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
