@@ -9,8 +9,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
-  public readonly BlockStmt Proof;
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
+  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new();
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
   public override IToken Tok {
     get {
@@ -23,7 +22,8 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     }
   }
 
-  public override IEnumerable<INode> Children => ResolvedStatements.Concat(Proof?.Children ?? new List<INode>());
+  public override IEnumerable<INode> Children => ResolvedStatements;
+  
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
@@ -44,14 +44,13 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     Rhs = (ExprRhs)cloner.CloneRHS(original.Rhs);
     Rhss = original.Rhss.ConvertAll(cloner.CloneRHS);
     KeywordToken = cloner.AttributedTok(original.KeywordToken);
-    Proof = cloner.CloneBlockStmt(original.Proof);
 
     if (cloner.CloneResolvedFields) {
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss, BlockStmt proof = null)
+  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
     : base(rangeToken, lhss) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lhss != null);
@@ -61,7 +60,6 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
     Rhs = rhs;
     Rhss = rhss;
     KeywordToken = keywordToken;
-    Proof = proof;
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
@@ -193,8 +191,6 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       return;
     }
 
-    ModuleResolver.ResolveByProof(resolver, Proof, resolutionContext);
-
     Expression lhsExtract = null;
     if (expectExtract) {
       if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
@@ -290,7 +286,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       }
     }
     // " temp, ... := MethodOrExpression, ...;"
-    UpdateStmt up = new UpdateStmt(RangeToken, lhss2, rhss2, Proof);
+    var up = new UpdateStmt(RangeToken, lhss2, rhss2);
     if (expectExtract) {
       up.OriginalInitialLhs = Lhss.Count == 0 ? null : Lhss[0];
     }
@@ -306,7 +302,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       } else if (token.val == "assume") {
         ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, null, KeywordToken.Attrs);
+        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
         Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
       }

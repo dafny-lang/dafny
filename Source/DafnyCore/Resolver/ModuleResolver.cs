@@ -1964,7 +1964,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
-      var v = new CheckExpression_Visitor(resolver, codeContext);
+      var v = new CheckExpressionVisitor(resolver, codeContext);
       v.Visit(expr);
     }
     /// <summary>
@@ -1977,12 +1977,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
-      var v = new CheckExpression_Visitor(resolver, codeContext);
+      var v = new CheckExpressionVisitor(resolver, codeContext);
       v.Visit(stmt);
     }
-    class CheckExpression_Visitor : ResolverBottomUpVisitor {
+    class CheckExpressionVisitor : ResolverBottomUpVisitor {
       readonly ICodeContext CodeContext;
-      public CheckExpression_Visitor(ModuleResolver resolver, ICodeContext codeContext)
+      public CheckExpressionVisitor(ModuleResolver resolver, ICodeContext codeContext)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(codeContext != null);
@@ -2007,8 +2007,6 @@ namespace Microsoft.Dafny {
           foreach (var h in calc.Hints) {
             resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
           }
-        } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
-          resolver.CheckLocalityUpdates(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
         } else if (stmt is ForallStmt forall && forall.Body != null) {
           resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
         }
@@ -3216,7 +3214,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Check that "stmt" is a valid statment for the body of an assert-by, forall,
+    /// Check that "stmt" is a valid statement for the body of an assert-by, forall,
     /// or calc-hint statement. In particular, check that the local variables assigned in
     /// the bodies of these statements are declared in the statements, not in some enclosing
     /// context. 
@@ -3330,21 +3328,6 @@ namespace Microsoft.Dafny {
     internal LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
       var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
       return LetPatIn(tok, lhs, rhs, body);
-    }
-
-    internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
-      if (proof == null) {
-        return;
-      }
-
-      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-      var prevLblStmts = resolver.EnclosingStatementLabels;
-      var prevLoopStack = resolver.LoopStack;
-      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      resolver.LoopStack = new List<Statement>();
-      resolver.ResolveStatement(proof, resolutionContext);
-      resolver.EnclosingStatementLabels = prevLblStmts;
-      resolver.LoopStack = prevLoopStack;
     }
 
     /// <summary>

@@ -8,7 +8,6 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
-  public readonly BlockStmt Proof;
 
   public override IToken Tok {
     get {
@@ -23,7 +22,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   }
 
   [FilledInDuringResolution] public List<Statement> ResolvedStatements;
-  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>().Concat(Proof != null ? Proof.SubStatements : new List<Statement>());
+  public override IEnumerable<Statement> SubStatements => Children.OfType<Statement>();
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions =>
     ResolvedStatements == null ? Rhss.SelectMany(r => r.NonSpecificationSubExpressions) : Enumerable.Empty<Expression>();
@@ -46,29 +45,26 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
   public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
-    Proof = cloner.CloneBlockStmt(original.Proof);
     if (cloner.CloneResolvedFields) {
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, BlockStmt proof = null)
+  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
-    Proof = proof;
   }
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate, BlockStmt proof = null)
+  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = mutate;
-    Proof = proof;
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
@@ -127,9 +123,6 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
       resolver.ResolveAttributes(rhs, resolutionContext);
     }
 
-    // resolve proof
-    ModuleResolver.ResolveByProof(resolver, Proof, resolutionContext);
-
     // figure out what kind of UpdateStmt this is
     if (firstEffectfulRhs == null) {
       if (Lhss.Count == 0) {
@@ -185,7 +178,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok, Proof);
+        CallStmt a = new CallStmt(RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }

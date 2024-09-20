@@ -8,7 +8,11 @@ public class BlockByProofStmtVerifier {
   public static void EmitBoogie(BoogieGenerator generator, BlockByProofStmt block, BoogieStmtListBuilder builder,
     List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, ICodeContext codeContext) {
     var proofBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
+    
+    //generator.CurrentIdGenerator.Push();
     generator.TrStmtList(block.Proof.Body, proofBuilder, locals, etran);
+    //generator.CurrentIdGenerator.Pop();
+    
     generator.TrStmt(block.Body, proofBuilder, locals, etran);
     generator.PathAsideBlock(block.Tok, proofBuilder, builder);
     generator.TrStmt(block.Body, builder.WithContext(builder.Context with {

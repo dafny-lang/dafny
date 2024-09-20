@@ -646,9 +646,6 @@ namespace Microsoft.Dafny {
         ResolveAttributes(rhs, resolutionContext, false);
       }
 
-      // resolve proof
-      ModuleResolver.ResolveByProof(this, update.Proof, resolutionContext);
-
       // figure out what kind of UpdateStmt this is
       if (firstEffectfulRhs == null) {
         if (update.Lhss.Count == 0) {
@@ -708,8 +705,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters,
-            methodCallInfo.Tok, update.Proof);
+          var a = new CallStmt(update.RangeToken, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -935,8 +931,6 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      ModuleResolver.ResolveByProof(this, s.Proof, resolutionContext);
-
       Expression lhsExtract = null;
       if (expectExtract) {
         if (enclosingMethod.Outs.Count == 0 && s.KeywordToken == null) {
@@ -999,7 +993,7 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2, s.Proof);
+      var up = new UpdateStmt(s.RangeToken, lhss2, rhss2);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
@@ -1015,7 +1009,7 @@ namespace Microsoft.Dafny {
         } else if (s.KeywordToken.Token.val == "assume") {
           ss = new AssumeStmt(new RangeToken(token, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new RangeToken(token, s.EndToken), notFailureExpr, null, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new RangeToken(token, s.EndToken), notFailureExpr, null, s.KeywordToken.Attrs);
         } else {
           Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
         }

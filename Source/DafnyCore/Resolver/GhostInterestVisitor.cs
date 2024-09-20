@@ -74,23 +74,17 @@ class GhostInterestVisitor {
     Contract.Assume(!codeContext.IsGhost || mustBeErasable); // (this is really a precondition) CodeContext.IsGhost ==> mustBeErasable
     Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
-    if (stmt is AssertStmt || stmt is AssumeStmt) {
+    if (stmt is AssertStmt or AssumeStmt) {
       stmt.IsGhost = true;
-      var assertStmt = stmt as AssertStmt;
-      if (assertStmt != null && assertStmt.Proof != null) {
-        Visit(assertStmt.Proof, true, "an assert-by body");
-      }
-
-    } else if (stmt is ExpectStmt) {
-      stmt.IsGhost = false;
-      var s = (ExpectStmt)stmt;
+    } else if (stmt is ExpectStmt expectStmt) {
+      expectStmt.IsGhost = false;
       if (mustBeErasable) {
-        Error(ErrorId.r_expect_statement_is_not_ghost, stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+        Error(ErrorId.r_expect_statement_is_not_ghost, expectStmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
       } else {
-        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Expr, codeContext);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Expr, codeContext);
         // If not provided, the message is populated with a default value in resolution
-        Contract.Assert(s.Message != null);
-        ExpressionTester.CheckIsCompilable(resolver, reporter, s.Message, codeContext);
+        Contract.Assert(expectStmt.Message != null);
+        ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Message, codeContext);
       }
 
     } else if (stmt is PrintStmt) {
@@ -145,10 +139,6 @@ class GhostInterestVisitor {
       var s = (UpdateStmt)stmt;
       s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
-      if (s.Proof != null) {
-        Visit(s.Proof, true, "a call-by body");
-      }
-
     } else if (stmt is AssignOrReturnStmt) {
       var s = (AssignOrReturnStmt)stmt;
       s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
