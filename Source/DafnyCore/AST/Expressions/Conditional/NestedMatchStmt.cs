@@ -45,7 +45,14 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
 
   public override IEnumerable<INode> Children => new[] { Source }.Concat<Node>(Cases);
 
-  public override IEnumerable<Statement> SubStatements => Cases.SelectMany(c => c.Body);
+  public override IEnumerable<Statement> SubStatements {
+    get {
+      if (Flattened != null) {
+        return Flattened.SubStatements;
+      }
+      return Cases.SelectMany(c => c.Body);
+    }
+  }
 
   public override IEnumerable<Statement> PreResolveSubStatements {
     get => this.Cases.SelectMany(oneCase => oneCase.Body);
