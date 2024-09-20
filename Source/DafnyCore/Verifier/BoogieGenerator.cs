@@ -1375,7 +1375,7 @@ namespace Microsoft.Dafny {
     ///   - "f" has a body
     ///   - "f" is not opaque
     /// </summary>
-    bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope, bool revealProtectedBody) {
+    bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
       return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
@@ -2802,15 +2802,13 @@ namespace Microsoft.Dafny {
     /// but no callers, and vice versa for InterModuleCall, IntraModuleCall, and CoCall.
     /// </summary>
     /// Remy: TODO Simplify
-    enum MethodTranslationKind { SpecWellformedness, CallPre, CallPost, CoCallPre, CoCallPost, Implementation, OverrideCheck }
+    enum MethodTranslationKind { SpecWellformedness, Call, CoCall, Implementation, OverrideCheck }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
         { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
-        { MethodTranslationKind.CallPre, "CallPre" },
-        { MethodTranslationKind.CallPost, "CallPost" },
-        { MethodTranslationKind.CoCallPre, "CoCallPre" },
-        { MethodTranslationKind.CoCallPost, "CoCallPost" },
+        { MethodTranslationKind.Call, "Call" },
+        { MethodTranslationKind.CoCall, "CoCall" },
         { MethodTranslationKind.Implementation, "Impl" },
         { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
       };
@@ -2823,10 +2821,8 @@ namespace Microsoft.Dafny {
     private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
       new Dictionary<MethodTranslationKind, string>() {
         {MethodTranslationKind.SpecWellformedness, "well-formedness"},
-        {MethodTranslationKind.CallPre, "call precondtion"},
-        {MethodTranslationKind.CallPost, "call postcondition"},
-        {MethodTranslationKind.CoCallPre, "co-call precondtion"},
-        {MethodTranslationKind.CoCallPost, "co-call postcondition"},
+        {MethodTranslationKind.Call, "call"},
+        {MethodTranslationKind.CoCall, "co-call"},
         {MethodTranslationKind.Implementation, "correctness"},
         {MethodTranslationKind.OverrideCheck, "override check"},
       };
@@ -4544,8 +4540,7 @@ namespace Microsoft.Dafny {
 
       var splits = new List<SplitExprInfo>();
       var applyInduction = kind == MethodTranslationKind.Implementation;
-      bool splitHappened;  // we don't actually care
-      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.CallPost, applyInduction, etran);
+      TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.CallPost, applyInduction, etran);
       return splits;
     }
 

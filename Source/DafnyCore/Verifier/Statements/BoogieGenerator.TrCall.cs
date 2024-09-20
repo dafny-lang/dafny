@@ -361,7 +361,7 @@ public partial class BoogieGenerator {
       callBuilder.Add(new CommentCmd($"ProcessCallStmt: Check precondition"));
       // Make the call
       AddReferencedMember(callee);
-      var call = Call(callBuilder.Context, tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPre : MethodTranslationKind.CallPre), ins, new List<Bpl.IdentifierExpr>());
+      var call = Call(callBuilder.Context, tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.Call), ins, new List<Bpl.IdentifierExpr>());
       proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
       if (
         (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||

@@ -193,16 +193,13 @@ namespace Microsoft.Dafny {
       }
       // the method spec itself
       if (!isByMethod) {
-        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CallPre));
-        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CallPost));
-
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.Call));
       }
       if (m is ExtremeLemma) {
         // Let the CoCall and Impl forms to use m.PrefixLemma signature and specification (and
         // note that m.PrefixLemma.Body == m.Body.
         m = ((ExtremeLemma)m).PrefixLemma;
-        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCallPre));
-        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCallPost));
+        sink.AddTopLevelDeclaration(AddMethod(m, MethodTranslationKind.CoCall));
 
       }
       if (!m.HasVerifyFalseAttribute && m.Body != null && InVerificationScope(m)) {
@@ -1793,66 +1790,14 @@ namespace Microsoft.Dafny {
         return req;
       }
 
-      List<Boogie.Ensures> GetEnsures() {
-        var ens = new List<Boogie.Ensures>();
-        if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
-          return ens;
-        }
-
-        // USER-DEFINED SPECIFICATIONS
-        var comment = "user-defined postconditions";
-        foreach (var p in m.Ens) {
-          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
-          comment = null;
-          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
-            var post = s.E;
-            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
-              // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
-              post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
-            }
-            if (s.IsOnlyFree && bodyKind) {
-              // don't include in split -- it would be ignored, anyhow
-            } else if (s.IsOnlyChecked && !bodyKind) {
-              // don't include in split
-            } else {
-              AddEnsures(ens, EnsuresWithDependencies(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
-            }
-          }
-        }
-        if (m is Constructor && kind == MethodTranslationKind.CallPost) {
-          var dafnyFresh = new OldExpr(Token.NoToken,
-            new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
-              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
-          var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
-          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, dafnyFresh, fresh, null, null, "constructor allocates the object"));
-        }
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
-          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
-        }
-
-        // add the fuel assumption for the reveal method of a opaque method
-        if (IsOpaqueRevealLemma(m)) {
-          List<Expression> args = Attributes.FindExpressions(m.Attributes, "revealedFunction");
-          if (args != null) {
-            MemberSelectExpr selectExpr = args[0].Resolved as MemberSelectExpr;
-            if (selectExpr != null) {
-              Function f = selectExpr.Member as Function;
-              AddEnsures(ens, Ensures(m.tok, true, null, GetRevealConstant(f), null, null, null));
-            }
-          }
-        }
-        return ens;
-      }
-
       var req = new List<Bpl.Requires>();
       var mod = new List<Boogie.IdentifierExpr>();
       var ens = new List<Ensures>();
 
       var name = MethodName(m, kind);
       switch (kind) {
-        case MethodTranslationKind.CallPre:
-        case MethodTranslationKind.CoCallPre:
+        case MethodTranslationKind.Call:
+        case MethodTranslationKind.CoCall:
           outParams = new List<Variable>();
           req = GetRequires();
           break;
@@ -1879,6 +1824,59 @@ namespace Microsoft.Dafny {
       isAllocContext = null;
 
       return proc;
+
+      List<Bpl.Ensures> GetEnsures() {
+        var ens = new List<Boogie.Ensures>();
+        if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
+          return ens;
+        }
+
+        // USER-DEFINED SPECIFICATIONS
+        var comment = "user-defined postconditions";
+        foreach (var p in m.Ens) {
+          var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
+          AddEnsures(ens, Ensures(p.E.tok, true, p.E, etran.CanCallAssumption(p.E), errorMessage, successMessage, comment));
+          comment = null;
+          foreach (var s in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
+            var post = s.E;
+            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.Tok, currentModule)) {
+              // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
+              post = BplImp(new Boogie.IdentifierExpr(s.E.tok, "$_reverifyPost", Boogie.Type.Bool), post);
+            }
+            if (s.IsOnlyFree && bodyKind) {
+              // don't include in split -- it would be ignored, anyhow
+            } else if (s.IsOnlyChecked && !bodyKind) {
+              // don't include in split
+            } else {
+              AddEnsures(ens, EnsuresWithDependencies(s.Tok, s.IsOnlyFree || this.assertionOnlyFilter != null, p.E, post, errorMessage, successMessage, null));
+            }
+          }
+        }
+        if (m is Constructor) {
+          var dafnyFresh = new OldExpr(Token.NoToken,
+            new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
+              new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
+          var fresh = Boogie.Expr.Not(etran.Old.IsAlloced(m.tok, new Boogie.IdentifierExpr(m.tok, "this", TrReceiverType(m))));
+          AddEnsures(ens, Ensures(m.tok, false || this.assertionOnlyFilter != null, dafnyFresh, fresh, null, null, "constructor allocates the object"));
+        }
+        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
+          AddEnsures(ens, Ensures(tri.tok, tri.IsFree || this.assertionOnlyFilter != null, null, tri.Expr, tri.ErrorMessage, tri.SuccessMessage, tri.Comment));
+        }
+
+        // add the fuel assumption for the reveal method of a opaque method
+        if (IsOpaqueRevealLemma(m)) {
+          List<Expression> args = Attributes.FindExpressions(m.Attributes, "revealedFunction");
+          if (args == null) {
+            return ens;
+          }
+
+          if (args[0].Resolved is MemberSelectExpr selectExpr) {
+            Function f = selectExpr.Member as Function;
+            AddEnsures(ens, Ensures(m.tok, true, null, GetRevealConstant(f), null, null, null));
+          }
+        }
+        return ens;
+      }
     }
 
     private void InsertChecksum(Method m, Boogie.Declaration decl, bool specificationOnly = false) {
