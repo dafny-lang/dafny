@@ -1790,29 +1790,12 @@ namespace Microsoft.Dafny {
         return req;
       }
 
-      var req = new List<Bpl.Requires>();
-      var mod = new List<Boogie.IdentifierExpr>();
-      var ens = new List<Ensures>();
 
       var name = MethodName(m, kind);
-      switch (kind) {
-        case MethodTranslationKind.Call:
-        case MethodTranslationKind.CoCall:
-          outParams = new List<Variable>();
-          req = GetRequires();
-          break;
-        case MethodTranslationKind.CallPost:
-        case MethodTranslationKind.CoCallPost:
-          mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
-          ens = GetEnsures();
-          break;
-        default:
-          req = GetRequires();
-          mod.Add(ordinaryEtran.HeapCastToIdentifierExpr);
-          ens = GetEnsures();
-          break;
-      }
-      var proc = new Boogie.Procedure(m.tok, name, new List<Boogie.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      var req = GetRequires();
+      var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
+      var ens = GetEnsures();
+      var proc = new Bpl.Procedure(m.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {
@@ -1826,7 +1809,7 @@ namespace Microsoft.Dafny {
       return proc;
 
       List<Bpl.Ensures> GetEnsures() {
-        var ens = new List<Boogie.Ensures>();
+        var ens = new List<Bpl.Ensures>();
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
           return ens;
         }

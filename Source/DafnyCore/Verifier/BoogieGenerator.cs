@@ -4529,7 +4529,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<List<SplitExprInfo>>() != null);
 
       var splits = new List<SplitExprInfo>();
-      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, true, applyInduction, etran);
+      splitHappened = TrSplitExpr(context, expr, splits, true, int.MaxValue, applyInduction, etran);
       return splits;
     }
 
@@ -4540,7 +4540,7 @@ namespace Microsoft.Dafny {
 
       var splits = new List<SplitExprInfo>();
       var applyInduction = kind == MethodTranslationKind.Implementation;
-      TrSplitExpr(context, expr, splits, true, int.MaxValue, kind != MethodTranslationKind.CallPost, applyInduction, etran);
+      TrSplitExpr(context, expr, splits, true, int.MaxValue, applyInduction, etran);
       return splits;
     }
 

@@ -348,39 +348,16 @@ public partial class BoogieGenerator {
     if (cs.Proof == null) {
       AddCall(builder);
     } else {
-      var callBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-      AddComment(callBuilder, cs, "call statement proof");
+      var proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
+      AddComment(proofBuilder, cs, "call statement proof");
       CurrentIdGenerator.Push();
-      TrStmt(cs.Proof, callBuilder, locals, etran);
+      TrStmt(cs.Proof, proofBuilder, locals, etran);
       CurrentIdGenerator.Pop();
-      AddCall(callBuilder);
-      PathAsideBlock(cs.Tok, callBuilder, builder);
+      AddCall(proofBuilder);
+      PathAsideBlock(cs.Tok, proofBuilder, builder);
+      var freeCall = AddCall(builder);
+      freeCall.IsFree = true;
     }
-
-    void AddCall(BoogieStmtListBuilder callBuilder) {
-      callBuilder.Add(new CommentCmd($"ProcessCallStmt: Check precondition"));
-      // Make the call
-      AddReferencedMember(callee);
-      var call = Call(callBuilder.Context, tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.Call), ins, new List<Bpl.IdentifierExpr>());
-      proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
-      if (
-        (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-        (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
-        // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
-        // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
-        // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
-        // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
-        // of the predicate.
-        call.IsFree = true;
-      }
-      callBuilder.Add(call);
-    }
-
-    builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
-    var post = Call(builder.Context, tok, 
-      MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
-    proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
-    builder.Add(post);
 
     // Unbox results as needed
     for (int i = 0; i < Lhss.Count; i++) {
@@ -398,6 +375,26 @@ public partial class BoogieGenerator {
         cmd = TrAssumeCmd(bLhs.tok, Bpl.Expr.Eq(bLhs, FunctionCall(bLhs.tok, BuiltinFunction.Unbox, TrType(LhsTypes[i]), tmpVarIdE)));
         builder.Add(cmd);
       }
+    }
+
+    return;
+
+    CallCmd AddCall(BoogieStmtListBuilder callBuilder) {
+      AddReferencedMember(callee);
+      var call = Call(callBuilder.Context, tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.Call), ins, new List<Bpl.IdentifierExpr>());
+      proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
+      if (
+        (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+        (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+        // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
+        // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
+        // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
+        // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
+        // of the predicate.
+        call.IsFree = true;
+      }
+      callBuilder.Add(call);
+      return call;
     }
   }
 }

@@ -869,7 +869,7 @@ public partial class BoogieGenerator {
     // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
     var th = new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType);
     var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-    var cmd = Call(builder.Context, iter.tok, "$IterCollectNewObjects",
+    Cmd cmd = Call(builder.Context, iter.tok, "$IterCollectNewObjects",
       new List<Bpl.Expr>() { initHeap, etran.HeapExpr, th, nwField },
       new List<Bpl.IdentifierExpr>() { updatedSetIE });
     builder.Add(cmd);
