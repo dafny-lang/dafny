@@ -14,10 +14,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
   import opened Std.Wrappers
   import R = RAST
   import opened DafnyCompilerRustUtils
-  
-  function ContainingPathToRust(containingPath: seq<Ident>): seq<string> {
-    Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
-  }
 
   class COMP {
     const charType: CharType
