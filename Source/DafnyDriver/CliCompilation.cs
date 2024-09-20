@@ -271,7 +271,12 @@ public class CliCompilation {
   private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
     var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
     if (symbolFilter != null) {
-      canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+      if (symbolFilter.EndsWith(".")) {
+        var withoutDot = new string(symbolFilter.SkipLast(1).ToArray());
+        canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.EndsWith(withoutDot)).ToList();
+      } else {
+        canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+      }
     }
 
     var filterPosition = Options.Get(VerifyCommand.FilterPosition);
