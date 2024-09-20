@@ -19,6 +19,10 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
+  interface ICanPrint {
+    void Render(TextWriter wr, Printer printer);
+  }
+  
   public partial class Printer {
 
     /// <summary>
@@ -29,12 +33,21 @@ namespace Microsoft.Dafny {
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
 
-      if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) { return; }
+
+      if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) {
+        return;
+      }
+      
       for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
         if (label.Data.Name != null) {
           wr.WriteLine("label {0}:", label.Data.Name);
           Indent(indent);
         }
+      }
+      
+      if (stmt is ICanPrint canPrint) {
+        canPrint.Render(wr, this);
+        return;
       }
 
       if (stmt is PredicateStmt) {

@@ -1,15 +1,20 @@
 using System.Collections.Generic;
+using System.IO;
 
 namespace Microsoft.Dafny;
 
-public class BlockByProofStmt : Statement, ICanResolveNewAndOld {
+public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, ICloneable<Statement> {
+
+  public Statement Body { get; }
+  public BlockStmt Proof { get; }
   public BlockByProofStmt(RangeToken range, BlockStmt proof, Statement body) : base(range) {
     Proof = proof;
     Body = body;
   }
-
-  public Statement Body { get; }
-  public BlockStmt Proof { get; }
+  public BlockByProofStmt(Cloner cloner, BlockByProofStmt original) : base(cloner, original) {
+    Proof = cloner.CloneBlockStmt(original.Proof);
+    Body = cloner.CloneStmt(original.Body, false);
+  }
 
   public override IEnumerable<Statement> SubStatements => new[] { Body, Proof };
 
@@ -41,5 +46,13 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld {
     resolver.ResolveStatement(proof, resolutionContext);
     resolver.EnclosingStatementLabels = prevLblStmts;
     resolver.LoopStack = prevLoopStack;
+  }
+
+  public void Render(TextWriter wr, Printer printer) {
+    // TODO
+  }
+
+  public Statement Clone(Cloner cloner) {
+    return new BlockByProofStmt(cloner, this);
   }
 }
