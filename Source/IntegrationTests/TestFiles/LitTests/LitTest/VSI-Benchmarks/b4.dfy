@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: %testDafnyForEachResolver "%s" -- --bprint=/Users/rwillems/SourceCode/dafny/b4.bpl
 
 
 // Note: We are using the built-in equality to compare keys.

@@ -346,7 +346,8 @@ public partial class BoogieGenerator {
     }
 
     AddReferencedMember(callee);
-    var call = Call(builder.Context, tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.Call), ins, new List<Bpl.IdentifierExpr>());
+    var calleeName = MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.Call);
+    var call = Call(builder.Context, tok, calleeName, ins, outs);
     proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
     if (
       (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||

@@ -3362,18 +3362,19 @@ namespace Microsoft.Dafny {
       return cmd;
     }
 
-    Bpl.PredicateCmd AssertAndForget(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc) {
-      return AssertAndForget(tok, condition, desc, tok, null);
+    PredicateCmd AssertAndForget(BodyTranslationContext context, IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc) {
+      return AssertAndForget(context, tok, condition, desc, tok, null);
     }
 
-    Bpl.PredicateCmd AssertAndForget(IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc, IToken refinesTok, Bpl.QKeyValue kv) {
+    PredicateCmd AssertAndForget(BodyTranslationContext context, IToken tok, Bpl.Expr condition, PODesc.ProofObligationDescription desc, IToken refinesTok, Bpl.QKeyValue kv) {
       Contract.Requires(tok != null);
       Contract.Requires(desc != null);
       Contract.Requires(condition != null);
       Contract.Ensures(Contract.Result<Bpl.PredicateCmd>() != null);
 
-      Bpl.PredicateCmd cmd;
-      if ((assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+      PredicateCmd cmd;
+      if (context.AssertMode == AssertMode.Assume ||
+          (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
           (RefinementToken.IsInherited(refinesTok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
@@ -3502,7 +3503,8 @@ namespace Microsoft.Dafny {
       return attributes == null ? new Bpl.AssertCmd(tok, expr) : new Bpl.AssertCmd(tok, expr, attributes);
     }
 
-    Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, PODesc.ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
+    Bpl.AssertCmd TrAssertCmdDesc(IToken tok, Bpl.Expr expr, 
+      PODesc.ProofObligationDescription description, Bpl.QKeyValue attributes = null) {
       ReportAssertion(tok, description);
       return new Bpl.AssertCmd(tok, expr, description, attributes);
     }

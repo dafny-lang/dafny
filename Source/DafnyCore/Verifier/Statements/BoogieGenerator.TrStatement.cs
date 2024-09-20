@@ -131,7 +131,7 @@ public partial class BoogieGenerator {
           } else if (split.IsChecked) {
             var yieldToken = new NestedToken(s.Tok, split.Tok);
             var desc = new PODesc.YieldEnsures(fieldSub.Substitute(p.E));
-            builder.Add(AssertAndForget(yieldToken, split.E, desc, stmt.Tok, null));
+            builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, stmt.Tok, null));
           }
         }
         builder.Add(TrAssumeCmdWithDependencies(yeEtran, stmt.Tok, p.E, "yield ensures clause"));
@@ -585,7 +585,7 @@ public partial class BoogieGenerator {
             TrStmt_CheckWellformed(index, b, locals, etran, false);
             if (index.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               var desc = new PODesc.PrefixEqualityLimit(index);
-              b.Add(AssertAndForget(index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
+              b.Add(AssertAndForget(b.Context, index.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(index)), desc));
             }
           }
           TrStmt_CheckWellformed(CalcStmt.Rhs(stmt.Steps[i]), b, locals, etran, false);
@@ -593,11 +593,11 @@ public partial class BoogieGenerator {
           // assert step:
           AddComment(b, stmt, "assert line" + i.ToString() + " " + (stmt.StepOps[i] ?? stmt.Op).ToString() + " line" + (i + 1).ToString());
           if (!splitHappened) {
-            b.Add(AssertAndForget(stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new PODesc.CalculationStep(stmt.Steps[i], stmt.Hints[i])));
+            b.Add(AssertAndForget(b.Context, stmt.Lines[i + 1].tok, etran.TrExpr(stmt.Steps[i]), new PODesc.CalculationStep(stmt.Steps[i], stmt.Hints[i])));
           } else {
             foreach (var split in ss) {
               if (split.IsChecked) {
-                b.Add(AssertAndForget(stmt.Lines[i + 1].tok, split.E, new PODesc.CalculationStep(stmt.Steps[i], stmt.Hints[i])));
+                b.Add(AssertAndForget(b.Context, stmt.Lines[i + 1].tok, split.E, new PODesc.CalculationStep(stmt.Steps[i], stmt.Hints[i])));
               }
             }
           }

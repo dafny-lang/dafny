@@ -9,9 +9,9 @@ public class BlockByProofStmtVerifier {
     List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, ICodeContext codeContext) {
     var proofBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
-    //generator.CurrentIdGenerator.Push();
+    generator.CurrentIdGenerator.Push();
     generator.TrStmtList(block.Proof.Body, proofBuilder, locals, etran);
-    //generator.CurrentIdGenerator.Pop();
+    generator.CurrentIdGenerator.Pop();
 
     generator.TrStmt(block.Body, proofBuilder, locals, etran);
     generator.PathAsideBlock(block.Tok, proofBuilder, builder);

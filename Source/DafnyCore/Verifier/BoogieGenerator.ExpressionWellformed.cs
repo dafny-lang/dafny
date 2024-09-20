@@ -829,7 +829,7 @@ namespace Microsoft.Dafny {
                         // use the given assert attribute only
                         builder.Add(Assert(tok, ss.E, desc, builder.Context, wfOptions.AssertKv));
                       } else {
-                        builder.Add(AssertAndForget(tok, ss.E, desc));
+                        builder.Add(AssertAndForget(builder.Context, tok, ss.E, desc));
                       }
                     }
                   }
@@ -1665,7 +1665,7 @@ namespace Microsoft.Dafny {
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
       var indicesDesc = new PODesc.IndicesInDomain(forArray ? "array" : "sequence", dims, init);
-      builder.Add(AssertAndForget(tok, q, indicesDesc));
+      builder.Add(AssertAndForget(builder.Context, tok, q, indicesDesc));
       if (!forArray && options.DoReadsChecks) {
         // unwrap renamed local lambdas
         var unwrappedFunc = init;
@@ -1716,7 +1716,7 @@ namespace Microsoft.Dafny {
         // assert (forall i0,i1,i2,... ::
         //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
         q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, cre));
-        builder.Add(AssertAndForget(init.tok, q, subrangeDesc));
+        builder.Add(AssertAndForget(builder.Context, init.tok, q, subrangeDesc));
       }
 
       if (forArray) {

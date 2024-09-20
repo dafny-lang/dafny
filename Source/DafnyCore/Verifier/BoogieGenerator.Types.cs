@@ -1576,7 +1576,7 @@ public partial class BoogieGenerator {
       foreach (var split in ss) {
         if (split.IsChecked) {
           var tok = witnessExpr.tok is { } t ? new NestedToken(t, split.Tok) : witnessExpr.tok;
-          witnessCheckBuilder.Add(AssertAndForget(tok, split.E, desc));
+          witnessCheckBuilder.Add(AssertAndForget(witnessCheckBuilder.Context, tok, split.E, desc));
         }
       }
     }
