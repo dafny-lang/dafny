@@ -73,7 +73,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat 
   }
 
   public void Resolve(PreTypeResolver resolver, ResolutionContext resolutionContext) {
-    ((ICodeContainer)resolutionContext.CodeContext).ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
+    resolutionContext.CodeContext.ContainsHide |= Mode == HideRevealCmd.Modes.Hide;
 
     if (Wildcard) {
       return;

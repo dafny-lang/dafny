@@ -33,8 +33,6 @@ namespace Microsoft.Dafny {
   public record BodyTranslationContext(bool ContainsHide, int ScopeDepth = 0, bool ReturnPosition = true, AssertMode AssertMode = AssertMode.Keep);
 
   public partial class BoogieGenerator {
-
-
     /// <summary>
     /// Tries to split the expression into tactical conjuncts (if "position") or disjuncts (if "!position").
     /// If a (necessarily boolean) function call appears as a top-level conjunct, then inline the function

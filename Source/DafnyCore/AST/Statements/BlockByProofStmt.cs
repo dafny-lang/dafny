@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -48,8 +49,18 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
     resolver.LoopStack = prevLoopStack;
   }
 
-  public void Render(TextWriter wr, Printer printer) {
-    // TODO
+  public void Render(TextWriter wr, Printer printer, int indent) {
+    if (Body is AssertStmt assertStmt) {
+      printer.PrintPredicateStmt(assertStmt, false);
+    } else if (Body is ConcreteUpdateStatement updateStmt) {
+      printer.PrintConcreteUpdateStatement(updateStmt, indent, false);
+    } else if (Body is BlockStmt blockStmt) {
+      printer.PrintBlockStmt(blockStmt, indent);
+    } else {
+      throw new NotImplementedException();
+    }
+    wr.Write(" by ");
+    printer.PrintBlockStmt(Proof, indent);
   }
 
   public Statement Clone(Cloner cloner) {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -24,6 +25,11 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     return true;
   }
 
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+  
   public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
   public List<Formal> Ins { get { return new List<Formal>(); } }

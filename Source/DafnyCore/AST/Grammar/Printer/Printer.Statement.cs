@@ -20,7 +20,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
 
   interface ICanPrint {
-    void Render(TextWriter wr, Printer printer);
+    void Render(TextWriter wr, Printer printer, int indent);
   }
   
   public partial class Printer {
@@ -32,7 +32,6 @@ namespace Microsoft.Dafny {
     /// </summary>
     public void PrintStatement(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
-
 
       if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) {
         return;
@@ -46,34 +45,12 @@ namespace Microsoft.Dafny {
       }
       
       if (stmt is ICanPrint canPrint) {
-        canPrint.Render(wr, this);
+        canPrint.Render(wr, this, indent);
         return;
       }
 
       if (stmt is PredicateStmt) {
-        if (printMode == PrintModes.NoGhostOrIncludes) { return; }
-        Expression expr = ((PredicateStmt)stmt).Expr;
-        var assertStmt = stmt as AssertStmt;
-        var expectStmt = stmt as ExpectStmt;
-        wr.Write(assertStmt != null ? "assert" :
-                 expectStmt != null ? "expect" :
-                 "assume");
-        if (stmt.Attributes != null) {
-          PrintAttributes(stmt.Attributes);
-        }
-        wr.Write(" ");
-        if (assertStmt != null && assertStmt.Label != null) {
-          wr.Write("{0}: ", assertStmt.Label.Name);
-        }
-        PrintExpression(expr, true);
-        if (expectStmt is { Message: not null }) {
-          wr.Write(", ");
-          PrintExpression(expectStmt.Message, true);
-          wr.Write(";");
-        } else {
-          wr.Write(";");
-        }
-
+        PrintPredicateStmt(stmt);
       } else if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         wr.Write("print");
@@ -134,17 +111,8 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
 
-      } else if (stmt is BlockStmt) {
-        wr.WriteLine("{");
-        int ind = indent + IndentAmount;
-        foreach (Statement s in ((BlockStmt)stmt).Body) {
-          Indent(ind);
-          PrintStatement(s, ind);
-          wr.WriteLine();
-        }
-        Indent(indent);
-        wr.Write("}");
-
+      } else if (stmt is BlockStmt blockStmt) {
+        PrintBlockStmt(blockStmt, indent);
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
         PrintIfStatement(indent, s, false);
@@ -362,19 +330,7 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is ConcreteUpdateStatement) {
-        var s = (ConcreteUpdateStatement)stmt;
-        string sep = "";
-        foreach (var lhs in s.Lhss) {
-          wr.Write(sep);
-          PrintExpression(lhs, true);
-          sep = ", ";
-        }
-        if (s.Lhss.Count > 0) {
-          wr.Write(" ");
-        }
-        PrintUpdateRHS(s, indent);
-        wr.Write(";");
-
+        PrintConcreteUpdateStatement(stmt, indent);
       } else if (stmt is CallStmt) {
         // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
         // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
@@ -463,6 +419,66 @@ namespace Microsoft.Dafny {
         wr.Write("[[ } ]]");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+      }
+    }
+
+    public void PrintConcreteUpdateStatement(Statement stmt, int indent, bool includeSemicolon = true)
+    {
+      var s = (ConcreteUpdateStatement)stmt;
+      string sep = "";
+      foreach (var lhs in s.Lhss) {
+        wr.Write(sep);
+        PrintExpression(lhs, true);
+        sep = ", ";
+      }
+      if (s.Lhss.Count > 0) {
+        wr.Write(" ");
+      }
+      PrintUpdateRHS(s, indent);
+      if (includeSemicolon) {
+        wr.Write(";");
+      }
+    }
+
+    public void PrintBlockStmt(BlockStmt stmt, int indent)
+    {
+      wr.WriteLine("{");
+      int ind = indent + IndentAmount;
+      foreach (Statement s in stmt.Body) {
+        Indent(ind);
+        PrintStatement(s, ind);
+        wr.WriteLine();
+      }
+      Indent(indent);
+      wr.Write("}");
+    }
+
+    public void PrintPredicateStmt(Statement stmt, bool includeSemicolon = true)
+    {
+      if (printMode == PrintModes.NoGhostOrIncludes) {
+        return;
+      }
+      Expression expr = ((PredicateStmt)stmt).Expr;
+      var assertStmt = stmt as AssertStmt;
+      var expectStmt = stmt as ExpectStmt;
+      wr.Write(assertStmt != null ? "assert" :
+        expectStmt != null ? "expect" :
+        "assume");
+      if (stmt.Attributes != null) {
+        PrintAttributes(stmt.Attributes);
+      }
+      wr.Write(" ");
+      if (assertStmt != null && assertStmt.Label != null) {
+        wr.Write("{0}: ", assertStmt.Label.Name);
+      }
+      PrintExpression(expr, true);
+      if (expectStmt is { Message: not null }) {
+        wr.Write(", ");
+        PrintExpression(expectStmt.Message, true);
+      }
+
+      if (includeSemicolon) {
+        wr.Write(";");
       }
     }
 
