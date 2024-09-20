@@ -317,6 +317,8 @@ namespace Microsoft.Dafny {
       etran = etran.WithReadsFrame(null);
       var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
+      
+      InitializeFuelConstant(iter.tok, builder, etran);
 
       // add locals for the yield-history variables and the extra variables
       // Assume the precondition and postconditions of the iterator constructor method
