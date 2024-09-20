@@ -410,7 +410,7 @@ public partial class BoogieGenerator {
     var subStmts = TransitiveSubstatements(loop);
     var modifiedVars =
       subStmts
-        .OfType<AssignStmt>()
+        .OfType<SingleAssignStmt>()
         .Select(s => s.Lhs)
         .OfType<IdentifierExpr>();
     foreach (var ie in modifiedVars) {

@@ -1140,7 +1140,7 @@ namespace Microsoft.Dafny {
 
         ResolveStatement(e.S, resolutionContext);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var r = e.S as UpdateStmt;
+          var r = e.S as AssignStatement;
           if (r != null && r.ResolvedStatements.Count == 1) {
             var call = r.ResolvedStatements[0] as CallStmt;
             if (call.Method is TwoStateLemma && !resolutionContext.IsTwoState) {
@@ -3611,7 +3611,7 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new UpdateStmt(s.RangeToken, formals, s.Rhss, true);
+            s.HiddenUpdate = new AssignStatement(s.RangeToken, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
@@ -3621,7 +3621,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         // We have four cases.
-        Contract.Assert(s.Update == null || s.Update is AssignSuchThatStmt || s.Update is UpdateStmt || s.Update is AssignOrReturnStmt);
+        Contract.Assert(s.Assign == null || s.Assign is AssignSuchThatStmt || s.Assign is AssignStatement || s.Assign is AssignOrReturnStmt);
         // 0.  There is no .Update.  This is easy, we will just resolve the locals.
         // 1.  The .Update is an AssignSuchThatStmt.  This is also straightforward:  first
         //     resolve the locals, which adds them to the scope, and then resolve the .Update.
@@ -3648,18 +3648,18 @@ namespace Microsoft.Dafny {
           }
         }
         // Resolve the UpdateStmt, if any
-        if (s.Update is UpdateStmt or AssignOrReturnStmt) {
+        if (s.Assign is AssignStatement or AssignOrReturnStmt) {
           // resolve the LHS
-          Contract.Assert(s.Update.Lhss.Count == s.Locals.Count);
-          for (int i = 0; i < s.Update.Lhss.Count; i++) {
+          Contract.Assert(s.Assign.Lhss.Count == s.Locals.Count);
+          for (int i = 0; i < s.Assign.Lhss.Count; i++) {
             var local = s.Locals[i];
-            var lhs = (IdentifierExpr)s.Update.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+            var lhs = (IdentifierExpr)s.Assign.Lhss[i];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null);  // not yet resolved
             lhs.Var = local;
             lhs.Type = local.Type;
           }
           // resolve the whole thing
-          s.Update.Resolve(this, resolutionContext);
+          s.Assign.Resolve(this, resolutionContext);
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
@@ -3670,7 +3670,7 @@ namespace Microsoft.Dafny {
           ResolveAttributes(local, resolutionContext);
         }
         // Resolve the AssignSuchThatStmt, if any
-        if (s.Update is AssignSuchThatStmt assignSuchThatStmt) {
+        if (s.Assign is AssignSuchThatStmt assignSuchThatStmt) {
           assignSuchThatStmt.Resolve(this, resolutionContext);
         }
       } else if (stmt is VarDeclPattern) {
@@ -3696,8 +3696,8 @@ namespace Microsoft.Dafny {
           // Every identifier-looking thing in the pattern resolved to a constructor; that is, this LHS is a constant literal
           reporter.Error(MessageSource.Resolver, s.LHS.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
         }
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        SingleAssignStmt s = (SingleAssignStmt)stmt;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(s.Lhs, resolutionContext);  // allow ghosts for now, tighted up below
         bool lhsResolvedSuccessfully = reporter.Count(ErrorLevel.Error) == prevErrorCount;
@@ -3876,10 +3876,10 @@ namespace Microsoft.Dafny {
             // The effect of Assign and the postcondition of Call will be seen outside the forall
             // statement.
             Statement s0 = s.S0;
-            if (s0 is AssignStmt) {
+            if (s0 is SingleAssignStmt) {
               s.Kind = ForallStmt.BodyKind.Assign;
 
-              var rhs = ((AssignStmt)s0).Rhs;
+              var rhs = ((SingleAssignStmt)s0).Rhs;
               if (rhs is TypeRhs) {
                 reporter.Error(MessageSource.Resolver, rhs.Tok, "new allocation not supported in aggregate assignments");
               }

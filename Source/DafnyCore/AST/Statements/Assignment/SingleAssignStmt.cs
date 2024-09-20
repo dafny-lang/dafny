@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignStmt : Statement, ICloneable<AssignStmt> {
+public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
   public readonly Expression Lhs;
   public readonly AssignmentRhs Rhs;
   public override IEnumerable<INode> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
@@ -36,16 +36,16 @@ public class AssignStmt : Statement, ICloneable<AssignStmt> {
     }
   }
 
-  public AssignStmt Clone(Cloner cloner) {
-    return new AssignStmt(cloner, this);
+  public SingleAssignStmt Clone(Cloner cloner) {
+    return new SingleAssignStmt(cloner, this);
   }
 
-  public AssignStmt(Cloner cloner, AssignStmt original) : base(cloner, original) {
+  public SingleAssignStmt(Cloner cloner, SingleAssignStmt original) : base(cloner, original) {
     Lhs = cloner.CloneExpr(original.Lhs);
     Rhs = cloner.CloneRHS(original.Rhs);
   }
 
-  public AssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
+  public SingleAssignStmt(RangeToken rangeToken, Expression lhs, AssignmentRhs rhs)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lhs != null);

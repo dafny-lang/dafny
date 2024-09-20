@@ -3153,7 +3153,7 @@ namespace Microsoft.Dafny {
       var idlist = new List<Expression>() { id };
       var lhss = new List<LocalVariable>() { locvar };
       var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
-      var up = new UpdateStmt(s.RangeToken, idlist, rhss);
+      var up = new AssignStatement(s.RangeToken, idlist, rhss);
       s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, up));
       return id;
     }
@@ -3233,8 +3233,8 @@ namespace Microsoft.Dafny {
         foreach (var lhs in s.Lhss) {
           CheckLocalityUpdatesLhs(lhs, localsAllowedInUpdates, @where);
         }
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        var s = (SingleAssignStmt)stmt;
         CheckLocalityUpdatesLhs(s.Lhs, localsAllowedInUpdates, @where);
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;

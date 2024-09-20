@@ -52,7 +52,7 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
   public void Render(TextWriter wr, Printer printer, int indent) {
     if (Body is AssertStmt assertStmt) {
       printer.PrintPredicateStmt(assertStmt, false);
-    } else if (Body is ConcreteUpdateStatement updateStmt) {
+    } else if (Body is ConcreteAssignStatement updateStmt) {
       printer.PrintConcreteUpdateStatement(updateStmt, indent, false);
     } else if (Body is BlockStmt blockStmt) {
       printer.PrintBlockStmt(blockStmt, indent);

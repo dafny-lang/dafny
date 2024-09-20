@@ -83,8 +83,8 @@ namespace Microsoft.Dafny {
         }
         wr.Write(";");
 
-      } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        SingleAssignStmt s = (SingleAssignStmt)stmt;
         PrintExpression(s.Lhs, true);
         wr.Write(" := ");
         PrintRhs(s.Rhs);
@@ -329,7 +329,7 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
 
-      } else if (stmt is ConcreteUpdateStatement) {
+      } else if (stmt is ConcreteAssignStatement) {
         PrintConcreteUpdateStatement(stmt, indent);
       } else if (stmt is CallStmt) {
         // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
@@ -357,9 +357,9 @@ namespace Microsoft.Dafny {
           PrintType(": ", local.SyntacticType);
           sep = ",";
         }
-        if (s.Update != null) {
+        if (s.Assign != null) {
           wr.Write(" ");
-          PrintUpdateRHS(s.Update, indent);
+          PrintUpdateRHS(s.Assign, indent);
         }
         wr.Write(";");
       } else if (stmt is VarDeclPattern) {
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny {
 
     public void PrintConcreteUpdateStatement(Statement stmt, int indent, bool includeSemicolon = true)
     {
-      var s = (ConcreteUpdateStatement)stmt;
+      var s = (ConcreteAssignStatement)stmt;
       string sep = "";
       foreach (var lhs in s.Lhss) {
         wr.Write(sep);
@@ -535,10 +535,10 @@ namespace Microsoft.Dafny {
     /// Does not print LHS, nor the space one might want between LHS and RHS,
     /// because if there's no LHS, we don't want to start with a space
     /// </summary>
-    void PrintUpdateRHS(ConcreteUpdateStatement s, int indent) {
+    void PrintUpdateRHS(ConcreteAssignStatement s, int indent) {
       Contract.Requires(s != null);
-      if (s is UpdateStmt) {
-        var update = (UpdateStmt)s;
+      if (s is AssignStatement) {
+        var update = (AssignStatement)s;
         if (update.Lhss.Count != 0) {
           wr.Write(":= ");
         }

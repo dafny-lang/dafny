@@ -118,25 +118,25 @@ class GhostInterestVisitor {
 
     } else if (stmt is AssignSuchThatStmt) {
       var s = (AssignSuchThatStmt)stmt;
-      s.IsGhost = mustBeErasable || s.AssumeToken != null || s.Lhss.Any(AssignStmt.LhsIsToGhost);
+      s.IsGhost = mustBeErasable || s.AssumeToken != null || s.Lhss.Any(SingleAssignStmt.LhsIsToGhost);
       if (mustBeErasable && !codeContext.IsGhost) {
         foreach (var lhs in s.Lhss) {
-          var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-          if (gk != AssignStmt.NonGhostKind.IsGhost) {
-            Error(ErrorId.r_no_assign_to_var_in_ghost, lhs, "cannot assign to {0} in a ghost context", AssignStmt.NonGhostKind_To_String(gk));
+          var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+          if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+            Error(ErrorId.r_no_assign_to_var_in_ghost, lhs, "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
           }
         }
       } else if (!mustBeErasable && s.AssumeToken == null && ExpressionTester.UsesSpecFeatures(s.Expr)) {
         foreach (var lhs in s.Lhss) {
-          var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-          if (gk != AssignStmt.NonGhostKind.IsGhost) {
-            Error(ErrorId.r_no_assign_ghost_to_var, lhs, "{0} cannot be assigned a value that depends on a ghost", AssignStmt.NonGhostKind_To_String(gk));
+          var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+          if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+            Error(ErrorId.r_no_assign_ghost_to_var, lhs, "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
           }
         }
       }
 
-    } else if (stmt is UpdateStmt) {
-      var s = (UpdateStmt)stmt;
+    } else if (stmt is AssignStatement) {
+      var s = (AssignStatement)stmt;
       s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
       s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
     } else if (stmt is AssignOrReturnStmt) {
@@ -152,10 +152,10 @@ class GhostInterestVisitor {
           local.MakeGhost();
         }
       }
-      if (s.Update != null) {
-        Visit(s.Update, mustBeErasable, proofContext);
+      if (s.Assign != null) {
+        Visit(s.Assign, mustBeErasable, proofContext);
       }
-      s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
+      s.IsGhost = (s.Assign == null || s.Assign.IsGhost) && s.Locals.All(v => v.IsGhost);
 
       // Check on "assumption" variables
       foreach (var local in s.Locals) {
@@ -195,8 +195,8 @@ class GhostInterestVisitor {
         s.IsGhost = spec;
       }
 
-    } else if (stmt is AssignStmt) {
-      var s = (AssignStmt)stmt;
+    } else if (stmt is SingleAssignStmt) {
+      var s = (SingleAssignStmt)stmt;
       CheckAssignStmt(s, mustBeErasable, proofContext);
 
     } else if (stmt is CallStmt) {
@@ -488,7 +488,7 @@ class GhostInterestVisitor {
     }
   }
 
-  private void CheckAssignStmt(AssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
+  private void CheckAssignStmt(SingleAssignStmt s, bool mustBeErasable, [CanBeNull] string proofContext) {
     Contract.Requires(s != null);
     Contract.Requires(mustBeErasable || proofContext == null);
 
@@ -515,8 +515,8 @@ class GhostInterestVisitor {
       Error(ErrorId.r_new_forbidden_in_proof, s.Rhs.Tok, $"{proofContext} is not allowed to use 'new'");
     }
 
-    var gk = AssignStmt.LhsIsToGhost_Which(lhs);
-    if (gk == AssignStmt.NonGhostKind.IsGhost) {
+    var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+    if (gk == SingleAssignStmt.NonGhostKind.IsGhost) {
       s.IsGhost = true;
       if (proofContext != null && !(lhs is IdentifierExpr)) {
         Error(ErrorId.r_no_heap_update_in_proof, lhs.tok, $"{proofContext} is not allowed to make heap updates");
@@ -524,7 +524,7 @@ class GhostInterestVisitor {
       if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
         Visit(tRhs.InitCall, true, proofContext);
       }
-    } else if (gk == AssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
+    } else if (gk == SingleAssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
       // cool
     } else if (mustBeErasable) {
       if (inConstructorInitializationPhase && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
@@ -537,19 +537,19 @@ class GhostInterestVisitor {
         } else {
           reason = "the statement is in a ghost context; e.g., it may be guarded by a specification-only expression";
         }
-        Error(ErrorId.r_assignment_forbidden_in_context, s, $"assignment to {AssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
+        Error(ErrorId.r_assignment_forbidden_in_context, s, $"assignment to {SingleAssignStmt.NonGhostKind_To_String(gk)} is not allowed in this context, because {reason}");
       }
     } else {
-      if (gk == AssignStmt.NonGhostKind.Field) {
+      if (gk == SingleAssignStmt.NonGhostKind.Field) {
         var mse = (MemberSelectExpr)lhs;
         ExpressionTester.CheckIsCompilable(resolver, reporter, mse.Obj, codeContext);
-      } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
+      } else if (gk == SingleAssignStmt.NonGhostKind.ArrayElement) {
         ExpressionTester.CheckIsCompilable(resolver, reporter, lhs, codeContext);
       }
 
       if (s.Rhs is ExprRhs) {
         var rhs = (ExprRhs)s.Rhs;
-        if (!AssignStmt.LhsIsToGhost(lhs)) {
+        if (!SingleAssignStmt.LhsIsToGhost(lhs)) {
           ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.Expr, codeContext);
         }
       } else if (s.Rhs is HavocRhs) {

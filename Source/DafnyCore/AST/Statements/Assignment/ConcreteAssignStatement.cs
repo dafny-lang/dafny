@@ -7,14 +7,14 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
 /// </summary>
-public abstract class ConcreteUpdateStatement : Statement, ICanFormat {
+public abstract class ConcreteAssignStatement : Statement, ICanFormat {
   public readonly List<Expression> Lhss;
 
-  protected ConcreteUpdateStatement(Cloner cloner, ConcreteUpdateStatement original) : base(cloner, original) {
+  protected ConcreteAssignStatement(Cloner cloner, ConcreteAssignStatement original) : base(cloner, original) {
     Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
   }
 
-  public ConcreteUpdateStatement(RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
+  public ConcreteAssignStatement(RangeToken rangeToken, List<Expression> lhss, Attributes attrs = null)
     : base(rangeToken, attrs) {
     Contract.Requires(cce.NonNullElements(lhss));
     Lhss = lhss;

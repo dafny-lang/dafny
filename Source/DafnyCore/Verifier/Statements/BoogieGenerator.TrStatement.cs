@@ -232,16 +232,16 @@ public partial class BoogieGenerator {
       builder.Add(TrAssumeCmdWithDependencies(etran, s.Tok, s.Expr, "assign-such-that constraint"));
       builder.AddCaptureState(s);  // just do one capture state--here, at the very end (that is, don't do one before the assume)
 
-    } else if (stmt is UpdateStmt statement) {
+    } else if (stmt is AssignStatement statement) {
       TrUpdateStmt(builder, locals, etran, statement);
     } else if (stmt is AssignOrReturnStmt) {
       AddComment(builder, stmt, "assign-or-return statement (:-)");
       AssignOrReturnStmt s = (AssignOrReturnStmt)stmt;
       TrStmtList(s.ResolvedStatements, builder, locals, etran);
 
-    } else if (stmt is AssignStmt) {
+    } else if (stmt is SingleAssignStmt) {
       AddComment(builder, stmt, "assignment statement");
-      AssignStmt s = (AssignStmt)stmt;
+      SingleAssignStmt s = (SingleAssignStmt)stmt;
       TrAssignment(stmt, s.Lhs.Resolved, s.Rhs, builder, locals, etran);
 
     } else if (stmt is CallStmt) {
@@ -412,7 +412,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void TrUpdateStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, UpdateStmt statement) {
+  private void TrUpdateStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, AssignStatement statement) {
     // This UpdateStmt can be single-target assignment, a multi-assignment, a call statement, or
     // an array-range update.  Handle the multi-assignment here and handle the others as for .ResolvedStatements.
     var resolved = statement.ResolvedStatements;
@@ -420,7 +420,7 @@ public partial class BoogieGenerator {
       TrStmt(resolved[0], builder, locals, etran);
     } else {
       AddComment(builder, statement, "update statement");
-      var assignStmts = resolved.Cast<AssignStmt>().ToList();
+      var assignStmts = resolved.Cast<SingleAssignStmt>().ToList();
       var lhss = assignStmts.Select(a => a.Lhs).ToList();
       var rhss = assignStmts.Select(a => a.Rhs).ToList();
       // note: because we have more than one expression, we always must assign to Boogie locals in a two
@@ -455,10 +455,10 @@ public partial class BoogieGenerator {
         new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType),
         local.Type, etran, isAllocContext.Var(varDeclStmt.IsGhost, local));
       // if needed, register definite-assignment tracking for this local
-      var needDefiniteAssignmentTracking = varDeclStmt.Update == null || varDeclStmt.Update is AssignSuchThatStmt;
-      if (varDeclStmt.Update is UpdateStmt) {
+      var needDefiniteAssignmentTracking = varDeclStmt.Assign == null || varDeclStmt.Assign is AssignSuchThatStmt;
+      if (varDeclStmt.Assign is AssignStatement) {
         // there is an initial assignment, but we need to look out for "*" being that assignment
-        var us = (UpdateStmt)varDeclStmt.Update;
+        var us = (AssignStatement)varDeclStmt.Assign;
         if (i < us.Rhss.Count && us.Rhss[i] is HavocRhs) {
           needDefiniteAssignmentTracking = true;
         }
@@ -483,7 +483,7 @@ public partial class BoogieGenerator {
       locals.Add(var);
       i++;
     }
-    if (varDeclStmt.Update == null) {
+    if (varDeclStmt.Assign == null) {
       // it is necessary to do a havoc here in order to give the variable the correct allocation state
       builder.Add(new HavocCmd(varDeclStmt.Tok, newLocalIds));
     }
@@ -494,8 +494,8 @@ public partial class BoogieGenerator {
         builder.Add(new AssumeCmd(local.Tok, new Bpl.IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType), new QKeyValue(local.Tok, "assumption_variable_initialization", new List<object>(), null)));
       }
     }
-    if (varDeclStmt.Update != null) {
-      TrStmt(varDeclStmt.Update, builder, locals, etran);
+    if (varDeclStmt.Assign != null) {
+      TrStmt(varDeclStmt.Assign, builder, locals, etran);
     }
   }
 

@@ -185,7 +185,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
         case VarDeclStmt variableDeclarationStatement:
           Visit(variableDeclarationStatement);
           break;
-        case UpdateStmt updateStatement:
+        case AssignStatement updateStatement:
           Visit(updateStatement);
           break;
         case AssertStmt assertStatement:
@@ -329,12 +329,12 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       foreach (var localVariable in variableDeclarationStatement.Locals) {
         Visit(localVariable);
       }
-      if (variableDeclarationStatement.Update != null) {
-        Visit(variableDeclarationStatement.Update);
+      if (variableDeclarationStatement.Assign != null) {
+        Visit(variableDeclarationStatement.Assign);
       }
     }
 
-    public virtual void Visit(UpdateStmt updateStatement) {
+    public virtual void Visit(AssignStatement updateStatement) {
       VisitNullableAttributes(updateStatement.Attributes);
       foreach (var leftHandSide in updateStatement.Lhss) {
         Visit(leftHandSide);

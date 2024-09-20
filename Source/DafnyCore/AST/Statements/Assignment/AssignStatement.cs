@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanResolve {
+public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStatement>, ICanResolve {
   public readonly List<AssignmentRhs> Rhss;
   public readonly bool CanMutateKnownState;
   public Expression OriginalInitialLhs = null;
@@ -38,11 +38,11 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     Contract.Invariant(cce.NonNullElements(Rhss));
   }
 
-  public UpdateStmt Clone(Cloner cloner) {
-    return new UpdateStmt(cloner, this);
+  public AssignStatement Clone(Cloner cloner) {
+    return new AssignStatement(cloner, this);
   }
 
-  public UpdateStmt(Cloner cloner, UpdateStmt original) : base(cloner, original) {
+  public AssignStatement(Cloner cloner, AssignStatement original) : base(cloner, original) {
     Rhss = original.Rhss.Select(cloner.CloneRHS).ToList();
     CanMutateKnownState = original.CanMutateKnownState;
     if (cloner.CloneResolvedFields) {
@@ -50,7 +50,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     }
   }
 
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
+  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
@@ -58,7 +58,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
     Rhss = rhss;
     CanMutateKnownState = false;
   }
-  public UpdateStmt(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
+  public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
@@ -133,7 +133,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
         for (int i = 0; i < Lhss.Count; i++) {
-          var a = new AssignStmt(RangeToken, Lhss[i].Resolved, Rhss[i]);
+          var a = new SingleAssignStmt(RangeToken, Lhss[i].Resolved, Rhss[i]);
           ResolvedStatements.Add(a);
         }
       }
@@ -153,7 +153,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
           if (tr.CanAffectPreviouslyKnownExpressions) {
             resolver.Reporter.Error(MessageSource.Resolver, tr.Tok, "can only have initialization methods which modify at most 'this'.");
           } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
-            var a = new AssignStmt(RangeToken, Lhss[0].Resolved, tr);
+            var a = new SingleAssignStmt(RangeToken, Lhss[0].Resolved, tr);
             ResolvedStatements.Add(a);
           }
         }
@@ -169,7 +169,7 @@ public class UpdateStmt : ConcreteUpdateStatement, ICloneable<UpdateStmt>, ICanR
           Contract.Assert(2 <= Lhss.Count);  // the parser allows 0 Lhss only if the whole statement looks like an expression (not a TypeRhs)
           resolver.Reporter.Error(MessageSource.Resolver, Lhss[1].tok, "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment", Lhss.Count, Rhss.Count);
         } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
-          var a = new AssignStmt(RangeToken, Lhss[0].Resolved, Rhss[0]);
+          var a = new SingleAssignStmt(RangeToken, Lhss[0].Resolved, Rhss[0]);
           ResolvedStatements.Add(a);
         }
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
