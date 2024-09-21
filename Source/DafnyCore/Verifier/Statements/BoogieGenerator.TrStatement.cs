@@ -251,7 +251,6 @@ public partial class BoogieGenerator {
     } else if (stmt is DividedBlockStmt) {
       var s = (DividedBlockStmt)stmt;
       AddComment(builder, stmt, "divided block before new;");
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
       var tok = s.SeparatorTok ?? s.Tok;
       // a DividedBlockStmt occurs only inside a Constructor body of a class
       var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
@@ -286,16 +285,12 @@ public partial class BoogieGenerator {
 
       AddComment(builder, stmt, "divided block after new;");
       TrStmtList(s.BodyProper, builder, locals, etran);
-      RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
-
     } else if (stmt is OpaqueBlock opaqueBlock) {
       OpaqueBlockVerifier.EmitBoogie(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
     } else if (stmt is BlockByProofStmt blockByProof) {
       BlockByProofStmtVerifier.EmitBoogie(this, blockByProof, builder, locals, etran, codeContext);
     } else if (stmt is BlockStmt blockStmt) {
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
       TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
-      RemoveDefiniteAssignmentTrackers(blockStmt.Body, prevDefiniteAssignmentTrackerCount);
     } else if (stmt is IfStmt ifStmt) {
       TrIfStmt(ifStmt, builder, locals, etran);
 
@@ -677,10 +672,7 @@ public partial class BoogieGenerator {
         builder.Add(new Bpl.HavocCmd(mc.tok, havocIds));
       }
 
-      // translate the body into b
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
       TrStmtList(mc.Body, b, locals, etran);
-      RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
 
       Bpl.Expr guard = Bpl.Expr.Eq(source, r);
       ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
@@ -840,9 +832,7 @@ public partial class BoogieGenerator {
       } else {
         b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
       }
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
       TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
-      RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
       Bpl.StmtList thn = b.Collect(alternative.Tok);
       elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
       els = null;

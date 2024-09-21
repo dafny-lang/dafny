@@ -2903,7 +2903,6 @@ namespace Microsoft.Dafny {
         }
       }
       if (includeOutParams) {
-        Contract.Assume(DefiniteAssignmentTrackers.Count == 0);
         foreach (Formal p in m.Outs) {
           Contract.Assert(VisibleInScope(p.Type));
           Contract.Assert(!p.IsOld);  // out-parameters are never old (perhaps we want to relax this condition in the future)
@@ -2921,7 +2920,6 @@ namespace Microsoft.Dafny {
         }
         // tear down definite-assignment trackers
         m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
-        Contract.Assert(DefiniteAssignmentTrackers.Count == 0);
 
         if (kind == MethodTranslationKind.Implementation) {
           outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));

@@ -47,7 +47,11 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      Bpl.Variable tracker;
+      if (DefiniteAssignmentTrackers.TryGetValue(p.UniqueName, out var result)) {
+        return result;
+      }
+
+      Variable tracker;
       if (isOutParam) {
         tracker = new Bpl.Formal(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool), false);
       } else {
@@ -84,31 +88,6 @@ namespace Microsoft.Dafny {
       localVariables.Add(tracker);
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
       DefiniteAssignmentTrackers.Add(nm, ie);
-    }
-
-    public void RemoveDefiniteAssignmentTrackers(List<Statement> ss, int prevDefAssTrackerCount) {
-      Contract.Requires(ss != null);
-      foreach (var s in ss) {
-        if (s is VarDeclStmt vdecl) {
-          if (vdecl.Assign is AssignOrReturnStmt ars) {
-            foreach (var sx in ars.ResolvedStatements) {
-              if (sx is VarDeclStmt vdecl2) {
-                vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-              }
-            }
-          }
-
-          vdecl.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-        } else if (s is AssignOrReturnStmt ars) {
-          foreach (var sx in ars.ResolvedStatements) {
-            if (sx is VarDeclStmt vdecl2) {
-              vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-            }
-          }
-        }
-      }
-
-      Contract.Assert(prevDefAssTrackerCount == DefiniteAssignmentTrackers.Count);
     }
 
     void RemoveDefiniteAssignmentTracker(IVariable p) {

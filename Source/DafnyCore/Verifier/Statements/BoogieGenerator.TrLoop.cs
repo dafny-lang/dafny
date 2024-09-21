@@ -203,16 +203,21 @@ public partial class BoogieGenerator {
     }
     builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
+    
     var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
-    foreach (var dat in DefiniteAssignmentTrackers.Values) {  // TODO: the order is non-deterministic and may change between invocations of Dafny
+    var existingLocals = locals.ToList();
+    foreach (var local in existingLocals) {
+      if (!DefiniteAssignmentTrackers.TryGetValue(local.Name, out var dat)) {
+        continue;
+      }
       var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
       locals.Add(preLoopDat);
       var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
       daTrackersMonotonicity.Add(new Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>(ie, dat));
-      builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, ie, dat));
+      builder.Add(Cmd.SimpleAssign(s.Tok, ie, dat));
     }
 
-    List<Bpl.Expr> initDecr = null;
+    List<Expr> initDecr = null;
     if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
       initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr_init$" + suffix);
     }
