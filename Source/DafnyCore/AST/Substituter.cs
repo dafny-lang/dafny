@@ -879,6 +879,12 @@ namespace Microsoft.Dafny {
         rr.ResolvedStatements.AddRange(revealStmt.ResolvedStatements.ConvertAll(SubstStmt));
         rr.OffsetMembers = revealStmt.OffsetMembers.ToList();
         r = rr;
+      } else if (stmt is BlockByProofStmt blockByProofStmt) {
+        // Move this code into the class
+        var rr = new BlockByProofStmt(blockByProofStmt.RangeToken, 
+          (BlockStmt)SubstStmt(blockByProofStmt.Proof), 
+          SubstStmt(blockByProofStmt.Body));
+        r = rr;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
