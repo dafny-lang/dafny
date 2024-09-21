@@ -14,6 +14,7 @@ public class BlockByProofStmtVerifier {
     generator.CurrentIdGenerator.Pop();
 
     generator.TrStmt(block.Body, proofBuilder, locals, etran);
+    //generator.RemoveDefiniteAssignmentTrackers(new [] { block.Body }, prevDefiniteAssignmentTrackerCount);
     generator.PathAsideBlock(block.Tok, proofBuilder, builder);
     generator.TrStmt(block.Body, builder.WithContext(builder.Context with {
       AssertMode = AssertMode.Assume
