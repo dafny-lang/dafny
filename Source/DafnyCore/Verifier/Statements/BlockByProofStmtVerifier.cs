@@ -47,12 +47,28 @@ public class OrderedDictionary<TKey, TValue> {
     }
   }
 
+  public TValue GetOrAdd(TValue value) {
+    var key = getKey(value);
+    return GetOrCreate(key, () => value);
+  }
+
+  public TValue GetOrCreate(TKey key, Func<TValue> createValue) {
+    if (keyToValue.TryGetValue(key, out var result)) {
+      return result;
+    }
+
+    result = createValue();
+    keyToValue[key] = result;
+    keyOrder.Add(key);
+    return result;
+  }
+
   public void Add(TValue value) {
     var key = getKey(value);
     keyOrder.Add(key);
     keyToValue[key] = value;
   }
-
+  
   public TValue GetValueOrDefault(TKey key) {
     return keyToValue.GetValueOrDefault(key);
   }

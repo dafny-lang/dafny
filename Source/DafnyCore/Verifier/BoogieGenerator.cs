@@ -1405,7 +1405,7 @@ namespace Microsoft.Dafny {
       List<Variable> outParams, Variables localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         new List<Bpl.TypeVariable>(), inParams, outParams,
-        localVariables.Values.ToList(), stmts, kv);
+        localVariables.Values.ToList<Variable>(), stmts, kv);
       AddVerboseNameAttribute(impl, proc.VerboseName);
       if (options.IsUsingZ3()) {
         if (DisableNonLinearArithmetic) {
@@ -1794,8 +1794,7 @@ namespace Microsoft.Dafny {
         Contract.Assume(ie.Type.Equals(ty));
       } else {
         // the "tok" and "ty" of the first request for this variable is the one we use
-        var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, ty));  // important for the "$nw" client: no where clause (see GetNewVar_IdExpr)
-        locals.Add(v);
+        var v = locals.GetOrAdd(new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, ty)));  // important for the "$nw" client: no where clause (see GetNewVar_IdExpr)
         ie = new Bpl.IdentifierExpr(tok, v);
         _tmpIEs.Add(name, ie);
       }
@@ -2065,8 +2064,7 @@ namespace Microsoft.Dafny {
         etran = new ExpressionTranslator(this, predef, tok, null);
       }
       // Declare a local variable $_Frame: [ref, Field]bool
-      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? frameIdentifier.Name, frameIdentifier.Type));
-      localVariables.Add(frame);
+      var frame = localVariables.GetOrAdd(new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name ?? frameIdentifier.Name, frameIdentifier.Type)));
       // $_Frame := (lambda $o: ref, $f: Field :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       // $_Frame := (lambda $o: ref, $f: Field :: $o != null                    ==> ($o,$f) in Modifies/Reads-Clause);
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
@@ -2319,10 +2317,9 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < mc.Arguments.Count; i++) {
         BoundVar p = mc.Arguments[i];
         var nm = p.AssignUniqueName(currentDeclaration.IdGenerator);
-        Bpl.Variable local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
+        var local = declareLocals ? null : locals.GetValueOrDefault(nm);  // find previous local
         if (local == null) {
-          local = new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, nm, TrType(p.Type)));
-          locals.Add(local);
+          local = locals.GetOrAdd(new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, nm, TrType(p.Type))));
         } else {
           Contract.Assert(Bpl.Type.Equals(local.TypedIdent.Type, TrType(p.Type)));
         }
@@ -2354,8 +2351,7 @@ namespace Microsoft.Dafny {
       foreach (Formal arg in ctor.Formals) {
         Contract.Assert(arg != null);
         var nm = varNameGen.FreshId(string.Format("#{0}#", args.Count));
-        Bpl.Variable bv = new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
-        locals.Add(bv);
+        var bv = locals.GetOrAdd(new Bpl.LocalVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type))));
         args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
       }
 
@@ -2597,8 +2593,7 @@ namespace Microsoft.Dafny {
       type = sType.Arg;
       // var $x
       var name = CurrentIdGenerator.FreshId("$unchanged#x");
-      var xVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, name, isSetType || isMultisetType ? TrType(type) : Bpl.Type.Int));
-      locals.Add(xVar);
+      var xVar = locals.GetOrAdd(new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, name, isSetType || isMultisetType ? TrType(type) : Bpl.Type.Int)));
       var x = new Bpl.IdentifierExpr(e.tok, xVar);
       // havoc $x
       builder.Add(new Bpl.HavocCmd(e.tok, new List<Bpl.IdentifierExpr>() { x }));
@@ -2889,7 +2884,7 @@ namespace Microsoft.Dafny {
         if (thVar.InComing) {
           inParams.Add(thVar);
         } else {
-          outParams.Add(thVar);
+          outParams.GetOrAdd(thVar);
         }
       }
       if (includeInParams) {
@@ -2916,13 +2911,13 @@ namespace Microsoft.Dafny {
               wh = BplImp(tracker, wh);
             }
           }
-          outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
+          outParams.GetOrAdd(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
         }
         // tear down definite-assignment trackers
         m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
         if (kind == MethodTranslationKind.Implementation) {
-          outParams.Add(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));
+          outParams.GetOrAdd(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));
         }
       }
     }
@@ -3548,7 +3543,7 @@ namespace Microsoft.Dafny {
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(bv, ie);
         Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
-        locals.Add(bvar);
+        locals.GetOrAdd(bvar);
         var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
         builder.Add(new Bpl.HavocCmd(bv.tok, new List<Bpl.IdentifierExpr> { bIe }));
         Bpl.Expr wh = GetWhereClause(bv.tok, bIe, local.Type, etran, IsAllocType.ISALLOC);
@@ -3594,7 +3589,7 @@ namespace Microsoft.Dafny {
       substMap.Add(v, ie);
 
       var bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
-      locals.Add(bvar);
+      locals.GetOrAdd(bvar);
       var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
       builder.Add(new Bpl.HavocCmd(v.Tok, new List<Bpl.IdentifierExpr> { bIe }));
       var wh = GetWhereClause(v.Tok, bIe, local.Type, etran, ISALLOC);
@@ -3612,7 +3607,7 @@ namespace Microsoft.Dafny {
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
         Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.tok, new Bpl.TypedIdent(e.tok, idGen.FreshId(varPrefix), TrType(cce.NonNull(e.Type))));
-        locals.Add(bfVar);
+        locals.GetOrAdd(bfVar);
         Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.tok, bfVar);
         oldBfs.Add(bf);
         // record value of each decreases expression at beginning of the loop iteration

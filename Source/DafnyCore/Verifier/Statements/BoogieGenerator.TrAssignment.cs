@@ -415,8 +415,7 @@ public partial class BoogieGenerator {
         // "where" wouldn't provide additional information over the assigned value.
         wh = null;
       }
-      var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh));
-      locals.Add(v);
+      var v = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh)));
       bLhs = new Bpl.IdentifierExpr(tok, v);
     }
 

@@ -202,8 +202,7 @@ namespace Microsoft.Dafny {
       }
 
       // save the heap (representing the state where yield-requires holds):  $_OldIterHeap := Heap;
-      var oldIterHeap = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType));
-      localVariables.Add(oldIterHeap);
+      var oldIterHeap = localVariables.GetOrAdd(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType)));
       builder.Add(Bpl.Cmd.SimpleAssign(iter.tok, new Bpl.IdentifierExpr(iter.tok, oldIterHeap), etran.HeapExpr));
       // simulate a modifies this, this._modifies, this._new;
       var nw = new MemberSelectExpr(iter.tok, th, iter.Member_New);
@@ -303,17 +302,16 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmdWithDependencies(etran, p.E.tok, p.E, "iterator constructor ensures clause"));
       }
       // add the _yieldCount variable, and assume its initial value to be 0
-      yieldCountVariable = new Bpl.LocalVariable(iter.tok,
-        new Bpl.TypedIdent(iter.tok, iter.YieldCountVariable.AssignUniqueName(currentDeclaration.IdGenerator), TrType(iter.YieldCountVariable.Type)));
+      yieldCountVariable = (Bpl.LocalVariable)localVariables.GetOrAdd(new Bpl.LocalVariable(iter.tok,
+        new Bpl.TypedIdent(iter.tok, iter.YieldCountVariable.AssignUniqueName(currentDeclaration.IdGenerator), TrType(iter.YieldCountVariable.Type))));
       yieldCountVariable.TypedIdent.WhereExpr = YieldCountAssumption(iter, etran);  // by doing this after setting "yieldCountVariable", the variable can be used by YieldCountAssumption
-      localVariables.Add(yieldCountVariable);
       builder.Add(TrAssumeCmd(iter.tok, Bpl.Expr.Eq(new Bpl.IdentifierExpr(iter.tok, yieldCountVariable), Bpl.Expr.Literal(0))));
       // add a variable $_OldIterHeap
       var oih = new Bpl.IdentifierExpr(iter.tok, "$_OldIterHeap", predef.HeapType);
       Bpl.Expr wh = BplAnd(
         FunctionCall(iter.tok, BuiltinFunction.IsGoodHeap, null, oih),
         HeapSucc(oih, etran.HeapExpr));
-      localVariables.Add(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
+      localVariables.GetOrAdd(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, "$_OldIterHeap", predef.HeapType, wh)));
 
       // do an initial YieldHavoc
       YieldHavoc(iter.tok, iter, builder, etran);

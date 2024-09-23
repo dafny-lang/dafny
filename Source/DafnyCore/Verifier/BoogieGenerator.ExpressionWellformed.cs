@@ -701,7 +701,7 @@ namespace Microsoft.Dafny {
                 };
                 ie.Type = ie.Var.Type;  // resolve ie here
                 substMap.Add(p, ie);
-                locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+                locals.GetOrAdd(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
@@ -1173,7 +1173,7 @@ namespace Microsoft.Dafny {
               var comprehensionEtran = etran;
               if (lam != null) {
                 // Havoc heap
-                locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+                locals.GetOrAdd(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
                 comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
                 nextBuilder.Add(new HavocCmd(e.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
                 nextBuilder.Add(new AssumeCmd(e.tok, FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
@@ -1226,7 +1226,7 @@ namespace Microsoft.Dafny {
                   if (lam != null) {
                     var resultName = CurrentIdGenerator.FreshId("lambdaResult#");
                     var resultVar = new Bpl.LocalVariable(body.tok, new Bpl.TypedIdent(body.tok, resultName, TrType(body.Type)));
-                    locals.Add(resultVar);
+                    locals.GetOrAdd(resultVar);
                     resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
                     rangeType = lam.Type.AsArrowType.Result;
                   }
@@ -1469,8 +1469,7 @@ namespace Microsoft.Dafny {
     void BuildWithHeapAs(IToken token, Bpl.Expr temporaryHeap, string heapVarSuffix, Variables locals,
       BoogieStmtListBuilder builder, System.Action build) {
       var suffix = CurrentIdGenerator.FreshId(heapVarSuffix);
-      var tmpHeapVar = new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, predef.HeapType));
-      locals.Add(tmpHeapVar);
+      var tmpHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, predef.HeapType)));
       var tmpHeap = new Bpl.IdentifierExpr(token, tmpHeapVar);
       var generalEtran = new ExpressionTranslator(this, predef, token, null);
       var theHeap = generalEtran.HeapCastToIdentifierExpr;
@@ -1540,8 +1539,7 @@ namespace Microsoft.Dafny {
           var pat = e.LHSs[i];
           var rhs = e.RHSs[i];
           var nm = varNameGen.FreshId($"#{i}#");
-          var r = new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(pat.Expr.Type)));
-          locals.Add(r);
+          var r = locals.GetOrAdd(new Bpl.LocalVariable(pat.tok, new Bpl.TypedIdent(pat.tok, nm, TrType(pat.Expr.Type))));
           var rIe = new Bpl.IdentifierExpr(rhs.tok, r);
 
           void CheckPostconditionForRhs(BoogieStmtListBuilder innerBuilder, Expression body) {

@@ -1156,8 +1156,7 @@ namespace Microsoft.Dafny {
       }
       var typeMap = GetTypeArgumentSubstitutionMap(overriddenMember, member);
       foreach (var tp in Util.Concat(overriddenMember.EnclosingClass.TypeArgs, overriddenTypeParameters)) {
-        var local = BplLocalVar(NameTypeParam(tp), predef.Ty, out var lhs);
-        localVariables.Add(local);
+        localVariables.GetOrAdd(BplLocalVar(NameTypeParam(tp), predef.Ty, out var lhs));
         var rhs = TypeToTy(typeMap[tp]);
         builder.Add(new Boogie.AssumeCmd(tp.tok, Boogie.Expr.Eq(lhs, rhs)));
       }
@@ -1184,8 +1183,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr traitFrame = etran.ReadsFrame(func.OverriddenFunction.tok);  // this is a throw-away expression, used only to extract the type and name of the $_ReadsFrame variable
       traitFrame.Name = func.EnclosingClass.Name + "_" + traitFrame.Name;
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ReadsFrame
-      Bpl.LocalVariable frame = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type));
-      localVariables.Add(frame);
+      var frame = localVariables.GetOrAdd(new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type)));
       // $_ReadsFrame := (lambda $o: ref, $f: Field :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
       Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);

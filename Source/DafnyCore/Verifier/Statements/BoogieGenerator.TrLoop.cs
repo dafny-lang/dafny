@@ -41,8 +41,7 @@ public partial class BoogieGenerator {
     var indexVar = stmt.LoopIndex;
     var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
     var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
-    var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
-    locals.Add(bIndexVar);
+    locals.GetOrCreate(indexVarName, () => new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type))));
     var bIndex = new Bpl.IdentifierExpr(indexVar.tok, indexVarName);
 
     var lo = stmt.GoingUp ? stmt.Start : stmt.End;
@@ -53,8 +52,7 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr bHi = null;
     if (lo != null) {
       var name = indexVarName + "#lo";
-      var bLoVar = new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int));
-      locals.Add(bLoVar);
+      locals.GetOrCreate(name, () => new Bpl.LocalVariable(lo.tok, new Bpl.TypedIdent(lo.tok, name, Bpl.Type.Int)));
       bLo = new Bpl.IdentifierExpr(lo.tok, name);
       CheckWellformed(lo, new WFOptions(null, false), locals, builder, etran);
       builder.Add(Bpl.Cmd.SimpleAssign(lo.tok, bLo, etran.TrExpr(lo)));
@@ -62,8 +60,7 @@ public partial class BoogieGenerator {
     }
     if (hi != null) {
       var name = indexVarName + "#hi";
-      var bHiVar = new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int));
-      locals.Add(bHiVar);
+      locals.GetOrCreate(name, () => new Bpl.LocalVariable(hi.tok, new Bpl.TypedIdent(hi.tok, name, Bpl.Type.Int)));
       bHi = new Bpl.IdentifierExpr(hi.tok, name);
       CheckWellformed(hi, new WFOptions(null, false), locals, builder, etran);
       builder.Add(Bpl.Cmd.SimpleAssign(hi.tok, bHi, etran.TrExpr(hi)));
@@ -83,7 +80,6 @@ public partial class BoogieGenerator {
       //   assert Is(x, typ);
       var tok = indexVar.tok;
       var name = indexVarName + "#x";
-      var xVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int));
       var x = new Bpl.IdentifierExpr(tok, name);
 
       var sourceBoundVar = new BoundVar(Token.NoToken, "x", Type.Int);
@@ -94,7 +90,7 @@ public partial class BoogieGenerator {
         checkContext, out var desc);
 
       if (cre != null) {
-        locals.Add(xVar);
+        locals.GetOrCreate(name, () => new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int)));
         builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
         builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
         List<Expression> dafnyRangeBounds = new();
@@ -183,8 +179,8 @@ public partial class BoogieGenerator {
 
     var theDecreases = s.Decreases.Expressions;
 
-    Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap$" + suffix, predef.HeapType));
-    locals.Add(preLoopHeapVar);
+    var preloopheap = "$PreLoopHeap$" + suffix;
+    var preLoopHeapVar = locals.GetOrCreate(preloopheap, () => new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, preloopheap, predef.HeapType)));
     Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
     ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap, etran.scope);
     ExpressionTranslator updatedFrameEtran;
@@ -210,8 +206,9 @@ public partial class BoogieGenerator {
       if (!DefiniteAssignmentTrackers.TryGetValue(local.Name, out var dat)) {
         continue;
       }
-      var preLoopDat = new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, "preLoop$" + suffix + "$" + dat.Name, dat.Type));
-      locals.Add(preLoopDat);
+
+      var name = "preLoop$" + suffix + "$" + dat.Name;
+      var preLoopDat = locals.GetOrCreate(name, () => new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, name, dat.Type)));
       var ie = new Bpl.IdentifierExpr(s.Tok, preLoopDat);
       daTrackersMonotonicity.Add(new Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>(ie, dat));
       builder.Add(Cmd.SimpleAssign(s.Tok, ie, dat));
@@ -224,9 +221,8 @@ public partial class BoogieGenerator {
 
     // The variable w is used to coordinate the definedness checking of the loop invariant.
     // It is also used for body-less loops to turn off invariant checking after the generated body.
-    Bpl.LocalVariable wVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w$" + suffix, Bpl.Type.Bool));
+    var wVar = locals.GetOrAdd(new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w$" + suffix, Bpl.Type.Bool)));
     Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(s.Tok, wVar);
-    locals.Add(wVar);
     // havoc w;
     builder.Add(new Bpl.HavocCmd(s.Tok, new List<Bpl.IdentifierExpr> { w }));
 

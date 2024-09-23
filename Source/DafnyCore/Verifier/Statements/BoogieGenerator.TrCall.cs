@@ -40,8 +40,7 @@ public partial class BoogieGenerator {
           string nm = CurrentIdGenerator.FreshId("$rhs##");
           var formalOutType = s.Method.Outs[i].Type.Subst(tySubst);
           var ty = TrType(formalOutType);
-          Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty));
-          locals.Add(var);
+          var var = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty)));
           bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
         }
       }
@@ -185,10 +184,11 @@ public partial class BoogieGenerator {
       var formal = callee.Ins[i];
       var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
-      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+      var localName = local.AssignUniqueName(currentDeclaration.IdGenerator);
+      var ie = new IdentifierExpr(local.Tok, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(formal, ie);
-      locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+      locals.GetOrCreate(localName, () => new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, localName, TrType(local.Type))));
 
       var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
       Bpl.Expr bActual;

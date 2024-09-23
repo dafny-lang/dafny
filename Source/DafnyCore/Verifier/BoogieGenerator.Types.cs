@@ -1211,8 +1211,7 @@ public partial class BoogieGenerator {
     void PutSourceIntoLocal() {
       if (o == null) {
         var oType = fromType.IsCharType ? Type.Int : fromType;
-        var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(oType)));
-        locals.Add(oVar);
+        var oVar = locals.GetOrAdd(new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(oType))));
         o = new Bpl.IdentifierExpr(tok, oVar);
         var rhs = etran.TrExpr(expr);
         if (fromType.IsCharType) {

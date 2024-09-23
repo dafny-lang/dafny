@@ -319,8 +319,7 @@ public partial class BoogieGenerator {
       // cause the change of the heap according to the given frame
       var suffix = CurrentIdGenerator.FreshId("modify#");
       string modifyFrameName = FrameVariablePrefix + suffix;
-      var preModifyHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType));
-      locals.Add(preModifyHeapVar);
+      var preModifyHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreModifyHeap$" + suffix, predef.HeapType)));
       DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, modifyFrameName);
       if (s.Body == null) {
         var preModifyHeap = new Bpl.IdentifierExpr(s.Tok, preModifyHeapVar);
@@ -356,10 +355,9 @@ public partial class BoogieGenerator {
       TrVarDeclStmt(s, builder, locals, etran);
     } else if (stmt is VarDeclPattern varDeclPattern) {
       foreach (var dafnyLocal in varDeclPattern.LocalVars) {
-        var boogieLocal = new Bpl.LocalVariable(dafnyLocal.Tok,
+        var boogieLocal = locals.GetOrAdd(new Bpl.LocalVariable(dafnyLocal.Tok,
           new Bpl.TypedIdent(dafnyLocal.Tok, dafnyLocal.AssignUniqueName(currentDeclaration.IdGenerator),
-            TrType(dafnyLocal.Type)));
-        locals.Add(boogieLocal);
+            TrType(dafnyLocal.Type))));
         var variableReference = new Bpl.IdentifierExpr(boogieLocal.tok, boogieLocal);
         builder.Add(new Bpl.HavocCmd(dafnyLocal.Tok, new List<Bpl.IdentifierExpr>
         {
@@ -376,8 +374,7 @@ public partial class BoogieGenerator {
       var pat = varDeclPattern.LHS;
       var rhs = varDeclPattern.RHS;
       var nm = varNameGen.FreshId("#0#");
-      var boogieTupleLocal = new Bpl.LocalVariable(pat.tok, new TypedIdent(pat.tok, nm, TrType(rhs.Type)));
-      locals.Add(boogieTupleLocal);
+      var boogieTupleLocal = locals.GetOrAdd(new Bpl.LocalVariable(pat.tok, new TypedIdent(pat.tok, nm, TrType(rhs.Type))));
       var boogieTupleReference = new Bpl.IdentifierExpr(rhs.tok, boogieTupleLocal);
 
       void AddResultCommands(BoogieStmtListBuilder returnBuilder, Expression result) {
@@ -471,10 +468,9 @@ public partial class BoogieGenerator {
         }
       }
       // create the variable itself (now that "wh" may mention the definite-assignment tracker)
-      Bpl.LocalVariable var = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
+      var var = locals.GetOrAdd(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh)));
       var.Attributes = etran.TrAttributes(local.Attributes, null);
       newLocalIds.Add(new Bpl.IdentifierExpr(local.Tok, var));
-      locals.Add(var);
       i++;
     }
     if (varDeclStmt.Assign == null) {
@@ -852,8 +848,7 @@ public partial class BoogieGenerator {
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
     // Add all newly allocated objects to the set this._new
-    var updatedSet = new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType));
-    locals.Add(updatedSet);
+    var updatedSet = locals.GetOrAdd(new Bpl.LocalVariable(iter.tok, new Bpl.TypedIdent(iter.tok, CurrentIdGenerator.FreshId("$iter_newUpdate"), predef.SetType)));
     var updatedSetIE = new Bpl.IdentifierExpr(iter.tok, updatedSet);
     // call $iter_newUpdate := $IterCollectNewObjects(initHeap, $Heap, this, _new);
     var th = new Bpl.IdentifierExpr(iter.tok, etran.This, predef.RefType);
@@ -952,8 +947,7 @@ public partial class BoogieGenerator {
       Bpl.Expr wh = GetWhereClause(bv.Tok,
         new Bpl.IdentifierExpr(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType),
         bv.Type, etran, isAllocContext.Var(isGhost, bv));
-      Bpl.Variable local = new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh));
-      locals.Add(local);
+      Bpl.Variable local = locals.GetOrAdd(new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh)));
       iesForHavoc.Add(new Bpl.IdentifierExpr(local.tok, local));
     }
     builderOutsideIfConstruct.Add(new Bpl.HavocCmd(exists.tok, iesForHavoc));
@@ -998,9 +992,8 @@ public partial class BoogieGenerator {
       var indexBuilder = innerBuilder.WithContext(indexContext);
       if (processLabels) {
         for (var l = ss.Labels; l != null; l = l.Next) {
-          var heapAt = new Bpl.LocalVariable(ss.Tok,
-            new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
-          locals.Add(heapAt);
+          var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Tok,
+            new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType)));
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
         }
       }

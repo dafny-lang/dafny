@@ -104,8 +104,7 @@ namespace Microsoft.Dafny {
         if (assertStmt is { Label: not null }) {
           // make copies of the variables used in the assertion
           var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
-          var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
-          locals.Add(heapAt);
+          var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType)));
           var heapReference = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
           b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, heapReference, etran.HeapExpr));
           var substMap = new Dictionary<IVariable, Expression>();
@@ -119,7 +118,7 @@ namespace Microsoft.Dafny {
               ie.Var = vcopy;
               ie.Type = ie.Var.Type; // resolve ie here
               substMap.Add(v, ie);
-              locals.Add(new Bpl.LocalVariable(vcopy.Tok,
+              locals.GetOrAdd(new Bpl.LocalVariable(vcopy.Tok,
                 new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator),
                   TrType(vcopy.Type))));
               b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));

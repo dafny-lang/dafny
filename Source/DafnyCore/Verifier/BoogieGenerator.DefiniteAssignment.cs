@@ -58,7 +58,7 @@ namespace Microsoft.Dafny {
         tracker = new Bpl.LocalVariable(p.Tok, new Bpl.TypedIdent(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool));
       }
 
-      localVariables.Add(tracker);
+      tracker = localVariables.GetOrAdd(tracker);
       var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
       DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
       return ie;
@@ -84,8 +84,7 @@ namespace Microsoft.Dafny {
       }
 
       var nm = SurrogateName(field);
-      var tracker = new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, DefassPrefix + nm, Bpl.Type.Bool));
-      localVariables.Add(tracker);
+      var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, DefassPrefix + nm, Bpl.Type.Bool)));
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
       DefiniteAssignmentTrackers.Add(nm, ie);
     }
