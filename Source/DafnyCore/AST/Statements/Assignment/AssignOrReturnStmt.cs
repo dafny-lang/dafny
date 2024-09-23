@@ -329,7 +329,8 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
           new BlockStmt(RangeToken, new List<Statement>() {
             new AssignStatement(RangeToken,
               new List<Expression>() { ident },
-              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
+              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) },
+              Proof
             ),
             new ReturnStmt(RangeToken, null),
           }),
@@ -345,7 +346,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
         new AssignStatement(RangeToken,
           new List<Expression>() { lhsExtract },
           new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
-        ));
+        , Proof));
       // The following check is not necessary, because the ghost mismatch is caught later.
       // However the error message here is much clearer.
       var m = resolver.ResolveMember(Tok, firstType, "Extract", out _);

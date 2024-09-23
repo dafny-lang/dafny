@@ -1035,7 +1035,7 @@ namespace Microsoft.Dafny {
               new AssignStatement(s.RangeToken,
                 new List<Expression>() { ident },
                 new List<AssignmentRhs>() {new ExprRhs(resolver.VarDotMethod(s.Tok, temp, "PropagateFailure"))}
-              ),
+              , s.Proof),
               new ReturnStmt(s.RangeToken, null),
             }),
             // ELSE: no else block
@@ -1050,7 +1050,7 @@ namespace Microsoft.Dafny {
           new AssignStatement(s.RangeToken,
             new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(s.Tok, temp, "Extract")) }
-          ));
+          , s.Proof));
       }
 
       s.ResolvedStatements.ForEach(a => ResolveStatement(a, resolutionContext));

@@ -2400,8 +2400,8 @@ AssignStatement<out Statement/*!*/ s>
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new AssignStatement(rangeToken, lhss, rhss);
-       }
+         s = new AssignStatement(rangeToken, lhss, rhss, proof);
+       }gity 
      }
   .)
   .
