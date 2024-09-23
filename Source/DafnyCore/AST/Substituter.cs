@@ -881,8 +881,8 @@ namespace Microsoft.Dafny {
         r = rr;
       } else if (stmt is BlockByProofStmt blockByProofStmt) {
         // Move this code into the class
-        var rr = new BlockByProofStmt(blockByProofStmt.RangeToken, 
-          (BlockStmt)SubstStmt(blockByProofStmt.Proof), 
+        var rr = new BlockByProofStmt(blockByProofStmt.RangeToken,
+          (BlockStmt)SubstStmt(blockByProofStmt.Proof),
           SubstStmt(blockByProofStmt.Body));
         r = rr;
       } else {

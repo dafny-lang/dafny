@@ -829,7 +829,7 @@ namespace Microsoft.Dafny {
       return new Bpl.Axiom(e.tok, e);
     }
 
-    public static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, List<Bpl.Variable> lvars) {
+    public static Bpl.Expr BplLocalVar(string name, Bpl.Type ty, OrderedDictionary<string, Bpl.Variable> lvars) {
       lvars.Add(BplLocalVar(name, ty, out var v));
       return v;
     }

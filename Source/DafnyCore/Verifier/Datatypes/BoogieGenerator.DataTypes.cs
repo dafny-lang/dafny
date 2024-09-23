@@ -838,7 +838,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
-      var locals = new List<Variable>();
+      var locals = new Variables();
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd($"AddWellformednessCheck for datatype constructor {ctor}"));
       builder.AddCaptureState(ctor.tok, false, "initial state");

@@ -1,19 +1,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using Formal = Microsoft.Dafny.Formal;
 using DafnyIdentifierExpr = Microsoft.Dafny.IdentifierExpr;
 using BoogieIdentifierExpr = Microsoft.Boogie.IdentifierExpr;
-using ProofObligationDescription = Microsoft.Dafny.ProofObligationDescription.ProofObligationDescription;
-using Token = Microsoft.Dafny.Token;
 
-namespace DafnyCore.Verifier;
+namespace Microsoft.Dafny;
 
 public static class OpaqueBlockVerifier {
   public static void EmitBoogie(BoogieGenerator generator, OpaqueBlock block, BoogieStmtListBuilder builder,
-    List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
+    Variables locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
 
     var hasModifiesClause = block.Modifies.Expressions.Any();
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
@@ -28,7 +23,7 @@ public static class OpaqueBlockVerifier {
 
     var variablesUsedInEnsures = block.Ensures.SelectMany(ae => ae.E.DescendantsAndSelf).
       OfType<DafnyIdentifierExpr>().DistinctBy(ie => ie.Var);
-    var implicitAssignedIdentifiers = 
+    var implicitAssignedIdentifiers =
       variablesUsedInEnsures.Where(v => assignedVariables.Contains(v.Var));
     foreach (var v in implicitAssignedIdentifiers) {
       var expression = new AttributedExpression(Expression.CreateAssigned(v.Tok, v));
@@ -72,7 +67,7 @@ public static class OpaqueBlockVerifier {
     }
   }
 
-  private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, List<Variable> locals,
+  private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, Variables locals,
     BoogieGenerator.ExpressionTranslator etran, bool hasModifiesClause, BoogieStmtListBuilder blockBuilder) {
     BoogieGenerator.ExpressionTranslator bodyTranslator;
     if (hasModifiesClause) {

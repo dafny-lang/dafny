@@ -552,7 +552,7 @@ namespace Microsoft.Dafny {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.tok, builder, etran);
-      var localVariables = new List<Variable>();
+      var localVariables = new Variables();
       GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables, etran);
 
       if (UseOptimizationInZ3) {
@@ -584,7 +584,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private StmtList TrMethodContractWellformednessCheck(Method m, ExpressionTranslator etran, List<Variable> localVariables,
+    private StmtList TrMethodContractWellformednessCheck(Method m, ExpressionTranslator etran, Variables localVariables,
       BoogieStmtListBuilder builder, List<Variable> outParams) {
       var builderInitializationArea = new BoogieStmtListBuilder(this, options, builder.Context);
       StmtList stmts;
@@ -601,7 +601,7 @@ namespace Microsoft.Dafny {
           if (formal.IsOld) {
             Boogie.Expr wh = GetWhereClause(e.tok, etran.TrExpr(e), e.Type, etran.Old, ISALLOC, true);
             if (wh != null) {
-              var desc = new PODesc.IsAllocated("default value", "in the two-state lemma's previous state", e);
+              var desc = new IsAllocated("default value", "in the two-state lemma's previous state", e);
               builder.Add(Assert(e.RangeToken, wh, desc, builder.Context));
             }
           }
@@ -623,7 +623,7 @@ namespace Microsoft.Dafny {
       // on the method, and {:assume_concurrent} is NOT present on the reads clause.
       if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
           !Attributes.Contains(m.Reads.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-        var desc = new PODesc.ConcurrentFrameEmpty(m, "reads");
+        var desc = new ConcurrentFrameEmpty(m, "reads");
         if (etran.readsFrame != null) {
           CheckFrameEmpty(m.tok, etran, etran.ReadsFrame(m.tok), builder, desc, null);
         } else {
@@ -641,7 +641,7 @@ namespace Microsoft.Dafny {
       // and {:assume_concurrent} is NOT present on the modifies clause.
       if (Attributes.Contains(m.Attributes, Attributes.ConcurrentAttributeName) &&
           !Attributes.Contains(m.Mod.Attributes, Attributes.AssumeConcurrentAttributeName)) {
-        var desc = new PODesc.ConcurrentFrameEmpty(m, "modifies");
+        var desc = new ConcurrentFrameEmpty(m, "modifies");
         CheckFrameEmpty(m.tok, etran, etran.ModifiesFrame(m.tok), builder, desc, null);
       }
 
@@ -696,7 +696,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private StmtList TrMethodBody(Method m, BoogieStmtListBuilder builder, List<Variable> localVariables,
+    private StmtList TrMethodBody(Method m, BoogieStmtListBuilder builder, Variables localVariables,
       ExpressionTranslator etran) {
       var inductionVars = ApplyInduction(m.Ins, m.Attributes);
       if (inductionVars.Count != 0) {
@@ -833,7 +833,7 @@ namespace Microsoft.Dafny {
 
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       var etran = new ExpressionTranslator(this, predef, m.tok, m);
-      var localVariables = new List<Variable>();
+      var localVariables = new Variables();
       InitializeFuelConstant(m.tok, builder, etran);
 
       // assume traitTypeParameter == G(overrideTypeParameters);
@@ -898,7 +898,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private void HavocMethodFrameLocations(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables) {
+    private void HavocMethodFrameLocations(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables) {
       Contract.Requires(m != null);
       Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
 
@@ -1014,7 +1014,7 @@ namespace Microsoft.Dafny {
       //List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
-      List<Variable> localVariables = new List<Variable>();
+      var localVariables = new Variables();
 
       InitializeFuelConstant(f.tok, builder, etran);
 
@@ -1132,12 +1132,12 @@ namespace Microsoft.Dafny {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(true, constraint), builder.Context));
+          builder.Add(Assert(f.tok, s.E, new FunctionContractOverride(true, constraint), builder.Context));
         }
       }
     }
 
-    private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, List<Variable> localVariables) {
+    private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, Variables localVariables) {
       Contract.Requires(member is Function || member is Method);
       Contract.Requires(member.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(builder != null);
@@ -1164,7 +1164,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+    private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
@@ -1204,7 +1204,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
-      var description = new PODesc.TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
+      var description = new TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
       builder.Add(Assert(tok, q, description, builder.Context, kv));
     }
 
@@ -1232,7 +1232,7 @@ namespace Microsoft.Dafny {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
-          builder.Add(Assert(f.tok, s.E, new PODesc.FunctionContractOverride(false, constraint), builder.Context));
+          builder.Add(Assert(f.tok, s.E, new FunctionContractOverride(false, constraint), builder.Context));
         }
       }
     }
@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny {
           var constraint = allOverrideEns == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
-          builder.Add(Assert(m.RangeToken, s.E, new PODesc.EnsuresStronger(constraint), builder.Context));
+          builder.Add(Assert(m.RangeToken, s.E, new EnsuresStronger(constraint), builder.Context));
         }
       }
     }
@@ -1509,7 +1509,7 @@ namespace Microsoft.Dafny {
           var constraint = allTraitReqs == null
             ? null
             : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
-          builder.Add(Assert(m.RangeToken, s.E, new PODesc.RequiresWeaker(constraint), builder.Context));
+          builder.Add(Assert(m.RangeToken, s.E, new RequiresWeaker(constraint), builder.Context));
         }
       }
     }
@@ -1592,11 +1592,11 @@ namespace Microsoft.Dafny {
         contextDecreases.Select(sub.Substitute).ToList(),
         calleeDecreases,
         true);
-      var desc = new PODesc.TraitDecreases(original.WhatKind, assertedExpr);
+      var desc = new TraitDecreases(original.WhatKind, assertedExpr);
       builder.Add(Assert(original.RangeToken, decrChk, desc, builder.Context));
     }
 
-    private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables,
+    private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
 
@@ -1638,7 +1638,7 @@ namespace Microsoft.Dafny {
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
       var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
         BplImp(BplAnd(ante, oInCallee), consequent2));
-      var description = new PODesc.TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
+      var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
       builder.Add(Assert(m.RangeToken, q, description, builder.Context, kv));
     }
 
@@ -1745,8 +1745,8 @@ namespace Microsoft.Dafny {
             if (formal.IsOld) {
               var dafnyFormalIdExpr = new IdentifierExpr(formal.tok, formal);
               var pIdx = m.Ins.Count == 1 ? "" : " at index " + index;
-              var desc = new PODesc.IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
-                "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+              var desc = new IsAllocated($"argument{pIdx} for parameter '{formal.Name}'",
+                "in the two-state lemma's previous state" + IsAllocated.HelperFormal(formal),
                 dafnyFormalIdExpr
               );
               var require = Requires(formal.tok, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
@@ -1793,7 +1793,8 @@ namespace Microsoft.Dafny {
       var req = GetRequires();
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
       var ens = GetEnsures();
-      var proc = new Bpl.Procedure(m.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      var proc = new Bpl.Procedure(m.tok, name, new List<Bpl.TypeVariable>(),
+        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
       if (InsertChecksums) {

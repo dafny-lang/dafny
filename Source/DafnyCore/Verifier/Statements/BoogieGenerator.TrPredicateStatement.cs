@@ -13,7 +13,7 @@ namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
 
     private void TrPredicateStmt(PredicateStmt stmt, BoogieStmtListBuilder builder,
-      List<Variable> locals, ExpressionTranslator etran) {
+      Variables locals, ExpressionTranslator etran) {
       Contract.Requires(stmt != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
       fuelContext = FuelSetting.PopFuelContext();
     }
 
-    private void TrAssumeStmt(AssumeStmt assumeStmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    private void TrAssumeStmt(AssumeStmt assumeStmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
       AddComment(builder, assumeStmt, "assume statement");
       stmtContext = StmtType.ASSUME;
       TrStmt_CheckWellformed(assumeStmt.Expr, builder, locals, etran, false);
@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void TrExpectStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, ExpectStmt expectStmt) {
+    private void TrExpectStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, ExpectStmt expectStmt) {
       AddComment(builder, expectStmt, "expect statement");
       stmtContext = StmtType.ASSUME;
       TrStmt_CheckWellformed(expectStmt.Expr, builder, locals, etran, false);
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
       stmtContext = StmtType.NONE; // done with translating expect stmt.
     }
 
-    public void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+    public void TrAssertStmt(PredicateStmt stmt, BoogieStmtListBuilder builder, Variables locals,
       ExpressionTranslator etran) {
       var stmtBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
       var defineFuel = DefineFuelConstant(stmt.Tok, stmt.Attributes, stmtBuilder, etran);
@@ -165,14 +165,14 @@ namespace Microsoft.Dafny {
       var splits = TrSplitExpr(proofBuilder.Context, stmt.Expr, etran, true, out var splitHappened);
       if (!splitHappened) {
         var tok = enclosingToken == null ? GetToken(stmt.Expr) : new NestedToken(enclosingToken, GetToken(stmt.Expr));
-        var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
+        var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
         proofBuilder.Add(Assert(tok, etran.TrExpr(stmt.Expr), desc, stmt.Tok, proofBuilder.Context,
           etran.TrAttributes(stmt.Attributes, null)));
       } else {
         foreach (var split in splits) {
           if (split.IsChecked) {
             var tok = enclosingToken == null ? split.E.tok : new NestedToken(enclosingToken, split.Tok);
-            var desc = new PODesc.AssertStatementDescription(stmt, errorMessage, successMessage);
+            var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
             proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Tok,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }

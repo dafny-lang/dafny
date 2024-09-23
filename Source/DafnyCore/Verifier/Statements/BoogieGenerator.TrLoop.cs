@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
-  private void TrAlternativeLoopStmt(AlternativeLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
+  private void TrAlternativeLoopStmt(AlternativeLoopStmt stmt, BoogieStmtListBuilder builder, Variables locals,
     ExpressionTranslator etran) {
     AddComment(builder, stmt, "alternative loop statement");
     var tru = Expression.CreateBoolLiteral(stmt.Tok, true);
@@ -30,7 +30,7 @@ public partial class BoogieGenerator {
       builder, locals, etran);
   }
 
-  private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+  private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -72,7 +72,7 @@ public partial class BoogieGenerator {
 
     // check lo <= hi
     if (lo != null && hi != null) {
-      builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new PODesc.ForRangeBoundsValid(lo, hi), builder.Context));
+      builder.Add(Assert(lo.tok, Bpl.Expr.Le(bLo, bHi), new ForRangeBoundsValid(lo, hi), builder.Context));
     }
     // check forall x :: lo <= x <= hi ==> Is(x, typ)
     {
@@ -110,7 +110,7 @@ public partial class BoogieGenerator {
           : new BinaryExpr(stmt.tok, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
         var dafnyAssertion = new ForallExpr(stmt.tok, stmt.RangeToken, new List<BoundVar> { indexVar },
           dafnyRange, new TypeTestExpr(indexVar.tok, dIndex, indexVar.Type), null);
-        builder.Add(Assert(tok, cre, new PODesc.ForRangeAssignable(desc, dafnyAssertion), builder.Context));
+        builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }
     }
 
@@ -147,7 +147,7 @@ public partial class BoogieGenerator {
     TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
   }
 
-  private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+  private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -170,7 +170,7 @@ public partial class BoogieGenerator {
   }
 
   void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {
     Contract.Requires(s != null);
     Contract.Requires(builder != null);
@@ -197,15 +197,15 @@ public partial class BoogieGenerator {
 
     if (s.Mod.Expressions != null) { // check well-formedness and that the modifies is a subset
       CheckFrameWellFormed(new WFOptions(), s.Mod.Expressions, locals, builder, etran);
-      var desc = new PODesc.ModifyFrameSubset("loop modifies clause", s.Mod.Expressions, GetContextModifiesFrames());
+      var desc = new ModifyFrameSubset("loop modifies clause", s.Mod.Expressions, GetContextModifiesFrames());
       CheckFrameSubset(s.Tok, s.Mod.Expressions, null, null, etran, etran.ModifiesFrame(s.Tok), builder, desc, null);
       DefineFrame(s.Tok, etran.ModifiesFrame(s.Tok), s.Mod.Expressions, builder, locals, loopFrameName);
     }
     builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, preLoopHeap, etran.HeapExpr));
 
-    
+
     var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
-    var existingLocals = locals.ToList();
+    var existingLocals = locals.Values.ToList();
     foreach (var local in existingLocals) {
       if (!DefiniteAssignmentTrackers.TryGetValue(local.Name, out var dat)) {
         continue;
@@ -244,12 +244,12 @@ public partial class BoogieGenerator {
       var ss = TrSplitExpr(builder.Context, loopInv.E, etran, false, out var splitHappened);
       if (!splitHappened) {
         var wInv = BplImp(w, etran.TrExpr(loopInv.E));
-        invariants.Add(Assert(loopInv.E.tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
+        invariants.Add(Assert(loopInv.E.tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));
       } else {
         foreach (var split in ss) {
           var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
           if (split.IsChecked) {
-            invariants.Add(Assert(split.Tok, wInv, new PODesc.LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));  // TODO: it would be fine to have this use {:subsumption 0}
+            invariants.Add(Assert(split.Tok, wInv, new LoopInvariant(loopInv.E, errorMessage, successMessage), builder.Context));  // TODO: it would be fine to have this use {:subsumption 0}
           } else {
             var cmd = TrAssumeCmd(split.E.tok, wInv);
             proofDependencies?.AddProofDependencyId(cmd, loopInv.E.tok, new InvariantDependency(loopInv.E));
@@ -277,7 +277,7 @@ public partial class BoogieGenerator {
           invariants.Add(TrAssumeCmd(s.Tok, tri.Expr));
         } else {
           Contract.Assert(tri.ErrorMessage != null);  // follows from BoilerplateTriple invariant
-          invariants.Add(Assert(s.Tok, tri.Expr, new PODesc.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment), builder.Context));
+          invariants.Add(Assert(s.Tok, tri.Expr, new Microsoft.Dafny.BoilerplateTriple(tri.ErrorMessage, tri.SuccessMessage, tri.Comment), builder.Context));
         }
       }
       // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
@@ -375,7 +375,7 @@ public partial class BoogieGenerator {
           Bpl.Expr decrCheck = DecreasesCheck(toks, prevGhostLocals, decrsDafny, initDecrsDafny, decrs, oldBfs,
             loopBodyBuilder, " at end of loop iteration", false, false);
           var description = new
-            PODesc.Terminates(s.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
+            Terminates(s.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
           loopBodyBuilder.Add(Assert(s.Tok, decrCheck, description, builder.Context));
         }
       }

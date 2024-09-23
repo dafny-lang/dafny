@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
   interface ICanPrint {
     void Render(TextWriter wr, Printer printer, int indent);
   }
-  
+
   public partial class Printer {
 
     /// <summary>
@@ -36,14 +36,14 @@ namespace Microsoft.Dafny {
       if (stmt.IsGhost && printMode == PrintModes.NoGhostOrIncludes) {
         return;
       }
-      
+
       for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
         if (label.Data.Name != null) {
           wr.WriteLine("label {0}:", label.Data.Name);
           Indent(indent);
         }
       }
-      
+
       if (stmt is ICanPrint canPrint) {
         canPrint.Render(wr, this, indent);
         return;
@@ -425,8 +425,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintConcreteUpdateStatement(Statement stmt, int indent, bool includeSemicolon = true)
-    {
+    public void PrintConcreteUpdateStatement(Statement stmt, int indent, bool includeSemicolon = true) {
       var s = (ConcreteAssignStatement)stmt;
       string sep = "";
       foreach (var lhs in s.Lhss) {
@@ -443,8 +442,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintBlockStmt(BlockStmt stmt, int indent)
-    {
+    public void PrintBlockStmt(BlockStmt stmt, int indent) {
       wr.WriteLine("{");
       int ind = indent + IndentAmount;
       foreach (Statement s in stmt.Body) {
@@ -456,8 +454,7 @@ namespace Microsoft.Dafny {
       wr.Write("}");
     }
 
-    public void PrintPredicateStmt(Statement stmt, bool includeSemicolon = true)
-    {
+    public void PrintPredicateStmt(Statement stmt, bool includeSemicolon = true) {
       if (printMode == PrintModes.NoGhostOrIncludes) {
         return;
       }

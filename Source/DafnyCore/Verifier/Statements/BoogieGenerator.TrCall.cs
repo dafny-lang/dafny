@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using DafnyCore.Verifier;
-using DafnyCore.Verifier.Statements;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
@@ -15,7 +14,7 @@ namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
-  void TrCallStmt(CallStmt s, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Bpl.IdentifierExpr actualReceiver) {
+  void TrCallStmt(CallStmt s, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, Bpl.IdentifierExpr actualReceiver) {
     Contract.Requires(s != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -99,7 +98,7 @@ public partial class BoogieGenerator {
 
   void ProcessCallStmt(CallStmt cs, Dictionary<TypeParameter, Type> tySubst, Bpl.Expr bReceiver,
     List<Bpl.IdentifierExpr> Lhss, List<Type> LhsTypes,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
 
     Contract.Requires(cs != null);
     Contract.Requires(Lhss != null);
@@ -238,7 +237,7 @@ public partial class BoogieGenerator {
       if (!method.IsStatic && !(method is Constructor)) {
         Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
         if (wh != null) {
-          var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
+          var desc = new IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
           builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
         }
       }
@@ -246,7 +245,7 @@ public partial class BoogieGenerator {
         Expression ee = Args[i];
         Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
         if (wh != null) {
-          var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked", ee);
+          var desc = new IsAllocated("argument", "in the state in which the method is invoked", ee);
           builder.Add(Assert(ee.tok, wh, desc, builder.Context));
         }
       }
@@ -254,7 +253,7 @@ public partial class BoogieGenerator {
       if (!method.IsStatic) {
         Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
         if (wh != null) {
-          var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
+          var desc = new IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
           builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
         }
       }
@@ -266,9 +265,9 @@ public partial class BoogieGenerator {
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
             var pIdx = Args.Count == 1 ? "" : " at index " + i;
-            var desc = new PODesc.IsAllocated(
+            var desc = new IsAllocated(
               $"argument{pIdx} for parameter '{formal.Name}'",
-              "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+              "in the two-state lemma's previous state" + IsAllocated.HelperFormal(formal),
               ee,
               atLabel
             );
@@ -285,7 +284,7 @@ public partial class BoogieGenerator {
     if (etran.readsFrame != null) {
       // substitute actual args for parameters in description expression frames...
       var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
-      var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
+      var desc = new ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
 
       // ... but that substitution isn't needed for frames passed to CheckFrameSubset
       var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
@@ -298,7 +297,7 @@ public partial class BoogieGenerator {
     // Check that the modifies clause of a subcall is a subset of the current modifies frame,
     // but only if we're in a context that defines a modifies frame.
     if (codeContext is IMethodCodeContext methodCodeContext) {
-      var desc = new PODesc.ModifyFrameSubset(
+      var desc = new ModifyFrameSubset(
         "call",
         frameExpressions,
         methodCodeContext.Modifies.Expressions
@@ -314,7 +313,7 @@ public partial class BoogieGenerator {
     if (isRecursiveCall) {
       Contract.Assert(codeContext != null);
       if (codeContext is DatatypeDecl) {
-        builder.Add(Assert(tok, Bpl.Expr.False, new PODesc.IsNonRecursive(), builder.Context));
+        builder.Add(Assert(tok, Bpl.Expr.False, new IsNonRecursive(), builder.Context));
       } else {
         List<Expression> contextDecreases = codeContext.Decreases.Expressions;
         List<Expression> calleeDecreases = callee.Decreases.Expressions;

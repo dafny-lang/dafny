@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --standard-libraries
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --standard-libraries --bprint=/Users/rwillems/SourceCode/dafny/CallBy.bpl
 
 import opened Std.Wrappers
 

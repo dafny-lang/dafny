@@ -72,8 +72,8 @@ namespace Microsoft.Dafny {
       var etran = new ExpressionTranslator(this, predef, iter.tok, iter);
 
       var inParams = new List<Bpl.Variable>();
-      List<Variable> outParams;
-      GenerateMethodParametersChoose(iter.tok, iter, kind, true, true, false, etran, inParams, out outParams);
+      GenerateMethodParametersChoose(iter.tok, iter, kind,
+        true, true, false, etran, inParams, out var outParams);
 
       var req = new List<Bpl.Requires>();
       var mod = new List<Bpl.IdentifierExpr>();
@@ -122,7 +122,8 @@ namespace Microsoft.Dafny {
       }
 
       var name = MethodName(iter, kind);
-      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(), inParams, outParams, false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
+      var proc = new Bpl.Procedure(iter.tok, name, new List<Bpl.TypeVariable>(),
+        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(iter.Attributes, null));
       AddVerboseNameAttribute(proc, iter.FullDafnyName, kind);
 
       currentModule = null;
@@ -150,7 +151,7 @@ namespace Microsoft.Dafny {
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
-      var localVariables = new List<Variable>();
+      var localVariables = new Variables();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
       // check well-formedness of any default-value expressions (before assuming preconditions)
@@ -284,7 +285,7 @@ namespace Microsoft.Dafny {
       // Don't do reads checks since iterator reads clauses mean something else.
       // See comment inside GenerateIteratorImplPrelude().
       etran = etran.WithReadsFrame(null);
-      var localVariables = new List<Variable>();
+      var localVariables = new Variables();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables, etran);
 
       // add locals for the yield-history variables and the extra variables
@@ -349,7 +350,7 @@ namespace Microsoft.Dafny {
     }
 
     void GenerateIteratorImplPrelude(IteratorDecl iter, List<Variable> inParams, List<Variable> outParams,
-      BoogieStmtListBuilder builder, List<Variable> localVariables, ExpressionTranslator etran) {
+      BoogieStmtListBuilder builder, Variables localVariables, ExpressionTranslator etran) {
       Contract.Requires(iter != null);
       Contract.Requires(inParams != null);
       Contract.Requires(outParams != null);

@@ -33,11 +33,11 @@ public class CodeContextWrapper : ICodeContext {
     this.isGhostContext = isGhostContext;
   }
 
-  public bool ContainsHide { 
+  public bool ContainsHide {
     get => inner.ContainsHide;
     set => inner.ContainsHide = value;
   }
-  
+
   public bool IsGhost => isGhostContext;
   public List<TypeParameter> TypeArgs => inner.TypeArgs;
   public List<Formal> Ins => inner.Ins;

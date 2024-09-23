@@ -477,11 +477,11 @@ class GhostInterestVisitor {
 
     } else if (stmt is BlockByProofStmt blockByProofStmt) {
       // TODO move to the BlockByProofStmt class
-      
+
       blockByProofStmt.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
       Visit(blockByProofStmt.Body, mustBeErasable, proofContext);
       blockByProofStmt.IsGhost = blockByProofStmt.IsGhost || blockByProofStmt.Body.IsGhost;
-      
+
       Visit(blockByProofStmt.Proof, true, "a by body");
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();

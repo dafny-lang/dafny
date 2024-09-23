@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    Bpl.Expr /*?*/ AddDefiniteAssignmentTracker(IVariable p, List<Bpl.Variable> localVariables, bool isOutParam = false,
+    Bpl.Expr /*?*/ AddDefiniteAssignmentTracker(IVariable p, Variables localVariables, bool isOutParam = false,
       bool forceGhostVar = false) {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);
@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
     }
 
     void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass,
-      List<Variable> localVariables, bool forceGhostVar) {
+      Variables localVariables, bool forceGhostVar) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr ie;
       if (DefiniteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
         builder.Add(Assert(GetToken(expr), ie,
-          new PODesc.DefiniteAssignment("variable", expr.Var.Name, "here"), builder.Context));
+          new DefiniteAssignment("variable", expr.Var.Name, "here"), builder.Context));
       }
     }
 
@@ -168,7 +168,7 @@ namespace Microsoft.Dafny {
       var nm = SurrogateName(field);
       Bpl.IdentifierExpr ie;
       if (DefiniteAssignmentTrackers.TryGetValue(nm, out ie)) {
-        var desc = new PODesc.DefiniteAssignment(
+        var desc = new DefiniteAssignment(
           "field", field.Name, atNew ? "at this point in the constructor body" : "here");
         builder.Add(Assert(tok, ie, desc, builder.Context));
       }
@@ -211,7 +211,7 @@ namespace Microsoft.Dafny {
 
       Bpl.IdentifierExpr ie;
       if (DefiniteAssignmentTrackers.TryGetValue(p.UniqueName, out ie)) {
-        var desc = new PODesc.DefiniteAssignment("out-parameter", p.Name, "at this return point");
+        var desc = new DefiniteAssignment("out-parameter", p.Name, "at this return point");
         builder.Add(Assert(tok, ie, desc, builder.Context));
       }
     }

@@ -10,7 +10,7 @@ namespace Microsoft.Dafny;
 public partial class BoogieGenerator {
 
 
-  private void TrForallStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+  private void TrForallStmt(BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     ForallStmt forallStmt) {
     this.fuelContext = FuelSetting.ExpandFuelContext(forallStmt.Attributes, forallStmt.Tok, this.fuelContext, this.reporter);
 
@@ -72,7 +72,7 @@ public partial class BoogieGenerator {
 
   void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
     Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
-    BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
+    BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(bounds != null);
@@ -210,7 +210,7 @@ public partial class BoogieGenerator {
   }
 
   void TrForallAssign(ForallStmt s, SingleAssignStmt s0,
-    BoogieStmtListBuilder definedness, BoogieStmtListBuilder updater, List<Variable> locals, ExpressionTranslator etran) {
+    BoogieStmtListBuilder definedness, BoogieStmtListBuilder updater, Variables locals, ExpressionTranslator etran) {
     // The statement:
     //   forall (x,y | Range(x,y)) {
     //     (a)   E(x,y) . f :=  G(x,y);
@@ -294,7 +294,7 @@ public partial class BoogieGenerator {
       MultiSelectExpr e => (e.Array, null),
       _ => throw new cce.UnreachableException()
     };
-    var desc = new PODesc.Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
+    var desc = new Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
     definedness.Add(Assert(lhs.tok, Bpl.Expr.SelectTok(lhs.tok, etran.ModifiesFrame(lhs.tok), obj, F),
       desc, definedness.Context));
     if (s0.Rhs is ExprRhs) {
@@ -349,7 +349,7 @@ public partial class BoogieGenerator {
         BplOr(
           BplOr(Bpl.Expr.Neq(obj, objPrime), Bpl.Expr.Neq(F, FPrime)),
           Bpl.Expr.Eq(rhs, rhsPrime)),
-        new PODesc.ForallLHSUnique(s.BoundVars, s.Range, lhsComponents, Rhs), definedness.Context));
+        new ForallLHSUnique(s.BoundVars, s.Range, lhsComponents, Rhs), definedness.Context));
     }
 
     definedness.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
@@ -457,7 +457,7 @@ public partial class BoogieGenerator {
   }
 
   void TrForallProof(ForallStmt forallStmt, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter,
-    List<Variable> locals, ExpressionTranslator etran) {
+    Variables locals, ExpressionTranslator etran) {
     // Translate:
     //   forall (x,y | Range(x,y))
     //     ensures Post(x,y);
@@ -511,7 +511,7 @@ public partial class BoogieGenerator {
       foreach (var ens in forallStmt.Ens) {
         foreach (var split in TrSplitExpr(definedness.Context, ens.E, etran, true, out var splitHappened)) {
           if (split.IsChecked) {
-            definedness.Add(Assert(split.Tok, split.E, new PODesc.ForallPostcondition(ens.E), definedness.Context));
+            definedness.Add(Assert(split.Tok, split.E, new ForallPostcondition(ens.E), definedness.Context));
           }
         }
       }
