@@ -376,7 +376,7 @@ public partial class BoogieGenerator {
     }
 
     builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
-    var post = Call(tok, 
+    var post = Call(tok,
       MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
     proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
     builder.Add(post);

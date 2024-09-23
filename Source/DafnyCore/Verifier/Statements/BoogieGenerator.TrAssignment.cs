@@ -8,7 +8,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
-    
+
 
   /// <summary>
   /// "lhs" is expected to be a resolved form of an expression, i.e., not a concrete-syntax expression.
@@ -34,7 +34,7 @@ public partial class BoogieGenerator {
     ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran, stmt);
     builder.AddCaptureState(stmt);
   }
-    
+
   void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,
     List<Expression> lhss, List<AssignmentRhs> rhss,
     BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Statement stmt) {

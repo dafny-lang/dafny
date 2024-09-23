@@ -492,8 +492,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintConcreteUpdateStatement(ConcreteAssignStatement stmt, int indent)
-    {
+    public void PrintConcreteUpdateStatement(ConcreteAssignStatement stmt, int indent) {
       string sep = "";
       foreach (var lhs in stmt.Lhss) {
         wr.Write(sep);
@@ -507,8 +506,7 @@ namespace Microsoft.Dafny {
       PrintBy(stmt, indent);
     }
 
-    public void PrintBlockStmt(BlockStmt stmt, int indent)
-    {
+    public void PrintBlockStmt(BlockStmt stmt, int indent) {
       wr.WriteLine("{");
       int ind = indent + IndentAmount;
       foreach (Statement s in stmt.Body) {
@@ -520,8 +518,7 @@ namespace Microsoft.Dafny {
       wr.Write("}");
     }
 
-    public void PrintPredicateStmt(Statement stmt, bool includeSemicolon = true)
-    {
+    public void PrintPredicateStmt(Statement stmt, bool includeSemicolon = true) {
       if (printMode == PrintModes.NoGhostOrIncludes) {
         return;
       }

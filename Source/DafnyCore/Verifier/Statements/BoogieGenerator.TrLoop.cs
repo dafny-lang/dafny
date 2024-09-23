@@ -10,10 +10,9 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
-    
+
   private void TrAlternativeLoopStmt(AlternativeLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals,
-    ExpressionTranslator etran)
-  {
+    ExpressionTranslator etran) {
     AddComment(builder, stmt, "alternative loop statement");
     var tru = Expression.CreateBoolLiteral(stmt.Tok, true);
     TrLoop(stmt, tru,
@@ -30,7 +29,7 @@ public partial class BoogieGenerator {
       },
       builder, locals, etran);
   }
-    
+
   private void TrForLoop(ForLoopStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
@@ -147,7 +146,7 @@ public partial class BoogieGenerator {
 
     TrLoop(stmt, guard, bodyTr, builder, locals, etran, freeInvariant, stmt.Decreases.Expressions.Count != 0);
   }
-    
+
   private void TrWhileStmt(WhileStmt stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(builder != null);
@@ -169,7 +168,7 @@ public partial class BoogieGenerator {
     TrLoop(stmt, stmt.Guard, bodyTr, builder, locals, etran);
     this.fuelContext = FuelSetting.PopFuelContext();
   }
-    
+
   void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
     BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
     Bpl.Expr freeInvariant = null, bool includeTerminationCheck = true) {

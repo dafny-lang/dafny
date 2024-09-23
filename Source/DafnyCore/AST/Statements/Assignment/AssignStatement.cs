@@ -64,7 +64,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
     CanMutateKnownState = false;
     Proof = proof;
   }
-  
+
   public AssignStatement(RangeToken rangeToken, List<Expression> lhss, List<AssignmentRhs> rhss, bool mutate, BlockStmt proof = null)
     : base(rangeToken, lhss) {
     Contract.Requires(cce.NonNullElements(lhss));

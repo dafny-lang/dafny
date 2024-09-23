@@ -8,7 +8,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
-    
+
 
   private void TrForallStmt(BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
     ForallStmt forallStmt) {
@@ -68,7 +68,7 @@ public partial class BoogieGenerator {
     CurrentIdGenerator.Pop();
     this.fuelContext = FuelSetting.PopFuelContext();
   }
-    
+
 
   void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
     Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
@@ -208,7 +208,7 @@ public partial class BoogieGenerator {
       exporter.Add(TrAssumeCmd(tok, qq));
     }
   }
-    
+
   void TrForallAssign(ForallStmt s, SingleAssignStmt s0,
     BoogieStmtListBuilder definedness, BoogieStmtListBuilder updater, List<Variable> locals, ExpressionTranslator etran) {
     // The statement:
@@ -455,7 +455,7 @@ public partial class BoogieGenerator {
       yield return ss;
     }
   }
-    
+
   void TrForallProof(ForallStmt forallStmt, BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter,
     List<Variable> locals, ExpressionTranslator etran) {
     // Translate:
