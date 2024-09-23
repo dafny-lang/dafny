@@ -21,18 +21,11 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
 
   public override void GenResolve(INewOrOldResolver resolver, ResolutionContext resolutionContext) {
     resolver.ResolveStatement(Body, resolutionContext);
-    ResolveByProof(resolver, Proof, resolutionContext with {
-      CodeContext = new CodeContextWrapper(resolutionContext.CodeContext, true)
-    });
+    ResolveByProof(resolver, Proof, resolutionContext);
     base.GenResolve(resolver, resolutionContext);
   }
 
   // CheckLocalityUpdates
-
-  // GhostInterestVisitor
-  // if (s.Proof != null) {
-  //   Visit(s.Proof, true, "a call-by body");
-  // }
 
   internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
     if (proof == null) {
