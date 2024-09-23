@@ -544,7 +544,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
-        ResolveDotSuffix(e, true, null, resolutionContext, false);
+        ResolveDotSuffix(e, false, true, null, resolutionContext, false);
         if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
           reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a variable", e.SuffixName);
           e.ResetTypeAssignment();  // the rest of type checking assumes actual types
@@ -3500,50 +3500,7 @@ namespace Microsoft.Dafny {
         s.Args.ForEach(e => ResolveExpression(e, resolutionContext));
 
       } else if (stmt is HideRevealStmt hideRevealStmt) {
-        foreach (var expr in hideRevealStmt.Exprs) {
-          var name = HideRevealStmt.SingleName(expr);
-          var labeledAssert = name == null ? null : DominatingStatementLabels.Find(name) as AssertLabel;
-          if (labeledAssert != null) {
-            hideRevealStmt.LabeledAsserts.Add(labeledAssert);
-          } else {
-            var revealResolutionContext = resolutionContext with { InReveal = true };
-            if (expr is ApplySuffix) {
-              var e = (ApplySuffix)expr;
-              var methodCallInfo = ResolveApplySuffix(e, revealResolutionContext, true);
-              if (methodCallInfo == null) {
-                // error has already been reported
-              } else if (methodCallInfo.Callee.Member is TwoStateLemma && !revealResolutionContext.IsTwoState) {
-                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "a two-state function can only be revealed in a two-state context");
-              } else if (methodCallInfo.Callee.AtLabel != null) {
-                Contract.Assert(methodCallInfo.Callee.Member is TwoStateLemma);
-                reporter.Error(MessageSource.Resolver, methodCallInfo.Tok, "to reveal a two-state function, do not list any parameters or @-labels");
-              } else {
-                var call = new CallStmt(hideRevealStmt.RangeToken, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok);
-                hideRevealStmt.ResolvedStatements.Add(call);
-              }
-            } else if (expr is NameSegment or ExprDotName) {
-              if (expr is NameSegment) {
-                ResolveNameSegment((NameSegment)expr, true, null, revealResolutionContext, true);
-              } else {
-                ResolveDotSuffix((ExprDotName)expr, true, null, revealResolutionContext, true);
-              }
-              MemberSelectExpr callee = (MemberSelectExpr)((ConcreteSyntaxExpression)expr).ResolvedExpression;
-              if (callee == null) {
-              } else if (callee.Member is Lemma or TwoStateLemma && Attributes.Contains(callee.Member.Attributes, "axiom")) {
-                //The revealed member is a function
-                reporter.Error(MessageSource.Resolver, callee.tok, "to reveal a function ({0}), append parentheses", callee.Member.ToString().Substring(7));
-              } else {
-                var call = new CallStmt(hideRevealStmt.RangeToken, new List<Expression>(), callee, new List<ActualBinding>(), expr.tok);
-                hideRevealStmt.ResolvedStatements.Add(call);
-              }
-            } else {
-              ResolveExpression(expr, revealResolutionContext);
-            }
-          }
-        }
-        foreach (var a in hideRevealStmt.ResolvedStatements) {
-          ResolveStatement(a, resolutionContext);
-        }
+        stmt.GenResolve(this, resolutionContext);
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         if (s.TargetLabel != null) {
@@ -4448,7 +4405,7 @@ namespace Microsoft.Dafny {
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
               var lhs = new ImplicitThisExpr_ConstructorCall(initCallTok) { Type = rr.EType };
               var callLhs = new ExprDotName(((UserDefinedType)rr.EType).tok, lhs, initCallName, ret == null ? null : ret.LastComponent.OptTypeArguments);
-              ResolveDotSuffix(callLhs, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+              ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
@@ -5604,7 +5561,7 @@ namespace Microsoft.Dafny {
     /// <param name="resolutionContext"></param>
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a Resolver_MethodCall.</param>
-    Expression ResolveDotSuffix(ExprDotName expr, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall) {
+    public Expression ResolveDotSuffix(ExprDotName expr, bool allowStaticReferenceToInstance, bool isLastNameSegment, List<ActualBinding> args, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
@@ -5617,7 +5574,7 @@ namespace Microsoft.Dafny {
       if (expr.Lhs is NameSegment) {
         ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false, true, out shadowedImport);
       } else if (expr.Lhs is ExprDotName) {
-        ResolveDotSuffix((ExprDotName)expr.Lhs, false, null, nonRevealOpts, false);
+        ResolveDotSuffix((ExprDotName)expr.Lhs, false, false, null, nonRevealOpts, false);
       } else {
         ResolveExpression(expr.Lhs, nonRevealOpts);
       }
@@ -5726,7 +5683,7 @@ namespace Microsoft.Dafny {
             if (!VisibleInScope(member)) {
               reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
-            if (!member.IsStatic) {
+            if (!member.IsStatic && !allowStaticReferenceToInstance) {
               reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
@@ -5890,7 +5847,7 @@ namespace Microsoft.Dafny {
         r = ResolveNameSegment((NameSegment)e.Lhs, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
         // note, if r is non-null, then e.Args have been resolved and r is a resolved expression that incorporates e.Args
       } else if (e.Lhs is ExprDotName) {
-        r = ResolveDotSuffix((ExprDotName)e.Lhs, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
+        r = ResolveDotSuffix((ExprDotName)e.Lhs, false, true, e.Bindings.ArgumentBindings, resolutionContext, allowMethodCall);
         // note, if r is non-null, then e.Args have been resolved and r is a resolved expression that incorporates e.Args
       } else {
         ResolveExpression(e.Lhs, resolutionContext);

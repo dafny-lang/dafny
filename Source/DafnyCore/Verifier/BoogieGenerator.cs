@@ -1378,9 +1378,9 @@ namespace Microsoft.Dafny {
     bool FunctionBodyIsAvailable(Function f, ModuleDefinition context, VisibilityScope scope) {
       Contract.Requires(f != null);
       Contract.Requires(context != null);
-      return f.Body != null && !IsOpaque(f) && f.IsRevealedInScope(scope);
+      return f.Body != null && !IsOpaque(f, options) && f.IsRevealedInScope(scope);
     }
-    bool IsOpaque(MemberDecl f) {
+    public static bool IsOpaque(MemberDecl f, DafnyOptions options) {
       Contract.Requires(f != null);
       if (f is Function f1) {
         return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque || f1.IsMadeImplicitlyOpaque(options);
