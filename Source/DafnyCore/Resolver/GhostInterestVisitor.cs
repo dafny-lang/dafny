@@ -74,478 +74,454 @@ class GhostInterestVisitor {
     Contract.Assume(!codeContext.IsGhost || mustBeErasable); // (this is really a precondition) CodeContext.IsGhost ==> mustBeErasable
     Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
-    switch (stmt)
-    {
+    switch (stmt) {
       case AssertStmt or AssumeStmt:
         stmt.IsGhost = true;
         break;
-      case ExpectStmt expectStmt:
-      {
-        expectStmt.IsGhost = false;
-        if (mustBeErasable) {
-          Error(ErrorId.r_expect_statement_is_not_ghost, expectStmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
-        } else {
-          ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Expr, codeContext);
-          // If not provided, the message is populated with a default value in resolution
-          Contract.Assert(expectStmt.Message != null);
-          ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Message, codeContext);
-        }
+      case ExpectStmt expectStmt: {
+          expectStmt.IsGhost = false;
+          if (mustBeErasable) {
+            Error(ErrorId.r_expect_statement_is_not_ghost, expectStmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+          } else {
+            ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Expr, codeContext);
+            // If not provided, the message is populated with a default value in resolution
+            Contract.Assert(expectStmt.Message != null);
+            ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Message, codeContext);
+          }
 
-        break;
-      }
-      case PrintStmt printStmt:
-      {
-        var s = printStmt;
-        if (mustBeErasable) {
-          Error(ErrorId.r_print_statement_is_not_ghost, printStmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
-        } else {
-          s.Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+          break;
         }
+      case PrintStmt printStmt: {
+          var s = printStmt;
+          if (mustBeErasable) {
+            Error(ErrorId.r_print_statement_is_not_ghost, printStmt, "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+          } else {
+            s.Args.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+          }
 
-        break;
-      }
+          break;
+        }
       case HideRevealStmt hideRevealStmt:
         hideRevealStmt.ResolvedStatements.ForEach(ss => Visit(ss, true, $"a {hideRevealStmt.Kind} statement"));
         hideRevealStmt.IsGhost = hideRevealStmt.ResolvedStatements.All(ss => ss.IsGhost);
         break;
-      case BreakStmt breakStmt:
-      {
-        var s = breakStmt;
-        s.IsGhost = mustBeErasable;
-        if (s.IsGhost && !s.TargetStmt.IsGhost) {
-          var targetKind = s.TargetStmt is LoopStmt ? "loop" : "structure";
-          Error(ErrorId.r_ghost_break, breakStmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
-        }
+      case BreakStmt breakStmt: {
+          var s = breakStmt;
+          s.IsGhost = mustBeErasable;
+          if (s.IsGhost && !s.TargetStmt.IsGhost) {
+            var targetKind = s.TargetStmt is LoopStmt ? "loop" : "structure";
+            Error(ErrorId.r_ghost_break, breakStmt, $"ghost-context {s.Kind} statement is not allowed to {s.Kind} out of non-ghost {targetKind}");
+          }
 
-        break;
-      }
-      case ProduceStmt produceStmt:
-      {
-        var s = produceStmt;
-        var kind = produceStmt is YieldStmt ? "yield" : "return";
-        if (mustBeErasable && !codeContext.IsGhost) {
-          Error(ErrorId.r_produce_statement_not_allowed_in_ghost, produceStmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+          break;
         }
-        if (s.HiddenUpdate != null) {
-          Visit(s.HiddenUpdate, mustBeErasable, proofContext);
-        }
+      case ProduceStmt produceStmt: {
+          var s = produceStmt;
+          var kind = produceStmt is YieldStmt ? "yield" : "return";
+          if (mustBeErasable && !codeContext.IsGhost) {
+            Error(ErrorId.r_produce_statement_not_allowed_in_ghost, produceStmt, "{0} statement is not allowed in this context (because it is guarded by a specification-only expression)", kind);
+          }
+          if (s.HiddenUpdate != null) {
+            Visit(s.HiddenUpdate, mustBeErasable, proofContext);
+          }
 
-        break;
-      }
-      case AssignSuchThatStmt thatStmt:
-      {
-        var s = thatStmt;
-        s.IsGhost = mustBeErasable || s.AssumeToken != null || s.Lhss.Any(SingleAssignStmt.LhsIsToGhost);
-        if (mustBeErasable && !codeContext.IsGhost) {
-          foreach (var lhs in s.Lhss) {
-            var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
-            if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
-              Error(ErrorId.r_no_assign_to_var_in_ghost, lhs, "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
+          break;
+        }
+      case AssignSuchThatStmt thatStmt: {
+          var s = thatStmt;
+          s.IsGhost = mustBeErasable || s.AssumeToken != null || s.Lhss.Any(SingleAssignStmt.LhsIsToGhost);
+          if (mustBeErasable && !codeContext.IsGhost) {
+            foreach (var lhs in s.Lhss) {
+              var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+              if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+                Error(ErrorId.r_no_assign_to_var_in_ghost, lhs, "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
+              }
+            }
+          } else if (!mustBeErasable && s.AssumeToken == null && ExpressionTester.UsesSpecFeatures(s.Expr)) {
+            foreach (var lhs in s.Lhss) {
+              var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
+              if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
+                Error(ErrorId.r_no_assign_ghost_to_var, lhs, "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
+              }
             }
           }
-        } else if (!mustBeErasable && s.AssumeToken == null && ExpressionTester.UsesSpecFeatures(s.Expr)) {
-          foreach (var lhs in s.Lhss) {
-            var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
-            if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
-              Error(ErrorId.r_no_assign_ghost_to_var, lhs, "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
+
+          break;
+        }
+      case AssignStatement statement: {
+          var s = statement;
+          s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
+          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+          break;
+        }
+      case AssignOrReturnStmt returnStmt: {
+          var s = returnStmt;
+          s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
+          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+          break;
+        }
+      case VarDeclStmt declStmt: {
+          var s = declStmt;
+          if (mustBeErasable) {
+            foreach (var local in s.Locals) {
+              // a local variable in a specification-only context might as well be ghost
+              local.MakeGhost();
             }
           }
-        }
+          if (s.Assign != null) {
+            Visit(s.Assign, mustBeErasable, proofContext);
+          }
+          s.IsGhost = (s.Assign == null || s.Assign.IsGhost) && s.Locals.All(v => v.IsGhost);
 
-        break;
-      }
-      case AssignStatement statement:
-      {
-        var s = statement;
-        s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
-        s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
-        break;
-      }
-      case AssignOrReturnStmt returnStmt:
-      {
-        var s = returnStmt;
-        s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
-        s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
-        break;
-      }
-      case VarDeclStmt declStmt:
-      {
-        var s = declStmt;
-        if (mustBeErasable) {
+          // Check on "assumption" variables
           foreach (var local in s.Locals) {
-            // a local variable in a specification-only context might as well be ghost
-            local.MakeGhost();
-          }
-        }
-        if (s.Assign != null) {
-          Visit(s.Assign, mustBeErasable, proofContext);
-        }
-        s.IsGhost = (s.Assign == null || s.Assign.IsGhost) && s.Locals.All(v => v.IsGhost);
-
-        // Check on "assumption" variables
-        foreach (var local in s.Locals) {
-          if (Attributes.Contains(local.Attributes, "assumption")) {
-            if (allowAssumptionVariables) {
-              if (!local.Type.IsBoolType) {
-                Error(ErrorId.r_assumption_var_must_be_bool, local.Tok, "assumption variable must be of type 'bool'");
+            if (Attributes.Contains(local.Attributes, "assumption")) {
+              if (allowAssumptionVariables) {
+                if (!local.Type.IsBoolType) {
+                  Error(ErrorId.r_assumption_var_must_be_bool, local.Tok, "assumption variable must be of type 'bool'");
+                }
+                if (!local.IsGhost) {
+                  Error(ErrorId.r_assumption_var_must_be_ghost, local.Tok, "assumption variable must be ghost");
+                }
+              } else {
+                Error(ErrorId.r_assumption_var_must_be_in_method, local.Tok, "assumption variable can only be declared in a method");
               }
-              if (!local.IsGhost) {
-                Error(ErrorId.r_assumption_var_must_be_ghost, local.Tok, "assumption variable must be ghost");
-              }
-            } else {
-              Error(ErrorId.r_assumption_var_must_be_in_method, local.Tok, "assumption variable can only be declared in a method");
             }
           }
-        }
 
-        break;
-      }
-      case VarDeclPattern pattern:
-      {
-        var s = pattern;
-
-        if (mustBeErasable) {
-          foreach (var local in s.LocalVars) {
-            local.MakeGhost();
-          }
+          break;
         }
-        if (s.HasGhostModifier || mustBeErasable) {
-          s.IsGhost = s.LocalVars.All(v => v.IsGhost);
-        } else {
-          var spec = ExpressionTester.UsesSpecFeatures(s.RHS);
-          if (spec) {
+      case VarDeclPattern pattern: {
+          var s = pattern;
+
+          if (mustBeErasable) {
             foreach (var local in s.LocalVars) {
               local.MakeGhost();
             }
+          }
+          if (s.HasGhostModifier || mustBeErasable) {
+            s.IsGhost = s.LocalVars.All(v => v.IsGhost);
           } else {
-            ExpressionTester.CheckIsCompilable(resolver, reporter, s.RHS, codeContext);
+            var spec = ExpressionTester.UsesSpecFeatures(s.RHS);
+            if (spec) {
+              foreach (var local in s.LocalVars) {
+                local.MakeGhost();
+              }
+            } else {
+              ExpressionTester.CheckIsCompilable(resolver, reporter, s.RHS, codeContext);
+            }
+            s.IsGhost = spec;
           }
-          s.IsGhost = spec;
-        }
 
-        break;
-      }
-      case SingleAssignStmt assignStmt:
-      {
-        var s = assignStmt;
-        CheckAssignStmt(s, mustBeErasable, proofContext);
-        break;
-      }
-      case CallStmt callStmt:
-      {
-        var s = callStmt;
-        var callee = s.Method;
-        Contract.Assert(callee != null);  // follows from the invariant of CallStmt
-        s.IsGhost = callee.IsGhost;
-        if (proofContext != null && !callee.IsLemmaLike) {
-          Error(ErrorId.r_no_calls_in_proof, s, $"in {proofContext}, calls are allowed only to lemmas");
-        } else if (mustBeErasable) {
-          if (!s.IsGhost) {
-            Error(ErrorId.r_only_ghost_calls, s, "only ghost methods can be called from this context");
-          }
-        } else {
-          int j;
-          if (!callee.IsGhost) {
-            // check in-parameters
-            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Receiver, codeContext);
+          break;
+        }
+      case SingleAssignStmt assignStmt: {
+          var s = assignStmt;
+          CheckAssignStmt(s, mustBeErasable, proofContext);
+          break;
+        }
+      case CallStmt callStmt: {
+          var s = callStmt;
+          var callee = s.Method;
+          Contract.Assert(callee != null);  // follows from the invariant of CallStmt
+          s.IsGhost = callee.IsGhost;
+          if (proofContext != null && !callee.IsLemmaLike) {
+            Error(ErrorId.r_no_calls_in_proof, s, $"in {proofContext}, calls are allowed only to lemmas");
+          } else if (mustBeErasable) {
+            if (!s.IsGhost) {
+              Error(ErrorId.r_only_ghost_calls, s, "only ghost methods can be called from this context");
+            }
+          } else {
+            int j;
+            if (!callee.IsGhost) {
+              // check in-parameters
+              ExpressionTester.CheckIsCompilable(resolver, reporter, s.Receiver, codeContext);
+              j = 0;
+              foreach (var e in s.Args) {
+                Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
+                if (!callee.Ins[j].IsGhost) {
+                  ExpressionTester.CheckIsCompilable(resolver, reporter, e, codeContext);
+                }
+                j++;
+              }
+            }
             j = 0;
-            foreach (var e in s.Args) {
-              Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver
-              if (!callee.Ins[j].IsGhost) {
-                ExpressionTester.CheckIsCompilable(resolver, reporter, e, codeContext);
+            foreach (var e in s.Lhs) {
+              var resolvedLhs = e.Resolved;
+              if (callee.IsGhost || callee.Outs[j].IsGhost) {
+                // LHS must denote a ghost
+                if (resolvedLhs is IdentifierExpr) {
+                  var ll = (IdentifierExpr)resolvedLhs;
+                  if (!ll.Var.IsGhost) {
+                    if (ll is AutoGhostIdentifierExpr && ll.Var is LocalVariable) {
+                      // the variable was actually declared in this statement, so auto-declare it as ghost
+                      ((LocalVariable)ll.Var).MakeGhost();
+                    } else {
+                      Error(ErrorId.r_out_parameter_must_be_ghost, s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
+                    }
+                  }
+                } else if (resolvedLhs is MemberSelectExpr) {
+                  var ll = (MemberSelectExpr)resolvedLhs;
+                  if (!ll.Member.IsGhost) {
+                    Error(ErrorId.r_out_parameter_must_be_ghost_field, s, "actual out-parameter{0} is required to be a ghost field", s.Lhs.Count == 1 ? "" : " " + j);
+                  }
+                } else {
+                  // this is an array update, and arrays are always non-ghost
+                  Error(ErrorId.r_out_parameter_must_be_ghost, s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
+                }
               }
               j++;
             }
           }
-          j = 0;
-          foreach (var e in s.Lhs) {
-            var resolvedLhs = e.Resolved;
-            if (callee.IsGhost || callee.Outs[j].IsGhost) {
-              // LHS must denote a ghost
-              if (resolvedLhs is IdentifierExpr) {
-                var ll = (IdentifierExpr)resolvedLhs;
-                if (!ll.Var.IsGhost) {
-                  if (ll is AutoGhostIdentifierExpr && ll.Var is LocalVariable) {
-                    // the variable was actually declared in this statement, so auto-declare it as ghost
-                    ((LocalVariable)ll.Var).MakeGhost();
-                  } else {
-                    Error(ErrorId.r_out_parameter_must_be_ghost, s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
-                  }
-                }
-              } else if (resolvedLhs is MemberSelectExpr) {
-                var ll = (MemberSelectExpr)resolvedLhs;
-                if (!ll.Member.IsGhost) {
-                  Error(ErrorId.r_out_parameter_must_be_ghost_field, s, "actual out-parameter{0} is required to be a ghost field", s.Lhs.Count == 1 ? "" : " " + j);
-                }
-              } else {
-                // this is an array update, and arrays are always non-ghost
-                Error(ErrorId.r_out_parameter_must_be_ghost, s, "actual out-parameter{0} is required to be a ghost variable", s.Lhs.Count == 1 ? "" : " " + j);
+
+          break;
+        }
+      case BlockStmt blockStmt: {
+          var s = blockStmt;
+          s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
+          if (s is DividedBlockStmt ds) {
+            var giv = new GhostInterestVisitor(this.codeContext, this.resolver, this.reporter, true, allowAssumptionVariables);
+            ds.BodyInit.ForEach(ss => giv.Visit(ss, mustBeErasable, proofContext));
+            ds.BodyProper.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
+          } else {
+            s.Body.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
+          }
+          s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
+          break;
+        }
+      case IfStmt ifStmt: {
+          var s = ifStmt;
+          s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+          }
+          Visit(s.Thn, s.IsGhost, proofContext);
+          if (s.Els != null) {
+            Visit(s.Els, s.IsGhost, proofContext);
+          }
+          // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
+          s.IsGhost = s.IsGhost || (s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost));
+          if (!s.IsGhost && s.Guard != null) {
+            // If there were features in the guard that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Guard, codeContext);
+          }
+
+          break;
+        }
+      case AlternativeStmt alternativeStmt: {
+          var s = alternativeStmt;
+          s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
+          }
+          s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
+          s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
+          if (!s.IsGhost) {
+            // If there were features in the guards that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            foreach (var alt in s.Alternatives) {
+              ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
+            }
+          }
+
+          break;
+        }
+      case WhileStmt whileStmt: {
+          var s = whileStmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
+          s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+          }
+          if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+            Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
+          }
+          if (s.IsGhost && s.Mod.Expressions != null) {
+            s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          if (s.Body != null) {
+            Visit(s.Body, s.IsGhost, proofContext);
+            if (s.Body.IsGhost && !s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              s.IsGhost = true;
+            }
+          }
+          if (!s.IsGhost && s.Guard != null) {
+            // If there were features in the guard that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Guard, codeContext);
+          }
+
+          break;
+        }
+      case AlternativeLoopStmt loopStmt: {
+          var s = loopStmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
+          s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
+          if (!mustBeErasable && s.IsGhost) {
+            reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
+          }
+          if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+            Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
+          }
+          if (s.IsGhost && s.Mod.Expressions != null) {
+            s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
+          s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
+          if (!s.IsGhost) {
+            // If there were features in the guards that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            foreach (var alt in s.Alternatives) {
+              ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
+            }
+          }
+
+          break;
+        }
+      case ForLoopStmt loopStmt: {
+          var s = loopStmt;
+          if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
+            Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
+          }
+
+          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
+          if (!mustBeErasable && s.IsGhost) {
+            reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
+          }
+          if (s.IsGhost) {
+            if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
+            } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
+              Error(ErrorId.r_ghost_loop_must_terminate, s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
+            }
+          }
+          if (s.IsGhost && s.Mod.Expressions != null) {
+            s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          if (s.Body != null) {
+            Visit(s.Body, s.IsGhost, proofContext);
+            if (s.Body.IsGhost) {
+              s.IsGhost = true;
+            }
+          }
+          if (!s.IsGhost) {
+            // If there were features in the bounds that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Start, codeContext);
+            if (s.End != null) {
+              ExpressionTester.CheckIsCompilable(resolver, reporter, s.End, codeContext);
+            }
+          }
+
+          break;
+        }
+      case ForallStmt forallStmt: {
+          var s = forallStmt;
+          s.IsGhost = mustBeErasable || s.Kind != ForallStmt.BodyKind.Assign || ExpressionTester.UsesSpecFeatures(s.Range);
+          if (proofContext != null && s.Kind == ForallStmt.BodyKind.Assign) {
+            Error(ErrorId.r_no_aggregate_heap_update_in_proof, s, $"{proofContext} is not allowed to perform an aggregate heap update");
+          } else if (s.Body != null) {
+            Visit(s.Body, s.IsGhost, s.Kind == ForallStmt.BodyKind.Assign ? proofContext : "a forall statement");
+          }
+          s.IsGhost = s.IsGhost || s.Body == null || s.Body.IsGhost;
+
+          if (!s.IsGhost) {
+            // Since we've determined this is a non-ghost forall statement, we now check that the bound variables have compilable bounds.
+            var uncompilableBoundVars = s.UncompilableBoundVars();
+            if (uncompilableBoundVars.Count != 0) {
+              foreach (var bv in uncompilableBoundVars) {
+                Error(ErrorId.r_unknown_bounds_for_forall, s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
               }
             }
-            j++;
-          }
-        }
 
-        break;
-      }
-      case BlockStmt blockStmt:
-      {
-        var s = blockStmt;
-        s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
-        if (s is DividedBlockStmt ds) {
-          var giv = new GhostInterestVisitor(this.codeContext, this.resolver, this.reporter, true, allowAssumptionVariables);
-          ds.BodyInit.ForEach(ss => giv.Visit(ss, mustBeErasable, proofContext));
-          ds.BodyProper.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
-        } else {
-          s.Body.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
-        }
-        s.IsGhost = s.IsGhost || s.Body.All(ss => ss.IsGhost);  // mark the block statement as ghost if all its substatements are ghost
-        break;
-      }
-      case IfStmt ifStmt:
-      {
-        var s = ifStmt;
-        s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
-        if (!mustBeErasable && s.IsGhost) {
-          reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
-        }
-        Visit(s.Thn, s.IsGhost, proofContext);
-        if (s.Els != null) {
-          Visit(s.Els, s.IsGhost, proofContext);
-        }
-        // if both branches were all ghost, then we can mark the enclosing statement as ghost as well
-        s.IsGhost = s.IsGhost || (s.Thn.IsGhost && (s.Els == null || s.Els.IsGhost));
-        if (!s.IsGhost && s.Guard != null) {
-          // If there were features in the guard that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          ExpressionTester.CheckIsCompilable(resolver, reporter, s.Guard, codeContext);
-        }
-
-        break;
-      }
-      case AlternativeStmt alternativeStmt:
-      {
-        var s = alternativeStmt;
-        s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
-        if (!mustBeErasable && s.IsGhost) {
-          reporter.Info(MessageSource.Resolver, s.Tok, "ghost if");
-        }
-        s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
-        s.IsGhost = s.IsGhost || s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost));
-        if (!s.IsGhost) {
-          // If there were features in the guards that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          foreach (var alt in s.Alternatives) {
-            ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
-          }
-        }
-
-        break;
-      }
-      case WhileStmt whileStmt:
-      {
-        var s = whileStmt;
-        if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          Error(ErrorId.r_loop_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
-        }
-
-        s.IsGhost = mustBeErasable || (s.Guard != null && ExpressionTester.UsesSpecFeatures(s.Guard));
-        if (!mustBeErasable && s.IsGhost) {
-          reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
-        }
-        if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-          Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
-        }
-        if (s.IsGhost && s.Mod.Expressions != null) {
-          s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
-        }
-        if (s.Body != null) {
-          Visit(s.Body, s.IsGhost, proofContext);
-          if (s.Body.IsGhost && !s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-            s.IsGhost = true;
-          }
-        }
-        if (!s.IsGhost && s.Guard != null) {
-          // If there were features in the guard that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          ExpressionTester.CheckIsCompilable(resolver, reporter, s.Guard, codeContext);
-        }
-
-        break;
-      }
-      case AlternativeLoopStmt loopStmt:
-      {
-        var s = loopStmt;
-        if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
-        }
-
-        s.IsGhost = mustBeErasable || s.Alternatives.Exists(alt => ExpressionTester.UsesSpecFeatures(alt.Guard));
-        if (!mustBeErasable && s.IsGhost) {
-          reporter.Info(MessageSource.Resolver, s.Tok, "ghost while");
-        }
-        if (s.IsGhost && s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-          Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
-        }
-        if (s.IsGhost && s.Mod.Expressions != null) {
-          s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
-        }
-        s.Alternatives.ForEach(alt => alt.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
-        s.IsGhost = s.IsGhost || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Alternatives.All(alt => alt.Body.All(ss => ss.IsGhost)));
-        if (!s.IsGhost) {
-          // If there were features in the guards that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          foreach (var alt in s.Alternatives) {
-            ExpressionTester.CheckIsCompilable(resolver, reporter, alt.Guard, codeContext);
-          }
-        }
-
-        break;
-      }
-      case ForLoopStmt loopStmt:
-      {
-        var s = loopStmt;
-        if (proofContext != null && s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          Error(ErrorId.r_loop_in_proof_may_not_use_modifies, s.Mod.Expressions[0].tok, $"a loop in {proofContext} is not allowed to use 'modifies' clauses");
-        }
-
-        s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Start) || (s.End != null && ExpressionTester.UsesSpecFeatures(s.End));
-        if (!mustBeErasable && s.IsGhost) {
-          reporter.Info(MessageSource.Resolver, s.Tok, "ghost for-loop");
-        }
-        if (s.IsGhost) {
-          if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
-            Error(ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
-          } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
-            Error(ErrorId.r_ghost_loop_must_terminate, s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
-          }
-        }
-        if (s.IsGhost && s.Mod.Expressions != null) {
-          s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
-        }
-        if (s.Body != null) {
-          Visit(s.Body, s.IsGhost, proofContext);
-          if (s.Body.IsGhost) {
-            s.IsGhost = true;
-          }
-        }
-        if (!s.IsGhost) {
-          // If there were features in the bounds that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          ExpressionTester.CheckIsCompilable(resolver, reporter, s.Start, codeContext);
-          if (s.End != null) {
-            ExpressionTester.CheckIsCompilable(resolver, reporter, s.End, codeContext);
-          }
-        }
-
-        break;
-      }
-      case ForallStmt forallStmt:
-      {
-        var s = forallStmt;
-        s.IsGhost = mustBeErasable || s.Kind != ForallStmt.BodyKind.Assign || ExpressionTester.UsesSpecFeatures(s.Range);
-        if (proofContext != null && s.Kind == ForallStmt.BodyKind.Assign) {
-          Error(ErrorId.r_no_aggregate_heap_update_in_proof, s, $"{proofContext} is not allowed to perform an aggregate heap update");
-        } else if (s.Body != null) {
-          Visit(s.Body, s.IsGhost, s.Kind == ForallStmt.BodyKind.Assign ? proofContext : "a forall statement");
-        }
-        s.IsGhost = s.IsGhost || s.Body == null || s.Body.IsGhost;
-
-        if (!s.IsGhost) {
-          // Since we've determined this is a non-ghost forall statement, we now check that the bound variables have compilable bounds.
-          var uncompilableBoundVars = s.UncompilableBoundVars();
-          if (uncompilableBoundVars.Count != 0) {
-            foreach (var bv in uncompilableBoundVars) {
-              Error(ErrorId.r_unknown_bounds_for_forall, s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
-            }
+            // If there were features in the range that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Range, codeContext);
           }
 
-          // If there were features in the range that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          ExpressionTester.CheckIsCompilable(resolver, reporter, s.Range, codeContext);
+          break;
         }
+      case ModifyStmt modifyStmt: {
+          var s = modifyStmt;
+          if (proofContext != null) {
+            Error(ErrorId.r_modify_forbidden_in_proof, modifyStmt, $"a modify statement is not allowed in {proofContext}");
+          }
 
-        break;
-      }
-      case ModifyStmt modifyStmt:
-      {
-        var s = modifyStmt;
-        if (proofContext != null) {
-          Error(ErrorId.r_modify_forbidden_in_proof, modifyStmt, $"a modify statement is not allowed in {proofContext}");
-        }
+          s.IsGhost = mustBeErasable;
+          if (s.IsGhost) {
+            s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+          }
+          if (s.Body != null) {
+            Visit(s.Body, mustBeErasable, proofContext);
+          }
 
-        s.IsGhost = mustBeErasable;
-        if (s.IsGhost) {
-          s.Mod.Expressions.ForEach(resolver.DisallowNonGhostFieldSpecifiers);
+          break;
         }
-        if (s.Body != null) {
-          Visit(s.Body, mustBeErasable, proofContext);
-        }
+      case CalcStmt calcStmt: {
+          var s = calcStmt;
+          s.IsGhost = true;
+          foreach (var h in s.Hints) {
+            Visit(h, true, "a hint");
+          }
 
-        break;
-      }
-      case CalcStmt calcStmt:
-      {
-        var s = calcStmt;
-        s.IsGhost = true;
-        foreach (var h in s.Hints) {
-          Visit(h, true, "a hint");
+          break;
         }
+      case NestedMatchStmt nestedMatchStmt: {
+          var hasGhostPattern = nestedMatchStmt.Cases.
+            SelectMany(caze => caze.Pat.DescendantsAndSelf)
+            .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
+          nestedMatchStmt.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(nestedMatchStmt.Source) || hasGhostPattern;
 
-        break;
-      }
-      case NestedMatchStmt nestedMatchStmt:
-      {
-        var hasGhostPattern = nestedMatchStmt.Cases.
-          SelectMany(caze => caze.Pat.DescendantsAndSelf)
-          .OfType<IdPattern>().Any(idPattern => idPattern.Ctor != null && idPattern.Ctor.IsGhost);
-        nestedMatchStmt.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(nestedMatchStmt.Source) || hasGhostPattern;
+          foreach (var kase in nestedMatchStmt.Cases) {
+            ExpressionTester.MakeGhostAsNeeded(kase.Pat, nestedMatchStmt.IsGhost);
+          }
 
-        foreach (var kase in nestedMatchStmt.Cases) {
-          ExpressionTester.MakeGhostAsNeeded(kase.Pat, nestedMatchStmt.IsGhost);
-        }
+          if (!mustBeErasable && nestedMatchStmt.IsGhost) {
+            reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
+          }
+          nestedMatchStmt.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
+          nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+          if (!nestedMatchStmt.IsGhost) {
+            // If there were features in the source expression that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, reporter, nestedMatchStmt.Source, codeContext);
+          }
 
-        if (!mustBeErasable && nestedMatchStmt.IsGhost) {
-          reporter.Info(MessageSource.Resolver, nestedMatchStmt.Tok, "ghost match");
+          break;
         }
-        nestedMatchStmt.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, nestedMatchStmt.IsGhost, proofContext)));
-        nestedMatchStmt.IsGhost = nestedMatchStmt.IsGhost || nestedMatchStmt.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
-        if (!nestedMatchStmt.IsGhost) {
-          // If there were features in the source expression that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          ExpressionTester.CheckIsCompilable(resolver, reporter, nestedMatchStmt.Source, codeContext);
-        }
+      case MatchStmt matchStmt: {
+          var s = matchStmt;
+          s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
+          if (!mustBeErasable && s.IsGhost) {
+            reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+          }
+          s.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
+          s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+          if (!s.IsGhost) {
+            // If there were features in the source expression that are treated differently in ghost and non-ghost
+            // contexts, make sure they get treated for non-ghost use.
+            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Source, codeContext);
+          }
 
-        break;
-      }
-      case MatchStmt matchStmt:
-      {
-        var s = matchStmt;
-        s.IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(s.Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(s.Cases) != null;
-        if (!mustBeErasable && s.IsGhost) {
-          reporter.Info(MessageSource.Resolver, s.Tok, "ghost match");
+          break;
         }
-        s.Cases.ForEach(kase => kase.Body.ForEach(ss => Visit(ss, s.IsGhost, proofContext)));
-        s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
-        if (!s.IsGhost) {
-          // If there were features in the source expression that are treated differently in ghost and non-ghost
-          // contexts, make sure they get treated for non-ghost use.
-          ExpressionTester.CheckIsCompilable(resolver, reporter, s.Source, codeContext);
-        }
+      case SkeletonStatement statement: {
+          var s = statement;
+          s.IsGhost = mustBeErasable;
+          if (s.S != null) {
+            Visit(s.S, mustBeErasable, proofContext);
+            s.IsGhost = s.IsGhost || s.S.IsGhost;
+          }
 
-        break;
-      }
-      case SkeletonStatement statement:
-      {
-        var s = statement;
-        s.IsGhost = mustBeErasable;
-        if (s.S != null) {
-          Visit(s.S, mustBeErasable, proofContext);
-          s.IsGhost = s.IsGhost || s.S.IsGhost;
+          break;
         }
-
-        break;
-      }
       case BlockByProofStmt blockByProofStmt:
         // TODO move to the BlockByProofStmt class
 

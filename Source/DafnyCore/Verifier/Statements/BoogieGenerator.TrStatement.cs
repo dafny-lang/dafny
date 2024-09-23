@@ -269,7 +269,6 @@ public partial class BoogieGenerator {
       // The "new;" translates into an allocation of "this"
       AddComment(builder, stmt, "new;");
       fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
-      fields.ForEach(RemoveDefiniteAssignmentTrackerSurrogate);
       var th = new ThisExpr(cl);
       var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
       SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);

@@ -1758,7 +1758,7 @@ namespace Microsoft.Dafny {
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
 
-    public Dictionary<string, Bpl.IdentifierExpr> DefiniteAssignmentTrackers { get; } = new();
+    public Dictionary<Bpl.IToken, Bpl.IdentifierExpr> DefiniteAssignmentTrackers { get; } = new();
 
     Func<IToken, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
     public enum StmtType { NONE, ASSERT, ASSUME };
@@ -2913,8 +2913,6 @@ namespace Microsoft.Dafny {
           }
           outParams.GetOrAdd(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), varType, wh), false));
         }
-        // tear down definite-assignment trackers
-        m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
         if (kind == MethodTranslationKind.Implementation) {
           outParams.GetOrAdd(new Bpl.Formal(tok, new Bpl.TypedIdent(tok, "$_reverifyPost", Bpl.Type.Bool), false));

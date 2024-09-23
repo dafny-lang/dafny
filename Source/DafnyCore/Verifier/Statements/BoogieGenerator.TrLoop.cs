@@ -203,7 +203,7 @@ public partial class BoogieGenerator {
     var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
     var existingLocals = locals.Values.ToList();
     foreach (var local in existingLocals) {
-      if (!DefiniteAssignmentTrackers.TryGetValue(local.Name, out var dat)) {
+      if (!DefiniteAssignmentTrackers.TryGetValue(local.tok, out var dat)) {
         continue;
       }
 

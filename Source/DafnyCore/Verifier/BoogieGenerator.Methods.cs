@@ -806,8 +806,6 @@ namespace Microsoft.Dafny {
         AssumeCanCallForByMethodDecl(m, builder);
       }
       var stmts = builder.Collect(m.Body.RangeToken.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
-      // tear down definite-assignment trackers
-      m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
       return stmts;
     }

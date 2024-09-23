@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      if (DefiniteAssignmentTrackers.TryGetValue(p.UniqueName, out var result)) {
+      if (DefiniteAssignmentTrackers.TryGetValue(p.Tok, out var result)) {
         return result;
       }
 
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny {
 
       tracker = localVariables.GetOrAdd(tracker);
       var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
-      DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
+      DefiniteAssignmentTrackers.Add(p.Tok, ie);
       return ie;
     }
 
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny {
 
       if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
         var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
-        DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
+        DefiniteAssignmentTrackers.Add(p.Tok, ie);
       }
     }
 
@@ -86,32 +86,21 @@ namespace Microsoft.Dafny {
       var nm = SurrogateName(field);
       var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, DefassPrefix + nm, Bpl.Type.Bool)));
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
-      DefiniteAssignmentTrackers.Add(nm, ie);
-    }
-
-    void RemoveDefiniteAssignmentTracker(IVariable p) {
-      Contract.Requires(p != null);
-      DefiniteAssignmentTrackers.Remove(p.UniqueName);
-    }
-
-    void RemoveDefiniteAssignmentTrackerSurrogate(Field field) {
-      Contract.Requires(field != null);
-      DefiniteAssignmentTrackers.Remove(SurrogateName(field));
+      DefiniteAssignmentTrackers.Add(field.tok, ie);
     }
 
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
-      MarkDefiniteAssignmentTracker(expr.tok, expr.Var.UniqueName, builder);
+      MarkDefiniteAssignmentTracker(expr.tok, expr.Var.Tok, builder);
     }
 
-    void MarkDefiniteAssignmentTracker(IToken tok, string name, BoogieStmtListBuilder builder) {
+    void MarkDefiniteAssignmentTracker(IToken tok, Bpl.IToken variableToken, BoogieStmtListBuilder builder) {
       Contract.Requires(tok != null);
-      Contract.Requires(name != null);
       Contract.Requires(builder != null);
 
       Bpl.IdentifierExpr ie;
-      if (DefiniteAssignmentTrackers.TryGetValue(name, out ie)) {
+      if (DefiniteAssignmentTrackers.TryGetValue(variableToken, out ie)) {
         builder.Add(Bpl.Cmd.SimpleAssign(tok, ie, Bpl.Expr.True));
       }
     }
@@ -141,7 +130,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
 
       Bpl.IdentifierExpr ie;
-      if (DefiniteAssignmentTrackers.TryGetValue(expr.Var.UniqueName, out ie)) {
+      if (DefiniteAssignmentTrackers.TryGetValue(expr.Var.Tok, out ie)) {
         builder.Add(Assert(GetToken(expr), ie,
           new DefiniteAssignment("variable", expr.Var.Name, "here"), builder.Context));
       }
@@ -152,7 +141,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     Bpl.IdentifierExpr /*?*/ GetDefiniteAssignmentTracker(IVariable var) {
       Bpl.IdentifierExpr ie;
-      if (DefiniteAssignmentTrackers.TryGetValue(var.UniqueName, out ie)) {
+      if (DefiniteAssignmentTrackers.TryGetValue(var.Tok, out ie)) {
         return ie;
       }
 
@@ -164,9 +153,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(builder != null);
 
-      var nm = SurrogateName(field);
       Bpl.IdentifierExpr ie;
-      if (DefiniteAssignmentTrackers.TryGetValue(nm, out ie)) {
+      if (DefiniteAssignmentTrackers.TryGetValue(field.Tok, out ie)) {
         var desc = new DefiniteAssignment(
           "field", field.Name, atNew ? "at this point in the constructor body" : "here");
         builder.Add(Assert(tok, ie, desc, builder.Context));
@@ -209,7 +197,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
 
       Bpl.IdentifierExpr ie;
-      if (DefiniteAssignmentTrackers.TryGetValue(p.UniqueName, out ie)) {
+      if (DefiniteAssignmentTrackers.TryGetValue(p.Tok, out ie)) {
         var desc = new DefiniteAssignment("out-parameter", p.Name, "at this return point");
         builder.Add(Assert(tok, ie, desc, builder.Context));
       }
