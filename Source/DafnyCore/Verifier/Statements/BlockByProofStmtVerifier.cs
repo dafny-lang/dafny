@@ -68,7 +68,7 @@ public class OrderedDictionary<TKey, TValue> {
     keyOrder.Add(key);
     keyToValue[key] = value;
   }
-  
+
   public TValue GetValueOrDefault(TKey key) {
     return keyToValue.GetValueOrDefault(key);
   }
