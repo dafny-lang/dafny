@@ -1164,6 +1164,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+      return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, false);
+    }
+
     /// <summary>
     /// Look up expr.Name in the following order:
     ///  0. Local variable, parameter, or bound variable.
@@ -1192,7 +1197,7 @@ namespace Microsoft.Dafny {
     /// there is no "this" in scope. This seems like a terrible hack, because it breaks scope invariants about the AST. But, for now, it's here
     /// to mimic what the legacy resolver does.</param>
     public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
-      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true, bool specialOpaqueHackAllowance = false) {
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain, bool specialOpaqueHackAllowance) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
