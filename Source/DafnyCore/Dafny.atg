@@ -2401,7 +2401,7 @@ AssignStatement<out Statement/*!*/ s>
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
          s = new AssignStatement(rangeToken, lhss, rhss, proof);
-       }gity 
+       }
      }
   .)
   .
