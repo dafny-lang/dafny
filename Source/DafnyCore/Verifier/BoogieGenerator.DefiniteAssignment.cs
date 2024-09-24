@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(nm, ie);
     }
-    
+
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);

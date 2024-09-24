@@ -29,6 +29,7 @@ namespace Microsoft.Dafny {
     private DafnyOptions options;
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
+    public const string CallPrefix = "Call";
     private bool filterOnlyMembers;
 
     ErrorReporter reporter;
@@ -2803,7 +2804,7 @@ namespace Microsoft.Dafny {
     private static readonly Dictionary<MethodTranslationKind, string> kindSanitizedPrefix =
       new() {
         { MethodTranslationKind.SpecWellformedness, "CheckWellFormed" },
-        { MethodTranslationKind.Call, "Call" },
+        { MethodTranslationKind.Call, CallPrefix },
         { MethodTranslationKind.CoCall, "CoCall" },
         { MethodTranslationKind.Implementation, "Impl" },
         { MethodTranslationKind.OverrideCheck, "OverrideCheck" },
@@ -2815,7 +2816,7 @@ namespace Microsoft.Dafny {
     }
 
     private static readonly Dictionary<MethodTranslationKind, string> kindDescription =
-      new Dictionary<MethodTranslationKind, string>() {
+      new() {
         {MethodTranslationKind.SpecWellformedness, "well-formedness"},
         {MethodTranslationKind.Call, "call"},
         {MethodTranslationKind.CoCall, "co-call"},

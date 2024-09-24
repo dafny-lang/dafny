@@ -558,8 +558,7 @@ namespace Microsoft.Dafny {
       if (UseOptimizationInZ3) {
         // We ask Z3 to minimize all parameters of type 'nat'.
         foreach (var f in m.Ins) {
-          var udt = f.Type.NormalizeExpandKeepConstraints() as UserDefinedType;
-          if (udt != null && udt.Name == "nat") {
+          if (f.Type.NormalizeExpandKeepConstraints() is UserDefinedType udt && udt.Name == "nat") {
             builder.Add(optimizeExpr(true, new IdentifierExpr(f.tok, f), f.Tok, etran));
           }
         }

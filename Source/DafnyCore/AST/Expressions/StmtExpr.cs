@@ -58,8 +58,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
   }
 
   private Expression GetStatementConclusion(Statement statement) {
-    switch (statement)
-    {
+    switch (statement) {
       // this is one place where we actually investigate what kind of statement .S is
       case PredicateStmt stmt:
         return stmt.Expr;

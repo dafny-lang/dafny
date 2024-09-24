@@ -2003,15 +2003,14 @@ namespace Microsoft.Dafny {
       }
 
       protected override void VisitOneStmt(Statement stmt) {
-        switch (stmt)
-        {
+        switch (stmt) {
           case CalcStmt calc: {
-            foreach (var h in calc.Hints) {
-              resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
-            }
+              foreach (var h in calc.Hints) {
+                resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
+              }
 
-            break;
-          }
+              break;
+            }
           case BlockByProofStmt blockByProofStmt:
             resolver.CheckLocalityUpdates(blockByProofStmt.Proof, new HashSet<LocalVariable>(), "a by block");
             break;
