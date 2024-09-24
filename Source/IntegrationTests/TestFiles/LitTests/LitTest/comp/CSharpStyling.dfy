@@ -1,4 +1,4 @@
-// RUN: %run "%s" --input %S/CSharpStyling2.cs "%t"
+// RUN: %run "%s" --input %S/CSharpStyling2.cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

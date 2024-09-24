@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
 
       tracker = localVariables.GetOrAdd(tracker);
       var ie = new Bpl.IdentifierExpr(p.Tok, tracker);
-      DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
+      DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
       return ie;
     }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
       }
 
       var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
-      DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
+      DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(p.UniqueName, ie);
     }
 
     void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass,
@@ -88,44 +88,9 @@ namespace Microsoft.Dafny {
       var nm = SurrogateName(field);
       var tracker = localVariables.GetOrAdd(new Bpl.LocalVariable(field.tok, new Bpl.TypedIdent(field.tok, DefassPrefix + nm, Bpl.Type.Bool)));
       var ie = new Bpl.IdentifierExpr(field.tok, tracker);
-      DefiniteAssignmentTrackers.Add(nm, ie);
+      DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(nm, ie);
     }
-
-    public void RemoveDefiniteAssignmentTrackers(List<Statement> ss, int prevDefAssTrackerCount) {
-      Contract.Requires(ss != null);
-      foreach (var s in ss) {
-        if (s is VarDeclStmt vdecl) {
-          if (vdecl.Assign is AssignOrReturnStmt ars) {
-            foreach (var sx in ars.ResolvedStatements) {
-              if (sx is VarDeclStmt vdecl2) {
-                vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-              }
-            }
-          }
-
-          vdecl.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-        } else if (s is AssignOrReturnStmt ars) {
-          foreach (var sx in ars.ResolvedStatements) {
-            if (sx is VarDeclStmt vdecl2) {
-              vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
-            }
-          }
-        }
-      }
-
-      Contract.Assert(prevDefAssTrackerCount == DefiniteAssignmentTrackers.Count);
-    }
-
-    void RemoveDefiniteAssignmentTracker(IVariable p) {
-      Contract.Requires(p != null);
-      DefiniteAssignmentTrackers.Remove(p.UniqueName);
-    }
-
-    void RemoveDefiniteAssignmentTrackerSurrogate(Field field) {
-      Contract.Requires(field != null);
-      DefiniteAssignmentTrackers.Remove(SurrogateName(field));
-    }
-
+    
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);

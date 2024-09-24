@@ -250,7 +250,7 @@ public partial class BoogieGenerator {
     } else if (stmt is DividedBlockStmt) {
       var s = (DividedBlockStmt)stmt;
       AddComment(builder, stmt, "divided block before new;");
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
+      var previousTrackers = DefiniteAssignmentTrackers;
       var tok = s.SeparatorTok ?? s.Tok;
       // a DividedBlockStmt occurs only inside a Constructor body of a class
       var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
@@ -259,6 +259,7 @@ public partial class BoogieGenerator {
       fields.RemoveAll(f => f == null);
       var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
       locals.AddRange(localSurrogates);
+      var beforeTrackers = DefiniteAssignmentTrackers;
       fields.ForEach(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
 
       Contract.Assert(!inBodyInitContext);
@@ -270,7 +271,7 @@ public partial class BoogieGenerator {
       // The "new;" translates into an allocation of "this"
       AddComment(builder, stmt, "new;");
       fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.RangeToken.EndToken, f, true, builder));
-      fields.ForEach(RemoveDefiniteAssignmentTrackerSurrogate);
+      DefiniteAssignmentTrackers = beforeTrackers;
       var th = new ThisExpr(cl);
       var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
       SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
@@ -285,16 +286,16 @@ public partial class BoogieGenerator {
 
       AddComment(builder, stmt, "divided block after new;");
       TrStmtList(s.BodyProper, builder, locals, etran);
-      RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
+      DefiniteAssignmentTrackers = previousTrackers;
 
     } else if (stmt is OpaqueBlock opaqueBlock) {
       OpaqueBlockVerifier.EmitBoogie(this, opaqueBlock, builder, locals, etran, (IMethodCodeContext)codeContext);
     } else if (stmt is BlockByProofStmt blockByProof) {
       BlockByProofStmtVerifier.EmitBoogie(this, blockByProof, builder, locals, etran, codeContext);
     } else if (stmt is BlockStmt blockStmt) {
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
+      var previousTrackers = DefiniteAssignmentTrackers;
       TrStmtList(blockStmt.Body, builder, locals, etran, blockStmt.RangeToken);
-      RemoveDefiniteAssignmentTrackers(blockStmt.Body, prevDefiniteAssignmentTrackerCount);
+      DefiniteAssignmentTrackers = previousTrackers;
     } else if (stmt is IfStmt ifStmt) {
       TrIfStmt(ifStmt, builder, locals, etran);
 
@@ -673,9 +674,9 @@ public partial class BoogieGenerator {
       }
 
       // translate the body into b
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
+      var prevDefiniteAssignmentTrackers = DefiniteAssignmentTrackers;
       TrStmtList(mc.Body, b, locals, etran);
-      RemoveDefiniteAssignmentTrackers(mc.Body, prevDefiniteAssignmentTrackerCount);
+      DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
       Bpl.Expr guard = Bpl.Expr.Eq(source, r);
       ifCmd = new Bpl.IfCmd(mc.tok, guard, b.Collect(mc.tok), ifCmd, els);
@@ -835,9 +836,9 @@ public partial class BoogieGenerator {
       } else {
         b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.tok, alternative.Guard, "alternative guard"));
       }
-      var prevDefiniteAssignmentTrackerCount = DefiniteAssignmentTrackers.Count;
+      var prevDefiniteAssignmentTrackers = DefiniteAssignmentTrackers;
       TrStmtList(alternative.Body, b, locals, etran, alternative.RangeToken);
-      RemoveDefiniteAssignmentTrackers(alternative.Body, prevDefiniteAssignmentTrackerCount);
+      DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
       Bpl.StmtList thn = b.Collect(alternative.Tok);
       elsIf = new Bpl.IfCmd(alternative.Tok, null, thn, elsIf, els);
       els = null;

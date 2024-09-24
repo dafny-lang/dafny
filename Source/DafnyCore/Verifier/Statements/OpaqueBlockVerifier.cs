@@ -14,9 +14,9 @@ public static class OpaqueBlockVerifier {
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
     var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, hasModifiesClause, blockBuilder);
-    var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
+    var prevDefiniteAssignmentTrackers = generator.DefiniteAssignmentTrackers;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
-    generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
+    generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
     var assignedVariables = block.DescendantsAndSelf.
       SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)

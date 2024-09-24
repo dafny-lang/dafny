@@ -798,7 +798,8 @@ namespace Microsoft.Dafny {
       // $_reverifyPost := false;
       builder.Add(Boogie.Cmd.SimpleAssign(m.tok, new Boogie.IdentifierExpr(m.tok, "$_reverifyPost", Boogie.Type.Bool), Boogie.Expr.False));
       // register output parameters with definite-assignment trackers
-      Contract.Assert(DefiniteAssignmentTrackers.Count == 0);
+
+      var beforeOutTrackers = DefiniteAssignmentTrackers;
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
       // translate the body
       TrStmt(m.Body, builder, localVariables, etran);
@@ -807,10 +808,7 @@ namespace Microsoft.Dafny {
         AssumeCanCallForByMethodDecl(m, builder);
       }
       var stmts = builder.Collect(m.Body.RangeToken.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
-      // tear down definite-assignment trackers
-      m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
-
-      Contract.Assert(DefiniteAssignmentTrackers.Count == 0);
+      DefiniteAssignmentTrackers = beforeOutTrackers;
       return stmts;
     }
 
