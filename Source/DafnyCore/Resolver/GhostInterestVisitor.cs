@@ -529,7 +529,7 @@ class GhostInterestVisitor {
         Visit(blockByProofStmt.Body, mustBeErasable, proofContext);
         blockByProofStmt.IsGhost = blockByProofStmt.IsGhost || blockByProofStmt.Body.IsGhost;
 
-        Visit(blockByProofStmt.Proof, true, "a by body");
+        Visit(blockByProofStmt.Proof, true, "a by block");
         break;
       default:
         Contract.Assert(false); throw new cce.UnreachableException();

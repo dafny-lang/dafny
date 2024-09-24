@@ -26,7 +26,7 @@ public static class OpaqueBlockVerifier {
     var variablesUsedInEnsures = block.Ensures.SelectMany(ae => ae.E.DescendantsAndSelf).
       OfType<DafnyIdentifierExpr>().DistinctBy(ie => ie.Var);
     var implicitAssignedIdentifiers =
-      variablesUsedInEnsures.Where(v => assignedVariables.Contains(v.Var));
+      variablesUsedInEnsures.Where(v => assignedVariables.Contains(v.Var) && generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName));
     foreach (var v in implicitAssignedIdentifiers) {
       var expression = new AttributedExpression(Expression.CreateAssigned(v.Tok, v));
       totalEnsures.Add(expression);

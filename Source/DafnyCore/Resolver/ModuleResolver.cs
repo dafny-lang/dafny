@@ -1981,20 +1981,20 @@ namespace Microsoft.Dafny {
       v.Visit(stmt);
     }
     class CheckExpressionVisitor : ResolverBottomUpVisitor {
-      readonly ICodeContext CodeContext;
+      readonly ICodeContext codeContext;
       public CheckExpressionVisitor(ModuleResolver resolver, ICodeContext codeContext)
         : base(resolver) {
         Contract.Requires(resolver != null);
         Contract.Requires(codeContext != null);
-        CodeContext = codeContext;
+        this.codeContext = codeContext;
       }
       protected override void VisitOneExpr(Expression expr) {
         if (expr is StmtExpr) {
           var e = (StmtExpr)expr;
-          resolver.ComputeGhostInterest(e.S, true, "a statement expression", CodeContext);
+          resolver.ComputeGhostInterest(e.S, true, "a statement expression", codeContext);
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
-          if (CodeContext.IsGhost) {
+          if (codeContext.IsGhost) {
             foreach (var bv in e.BoundVars) {
               bv.MakeGhost();
             }
@@ -2003,12 +2003,21 @@ namespace Microsoft.Dafny {
       }
 
       protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is CalcStmt calc) {
-          foreach (var h in calc.Hints) {
-            resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
+        switch (stmt)
+        {
+          case CalcStmt calc: {
+            foreach (var h in calc.Hints) {
+              resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
+            }
+
+            break;
           }
-        } else if (stmt is ForallStmt forall && forall.Body != null) {
-          resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
+          case BlockByProofStmt blockByProofStmt:
+            resolver.CheckLocalityUpdates(blockByProofStmt.Proof, new HashSet<LocalVariable>(), "a by block");
+            break;
+          case ForallStmt { Body: not null } forall:
+            resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
+            break;
         }
       }
     }
@@ -3220,7 +3229,6 @@ namespace Microsoft.Dafny {
     /// context. 
     /// </summary>
     public void CheckLocalityUpdates(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
-      // TODO it looks like this method has no side-effects and doesn't return anything.
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
