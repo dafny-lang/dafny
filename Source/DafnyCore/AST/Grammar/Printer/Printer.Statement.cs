@@ -331,8 +331,8 @@ namespace Microsoft.Dafny {
           wr.Write("}");
         }
 
-      } else if (stmt is ConcreteAssignStatement) {
-        PrintConcreteUpdateStatement(stmt, indent, includeSemicolon);
+      } else if (stmt is ConcreteAssignStatement concreteAssignStatement) {
+        PrintConcreteUpdateStatement(concreteAssignStatement, indent, includeSemicolon);
       } else if (stmt is CallStmt) {
         // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
         // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
