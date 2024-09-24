@@ -1433,6 +1433,7 @@ namespace Microsoft.Dafny {
       CurrentIdGenerator.Reset();
       _tmpIEs.Clear();
       assertionCount = 0;
+      DefiniteAssignmentTrackers.Clear();
     }
 
     public static Bpl.QKeyValue InlineAttribute(Bpl.IToken tok, Bpl.QKeyValue/*?*/ next = null) {

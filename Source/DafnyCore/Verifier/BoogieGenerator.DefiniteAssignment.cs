@@ -162,9 +162,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(field != null);
       Contract.Requires(builder != null);
-
-      Bpl.IdentifierExpr ie;
-      if (DefiniteAssignmentTrackers.TryGetValue(field, out ie)) {
+      
+      if (DefiniteAssignmentTrackers.TryGetValue(field, out var ie)) {
         var desc = new DefiniteAssignment(
           "field", field.Name, atNew ? "at this point in the constructor body" : "here");
         builder.Add(Assert(tok, ie, desc, builder.Context));
