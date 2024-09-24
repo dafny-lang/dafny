@@ -3233,7 +3233,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
 
-      if (stmt is AssertStmt || stmt is ForallStmt || stmt is CalcStmt || stmt is ModifyStmt) {
+      if (stmt is AssertStmt or BlockByProofStmt or ForallStmt or CalcStmt or ModifyStmt) {
         // don't recurse, since CheckHintRestrictions will be called on that assert-by separately
         return;
       } else if (stmt is AssignSuchThatStmt) {
