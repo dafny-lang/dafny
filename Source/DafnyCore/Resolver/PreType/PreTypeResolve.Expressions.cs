@@ -118,10 +118,10 @@ namespace Microsoft.Dafny {
           }
         case DatatypeValue value: {
             var dtv = value;
-            if (!resolver.moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out var decl)) {
+            TopLevelDecl decl = value.Ctor?.EnclosingDatatype;
+            if (decl == null && !resolver.moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out decl)) {
               ReportError(value.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
-            } else if (decl is AmbiguousTopLevelDecl) {
-              var ad = (AmbiguousTopLevelDecl)decl;
+            } else if (decl is AmbiguousTopLevelDecl ad) {
               ReportError(value.tok,
                 "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)",
                 dtv.DatatypeName, ad.ModuleNames());
@@ -1976,7 +1976,9 @@ namespace Microsoft.Dafny {
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctorCall = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
+        var ctorCall = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings) {
+          Ctor = crc
+        };
         if (body == null) {
           body = ctorCall;
         } else {
