@@ -140,8 +140,8 @@ namespace Microsoft.Dafny {
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
         PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
-        bool hasSpecs = s.Invariants.Count != 0 || 
-                        (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || 
+        bool hasSpecs = s.Invariants.Count != 0 ||
+                        (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) ||
                         s.Mod.Expressions != null;
         if (s.UsesOptionalBraces) {
           if (hasSpecs) {
