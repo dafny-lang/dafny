@@ -2124,13 +2124,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       var BinOp(op, lExpr, rExpr, format) := e;
       var becomesLeftCallsRight := BecomesLeftCallsRight(op);
       var becomesRightCallsLeft := BecomesRightCallsLeft(op);
-      var becomesCallLeftRight := BecomesCallLeftRight(op);
       var expectedLeftOwnership :=
         if becomesLeftCallsRight then OwnershipAutoBorrowed
-        else if becomesRightCallsLeft || becomesCallLeftRight then OwnershipBorrowed
+        else if becomesRightCallsLeft then OwnershipBorrowed
         else OwnershipOwned;
       var expectedRightOwnership :=
-        if becomesLeftCallsRight || becomesCallLeftRight then OwnershipBorrowed
+        if becomesLeftCallsRight then OwnershipBorrowed
         else if becomesRightCallsLeft then OwnershipAutoBorrowed
         else OwnershipOwned;
       var left, _, recIdentsL := GenExpr(lExpr, selfIdent, env, expectedLeftOwnership);

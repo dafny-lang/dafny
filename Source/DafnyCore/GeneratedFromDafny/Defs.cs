@@ -375,24 +375,6 @@ namespace Defs {
         return false;
       }
     }
-    public static bool BecomesCallLeftRight(DAST._IBinOp op) {
-      DAST._IBinOp _source0 = op;
-      {
-        bool disjunctiveMatch0 = false;
-        if (_source0.is_EuclidianDiv) {
-          disjunctiveMatch0 = true;
-        }
-        if (_source0.is_EuclidianMod) {
-          disjunctiveMatch0 = true;
-        }
-        if (disjunctiveMatch0) {
-          return true;
-        }
-      }
-      {
-        return false;
-      }
-    }
     public static RAST._IExpr UnreachablePanicIfVerified(Defs._IPointerType pointerType, Dafny.ISequence<Dafny.Rune> optText)
     {
       if ((pointerType).is_Raw) {

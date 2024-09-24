@@ -399,19 +399,9 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   }
 
   lemma BecomesExclusive(op: BinOp)
-    ensures BecomesCallLeftRight(op) ==> !BecomesRightCallsLeft(op) && !BecomesLeftCallsRight(op)
-    ensures BecomesRightCallsLeft(op) ==> !BecomesCallLeftRight(op) && !BecomesLeftCallsRight(op)
-    ensures BecomesLeftCallsRight(op) ==> !BecomesCallLeftRight(op) && !BecomesRightCallsLeft(op)
+    ensures BecomesRightCallsLeft(op) ==> !BecomesLeftCallsRight(op)
+    ensures BecomesLeftCallsRight(op) ==> !BecomesRightCallsLeft(op)
   {}
-
-  predicate BecomesCallLeftRight(op: BinOp) {
-    match op {
-      case EuclidianDiv()
-        | EuclidianMod()
-        => true
-      case _ => false
-    }
-  }
 
   function UnreachablePanicIfVerified(pointerType: PointerType, optText: string := ""): R.Expr {
     if pointerType.Raw? then
