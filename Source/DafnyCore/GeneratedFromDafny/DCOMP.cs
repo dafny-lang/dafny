@@ -3213,7 +3213,13 @@ namespace DCOMP {
                 bool _14_referential = _source1.dtor_referential;
                 {
                   if (_14_referential) {
-                    r = RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="), _8_left, _11_right, DAST.Format.BinaryOpFormat.create_NoFormat());
+                    if (((this).pointerType).is_Raw) {
+                      RAST._IExpr _out6;
+                      _out6 = (this).Error(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Raw pointer comparison not properly implemented yet (need to make comp/rust/traits.dfy to pass with --raw-pointer)"), (this).InitEmptyExpr());
+                      r = _out6;
+                    } else {
+                      r = RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="), _8_left, _11_right, DAST.Format.BinaryOpFormat.create_NoFormat());
+                    }
                   } else {
                     if (((_2_rExpr).is_SeqValue) && ((new BigInteger(((_2_rExpr).dtor_elements).Count)).Sign == 0)) {
                       r = RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="), ((((_8_left).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("to_array"))).Apply0()).Sel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("len"))).Apply0(), RAST.Expr.create_LiteralInt(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("0")), DAST.Format.BinaryOpFormat.create_NoFormat());
@@ -3254,11 +3260,11 @@ namespace DCOMP {
         }
       }
     after_match0: ;
-      RAST._IExpr _out6;
-      Defs._IOwnership _out7;
-      (this).FromOwned(r, expectedOwnership, out _out6, out _out7);
-      r = _out6;
-      resultingOwnership = _out7;
+      RAST._IExpr _out7;
+      Defs._IOwnership _out8;
+      (this).FromOwned(r, expectedOwnership, out _out7, out _out8);
+      r = _out7;
+      resultingOwnership = _out8;
       readIdents = Dafny.Set<Dafny.ISequence<Dafny.Rune>>.Union(_10_recIdentsL, _13_recIdentsR);
       return ;
     }
