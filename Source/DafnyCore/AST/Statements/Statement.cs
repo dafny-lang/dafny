@@ -165,9 +165,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
     var variable = new LocalVariable(rangeToken, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
-    var variableUpdateStmt = new UpdateStmt(rangeToken, Util.Singleton(variableExpr),
+    var variableUpdateStmt = new AssignStatement(rangeToken, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
-    var variableAssignStmt = new AssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
+    var variableAssignStmt = new SingleAssignStmt(rangeToken, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
     variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
     return new VarDeclStmt(rangeToken, Util.Singleton(variable), variableUpdateStmt);
   }

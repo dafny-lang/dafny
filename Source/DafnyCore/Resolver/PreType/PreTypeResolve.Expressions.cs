@@ -706,7 +706,7 @@ namespace Microsoft.Dafny {
             int prevErrorCount = ErrorCount;
             ResolveStatement(e.S, resolutionContext);
             if (ErrorCount == prevErrorCount) {
-              if (e.S is UpdateStmt updateStmt && updateStmt.ResolvedStatements.Count == 1) {
+              if (e.S is AssignStatement updateStmt && updateStmt.ResolvedStatements.Count == 1) {
                 var call = (CallStmt)updateStmt.ResolvedStatements[0];
                 if (call.Method is TwoStateLemma && !resolutionContext.IsTwoState) {
                   ReportError(call, "two-state lemmas can only be used in two-state contexts");
