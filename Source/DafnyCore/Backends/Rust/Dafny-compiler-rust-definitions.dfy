@@ -325,7 +325,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   const TailRecursionPrefix := "_r"
 
   const DAFNY_EXTERN_MODULE := "_dafny_externs"
-  
+
   function ContainingPathToRust(containingPath: seq<Ident>): seq<string> {
     Std.Collections.Seq.Map((i: Ident) => escapeName(i.id), containingPath)
   }
@@ -406,9 +406,9 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
 
   predicate BecomesCallLeftRight(op: BinOp) {
     match op {
-      case EuclidianDiv() 
-         | EuclidianMod()
-      => true
+      case EuclidianDiv()
+        | EuclidianMod()
+        => true
       case _ => false
     }
   }
@@ -435,18 +435,18 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
             R.Fn(
               "fmt", [],
               [R.Formal.selfBorrowed,
-                R.Formal("f", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType()))],
+               R.Formal("f", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType()))],
               Some(R.std.MSel("fmt").MSel("Result").AsType()),
               "",
               Some(R.dafny_runtime
-                    .MSel("DafnyPrint")
-                    .AsExpr()
-                    .FSel("fmt_print")
-                    .Apply(
-                      [ R.self,
-                        R.Identifier("f"),
-                        R.LiteralBool(true)
-                      ])))
+                   .MSel("DafnyPrint")
+                   .AsExpr()
+                   .FSel("fmt_print")
+                   .Apply(
+                     [ R.self,
+                       R.Identifier("f"),
+                       R.LiteralBool(true)
+                     ])))
           )
         ]
       ))
@@ -460,15 +460,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-            R.PRIV,
-            R.Fn(
-              "fmt_print", [],
-              [R.Formal.selfBorrowed,
+           R.PRIV,
+           R.Fn(
+             "fmt_print", [],
+             [R.Formal.selfBorrowed,
               R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
               R.Formal("_in_seq", R.Type.Bool)],
-              Some(R.RawType("std::fmt::Result")),
-              "",
-              Some(printImplBody)))]
+             Some(R.RawType("std::fmt::Result")),
+             "",
+             Some(printImplBody)))]
       ))
   }
 
@@ -480,7 +480,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     coerceArguments: seq<R.Formal>,
     coerceTypes: seq<R.Type>,
     coerceImplBody: R.Expr
-    ): R.ModDecl {
+  ): R.ModDecl {
 
     R.ImplDecl(
       R.Impl(
@@ -488,19 +488,19 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-            R.PUB,
-            R.Fn(
-              "coerce", rCoerceTypeParams,
-              coerceArguments,
-              Some(
-                R.Rc(
-                  R.ImplType(
-                    R.FnType(
-                      [datatypeType],
-                      R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
-              "",
-              Some(
-                R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
+           R.PUB,
+           R.Fn(
+             "coerce", rCoerceTypeParams,
+             coerceArguments,
+             Some(
+               R.Rc(
+                 R.ImplType(
+                   R.FnType(
+                     [datatypeType],
+                     R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
+             "",
+             Some(
+               R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
                                 Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
                                 coerceImplBody)))))]
       ))
@@ -517,14 +517,14 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
         datatypeType,
         "",
         [R.FnDecl(
-            R.PUB,
-            R.Fn(
-              "_AllSingletonConstructors", [],
-              [],
-              Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
-              "",
-              Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply0())
-            )
-          )]))
+           R.PUB,
+           R.Fn(
+             "_AllSingletonConstructors", [],
+             [],
+             Some(R.dafny_runtime.MSel("SequenceIter").AsType().Apply([instantiationType])),
+             "",
+             Some(R.dafny_runtime.MSel("seq!").AsExpr().Apply(singletonConstructors).Sel("iter").Apply0())
+           )
+         )]))
   }
 }
