@@ -25,17 +25,29 @@ public class WriterFromOutputHelper : TextWriter {
   public override Encoding Encoding => Encoding.Default;
 
   public override void WriteLine(string? value) {
-    output.WriteLine(buffer + value);
+    try {
+      output.WriteLine(buffer + value);
+    } catch {
+      // ignored
+    }
     buffer.Clear();
   }
 
   public override void WriteLine(string format, params object?[] arg) {
-    output.WriteLine(buffer + format, arg);
+    try {
+      output.WriteLine(buffer + format, arg);
+    } catch {
+      // ignored
+    }
     buffer.Clear();
   }
 
   public override void Flush() {
-    output.WriteLine(buffer.ToString());
+    try {
+      output.WriteLine(buffer.ToString());
+    } catch {
+      // ignored
+    }
     base.Flush();
   }
 }
