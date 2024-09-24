@@ -84,6 +84,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
+      if (DefiniteAssignmentTrackers.TryGetValue(field, out _)) {
+        return;
+      }
+      
       var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
       if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true)) {
         return;

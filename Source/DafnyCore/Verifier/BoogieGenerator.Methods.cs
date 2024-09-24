@@ -1830,7 +1830,7 @@ namespace Microsoft.Dafny {
             }
           }
         }
-        if (m is Constructor) {
+        if (m is Constructor && kind == MethodTranslationKind.Call) {
           var dafnyFresh = new OldExpr(Token.NoToken,
             new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Not,
               new UnaryOpExpr(Token.NoToken, UnaryOpExpr.Opcode.Allocated, new IdentifierExpr(Token.NoToken, "this"))));
