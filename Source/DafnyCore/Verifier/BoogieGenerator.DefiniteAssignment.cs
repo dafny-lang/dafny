@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
       if (DefiniteAssignmentTrackers.TryGetValue(field, out _)) {
         return;
       }
-      
+
       var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
       if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true)) {
         return;
