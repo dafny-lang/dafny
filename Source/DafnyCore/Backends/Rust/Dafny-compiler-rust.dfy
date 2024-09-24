@@ -2200,7 +2200,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             match op {
               case Eq(referential) => {
                 if (referential) {
-                  r := R.BinaryOp("==", left, right, DAST.Format.BinaryOpFormat.NoFormat());
+                  if pointerType.Raw? {
+                    r := Error("Raw pointer comparison not properly implemented yet (need to make comp/rust/traits.dfy to pass with --raw-pointer)");
+                  } else {
+                    r := R.BinaryOp("==", left, right, DAST.Format.BinaryOpFormat.NoFormat());
+                  }
                 } else {
                   if rExpr.SeqValue? && |rExpr.elements| == 0 {
                     r := R.BinaryOp("==", left.Sel("to_array").Apply0().Sel("len").Apply0(), R.LiteralInt("0"), DAST.Format.BinaryOpFormat.NoFormat());
