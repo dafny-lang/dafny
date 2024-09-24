@@ -28,7 +28,7 @@ public class WriterFromOutputHelper : TextWriter {
     try {
       output.WriteLine(buffer + value);
     } catch {
-      // ignored
+      // ignored because of https://github.com/dafny-lang/dafny/issues/5723
     }
     buffer.Clear();
   }
@@ -37,7 +37,7 @@ public class WriterFromOutputHelper : TextWriter {
     try {
       output.WriteLine(buffer + format, arg);
     } catch {
-      // ignored
+      // ignored because of https://github.com/dafny-lang/dafny/issues/5723
     }
     buffer.Clear();
   }
@@ -46,7 +46,7 @@ public class WriterFromOutputHelper : TextWriter {
     try {
       output.WriteLine(buffer.ToString());
     } catch {
-      // ignored
+      // ignored because of https://github.com/dafny-lang/dafny/issues/5723
     }
     base.Flush();
   }
