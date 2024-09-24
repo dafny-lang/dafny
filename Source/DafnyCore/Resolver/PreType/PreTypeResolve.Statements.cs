@@ -182,17 +182,17 @@ namespace Microsoft.Dafny {
               }
               formals.Add(produceLhs);
             }
-            s.HiddenUpdate = new UpdateStmt(s.RangeToken, formals, s.Rhss, true);
+            s.HiddenUpdate = new AssignStatement(s.RangeToken, formals, s.Rhss, true);
             // resolving the update statement will check for return/yield statement specifics.
             ResolveStatement(s.HiddenUpdate, resolutionContext);
           }
         }
 
-      } else if (stmt is ConcreteUpdateStatement concreteUpdateStatement) {
+      } else if (stmt is ConcreteAssignStatement concreteUpdateStatement) {
         ResolveConcreteUpdateStmt(concreteUpdateStatement, null, resolutionContext);
 
       } else if (stmt is VarDeclStmt varDeclStmt) {
-        ResolveConcreteUpdateStmt(varDeclStmt.Update, varDeclStmt.Locals, resolutionContext);
+        ResolveConcreteUpdateStmt(varDeclStmt.Assign, varDeclStmt.Locals, resolutionContext);
 
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;
@@ -215,8 +215,8 @@ namespace Microsoft.Dafny {
           ReportError(s.LHS.tok, "LHS is a constant literal; to be legal, it must introduce at least one bound variable");
         }
 
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        var s = (SingleAssignStmt)stmt;
         int prevErrorCount = ErrorCount;
         ResolveExpression(s.Lhs, resolutionContext);  // allow ghosts for now, tightened up below
         bool lhsResolvedSuccessfully = ErrorCount == prevErrorCount;
@@ -326,10 +326,10 @@ namespace Microsoft.Dafny {
             // The effect of Assign and the postcondition of Call will be seen outside the forall
             // statement.
             Statement s0 = s.S0;
-            if (s0 is AssignStmt) {
+            if (s0 is SingleAssignStmt) {
               s.Kind = ForallStmt.BodyKind.Assign;
 
-              var rhs = ((AssignStmt)s0).Rhs;
+              var rhs = ((SingleAssignStmt)s0).Rhs;
               if (rhs is TypeRhs) {
                 ReportError(rhs.Tok, "new allocation not supported in aggregate assignments");
               }
@@ -523,10 +523,10 @@ namespace Microsoft.Dafny {
       Contract.Assert(prevErrorCount != ErrorCount || s.Steps.Count == s.Hints.Count);
     }
 
-    private void ResolveConcreteUpdateStmt(ConcreteUpdateStatement update, List<LocalVariable> locals, ResolutionContext resolutionContext) {
-      Contract.Requires(update != null || locals != null);
+    private void ResolveConcreteUpdateStmt(ConcreteAssignStatement assign, List<LocalVariable> locals, ResolutionContext resolutionContext) {
+      Contract.Requires(assign != null || locals != null);
       // We have four cases.
-      Contract.Assert(update == null || update is AssignSuchThatStmt || update is UpdateStmt || update is AssignOrReturnStmt);
+      Contract.Assert(assign == null || assign is AssignSuchThatStmt || assign is AssignStatement || assign is AssignOrReturnStmt);
       // 0.  There is no update.  This is easy, we will just resolve the locals.
       // 1.  The update is an AssignSuchThatStmt.  This is also straightforward:  first
       //     resolve the locals, which adds them to the scope, and then resolve the update.
@@ -540,11 +540,11 @@ namespace Microsoft.Dafny {
       var errorCountBeforeCheckingStmt = ErrorCount;
 
       // For UpdateStmt and AssignOrReturnStmt, resolve the RHSs before adding the LHSs to the scope
-      if (update is UpdateStmt updateStatement) {
+      if (assign is AssignStatement updateStatement) {
         foreach (var rhs in updateStatement.Rhss) {
           ResolveAssignmentRhs(rhs, updateStatement, resolutionContext);
         }
-      } else if (update is AssignOrReturnStmt elephantStmt) {
+      } else if (assign is AssignOrReturnStmt elephantStmt) {
         elephantStmt.ResolveKeywordToken(this, resolutionContext);
 
         ResolveAssignmentRhs(elephantStmt.Rhs, elephantStmt, resolutionContext);
@@ -569,22 +569,22 @@ namespace Microsoft.Dafny {
         }
       }
 
-      if (update is AssignSuchThatStmt assignSuchThatStmt) {
+      if (assign is AssignSuchThatStmt assignSuchThatStmt) {
         assignSuchThatStmt.GenResolve(this, resolutionContext);
       } else {
         // Resolve the LHSs
-        if (update != null) {
-          foreach (var lhs in update.Lhss) {
+        if (assign != null) {
+          foreach (var lhs in assign.Lhss) {
             ResolveExpression(lhs, resolutionContext);
           }
         }
 
-        if (update is UpdateStmt updateStmt) {
+        if (assign is AssignStatement updateStmt) {
           ResolveUpdateStmt(updateStmt, resolutionContext, errorCountBeforeCheckingStmt);
-        } else if (update is AssignOrReturnStmt assignOrReturnStmt) {
+        } else if (assign is AssignOrReturnStmt assignOrReturnStmt) {
           ResolveAssignOrReturnStmt(assignOrReturnStmt, resolutionContext);
         } else {
-          Contract.Assert(update == null);
+          Contract.Assert(assign == null);
         }
       }
     }
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny {
     /// errorCountBeforeCheckingStmt is passed in so that this method can determine if any resolution errors were found during
     /// LHS or RHS checking, because only if no errors were found is update.ResolvedStmt changed.
     /// </summary>
-    private void ResolveUpdateStmt(UpdateStmt update, ResolutionContext resolutionContext,
+    private void ResolveUpdateStmt(AssignStatement update, ResolutionContext resolutionContext,
       int errorCountBeforeCheckingStmt) {
       Contract.Requires(update != null);
       Contract.Requires(resolutionContext != null);
@@ -659,7 +659,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
           for (var i = 0; i < update.Lhss.Count; i++) {
-            var a = new AssignStmt(update.RangeToken, update.Lhss[i].Resolved, update.Rhss[i]);
+            var a = new SingleAssignStmt(update.RangeToken, update.Lhss[i].Resolved, update.Rhss[i]);
             update.ResolvedStatements.Add(a);
           }
         }
@@ -679,7 +679,7 @@ namespace Microsoft.Dafny {
             if (tr.CanAffectPreviouslyKnownExpressions) {
               ReportError(tr.Tok, "can only have initialization methods which modify at most 'this'.");
             } else if (ErrorCount == errorCountBeforeCheckingStmt) {
-              var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, tr);
+              var a = new SingleAssignStmt(update.RangeToken, update.Lhss[0].Resolved, tr);
               update.ResolvedStatements.Add(a);
             }
           }
@@ -700,7 +700,7 @@ namespace Microsoft.Dafny {
               "the number of left-hand sides ({0}) and right-hand sides ({1}) must match for a multi-assignment",
               update.Lhss.Count, update.Rhss.Count);
           } else if (ErrorCount == errorCountBeforeCheckingStmt) {
-            var a = new AssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
+            var a = new SingleAssignStmt(update.RangeToken, update.Lhss[0].Resolved, update.Rhss[0]);
             update.ResolvedStatements.Add(a);
           }
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
@@ -997,7 +997,7 @@ namespace Microsoft.Dafny {
         }
       }
       // " temp, ... := MethodOrExpression, ...;"
-      UpdateStmt up = new UpdateStmt(s.RangeToken, lhss2, rhss2, s.Proof);
+      var up = new AssignStatement(s.RangeToken, lhss2, rhss2, s.Proof);
       if (expectExtract) {
         up.OriginalInitialLhs = s.Lhss.Count == 0 ? null : s.Lhss[0];
       }
@@ -1032,10 +1032,10 @@ namespace Microsoft.Dafny {
           new IfStmt(s.RangeToken, false, resolver.VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { out := temp.PropagateFailure(); return; }
             new BlockStmt(s.RangeToken, new List<Statement>() {
-              new UpdateStmt(s.RangeToken,
+              new AssignStatement(s.RangeToken,
                 new List<Expression>() { ident },
                 new List<AssignmentRhs>() {new ExprRhs(resolver.VarDotMethod(s.Tok, temp, "PropagateFailure"))}
-              ),
+              , s.Proof),
               new ReturnStmt(s.RangeToken, null),
             }),
             // ELSE: no else block
@@ -1047,10 +1047,10 @@ namespace Microsoft.Dafny {
         // "y := temp.Extract();"
         var lhs = s.Lhss[0];
         s.ResolvedStatements.Add(
-          new UpdateStmt(s.RangeToken,
+          new AssignStatement(s.RangeToken,
             new List<Expression>() { lhsExtract },
             new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(s.Tok, temp, "Extract")) }
-          ));
+          , s.Proof));
       }
 
       s.ResolvedStatements.ForEach(a => ResolveStatement(a, resolutionContext));

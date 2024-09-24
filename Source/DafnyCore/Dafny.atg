@@ -2211,7 +2211,7 @@ OneStmt<out Statement/*!*/ s>
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
   | OpaqueBlock<out s>
   | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
-  | UpdateStmt<out s>     // includes UpdateFailure
+  | AssignStatement<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
   | ReturnStmt<out s>
   | IfStmt<out s>
@@ -2319,7 +2319,7 @@ YieldStmt<out Statement/*!*/ s>
   .
 
 /*------------------------------------------------------------------------*/
-UpdateStmt<out Statement/*!*/ s>
+AssignStatement<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      Expression e;
@@ -2400,7 +2400,7 @@ UpdateStmt<out Statement/*!*/ s>
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(rangeToken, new List<Statement>()); // error, give empty statement
        } else {
-         s = new UpdateStmt(rangeToken, lhss, rhss, proof);
+         s = new AssignStatement(rangeToken, lhss, rhss, proof);
        }
      }
   .)
@@ -2541,7 +2541,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       BlockStmt<out proof, out _, out _>
     | ";"                            (. endTok = t; .)
     )
-    (. ConcreteUpdateStatement update;
+    (. ConcreteAssignStatement assignment;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
@@ -2555,15 +2555,15 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var rangeToken = new RangeToken(startToken, t);
        var updateRangeToken = new RangeToken(assignTok, t);
        if (suchThat != null) {
-         update = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
+         assignment = new AssignSuchThatStmt(updateRangeToken, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionRhs != null) {
-         update = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss, proof);
+         assignment = new AssignOrReturnStmt(updateRangeToken, lhsExprs, exceptionRhs, keywordToken, rhss, proof);
        } else if (rhss.Count == 0) {
-         update = null;
+         assignment = null;
        } else {
-         update = new UpdateStmt(updateRangeToken, lhsExprs, rhss, proof);
+         assignment = new AssignStatement(updateRangeToken, lhsExprs, rhss, proof);
        }
-       s = new VarDeclStmt(rangeToken, lhss, update);
+       s = new VarDeclStmt(rangeToken, lhss, assignment);
     .)
   | (. CasePattern<LocalVariable> pat;
        Expression e = dummyExpr;
@@ -3326,7 +3326,7 @@ Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwis
     Expression<out e0, allowLemma, allowLambda>
     (. var startToken = e.StartToken;
        e = new StmtExpr(e0.Tok,
-             new UpdateStmt(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
+             new AssignStatement(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
              e0);
        e.RangeToken = new RangeToken(startToken, e0.EndToken);
     .)
@@ -4509,7 +4509,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
   { IF( la.kind == _lbracecolon) Attribute<ref attrs> } // Ambiguity -- if the next optional block is not present, 
                                                         // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
                                                         // so it can end an Expression
-                                                        // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, UpdateStmt
+                                                        // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, AssignStatement
   [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement. 
     // That can happen because the grammar allows a QuantifierDecl to end a QuantifierDomain, which can end
     // a SetComprehensionExpr, and a Expression can be followed by a bitvector '|'. 

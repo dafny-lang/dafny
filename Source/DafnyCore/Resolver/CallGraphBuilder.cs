@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
       }
 
       protected override bool VisitOneStatement(Statement stmt, CallGraphBuilderContext context) {
-        if (stmt is AssignStmt assignStmt) {
+        if (stmt is SingleAssignStmt assignStmt) {
           // check on assumption variables
           if (context.CodeContext is Method currentMethod &&
               (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&

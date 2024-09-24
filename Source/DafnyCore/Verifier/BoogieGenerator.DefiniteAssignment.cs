@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(ss != null);
       foreach (var s in ss) {
         if (s is VarDeclStmt vdecl) {
-          if (vdecl.Update is AssignOrReturnStmt ars) {
+          if (vdecl.Assign is AssignOrReturnStmt ars) {
             foreach (var sx in ars.ResolvedStatements) {
               if (sx is VarDeclStmt vdecl2) {
                 vdecl2.Locals.ForEach(RemoveDefiniteAssignmentTracker);
