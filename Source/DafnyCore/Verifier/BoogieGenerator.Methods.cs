@@ -1716,6 +1716,25 @@ namespace Microsoft.Dafny {
 
       GenerateMethodParameters(m.tok, m, kind, etran, inParams, out var outParams);
 
+
+      var name = MethodName(m, kind);
+      var req = GetRequires();
+      var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
+      var ens = GetEnsures();
+      var proc = new Bpl.Procedure(m.tok, name, new List<Bpl.TypeVariable>(),
+        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
+      AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
+
+      if (InsertChecksums) {
+        InsertChecksum(m, proc, true);
+      }
+
+      currentModule = null;
+      codeContext = null;
+      isAllocContext = null;
+
+      return proc;
+
       List<Boogie.Requires> GetRequires() {
         var req = new List<Boogie.Requires>();
         // FREE PRECONDITIONS
@@ -1783,25 +1802,6 @@ namespace Microsoft.Dafny {
         }
         return req;
       }
-
-
-      var name = MethodName(m, kind);
-      var req = GetRequires();
-      var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
-      var ens = GetEnsures();
-      var proc = new Bpl.Procedure(m.tok, name, new List<Bpl.TypeVariable>(),
-        inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
-      AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
-
-      if (InsertChecksums) {
-        InsertChecksum(m, proc, true);
-      }
-
-      currentModule = null;
-      codeContext = null;
-      isAllocContext = null;
-
-      return proc;
 
       List<Bpl.Ensures> GetEnsures() {
         var ens = new List<Bpl.Ensures>();

@@ -67,10 +67,16 @@ namespace Microsoft.Dafny {
     void AddExistingDefiniteAssignmentTracker(IVariable p, bool forceGhostVar) {
       Contract.Requires(p != null);
 
-      if (NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
-        var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
-        DefiniteAssignmentTrackers.Add(p, ie);
+      if (DefiniteAssignmentTrackers.ContainsKey(p)) {
+        return;
       }
+
+      if (!NeedsDefiniteAssignmentTracker(p.IsGhost || forceGhostVar, p.Type, false)) {
+        return;
+      }
+
+      var ie = new Bpl.IdentifierExpr(p.Tok, DefassPrefix + p.UniqueName, Bpl.Type.Bool);
+      DefiniteAssignmentTrackers.Add(p, ie);
     }
 
     void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass,
