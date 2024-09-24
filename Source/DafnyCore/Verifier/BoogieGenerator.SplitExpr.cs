@@ -247,7 +247,7 @@ namespace Microsoft.Dafny {
             // this assumption is not generated in non-split positions (because I don't know how.)
             // So, treat "S; E" like "SConclusion ==> E".
             if (position) {
-              var conclusion = etran.TrExpr(e.GetSConclusion());
+              var conclusion = etran.TrExpr(e.GetStatementConclusion());
               var ss = new List<SplitExprInfo>();
               TrSplitExpr(context, e.E, ss, position, heightLimit, applyInduction, etran);
               foreach (var s in ss) {
@@ -256,7 +256,7 @@ namespace Microsoft.Dafny {
               }
             } else {
               var ss = new List<SplitExprInfo>();
-              TrSplitExpr(context, e.GetSConclusion(), ss, !position, heightLimit, applyInduction, etran);
+              TrSplitExpr(context, e.GetStatementConclusion(), ss, !position, heightLimit, applyInduction, etran);
               var rhs = etran.TrExpr(e.E);
               foreach (var s in ss) {
                 // as the source location in the following implication, use that of the translated "s"
