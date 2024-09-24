@@ -140,7 +140,9 @@ namespace Microsoft.Dafny {
         PrintSpec("invariant", s.Invariants, indent + IndentAmount);
         PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
         PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
-        bool hasSpecs = s.Invariants.Count != 0 || (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || s.Mod.Expressions != null;
+        bool hasSpecs = s.Invariants.Count != 0 || 
+                        (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) || 
+                        s.Mod.Expressions != null;
         if (s.UsesOptionalBraces) {
           if (hasSpecs) {
             wr.WriteLine();
@@ -229,7 +231,7 @@ namespace Microsoft.Dafny {
           }
           // print the operator, if any
           if (op != null || (options.DafnyPrintResolvedFile != null && s.Op != null)) {
-            Indent(indent);  // this lines up with the "calc"
+            Indent(indent); // this lines up with the "calc"
             PrintCalcOp(op ?? s.Op);
             wr.WriteLine();
           }
@@ -425,18 +427,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintConcreteUpdateStatement(Statement stmt, int indent, bool includeSemicolon = true) {
-      var s = (ConcreteAssignStatement)stmt;
+    public void PrintConcreteUpdateStatement(ConcreteAssignStatement stmt, int indent, bool includeSemicolon = true) {
       string sep = "";
-      foreach (var lhs in s.Lhss) {
+      foreach (var lhs in stmt.Lhss) {
         wr.Write(sep);
         PrintExpression(lhs, true);
         sep = ", ";
       }
-      if (s.Lhss.Count > 0) {
+      if (stmt.Lhss.Count > 0) {
         wr.Write(" ");
       }
-      PrintUpdateRHS(s, indent);
+      PrintUpdateRHS(stmt, indent);
       if (includeSemicolon) {
         wr.Write(";");
       }
