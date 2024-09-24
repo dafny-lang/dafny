@@ -833,22 +833,22 @@ namespace Microsoft.Dafny {
                   // by $IsAllocBox.
                   return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
                 case UnaryOpExpr.ResolvedOpcode.Assigned:
-                  ISymbol variable = null;
+                  string name = null;
                   switch (e.E.Resolved) {
                     case IdentifierExpr ie:
-                      variable = ie.Var;
+                      name = ie.Var.UniqueName;
                       break;
                     case MemberSelectExpr mse:
                       if (BoogieGenerator.inBodyInitContext && Expression.AsThis(mse.Obj) != null) {
-                        variable = mse.Member;
+                        name = BoogieGenerator.SurrogateName(mse.Member as Field);
                       }
                       break;
                   }
 
-                  if (variable == null) {
+                  if (name == null) {
                     return Expr.True;
                   }
-                  BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(variable, out var defass);
+                  BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
                   return defass;
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression

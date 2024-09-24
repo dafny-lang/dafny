@@ -205,7 +205,7 @@ public partial class BoogieGenerator {
 
     var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
     foreach (var local in assignedVariables) {
-      if (!DefiniteAssignmentTrackers.TryGetValue(local, out var dat)) {
+      if (local.UniqueName == null || !DefiniteAssignmentTrackers.TryGetValue(local.UniqueName, out var dat)) {
         continue;
       }
 
@@ -216,7 +216,7 @@ public partial class BoogieGenerator {
       builder.Add(Cmd.SimpleAssign(loop.Tok, ie, dat));
     }
 
-    List<Expr> initDecr = null;
+    List<Bpl.Expr> initDecr = null;
     if (!Contract.Exists(theDecreases, e => e is WildcardExpr)) {
       initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr_init$" + suffix);
     }

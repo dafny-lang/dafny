@@ -11,9 +11,11 @@ public class BlockByProofStmtVerifier {
     Variables locals, BoogieGenerator.ExpressionTranslator etran, ICodeContext codeContext) {
     var proofBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
+    var count = generator.DefiniteAssignmentTrackers.Count;
     generator.CurrentIdGenerator.Push();
     generator.TrStmtList(block.Proof.Body, proofBuilder, locals, etran);
     generator.CurrentIdGenerator.Pop();
+    generator.RemoveDefiniteAssignmentTrackers(block.Proof.Body, count);
 
     generator.TrStmt(block.Body, proofBuilder, locals, etran);
 

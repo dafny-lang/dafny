@@ -279,7 +279,7 @@ public partial class BoogieGenerator {
             }
 
             if (!origRhsIsHavoc || field.Type.HavocCountsAsDefiniteAssignment(field.IsGhost)) {
-              MarkDefiniteAssignmentTracker(lhs.tok, field, bldr);
+              MarkDefiniteAssignmentTracker(lhs.tok, nm, bldr);
             }
           });
         } else {
