@@ -25,8 +25,6 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint, IClo
     base.GenResolve(resolver, resolutionContext);
   }
 
-  // CheckLocalityUpdates
-
   internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
     if (proof == null) {
       return;

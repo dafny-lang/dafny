@@ -76,20 +76,10 @@ namespace Microsoft.Dafny {
       var hiddenProof = false;
       BoogieStmtListBuilder proofBuilder = null;
       var assertStmt = stmt as AssertStmt;
-      if (assertStmt != null) {
-        // if (assertStmt.Proof != null) {
-        //   hiddenProof = true;
-        //   proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-        //   AddComment(proofBuilder, stmt, "assert statement proof");
-        //   CurrentIdGenerator.Push();
-        //   TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
-        //   CurrentIdGenerator.Pop();
-        // } else 
-        if (assertStmt.Label != null) {
-          hiddenProof = true;
-          proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-          AddComment(proofBuilder, stmt, "assert statement proof");
-        }
+      if (assertStmt is { Label: not null }) {
+        hiddenProof = true;
+        proofBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
+        AddComment(proofBuilder, stmt, "assert statement proof");
       }
       proofBuilder ??= b;
 
