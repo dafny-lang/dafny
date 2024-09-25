@@ -25,7 +25,9 @@
   <ItemGroup>
     <Folder Include="DafnyRuntimeJava\build\libs" />
   </ItemGroup>
-
+   <ItemGroup>
+    <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
+  </ItemGroup>
   <ItemGroup>
     <Content Update="DafnyRuntimeGo-gomod\dafny\dafny.go">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

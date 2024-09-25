@@ -417,8 +417,8 @@ namespace Microsoft.Dafny.Triggers {
       Func<Type, Type, bool> comparer1 = TypeEq;
       return expr1.MemberName == expr2.MemberName &&
              expr1.Member == expr2.Member &&
-             expr1.TypeApplication_AtEnclosingClass.SequenceEqual(expr2.TypeApplication_AtEnclosingClass, new PredicateEqualityComparer<Type>(comparer)) &&
-             expr1.TypeApplication_JustMember.SequenceEqual(expr2.TypeApplication_JustMember, new PredicateEqualityComparer<Type>(comparer1));
+             expr1.TypeApplicationAtEnclosingClass.SequenceEqual(expr2.TypeApplicationAtEnclosingClass, new PredicateEqualityComparer<Type>(comparer)) &&
+             expr1.TypeApplicationJustMember.SequenceEqual(expr2.TypeApplicationJustMember, new PredicateEqualityComparer<Type>(comparer1));
     }
 
     internal static bool TypeEq(Type type1, Type type2) {

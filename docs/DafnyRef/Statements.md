@@ -2476,4 +2476,27 @@ the expressions is to provide hints to aid Dafny in proving that
 step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
+## 8.24. Opaque Block ([grammar](#g-opaque-block)) {#sec-opaque-block}
+As a Dafny sequence of statements grows in length, it can become harder to verify later statements in the block. With each statement, new information can become available, and with each modification of the heap, it becomes more expensive to access information from an older heap version. To reduce the verification complexity of long lists of statements, Dafny users can extract part of this block into a separate method or lemma. However, doing so introduces some boilerplate, which is where opaque blocks come in. They achieve a similar effect on verification performance as extracting code, but without the boilerplate. 
 
+An opaque block is similar to a block statement: it contains a sequence of zero or more statements, enclosed by curly braces. However, an opaque block is preceded by the keyword 'opaque', and may define ensures and modifies clauses before the curly braces. Anything that happens inside the block is invisible to the statements that come after it, unless it is specified by the ensures clause. Here is an example:
+
+<!-- %check-verify Statements.opaqueBlock.expect -->
+```dafny
+method OpaqueBlockUser() returns (x: int)
+  ensures x > 4 
+{
+  x := 1;
+  var y := 1;
+  opaque
+    ensures x > 3 
+  {
+    x := x + y;
+    x := x + 2;
+  }
+  assert x == 4; // error
+  x := x + 1;
+}
+```
+
+By default, the modifies clause of an opaque block is the same as that of the enclosing context. Opaque blocks may be nested.

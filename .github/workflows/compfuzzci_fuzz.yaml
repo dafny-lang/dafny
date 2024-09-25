@@ -1,15 +1,19 @@
 # This workflow is triggered on PR being opened, synced, reopened, closed.
 # It dispatches workflow on CompFuzzCI repository, where fuzzing of the PR is handled.
+# For problems or suggestions, contact karnbongkot.boonriong23@imperial.ac.uk
 
-name: Fuzzing on PR (excluding forks)
+name: Fuzzing on PR
 on:
-  pull_request:
+  pull_request_target:
     branches:
       - master
   
 jobs:
   FuzzOnPR:
-    if: github.event.pull_request.base.ref == 'master' && github.event.pull_request.head.repo.owner.login == 'dafny-lang'
+    if: github.event.pull_request.base.ref == 'master' &&
+        (github.event.pull_request.author_association == 'COLLABORATOR' ||
+        github.event.pull_request.author_association == 'MEMBER' ||
+        github.event.pull_request.author_association == 'OWNER')
     runs-on: ubuntu-latest
     steps:
       - name: Trigger CompFuzzCI
@@ -23,9 +27,10 @@ jobs:
                   workflow_id: 'fuzz.yaml',
                   ref: 'main',
                   inputs: {
-                      commit: '${{ github.event.pull_request.head.sha }}',
-                      main_commit: '${{github.event.pull_request.base.sha}}',
+                      pr: '${{github.event.pull_request.number}}',
+                      author: '${{github.event.pull_request.user.login}}',
                       branch: '${{github.event.pull_request.head.ref}}',
+                      head_sha: '${{github.event.pull_request.head.sha}}',
                       duration: '3600',
                       instance: '2'
                   }

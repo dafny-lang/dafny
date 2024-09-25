@@ -15,25 +15,25 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   /// PreTypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
   /// declares Member (which is some supertype of the receiver type).
   /// </summary>
-  [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplicationAtEnclosingClass;
 
   /// <summary>
   /// PreTypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
   /// of Member.
   /// </summary>
-  [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustMember;
+  [FilledInDuringResolution] public List<PreType> PreTypeApplicationJustMember;
 
   /// <summary>
   /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
   /// declares Member (which is some supertype of the receiver type).
   /// </summary>
-  [FilledInDuringResolution] public List<Type> TypeApplication_AtEnclosingClass;
+  [FilledInDuringResolution] public List<Type> TypeApplicationAtEnclosingClass;
 
   /// <summary>
   /// TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
   /// of Member.
   /// </summary>
-  [FilledInDuringResolution] public List<Type> TypeApplication_JustMember;
+  [FilledInDuringResolution] public List<Type> TypeApplicationJustMember;
 
   /// <summary>
   /// Returns a mapping from formal type parameters to actual type arguments. For example, given
@@ -54,21 +54,21 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
     // Add the mappings from the member's own type parameters
     if (Member is ICallable icallable) {
-      Contract.Assert(TypeApplication_JustMember.Count == icallable.TypeArgs.Count);
+      Contract.Assert(TypeApplicationJustMember.Count == icallable.TypeArgs.Count);
       for (var i = 0; i < icallable.TypeArgs.Count; i++) {
-        subst.Add(icallable.TypeArgs[i], TypeApplication_JustMember[i]);
+        subst.Add(icallable.TypeArgs[i], TypeApplicationJustMember[i]);
       }
     } else {
-      Contract.Assert(TypeApplication_JustMember.Count == 0);
+      Contract.Assert(TypeApplicationJustMember.Count == 0);
     }
 
     // Add the mappings from the enclosing class.
     TopLevelDecl cl = Member.EnclosingClass;
     // Expand the type down to its non-null type, if any
     if (cl != null) {
-      Contract.Assert(cl.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+      Contract.Assert(cl.TypeArgs.Count == TypeApplicationAtEnclosingClass.Count);
       for (var i = 0; i < cl.TypeArgs.Count; i++) {
-        subst.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
+        subst.Add(cl.TypeArgs[i], TypeApplicationAtEnclosingClass[i]);
       }
     }
 
@@ -94,21 +94,21 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
     // Add the mappings from the member's own type parameters
     if (Member is ICallable icallable) {
-      Contract.Assert(PreTypeApplication_JustMember.Count == icallable.TypeArgs.Count);
+      Contract.Assert(PreTypeApplicationJustMember.Count == icallable.TypeArgs.Count);
       for (var i = 0; i < icallable.TypeArgs.Count; i++) {
-        subst.Add(icallable.TypeArgs[i], PreTypeApplication_JustMember[i]);
+        subst.Add(icallable.TypeArgs[i], PreTypeApplicationJustMember[i]);
       }
     } else {
-      Contract.Assert(PreTypeApplication_JustMember.Count == 0);
+      Contract.Assert(PreTypeApplicationJustMember.Count == 0);
     }
 
     // Add the mappings from the enclosing class.
     TopLevelDecl cl = Member.EnclosingClass;
     // Expand the type down to its non-null type, if any
     if (cl != null) {
-      Contract.Assert(cl.TypeArgs.Count == PreTypeApplication_AtEnclosingClass.Count);
+      Contract.Assert(cl.TypeArgs.Count == PreTypeApplicationAtEnclosingClass.Count);
       for (var i = 0; i < cl.TypeArgs.Count; i++) {
-        subst.Add(cl.TypeArgs[i], PreTypeApplication_AtEnclosingClass[i]);
+        subst.Add(cl.TypeArgs[i], PreTypeApplicationAtEnclosingClass[i]);
       }
     }
 
@@ -134,7 +134,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     Contract.Requires(WasResolved());
     Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
 
-    return TypeArgumentSubstitutionsWithParentsAux(Obj.Type, Member, TypeApplication_JustMember);
+    return TypeArgumentSubstitutionsWithParentsAux(Obj.Type, Member, TypeApplicationJustMember);
   }
 
   public static Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParentsAux(Type receiverType, MemberDecl member, List<Type> typeApplicationMember) {
@@ -193,8 +193,8 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   void ObjectInvariant() {
     Contract.Invariant(Obj != null);
     Contract.Invariant(MemberName != null);
-    Contract.Invariant((Member != null) == (TypeApplication_AtEnclosingClass != null));  // TypeApplication_* are set whenever Member is set
-    Contract.Invariant((Member != null) == (TypeApplication_JustMember != null));  // TypeApplication_* are set whenever Member is set
+    Contract.Invariant((Member != null) == (TypeApplicationAtEnclosingClass != null));  // TypeApplication_* are set whenever Member is set
+    Contract.Invariant((Member != null) == (TypeApplicationJustMember != null));  // TypeApplication_* are set whenever Member is set
   }
 
   public MemberSelectExpr Clone(Cloner cloner) {
@@ -209,8 +209,8 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
       Member = cloner.CloneMember(original.Member, true);
       AtLabel = original.AtLabel;
       InCompiledContext = original.InCompiledContext;
-      TypeApplication_AtEnclosingClass = original.TypeApplication_AtEnclosingClass;
-      TypeApplication_JustMember = original.TypeApplication_JustMember;
+      TypeApplicationAtEnclosingClass = original.TypeApplicationAtEnclosingClass;
+      TypeApplicationJustMember = original.TypeApplicationJustMember;
     }
   }
 
@@ -236,16 +236,16 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     this.Member = field;  // resolve here
 
     var receiverType = obj.Type.NormalizeExpand();
-    this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
-    this.TypeApplication_JustMember = new List<Type>();
+    this.TypeApplicationAtEnclosingClass = receiverType.TypeArgs;
+    this.TypeApplicationJustMember = new List<Type>();
 
     var typeMap = new Dictionary<TypeParameter, Type>();
     if (receiverType is UserDefinedType udt) {
       var cl = udt.ResolvedClass as TopLevelDeclWithMembers;
       Contract.Assert(cl != null);
-      Contract.Assert(cl.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+      Contract.Assert(cl.TypeArgs.Count == TypeApplicationAtEnclosingClass.Count);
       for (var i = 0; i < cl.TypeArgs.Count; i++) {
-        typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
+        typeMap.Add(cl.TypeArgs[i], TypeApplicationAtEnclosingClass[i]);
       }
       foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
         var v = entry.Value.Subst(typeMap);
@@ -254,9 +254,9 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     } else if (field.EnclosingClass == null) {
       // leave typeMap as the empty substitution
     } else {
-      Contract.Assert(field.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+      Contract.Assert(field.EnclosingClass.TypeArgs.Count == TypeApplicationAtEnclosingClass.Count);
       for (var i = 0; i < field.EnclosingClass.TypeArgs.Count; i++) {
-        typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
+        typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplicationAtEnclosingClass[i]);
       }
     }
     this.Type = field.Type.Subst(typeMap);  // resolve here
@@ -289,7 +289,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     get { yield return Obj; }
   }
 
-  public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustMember);
+  public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplicationAtEnclosingClass, TypeApplicationJustMember);
 
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 

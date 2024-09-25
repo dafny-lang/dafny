@@ -33,6 +33,14 @@ namespace Microsoft.Dafny.Plugins {
     }
 
     /// <summary>
+    /// Override this method to perform changes to the AST of a module before resolution.
+    /// You can also report warnings and errors using reporter.Error
+    /// </summary>
+    /// <param name="module">The module before resolution</param>
+    public virtual void PreResolve(ModuleDefinition module) {
+    }
+
+    /// <summary>
     /// Override this method to obtain the resolved module before the translation pipeline occurs
     /// after the individual PostResolve on every module
     /// You can also report warnings and errors using reporter.Error

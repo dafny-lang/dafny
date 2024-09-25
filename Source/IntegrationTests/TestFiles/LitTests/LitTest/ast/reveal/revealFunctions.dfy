@@ -85,3 +85,21 @@ method ReadsClause() {
     }
   }
 }
+
+module M1 {
+    ghost function RecFunc(x: nat): nat { 
+        if x == 0 then 0
+        else 1 + RecFunc(x - 1)
+    }
+}
+module M2 {
+    import opened M1
+    lemma Lemma(x: nat) 
+    ensures RecFunc(0) == 0
+    {
+        // Because RecFunc is recursive, it uses the fuel related $LS function, 
+        // this was previously hidden by 'hide *', so that the ensures could not be proven
+        hide *;
+        reveal RecFunc;
+    }
+}
