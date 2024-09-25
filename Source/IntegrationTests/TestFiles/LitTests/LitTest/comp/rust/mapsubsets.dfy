@@ -45,7 +45,7 @@ function LastCharToNat(str: string, digits: map<char, nat>) : (n: nat)
 }
 
 method Main() {
-  var m := map[1 := 2];
+  var m := Map(map[1 := 2]);
   var s: set<set<int>> := {{}};
   expect |s| == 1;
   var z := (c => c as CodeUnit)('a');

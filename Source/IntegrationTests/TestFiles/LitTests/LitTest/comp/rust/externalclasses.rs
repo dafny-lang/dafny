@@ -28,7 +28,7 @@ pub mod External {
 
       impl crate::External::Class::Container::GetValueHolder
         for ExternalPartialClass {
-        fn GetValue(&mut self) -> dafny_runtime::DafnyInt {
+        fn GetValue(&self) -> dafny_runtime::DafnyInt {
           ::dafny_runtime::int!(2)
         }
       }
@@ -97,7 +97,7 @@ pub mod ExternModuleWithOneClassToImport {
   }
   impl crate::ExternModuleWithOneClassToImport::TraitDefinedInModule
     for NonShareableBox {
-    fn Get(&mut self) -> ::dafny_runtime::DafnyString {
+    fn Get(&self) -> ::dafny_runtime::DafnyString {
       self.s.clone()
     }
     fn Put(&mut self, c: &::dafny_runtime::DafnyString) {

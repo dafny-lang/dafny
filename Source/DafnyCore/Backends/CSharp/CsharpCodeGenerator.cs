@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine("#if ISDAFNYRUNTIMELIB");
       }
 
-      var dafnyNamespace = CreateModule("Dafny", false, null, null, wr);
+      var dafnyNamespace = CreateModule("Dafny", false, null, null, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
@@ -185,9 +185,15 @@ namespace Microsoft.Dafny.Compilers {
     //   }
     // They aren't in any namespace to make them universally accessible.
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
+      // An extension for this arity will be provided in the Runtime which has to be linked.
+      var omitAritiesBefore16 = !Options.IncludeRuntime && Options.SystemModuleTranslationMode is not CommonOptionBag.SystemModuleMode.OmitAllOtherModules;
+      var name = omitAritiesBefore16 ? "FuncExtensionsAfterArity16" : "FuncExtensions";
+      var funcExtensions = wr.NewNamedBlock("public static class " + name);
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         int arity = kv.Key;
+        if (omitAritiesBefore16 && arity <= 16) {
+          continue;
+        }
 
         List<string> TypeParameterList(string prefix) {
           var l = arity switch {
@@ -269,7 +275,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       moduleName = IdProtectModule(moduleName);
       return wr.NewBlock($"namespace {moduleName}", " // end of " + $"namespace {moduleName}");
     }

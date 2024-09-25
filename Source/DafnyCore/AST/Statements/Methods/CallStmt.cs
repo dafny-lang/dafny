@@ -19,6 +19,10 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   }
 
   public override IEnumerable<INode> Children => Lhs.Concat(new Node[] { MethodSelect, Bindings });
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return Lhs.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
+  }
+
   public readonly List<Expression> Lhs;
   public readonly MemberSelectExpr MethodSelect;
   private readonly IToken overrideToken;

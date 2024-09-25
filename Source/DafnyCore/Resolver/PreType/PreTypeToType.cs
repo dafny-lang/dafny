@@ -113,9 +113,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       functionCallExpr.TypeApplication_JustFunction = PreType2TypeUtil.Combine(functionCallExpr.TypeApplication_JustFunction,
         functionCallExpr.PreTypeApplication_JustFunction, true);
     } else if (expr is MemberSelectExpr memberSelectExpr) {
-      memberSelectExpr.TypeApplication_AtEnclosingClass = memberSelectExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
-      memberSelectExpr.TypeApplication_JustMember =
-        PreType2TypeUtil.Combine(memberSelectExpr.TypeApplication_JustMember, memberSelectExpr.PreTypeApplication_JustMember, true);
+      memberSelectExpr.TypeApplicationAtEnclosingClass = memberSelectExpr.PreTypeApplicationAtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
+      memberSelectExpr.TypeApplicationJustMember =
+        PreType2TypeUtil.Combine(memberSelectExpr.TypeApplicationJustMember, memberSelectExpr.PreTypeApplicationJustMember, true);
     } else if (expr is ComprehensionExpr comprehensionExpr) {
       VisitVariableList(comprehensionExpr.BoundVars, false);
     } else if (expr is LetExpr letExpr) {
@@ -212,7 +212,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   protected override void PostVisitOneStatement(Statement stmt, IASTVisitorContext context) {
     if (stmt is VarDeclPattern varDeclPattern) {
       VisitPattern(varDeclPattern.LHS, context);
-    } else if (stmt is AssignStmt { Rhs: TypeRhs tRhs }) {
+    } else if (stmt is SingleAssignStmt { Rhs: TypeRhs tRhs }) {
       Type rhsType;
       // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
       var udtConvertedFromPretype = (UserDefinedType)PreType2TypeUtil.PreType2FixedType(tRhs.PreType);
