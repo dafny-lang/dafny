@@ -737,7 +737,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     public override string TailRecursiveVar(int inParamIndex, IVariable variable) {
-      return preventShadowing ? base.TailRecursiveVar(inParamIndex, variable) : DCOMP.COMP.TailRecursionPrefix.ToVerbatimString(false) + inParamIndex;
+      return preventShadowing ? base.TailRecursiveVar(inParamIndex, variable) : Defs.__default.TailRecursionPrefix.ToVerbatimString(false) + inParamIndex;
     }
 
     protected override void EmitJumpToTailCallStart(ConcreteSyntaxTree wr) {
@@ -998,7 +998,7 @@ namespace Microsoft.Dafny.Compilers {
       if (GetExprBuilder(wr, out var builder)) {
         builder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_ExternCompanion(
           Sequence<ISequence<Rune>>.FromArray(new[] {
-            DCOMP.COMP.DAFNY__EXTERN__MODULE,
+            Defs.__default.DAFNY__EXTERN__MODULE,
             Sequence<Rune>.UnicodeFromString(qual)
           })
           ));
@@ -1591,7 +1591,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L,
-      string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+      string tupleTypeArgs, ForallStmt s, SingleAssignStmt s0, Expression rhs) {
       AddUnsupportedFeature(Token.NoToken, Feature.NonSequentializableForallStatements);
       return wr;
     }

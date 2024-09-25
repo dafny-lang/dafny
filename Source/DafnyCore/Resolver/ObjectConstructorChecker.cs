@@ -19,7 +19,7 @@ class ObjectConstructorChecker : ASTVisitor<IASTVisitorContext> {
   }
 
   protected override bool VisitOneStatement(Statement stmt, IASTVisitorContext context) {
-    if (stmt is AssignStmt { Rhs: TypeRhs rr } && rr.ArrayDimensions == null && (rr.Bindings == null || rr.InitCall.Method is not Constructor)) {
+    if (stmt is SingleAssignStmt { Rhs: TypeRhs rr } && rr.ArrayDimensions == null && (rr.Bindings == null || rr.InitCall.Method is not Constructor)) {
       // this is an AssignStmt that allocates one object and does not call a constructor
       var udt = (UserDefinedType)rr.EType.NormalizeExpand();
       var cl = (ClassLikeDecl)udt.ResolvedClass;

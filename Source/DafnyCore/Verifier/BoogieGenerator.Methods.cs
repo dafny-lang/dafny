@@ -786,8 +786,8 @@ namespace Microsoft.Dafny {
         };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
-          var definedness = new BoogieStmtListBuilder(this, options);
-          var exporter = new BoogieStmtListBuilder(this, options);
+          var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
+          var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
           TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));

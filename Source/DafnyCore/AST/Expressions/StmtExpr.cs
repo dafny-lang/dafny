@@ -63,7 +63,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       return s.Result;
     } else if (S is HideRevealStmt) {
       return CreateBoolLiteral(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
-    } else if (S is UpdateStmt) {
+    } else if (S is AssignStatement) {
       return CreateBoolLiteral(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
