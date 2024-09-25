@@ -2201,7 +2201,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               case Eq(referential) => {
                 if (referential) {
                   if pointerType.Raw? {
-                    r := Error("Raw pointer comparison not properly implemented yet (need to make comp/rust/traits.dfy to pass with --raw-pointer)");
+                    // Need to make comp/rust/traits.dfy to pass with --raw-pointer)
+                    r := Error("Raw pointer comparison not properly implemented yet");
                   } else {
                     r := R.BinaryOp("==", left, right, DAST.Format.BinaryOpFormat.NoFormat());
                   }
