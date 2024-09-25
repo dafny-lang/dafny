@@ -226,7 +226,7 @@ namespace Microsoft.Dafny.Compilers {
       if (externModule == null && TranslationRecord.ModuleEmptyForCompilation(module)) {
         return;
       }
-      
+
       var goModuleName = "";
       if (GoModuleMode) {
         // "_System" module has a special handling because although it gets translated from a Dafny module,
