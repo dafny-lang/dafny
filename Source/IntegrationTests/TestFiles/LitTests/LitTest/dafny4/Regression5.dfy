@@ -10,7 +10,7 @@ method P(x: int) returns (y: bv8)
 }
 
 method Q() {
-  var r: real := -3.0;
+  var r: int := -3;
   var v: bv8;
   v := r as bv8;  // error: value most certainly is negative
 }

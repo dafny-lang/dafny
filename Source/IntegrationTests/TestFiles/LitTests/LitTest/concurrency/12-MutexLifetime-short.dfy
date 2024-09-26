@@ -761,7 +761,7 @@ class Mutex extends OwnedObject {
 
   ghost predicate volatileOwns() { true }
   ghost function objectUserFields(): set<Object> reads this {
-    var r: set<object> := guards + { data }; r
+    guards + { data }
   }
 
   twostate predicate unchangedNonvolatileUserFields() reads this { true }
