@@ -47,7 +47,7 @@ test-dafny:
 		echo "$$count test files found."; \
 		for file in $$files; do \
 			filedir=$$(dirname "$$file"); \
-			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; "${DIR}"/Binaries/Dafny $(action)  "$$(basename $$file)" ); \
+			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; dotnet run --project "${DIR}"/Source/Dafny -- $(action)  "$$(basename $$file)" ); \
 		done; \
 	fi
 

@@ -3215,7 +3215,7 @@ namespace DCOMP {
                   if (_14_referential) {
                     if (((this).pointerType).is_Raw) {
                       RAST._IExpr _out6;
-                      _out6 = (this).Error(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Raw pointer comparison not properly implemented yet (need to make comp/rust/traits.dfy to pass with --raw-pointer)"), (this).InitEmptyExpr());
+                      _out6 = (this).Error(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Raw pointer comparison not properly implemented yet"), (this).InitEmptyExpr());
                       r = _out6;
                     } else {
                       r = RAST.Expr.create_BinaryOp(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("=="), _8_left, _11_right, DAST.Format.BinaryOpFormat.create_NoFormat());
