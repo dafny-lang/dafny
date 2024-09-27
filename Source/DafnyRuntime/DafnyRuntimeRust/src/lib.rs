@@ -3358,6 +3358,7 @@ macro_rules! cast {
 pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 
 impl <T: ?Sized> Object<T> {
+    // For safety, it requires the Rc to have been created with Rc::new()
     pub unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
         Object(Some(rcmut::from_rc(rc)))
     }
@@ -3395,17 +3396,26 @@ impl <T: ?Sized>Default for Object<T> {
     }
 }
 
-impl<T: ?Sized> Debug for Object<T> {
+impl<T: ?Sized + UpcastObject<dyn Any>> Debug for Object<T> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         self.fmt_print(f, false)
     }
 }
-impl <T: ?Sized> DafnyPrint for Object<T> {
+impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        write!(f, "<object>")
+        let option_string = UpcastObject::<dyn Any>::upcast(self.as_ref()).as_ref().downcast_ref::<String>().cloned();
+        match option_string {
+            Some(s) => write!(f, "{}", s),
+            None => write!(f, "<object>"),
+        }
     }
 }
-
+impl UpcastObject<dyn Any> for String {
+    fn upcast(&self) -> Object<dyn Any> {
+        // SAFETY: RC was just created
+        unsafe { Object::from_rc(Rc::new(self.clone()) as Rc<dyn Any>) }
+    }
+}
 
 impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
     fn eq(&self, other: &Object<U>) -> bool {
