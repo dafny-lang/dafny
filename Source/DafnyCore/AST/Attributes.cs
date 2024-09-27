@@ -42,6 +42,10 @@ public class Attributes : TokenNode {
     Prev = prev;
   }
 
+  public virtual Attributes CloneAfter(Attributes prev) {
+    return new Attributes(Name, Args, prev);
+  }
+
   public override string ToString() {
     string result = Prev?.ToString() + "{:" + Name;
     if (Args == null || !Args.Any()) {
@@ -207,6 +211,25 @@ public class Attributes : TokenNode {
       : new List<Node> { Prev });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  // If tmpStack was parsed after attributesStack, places all attributes of
+  // tmpStack on top of attributesStack as if attributesStack was used all along
+  // Sets tmpStack to null to mark thes attributes as consumed.
+  public static void MergeInto(ref Attributes tmpStack, ref Attributes attributesStack) {
+    MergeIntoReadonly(tmpStack, ref attributesStack);
+    tmpStack = null;
+  }
+  private static void MergeIntoReadonly(Attributes tmpStack, ref Attributes attributesStack) {
+    if (tmpStack == null) {
+      return;
+    }
+    if (attributesStack == null) {
+      attributesStack = tmpStack;
+      return;
+    }
+    MergeIntoReadonly(tmpStack.Prev, ref attributesStack);
+    attributesStack = tmpStack.CloneAfter(attributesStack);
+  }
 }
 
 public static class AttributesExtensions {
@@ -234,6 +257,27 @@ public class UserSuppliedAttributes : Attributes {
     this.tok = tok;
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
+  }
+  
+  public override Attributes CloneAfter(Attributes prev) {
+    return new UserSuppliedAttributes(tok, OpenBrace, CloseBrace, Args, prev);
+  }
+}
+
+
+public class UserSuppliedAtAttribute : Attributes {
+  public static readonly string UserAttribute = "user_attribute";
+  public readonly IToken AtSign;
+  public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
+  public UserSuppliedAtAttribute(IToken tok, Expression arg, Attributes prev)
+    : base(UserAttribute, new List<Expression>(){arg}, prev) {
+    Contract.Requires(tok != null);
+    this.tok = tok;
+    this.AtSign = tok;
+  }
+  
+  public override Attributes CloneAfter(Attributes prev) {
+    return new UserSuppliedAtAttribute(AtSign, Args[0], prev);
   }
 }
 

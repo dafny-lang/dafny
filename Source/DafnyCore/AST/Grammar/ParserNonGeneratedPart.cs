@@ -627,6 +627,15 @@ public partial class Parser {
     public bool IsOpaque;
     public IToken OpaqueToken;
     public IToken FirstToken;
+    public Attributes Attributes = null;
+  }
+
+  void CheckNoKeywordIfAtAttribute(DeclModifierData mods) {
+    if (mods is{FirstToken: not null, Attributes: UserSuppliedAtAttribute { RangeToken: {} range}}) {
+      SemErr(null, range.ToToken(), "Please declare @-attributes before declaration keywords");
+    } else if (mods is {FirstToken: null, Attributes: UserSuppliedAtAttribute { RangeToken: {} range2}}) {
+      mods.FirstToken = range2.StartToken;
+    }
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
