@@ -3531,8 +3531,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(builderToCollect != null);
       Contract.Requires(builderToCollect != null);
 
-      builderToCollect.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.False));
-      var ifCmd = new Bpl.IfCmd(tok, null, builderToCollect.Collect(tok), null, null);
+      if (!builderToCollect.Commands.Any()) {
+        return;
+      }
+      builderToCollect.Add(new AssumeCmd(tok, Bpl.Expr.False));
+      var ifCmd = new IfCmd(tok, null, builderToCollect.Collect(tok), null, null);
       builder.Add(ifCmd);
     }
 

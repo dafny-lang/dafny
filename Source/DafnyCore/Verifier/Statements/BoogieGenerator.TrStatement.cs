@@ -393,7 +393,7 @@ public partial class BoogieGenerator {
           e => Bpl.Expr.Eq(boogieTupleReference, AdaptBoxing(rhs.tok, e, rhs.Type, pat.Expr.Type))));
       }
 
-      CheckWellformedWithResult(rhs, new WFOptions(null, false, false), locals, builder, etran, AddResultCommands);
+      TrStmt_CheckWellformed(rhs, builder, locals, etran, false, false, AddResultCommands);
       builder.Add(TrAssumeCmd(rhs.tok, etran.CanCallAssumption(rhs)));
       builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
       builder.Add(TrAssumeCmd(rhs.tok, MkIs(boogieTupleReference, pat.Expr.Type)));
@@ -1050,7 +1050,7 @@ public partial class BoogieGenerator {
     if (lValueContext) {
       options = options.WithLValueContext(true);
     }
-    CheckWellformedWithResult(expr, options, locals, builder, etran, addResultCommands);
+    CheckWellformedWithResult(expr, options, locals, builder, etran, addResultCommands, false);
     builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
   }
 
