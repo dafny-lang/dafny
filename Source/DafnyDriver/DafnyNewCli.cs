@@ -51,9 +51,7 @@ public static class DafnyNewCli {
     AddCommand(CoverageReportCommand.Create());
     AddCommand(DocumentationCommand.Create());
 
-    // Check that the .doo file format is aware of all options,
-    // and therefore which have to be saved to safely support separate verification/compilation.
-    DooFile.CheckOptions(AllOptions);
+    OptionRegistry.CheckOptionsAreKnown(AllOptions);
 
     // This SHOULD find the same method but returns null for some reason:
     // typeof(ParseResult).GetMethod("GetValueForOption", 1, new[] { typeof(Option<>) });
@@ -111,10 +109,10 @@ public static class DafnyNewCli {
       }
 
       ProcessOption(context, DafnyProject.FindProjectOption, dafnyOptions);
-      var findProjectPath = dafnyOptions.Get(DafnyProject.FindProjectOption);
-      if (dafnyOptions.DafnyProject == null && findProjectPath != null) {
+      var firstFile = dafnyOptions.CliRootSourceUris.FirstOrDefault();
+      if (dafnyOptions.DafnyProject == null && dafnyOptions.Get(DafnyProject.FindProjectOption) && firstFile != null) {
         var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
-        var project = await opener.TryFindProject(new Uri(findProjectPath.FullName));
+        var project = await opener.TryFindProject(firstFile);
         project?.Validate(dafnyOptions.OutputWriter, AllOptions);
         dafnyOptions.DafnyProject = project;
       }

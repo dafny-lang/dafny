@@ -14,6 +14,7 @@ public interface ICodeContext : IASTVisitorContext {
   bool MustReverify { get; }
   string FullSanitizedName { get; }
   bool AllowsNontermination { get; }
+  CodeGenIdGenerator CodeGenIdGenerator { get; }
 }
 
 
@@ -37,6 +38,7 @@ public class CodeContextWrapper : ICodeContext {
   public bool MustReverify => inner.MustReverify;
   public string FullSanitizedName => inner.FullSanitizedName;
   public bool AllowsNontermination => inner.AllowsNontermination;
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => inner.CodeGenIdGenerator;
 
   public static ICodeContext Unwrap(ICodeContext codeContext) {
     while (codeContext is CodeContextWrapper ccw) {
@@ -129,6 +131,8 @@ public class NoContext : ICodeContext {
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public bool AllowsNontermination { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator { get; } = new();
+
   public bool AllowsAllocation => true;
 }
 
@@ -141,10 +145,12 @@ public interface RedirectingTypeDecl : ICallable {
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
+  PreType BasePreType { get; }
+  Type BaseType { get; }
   Expression/*?*/ Constraint { get; }
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost
-  FreshIdGenerator IdGenerator { get; }
+  VerificationIdGenerator IdGenerator { get; }
 
   [FilledInDuringResolution] bool ConstraintIsCompilable { get; set; }
 }

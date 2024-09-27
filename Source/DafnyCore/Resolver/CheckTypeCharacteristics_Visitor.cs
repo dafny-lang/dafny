@@ -59,8 +59,8 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       foreach (var v in s.LocalVars) {
         VisitType(v.Tok, v.Type, inGhostContext || v.IsGhost);
       }
-    } else if (stmt is AssignStmt) {
-      var s = (AssignStmt)stmt;
+    } else if (stmt is SingleAssignStmt) {
+      var s = (SingleAssignStmt)stmt;
       if (s.Rhs is TypeRhs tRhs) {
         VisitType(tRhs.Tok, tRhs.Type, inGhostContext);
       }
@@ -102,7 +102,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       return false;
     } else if (stmt is CallStmt) {
       var s = (CallStmt)stmt;
-      CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember, inGhostContext);
+      CheckTypeInstantiation(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplicationJustMember, inGhostContext);
       // recursively visit all subexpressions, noting that some of them may correspond to ghost formal parameters
       Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
       for (var i = 0; i < s.Method.Outs.Count; i++) {
@@ -243,7 +243,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
     } else if (expr is MemberSelectExpr) {
       var e = (MemberSelectExpr)expr;
       if (e.Member is Function || e.Member is Method) {
-        CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember, inGhostContext);
+        CheckTypeInstantiation(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplicationJustMember, inGhostContext);
       }
     } else if (expr is FunctionCallExpr) {
       var e = (FunctionCallExpr)expr;
@@ -344,7 +344,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       VisitType(tok, actual, inGhostContext);
       foreach (var typeBound in formal.TypeBounds) {
         var bound = typeBound.Subst(typeMap);
-        if (!actual.IsSubtypeOf(bound, false, false)) {
+        if (!Type.IsSupertype(bound, actual) || (actual.IsRefType && !actual.IsNonNullRefType && !bound.IsRefType)) {
           var index = actualTypeArgs.Count == 1 ? "" : " " + i;
           reporter.Error(MessageSource.Resolver, tok,
             $"type parameter{index} ('{formal.Name}') passed to {what} '{className}' must meet type bound '{bound}' (got '{actual}')");

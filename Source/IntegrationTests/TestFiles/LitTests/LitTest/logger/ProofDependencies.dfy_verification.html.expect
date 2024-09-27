@@ -454,17 +454,18 @@ method {:testEntry} DontWarnAboutVacuousAssertFalse(x: int) {
 
 class C {
   var x: int
+  constructor() {}
 }
 
 function {:testEntry} GetX(c: C): int
   reads c
 {
-  </span><span class="nc" id="445:3">c.</span><span class="pc" id="445:5">x
-</span><span class="na" id="446:1">}
+  </span><span class="nc" id="446:3">c.</span><span class="pc" id="446:5">x
+</span><span class="na" id="447:1">}
 
 method {:testEntry} DontWarnAboutUnusedAssumeTrue(x: int) {
-  assume </span><span class="nc" id="449:10">t</span><span class="na" id="449:11">rue;
-  assert 1 + x </span><span class="fc" id="450:16">=</span><span class="na" id="450:17">= x + 1;
+  assume </span><span class="nc" id="450:10">t</span><span class="na" id="450:11">rue;
+  assert 1 + x </span><span class="fc" id="451:16">=</span><span class="na" id="451:17">= x + 1;
 }
 
 }

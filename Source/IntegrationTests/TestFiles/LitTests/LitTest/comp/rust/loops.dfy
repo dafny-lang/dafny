@@ -1,5 +1,5 @@
-// NONUNIFORM: Temporary development of the Rust compiler
-// RUN: %baredafny run --target=rs --emit-uncompilable-code "%s" > "%t"
+// NONUNIFORM: Rust-specific tests
+// RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype u8 = x: int | 0 <= x < 10
@@ -70,6 +70,9 @@ method Main() {
   expect forall ch <- c :: ch !in "e";
 
   Remap();
+
+  expect forall i: int | i == 1 :: i % 2 == 1;
+  expect (map i: int | i == 1 :: i % 2 := 2) == map[1 := 2];
 }
 
 method Remap() {

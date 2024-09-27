@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
       /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
       /// </summary>
       ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, string thisVar,
-        Function applyLimited_CurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, IFrameScope scope,
+        Function applyLimitedCurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, IFrameScope scope,
         string readsFrame, string modifiesFrame, bool stripLits) {
 
         Contract.Requires(boogieGenerator != null);
@@ -78,7 +78,7 @@ namespace Microsoft.Dafny {
         this.predef = predef;
         this._the_heap_expr = heap;
         this.This = thisVar;
-        this.applyLimited_CurrentFunction = applyLimited_CurrentFunction;
+        this.applyLimited_CurrentFunction = applyLimitedCurrentFunction;
         this.layerInterCluster = layerInterCluster;
         if (layerIntraCluster == null) {
           this.layerIntraCluster = layerInterCluster;
@@ -649,8 +649,8 @@ namespace Microsoft.Dafny {
                   return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.CloseParen, e.Args) {
                     Function = fn,
                     Type = e.Type,
-                    TypeApplication_AtEnclosingClass = mem.TypeApplication_AtEnclosingClass,
-                    TypeApplication_JustFunction = mem.TypeApplication_JustMember
+                    TypeApplication_AtEnclosingClass = mem.TypeApplicationAtEnclosingClass,
+                    TypeApplication_JustFunction = mem.TypeApplicationJustMember
                   });
                 }
               }
@@ -833,10 +833,8 @@ namespace Microsoft.Dafny {
                   // by $IsAllocBox.
                   return BoogieGenerator.MkIsAllocBox(BoxIfNecessary(e.E.tok, TrExpr(e.E), e.E.Type), e.E.Type, HeapExpr);
                 case UnaryOpExpr.ResolvedOpcode.Assigned:
-                  var ns = e.E as NameSegment;
-                  Contract.Assert(ns != null);
                   string name = null;
-                  switch (ns.Resolved) {
+                  switch (e.E.Resolved) {
                     case IdentifierExpr ie:
                       name = ie.Var.UniqueName;
                       break;
@@ -850,7 +848,7 @@ namespace Microsoft.Dafny {
                   if (name == null) {
                     return Expr.True;
                   }
-                  BoogieGenerator.definiteAssignmentTrackers.TryGetValue(name, out var defass);
+                  BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
                   return defass;
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -1717,7 +1715,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
         // first add type arguments
         var tyParams = GetTypeParams(e.Function);
         var tySubst = e.TypeArgumentSubstitutionsWithParents();
-        args.AddRange(BoogieGenerator.trTypeArgs(tySubst, tyParams));
+        args.AddRange(BoogieGenerator.TrTypeArgs(tySubst, tyParams));
 
         if (layerArgument != null) {
           args.Add(layerArgument);

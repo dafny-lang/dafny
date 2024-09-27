@@ -9,8 +9,8 @@ method Main() {
   IsTests();
 }
 
-trait A<X> { }
-trait B<Y0, Y1> { }
+trait A<X> extends object { }
+trait B<Y0, Y1> extends object { }
 trait C<Z> extends B<int, Z> { }
 
 class K<U> extends object, B<int, U> { }
@@ -23,19 +23,19 @@ method AssignBackAndForth<W>(a: A<W>, b: B<int, W>, c: C<W>, k: K<W>, l: L<W>) r
   var o: object?;
 
   o := a;
-  a' := o;
+  a' := o as A<W>;
 
   o := b;
-  b' := o;
+  b' := o as B<int, W>;
 
   o := c;
-  c' := o;
+  c' := o as C<W>;
 
   o := k;
-  k' := o;
+  k' := o as K<W>;
 
   o := l;
-  l' := o;
+  l' := o as L<W>;
 }
 
 method AsBackAndForth<W>(a: A<W>, b: B<int, W>, c: C<W>, k: K<W>, l: L<W>) returns (a': object, b': object, c': object, k': object, l': object)
@@ -91,7 +91,7 @@ method IsTests() {
   // TODO: SubsetConstraints();
 }
 
-trait TraitA<X> { }
+trait TraitA<X> extends object { }
 trait TraitB<X> { }
 
 class ClassP { }
@@ -122,11 +122,11 @@ method TestNullIs<U>(o: object, oo: object?, t: TraitA<U>, tt: TraitA?<U>, q: Cl
   print qq is object, " ", qq is object?, " ", qq is TraitA<U>, " ", qq is TraitA?<U>, " ", qq is ClassQ<U>, " ", qq is ClassQ?<U>, "\n";
 }
 
-trait XA { }
-trait XB { }
+trait XA extends object { }
+trait XB extends object { }
 trait XC extends XA, XB { }
 trait XD extends XC { }
-trait XE { }
+trait XE extends object { }
 class XX extends XD { }
 
 method TestFromTraits0(x: XX?) {

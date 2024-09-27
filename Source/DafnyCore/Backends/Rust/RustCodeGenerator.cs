@@ -1,4 +1,6 @@
 using System;
+using System.CommandLine;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using Dafny;
@@ -13,14 +15,23 @@ namespace Microsoft.Dafny.Compilers {
       this.Options = options;
     }
 
-    public override ISequence<Rune> Compile(Sequence<DAST.Module> program) {
+    public override void Compile(Sequence<DAST.Module> program, Sequence<ISequence<Rune>> otherFiles, ConcreteSyntaxTree w) {
       var c = new DCOMP.COMP();
-      c.__ctor(Options.Get(CommonOptionBag.UnicodeCharacters), ObjectType.create_RcMut());
-      var s = c.Compile(program);
+      var charType = Options.Get(CommonOptionBag.UnicodeCharacters)
+        ? Defs.CharType.create_UTF32()
+        : Defs.CharType.create_UTF16();
+      var pointerType = Options.Get(CommonOptionBag.RawPointers)
+        ? Defs.PointerType.create_Raw()
+        : Defs.PointerType.create_RcMut();
+      var rootType = Options.Get(RustBackend.RustModuleNameOption) is { } opt && opt != "" ?
+          Defs.RootType.create_RootPath(Sequence<Rune>.UnicodeFromString(opt))
+          : Defs.RootType.create_RootCrate();
+      c.__ctor(charType, pointerType, rootType);
+      var s = c.Compile(program, otherFiles);
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
         throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
       }
-      return s;
+      w.Write(s.ToVerbatimString(false));
     }
 
     public override ISequence<Rune> EmitCallToMain(string fullName) {

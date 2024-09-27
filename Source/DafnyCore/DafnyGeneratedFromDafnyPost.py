@@ -20,9 +20,9 @@ if not os.path.exists(output + '.cs'):
   print(f"File {output} was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
   exit()
 
-with open (output + '.cs', 'r' ) as f:
+with open(output + '.cs', 'r' ) as f:
   content = f.read()
-  content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*|_\d_', '', content, flags = re.M)
+  content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content, flags = re.M)
   content_new = re.sub('\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \\1', '', content_trimmed, flags = re.M)
   content_new = re.sub('Backends\\\\\\\\Rust\\\\\\\\', 'Backends/Rust/', content_new, flags = re.M)
 
@@ -38,6 +38,10 @@ with open (output + '.cs', 'r' ) as f:
 
   prelude_match = re.match(r'(.*?)\nnamespace', content_new, re.DOTALL)
   prelude = prelude_match.group(1).strip() if prelude_match else ""
+  prelude = (prelude +
+    "\n#pragma warning disable CS0164 // This label has not been referenced" +
+    "\n#pragma warning disable CS0162 // Unreachable code detected" +
+    "\n#pragma warning disable CS1717 // Assignment made to same variable")
 
   # Define a regular expression to match the prelude and namespace blocks
   pattern = re.compile(r'(namespace\s+([\w.]+)\s*{[\s\S]*?}\s*//\s*end\s*of\s*namespace\s+\2)')
@@ -53,7 +57,7 @@ with open (output + '.cs', 'r' ) as f:
     # If the name of the namespace ends with "coverage", we move this test
     # to ../DafnyCore.Test/{output}/....
     file_path_prefix = ""
-    if namespace_name.endswith("Coverage"):
+    if namespace_name.endswith("Coverage") or namespace_name.endswith("Test"):
       file_path_prefix = test_output
     
     # Write content to a file

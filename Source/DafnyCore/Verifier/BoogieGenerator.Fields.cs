@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
-            if (!IsOpaque(cf)) {
+            if (!IsOpaque(cf, options)) {
               var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
               definitionAxiom.CanHide = true;
               sink.AddTopLevelDeclaration(definitionAxiom);

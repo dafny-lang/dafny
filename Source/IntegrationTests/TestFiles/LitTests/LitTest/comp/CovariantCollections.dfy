@@ -10,7 +10,7 @@ method Main() {
   CovarianceRegressions.Test();
 }
 
-trait Number {
+trait Number extends object {
   const value: int
   method Print()
 }
@@ -461,7 +461,7 @@ function MapOfSeqOf<T(==), U>(t: T, u: U): map<seq<T>, U> {
 // -------------------- some regression tets --------------------
 
 module CovarianceRegressions {
-  trait Trait { }
+  trait Trait extends object { }
 
   method Test() {
     var a: set<Trait>;

@@ -67,11 +67,14 @@ namespace Microsoft.Dafny.Compilers {
     protected ModuleDefinition enclosingModule; // non-null when a module body is being translated
     protected Method enclosingMethod;  // non-null when a method body is being translated
     protected Function enclosingFunction;  // non-null when a function body is being translated
+    protected Declaration enclosingDeclaration; // non-null when a declaration body is being translated
 
-    protected internal readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
+    protected internal readonly CodeGenIdGenerator idGenerator = new CodeGenIdGenerator();
 
-    private protected string ProtectedFreshId(string prefix) => IdProtect(idGenerator.FreshId(prefix));
-    private protected string ProtectedFreshNumericId(string prefix) => IdProtect(idGenerator.FreshNumericId(prefix));
+    protected internal CodeGenIdGenerator currentIdGenerator => enclosingDeclaration?.CodeGenIdGenerator ?? idGenerator;
+
+    private protected string ProtectedFreshId(string prefix) => IdProtect(currentIdGenerator.FreshId(prefix));
+    private protected string ProtectedFreshNumericId(string prefix) => IdProtect(currentIdGenerator.FreshNumericId(prefix));
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
@@ -179,8 +182,13 @@ namespace Microsoft.Dafny.Compilers {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     protected abstract ConcreteSyntaxTree CreateStaticMain(IClassWriter wr, string argsParameterName);
+
+    protected virtual bool ShouldCompileModule(Program program, ModuleDefinition module) {
+      return module.ShouldCompile(program.Compilation);
+    }
+
     protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr);
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
     /// Called when a module is out of scope for compilation, such as when using --library.
@@ -528,7 +536,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (lexpr is MemberSelectExpr memberSelectExpr) {
             string target = EmitAssignmentLhs(memberSelectExpr.Obj, wr);
             var typeArgs = TypeArgumentInstantiation.ListFromMember(memberSelectExpr.Member,
-              null, memberSelectExpr.TypeApplication_JustMember);
+              null, memberSelectExpr.TypeApplicationJustMember);
             ILvalue newLhs = EmitMemberSelect(w => EmitIdentifier(target, w), memberSelectExpr.Obj.Type, memberSelectExpr.Member, typeArgs,
               memberSelectExpr.TypeArgumentSubstitutionsWithParents(), memberSelectExpr.Type, internalAccess: enclosingMethod is Constructor);
             lhssn.Add(newLhs);
@@ -985,7 +993,7 @@ namespace Microsoft.Dafny.Compilers {
       return IdProtect(tp.GetCompileName(Options));
     }
     protected virtual string GetCompileNameNotProtected(IVariable v) {
-      return v.CompileName;
+      return v.GetOrCreateCompileName(currentIdGenerator);
     }
     protected virtual string IdName(IVariable v) {
       Contract.Requires(v != null);
@@ -1519,6 +1527,41 @@ namespace Microsoft.Dafny.Compilers {
       EmitFooter(program, wrx);
     }
 
+    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(ClassLikeDecl cl) {
+      var include = true;
+      var classIsExtern = false;
+      if (include) {
+        classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+        if (classIsExtern && cl.Members.TrueForAll(member =>
+              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+          include = false;
+        }
+      }
+
+      return (classIsExtern, include);
+    }
+
+    protected bool HasCompilationMaterial(MemberDecl memberDecl) {
+      return !memberDecl.IsGhost && (Options.DisallowExterns || !Attributes.Contains(memberDecl.Attributes, "extern"));
+    }
+
+    protected (bool classIsExtern, bool included) GetIsExternAndIncluded(DefaultClassDecl defaultClassDecl) {
+      var hasCompilationMaterial = defaultClassDecl.Members.Exists(HasCompilationMaterial);
+      var include = hasCompilationMaterial;
+      var classIsExtern = false;
+      if (include) {
+        classIsExtern =
+          (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
+          Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
+        if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
+              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+          include = false;
+        }
+      }
+
+      return (classIsExtern, include);
+    }
+
     private void EmitModule(Program program, ConcreteSyntaxTree programNode, ModuleDefinition module) {
       if (!module.CanCompile()) {
         // the purpose of an abstract module is to skip compilation
@@ -1540,15 +1583,15 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      if (!module.ShouldCompile(program.Compilation)) {
+      if (!ShouldCompileModule(program, module)) {
         DependOnModule(program, module, externModule, libraryName);
         return;
       }
 
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, programNode);
-      var v = new CheckHasNoAssumes_Visitor(this, wr);
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
+      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
+      var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
           continue;
@@ -1608,11 +1651,6 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
-          if (Options.ForbidNondeterminism && iter.Outs.Count > 0) {
-            Error(ErrorId.c_iterators_are_not_deterministic, iter.tok,
-              "since yield parameters are initialized arbitrarily, iterators are forbidden by the --enforce-determinism option",
-              wr);
-          }
 
           var wIter = CreateIterator(iter, wr);
           if (iter.Body == null) {
@@ -1628,19 +1666,7 @@ namespace Microsoft.Dafny.Compilers {
           w.Finish();
         } else if (d is DefaultClassDecl defaultClassDecl) {
           Contract.Assert(defaultClassDecl.InheritedMembers.Count == 0);
-          Predicate<MemberDecl> compilationMaterial = x =>
-            !x.IsGhost && (Options.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
-          var include = defaultClassDecl.Members.Exists(compilationMaterial);
-          var classIsExtern = false;
-          if (include) {
-            classIsExtern =
-              (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
-              Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
-            if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
-                  member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-              include = false;
-            }
-          }
+          var (classIsExtern, include) = GetIsExternAndIncluded(defaultClassDecl);
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
@@ -1656,24 +1682,7 @@ namespace Microsoft.Dafny.Compilers {
             CompileClassMembers(program, defaultClassDecl, abyss);
           }
         } else if (d is ClassLikeDecl cl) {
-          var include = true;
-          var classIsExtern = false;
-          if (include) {
-            classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-            if (classIsExtern && cl.Members.TrueForAll(member =>
-                  member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
-              include = false;
-            }
-          }
-
-          if (Options.ForbidNondeterminism &&
-              !classIsExtern &&
-              !cl.Members.Exists(member => member is Constructor) &&
-              cl.Members.Exists(member => member is Field && !(member is ConstantField { Rhs: not null }))) {
-            Error(ErrorId.c_constructorless_class_forbidden, cl.tok,
-              "since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option",
-              wr);
-          }
+          var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
@@ -2129,6 +2138,7 @@ namespace Microsoft.Dafny.Compilers {
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
+          enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
@@ -2198,6 +2208,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       foreach (MemberDecl memberx in c.Members) {
+        enclosingDeclaration = memberx;
         var member = (memberx as Function)?.ByMethodDecl ?? memberx;
         if (!member.IsStatic) {
           thisContext = c;
@@ -3245,7 +3256,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+    protected virtual ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, SingleAssignStmt s0, Expression rhs) {
       var wStmts = wr.Fork();
       var wrVarInit = DeclareLocalVar(ingredients, null, null, wr);
       {
@@ -3286,10 +3297,10 @@ namespace Microsoft.Dafny.Compilers {
       return fce.IsByMethodCall && fce.Function.ByMethodDecl == enclosingMethod && fce.Function.ByMethodDecl.IsTailRecursive;
     }
 
-    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitMemberSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (MemberSelectExpr)s0.Lhs;
 
-      var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
+      var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplicationJustMember);
       var lvalue = EmitMemberSelect(w => {
         var wObj = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], s0.Tok, w);
         EmitTupleSelect(tup, 0, wObj);
@@ -3300,7 +3311,7 @@ namespace Microsoft.Dafny.Compilers {
       EmitTupleSelect(tup, 1, wCoerced);
     }
 
-    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected virtual void EmitSeqSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       var lhs = (SeqSelectExpr)s0.Lhs;
       EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
       var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
@@ -3311,7 +3322,7 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
+    protected virtual void EmitMultiSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
       var lhs = (MultiSelectExpr)s0.Lhs;
       var wArray = new ConcreteSyntaxTree(wr.RelativeIndentLevel);
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
@@ -3532,7 +3543,7 @@ namespace Microsoft.Dafny.Compilers {
         TrLocalVar(bv, false, wr);
       }
       var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
-      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
+      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, wr, false);
     }
 
     private bool CanSequentializeForall(List<BoundVar> bvs, List<BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
@@ -3659,7 +3670,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, int debuginfoLine, ConcreteSyntaxTree wr, bool inLetExprBody) {
+    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<BoundedPool> bounds, ConcreteSyntaxTree wr, bool inLetExprBody) {
       Contract.Requires(lhss != null);
       Contract.Requires(constraint != null);
       Contract.Requires(bounds != null);
@@ -3735,7 +3746,7 @@ namespace Microsoft.Dafny.Compilers {
       copyInstrWriters.Pop();
 
       // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
-      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
+      EmitAbsurd("assign-such-that search produced no value", wrOuter, needIterLimit);
     }
 
     protected interface ILvalue {
@@ -3930,7 +3941,7 @@ namespace Microsoft.Dafny.Compilers {
           ll.Obj.Type.IsNonNullRefType || !ll.Obj.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Obj.Type.NormalizeExpand()),
           "_obj", wr, wStmts
         );
-        var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
+        var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplicationJustMember);
         return EmitMemberSelect(writeStabilized, ll.Obj.Type, ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type,
           internalAccess: enclosingMethod is Constructor);
 
@@ -4326,6 +4337,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    protected virtual void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
+      wr.Write(qual);
+    }
+
     /// <summary>
     /// Emit translation of a call statement.
     /// The "receiverReplacement" parameter is allowed to be "null". It must be null for tail recursive calls.
@@ -4457,13 +4472,14 @@ namespace Microsoft.Dafny.Compilers {
           EmitExpr(s.Receiver, false, wReceiver, wStmts);
           wr.Write($"){InstanceClassAccessor}");
         } else if (s.Method.IsExtern(Options, out var qual, out var compileName) && qual != null) {
-          wr.Write("{0}{1}", qual, StaticClassAccessor);
+          EmitStaticExternMethodQualifier(qual, wr);
+          wr.Write("{0}", StaticClassAccessor);
           protectedName = compileName;
         } else {
           EmitTypeName_Companion(s.Receiver.Type, wr, wr, s.Tok, s.Method);
           wr.Write(StaticClassAccessor);
         }
-        var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
+        var typeArgs = CombineAllTypeArguments(s.Method, s.MethodSelect.TypeApplicationAtEnclosingClass, s.MethodSelect.TypeApplicationJustMember);
         var firstReceiverArg = receiverReplacement != null ?
           new IdentifierExpr(s.Receiver.tok, receiverReplacement) { Type = s.Receiver.Type } : s.Receiver;
         EmitNameAndActualTypeArgs(protectedName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, s.Method, false)), s.Tok,
@@ -4543,6 +4559,10 @@ namespace Microsoft.Dafny.Compilers {
       TrTailCall(tok, method.IsStatic, method.Ins, receiver, args, wr);
     }
 
+    public virtual string TailRecursiveVar(int inParamIndex, IVariable variable) {
+      return IdName(variable);
+    }
+
     void TrTailCall(IToken tok, bool isStatic, List<Formal> inParameters, Expression receiver, List<Expression> args, ConcreteSyntaxTree wr) {
       // assign the actual in-parameters to temporary variables
       var inTmps = new List<string>();
@@ -4582,13 +4602,18 @@ namespace Microsoft.Dafny.Compilers {
         EndStmt(wr);
         n++;
       }
+
+      var inParamIndex = 0;
       foreach (var p in inParameters) {
         if (!p.IsGhost) {
-          EmitIdentifier(
-            inTmps[n],
-            EmitAssignment(IdentLvalue(IdName(p)), p.Type, inTypes[n], wr, tok)
-          );
+          // We want to assign the value to input parameters. However, if input parameters were shadowed
+          // for the compilers that support the same shadowing rules as Dafny (e.g. the Dafny-to-Rust compiler)
+          // we need to assign the result to the temporary and mutable variables instead
+          var wrAssignRhs =
+            EmitAssignment(IdentLvalue(TailRecursiveVar(inParamIndex, p)), p.Type, inTypes[n], wr, tok);
+          EmitIdentifier(inTmps[n], wrAssignRhs);
           n++;
+          inParamIndex++;
         }
       }
       Contract.Assert(n == inTmps.Count);
@@ -5044,7 +5069,7 @@ namespace Microsoft.Dafny.Compilers {
       return wrArguments;
     }
 
-    protected ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
+    protected virtual ConcreteSyntaxTree MaybeEmitCallToIsMethod(RedirectingTypeDecl declWithConstraints, List<Type> typeArguments, ConcreteSyntaxTree wr) {
       Contract.Requires(declWithConstraints is SubsetTypeDecl or NewtypeDecl);
       Contract.Requires(declWithConstraints.TypeArgs.Count == typeArguments.Count);
       Contract.Requires(declWithConstraints.ConstraintIsCompilable);
@@ -5230,7 +5255,8 @@ namespace Microsoft.Dafny.Compilers {
       string qual = "";
       string compileName = "";
       if (f.IsExtern(Options, out qual, out compileName) && qual != null) {
-        wr.Write("{0}{1}", qual, ModuleSeparator);
+        EmitStaticExternMethodQualifier(qual, wr);
+        wr.Write("{1}", qual, ModuleSeparator);
       } else if (f.IsStatic || customReceiver) {
         wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), StaticClassAccessor);
         compileName = customReceiver ? CompanionMemberIdName(f) : IdName(f);

@@ -279,8 +279,9 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       var diagnostics1 = diagnosticsReceiver.GetLatestAndClearQueue(documentItem);
       Assert.Equal(4, diagnostics1.Length);
       ApplyChange(ref documentItem, ((7, 25), (10, 17)), "");
+      await GetNextDiagnostics(documentItem); // Migrated verification diagnostics.
       var diagnostics2 = await GetNextDiagnostics(documentItem);
-      Assert.Equal(5, diagnostics2.Length);
+      Assert.Equal(3, diagnostics2.Length);
       Assert.Equal("Parser", diagnostics2[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics2[0].Severity);
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
@@ -1004,8 +1005,10 @@ method test() {
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithTimeoutReportsTimeoutDiagnostic.dfy");
       client.OpenDocument(documentItem);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Single(diagnostics);
-      Assert.Contains("timed out", diagnostics[0].Message);
+      Assert.True(diagnostics.Length is 1 or 2); // Ack and Test sometimes time out at the same time
+      for (var i = 0; i < diagnostics.Length; i++) {
+        Assert.Contains("timed out", diagnostics[i].Message);
+      }
     }
 
     [Fact]

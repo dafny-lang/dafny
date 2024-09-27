@@ -179,8 +179,7 @@ a, b.e().f := m() {:attr};
 
 In this case, the right-hand-side must be a method call and the number of
 left-hand sides must match the number of out-parameters of the
-method that is called or there must be just one ``Lhs`` to the left of
-the `:=`, which then is assigned a tuple of the out-parameters.
+method that is called.
 Note that the result of a method call is not allowed to be used as an argument of
 another method call, as if it were an expression.
 
@@ -257,6 +256,38 @@ Note that the syntax
 ```
 
 is interpreted as a label in which the user forgot the `label` keyword.
+
+### 8.5.6. Method call with a `by` proof
+
+The purpose of this form of a method call is to seperate the called method's
+precondition and its proof from the rest of the correctness proof of the
+calling method.
+
+<!-- %check-verify Statements.16.expect -->
+```dafny
+opaque predicate P() { true }
+
+lemma ProveP() ensures P() {
+  reveal P();
+}
+
+method M(i: int) returns (r: int)
+  requires P()
+  ensures r == i
+{ r := i; }
+
+method C() {
+  var v := M(1/3) by { // We prove 3 != 0 outside of the by proof
+    ProveP();          // Prove precondtion  
+  }
+  assert v == 0;       // Use postcondition
+  assert P();          // Fails
+}
+```
+
+By placing the call to lemma `ProveP` inside of the by block, we can not use
+`P` after the method call. The well-formedness checks of the arguments to the
+method call are not subject to the separation.
 
 ## 8.6. Update with Failure Statement (`:-`) ([grammar](#g-update-with-failure-statement)) {#sec-update-with-failure-statement}
 
@@ -2445,4 +2476,27 @@ the expressions is to provide hints to aid Dafny in proving that
 step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
 
+## 8.24. Opaque Block ([grammar](#g-opaque-block)) {#sec-opaque-block}
+As a Dafny sequence of statements grows in length, it can become harder to verify later statements in the block. With each statement, new information can become available, and with each modification of the heap, it becomes more expensive to access information from an older heap version. To reduce the verification complexity of long lists of statements, Dafny users can extract part of this block into a separate method or lemma. However, doing so introduces some boilerplate, which is where opaque blocks come in. They achieve a similar effect on verification performance as extracting code, but without the boilerplate. 
 
+An opaque block is similar to a block statement: it contains a sequence of zero or more statements, enclosed by curly braces. However, an opaque block is preceded by the keyword 'opaque', and may define ensures and modifies clauses before the curly braces. Anything that happens inside the block is invisible to the statements that come after it, unless it is specified by the ensures clause. Here is an example:
+
+<!-- %check-verify Statements.opaqueBlock.expect -->
+```dafny
+method OpaqueBlockUser() returns (x: int)
+  ensures x > 4 
+{
+  x := 1;
+  var y := 1;
+  opaque
+    ensures x > 3 
+  {
+    x := x + y;
+    x := x + 2;
+  }
+  assert x == 4; // error
+  x := x + 1;
+}
+```
+
+By default, the modifies clause of an opaque block is the same as that of the enclosing context. Opaque blocks may be nested.
