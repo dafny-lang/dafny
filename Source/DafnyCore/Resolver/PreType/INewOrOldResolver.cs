@@ -27,4 +27,14 @@ public interface INewOrOldResolver {
   }
 
   void ResolveStatementWithLabels(Statement statement, ResolutionContext resolutionContext);
+  void ResolveFrameExpression(
+    FrameExpression frameExpression,
+    FrameExpressionUse frameExpressionUse,
+    ResolutionContext context);
+
+  public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+    ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true);
+
+  public Expression ResolveDotSuffix(ExprDotName expr, bool allowStaticReferenceToInstance, bool isLastNameSegment, List<ActualBinding> args,
+    ResolutionContext resolutionContext, bool allowMethodCall);
 }

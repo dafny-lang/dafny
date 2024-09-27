@@ -128,10 +128,11 @@ module {:extern "DAST"} DAST {
     | SupportsEquality
     | SupportsDefault
 
-  datatype Primitive = Int | Real | String | Bool | Char
+  datatype Primitive = Int | Real | String | Bool | Char | Native
 
+  // USIZE is for whatever target considers that native arrays can be indexed with
   datatype NewtypeRange =
-    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | BigInt
+    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | USIZE | BigInt
     | NoRange
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
@@ -204,6 +205,7 @@ module {:extern "DAST"} DAST {
   datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
   datatype Method = Method(
+    attributes: seq<Attribute>,
     isStatic: bool,
     hasBody: bool,
     outVarsAreUninitFieldsToAssign: bool, // For constructors
@@ -315,6 +317,7 @@ module {:extern "DAST"} DAST {
     SetBoundedPool(of: Expression) |
     MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
+    ExactBoundedPool(of: Expression) |
     IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |
     Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)

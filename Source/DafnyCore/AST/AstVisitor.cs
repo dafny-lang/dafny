@@ -336,7 +336,7 @@ namespace Microsoft.Dafny {
             VisitUserProvidedType(local.SyntacticType, context);
           }
 
-        } else if (stmt is AssignStmt assignStmt) {
+        } else if (stmt is SingleAssignStmt assignStmt) {
           if (assignStmt.Rhs is TypeRhs typeRhs) {
             if (typeRhs.EType != null) {
               VisitUserProvidedType(typeRhs.EType, context);

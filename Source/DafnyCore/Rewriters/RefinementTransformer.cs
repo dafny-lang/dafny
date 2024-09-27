@@ -1191,16 +1191,16 @@ namespace Microsoft.Dafny {
             if (oldS is VarDeclStmt) {
               var cOld = (VarDeclStmt)oldS;
               if (LocalVarsAgree(cOld.Locals, cNew.Locals)) {
-                var update = cNew.Update as UpdateStmt;
+                var update = cNew.Assign as AssignStatement;
                 if (update != null && update.Rhss.TrueForAll(rhs => !rhs.CanAffectPreviouslyKnownExpressions)) {
                   // Note, we allow switching between ghost and non-ghost, since that seems unproblematic.
-                  if (cOld.Update == null) {
+                  if (cOld.Assign == null) {
                     doMerge = true;
-                  } else if (cOld.Update is AssignSuchThatStmt) {
+                  } else if (cOld.Assign is AssignSuchThatStmt) {
                     doMerge = true;
-                    addedAssert = refinementCloner.CloneExpr(((AssignSuchThatStmt)cOld.Update).Expr);
+                    addedAssert = refinementCloner.CloneExpr(((AssignSuchThatStmt)cOld.Assign).Expr);
                   } else {
-                    var updateOld = (UpdateStmt)cOld.Update;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
+                    var updateOld = (AssignStatement)cOld.Assign;  // if cast fails, there are more ConcreteUpdateStatement subclasses than expected
                     doMerge = true;
                     foreach (var rhs in updateOld.Rhss) {
                       if (!(rhs is HavocRhs)) {
@@ -1224,13 +1224,13 @@ namespace Microsoft.Dafny {
               i++;
             }
 
-          } else if (cur is AssignStmt) {
-            var cNew = (AssignStmt)cur;
-            var cOld = oldS as AssignStmt;
-            if (cOld == null && oldS is UpdateStmt) {
-              var us = (UpdateStmt)oldS;
+          } else if (cur is SingleAssignStmt) {
+            var cNew = (SingleAssignStmt)cur;
+            var cOld = oldS as SingleAssignStmt;
+            if (cOld == null && oldS is AssignStatement) {
+              var us = (AssignStatement)oldS;
               if (us.ResolvedStatements.Count == 1) {
-                cOld = us.ResolvedStatements[0] as AssignStmt;
+                cOld = us.ResolvedStatements[0] as SingleAssignStmt;
               }
             }
             bool doMerge = false;
@@ -1252,12 +1252,12 @@ namespace Microsoft.Dafny {
               i++;
             }
 
-          } else if (cur is UpdateStmt) {
-            var nw = (UpdateStmt)cur;
+          } else if (cur is AssignStatement) {
+            var nw = (AssignStatement)cur;
             List<Statement> stmtGenerated = new List<Statement>();
             bool doMerge = false;
-            if (oldS is UpdateStmt) {
-              var s = (UpdateStmt)oldS;
+            if (oldS is AssignStatement) {
+              var s = (AssignStatement)oldS;
               if (LeftHandSidesAgree(s.Lhss, nw.Lhss)) {
                 doMerge = true;
                 stmtGenerated.Add(nw);
@@ -1419,8 +1419,8 @@ namespace Microsoft.Dafny {
         } else if (other is BlockStmt && ((BlockStmt)other).Labels == null) {
           return true; // both are unlabeled
         }
-      } else if (nxt is UpdateStmt) {
-        var up = (UpdateStmt)nxt;
+      } else if (nxt is AssignStatement) {
+        var up = (AssignStatement)nxt;
         if (other is AssignSuchThatStmt) {
           var oth = other as AssignSuchThatStmt;
           return oth != null && LeftHandSidesAgree(oth.Lhss, up.Lhss);
@@ -1528,15 +1528,15 @@ namespace Microsoft.Dafny {
         if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
           Error(ErrorId.ref_invalid_break_in_skeleton, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }
-      } else if (s is AssignStmt) {
+      } else if (s is SingleAssignStmt) {
         // TODO: To be a refinement automatically (that is, without any further verification), only variables and fields defined
         // in this module are allowed.  This needs to be checked.  If the LHS refers to an l-value that was not declared within
         // this module, then either an error should be reported or the Translator needs to know to translate new proof obligations.
-        var a = (AssignStmt)s;
+        var a = (SingleAssignStmt)s;
         Error(ErrorId.ref_misplaced_assignment, a.Tok, "cannot have assignment statement");
-      } else if (s is ConcreteUpdateStatement) {
+      } else if (s is ConcreteAssignStatement) {
         postTasks.Enqueue(() => {
-          CheckIsOkayUpdateStmt((ConcreteUpdateStatement)s, moduleUnderConstruction);
+          CheckIsOkayUpdateStmt((ConcreteAssignStatement)s, moduleUnderConstruction);
         });
       } else if (s is CallStmt) {
         Error(ErrorId.ref_misplaced_call, s.Tok, "cannot have call statement");
@@ -1555,7 +1555,7 @@ namespace Microsoft.Dafny {
     }
 
     // Checks that statement stmt, defined in the constructed module m, is a refinement of skip in the parent module
-    void CheckIsOkayUpdateStmt(ConcreteUpdateStatement stmt, ModuleDefinition m) {
+    void CheckIsOkayUpdateStmt(ConcreteAssignStatement stmt, ModuleDefinition m) {
       foreach (var lhs in stmt.Lhss) {
         var l = lhs.Resolved;
         if (l is IdentifierExpr) {
@@ -1575,8 +1575,8 @@ namespace Microsoft.Dafny {
           Error(ErrorId.ref_invalid_new_assignments, l.tok, "new assignments in a refinement method can only assign to state that the module defines (which never includes array elements)");
         }
       }
-      if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
+      if (stmt is AssignStatement) {
+        var s = (AssignStatement)stmt;
         foreach (var rhs in s.Rhss) {
           if (rhs.CanAffectPreviouslyKnownExpressions) {
             Error(ErrorId.ref_invalid_assignment_rhs, rhs.Tok, "assignment RHS in refinement method is not allowed to affect previously defined state");

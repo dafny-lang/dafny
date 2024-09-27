@@ -499,7 +499,7 @@ mod tests {
     #[test]
     fn test_coercion_immutable() {
         let o = ClassWrapper::<i32>::constructor(1);
-        let a: Ptr<dyn Any> = Upcast::<dyn Any>::upcast(modify!(o));
+        let a: Ptr<dyn Any> = Upcast::<dyn Any>::upcast(read!(o));
         assert_eq!(cast!(a, ClassWrapper<i32>), o);
         let seq_o = seq![o];
         let seq_a = Sequence::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(seq_o);
@@ -770,7 +770,7 @@ mod tests {
 
         let previous_count = refcount!(x);
         {
-            let z = Object::<NodeRcMut>::from_ref(x.as_mut());
+            let z = Object::<NodeRcMut>::from_ref(x.as_ref());
             assert_eq!(refcount!(z), previous_count + 1);
             assert_eq!(refcount!(x), previous_count + 1);
         }
@@ -853,9 +853,7 @@ mod tests {
         let o: Object<InternalOpaqueError> = Object::new(s);
         let n: Object<dyn ::std::any::Any> = upcast_object::<InternalOpaqueError, dyn ::std::any::Any>()(o);
         let x = cast_object!(n, InternalOpaqueError);
-        let s2 = unsafe {
-            crate::dafny_runtime_conversions::object::dafny_class_to_struct(x)
-        };
+        let s2 = crate::dafny_runtime_conversions::object::dafny_class_to_struct(x);
         assert_eq!(s2.message, "Hello, World!");
     }
 }

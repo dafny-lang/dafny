@@ -1774,9 +1774,9 @@ namespace Microsoft.Dafny {
               substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
             var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
             methodSel.Member = prefixLemma; // resolve here
-            methodSel.TypeApplication_AtEnclosingClass =
+            methodSel.TypeApplicationAtEnclosingClass =
               prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-            methodSel.TypeApplication_JustMember =
+            methodSel.TypeApplicationJustMember =
               prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
             methodSel.Type = new InferredTypeProxy();
             var recursiveCall = new CallStmt(com.RangeToken, new List<Expression>(), methodSel,
@@ -3171,7 +3171,7 @@ namespace Microsoft.Dafny {
       var idlist = new List<Expression>() { id };
       var lhss = new List<LocalVariable>() { locvar };
       var rhss = new List<AssignmentRhs>() { new ExprRhs(ex) };
-      var up = new UpdateStmt(s.RangeToken, idlist, rhss);
+      var up = new AssignStatement(s.RangeToken, idlist, rhss);
       s.ResolvedStatements.Add(new VarDeclStmt(s.RangeToken, lhss, up));
       return id;
     }
@@ -3251,8 +3251,8 @@ namespace Microsoft.Dafny {
         foreach (var lhs in s.Lhss) {
           CheckLocalityUpdatesLhs(lhs, localsAllowedInUpdates, @where);
         }
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
+      } else if (stmt is SingleAssignStmt) {
+        var s = (SingleAssignStmt)stmt;
         CheckLocalityUpdatesLhs(s.Lhs, localsAllowedInUpdates, @where);
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;

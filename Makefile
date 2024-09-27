@@ -1,3 +1,6 @@
+# Run these tasks even if eponymous files or folders exist
+.PHONY: test-dafny exe
+
 DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
@@ -29,6 +32,24 @@ tests:
 # make test name=<part of the path of an integration test>
 test:
 	(cd "${DIR}"; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+
+# Run Dafny on an integration test case directly in the folder itself.
+# make test-run name=<part of the path> action="run ..."
+test-dafny:
+	name="$(name)"; \
+	files=$$(cd "${DIR}"/Source/IntegrationTests/TestFiles/LitTests/LitTest; find . -type f -wholename "*$$name*" | grep -E '\.dfy$$'); \
+	count=$$(echo "$$files" | wc -l); \
+  echo "$${files}"; \
+	if [ "$$count" -eq 0 ]; then \
+		echo "No files found matching pattern: $$name"; \
+		exit 1; \
+	else \
+		echo "$$count test files found."; \
+		for file in $$files; do \
+			filedir=$$(dirname "$$file"); \
+			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; dotnet run --project "${DIR}"/Source/Dafny -- $(action)  "$$(basename $$file)" ); \
+		done; \
+	fi
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )

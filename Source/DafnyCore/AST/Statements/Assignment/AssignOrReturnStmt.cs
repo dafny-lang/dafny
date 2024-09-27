@@ -5,7 +5,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
+/// <summary>
+/// Parsed from ":-"
+/// </summary>
+public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
@@ -290,7 +293,7 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       }
     }
     // " temp, ... := MethodOrExpression, ...;"
-    UpdateStmt up = new UpdateStmt(RangeToken, lhss2, rhss2, Proof);
+    var up = new AssignStatement(RangeToken, lhss2, rhss2, Proof);
     if (expectExtract) {
       up.OriginalInitialLhs = Lhss.Count == 0 ? null : Lhss[0];
     }
@@ -324,9 +327,10 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
         new IfStmt(RangeToken, false, resolver.VarDotMethod(Tok, temp, "IsFailure"),
           // THEN: { out := temp.PropagateFailure(); return; }
           new BlockStmt(RangeToken, new List<Statement>() {
-            new UpdateStmt(RangeToken,
+            new AssignStatement(RangeToken,
               new List<Expression>() { ident },
-              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
+              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) },
+              Proof
             ),
             new ReturnStmt(RangeToken, null),
           }),
@@ -339,14 +343,14 @@ public class AssignOrReturnStmt : ConcreteUpdateStatement, ICloneable<AssignOrRe
       // "y := temp.Extract();"
       var lhs = Lhss[0];
       ResolvedStatements.Add(
-        new UpdateStmt(RangeToken,
+        new AssignStatement(RangeToken,
           new List<Expression>() { lhsExtract },
           new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
-        ));
+        , Proof));
       // The following check is not necessary, because the ghost mismatch is caught later.
       // However the error message here is much clearer.
       var m = resolver.ResolveMember(Tok, firstType, "Extract", out _);
-      if (m != null && m.IsGhost && !AssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
+      if (m != null && m.IsGhost && !SingleAssignStmt.LhsIsToGhostOrAutoGhost(lhs)) {
         resolver.reporter.Error(MessageSource.Resolver, lhs.tok,
           "The Extract member may not be ghost unless the initial LHS is ghost");
       }

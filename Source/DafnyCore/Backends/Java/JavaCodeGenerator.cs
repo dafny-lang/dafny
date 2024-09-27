@@ -221,7 +221,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
+    protected override void EmitSeqSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup) {
       wr.Write("(");
       var lhs = (SeqSelectExpr)s0.Lhs;
       EmitIndexCollectionUpdate(lhs.Seq.Type, out var wColl, out var wIndex, out var wValue, wr, nativeIndex: true);
@@ -236,7 +236,7 @@ namespace Microsoft.Dafny.Compilers {
       EndStmt(wr);
     }
 
-    protected override void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
+    protected override void EmitMultiSelect(SingleAssignStmt s0, List<Type> tupleTypeArgsList, ConcreteSyntaxTree wr, string tup, int L) {
       var arrayType = tupleTypeArgsList[0];
       var rhsType = tupleTypeArgsList[L - 1];
 
@@ -265,7 +265,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"({s})");
     }
 
-    protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs) {
+    protected override ConcreteSyntaxTree EmitIngredients(ConcreteSyntaxTree wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, SingleAssignStmt s0, Expression rhs) {
       var wStmts = wr.Fork();
       var wrVarInit = wr;
       wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
@@ -380,7 +380,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       moduleName = IdProtectModule(moduleName);
       if (isDefault) {
         // Fold the default module into the main module

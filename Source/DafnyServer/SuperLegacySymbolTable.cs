@@ -138,7 +138,7 @@ namespace DafnyServer {
           var declarations = (VarDeclStmt)statement;
           {
             Type type = null;
-            var rightSide = declarations.Update as UpdateStmt;
+            var rightSide = declarations.Assign as AssignStatement;
             if (rightSide != null) {
               var definition = rightSide.Rhss.First();
               var typeDef = definition as TypeRhs;
@@ -162,8 +162,8 @@ namespace DafnyServer {
             }
           }
         }
-        if (statement is UpdateStmt) {
-          var updateStatement = statement as UpdateStmt;
+        if (statement is AssignStatement) {
+          var updateStatement = statement as AssignStatement;
           var lefts = updateStatement.Lhss;
           foreach (var expression in lefts) {
             if (expression is AutoGhostIdentifierExpr) {
@@ -191,7 +191,7 @@ namespace DafnyServer {
       foreach (var statement in statements) {
         if (statement is CallStmt) {
           ParseCallStatement(statement, information);
-        } else if (statement is UpdateStmt) {
+        } else if (statement is AssignStatement) {
           ParseUpdateStatement(statement, information);
         }
 
@@ -224,7 +224,7 @@ namespace DafnyServer {
     }
 
     private static void ParseUpdateStatement(Statement statement, List<SymbolInformation> information) {
-      var updateStmt = (UpdateStmt)statement;
+      var updateStmt = (AssignStatement)statement;
       var leftSide = updateStmt.Lhss;
       var rightSide = updateStmt.Rhss;
       var leftSideDots = leftSide.OfType<ExprDotName>();
@@ -300,8 +300,8 @@ namespace DafnyServer {
     private static IEnumerable<ReferenceInformation> ParseBodyForFieldReferences(IEnumerable<Statement> block, string fieldName, string className, string moduleName) {
       var information = new List<ReferenceInformation>();
       foreach (var statement in block) {
-        if (statement is UpdateStmt) {
-          var updateStmt = (UpdateStmt)statement;
+        if (statement is AssignStatement) {
+          var updateStmt = (AssignStatement)statement;
           var leftSide = updateStmt.Lhss;
           var rightSide = updateStmt.Rhss;
           var leftSideDots = leftSide.OfType<ExprDotName>();

@@ -22,7 +22,7 @@ namespace Microsoft.Dafny.Compilers {
     private int innerExtractIndex = -1;
 
     private bool IsExtractStatement(Statement stmt, string expectedLeftName) {
-      return stmt is UpdateStmt updateStmt
+      return stmt is AssignStatement updateStmt
              && updateStmt.Rhss.Count() == 1
              && updateStmt.Lhss.Count() == 1
              && updateStmt.Lhss[0] is IdentifierExpr { Name: var leftName }
@@ -69,7 +69,7 @@ namespace Microsoft.Dafny.Compilers {
             if (s.HiddenUpdate != null) {
               TrStmt(s.HiddenUpdate, wr);
               var ss = s.HiddenUpdate.ResolvedStatements;
-              if (ss.Count == 1 && ss[0] is AssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
+              if (ss.Count == 1 && ss[0] is SingleAssignStmt assign && assign.Rhs is ExprRhs eRhs && eRhs.Expr.Resolved is FunctionCallExpr fce && IsTailRecursiveByMethodCall(fce)) {
                 isTailRecursiveResult = true;
               }
             }
@@ -81,13 +81,13 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case UpdateStmt updateStmt: {
+        case AssignStatement updateStmt: {
             var s = updateStmt;
             var resolved = s.ResolvedStatements;
             if (resolved.Count == 1) {
               TrStmt(resolved[0], wr);
             } else {
-              var assignStmts = resolved.Cast<AssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
+              var assignStmts = resolved.Cast<SingleAssignStmt>().Where(assignStmt => !assignStmt.IsGhost).ToList();
               var lhss = new List<Expression>();
               var rhss = new List<AssignmentRhs>();
 
@@ -121,7 +121,7 @@ namespace Microsoft.Dafny.Compilers {
 
             break;
           }
-        case AssignStmt assignStmt: {
+        case SingleAssignStmt assignStmt: {
             var s = assignStmt;
             Contract.Assert(s.Lhs is not SeqSelectExpr expr || expr.SelectOne);  // multi-element array assignments are not allowed
             if (s.Rhs is HavocRhs) {
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny.Compilers {
               }
             } else {
               Contract.Assert(s.Bounds != null);
-              TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+              TrAssignSuchThat(lhss, s.Expr, s.Bounds, wr, false);
             }
 
             break;
@@ -167,13 +167,13 @@ namespace Microsoft.Dafny.Compilers {
             var s = assignOrReturnStmt;
             var stmts = s.ResolvedStatements.ToList();
             if (innerExtractIndex != -1 &&
-                enclosingVarDecl is { Update: var stmtUpdate, Locals: { Count: > 0 } locals }
+                enclosingVarDecl is { Assign: var stmtUpdate, Locals: { Count: > 0 } locals }
                 && stmtUpdate == assignOrReturnStmt) {
               // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
               stmts[innerExtractIndex] =
                 new VarDeclStmt(enclosingVarDecl.RangeToken,
                   new List<LocalVariable>() { locals[0] },
-                  (UpdateStmt)stmts[innerExtractIndex]);
+                  (AssignStatement)stmts[innerExtractIndex]);
             }
             TrStmtList(stmts, wr);
 
@@ -386,7 +386,7 @@ namespace Microsoft.Dafny.Compilers {
               TrStmt(s.Body, wr);
               return;
             }
-            var s0 = (AssignStmt)s.S0;
+            var s0 = (SingleAssignStmt)s.S0;
             if (s0.Rhs is HavocRhs) {
               // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
               // into doing nothing.
@@ -506,14 +506,14 @@ namespace Microsoft.Dafny.Compilers {
             // var o :- B;
             // We won't declare o until we assign it with o := tmp.Extract();
             var indexExtract = -1;
-            if (s.Update is AssignOrReturnStmt { ResolvedStatements: var stmts }
+            if (s.Assign is AssignOrReturnStmt { ResolvedStatements: var stmts }
                 && s.Locals.Count > 0) {
               indexExtract = FindExtractStatement(stmts, s.Locals[0].Name);
             }
 
             foreach (var local in s.Locals) {
-              bool hasRhs = s.Update is AssignSuchThatStmt || s.Update is AssignOrReturnStmt;
-              if (!hasRhs && s.Update is UpdateStmt u) {
+              bool hasRhs = s.Assign is AssignSuchThatStmt || s.Assign is AssignOrReturnStmt;
+              if (!hasRhs && s.Assign is AssignStatement u) {
                 if (i < u.Rhss.Count && u.Rhss[i] is HavocRhs) {
                   // there's no specific initial value
                 } else {
@@ -531,8 +531,8 @@ namespace Microsoft.Dafny.Compilers {
 
             enclosingVarDecl = s;
             innerExtractIndex = indexExtract;
-            if (s.Update != null) {
-              TrStmt(s.Update, wr);
+            if (s.Assign != null) {
+              TrStmt(s.Assign, wr);
             }
             enclosingVarDecl = null;
             innerExtractIndex = -1;

@@ -118,15 +118,15 @@ namespace Microsoft.Dafny {
       } else if (expr is MemberSelectExpr) {
         var mse = (MemberSelectExpr)expr;
         var newObj = Substitute(mse.Obj);
-        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplication_AtEnclosingClass);
-        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplication_JustMember);
+        var newTypeApplicationAtEnclosingClass = SubstituteTypeList(mse.TypeApplicationAtEnclosingClass);
+        var newTypeApplicationJustMember = SubstituteTypeList(mse.TypeApplicationJustMember);
         if (newObj != mse.Obj ||
-            newTypeApplicationAtEnclosingClass != mse.TypeApplication_AtEnclosingClass ||
-            newTypeApplicationJustMember != mse.TypeApplication_JustMember) {
+            newTypeApplicationAtEnclosingClass != mse.TypeApplicationAtEnclosingClass ||
+            newTypeApplicationJustMember != mse.TypeApplicationJustMember) {
           var fseNew = new MemberSelectExpr(mse.tok, newObj, mse.MemberName) {
             Member = mse.Member,
-            TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass,
-            TypeApplication_JustMember = newTypeApplicationJustMember,
+            TypeApplicationAtEnclosingClass = newTypeApplicationAtEnclosingClass,
+            TypeApplicationJustMember = newTypeApplicationJustMember,
             AtLabel = mse.AtLabel ?? oldHeapLabel
           };
           newExpr = fseNew;
@@ -788,9 +788,9 @@ namespace Microsoft.Dafny {
         }
         breaks.Add(rr);
         r = rr;
-      } else if (stmt is AssignStmt) {
-        var s = (AssignStmt)stmt;
-        r = new AssignStmt(s.RangeToken, Substitute(s.Lhs), SubstRHS(s.Rhs));
+      } else if (stmt is SingleAssignStmt) {
+        var s = (SingleAssignStmt)stmt;
+        r = new SingleAssignStmt(s.RangeToken, Substitute(s.Lhs), SubstRHS(s.Rhs));
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         var rr = new CallStmt(s.RangeToken, s.Lhs.ConvertAll(Substitute), (MemberSelectExpr)Substitute(s.MethodSelect), s.Args.ConvertAll(Substitute));
@@ -847,15 +847,15 @@ namespace Microsoft.Dafny {
         r = new AssignSuchThatStmt(s.RangeToken, s.Lhss.ConvertAll(Substitute), Substitute(s.Expr), s.AssumeToken, null) {
           Bounds = SubstituteBoundedPoolList(s.Bounds)
         };
-      } else if (stmt is UpdateStmt) {
-        var s = (UpdateStmt)stmt;
+      } else if (stmt is AssignStatement) {
+        var s = (AssignStatement)stmt;
         var resolved = s.ResolvedStatements;
-        UpdateStmt rr;
+        AssignStatement rr;
         if (resolved.Count == 1) {
           // when later translating this UpdateStmt, the s.Lhss and s.Rhss components won't be used, only s.ResolvedStatements
-          rr = new UpdateStmt(s.RangeToken, s.Lhss, s.Rhss, s.CanMutateKnownState);
+          rr = new AssignStatement(s.RangeToken, s.Lhss, s.Rhss, s.CanMutateKnownState);
         } else {
-          rr = new UpdateStmt(s.RangeToken, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
+          rr = new AssignStatement(s.RangeToken, s.Lhss.ConvertAll(Substitute), s.Rhss.ConvertAll(SubstRHS), s.CanMutateKnownState);
         }
 
         if (s.ResolvedStatements != null) {
@@ -865,7 +865,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = CreateLocalVarSubstitutions(s.Locals, false);
-        var rr = new VarDeclStmt(s.RangeToken, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
+        var rr = new VarDeclStmt(s.RangeToken, lhss, (ConcreteAssignStatement)SubstStmt(s.Assign));
         r = rr;
       } else if (stmt is VarDeclPattern) {
         var s = (VarDeclPattern)stmt;

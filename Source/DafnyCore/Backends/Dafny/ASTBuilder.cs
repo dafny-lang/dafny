@@ -365,15 +365,14 @@ namespace Microsoft.Dafny.Compilers {
 
     void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
 
-    public MethodBuilder Method(
-      bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
+    public MethodBuilder Method(bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      ISequence<_IAttribute> attributes,
       string name,
-      List<DAST.TypeArgDecl> typeArgs,
+      List<TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
-      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
-    ) {
-      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeArgs, params_, outTypes, outVars);
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, attributes, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -392,11 +391,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
+    private ISequence<_IAttribute> attributes;
 
     public MethodBuilder(
       ClassLike parent,
       bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      ISequence<_IAttribute> attributes,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
@@ -408,6 +409,7 @@ namespace Microsoft.Dafny.Compilers {
       this.outVarsAreUninitFieldsToAssign = outVarsAreUninitFieldsToAssign;
       this.wasFunction = wasFunction;
       this.overridingPath = overridingPath;
+      this.attributes = attributes;
       this.name = name;
       this.typeArgs = typeArgs;
       this.params_ = params_;
@@ -434,6 +436,7 @@ namespace Microsoft.Dafny.Compilers {
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Method)DAST.Method.create(
+        attributes,
         isStatic,
         hasBody,
         outVarsAreUninitFieldsToAssign,
@@ -1803,7 +1806,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static DAST.Expression ToNativeU64(int number) {
+    public static DAST.Expression ToNativeUsize(int number) {
       var origType = DAST.Type.create_Primitive(DAST.Primitive.create_Int());
       var numberExpr = (DAST.Expression)DAST.Expression.create_Literal(
         DAST.Literal.create_IntLiteral(Sequence<Rune>.UnicodeFromString($"{number}"),
@@ -1811,9 +1814,9 @@ namespace Microsoft.Dafny.Compilers {
       );
       return (DAST.Expression)DAST.Expression.create_Convert(numberExpr, origType, DAST.Type.create_UserDefined(
         DAST.ResolvedType.create_ResolvedType(
-        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("u64")),
+        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("usize")),
         Sequence<_IType>.Empty,
-        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_U64(), true), Sequence<_IAttribute>.Empty,
+        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_USIZE(), true), Sequence<_IAttribute>.Empty,
         Sequence<Sequence<Rune>>.Empty, Sequence<_IType>.Empty)
       ));
     }
@@ -1830,14 +1833,14 @@ namespace Microsoft.Dafny.Compilers {
 
       DAST.Expression startExpr;
       if (start == null) {
-        startExpr = ToNativeU64(0);
+        startExpr = ToNativeUsize(0);
       } else {
         startExpr = (DAST.Expression)DAST.Expression.create_Ident(
           Sequence<Rune>.UnicodeFromString(start));
       }
 
       return (DAST.Expression)DAST.Expression.create_IntRange(
-        DAST.Type.create_Primitive(DAST.Primitive.create_Int()),
+        DAST.Type.create_Primitive(DAST.Primitive.create_Native()),
         startExpr, endExpr, true);
     }
 

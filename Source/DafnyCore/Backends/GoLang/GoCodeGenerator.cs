@@ -12,6 +12,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Text.RegularExpressions;
 using DafnyCore;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
@@ -179,9 +180,21 @@ namespace Microsoft.Dafny.Compilers {
       return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
     }
 
+    protected override bool ShouldCompileModule(Program program, ModuleDefinition module) {
+      if (!base.ShouldCompileModule(program, module)) {
+        return false;
+      }
+
+      if (TranslationRecord.ModuleEmptyForCompilation(module)) {
+        return false;
+      }
+
+      return true;
+    }
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
       ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (isDefault) {
         // Fold the default module into the main module
         return wr;
@@ -209,6 +222,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
+
+      if (externModule == null && TranslationRecord.ModuleEmptyForCompilation(module)) {
+        return;
+      }
+
       var goModuleName = "";
       if (GoModuleMode) {
         // "_System" module has a special handling because although it gets translated from a Dafny module,
