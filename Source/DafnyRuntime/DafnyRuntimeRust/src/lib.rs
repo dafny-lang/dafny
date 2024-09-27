@@ -3403,7 +3403,8 @@ impl<T: ?Sized + UpcastObject<dyn Any>> Debug for Object<T> {
 }
 impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        let option_string = UpcastObject::<dyn Any>::upcast(self.as_ref()).as_ref().downcast_ref::<String>().cloned();
+        let obj_any = UpcastObject::<dyn Any>::upcast(self.as_ref());
+        let option_string = obj_any.as_ref().downcast_ref::<String>();
         match option_string {
             Some(s) => write!(f, "{}", s),
             None => write!(f, "<object>"),
