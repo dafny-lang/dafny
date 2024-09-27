@@ -856,4 +856,13 @@ mod tests {
         let s2 = crate::dafny_runtime_conversions::object::dafny_class_to_struct(x);
         assert_eq!(s2.message, "Hello, World!");
     }
+
+    #[test]
+    fn test_native_string_upcast_raw() {
+        let message = "Hello, World!".to_string();
+        let object = Object::new(message.clone());
+        let object_any: Object<dyn Any> = UpcastObject::<dyn Any>::upcast(object.as_ref());
+        let resulting_message = format!("{:?}", object_any);
+        assert_eq!(resulting_message, message);
+    }
 }
