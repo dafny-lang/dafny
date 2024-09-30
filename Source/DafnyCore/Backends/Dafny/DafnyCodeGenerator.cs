@@ -483,17 +483,17 @@ namespace Microsoft.Dafny.Compilers {
         var membersToInitialize = ((TopLevelDeclWithMembers)m.EnclosingClass).Members.Where((md =>
           md is Field and not ConstantField { Rhs: { } }));
         var outFields = membersToInitialize.Select((MemberDecl md) => {
-            var formal = DAST.Formal.create_Formal(
-              Sequence<Rune>.UnicodeFromString(
-                (md is ConstantField ? InternalFieldPrefix : "") +
-                md.GetCompileName(Options)),
-              GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass)
-                .ParentFormalTypeParametersToActuals))
-              , ParseAttributes(md.Attributes)
-            );
-            return DAST.Field.create_Field(formal, md is ConstantField,
-              Std.Wrappers.Option<DAST.Expression>.create_None());
-          }
+          var formal = DAST.Formal.create_Formal(
+            Sequence<Rune>.UnicodeFromString(
+              (md is ConstantField ? InternalFieldPrefix : "") +
+              md.GetCompileName(Options)),
+            GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass)
+              .ParentFormalTypeParametersToActuals))
+            , ParseAttributes(md.Attributes)
+          );
+          return DAST.Field.create_Field(formal, md is ConstantField,
+            Std.Wrappers.Option<DAST.Expression>.create_None());
+        }
         ).ToList();
         builder.Builder.AddStatement((DAST.Statement)DAST.Statement.create_ConstructorNewSeparator(
           Sequence<_IField>.FromArray(outFields.ToArray())));
