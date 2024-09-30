@@ -21,6 +21,9 @@ method ExternTest()
 @DisableNonLinearArithmetic // Should be DisableNonlinearArithmetic
 @Option("--function-syntax:3") // Should be Options
 module SimpleLinearModule {
+  class Test {
+    static @IsolateAssertions function Test(): int { 3 } // At-Attributes not after keywords
+  }
 }
 
 /// Attributes on functions and methods

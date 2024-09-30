@@ -1,3 +1,4 @@
+// RUN: %baredafny resolve "%s"
 // Attribute to use anywhere
 @Attribute
 datatype CustomAttribute = CustomAttribute

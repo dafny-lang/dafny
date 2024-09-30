@@ -631,8 +631,11 @@ public partial class Parser {
   }
 
   void CheckNoKeywordIfAtAttribute(DeclModifierData mods) {
-    if (mods is{FirstToken: not null, Attributes: UserSuppliedAtAttribute { RangeToken: {} range}}) {
-      SemErr(null, range.ToToken(), "Please declare @-attributes before declaration keywords");
+    if (mods is {Attributes: UserSuppliedAtAttribute { RangeToken: {} range}}
+        and ({ReplaceableToken: not null} or {AbstractToken: not null} or {GhostToken: not null}
+        or {StaticToken: not null} or {OpaqueToken: not null})
+        ) {
+      SemErr(ErrorId.p_at_attributes_before_keywords, range.ToToken(), "Please declare @-attributes before declaration keywords");
     } else if (mods is {FirstToken: null, Attributes: UserSuppliedAtAttribute { RangeToken: {} range2}}) {
       mods.FirstToken = range2.StartToken;
     }
