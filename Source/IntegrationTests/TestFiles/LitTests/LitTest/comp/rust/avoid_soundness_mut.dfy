@@ -1,7 +1,7 @@
 // RUN: %baredafny build -t:rs "%s"
 // RUN: "%S/avoid_soundness_mut-rust/cargo" run --release > "%t"
 // RUN: %diff "%s.expect" "%t"
-// RUN: %baredafny translate rs --raw-pointers "%s"
+// RUN: %baredafny built -t:rs --raw-pointers "%s"
 // RUN: "%S/avoid_soundness_mut-rust/cargo" run --release > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -15,13 +15,15 @@ class X {
   
   method DoBoth(other: X)
     modifies this, other
+    requires this == other
   {
     this.x := 0;
     other.x := 1;
     if this.x == 1 {
-      print "One\n";
+      print "Correct\n";
     } else {
-      print "Zero\n";
+      assert false;
+      print "Soundness issue\n";
     }
   }
 }
@@ -29,4 +31,14 @@ class X {
 method Main() {
   var c := new X();
   c.DoBoth(c);
+
+  var other := c;
+  c.x := 0;
+  other.x := 1;
+  if c.x == 1 {
+    print "Correct\n";
+  } else {
+    assert false;
+    print "Soundness issue\n";
+  }
 }

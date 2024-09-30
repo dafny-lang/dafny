@@ -3202,7 +3202,7 @@ macro_rules! update_field_mut_uninit {
         let computed_value = $value;
         #[allow(unused_assignments)]
         if $field_assigned {
-            $crate::modify_field!($crate::read!($t).$field => computed_value);
+            $crate::modify_field!($crate::read!($t).$field, computed_value);
         } else {
             $crate::update_field_mut_nodrop!($t, $field, computed_value);
             $field_assigned = true;
@@ -3547,6 +3547,14 @@ macro_rules! update_field_nodrop_object {
     };
 }
 
+// Same but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_nodrop_object {
+    ($ptr:expr, $field: ident, $value:expr) => {
+        unsafe { ($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field.get().write($value) }
+    };
+}
+
 // Equivalent of update_nodrop but for rcmut
 #[macro_export]
 macro_rules! update_nodrop_object {
@@ -3559,10 +3567,23 @@ macro_rules! update_nodrop_object {
 #[macro_export]
 macro_rules! update_field_if_uninit_object {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        let computed_value = $value;
         #[allow(unused_assignments)]
         if !$field_assigned {
+            let computed_value = $value;
             $crate::update_field_nodrop_object!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+// Same for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_if_uninit_object {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        #[allow(unused_assignments)]
+        if !$field_assigned {
+            let computed_value = $value;
+            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3583,6 +3604,22 @@ macro_rules! update_field_uninit_object {
     }};
 }
 
+// Same but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_uninit_object {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        #[allow(unused_assignments)]
+        if $field_assigned {
+            $crate::modify_field!($crate::rd!($t).$field, computed_value);
+        } else {
+            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+
 // Equivalent of modify but for rcmut
 #[macro_export]
 macro_rules! md {
@@ -3602,7 +3639,7 @@ macro_rules! rd {
 // To use when modifying a mutable field that is wrapped with UnsafeCell
 #[macro_export]
 macro_rules! modify_field {
-    ($pointer:expr => $rhs:expr) => {
+    ($pointer:expr, $rhs:expr) => {
         let lhs = $pointer.get();
         let rhs = $rhs;
         unsafe {*lhs = rhs}
