@@ -48,7 +48,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const update_field_if_uninit_macro :=
       if pointerType.Raw? then "update_field_if_uninit!" else "update_field_if_uninit_object!"
     const update_field_mut_if_uninit_macro :=
-      if pointerType.Raw? then "update_field_mut_if_uninit!" else "update_fiel_mutd_if_uninit_object!"
+      if pointerType.Raw? then "update_field_mut_if_uninit!" else "update_field_mut_if_uninit_object!"
     const Upcast :=
       if pointerType.Raw? then "Upcast" else "UpcastObject"
     const UpcastFnMacro :=

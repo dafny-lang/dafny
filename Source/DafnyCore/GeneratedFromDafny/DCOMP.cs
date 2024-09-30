@@ -6791,7 +6791,7 @@ namespace DCOMP {
       if (((this).pointerType).is_Raw) {
         return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_field_mut_if_uninit!");
       } else {
-        return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_fiel_mutd_if_uninit_object!");
+        return Dafny.Sequence<Dafny.Rune>.UnicodeFromString("update_field_mut_if_uninit_object!");
       }
     } }
     public Dafny.ISequence<Dafny.Rune> Upcast { get {
