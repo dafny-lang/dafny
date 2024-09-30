@@ -129,7 +129,7 @@ The value may be a comma-separated list of files and folders.".TrimStart());
   };
 
   public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
-    "Specify the filename and location for the output files.") {
+    "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
   };
 

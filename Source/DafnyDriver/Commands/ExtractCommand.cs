@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 
 public static class ExtractCommand {
   public static Command Create() {
-    
+
     var result = new Command("extract", "Can be used to generate DafnyPrelude.bpl. Uses the ':extract_boogie_name' attribute to rename symbols. Turns lemmas into universally quantified axioms, as opposed to verify which turns them into Boogie procedures. When translating Dafny expressions to Boogie ones, no well-formedness checks are created.");
 
     result.IsHidden = true;
@@ -25,7 +25,7 @@ public static class ExtractCommand {
   }
 
   private static readonly Argument<FileInfo> Target = new("The path of the extracted file.");
-  
+
   private static IReadOnlyList<Option> ExtractOptions =>
     new Option[] { }.
       Concat(DafnyCommands.ConsoleOutputOptions).

@@ -254,7 +254,7 @@ public static class DafnyNewCli {
     rootCommand.AddGlobalOption(languageDeveloperHelp);
     bool helpShown = false;
     builder = builder.UseHelp(_ => helpShown = true);
-    
+
     builder = builder.AddMiddleware(async (context, next) => {
       if ((context.ParseResult.CommandResult.Command.IsHidden && helpShown) || context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
 
