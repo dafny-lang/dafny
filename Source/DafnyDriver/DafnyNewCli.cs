@@ -2,7 +2,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Invocation;
@@ -11,16 +10,12 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Security.AccessControl;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using DafnyCore;
-using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.LanguageServer;
-using Microsoft.Dafny.LanguageServer.Workspace;
 
 namespace Microsoft.Dafny;
 
@@ -50,6 +45,7 @@ public static class DafnyNewCli {
     AddCommand(AuditCommand.Create());
     AddCommand(CoverageReportCommand.Create());
     AddCommand(DocumentationCommand.Create());
+    AddCommand(ExtractCommand.Create());
 
     OptionRegistry.CheckOptionsAreKnown(AllOptions);
 
@@ -176,12 +172,7 @@ public static class DafnyNewCli {
   }
 
   public static Task<int> Execute(IConsole console, IReadOnlyList<string> arguments) {
-    bool allowHidden = arguments.All(a => a != ToolchainDebuggingHelpName);
     foreach (var symbol in AllSymbols) {
-      if (!allowHidden) {
-        symbol.IsHidden = false;
-      }
-
       if (symbol is Option option) {
         if (!option.Arity.Equals(ArgumentArity.ZeroOrMore) && !option.Arity.Equals(ArgumentArity.OneOrMore)) {
           option.AllowMultipleArgumentsPerToken = true;
@@ -261,8 +252,16 @@ public static class DafnyNewCli {
     var languageDeveloperHelp = new Option<bool>(ToolchainDebuggingHelpName,
       "Show help and usage information, including options designed for developing the Dafny language and toolchain.");
     rootCommand.AddGlobalOption(languageDeveloperHelp);
+    bool helpShown = false;
+    builder = builder.UseHelp(_ => helpShown = true);
+    
     builder = builder.AddMiddleware(async (context, next) => {
-      if (context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
+      if ((context.ParseResult.CommandResult.Command.IsHidden && helpShown) || context.ParseResult.FindResultFor(languageDeveloperHelp) is { }) {
+
+        foreach (var symbol in AllSymbols) {
+          symbol.IsHidden = false;
+        }
+
         context.InvocationResult = new HelpResult();
       } else {
         await next(context);
