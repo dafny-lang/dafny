@@ -142,7 +142,6 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(SolverOptionHelp, (o, v) => o.ProverHelpRequested = v);
     DafnyOptions.RegisterLegacyBinding(VerificationErrorLimit, (options, value) => { options.ErrorLimit = value; });
     DafnyOptions.RegisterLegacyBinding(IsolateAssertions, (o, v) => o.VcsSplitOnEveryAssert = v);
-    DafnyOptions.RegisterLegacyBinding(IsolatePaths, (o, v) => o.IsolatePaths = v);
 
     OptionRegistry.RegisterGlobalOption(BoogieArguments, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterGlobalOption(NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError);

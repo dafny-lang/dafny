@@ -15,6 +15,7 @@ using Microsoft.Dafny.LanguageServer.Language.Symbols;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
 using VC;
+using VCGeneration;
 using Token = Microsoft.Dafny.Token;
 
 namespace DafnyDriver.Commands;
@@ -182,19 +183,43 @@ public class CliCompilation {
 
       if (ev is BoogieUpdate { BoogieStatus: Completed completed } boogieUpdate) {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
+        var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
-
+        
         if (Options.Get(CommonOptionBag.ProgressOption)) {
-          var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
+          var partOrigin = boogieUpdate.VerificationTask.Split.Origin;
+          string assertionName;
+          ImplementationPartOrigin remainder;
+          Block? splitBlock = null;
+          if (partOrigin is SplitOrigin splitOrigin) {
+            assertionName = $"{splitOrigin.KindName} at line {splitOrigin.line}";
+            remainder = splitOrigin.PartThatWasSplit;
+            splitBlock = splitOrigin.ContainingBlock;
+          } else {
+            assertionName = "all assertions";
+            remainder = partOrigin;
+          }
+
+          string pathDescription = "";
+          if (remainder is PathOrigin pathOrigin) {
+            IEnumerable<Block> nonDominatedBranches = pathOrigin.Branches;
+            if (splitBlock != null) {
+              nonDominatedBranches = nonDominatedBranches.Where(b => pathOrigin.Dominators.DominatedBy(b, splitBlock));
+            }
+            pathDescription = $", when passing [{string.Join(",", nonDominatedBranches.Select(b => b.tok.line))}]";
+          }
+
+          var partDescription = assertionName + pathDescription;
+          
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(
-            $"Verified part #{boogieUpdate.VerificationTask.Split.SplitIndex}, {canVerifyResult.CompletedParts.Count}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}" +
-            $", on line {token.line}, " +
+            $"Verified {completedPartsCount}/{canVerifyResult.Tasks.Count} of {boogieUpdate.CanVerify.FullDafnyName}: " +
+            $"{partDescription}, " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
             $" (time: {timeString}, resource count: {runResult.ResourceCount})");
         }
-        if (canVerifyResult.CompletedParts.Count == canVerifyResult.Tasks.Count) {
+        if (completedPartsCount == canVerifyResult.Tasks.Count) {
           canVerifyResult.Finished.TrySetResult();
         }
       }
