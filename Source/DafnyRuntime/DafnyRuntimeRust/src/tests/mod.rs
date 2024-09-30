@@ -382,33 +382,38 @@ mod tests {
     }
 
     struct ClassWrapper<T> {
-        /*var*/ t: T,
-        /*var*/ x: crate::DafnyInt,
+        /*var*/ t: Field<T>,
+        /*var*/ x: Field<crate::DafnyInt>,
         /*const*/ next: Ptr<ClassWrapper<T>>,
         /*const*/ constant: crate::DafnyInt,
     }
     impl<T: Clone> ClassWrapper<T> {
         fn constant_plus_x(&self) -> crate::DafnyInt {
-            self.constant.clone() + self.x.clone()
+            self.constant.clone() + read_field!(self.x)
         }
         fn increment_x(&mut self) {
-            self.x = self.x.clone() + int!(1);
+            modify_field!(self.x => read_field!(self.x) + int!(1));
         }
     }
 
     impl<T: Clone + Display> ClassWrapper<T> {
         fn constructor(t: T) -> Ptr<ClassWrapper<T>> {
             let this = crate::allocate::<ClassWrapper<T>>();
-            update_field_nodrop!(this, t, t);
+            update_field_mut_nodrop!(this, t, t);
             update_field_nodrop!(this, next, this);
             // If x is assigned twice, we need to keep track of whether it's assigned
             // like in methods.
             let mut x_assigned = false;
-            update_field_uninit!(this, x, x_assigned, int!(2));
-            update_field_uninit!(this, x, x_assigned, int!(1));
+            update_field_mut_uninit!(this, x, x_assigned, int!(2));
+            update_field_mut_uninit!(this, x, x_assigned, int!(1));
             // If we can prove that x is assigned, we can even write this
-            modify!(this).x = int!(0);
+            modify_field!(read!(this).x => int!(0));
             update_field_nodrop!(this, constant, int!(42));
+            update_field_mut_if_uninit!(this, x, x_assigned, int!(0));
+            assert_eq!(x_assigned, true);
+            let mut next_assigned = true;
+            update_field_if_uninit!(this, next, next_assigned, this);
+            assert_eq!(next_assigned, true);
             this
         }
     }
@@ -425,17 +430,17 @@ mod tests {
     fn test_class_wrapper() {
         let c: Ptr<ClassWrapper<i32>> = ClassWrapper::constructor(53);
         assert_eq!(read!(c).constant, int!(42));
-        assert_eq!(read!(c).t, 53);
-        assert_eq!(read!(c).x, int!(0));
-        assert_eq!(read!(read!(c).next).t, 53);
+        assert_eq!(read_field!(read!(c).t), 53);
+        assert_eq!(read_field!(read!(c).x), int!(0));
+        assert_eq!(read_field!(read!(read!(c).next).t), 53);
         assert_eq!(read!(c).constant_plus_x(), int!(42));
         modify!(c).increment_x();
         assert_eq!(read!(c).constant_plus_x(), int!(43));
-        modify!(c).x = int!(40);
+        modify_field!(read!(c).x => int!(40));
         assert_eq!(read!(c).constant_plus_x(), int!(82));
-        modify!(c).t = 54;
-        assert_eq!(read!(c).t, 54);
-        let x_copy = read!(c).x.clone();
+        modify_field!(read!(c).t => 54);
+        assert_eq!(read_field!(read!(c).t), 54);
+        let x_copy = read_field!(read!(c).x);
         assert_eq!(Rc::strong_count(&x_copy.data), 2);
         deallocate(c);
         assert_eq!(Rc::strong_count(&x_copy.data), 1);

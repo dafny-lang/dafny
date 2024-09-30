@@ -3135,6 +3135,16 @@ macro_rules! update_field_nodrop {
     };
 }
 
+// Same as update_field_nodrop but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_nodrop {
+    ($ptr:expr, $field:ident, $value:expr) => {
+        let lhs = $ptr;
+        let value = $value;
+        unsafe { $crate::read!(lhs).$field.get().write(value) }
+    };
+}
+
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
 #[macro_export]
@@ -3185,6 +3195,21 @@ macro_rules! update_field_uninit {
     }};
 }
 
+// Same as update_field_uninit but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_uninit {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        #[allow(unused_assignments)]
+        if $field_assigned {
+            $crate::modify_field!($crate::read!($t).$field => computed_value);
+        } else {
+            $crate::update_field_mut_nodrop!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
 // Macro to call at the end of the first new; constructor when not every field is guaranteed to be assigned.
 #[macro_export]
 macro_rules! update_field_if_uninit {
@@ -3192,6 +3217,18 @@ macro_rules! update_field_if_uninit {
         let computed_value = $value;
         if !$field_assigned {
             $crate::update_field_nodrop!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+// Same as update_field_if_uninit but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_if_uninit {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        if !$field_assigned {
+            $crate::update_field_mut_nodrop!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3560,6 +3597,32 @@ macro_rules! rd {
     ($x:expr) => {
         $x.as_ref()
     };
+}
+
+// To use when modifying a mutable field that is wrapped with UnsafeCell
+#[macro_export]
+macro_rules! modify_field {
+    ($pointer:expr => $rhs:expr) => {
+        let lhs = $pointer.get();
+        let rhs = $rhs;
+        unsafe {*lhs = rhs}
+    };
+}
+
+// To use when reading a mutable field that is wrapped with UnsafeCell
+#[macro_export]
+macro_rules! read_field {
+    ($pointer:expr) => {
+      {
+        let lhs = $pointer.get();
+        unsafe {(*lhs).clone()}
+      }
+    };
+}
+
+pub type Field<T> = UnsafeCell<T>;
+pub fn new_field<T>(t: T) -> Field<T> {
+    UnsafeCell::new(t)
 }
 
 // Count the number of references to the given object
