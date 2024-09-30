@@ -1939,6 +1939,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
       private static readonly HashSet<string> NullaryAttributesToCopy = new(new[] {
         "focus",
+        "isolate",
         "ignore",
         "selective_checking",
         "split",
@@ -1965,6 +1966,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
 
       private static readonly HashSet<string> StringAttributesToCopy = new(new[] {
         "captureState",
+        "isolate",
         "error"
       });
 
