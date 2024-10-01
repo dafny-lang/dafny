@@ -75,6 +75,7 @@ jobs:
       - name: Install Miri for DafnyRuntimeRust
         run: |
           rustup +nightly-x86_64-pc-windows-gnu component add miri
+          cargo miri setup
       - name: Test DafnyRuntimeRust
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeRust
