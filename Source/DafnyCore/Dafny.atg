@@ -973,7 +973,7 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
      defaultValue = null;
   .)
   (. var beforeStartToken = t; .)
-  { Attribute<ref attributes> }
+  { Attribute<ref attributes> | AtAttribute<ref attributes> }
   { "ghost"                            (. isGhost = true; .)
   | "nameonly"                         (. nameonlyToken = t; .)
   }
@@ -4285,9 +4285,11 @@ NameSegment<out Expression e>
   ( IF(IsGenericInstantiation(true))
     (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
-    [ AtCall<out atLabel, out openParen, out args> ]
+    [ IF(IsAtCall())
+      AtCall<out atLabel, out openParen, out args> ]
   | HashCall<id, out openParen, out typeArgs, out args>
-  | [ AtCall<out atLabel, out openParen, out args> ]
+  | [ IF(IsAtCall())
+      AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
   (. e = new NameSegment(id, id.val, typeArgs);
@@ -4376,9 +4378,11 @@ Suffix<ref Expression e>
       ( IF(IsGenericInstantiation(true))
         (. typeArgs = new List<Type>(); .)
         GenericInstantiation<typeArgs>
-        [ AtCall<out atLabel, out openParen, out args> ]
+        [ IF(IsAtCall())
+          AtCall<out atLabel, out openParen, out args> ]
       | HashCall<id, out openParen, out typeArgs, out args>
-      | [ AtCall<out atLabel, out openParen, out args> ]
+      | [ IF(IsAtCall())
+          AtCall<out atLabel, out openParen, out args> ]
       )
       (. e = new ExprDotName(id, e, id.val, typeArgs) {
            RangeToken = new RangeToken(startToken, id)

@@ -4,6 +4,12 @@
 
 @AutoContract // Should be AutoContracts
 class A {
+  @extern("b")
+  var x: int // Should be Extern
+
+  @extern("c") // Should be Extern
+  var y: int
+
   predicate Valid() {
     true
   }

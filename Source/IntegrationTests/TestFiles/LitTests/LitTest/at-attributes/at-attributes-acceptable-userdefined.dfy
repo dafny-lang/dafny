@@ -6,6 +6,9 @@ datatype CustomAttribute = CustomAttribute
 @CustomAttribute
 datatype CustomDeclarationAttribute = CustomDeclarationAttribute(@CustomAttribute n: string)
 
+@CustomAttribute // Accepted
+type ubytesynonym = ubyte
+
 method OtherUserDefinedAttributes()
   @CustomAttribute
   decreases *

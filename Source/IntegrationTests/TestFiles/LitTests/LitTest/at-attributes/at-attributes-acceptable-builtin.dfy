@@ -3,6 +3,12 @@
 
 @AutoContracts
 class A {
+  @Extern("b")
+  var x: int
+
+  @Extern("c")
+  var y: int
+
   predicate Valid() {
     true
   }

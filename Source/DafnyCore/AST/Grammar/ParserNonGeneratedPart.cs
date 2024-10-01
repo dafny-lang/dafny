@@ -458,6 +458,24 @@ public partial class Parser {
         return false;
     }
   }
+  /* The following is the largest lookahead there is. It needs to check if what follows
+   * can be nothing but "<" Type { "," Type } ">".
+   * If inExpressionContext == true, it also checks the token immediately after
+   * the ">" to help disambiguate some cases (see implementation comment).   
+   */
+  bool IsAtCall() {
+    IToken pt = la;
+    if (pt.val != "@") {
+      return false;
+    }
+    // Beginning of the file, on a different line or separated by a space: Not an At-call. Must be an attribute
+    if (pt.Prev == null || pt.Prev.line != pt.line || pt.Prev.col + pt.Prev.val.Length + pt.TrailingTrivia.Trim().Length < pt.col - pt.LeadingTrivia.Trim().Length) {
+      return false;
+    }
+
+    return true;
+  }
+  
   /* Returns true if the next thing is of the form:
    *     "<" Type { "," Type } ">"
    */
