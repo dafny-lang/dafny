@@ -1,8 +1,8 @@
 include "../Dafny/AST.dfy"
-  // Dafny to Rust compilation tenets:
-  // - The Compiled Dafny AST should be minimal
-  // - The generated code should look idiomatic and close to the original Dafny file if possible
 
+// Dafny to Rust compilation tenets:
+// - The Compiled Dafny AST should be minimal
+// - The generated code should look idiomatic and close to the original Dafny file if possible
 module {:extern "DCOMP"} DafnyToRustCompiler {
   import opened DafnyToRustCompilerDefinitions
   import FactorPathsOptimization
@@ -3594,6 +3594,16 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           readIdents := recIdents;
           return;
         }
+        case MultisetBoundedPool(of, includeDuplicates) => {
+          var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipBorrowed);
+          r := exprGen.Sel("iter").Apply0();
+          if !includeDuplicates {
+            r := R.dafny_runtime.MSel("itertools").MSel("Itertools").AsExpr().FSel("unique").Apply1(r);
+          }
+          r, resultingOwnership := FromOwned(r, expectedOwnership);
+          readIdents := recIdents;
+          return;
+        }
         case MapBoundedPool(of) => {
           var exprGen, _, recIdents := GenExpr(of, selfIdent, env, OwnershipBorrowed);
           r := exprGen.Sel("keys").Apply0().Sel("iter").Apply0();
@@ -3656,7 +3666,11 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           // Integer collections are owned because they are computed number by number.
           // Sequence bounded pools are also owned
           var extraAttributes := [];
-          if collection.IntRange? || collection.UnboundedIntRange? || collection.SeqBoundedPool? || collection.ExactBoundedPool? {
+          if collection.IntRange?
+             || collection.UnboundedIntRange?
+             || collection.SeqBoundedPool?
+             || collection.ExactBoundedPool?
+             || collection.MultisetBoundedPool? {
             extraAttributes := [AttributeOwned];
           }
 

@@ -317,6 +317,7 @@ module {:extern "DAST"} DAST {
     SetBoundedPool(of: Expression) |
     MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
+    MultisetBoundedPool(of: Expression, includeDuplicates: bool) |
     ExactBoundedPool(of: Expression) |
     IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |

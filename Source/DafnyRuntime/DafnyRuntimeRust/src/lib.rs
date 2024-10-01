@@ -1735,7 +1735,9 @@ impl<V: DafnyTypeEq> Multiset<V> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = V> + '_ {
-        self.data.iter().map(|(k, _v)| k).cloned()
+        self.data.iter().flat_map(
+            |(k, &ref v)|
+            ::std::iter::repeat(k).take(v.clone().as_usize())).cloned()
     }
 }
 

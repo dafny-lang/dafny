@@ -2420,7 +2420,13 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void EmitMultiSetBoundedPool(Expression of, bool includeDuplicates, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      AddUnsupported("<i>EmitMultiSetBoundedPool</i>");
+      if (GetExprConverter(wr, wStmts, out var exprBuilder, out var convert)) {
+        exprBuilder.Builder.AddExpr((DAST.Expression)DAST.Expression.create_MultisetBoundedPool(
+          convert(of), includeDuplicates
+        ));
+      } else {
+        throw new InvalidOperationException();
+      }
     }
 
     protected override void EmitSubSetBoundedPool(Expression of, string propertySuffix, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
