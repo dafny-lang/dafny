@@ -48,7 +48,7 @@ jobs:
           cd ./Source/DafnyCore
           make test
           make check-format
-      - name: Test DafnyRuntime (C#, Rust)
+      - name: Test DafnyRuntime C#
         run: |
           cd ./Source/DafnyRuntime
           make all
@@ -72,6 +72,9 @@ jobs:
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeJs
           make all
+      - name: Install Miri for DafnyRuntimeRust
+        run: |
+          rustup +nightly-x86_64-pc-windows-gnu component add miri
       - name: Test DafnyRuntimeRust
         run: |
           cd ./Source/DafnyRuntime/DafnyRuntimeRust

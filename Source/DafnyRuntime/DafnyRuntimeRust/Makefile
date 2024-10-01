@@ -17,6 +17,8 @@ check-system-module: build-system-module
 update-system-module: build-system-module
 	cp $(GENERATED_SYSTEM_MODULE_SOURCE) $(GENERATED_SYSTEM_MODULE_TARGET)
 
+# We disabled stacked borrows because MIRI fails to recognized allocated memory not yet
+# written to (like in Dafny constructors)
 test:
-	cargo test
-	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test)
+	MIRIFLAGS=-Zmiri-disable-stacked-borrows cargo +nightly-x86_64-pc-windows-gnu miri test;
+	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; MIRIFLAGS=-Zmiri-disable-stacked-borrows cargo +nightly-x86_64-pc-windows-gnu miri test; )

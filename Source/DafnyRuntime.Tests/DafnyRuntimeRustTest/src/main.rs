@@ -1,4 +1,4 @@
-use dafny_runtime::{Upcast, UpcastObject};
+use dafny_runtime::{Upcast, UpcastObject, deallocate};
 
 
 
@@ -36,4 +36,6 @@ fn smoke_test() {
     let a = ::dafny_runtime::array!(1, 2, 3);
     assert_eq!(z, 3);
     assert_eq!(::dafny_runtime::read!(a)[2], 3);
+    deallocate(x);
+    deallocate(a);    
 }
