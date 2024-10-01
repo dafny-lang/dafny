@@ -30,18 +30,25 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
     const allocate_fn := "_" + allocate
     const update_field_uninit_macro :=
       if pointerType.Raw? then "update_field_uninit!" else "update_field_uninit_object!"
+    const update_field_mut_uninit_macro :=
+      if pointerType.Raw? then "update_field_mut_uninit!" else "update_field_mut_uninit_object!"
     const thisInConstructor :=
       if pointerType.Raw? then R.Identifier("this") else R.Identifier("this").Clone()
     const array_construct :=
       if pointerType.Raw? then "construct" else "construct_object"
     const modify_macro := R.dafny_runtime.MSel(if pointerType.Raw? then "modify!" else "md!").AsExpr()
     const read_macro := R.dafny_runtime.MSel(if pointerType.Raw? then "read!" else "rd!").AsExpr()
+    const modify_field_macro := R.dafny_runtime.MSel("modify_field!").AsExpr()
+    const read_field_macro := R.dafny_runtime.MSel("read_field!").AsExpr()
+
     function Object(underlying: R.Type): R.Type {
       if pointerType.Raw? then R.PtrType(underlying) else R.ObjectType(underlying)
     }
     const placebos_usize := if pointerType.Raw? then "placebos_usize" else "placebos_usize_object"
     const update_field_if_uninit_macro :=
       if pointerType.Raw? then "update_field_if_uninit!" else "update_field_if_uninit_object!"
+    const update_field_mut_if_uninit_macro :=
+      if pointerType.Raw? then "update_field_mut_if_uninit!" else "update_field_mut_if_uninit_object!"
     const Upcast :=
       if pointerType.Raw? then "Upcast" else "UpcastObject"
     const UpcastFnMacro :=
@@ -207,6 +214,9 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       for fieldI := 0 to |c.fields| {
         var field := c.fields[fieldI];
         var fieldType := GenType(field.formal.typ, GenTypeContext.default());
+        if !field.isConstant {
+          fieldType := R.dafny_runtime.MSel("Field").AsType().Apply([fieldType]);
+        }
         usedTypeParams := GatherTypeParamNames(usedTypeParams, fieldType);
         var fieldRustName := escapeVar(field.formal.name);
         fields := fields + [R.Field(R.PUB, R.Formal(fieldRustName, fieldType))];
@@ -1392,7 +1402,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           case _ => enclosingType
         };
         if (forTrait) {
-          var selfFormal := if m.wasFunction then R.Formal.selfBorrowed else R.Formal.selfBorrowedMut;
+          var selfFormal := R.Formal.selfBorrowed;
           params := [selfFormal] + params;
         } else {
           var tpe := GenType(instanceType, GenTypeContext.default());
@@ -1403,11 +1413,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             // For raw pointers, no borrowing is necessary, because it implements the Copy type
           } else if selfId == "self" {
             if tpe.IsObjectOrPointer() { // For classes and traits
-              if m.wasFunction {
-                tpe := R.SelfBorrowed;
-              } else {
-                tpe := R.SelfBorrowedMut;
-              }
+              tpe := R.SelfBorrowed;
             } else { // For Rc-defined datatypes
               if enclosingType.UserDefined? && enclosingType.resolved.kind.Datatype?
                  && IsRcWrapped(enclosingType.resolved.attributes) {
@@ -1584,7 +1590,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           needsIIFE := false;
         }
 
-        case Select(on, field) => {
+        case Select(on, field, isConstant) => {
           var fieldName := escapeVar(field);
           var onExpr, onOwned, recIdents := GenExpr(on, selfIdent, env, OwnershipAutoBorrowed);
 
@@ -1594,7 +1600,12 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
               | UnaryOp("&", Identifier("this"), _) =>
               var isAssignedVar := AddAssignedPrefix(fieldName);
               if isAssignedVar in newEnv.names {
-                generated := R.dafny_runtime.MSel(update_field_uninit_macro).AsExpr().Apply(
+                var update_field_uninit :=
+                  if isConstant then
+                    update_field_uninit_macro
+                  else
+                    update_field_mut_uninit_macro;
+                generated := R.dafny_runtime.MSel(update_field_uninit).AsExpr().Apply(
                   [ thisInConstructor,
                     R.Identifier(fieldName),
                     R.Identifier(isAssignedVar),
@@ -1602,14 +1613,13 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 newEnv := newEnv.RemoveAssigned(isAssignedVar);
               } else {
                 // Already assigned, safe to override
-                generated := R.Assign(Some(R.SelectMember(modify_macro.Apply1(thisInConstructor), fieldName)), rhs);
+                generated := modify_field_macro.Apply([read_macro.Apply1(thisInConstructor).Sel(fieldName), rhs]);
               }
             case _ =>
               if onExpr != R.Identifier("self") {
-                onExpr := modify_macro.Apply1(onExpr);
+                onExpr := read_macro.Apply1(onExpr);
               }
-              generated :=
-                R.AssignMember(onExpr, fieldName, rhs);
+              generated := modify_field_macro.Apply([onExpr.Sel(fieldName), rhs]);
           }
           readIdents := recIdents;
           needsIIFE := false;
@@ -1658,15 +1668,17 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           newEnv := env;
           for i := 0 to |fields| {
             var field := fields[i];
-            var fieldName := escapeVar(field.name);
-            var fieldTyp := GenType(field.typ, GenTypeContext.default());
+            var fieldName := escapeVar(field.formal.name);
+            var fieldTyp := GenType(field.formal.typ, GenTypeContext.default());
             var isAssignedVar := AddAssignedPrefix(fieldName);
             if isAssignedVar in newEnv.names {
-              assume {:axiom} InitializationValue(field.typ) < stmt; // Needed for termination
-              var rhs, _, _ := GenExpr(InitializationValue(field.typ), selfIdent, env, OwnershipOwned);
+              assume {:axiom} InitializationValue(field.formal.typ) < stmt; // Needed for termination
+              var rhs, _, _ := GenExpr(InitializationValue(field.formal.typ), selfIdent, env, OwnershipOwned);
               readIdents := readIdents + {isAssignedVar};
-              generated := generated.Then(R.dafny_runtime.MSel(update_field_if_uninit_macro).AsExpr().Apply([
-                                                                                                              R.Identifier("this"), R.Identifier(fieldName), R.Identifier(isAssignedVar), rhs]));
+              var update_if_uninit :=
+                if field.isConstant then update_field_if_uninit_macro else update_field_mut_if_uninit_macro;
+              generated := generated.Then(R.dafny_runtime.MSel(update_if_uninit).AsExpr().Apply(
+                                            [ R.Identifier("this"), R.Identifier(fieldName), R.Identifier(isAssignedVar), rhs]));
               newEnv := newEnv.RemoveAssigned(isAssignedVar);
             }
           }
@@ -1855,7 +1867,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                       case CallName(_, Some(tpe), _, _, _) =>
                         var typ := GenType(tpe, GenTypeContext.default());
                         if typ.IsObjectOrPointer() && onExpr != R.Identifier("self") {
-                          onExpr := modify_macro.Apply1(onExpr);
+                          onExpr := read_macro.Apply1(onExpr);
                         }
                       case _ =>
                     }
@@ -3288,8 +3300,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
             r := r.Sel(escapeVar(field));
             if isConstant {
               r := r.Apply0();
+              r := r.Clone(); // self could be &mut, so to avoid any borrow checker problem, we clone the value.
+            } else {
+              r := read_field_macro.Apply1(r); // Already contains a clone.
             }
-            r := r.Clone(); // self could be &mut, so to avoid any borrow checker problem, we clone the value.
             r, resultingOwnership := FromOwned(r, expectedOwnership);
             readIdents := recIdents;
           }

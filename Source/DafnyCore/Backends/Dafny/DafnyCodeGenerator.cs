@@ -482,17 +482,21 @@ namespace Microsoft.Dafny.Compilers {
       if (writer is BuilderSyntaxTree<StatementContainer> builder) {
         var membersToInitialize = ((TopLevelDeclWithMembers)m.EnclosingClass).Members.Where((md =>
           md is Field and not ConstantField { Rhs: { } }));
-        var outFormals = membersToInitialize.Select((MemberDecl md) =>
-          DAST.Formal.create_Formal(
-          Sequence<Rune>.UnicodeFromString(
-            (md is ConstantField ? InternalFieldPrefix : "") +
-            md.GetCompileName(Options)),
-              GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass).ParentFormalTypeParametersToActuals))
-          , ParseAttributes(md.Attributes)
-          )
+        var outFields = membersToInitialize.Select((MemberDecl md) => {
+          var formal = DAST.Formal.create_Formal(
+            Sequence<Rune>.UnicodeFromString(
+              (md is ConstantField ? InternalFieldPrefix : "") +
+              md.GetCompileName(Options)),
+            GenType(((Field)md).Type.Subst(((TopLevelDeclWithMembers)((Field)md).EnclosingClass)
+              .ParentFormalTypeParametersToActuals))
+            , ParseAttributes(md.Attributes)
+          );
+          return DAST.Field.create_Field(formal, md is ConstantField,
+            Std.Wrappers.Option<DAST.Expression>.create_None());
+        }
         ).ToList();
         builder.Builder.AddStatement((DAST.Statement)DAST.Statement.create_ConstructorNewSeparator(
-          Sequence<_IFormal>.FromArray(outFormals.ToArray())));
+          Sequence<_IField>.FromArray(outFields.ToArray())));
       } else {
         throw new InvalidCastException("Divided block statement outside of a statement container");
       }
@@ -669,7 +673,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(name),
           compiler.GenType(type),
           compiler.ParseAttributes(field.Attributes)
-        ), rhsExpr);
+        ), isConst, rhsExpr);
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
@@ -1929,7 +1933,8 @@ namespace Microsoft.Dafny.Compilers {
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+            member is ConstantField
           ), this);
         }
       } else if (member is SpecialField { SpecialId: SpecialField.ID.ArrayLength } arraySpecial) {
@@ -1973,7 +1978,8 @@ namespace Microsoft.Dafny.Compilers {
           member.EnclosingClass is DatatypeDecl, GenType(expectedType)
         ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
           objExpr,
-          Sequence<Rune>.UnicodeFromString(compiledName)
+          Sequence<Rune>.UnicodeFromString(compiledName),
+          member is ConstantField
         ), this);
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
@@ -2005,7 +2011,8 @@ namespace Microsoft.Dafny.Compilers {
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(InternalFieldPrefix + member.GetCompileName(Options)),
+            member is ConstantField
           ), this);
         } else {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
@@ -2015,7 +2022,8 @@ namespace Microsoft.Dafny.Compilers {
             member.EnclosingClass is DatatypeDecl, GenType(expectedType)
           ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(
             objExpr,
-            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options))
+            Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)),
+            member is ConstantField
           ), this);
         }
       }
