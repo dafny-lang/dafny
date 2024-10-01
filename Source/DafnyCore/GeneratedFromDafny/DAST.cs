@@ -5969,6 +5969,7 @@ namespace DAST {
     bool is_SetBoundedPool { get; }
     bool is_MapBoundedPool { get; }
     bool is_SeqBoundedPool { get; }
+    bool is_MultisetBoundedPool { get; }
     bool is_ExactBoundedPool { get; }
     bool is_IntRange { get; }
     bool is_UnboundedIntRange { get; }
@@ -6194,6 +6195,9 @@ namespace DAST {
     public static _IExpression create_SeqBoundedPool(DAST._IExpression of, bool includeDuplicates) {
       return new Expression_SeqBoundedPool(of, includeDuplicates);
     }
+    public static _IExpression create_MultisetBoundedPool(DAST._IExpression of, bool includeDuplicates) {
+      return new Expression_MultisetBoundedPool(of, includeDuplicates);
+    }
     public static _IExpression create_ExactBoundedPool(DAST._IExpression of) {
       return new Expression_ExactBoundedPool(of);
     }
@@ -6252,6 +6256,7 @@ namespace DAST {
     public bool is_SetBoundedPool { get { return this is Expression_SetBoundedPool; } }
     public bool is_MapBoundedPool { get { return this is Expression_MapBoundedPool; } }
     public bool is_SeqBoundedPool { get { return this is Expression_SeqBoundedPool; } }
+    public bool is_MultisetBoundedPool { get { return this is Expression_MultisetBoundedPool; } }
     public bool is_ExactBoundedPool { get { return this is Expression_ExactBoundedPool; } }
     public bool is_IntRange { get { return this is Expression_IntRange; } }
     public bool is_UnboundedIntRange { get { return this is Expression_UnboundedIntRange; } }
@@ -6669,13 +6674,15 @@ namespace DAST {
         if (d is Expression_SetBoundedPool) { return ((Expression_SetBoundedPool)d)._of; }
         if (d is Expression_MapBoundedPool) { return ((Expression_MapBoundedPool)d)._of; }
         if (d is Expression_SeqBoundedPool) { return ((Expression_SeqBoundedPool)d)._of; }
+        if (d is Expression_MultisetBoundedPool) { return ((Expression_MultisetBoundedPool)d)._of; }
         return ((Expression_ExactBoundedPool)d)._of;
       }
     }
     public bool dtor_includeDuplicates {
       get {
         var d = this;
-        return ((Expression_SeqBoundedPool)d)._includeDuplicates;
+        if (d is Expression_SeqBoundedPool) { return ((Expression_SeqBoundedPool)d)._includeDuplicates; }
+        return ((Expression_MultisetBoundedPool)d)._includeDuplicates;
       }
     }
     public DAST._IExpression dtor_lo {
@@ -8253,6 +8260,38 @@ namespace DAST {
       return s;
     }
   }
+  public class Expression_MultisetBoundedPool : Expression {
+    public readonly DAST._IExpression _of;
+    public readonly bool _includeDuplicates;
+    public Expression_MultisetBoundedPool(DAST._IExpression of, bool includeDuplicates) : base() {
+      this._of = of;
+      this._includeDuplicates = includeDuplicates;
+    }
+    public override _IExpression DowncastClone() {
+      if (this is _IExpression dt) { return dt; }
+      return new Expression_MultisetBoundedPool(_of, _includeDuplicates);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Expression_MultisetBoundedPool;
+      return oth != null && object.Equals(this._of, oth._of) && this._includeDuplicates == oth._includeDuplicates;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 46;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._includeDuplicates));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Expression.MultisetBoundedPool";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._of);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._includeDuplicates);
+      s += ")";
+      return s;
+    }
+  }
   public class Expression_ExactBoundedPool : Expression {
     public readonly DAST._IExpression _of;
     public Expression_ExactBoundedPool(DAST._IExpression of) : base() {
@@ -8268,7 +8307,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 46;
+      hash = ((hash << 5) + hash) + 47;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       return (int) hash;
     }
@@ -8301,7 +8340,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 47;
+      hash = ((hash << 5) + hash) + 48;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hi));
@@ -8339,7 +8378,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 48;
+      hash = ((hash << 5) + hash) + 49;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
       return (int) hash;
@@ -8375,7 +8414,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 49;
+      hash = ((hash << 5) + hash) + 50;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collection));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._is__forall));

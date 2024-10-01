@@ -677,6 +677,14 @@ mod tests {
         assert!(multiset! {1, 1, 5, 7, 8}
             .iter()
             .any(Rc::new(|i: u32| i % 2 == 0).as_ref()));
+        let count = Rc::new(RefCell::new(0));
+        let count_inner = count.clone();
+        multiset!{1, 1, 5, 7, 8}
+            .iter().for_each(move |_i: u32| {
+                let c: i32 = *count_inner.as_ref().borrow();
+                *count_inner.borrow_mut() = c + 1;
+             });
+        assert_eq!(*count.as_ref().borrow(), 5);
 
         let m = map![1 => 4, 3 => 6, 5 => 8];
         let m2 = m.clone();
