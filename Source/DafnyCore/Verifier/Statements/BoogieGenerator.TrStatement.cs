@@ -44,8 +44,8 @@ public partial class BoogieGenerator {
 
     } else if (stmt is HideRevealStmt revealStmt) {
       TranslateRevealStmt(builder, locals, etran, revealStmt);
-    } else if (stmt is BreakStmt) {
-      var s = (BreakStmt)stmt;
+    } else if (stmt is BreakOrContinueStmt) {
+      var s = (BreakOrContinueStmt)stmt;
       AddComment(builder, stmt, $"{s.Kind} statement");
       foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - s.TargetStmt.ScopeDepth)) {
         builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));

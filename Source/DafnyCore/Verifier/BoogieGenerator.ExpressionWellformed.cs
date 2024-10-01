@@ -273,7 +273,7 @@ namespace Microsoft.Dafny {
         PathAsideBlock(expr.tok, wfBuilder, builder);
         return;
       }
-      
+
       var origOptions = wfOptions;
       if (wfOptions.LValueContext) {
         // Turn off LValueContext for any recursive call

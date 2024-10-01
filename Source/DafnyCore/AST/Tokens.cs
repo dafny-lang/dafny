@@ -98,7 +98,7 @@ public class Token : IToken {
 
   public bool IsValid => this.ActualFilename != null;
   public string Render(CoreOptions options, bool includeFile) {
-    
+
     if (this == Cli) {
       return "CLI";
     }

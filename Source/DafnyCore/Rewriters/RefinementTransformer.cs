@@ -1523,8 +1523,8 @@ namespace Microsoft.Dafny {
         ((ReturnStmt)s).ReverifyPost = true;
       } else if (s is YieldStmt) {
         Error(ErrorId.ref_misplaced_yield, s, "yield statements are not allowed in skeletons");
-      } else if (s is BreakStmt) {
-        var b = (BreakStmt)s;
+      } else if (s is BreakOrContinueStmt) {
+        var b = (BreakOrContinueStmt)s;
         if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
           Error(ErrorId.ref_invalid_break_in_skeleton, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }

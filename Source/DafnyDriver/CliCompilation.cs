@@ -185,23 +185,21 @@ public class CliCompilation {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
-        
+
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Origin;
-          
+
           string partDescription;
-          
-          switch (partOrigin)
-          {
-            case AssertPathOrigin pathOrigin:
-            {
-              IEnumerable<Block> nonDominatedBranches = pathOrigin.Branches;
-              nonDominatedBranches = nonDominatedBranches.Where(b => 
-                pathOrigin.Dominators.DominatedBy(b, pathOrigin.AssertBlock));
-              partDescription = $"assertion at line {pathOrigin.line}, " +
-                                $"through [{string.Join(",", nonDominatedBranches.Select(b => b.tok.line))}]";
-              break;
-            }
+
+          switch (partOrigin) {
+            case AssertPathOrigin pathOrigin: {
+                IEnumerable<Block> nonDominatedBranches = pathOrigin.Branches;
+                nonDominatedBranches = nonDominatedBranches.Where(b =>
+                  pathOrigin.Dominators.DominatedBy(b, pathOrigin.AssertBlock));
+                partDescription = $"assertion at line {pathOrigin.line}, " +
+                                  $"through [{string.Join(",", nonDominatedBranches.Select(b => b.tok.line))}]";
+                break;
+              }
             case IsolatedAssertionOrigin isolateOrigin:
               partDescription = $"assertion at line {isolateOrigin.line}";
               break;
@@ -209,7 +207,7 @@ public class CliCompilation {
               partDescription = "all assertions";
               break;
           }
-          
+
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
           Options.OutputWriter.WriteLine(

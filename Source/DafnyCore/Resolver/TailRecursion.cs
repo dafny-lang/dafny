@@ -98,7 +98,7 @@ class TailRecursion {
     }
     if (stmt is PrintStmt) {
     } else if (stmt is HideRevealStmt) {
-    } else if (stmt is BreakStmt) {
+    } else if (stmt is BreakOrContinueStmt) {
     } else if (stmt is ReturnStmt) {
       var s = (ReturnStmt)stmt;
       if (s.HiddenUpdate != null) {
