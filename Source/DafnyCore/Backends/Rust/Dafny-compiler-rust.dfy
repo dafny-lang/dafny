@@ -1,8 +1,8 @@
 include "../Dafny/AST.dfy"
+
 // Dafny to Rust compilation tenets:
 // - The Compiled Dafny AST should be minimal
 // - The generated code should look idiomatic and close to the original Dafny file if possible
-
 module {:extern "DCOMP"} DafnyToRustCompiler {
   import opened DafnyToRustCompilerDefinitions
   import FactorPathsOptimization
