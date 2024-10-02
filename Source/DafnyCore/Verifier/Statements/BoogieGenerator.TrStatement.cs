@@ -52,15 +52,14 @@ public partial class BoogieGenerator {
       }
       var lbl = (s.IsContinue ? "continue_" : "after_") + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
       builder.Add(new GotoCmd(s.Tok, new List<string> { lbl }));
-    } else if (stmt is ReturnStmt) {
-      var s = (ReturnStmt)stmt;
-      AddComment(builder, stmt, "return statement");
-      if (s.ReverifyPost) {
+    } else if (stmt is ReturnStmt returnStmt) {
+      AddComment(builder, returnStmt, "return statement");
+      if (returnStmt.ReverifyPost) {
         // $_reverifyPost := true;
-        builder.Add(Bpl.Cmd.SimpleAssign(s.Tok, new Bpl.IdentifierExpr(s.Tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
+        builder.Add(Bpl.Cmd.SimpleAssign(returnStmt.Tok, new Bpl.IdentifierExpr(returnStmt.Tok, "$_reverifyPost", Bpl.Type.Bool), Bpl.Expr.True));
       }
-      if (s.HiddenUpdate != null) {
-        TrStmt(s.HiddenUpdate, builder, locals, etran);
+      if (returnStmt.HiddenUpdate != null) {
+        TrStmt(returnStmt.HiddenUpdate, builder, locals, etran);
       }
       if (codeContext is IMethodCodeContext) {
         var method = (IMethodCodeContext)codeContext;
@@ -72,9 +71,11 @@ public partial class BoogieGenerator {
       }
 
       foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth)) {
-        builder.Add(new ChangeScope(s.Tok, ChangeScope.Modes.Pop));
+        builder.Add(new ChangeScope(returnStmt.Tok, ChangeScope.Modes.Pop));
       }
-      builder.Add(new Bpl.ReturnCmd(stmt.Tok));
+      builder.Add(new ReturnCmd(returnStmt.Tok) {
+        Attributes = etran.TrAttributes(returnStmt.Attributes)
+      });
     } else if (stmt is YieldStmt) {
       var s = (YieldStmt)stmt;
       AddComment(builder, s, "yield statement");

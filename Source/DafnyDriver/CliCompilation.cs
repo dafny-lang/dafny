@@ -192,16 +192,16 @@ public class CliCompilation {
           string partDescription;
 
           switch (partOrigin) {
-            case AssertPathOrigin pathOrigin: {
-                IEnumerable<Block> nonDominatedBranches = pathOrigin.Branches;
-                nonDominatedBranches = nonDominatedBranches.Where(b =>
-                  pathOrigin.Dominators.DominatedBy(b, pathOrigin.AssertBlock));
+            case PathOrigin pathOrigin: {
                 partDescription = $"assertion at line {pathOrigin.line}, " +
-                                  $"through [{string.Join(",", nonDominatedBranches.Select(b => b.tok.line))}]";
+                                  $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]";
                 break;
               }
             case IsolatedAssertionOrigin isolateOrigin:
               partDescription = $"assertion at line {isolateOrigin.line}";
+              break;
+            case ReturnOrigin returnOrigin:
+              partDescription = $"return at line {returnOrigin.line}";
               break;
             default:
               partDescription = "all assertions";
