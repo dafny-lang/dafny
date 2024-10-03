@@ -158,6 +158,7 @@ namespace Microsoft.Dafny {
               CheckWellformedAndAssume(e.E0, wfOptions, locals, bAnd, etran, comment);
               CheckWellformedAndAssume(e.E1, wfOptions, locals, bAnd, etran, comment);
               var bImp = new BoogieStmtListBuilder(this, options, builder.Context);
+              bImp.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
               bImp.Add(TrAssumeCmdWithDependencies(etran, expr.tok, expr, comment));
               builder.Add(new Bpl.IfCmd(expr.tok, null, bAnd.Collect(expr.tok), null, bImp.Collect(expr.tok)));
             }
@@ -172,6 +173,7 @@ namespace Microsoft.Dafny {
               var b0 = new BoogieStmtListBuilder(this, options, builder.Context);
               CheckWellformedAndAssume(e.E0, wfOptions, locals, b0, etran, comment);
               var b1 = new BoogieStmtListBuilder(this, options, builder.Context);
+              b1.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(e.E0)));
               b1.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, e.E0, Expr.Not, comment));
               CheckWellformedAndAssume(e.E1, wfOptions, locals, b1, etran, comment);
               builder.Add(new Bpl.IfCmd(expr.tok, null, b0.Collect(expr.tok), null, b1.Collect(expr.tok)));
@@ -193,6 +195,7 @@ namespace Microsoft.Dafny {
         CheckWellformedAndAssume(e.Test, wfOptions, locals, bThn, etran, comment);
         CheckWellformedAndAssume(e.Thn, wfOptions, locals, bThn, etran, comment);
         var bEls = new BoogieStmtListBuilder(this, options, builder.Context);
+        bEls.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(e.Test)));
         bEls.Add(TrAssumeCmdWithDependenciesAndExtend(etran, expr.tok, e.Test, Expr.Not, comment));
         CheckWellformedAndAssume(e.Els, wfOptions, locals, bEls, etran, comment);
         builder.Add(new Bpl.IfCmd(expr.tok, null, bThn.Collect(expr.tok), null, bEls.Collect(expr.tok)));
