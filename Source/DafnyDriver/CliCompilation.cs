@@ -189,24 +189,14 @@ public class CliCompilation {
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Origin;
 
-          string partDescription;
-
-          switch (partOrigin) {
-            case PathOrigin pathOrigin: {
-                partDescription = $"assertion at line {pathOrigin.line}, " +
-                                  $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]";
-                break;
-              }
-            case IsolatedAssertionOrigin isolateOrigin:
-              partDescription = $"assertion at line {isolateOrigin.line}";
-              break;
-            case ReturnOrigin returnOrigin:
-              partDescription = $"return at line {returnOrigin.line}";
-              break;
-            default:
-              partDescription = "all assertions";
-              break;
-          }
+          var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
+          var partDescription = partOrigin switch {
+            PathOrigin pathOrigin => $"assertion at line {pathOrigin.line}, " +
+                                     $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]",
+            IsolatedAssertionOrigin isolateOrigin => $"assertion at line {isolateOrigin.line}",
+            ReturnOrigin returnOrigin => $"return at line {returnOrigin.line}",
+            _ => wellFormedness ? "contract well-formedness" : "body assertions"
+          };
 
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
