@@ -97,27 +97,6 @@ public class Token : IToken {
   public IToken Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
-  public string Render(CoreOptions options, bool includeFile) {
-
-    if (this == Cli) {
-      return "CLI";
-    }
-
-    if (Uri == null) {
-      return $"({line},{col - 1})";
-    }
-
-    var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = Uri.Scheme switch {
-      "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(Filepath),
-      _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(Filepath)
-        : (Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, Filepath) : Filepath)
-    };
-
-    return $"{filename}({line},{col - 1})";
-  }
 
   public IToken WithVal(string newVal) {
     return new Token {

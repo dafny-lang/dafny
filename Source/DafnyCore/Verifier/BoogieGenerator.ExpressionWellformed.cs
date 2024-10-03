@@ -265,14 +265,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      AddResultCommands addResultCommands, bool isolate = false) {
-
-      if (isolate) {
-        var wfBuilder = new BoogieStmtListBuilder(builder.tran, builder.Options, builder.Context);
-        CheckWellformedWithResult(expr, wfOptions, locals, wfBuilder, etran, addResultCommands, false);
-        PathAsideBlock(expr.tok, wfBuilder, builder);
-        return;
-      }
+      AddResultCommands addResultCommands) {
 
       var origOptions = wfOptions;
       if (wfOptions.LValueContext) {

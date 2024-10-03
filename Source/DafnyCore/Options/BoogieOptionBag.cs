@@ -81,7 +81,6 @@ public static class BoogieOptionBag {
     };
 
   public static readonly Option<bool> IsolateAssertions = new("--isolate-assertions", @"Verify each assertion in isolation.");
-  public static readonly Option<bool> IsolatePaths = new("--isolate-paths", @"Verify each path in isolation.");
 
   public static readonly Option<FileInfo> SolverPath = new("--solver-path",
     "Can be used to specify a custom SMT solver to use for verifying Dafny proofs.") {
@@ -150,7 +149,6 @@ public static class BoogieOptionBag {
     OptionRegistry.RegisterOption(VerificationTimeLimit, OptionScope.Cli);
     OptionRegistry.RegisterOption(VerificationErrorLimit, OptionScope.Cli);
     OptionRegistry.RegisterOption(IsolateAssertions, OptionScope.Cli);
-    OptionRegistry.RegisterOption(IsolatePaths, OptionScope.Cli);
     OptionRegistry.RegisterOption(SolverLog, OptionScope.Cli);
     OptionRegistry.RegisterOption(SolverOption, OptionScope.Cli);
     OptionRegistry.RegisterOption(SolverOptionHelp, OptionScope.Cli);

@@ -29,7 +29,6 @@ public static class DafnyCommands {
     BoogieOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
     BoogieOptionBag.IsolateAssertions,
-    BoogieOptionBag.IsolatePaths,
     BoogieOptionBag.BoogieArguments,
     CommonOptionBag.VerificationLogFormat,
     BoogieOptionBag.SolverResourceLimit,

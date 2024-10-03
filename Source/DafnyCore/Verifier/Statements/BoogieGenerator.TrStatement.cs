@@ -1051,7 +1051,7 @@ public partial class BoogieGenerator {
     if (lValueContext) {
       options = options.WithLValueContext(true);
     }
-    CheckWellformedWithResult(expr, options, locals, builder, etran, addResultCommands, false);
+    CheckWellformedWithResult(expr, options, locals, builder, etran, addResultCommands);
     builder.Add(TrAssumeCmd(expr.tok, etran.CanCallAssumption(expr)));
   }
 

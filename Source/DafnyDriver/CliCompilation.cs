@@ -187,7 +187,7 @@ public class CliCompilation {
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
         if (Options.Get(CommonOptionBag.ProgressOption)) {
-          var partOrigin = boogieUpdate.VerificationTask.Split.Origin;
+          var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
           var partDescription = partOrigin switch {
