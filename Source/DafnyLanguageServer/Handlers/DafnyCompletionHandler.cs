@@ -157,10 +157,10 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
       
       private CompletionList CreateAtAttributeCompletionList() {
-        var completionItems = new List<string>() {
-          "IsolateAssertions", // TODO: Put this list in Dafny Core
-          "TailRecursion"
-        }.Select(CreateCompletionItem);
+        var completionItems =
+          Attributes.BuiltinAtAttributes.Select(b =>
+            CreateCompletionItem(b.Name)
+          ).ToList();
         return new CompletionList(completionItems);
       }
 

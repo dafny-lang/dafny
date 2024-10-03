@@ -648,17 +648,6 @@ public partial class Parser {
     public Attributes Attributes = null;
   }
 
-  void CheckNoKeywordIfAtAttribute(DeclModifierData mods) {
-    if (mods is {Attributes: UserSuppliedAtAttribute { RangeToken: {} range}}
-        and ({ReplaceableToken: not null} or {AbstractToken: not null} or {GhostToken: not null}
-        or {StaticToken: not null} or {OpaqueToken: not null})
-        ) {
-      SemErr(ErrorId.p_at_attributes_before_keywords, range.ToToken(), "Please declare @-attributes before declaration keywords");
-    } else if (mods is {FirstToken: null, Attributes: UserSuppliedAtAttribute { RangeToken: {} range2}}) {
-      mods.FirstToken = range2.StartToken;
-    }
-  }
-
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
     if (mods.IsReplaceable && mods.IsAbstract) {
       SemErr(null, mods.ReplaceableToken, "Can't be both replaceable and abstract");
@@ -672,6 +661,13 @@ public partial class Parser {
     }
 
     return ModuleKindEnum.Concrete;
+  }
+
+  public void CheckNoAttributes(ref Attributes attrs) {
+    if (attrs != null) {
+      SemErr(ErrorId.p_extra_attributes, attrs.RangeToken, "Attribute not expected here");
+      attrs = null;
+    }
   }
 
   // Check that token has not been set, then set it.

@@ -17,6 +17,10 @@ public abstract class Type : TokenNode {
   public override IEnumerable<INode> PreResolveChildren => TypeArgs.OfType<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
+
+  public static Type ResolvedString() {
+    return new SeqType(new CharType()); }
+  
   public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();

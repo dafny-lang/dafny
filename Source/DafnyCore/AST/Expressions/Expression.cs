@@ -40,6 +40,8 @@ public abstract class Expression : TokenNode {
 
   public PreType PreType;
 
+  public Attributes Attributes; // @-attributes
+
   public virtual IEnumerable<Expression> TerminalExpressions {
     get {
       yield return this;

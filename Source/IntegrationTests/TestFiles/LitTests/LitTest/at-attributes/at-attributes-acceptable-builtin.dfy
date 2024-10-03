@@ -99,7 +99,9 @@ function NatToUnary(n: nat): Unary {
 }
 
 lemma Correspondence()
-  ensures forall n: nat @induction(n) @trigger(NatToUnary(n)) :: UnaryToNat(NatToUnary(n)) == n
+  ensures
+    @Induction(n) @Trigger(NatToUnary(n))
+    forall n: nat :: UnaryToNat(NatToUnary(n)) == n
 {
 }
 
@@ -149,7 +151,7 @@ method Test(a: A)
   requires a != null
 {
   @SplitHere
-  @SubSumption(0)
+  @Subsumption(0)
   assert true;                  // Unchecked
   @OnlyAfter
   assert true;

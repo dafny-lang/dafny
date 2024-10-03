@@ -39,7 +39,6 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Contract.Invariant(Term != null);
   }
 
-  public Attributes Attributes;
   Attributes IAttributeBearingDeclaration.Attributes => Attributes;
 
   [FilledInDuringResolution] public List<BoundedPool> Bounds;

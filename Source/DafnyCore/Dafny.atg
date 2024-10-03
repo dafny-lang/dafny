@@ -246,7 +246,6 @@ DeclModifier<ref DeclModifierData dmod>
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | AtAttribute<ref dmod.Attributes>           (. CheckNoKeywordIfAtAttribute(dmod); .)
   )
   .
 
@@ -256,6 +255,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel .>
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
   .)
+  { AtAttribute<ref dmod.Attributes> }
   { DeclModifier<ref dmod> }
   ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
                                                (. var litmod = submodule as LiteralModuleDecl;
@@ -532,6 +532,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
+      { AtAttribute<ref dmod.Attributes> }
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false>
     }
@@ -582,6 +583,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   ]
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
+      { AtAttribute<ref dmod.Attributes> }
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false>
     }
@@ -597,6 +599,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
+     Attributes attrs = dmod.Attributes;
   .)
   ( (. if (moduleLevelDecl) {
          SemErr(ErrorId.p_top_level_field, la, "fields are not allowed to be declared at the module level; instead, wrap the field in a 'class' declaration");
@@ -617,7 +620,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
          dmod.IsStatic = false;
        }
     .)
-    MethodDecl<dmod, allowConstructors, out m>  (. mm.Add(m); .)
+    MethodDecl<dmod, allowConstructors, out m, ref attrs>  (. mm.Add(m); .)
   )
   .
 
@@ -693,6 +696,7 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
   .)
   "{"
   { (. dmod = new DeclModifierData(); .)
+    { AtAttribute<ref dmod.Attributes> }
     { DeclModifier<ref dmod> }
     ClassMemberDecl<dmod, members, false, false>
   }
@@ -1049,7 +1053,8 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   | ellipsis                (. signatureEllipsis = t; .)
   )
   IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs>
-  [ BlockStmt<out body, out bodyStart, out bodyEnd>
+  (. Attributes attrs = null; /*TODO: Recover from IteratorSpec*/ .)
+  [ BlockStmt<out body, out bodyStart, out bodyEnd, ref attrs>
   ]
   (. iter = new IteratorDecl(new RangeToken(dmod.FirstToken, t), name, module, typeArgs, ins, outs,
                              new Specification<FrameExpression>(reads, readsAttrs),
@@ -1143,7 +1148,7 @@ TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
   .
 
 /*------------------------------------------------------------------------*/
-MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
+MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      bool hasName = false;
      Name name = new Name("<noNameGiven>");  
@@ -1211,7 +1216,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                                     .)
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(ref dmod, caption, allowed); .)
-  { Attribute<ref dmod.Attributes> }
+  { Attribute<ref dmod.Attributes> }  (. Attributes.MergeInto(ref attrs, ref dmod.Attributes); .)
   [ MethodFunctionName<out name>               (. hasName = true; .)
   ]
   (. if (!hasName) {
@@ -1240,13 +1245,14 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )                                             (. tokenWithTrailingDocString = t; .)
+  { AtAttribute<ref attrs> }
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
-             req, reads, mod, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption, isConstructor>
+             req, reads, mod, ens, dec, ref attrs, ref decAttrs, ref modAttrs, ref readsAttrs, caption, isConstructor>
   [ IF(isConstructor)
-    (. DividedBlockStmt dividedBody; .)
-    DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
+    (. DividedBlockStmt dividedBody;.)
+    DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd, ref attrs>
     (. body = dividedBody; .)
-  | BlockStmt<out body, out bodyStart, out bodyEnd>
+  | BlockStmt<out body, out bodyStart, out bodyEnd, ref attrs>
   ]
   (. var range = new RangeToken(dmod.FirstToken, t);
      if (isConstructor) {
@@ -1289,9 +1295,10 @@ KType<ref ExtremePredicate.KType kType, out IToken openBracket, out IToken close
   .
 
 /*------------------------------------------------------------------------*/
-RequiresClause<.List<AttributedExpression> req, bool allowLabel, ref Attributes attrs.>
+RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
 = "requires"    (. IToken lbl = null;
                    IToken first = t;
+                   Attributes attrs = null;
                    Expression e;
                  .)
   { Attribute<ref attrs> }
@@ -1299,32 +1306,26 @@ RequiresClause<.List<AttributedExpression> req, bool allowLabel, ref Attributes 
     LabelName<out lbl> ":"
   ]
   Expression<out e, false, false>
-  OldSemi       (.
-    req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs));
-    attrs = null; // Consume attributes  
-  .)
+  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
-EnsuresClause<.List<AttributedExpression> ens, bool allowLambda, ref Attributes attrs.>
+EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
 = "ensures"     (. Expression e;
+                   Attributes attrs = null;
                  .)
   { Attribute<ref attrs> }
   Expression<out e, false, allowLambda>
-    OldSemi       (.
-      ens.Add(new AttributedExpression(e, attrs));
-      attrs = null; // Consume attributes
-    .)
+    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
-ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs, ref Attributes modifiesAttrs,
+ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs,
                 bool allowLambda, bool performThisDeprecatedCheck.>
 = "modifies"                                    (. FrameExpression fe;
-                                                   Attributes.MergeInto(ref attrs, ref modifiesAttrs);
                                                    mod = mod ?? new List<FrameExpression>();
                                                 .)
-  { Attribute<ref modifiesAttrs> }
+  { Attribute<ref attrs> }
   FrameExpression<out fe, false, allowLambda>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   { "," FrameExpression<out fe, false, allowLambda>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
   }
@@ -1332,9 +1333,9 @@ ModifiesClause<.ref List<FrameExpression> mod, ref Attributes attrs, ref Attribu
   .
 
 /*------------------------------------------------------------------------*/
-DecreasesClause<.List<Expression> decreases, ref Attributes attrs, ref Attributes decreasesAttr,
+DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
                  bool allowWildcard, bool allowLambda.>
-= "decreases" (. Attributes.MergeInto(ref attrs, ref decreasesAttr); .)
+= "decreases"
   { Attribute<ref attrs> }
   DecreasesList<decreases, allowWildcard, allowLambda>
   OldSemi
@@ -1342,11 +1343,9 @@ DecreasesClause<.List<Expression> decreases, ref Attributes attrs, ref Attribute
 
 /*------------------------------------------------------------------------*/
 ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
-                  ref Attributes readAttrs,
                   bool allowLemma, bool allowLambda, bool allowWild.>
 = "reads"
-  (. FrameExpression fe;
-     Attributes.MergeInto(ref attrs, ref readAttrs); .)
+  (. FrameExpression fe; .)
   { Attribute<ref attrs> }
   PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
   { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
@@ -1359,8 +1358,9 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
   .
 
 /*------------------------------------------------------------------------*/
-InvariantClause<.List<AttributedExpression> invariants, ref Attributes attrs.> =
-  "invariant"                                   (. Expression e;
+InvariantClause<. List<AttributedExpression> invariants.> =
+  "invariant"                                   (. Attributes attrs = null;
+                                                   Expression e;
                                                 .)
   { Attribute<ref attrs> }
   Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
@@ -1369,23 +1369,22 @@ InvariantClause<.List<AttributedExpression> invariants, ref Attributes attrs.> =
 
 /*------------------------------------------------------------------------*/
 MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> reads, List<FrameExpression> mod, List<AttributedExpression> ens,
-            List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption, bool performThisDeprecatedCheck.>
+            List<Expression> decreases, ref Attributes attrs, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
-     Attributes attrs = null;
   .)
+  SYNC
   {
-    { AtAttribute<ref attrs> }
-    SYNC
-    ( ReadsClause<reads, ref attrs, ref readsAttrs, false, false, true>
-    | ModifiesClause<ref mod, ref attrs, ref modAttrs, false, performThisDeprecatedCheck>
-    | RequiresClause<req, true, ref attrs>
-    | EnsuresClause<ens, false, ref attrs>
-    | DecreasesClause<decreases, ref attrs, ref decAttrs, !isGhost, false>
-    )
+      ( ReadsClause<reads, ref readsAttrs, false, false, true>
+      | ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
+      | RequiresClause<req, true>
+      | EnsuresClause<ens, false>
+      | DecreasesClause<decreases, ref decAttrs, !isGhost, false>
+      )
+      { AtAttribute<ref attrs> } // For the next clause
   }
   .
 
@@ -1395,20 +1394,16 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
               List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
 =
-  (. Attributes attrs = null; .)
-  {
-    { AtAttribute<ref attrs> }
-    SYNC
-    ( ReadsClause<reads, ref attrs, ref readsAttrs, false, false, false>
-    | ModifiesClause<ref mod, ref attrs, ref modAttrs, false, false>
-    | (. bool isYield = false; .)
-      [ "yield"                                                (. isYield = true; .)
-      ]
-      ( RequiresClause<(isYield?yieldReq:req), !isYield, ref attrs>
-      | EnsuresClause<(isYield?yieldEns:ens), false, ref attrs>
-      )
-    | DecreasesClause<decreases, ref attrs, ref decrAttrs, false, false>
-  )
+  SYNC
+  { ReadsClause<reads, ref readsAttrs, false, false, false>
+  | ModifiesClause<ref mod, ref modAttrs, false, false>
+  | (. bool isYield = false; .)
+    [ "yield"                                                (. isYield = true; .)
+    ]
+    ( RequiresClause<(isYield?yieldReq:req), !isYield>
+    | EnsuresClause<(isYield?yieldEns:ens), false>
+    )
+  | DecreasesClause<decreases, ref decrAttrs, false, false>
   }
   .
 
@@ -2038,26 +2033,21 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
   .)
-  (. Attributes attrs = null; .)
-  {
-    { AtAttribute<ref attrs> }
-    SYNC
-    ( RequiresClause<reqs, true, ref attrs>
-    | ReadsClause<reads, ref attrs, ref readsAttrs, false, false, true>
-    | EnsuresClause<ens, false, ref attrs>
-    | (. var decreasesToken = la;
-         var decreasesForbidden = decreases == null;
-         if (decreases == null) {
-           decreases = new List<Expression/*!*/>();
-         }
-      .)
-      DecreasesClause<decreases, ref attrs, ref decAttrs, false, false>
-      (. if (decreasesForbidden) {
-         var erange = new RangeToken(decreasesToken, t);
-         SemErr(ErrorId.p_no_decreases_for_extreme_predicates, erange, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
-         }
-      .)
-    )
+  SYNC
+  { RequiresClause<reqs, true>
+  | ReadsClause<reads, ref readsAttrs, false, false, true>
+  | EnsuresClause<ens, false>
+  | (. var decreasesToken = la;
+       var decreasesForbidden = decreases == null;
+       if (decreases == null) {
+         decreases = new List<Expression/*!*/>();
+       }
+    .)
+    DecreasesClause<decreases, ref decAttrs, false, false>
+    (. if (decreasesForbidden) {
+       var erange = new RangeToken(decreasesToken, t);
+       SemErr(ErrorId.p_no_decreases_for_extreme_predicates, erange, "'decreases' clauses are meaningless for least and greatest predicates, so they are not allowed");
+    }.)
   }
   .
 
@@ -2149,21 +2139,26 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, ou
   "}"                         (. bodyEnd = t; .)
   [ "by"                      (. byMethodTok = t; .)
     "method"
-    BlockStmt<out byMethodBody, out _, out _>
+    (. Attributes attrs = null; /* TODO: Have FunctionBody return attributes */ .)
+    { AtAttribute<ref attrs> }
+    BlockStmt<out byMethodBody, out _, out _, ref attrs>
   ]
   .
 
 
 /*------------------------------------------------------------------------*/
-BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd>
+BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
   .)
-  "{"                                  (. bodyStart = t; .)
+  "{"                                  (. bodyStart = t; Attributes blockAttrs = attrs; attrs = null; .)
   { Stmt<body> }
   "}"                                  (. bodyEnd = t;
-                                          block = new BlockStmt(new RangeToken(bodyStart, bodyEnd), body);
+                                          block = new BlockStmt(new RangeToken(bodyStart, bodyEnd), body) {
+                                            Attributes = blockAttrs
+                                          };
                                           .)
+  { AtAttribute<ref attrs> }
   .
 
 OpaqueBlock<out Statement s>
@@ -2172,17 +2167,11 @@ OpaqueBlock<out Statement s>
     List<AttributedExpression> ensures = new();
     List<FrameExpression/*!*/> modifies = new List<FrameExpression/*!*/>();
     Attributes modifiesAttributes = null;
-    Attributes attrs = null;
     IToken start;
   .)
-  SYNC
   "opaque" (. start = t; .)
-  {
-    { AtAttribute<ref attrs> }
-    SYNC
-    ( ModifiesClause<ref modifies, ref attrs, ref modifiesAttributes, false, false>
-    | EnsuresClause<ensures, false, ref attrs>
-    )
+  { ModifiesClause<ref modifies, ref modifiesAttributes, false, false>
+  | EnsuresClause<ensures, false>
   }
   "{"
   { Stmt<body> }
@@ -2194,20 +2183,23 @@ OpaqueBlock<out Statement s>
   .
 
 /*------------------------------------------------------------------------*/
-DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bodyEnd>
+DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bodyEnd, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out body) != null);
      List<Statement> bodyInit = new List<Statement>();
      IToken separatorTok = null;
      List<Statement> bodyProper = new List<Statement>();
   .)
-  "{"                                  (. bodyStart = t; .)
+  "{"                                  (. bodyStart = t; Attributes blockAttrs = attrs; attrs = null; .)
   { Stmt<bodyInit> }
   [ "new"                              (. separatorTok = t; .)
     ";"
     { Stmt<bodyProper> }
   ]
   "}"                                  (. bodyEnd = t; .)
-  (. body = new DividedBlockStmt(new RangeToken(bodyStart, t), bodyInit, separatorTok, bodyProper); .)
+  (. body = new DividedBlockStmt(new RangeToken(bodyStart, t), bodyInit, separatorTok, bodyProper) {
+       Attributes = blockAttrs
+     }; .)
+  { AtAttribute<ref attrs> }
   .
 
 /*------------------------------------------------------------------------*/
@@ -2223,9 +2215,10 @@ OneStmt<out Statement/*!*/ s>
      s = dummyStmt;  /* to please the compiler */
      BlockStmt bs;
      IToken bodyStart, bodyEnd;
+     Attributes attrs = null; // TODO: Have OneStmt accept ref Attributes attrs
   .)
   SYNC
-  ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+  ( BlockStmt<out bs, out bodyStart, out bodyEnd, ref attrs>  (. s = bs; .)
   | OpaqueBlock<out s>
   | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
   | AssignStatement<out s>     // includes UpdateFailure
@@ -2345,7 +2338,7 @@ AssignStatement<out Statement/*!*/ s>
      IToken x = Token.NoToken;
      IToken endTok = Token.NoToken;
      IToken startToken = Token.NoToken;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Capture attributes if Lhs parses
      Attributes tokenAttrs = null;
      AttributedToken suchThatAssume = null;
      Expression suchThat = null;
@@ -2375,20 +2368,25 @@ AssignStatement<out Statement/*!*/ s>
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
-      { Attribute<ref attrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
+      { Attribute<ref attrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); attrs = null; .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
+    (. CheckNoAttributes(ref attrs); .)
     (
-      "by" BlockStmt<out proof, out _, out _>
-    | ";"
+      "by" { AtAttribute<ref attrs> }
+      BlockStmt<out proof, out _, out _, ref attrs>
+    | ";" { AtAttribute<ref attrs> } 
     )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
-  | { Attribute<ref attrs> }       (. endToken = t; .)
+  | { Attribute<ref attrs> }       (. endToken = t; var rhsAttrs = attrs; attrs = null; .)
+    (. CheckNoAttributes(ref attrs); .)
     (
-      "by" BlockStmt<out proof, out _, out _>
+      "by" { AtAttribute<ref attrs> }
+      BlockStmt<out proof, out _, out _, ref attrs>
     | ";"
-    )                              (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
+    )                              (. endTok = t; rhss.Add(new ExprRhs(e, rhsAttrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
+     { AtAttribute<ref attrs> } 
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
@@ -2400,12 +2398,15 @@ AssignStatement<out Statement/*!*/ s>
       { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
    ]
    Expression<out exceptionExpr, false, false>
-   { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
+   { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); attrs = null; .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
+   (. CheckNoAttributes(ref attrs); .)
    (
-     "by" BlockStmt<out proof, out _, out _>
+     "by" { AtAttribute<ref attrs>}
+     BlockStmt<out proof, out _, out _, ref attrs>
    | ";"                           (. endTok = t; .)
+     { AtAttribute<ref attrs>}
    )                           
 )
   (. var rangeToken = new RangeToken(startToken, t);
@@ -2550,14 +2551,18 @@ VarDeclStatement<.out Statement/*!*/ s.>
          { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out exceptionExpr, false, false>
-      { Attribute<ref attrs> }       (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); .)
+      { Attribute<ref attrs> }       (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); attrs = null; .)
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
-    SYNC ( "by"
-      BlockStmt<out proof, out _, out _>
-    | ";"                            (. endTok = t; .)
+    SYNC
+    ( (. CheckNoAttributes(ref attrs); .)
+      "by" { AtAttribute<ref attrs> }
+      BlockStmt<out proof, out _, out _, ref attrs>
+    | (. CheckNoAttributes(ref attrs); .)
+      ";"                            (. endTok = t; .)
     )
+    { AtAttribute<ref attrs> } 
     (. ConcreteAssignStatement assignment;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
@@ -2607,7 +2612,8 @@ IfStmt<out Statement/*!*/ ifStmt>
      BlockStmt/*!*/ bs;
      Statement/*!*/ s;
      Statement els = null;
-     Attributes attrs = null;
+     Attributes ifAttrs = null;
+     Attributes attrs = null; // TODO: Recover at-attributes from the context
      Attributes elsattrs = null;
      IToken bodyStart, bodyEnd;
      IToken endTok;
@@ -2617,11 +2623,11 @@ IfStmt<out Statement/*!*/ ifStmt>
      bool usesOptionalBraces;
   .)
   "if"                       (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> }   (. Attributes.MergeInto(ref attrs, ref ifAttrs); .)
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. ifStmt = new AlternativeStmt(new RangeToken(startToken, t), alternatives, usesOptionalBraces, attrs);
+    (. ifStmt = new AlternativeStmt(new RangeToken(startToken, t), alternatives, usesOptionalBraces, ifAttrs);
     .)
   |
     ( IF(IsBindingGuard())
@@ -2631,10 +2637,10 @@ IfStmt<out Statement/*!*/ ifStmt>
                                             errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                          .)
     )
-    BlockStmt<out thn, out bodyStart, out bodyEnd> 
+    BlockStmt<out thn, out bodyStart, out bodyEnd, ref attrs>
     [ "else"
       ( IfStmt<out s>                                 (. els = s; .)
-      | { Attribute<ref elsattrs> } BlockStmt<out bs, out bodyStart, out bodyEnd> (. els = bs; .)
+      | { Attribute<ref elsattrs> } BlockStmt<out bs, out bodyStart, out bodyEnd, ref attrs> (. els = bs; .)
       )
     ]
     (.
@@ -2646,7 +2652,7 @@ IfStmt<out Statement/*!*/ ifStmt>
          ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els);
          ifStmt = new SkeletonStatement(ifStmt, guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, attrs);
+         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, ifAttrs);
        }
     .)
   )
@@ -2706,7 +2712,8 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
 WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Recover attributes from the context
+     Attributes whileAttrs = null;
      List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
      IToken startToken = null;
@@ -2722,12 +2729,12 @@ WhileStmt<out Statement stmt>
      bool usesOptionalBraces;
   .)
   "while"                    (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> }   (. Attributes.MergeInto(ref attrs, ref whileAttrs); .)
   (
     IF(IsLoopSpec() || IsAlternative())
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
-    (. stmt = new AlternativeLoopStmt(new RangeToken(startToken, t), invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs);
+    (. stmt = new AlternativeLoopStmt(new RangeToken(startToken, t), invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, whileAttrs);
        .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
@@ -2737,7 +2744,7 @@ WhileStmt<out Statement stmt>
     )
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
-      BlockStmt<out body, out bodyStart, out bodyEnd>  (. isDirtyLoop = false; .)
+      BlockStmt<out body, out bodyStart, out bodyEnd, ref attrs>  (. isDirtyLoop = false; .)
     | IF(la.kind == _ellipsis)    /* if there's an ellipsis, claim it as standing for the loop body (as opposed to a "...;" statement following the loop) */
       ellipsis                   (. bodyEllipsis = t; isDirtyLoop = false;
                                     errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
@@ -2753,14 +2760,14 @@ WhileStmt<out Statement stmt>
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
         }
-        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, attrs);
+        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, whileAttrs);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
         }
-        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, whileAttrs);
       }
     .)
   )
@@ -2773,7 +2780,7 @@ ForLoopStmt<out Statement stmt>
      Expression start;
      Expression end = null;
      bool goingUp = true;
-
+     Attributes forAttrs = null;
      Attributes attrs = null;
 
      List<AttributedExpression> invariants = new List<AttributedExpression>();
@@ -2789,7 +2796,7 @@ ForLoopStmt<out Statement stmt>
      bool isDirtyLoop = true;
   .)
   "for"                    (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> } (. Attributes.MergeInto(ref attrs, ref forAttrs); .)
   IdentTypeOptional<out loopIndex>
   ":="
   Expression<out start, false, false>
@@ -2799,7 +2806,7 @@ ForLoopStmt<out Statement stmt>
   )
   LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
   ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
-    BlockStmt<out body, out bodyStart, out bodyEnd>  (. isDirtyLoop = false; .)
+    BlockStmt<out body, out bodyStart, out bodyEnd, ref attrs>  (. isDirtyLoop = false; .)
   | /* go body-less */
   )
   (.
@@ -2809,7 +2816,7 @@ ForLoopStmt<out Statement stmt>
       body = new BlockStmt(rangeToken, new List<Statement>());
     }
     stmt = new ForLoopStmt(rangeToken, loopIndex, start, end, goingUp,
-      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, forAttrs);
   .)
   .
 
@@ -2826,15 +2833,12 @@ ForLoopDirection<out bool goingUp>
 
 /*------------------------------------------------------------------------*/
 LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
-= (. Attributes attrs;
-  .)
-  {
-    { AtAttribute<ref attrs> }
-    SYNC
-    ( InvariantClause<invariants, ref attrs>
-    | DecreasesClause<decreases, ref attrs, ref decAttrs, true, true>
-    | ModifiesClause<ref mod, ref attrs, ref modAttrs, true, false>
-    )
+= { SYNC
+    InvariantClause<invariants>
+  | SYNC
+    DecreasesClause<decreases, ref decAttrs, true, true>
+  | SYNC
+    ModifiesClause<ref mod, ref modAttrs, true, false>
   }
   .
 
@@ -2974,38 +2978,41 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
 /*------------------------------------------------------------------------*/
 AssertStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression e = dummyExpr; Attributes attrs = null;
+     Expression e = dummyExpr;
+     Attributes attrs = null; // TODO: Recover from context
+     Attributes assertAttrs = null;
      IToken dotdotdot = null;
      BlockStmt proof = null;
      IToken startToken = null;
      IToken proofStart, proofEnd;
      IToken lbl = null;
   .)
-  { AtAttribute<ref attrs> }
   SYNC
   "assert"                                     (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> } (. Attributes.MergeInto(ref attrs, ref assertAttrs); .)
   ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
     Expression<out e, false, true>
-    ( "by"
-      BlockStmt<out proof, out proofStart, out proofEnd>
+    (. CheckNoAttributes(ref attrs); .)
+    ( "by" { AtAttribute<ref attrs> } 
+      BlockStmt<out proof, out proofStart, out proofEnd, ref attrs>
     | ";"
     | (.
         SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, "expected either 'by' or a semicolon following the assert expression");
       .)
     )
+    { AtAttribute<ref attrs> } 
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), null, null, assertAttrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new RangeToken(startToken, t), e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), assertAttrs);
      }
   .)
   .
@@ -3013,11 +3020,10 @@ AssertStmt<out Statement/*!*/ s>
 /*------------------------------------------------------------------------*/
 ExpectStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression e = dummyExpr; Expression m = null; Attributes attrs = null;
+     Expression e = dummyExpr; Expression m = null; Attributes attrs = null; // TODO: Accept ref attrs in ExpectStmt 
      IToken dotdotdot = null;
      IToken startToken = null;
   .)
-  { AtAttribute<ref attrs> }
   SYNC
   "expect"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
@@ -3044,8 +3050,6 @@ AssumeStmt<out Statement/*!*/ s>
      IToken dotdotdot = null;
      IToken startToken = null;
   .)
-  { AtAttribute<ref attrs> }
-  SYNC
   "assume"                                     (. x = t; startToken = t; .)
   { Attribute<ref attrs> }
   ( Expression<out e, false, false>
@@ -3103,6 +3107,7 @@ ForallStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken/*!*/ x = Token.NoToken;
      List<BoundVar> bvars = null;
+     Attributes attrs = null; // TODO: Have ForallStmt accept and return this
      Attributes qattrs = null;
      Expression range = null;
      var ens = new List<AttributedExpression/*!*/>();
@@ -3110,7 +3115,6 @@ ForallStmt<out Statement/*!*/ s>
      BlockStmt block = null;
      IToken bodyStart, bodyEnd;
      IToken tok = Token.NoToken;
-     Attributes ensuresAttr = null;     
   .)
   "forall"                                  (. x = t; tok = x; startToken = t; .)
 
@@ -3126,11 +3130,10 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    { AtAttribute<ref ensuresAttr> }
-    EnsuresClause<ens, true, ref ensuresAttr>
+    EnsuresClause<ens, true>
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
-    BlockStmt<out block, out bodyStart, out bodyEnd>
+    BlockStmt<out block, out bodyStart, out bodyEnd, ref attrs>
   ]
   (. if (theOptions.DisallowSoundnessCheating && block == null && 0 < ens.Count) {
         SemErr(ErrorId.p_forall_with_ensures_must_have_body, t, "a forall statement with an ensures clause must have a body");
@@ -3143,16 +3146,15 @@ ForallStmt<out Statement/*!*/ s>
 /*------------------------------------------------------------------------*/
 ModifyStmt<out Statement s>
 = (. IToken tok;  IToken endTok = Token.NoToken;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Should be a ref argument
+     Attributes modifyAttrs = null;
      FrameExpression fe;  var mod = new List<FrameExpression>();
      BlockStmt body = null;  IToken bodyStart;
      IToken ellipsisToken = null;
      IToken startToken = null;
   .)
-  { AtAttribute<ref attrs> }
-  SYNC
   "modify"           (. tok = t; startToken = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> } (. Attributes.MergeInto(ref attrs, ref modifyAttrs); .)
   /* Note, there is an ambiguity here, because a curly brace may look like a FrameExpression and
    * may also look like a BlockStmt.  We're happy to parse the former, because if the user intended
    * the latter, then an explicit FrameExpression of {} could be given.
@@ -3164,12 +3166,13 @@ ModifyStmt<out Statement s>
                                            errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                          .)
   )
-  ( BlockStmt<out body, out bodyStart, out endTok>
+  ( BlockStmt<out body, out bodyStart, out endTok, ref attrs>
                                         (. errors.Deprecated(ErrorId.p_deprecated_modify_statement_with_block, bodyStart, "the modify statement with a block statement is deprecated");
                                          .)
-  | SYNC ";"         (. endTok = t; .)
+  | SYNC ";"         (. endTok = t; CheckNoAttributes(ref attrs); .)
   )
-  (. s = new ModifyStmt(new RangeToken(startToken, t), mod, attrs, body);
+  { AtAttribute<ref attrs> } 
+  (. s = new ModifyStmt(new RangeToken(startToken, t), mod, modifyAttrs, body);
      if (ellipsisToken != null) {
        s = new SkeletonStatement(s, ellipsisToken, null);
      }
@@ -3180,7 +3183,8 @@ ModifyStmt<out Statement s>
 CalcStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      IToken x;
-     Attributes attrs = null;
+     Attributes calcAttrs = null;
+     Attributes attrs = null; // TODO: Have it a ref arg of CalcStmt
      CalcStmt.CalcOp op, userSuppliedOp = null, resOp = Microsoft.Dafny.CalcStmt.DefaultOp;
      var lines = new List<Expression>();
      var hints = new List<BlockStmt>();
@@ -3191,10 +3195,8 @@ CalcStmt<out Statement s>
      IToken opTok;
      IToken danglingOperator = null;
   .)
-  { AtAttribute<ref attrs> }
-  SYNC
   "calc"                                                  (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> }          (. Attributes.MergeInto(ref attrs, ref calcAttrs); .)
   [ CalcOp<out opTok, out userSuppliedOp>                 (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
                                                                SemErr(ErrorId.p_calc_operator_must_be_transitive, opTok, "the main operator of a calculation must be transitive");
                                                              } else {
@@ -3225,7 +3227,8 @@ CalcStmt<out Statement s>
     { IF(la.kind == _lbrace || la.kind == _calc)  /* Grab as a hint if possible, not a next line in the calculation whose expression begins with an open brace
                                                    * or StmtExpr containing a calc.  A user has to rewrite such a line to be enclosed in parentheses.
                                                    */
-      ( BlockStmt<out subBlock, out t0, out t1>   (. hintEnd = subBlock.EndToken; subhints.Add(subBlock); .)
+      ( BlockStmt<out subBlock, out t0, out t1, ref attrs>
+                                                  (. hintEnd = subBlock.EndToken; subhints.Add(subBlock); .)
       | CalcStmt<out subCalc>                     (. hintEnd = subCalc.EndToken; subhints.Add(subCalc); .)
       )
     }
@@ -3243,7 +3246,7 @@ CalcStmt<out Statement s>
       // Repeat the last line to create a dummy line for the dangling hint
       lines.Add(lines[lines.Count - 1]);
     }
-    s = new CalcStmt(new RangeToken(startToken, t), userSuppliedOp, lines, hints, stepOps, attrs);
+    s = new CalcStmt(new RangeToken(startToken, t), userSuppliedOp, lines, hints, stepOps, calcAttrs);
   .)
   .
 
@@ -3841,19 +3844,9 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 
 // Coco says LambdaSpec is deletable. This is OK (it might be empty).
 LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expression req.>
-= {
-    { AtAttributes<ref attrs> }
-    SYNC
-    ( ReadsClause<reads, ref attrs, ref readsAttrs, true, false, true>
-    | "requires"                             (.
-        Expression ee;
-        if(attrs != null) {
-          SemErr(null, attrs.tok, "attributes not supported yet on lambda requires clauses");
-        }
-      .)
-      Expression<out ee, true, false>        (. 
-        req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.StartToken, ee.EndToken) } ; .)
-    )
+= { ReadsClause<reads, ref readsAttrs, true, false, true>
+  | "requires"                             (. Expression ee; .)
+    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.StartToken, ee.EndToken) } ; .)
   }
   .
 
@@ -4552,10 +4545,12 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
     // optional "| <Range>" suffix 
     Expression<out domain, allowLemma, allowLambda, false>
   ]
-  { IF( la.kind == _lbracecolon) Attribute<ref attrs> } // Ambiguity -- if the next optional block is not present, 
-                                                        // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
-                                                        // so it can end an Expression
-                                                        // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, AssignStatement
+  { IF( la.kind == _lbracecolon) Attribute<ref attrs>
+    | IF(la.kind == _at) AtAttribute<ref attrs>
+   } // Ambiguity -- if the next optional block is not present, 
+     // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
+     // so it can end an Expression
+     // But an Expression can be followed by {Attribute} as in VarDeclStatement, Rhs, AssignStatement
   [ // Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement. 
     // That can happen because the grammar allows a QuantifierDecl to end a QuantifierDomain, which can end
     // a SetComprehensionExpr, and a Expression can be followed by a bitvector '|'. 
