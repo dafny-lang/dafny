@@ -320,7 +320,6 @@ namespace Microsoft.Dafny {
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
-    public string BoogieExtractionTargetFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     public List<string> MainArgs = new List<string>();
