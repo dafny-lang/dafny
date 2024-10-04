@@ -11,6 +11,7 @@ using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
 using DafnyCore.Verifier;
+using DafnyCore.Verifier.Statements;
 using Bpl = Microsoft.Boogie;
 using Microsoft.Boogie;
 using Std.Wrappers;
@@ -139,7 +140,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
-      Contract.Requires(predef != null);
+      Contract.Requires(Predef != null);
       if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
         switch (e.ResolvedOp) {
@@ -254,7 +255,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
-      Contract.Requires(predef != null);
+      Contract.Requires(Predef != null);
       CheckWellformedWithResult(expr, wfOptions, locals, builder, etran, null);
     }
 
@@ -263,7 +264,7 @@ namespace Microsoft.Dafny {
     /// in this code are added to "locals".
     /// See class WFOptions for descriptions of the specified options.
     /// </summary>
-    void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
+    public void CheckWellformedWithResult(Expression expr, WFOptions wfOptions,
       List<Variable> locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       AddResultCommands addResultCommands) {
 
@@ -386,7 +387,7 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.Seq, wfOptions, locals, builder, etran);
             Bpl.Expr seq = etran.TrExpr(e.Seq);
             if (eSeqType.IsArrayType) {
-              builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, predef.Null), new PODesc.NonNull("array", e.Seq)));
+              builder.Add(Assert(GetToken(e.Seq), Bpl.Expr.Neq(seq, Predef.Null), new PODesc.NonNull("array", e.Seq)));
               if (etran.UsesOldHeap) {
                 builder.Add(Assert(GetToken(e.Seq), MkIsAlloc(seq, eSeqType, etran.HeapExpr), new PODesc.IsAllocated("array", null, e.Seq)));
               }
@@ -397,7 +398,7 @@ namespace Microsoft.Dafny {
               e0 = etran.TrExpr(e.E0);
               CheckWellformed(e.E0, wfOptions, locals, builder, etran);
               var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-              Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, finite ? predef.MapType : predef.IMapType, seq);
+              Bpl.Expr inDomain = FunctionCall(selectExpr.tok, f, finite ? Predef.MapType : Predef.IMapType, seq);
               inDomain = Bpl.Expr.Select(inDomain, BoxIfNecessary(e.tok, e0, e.E0.Type));
               builder.Add(Assert(GetToken(expr), inDomain, new PODesc.ElementInDomain(e.Seq, e.E0), wfOptions.AssertKv));
             } else if (eSeqType is MultiSetType) {
@@ -459,7 +460,7 @@ namespace Microsoft.Dafny {
             MultiSelectExpr e = selectExpr;
             CheckWellformed(e.Array, wfOptions, locals, builder, etran);
             Bpl.Expr array = etran.TrExpr(e.Array);
-            builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, predef.Null), new PODesc.NonNull("array", e.Array)));
+            builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, Predef.Null), new PODesc.NonNull("array", e.Array)));
             if (etran.UsesOldHeap) {
               builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr), new PODesc.IsAllocated("array", null, e.Array)));
             }
@@ -682,12 +683,12 @@ namespace Microsoft.Dafny {
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.RangeToken, "##" + p.Name, et, p.IsGhost);
                 local.type = local.SyntacticType;  // resolve local here
-                var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator)) {
+                var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local
                 };
                 ie.Type = ie.Var.Type;  // resolve ie here
                 substMap.Add(p, ie);
-                locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+                locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type))));
                 Bpl.IdentifierExpr lhs = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
                 Expression ee = e.Args[i];
                 directSubstMap.Add(p, ee);
@@ -945,7 +946,7 @@ namespace Microsoft.Dafny {
                 nonNull = Bpl.Expr.True;
               } else {
                 Contract.Assert(ty.IsRefType);
-                nonNull = Bpl.Expr.Neq(r, predef.Null);
+                nonNull = Bpl.Expr.Neq(r, Predef.Null);
                 builder.Add(Assert(GetToken(fe.E), BplImp(ante, nonNull), new PODesc.NonNull(description, fe.E, description != "object")));
               }
               // check that "r" was allocated in the "e.AtLabel" state
@@ -1150,7 +1151,7 @@ namespace Microsoft.Dafny {
               var comprehensionEtran = etran;
               if (lam != null) {
                 // Havoc heap
-                locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), predef.HeapType, out var lambdaHeap));
+                locals.Add(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), Predef.HeapType, out var lambdaHeap));
                 comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
                 nextBuilder.Add(new HavocCmd(e.tok, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
                 nextBuilder.Add(new AssumeCmd(e.tok, FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
@@ -1289,7 +1290,7 @@ namespace Microsoft.Dafny {
             break;
           }
         case MatchExpr matchExpr:
-          TrMatchExpr(matchExpr, wfOptions, locals, builder, etran, addResultCommands);
+          MatchStmtVerifier.TrMatchExpr(this, matchExpr, wfOptions, locals, builder, etran, addResultCommands);
           addResultCommands = null;
           break;
         case DatatypeUpdateExpr updateExpr: {
@@ -1356,54 +1357,6 @@ namespace Microsoft.Dafny {
       builder.Add(TrAssumeCmd(expr.tok, MkIs(selfCall, resultType)));
     }
 
-    private void TrMatchExpr(MatchExpr me, WFOptions wfOptions, List<Variable> locals,
-      BoogieStmtListBuilder builder, ExpressionTranslator etran, AddResultCommands addResultCommands) {
-      FillMissingCases(me);
-
-      CheckWellformed(me.Source, wfOptions, locals, builder, etran);
-      Bpl.Expr src = etran.TrExpr(me.Source);
-      Bpl.IfCmd ifCmd = null;
-      BoogieStmtListBuilder elsBldr = new BoogieStmtListBuilder(this, options, builder.Context);
-      elsBldr.Add(TrAssumeCmd(me.tok, Bpl.Expr.False));
-      StmtList els = elsBldr.Collect(me.tok);
-      foreach (var missingCtor in me.MissingCases) {
-        // havoc all bound variables
-        var b = new BoogieStmtListBuilder(this, options, builder.Context);
-        List<Variable> newLocals = new List<Variable>();
-        Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
-        locals.AddRange(newLocals);
-
-        if (newLocals.Count != 0) {
-          List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
-          foreach (Variable local in newLocals) {
-            havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
-          }
-
-          builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
-        }
-
-        String missingStr = me.Context.FillHole(new IdCtx(missingCtor)).AbstractAllHoles().ToString();
-        b.Add(Assert(GetToken(me), Bpl.Expr.False, new PODesc.MatchIsComplete("expression", missingStr)));
-
-        Bpl.Expr guard = Bpl.Expr.Eq(src, r);
-        ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
-        els = null;
-      }
-
-      for (int i = me.Cases.Count; 0 <= --i;) {
-        MatchCaseExpr mc = me.Cases[i];
-        var b = new BoogieStmtListBuilder(this, options, builder.Context);
-        Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
-        // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
-
-        CheckWellformedWithResult(mc.Body, wfOptions, locals, b, etran, addResultCommands);
-        ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
-        els = null;
-      }
-
-      builder.Add(ifCmd);
-    }
-
     private void CheckWellformedStmtExpr(StmtExpr stmtExpr, WFOptions wfOptions, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, AddResultCommands addResultCommands) {
 
@@ -1444,10 +1397,10 @@ namespace Microsoft.Dafny {
     void BuildWithHeapAs(IToken token, Bpl.Expr temporaryHeap, string heapVarSuffix, List<Variable> locals,
       BoogieStmtListBuilder builder, System.Action build) {
       var suffix = CurrentIdGenerator.FreshId(heapVarSuffix);
-      var tmpHeapVar = new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, predef.HeapType));
+      var tmpHeapVar = new Bpl.LocalVariable(token, new Bpl.TypedIdent(token, "Heap$" + suffix, Predef.HeapType));
       locals.Add(tmpHeapVar);
       var tmpHeap = new Bpl.IdentifierExpr(token, tmpHeapVar);
-      var generalEtran = new ExpressionTranslator(this, predef, token, null);
+      var generalEtran = new ExpressionTranslator(this, Predef, token, null);
       var theHeap = generalEtran.HeapCastToIdentifierExpr;
 
       // tmpHeap := $Heap;
@@ -1502,7 +1455,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    delegate void AddResultCommands(BoogieStmtListBuilder builder, Expression result);
+    public delegate void AddResultCommands(BoogieStmtListBuilder builder, Expression result);
 
     void CheckWellformedLetExprWithResult(LetExpr e, WFOptions wfOptions, List<Variable> locals,
       BoogieStmtListBuilder builder, ExpressionTranslator etran, bool checkRhs, AddResultCommands addResultCommands) {
@@ -1592,7 +1545,7 @@ namespace Microsoft.Dafny {
       foreach (var fe in fes) {
         CheckWellformed(fe.E, wfo, locals, builder, etran);
         if (fe.Field != null && fe.E.Type.IsRefType) {
-          builder.Add(Assert(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), predef.Null), new PODesc.FrameDereferenceNonNull(fe.E)));
+          builder.Add(Assert(fe.tok, Bpl.Expr.Neq(etran.TrExpr(fe.E), Predef.Null), new PODesc.FrameDereferenceNonNull(fe.E)));
         }
       }
     }

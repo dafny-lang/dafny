@@ -39,7 +39,7 @@ public partial class BoogieGenerator {
     AddComment(builder, stmt, "for-loop statement");
 
     var indexVar = stmt.LoopIndex;
-    var indexVarName = indexVar.AssignUniqueName(currentDeclaration.IdGenerator);
+    var indexVarName = indexVar.AssignUniqueName(CurrentDeclaration.IdGenerator);
     var dIndex = new IdentifierExpr(indexVar.tok, indexVar);
     var bIndexVar = new Bpl.LocalVariable(indexVar.tok, new Bpl.TypedIdent(indexVar.Tok, indexVarName, TrType(indexVar.Type)));
     locals.Add(bIndexVar);
@@ -183,10 +183,10 @@ public partial class BoogieGenerator {
 
     var theDecreases = s.Decreases.Expressions;
 
-    Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap$" + suffix, predef.HeapType));
+    Bpl.LocalVariable preLoopHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$PreLoopHeap$" + suffix, Predef.HeapType));
     locals.Add(preLoopHeapVar);
     Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(s.Tok, preLoopHeapVar);
-    ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, predef, preLoopHeap, etran.scope);
+    ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, Predef, preLoopHeap, etran.scope);
     ExpressionTranslator updatedFrameEtran;
     string loopFrameName = FrameVariablePrefix + suffix;
     if (s.Mod.Expressions != null) {

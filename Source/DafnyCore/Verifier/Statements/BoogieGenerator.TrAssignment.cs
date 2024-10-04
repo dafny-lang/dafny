@@ -23,7 +23,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
 
     var lhss = new List<Expression>() { lhs };
     ProcessLhss(lhss, rhs.CanAffectPreviouslyKnownExpressions, true, builder, locals, etran, stmt,
@@ -45,7 +45,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
 
     var finalRhss = new List<Bpl.Expr>();
     for (int i = 0; i < lhss.Count; i++) {
@@ -97,7 +97,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
     Contract.Ensures(Contract.ForAll(Contract.Result<List<Bpl.Expr>>(), i => i != null));
 
     var finalRhss = new List<Bpl.Expr>();
@@ -143,7 +143,7 @@ public partial class BoogieGenerator {
     Contract.Requires(lhss.Count == rhsOriginal.Count);
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
 
     for (int i = 0; i < lhss.Count; i++) {
       var lhs = lhss[i];
@@ -200,7 +200,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
     Contract.Ensures(Contract.ValueAtReturn(out lhsBuilders).Count == lhss.Count);
     Contract.Ensures(Contract.ValueAtReturn(out lhsBuilders).Count == Contract.ValueAtReturn(out bLhss).Count);
 
@@ -263,7 +263,7 @@ public partial class BoogieGenerator {
         var useSurrogateLocal = inBodyInitContext && Expression.AsThis(fse.Obj) != null;
 
         var obj = SaveInTemp(etran.TrExpr(fse.Obj), rhsCanAffectPreviouslyKnownExpressions,
-          "$obj" + i, predef.RefType, builder, locals);
+          "$obj" + i, Predef.RefType, builder, locals);
         prevObj[i] = obj;
         if (!useSurrogateLocal) {
           // check that the enclosing modifies clause allows this object to be written:  assert $_ModifiesFrame[obj]);
@@ -309,11 +309,11 @@ public partial class BoogieGenerator {
         Contract.Assert(sel.Seq.Type != null && sel.Seq.Type.IsArrayType);
         Contract.Assert(sel.E0 != null);
         var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhsCanAffectPreviouslyKnownExpressions,
-          "$obj" + i, predef.RefType, builder, locals);
+          "$obj" + i, Predef.RefType, builder, locals);
         var idx = etran.TrExpr(sel.E0);
         idx = ConvertExpression(sel.E0.tok, idx, sel.E0.Type, Type.Int);
         var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, idx), rhsCanAffectPreviouslyKnownExpressions,
-          "$index" + i, predef.FieldName(tok), builder, locals);
+          "$index" + i, Predef.FieldName(tok), builder, locals);
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
         // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
@@ -337,9 +337,9 @@ public partial class BoogieGenerator {
         Contract.Assert(mse.Array.Type != null && mse.Array.Type.IsArrayType);
 
         var obj = SaveInTemp(etran.TrExpr(mse.Array), rhsCanAffectPreviouslyKnownExpressions,
-          "$obj" + i, predef.RefType, builder, locals);
+          "$obj" + i, Predef.RefType, builder, locals);
         var fieldName = SaveInTemp(etran.GetArrayIndexFieldName(mse.tok, mse.Indices), rhsCanAffectPreviouslyKnownExpressions,
-          "$index" + i, predef.FieldName(mse.tok), builder, locals);
+          "$index" + i, Predef.FieldName(mse.tok), builder, locals);
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
         var desc = new PODesc.Modifiable("an array element", contextModFrames, mse.Array, null);
@@ -390,7 +390,7 @@ public partial class BoogieGenerator {
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
     Contract.Requires(etran != null);
-    Contract.Requires(predef != null);
+    Contract.Requires(Predef != null);
     Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
     Contract.Ensures(bGivenLhs == null || Contract.Result<Bpl.Expr>() == bGivenLhs);
 
@@ -526,10 +526,10 @@ public partial class BoogieGenerator {
         if (codeContext is IteratorDecl) {
           var iter = (IteratorDecl)codeContext;
           // $Heap[this, _new] := Set#UnionOne($Heap[this, _new], $Box($nw));
-          var th = new Bpl.IdentifierExpr(tok, etran.This, predef.RefType);
+          var th = new Bpl.IdentifierExpr(tok, etran.This, Predef.RefType);
           var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
-          var thisDotNew = ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, th, nwField), predef.SetType);
-          var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, predef.BoxType, thisDotNew, ApplyBox(tok, nw));
+          var thisDotNew = ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, th, nwField), Predef.SetType);
+          var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, Predef.BoxType, thisDotNew, ApplyBox(tok, nw));
           var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
           heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
         }

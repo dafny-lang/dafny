@@ -49,7 +49,7 @@ public partial class BoogieGenerator {
     Bpl.IdentifierExpr initHeap = null;
     if (codeContext is IteratorDecl) {
       // var initHeap := $Heap;
-      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), predef.HeapType));
+      var initHeapVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, CurrentIdGenerator.FreshId("$initHeapCallStmt#"), Predef.HeapType));
       locals.Add(initHeapVar);
       initHeap = new Bpl.IdentifierExpr(s.Tok, initHeapVar);
       // initHeap := $Heap;
@@ -185,10 +185,10 @@ public partial class BoogieGenerator {
       var formal = callee.Ins[i];
       var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
-      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(formal, ie);
-      locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+      locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type))));
 
       var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
       Bpl.Expr bActual;
@@ -196,12 +196,12 @@ public partial class BoogieGenerator {
       if (i == 0 && method is ExtremeLemma && isRecursiveCall) {
         // Treat this call to M(args) as a call to the corresponding prefix lemma M#(_k - 1, args), so insert an argument here.
         var k = ((PrefixLemma)callee).K;
-        var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(currentDeclaration.IdGenerator), TrType(k.Type));
+        var bplK = new Bpl.IdentifierExpr(k.tok, k.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(k.Type));
         dActual = Expression.CreateSubtract(Expression.CreateIdentExpr(k), Expression.CreateNatLiteral(k.tok, 1, k.Type));
         if (k.Type.IsBigOrdinalType) {
-          bActual = FunctionCall(k.tok, "ORD#Minus", predef.BigOrdinalType,
+          bActual = FunctionCall(k.tok, "ORD#Minus", Predef.BigOrdinalType,
             bplK,
-            FunctionCall(k.tok, "ORD#FromNat", predef.BigOrdinalType, Bpl.Expr.Literal(1)));
+            FunctionCall(k.tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(1)));
         } else {
           bActual = Bpl.Expr.Sub(bplK, Bpl.Expr.Literal(1));
         }
@@ -332,9 +332,9 @@ public partial class BoogieGenerator {
         var bLhs = Lhss[i];
         if (ModeledAsBoxType(callee.Outs[i].Type) && !ModeledAsBoxType(LhsTypes[i])) {
           // we need an Unbox
-          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, CurrentIdGenerator.FreshId("$tmp##"), predef.BoxType));
+          Bpl.LocalVariable var = new Bpl.LocalVariable(bLhs.tok, new Bpl.TypedIdent(bLhs.tok, CurrentIdGenerator.FreshId("$tmp##"), Predef.BoxType));
           locals.Add(var);
-          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, predef.BoxType);
+          Bpl.IdentifierExpr varIdE = new Bpl.IdentifierExpr(bLhs.tok, var.Name, Predef.BoxType);
           tmpOuts.Add(varIdE);
           outs.Add(varIdE);
         } else {
