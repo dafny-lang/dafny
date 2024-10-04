@@ -56,21 +56,21 @@ public class FunctionCallToMethodCallRewriter : Cloner {
   }
 
   public override Statement CloneStmt(Statement stmt, bool isReference) {
-    if (stmt == null || stmt is not UpdateStmt updateStmt) {
+    if (stmt == null || stmt is not AssignStatement updateStmt) {
       return base.CloneStmt(stmt, isReference);
     }
-    var clonedUpdate = (UpdateStmt)base.CloneStmt(updateStmt, isReference);
+    var clonedUpdate = (AssignStatement)base.CloneStmt(updateStmt, isReference);
     var newResolvedStmts = new List<Statement>();
     foreach (var resolvedStmt in clonedUpdate.ResolvedStatements) {
       if (!resolvedStmt.IsGhost &&
-          resolvedStmt is AssignStmt { Rhs: ExprRhs exprRhs } &&
+          resolvedStmt is SingleAssignStmt { Rhs: ExprRhs exprRhs } &&
           exprRhs.Expr.Resolved is FunctionCallExpr { IsByMethodCall: true } funcCallExpr) {
         var memberSelectExpr = new MemberSelectExpr(
           funcCallExpr.tok,
           CloneExpr(funcCallExpr.Receiver.Resolved),
           funcCallExpr.Function.ByMethodDecl.Name);
         memberSelectExpr.Member = funcCallExpr.Function.ByMethodDecl;
-        memberSelectExpr.TypeApplication_JustMember = funcCallExpr.TypeApplication_JustFunction;
+        memberSelectExpr.TypeApplicationJustMember = funcCallExpr.TypeApplication_JustFunction;
         newResolvedStmts.Add(new CallStmt(stmt.RangeToken,
           updateStmt.Lhss.Select(lhs => CloneExpr(lhs.Resolved)).ToList(), memberSelectExpr,
           funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved))));

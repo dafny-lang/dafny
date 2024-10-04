@@ -1,4 +1,4 @@
 text.dfy(6,12): Error: function precondition could not be proved
 text.dfy(3,30): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 9 verified, 1 error
+Dafny program verifier finished with 8 verified, 1 error

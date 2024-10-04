@@ -1,7 +1,8 @@
-// NONUNIFORM: Temporary development of the Rust compiler
+// NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+// RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 class Y {
   var c: int
@@ -30,4 +31,5 @@ method Main() {
   var w := z.0;
   var fw := FunWrap<Y, Y>.FunWrap((z: int) => Tuple2(x, y));
   var fx: FunWrap<Y, object> := fw;
+  print "Everything is ok.";
 }

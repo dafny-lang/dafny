@@ -22,4 +22,4 @@ Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreas
 Termination.dfy(1178,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1194,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 
-Dafny program verifier finished with 112 verified, 23 errors
+Dafny program verifier finished with 108 verified, 23 errors

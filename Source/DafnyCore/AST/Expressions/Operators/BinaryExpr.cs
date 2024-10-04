@@ -114,13 +114,13 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   }
   private ResolvedOpcode _theResolvedOp = ResolvedOpcode.YetUndetermined;
   public ResolvedOpcode ResolvedOp {
-    set {
-      Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
-      _theResolvedOp = value;
-    }
     get {
       Debug.Assert(_theResolvedOp != ResolvedOpcode.YetUndetermined);  // shouldn't read it until it has been properly initialized
       return _theResolvedOp;
+    }
+    set {
+      Contract.Assume(_theResolvedOp == ResolvedOpcode.YetUndetermined || _theResolvedOp == value);  // there's never a reason for resolution to change its mind, is there?
+      _theResolvedOp = value;
     }
   }
   public ResolvedOpcode ResolvedOp_PossiblyStillUndetermined {  // offer a way to return _theResolveOp -- for experts only!

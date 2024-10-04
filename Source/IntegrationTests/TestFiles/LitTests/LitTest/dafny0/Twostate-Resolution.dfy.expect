@@ -743,20 +743,16 @@ Twostate-Resolution.dfy(445,20): Error: no label 'After' in scope at this time
 Twostate-Resolution.dfy(452,17): Error: an @-label can only be applied to a two-state function
 Twostate-Resolution.dfy(453,14): Error: an @-label can only be applied to a two-state lemma
 Twostate-Resolution.dfy(459,19): Error: an @-label can only be applied to a two-state function
-Twostate-Resolution.dfy(481,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
-Twostate-Resolution.dfy(482,26): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(483,26): Error: an @-label can only be applied to a two-state lemma
-Twostate-Resolution.dfy(487,11): Error: to reveal a function (OrdinaryOpaque), append parentheses
-Twostate-Resolution.dfy(488,26): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(495,11): Error: to reveal a function (Opaque), append parentheses
-Twostate-Resolution.dfy(496,18): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(497,19): Error: to reveal a two-state function, do not list any parameters or @-labels
-Twostate-Resolution.dfy(500,17): Error: a two-state function can only be revealed in a two-state context
-Twostate-Resolution.dfy(501,11): Error: to reveal a function (Opaque), append parentheses
-Twostate-Resolution.dfy(502,18): Error: no label 'K' in scope at this time
-Twostate-Resolution.dfy(502,19): Error: a two-state function can only be revealed in a two-state context
-Twostate-Resolution.dfy(507,11): Error: to reveal a function (Opaque), append parentheses
-Twostate-Resolution.dfy(508,18): Error: no label 'K' in scope at this time
+Twostate-Resolution.dfy(482,27): Error: an @-label can not be used in a hide or reveal statement
+Twostate-Resolution.dfy(483,27): Error: an @-label can not be used in a hide or reveal statement
+Twostate-Resolution.dfy(488,27): Error: an @-label can not be used in a hide or reveal statement
+Twostate-Resolution.dfy(496,19): Error: an @-label can not be used in a hide or reveal statement
+Twostate-Resolution.dfy(497,19): Error: an @-label can not be used in a hide or reveal statement
+Twostate-Resolution.dfy(500,11): Error: two-state function ('Opaque') can only be called in a two-state context
+Twostate-Resolution.dfy(501,11): Error: two-state function ('Opaque') can only be called in a two-state context
+Twostate-Resolution.dfy(502,19): Error: an @-label can not be used in a hide or reveal statement
+Twostate-Resolution.dfy(502,11): Error: two-state function ('Opaque') can only be called in a two-state context
+Twostate-Resolution.dfy(508,19): Error: an @-label can not be used in a hide or reveal statement
 Twostate-Resolution.dfy(515,11): Error: two-state lemmas can only be used in two-state contexts
 Twostate-Resolution.dfy(535,28): Error: parameter 'a' of function P cannot be changed, compared to in the overridden function, from non-older to older
 Twostate-Resolution.dfy(536,22): Error: parameter 'a' of function Q cannot be changed, compared to in the overridden function, from older to non-older
@@ -766,4 +762,4 @@ Twostate-Resolution.dfy(558,26): Error: parameter 'a' of function P cannot be ch
 Twostate-Resolution.dfy(559,20): Error: parameter 'a' of function Q cannot be changed, compared to the corresponding function in the module it refines, from older to non-older
 Twostate-Resolution.dfy(560,27): Error: parameter 'a' of function X cannot be changed, compared to the corresponding function in the module it refines, from non-new to new
 Twostate-Resolution.dfy(561,23): Error: parameter 'a' of function Y cannot be changed, compared to the corresponding function in the module it refines, from new to non-new
-73 resolution/type errors detected in Twostate-Resolution.dfy
+69 resolution/type errors detected in Twostate-Resolution.dfy

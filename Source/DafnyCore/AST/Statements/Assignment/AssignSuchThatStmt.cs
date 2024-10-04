@@ -5,7 +5,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
+/// <summary>
+/// Parsed from ":|"
+/// </summary>
+public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 
@@ -77,6 +80,10 @@ public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuch
     Contract.Requires(this != null);
     Contract.Requires(resolutionContext != null);
 
+    if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden,
+        Tok, "assign-such-that statement forbidden by the --enforce-determinism option");
+    }
     base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {

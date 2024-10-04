@@ -150,7 +150,7 @@ public class PartialState {
     if (!IsLoopEntryState) {
       return new AssumeStmt(RangeToken.NoToken, expression, null);
     }
-    return new UpdateStmt(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, LoopGuards.Last()) },
+    return new AssignStatement(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, LoopGuards.Last()) },
         new List<AssignmentRhs>() { new ExprRhs(expression) });
   }
 
@@ -165,7 +165,7 @@ public class PartialState {
     }
     names = names.Concat(State.Variables).Distinct().ToList();
     var notDefinitelyAssigned = new HashSet<string>();
-    foreach (var name in names.Where(name => name.StartsWith("defass#"))) {
+    foreach (var name in names.Where(name => name.StartsWith(BoogieGenerator.DefassPrefix))) {
       var val = State.TryGet(name);
       if (val == null) {
         continue;

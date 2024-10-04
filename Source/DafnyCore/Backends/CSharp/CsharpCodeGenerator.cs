@@ -163,7 +163,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.WriteLine("#if ISDAFNYRUNTIMELIB");
       }
 
-      var dafnyNamespace = CreateModule("Dafny", false, null, null, wr);
+      var dafnyNamespace = CreateModule("Dafny", false, null, null, null, wr);
       EmitInitNewArrays(systemModuleManager, dafnyNamespace);
       if (Synthesize) {
         CsharpSynthesizer.EmitMultiMatcher(dafnyNamespace);
@@ -185,9 +185,15 @@ namespace Microsoft.Dafny.Compilers {
     //   }
     // They aren't in any namespace to make them universally accessible.
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
-      var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
+      // An extension for this arity will be provided in the Runtime which has to be linked.
+      var omitAritiesBefore16 = !Options.IncludeRuntime && Options.SystemModuleTranslationMode is not CommonOptionBag.SystemModuleMode.OmitAllOtherModules;
+      var name = omitAritiesBefore16 ? "FuncExtensionsAfterArity16" : "FuncExtensions";
+      var funcExtensions = wr.NewNamedBlock("public static class " + name);
       foreach (var kv in systemModuleManager.ArrowTypeDecls) {
         int arity = kv.Key;
+        if (omitAritiesBefore16 && arity <= 16) {
+          continue;
+        }
 
         List<string> TypeParameterList(string prefix) {
           var l = arity switch {
@@ -269,7 +275,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
-      string libraryName /*?*/, ConcreteSyntaxTree wr) {
+      string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       moduleName = IdProtectModule(moduleName);
       return wr.NewBlock($"namespace {moduleName}", " // end of " + $"namespace {moduleName}");
     }
@@ -1572,7 +1578,7 @@ namespace Microsoft.Dafny.Compilers {
         return "bool";
       } else if (xType is CharType) {
         return CharTypeName;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
@@ -1580,11 +1586,11 @@ namespace Microsoft.Dafny.Compilers {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
       } else if (xType.AsNewtype != null && member == null) {  // when member is given, use UserDefinedType case below
-        var nativeType = xType.AsNewtype.NativeType;
-        if (nativeType != null) {
+        var newtypeDecl = xType.AsNewtype;
+        if (newtypeDecl.NativeType is { } nativeType) {
           return GetNativeTypeName(nativeType);
         }
-        return TypeName(xType.AsNewtype.BaseType, wr, tok);
+        return TypeName(newtypeDecl.ConcreteBaseType(xType.TypeArgs), wr, tok);
       } else if (xType.IsObjectQ) {
         return "object";
       } else if (xType.IsArrayType) {
@@ -1679,7 +1685,7 @@ namespace Microsoft.Dafny.Compilers {
         return "false";
       } else if (xType is CharType) {
         return UnicodeCharEnabled ? $"new {CharTypeName}({CharType.DefaultValueAsString})" : CharType.DefaultValueAsString;
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType or BigOrdinalType) {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
@@ -1708,7 +1714,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (td.NativeType != null) {
           return "0";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
+          return TypeInitializationValue(td.ConcreteBaseType(udt.TypeArgs), wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -2046,18 +2052,18 @@ namespace Microsoft.Dafny.Compilers {
     protected override ConcreteSyntaxTree EmitForStmt(IToken tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
       List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
 
-      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.CompileName} = ");
+      wr.Write($"for ({TypeName(loopIndex.Type, wr, tok)} {loopIndex.GetOrCreateCompileName(currentIdGenerator)} = ");
       var startWr = wr.Fork();
       wr.Write($"; ");
 
       ConcreteSyntaxTree bodyWr;
       if (goingUp) {
-        wr.Write(endVarName != null ? $"{loopIndex.CompileName} < {endVarName}" : "");
-        bodyWr = wr.NewBlock($"; {loopIndex.CompileName}++)");
+        wr.Write(endVarName != null ? $"{loopIndex.GetOrCreateCompileName(currentIdGenerator)} < {endVarName}" : "");
+        bodyWr = wr.NewBlock($"; {loopIndex.GetOrCreateCompileName(currentIdGenerator)}++)");
       } else {
-        wr.Write(endVarName != null ? $"{endVarName} < {loopIndex.CompileName}" : "");
+        wr.Write(endVarName != null ? $"{endVarName} < {loopIndex.GetOrCreateCompileName(currentIdGenerator)}" : "");
         bodyWr = wr.NewBlock($"; )");
-        bodyWr.WriteLine($"{loopIndex.CompileName}--;");
+        bodyWr.WriteLine($"{loopIndex.GetOrCreateCompileName(currentIdGenerator)}--;");
       }
       bodyWr = EmitContinueLabel(labels, bodyWr);
       TrStmtList(body, bodyWr);

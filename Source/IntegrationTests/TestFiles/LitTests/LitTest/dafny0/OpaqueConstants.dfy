@@ -12,7 +12,7 @@ module Module {
     } else {
       reveal M.Five;
       assert M.Five == 5;
-    }
+    }    
   }
 }
 

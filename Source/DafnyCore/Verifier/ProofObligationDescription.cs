@@ -12,6 +12,7 @@ namespace Microsoft.Dafny.ProofObligationDescription;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
   public virtual bool IsImplicit => true;
+
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
   // It is only printed for the user, so it does not need to be resolved.
   public virtual Expression GetAssertedExpr(DafnyOptions options) {
@@ -1943,7 +1944,7 @@ internal class Utils {
     Type objType;
     BoundVar objVar;
     Expression objOperand;
-    var isSetObj = objOrObjSet.Type is SetType;
+    var isSetObj = objOrObjSet.Type.AsSetType != null;
     if (isSetObj) {
       objType = objOrObjSet.Type.AsSetType.Arg;
       objVar = new BoundVar(Token.NoToken, "obj", objType);
@@ -1956,11 +1957,11 @@ internal class Utils {
 
     var disjuncts = new List<Expression>();
     foreach (var frame in frames) {
-      var isSetFrame = frame.E.Type is SetType;
+      var isSetFrame = frame.E.Type.AsSetType != null;
       var frameObjType = isSetFrame ? frame.E.Type.AsSetType.Arg : frame.E.Type;
       var isTypeRelated =
-        objType.IsSubtypeOf(frameObjType, false, false)
-        || objType.IsObjectQ;
+        objType.IsSubtypeOf(frameObjType, false, false) ||
+        frameObjType.IsSubtypeOf(objType, false, false);
       var isFieldRelated = field == null || frame.Field == null || field.Name.Equals(frame.Field.Name);
       if (!(isTypeRelated && isFieldRelated)) {
         continue;
