@@ -133,8 +133,8 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
-      fields.Add((DAST.Field)DAST.Field.create_Field(item, defaultValue));
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
+      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue));
     }
 
     public object Finish() {
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -243,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -343,7 +343,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -363,7 +363,7 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassLike {
     void AddMethod(DAST.Method item);
 
-    void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
+    void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue);
 
     public MethodBuilder Method(bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
