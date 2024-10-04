@@ -255,7 +255,7 @@ TopDecl<. ModuleDefinition module, bool isTopLevel .>
      DatatypeDecl/*!*/ dt; TopLevelDecl td; IteratorDecl iter;
      TraitDecl/*!*/ trait;
   .)
-  { AtAttribute<ref dmod.Attributes> }
+  AtAttributes<ref dmod.Attributes>
   { DeclModifier<ref dmod> }
   ( SubModuleDecl<dmod, module, out submodule, isTopLevel>
                                                (. var litmod = submodule as LiteralModuleDecl;
@@ -532,7 +532,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "{"                                            (. bodyStart = t;  .)
     { (. dmod = new DeclModifierData(); .)
-      { AtAttribute<ref dmod.Attributes> }
+      AtAttributes<ref dmod.Attributes>
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false>
     }
@@ -583,7 +583,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   ]
   "{"                                            (. bodyStart = t; .)
     { (. dmod  = new DeclModifierData(); .)
-      { AtAttribute<ref dmod.Attributes> }
+      AtAttributes<ref dmod.Attributes>
       { DeclModifier<ref dmod> }
       ClassMemberDecl<dmod, members, true, false>
     }
@@ -678,7 +678,7 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
      var isGhost = false;
      Attributes attrs = null;
   .)
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   // Note, "ghost" is parsed before any {:} attributes. This means that the
   // attributes are parsed before the "id", which is consistent with other
   // declarations.
@@ -696,7 +696,7 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
   .)
   "{"
   { (. dmod = new DeclModifierData(); .)
-    { AtAttribute<ref dmod.Attributes> }
+    AtAttributes<ref dmod.Attributes>
     { DeclModifier<ref dmod> }
     ClassMemberDecl<dmod, members, false, false>
   }
@@ -730,6 +730,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
 = (. Contract.Requires(cce.NonNullElements(mm));
      Type/*!*/ ty;
      Expression e = null;
+     Attributes attrs = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
        errors.Warning(ErrorId.p_module_level_const_always_static, dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
        dmod.IsStatic = false;
@@ -745,7 +746,8 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
     CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
     [ ellipsis ]
     [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
-    Expression<out e, false, true> ]
+      AtAttributes<ref attrs>
+      Expression<out e, false, true, ref attrs> ]
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
                                                 }
@@ -771,6 +773,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
      var typeParameters = new List<TypeParameter>();
+     Attributes attrs = null; // TODO: Put in context
   .)
   "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref dmod.Attributes> }
@@ -786,15 +789,16 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     LocalVarName<out bvId>
     [ ":" Type<out baseType> ]
     "|"
-    Expression<out constraint, false, true>
-    WitnessClause<out var witnessKind, out witness>
+    AtAttributes<ref attrs>
+    Expression<out constraint, false, true, ref attrs>
+    WitnessClause<out var witnessKind, out witness, ref attrs>
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
          new BoundVar(bvId, bvId.val, baseType),
          constraint, witnessKind, witness, parentTraits, members, dmod.Attributes, isRefining: false);
     .)
   | Type<out baseType>
-    WitnessClause<out var witnessKind, out witness>
+    WitnessClause<out var witnessKind, out witness, ref attrs>
     [ TypeMembers<module, members> ]
     (. td = new NewtypeDecl(new RangeToken(dmod.FirstToken, t), name, typeParameters, module,
          baseType, witnessKind, witness, parentTraits, members, dmod.Attributes, isRefining: false);
@@ -828,6 +832,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      List<Type> parentTraits = new List<Type>();
      var members = new List<MemberDecl>();
      var isRefining = false;
+     Attributes attrs = null;
   .)
   "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
   { Attribute<ref dmod.Attributes> }
@@ -839,8 +844,9 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       LocalVarName<out bvId>
       [ ":" Type<out ty> ]
       "|"
-      Expression<out constraint, false, true>
-      WitnessClause<out var witnessKind, out witness>
+      AtAttributes<ref attrs>
+      Expression<out constraint, false, true, ref attrs>
+      WitnessClause<out var witnessKind, out witness, ref attrs>
       (. td = new SubsetTypeDecl(new RangeToken(dmod.FirstToken, t), name, characteristics, typeArgs, module, 
             new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, dmod.Attributes);
          kind = "subset type";
@@ -869,16 +875,19 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
   .
 
-WitnessClause<out SubsetTypeDecl.WKind witnessKind, out Expression witness>
+WitnessClause<out SubsetTypeDecl.WKind witnessKind, out Expression witness, ref Attributes attrs>
 = (. witnessKind = SubsetTypeDecl.WKind.CompiledZero;
      witness = null;
   .)
   [ IF(IsWitness())
     ( "ghost" "witness"                            (. witnessKind = SubsetTypeDecl.WKind.Ghost; .)
-      Expression<out witness, false, true>
+      AtAttributesFresh<ref attrs>
+      Expression<out witness, false, true, ref attrs>
     | "witness"
       ( "*"                                        (. witnessKind = SubsetTypeDecl.WKind.OptOut; .)
-      | Expression<out witness, false, true>       (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
+        AtAttributesFresh<ref attrs>
+      | AtAttributesFresh<ref attrs>
+        Expression<out witness, false, true, ref attrs> (. witnessKind = SubsetTypeDecl.WKind.Compiled; .)
       )
     )
   ]
@@ -907,12 +916,15 @@ GIdentType<bool allowGhostKeyword, bool allowNewKeyword, bool allowNameOnlyKeywo
   .
 
 FIdentType<out Name/*!*/ name, out Type/*!*/ ty>
-= NoDigitName<out name> (. ty = null; .)
+= NoDigitName<out name> (. ty = null;
+  Attributes attrs = null; // TODO: Put in context
+  .)
   ( ":" Type<out ty> 
   | (. SemErr(ErrorId.p_var_decl_must_have_type, t, "a mutable field must be declared with a type"); .)
   )
   [ ( ":=" | "=" ) (. var optoken = t; Expression e; .)
-    Expression<out e, true, true> 
+    AtAttributesFresh<ref attrs>
+    Expression<out e, true, true, ref attrs> 
       (.              var erange = new RangeToken(optoken, e.EndToken);
                       SemErr(ErrorId.p_no_init_for_var_field, erange, "a mutable field may not have an initializer"); 
       .) 
@@ -975,9 +987,11 @@ TypeIdentOptional<out RangeToken/*!*/ range, out Name/*!*/ identName, out Type/*
      attributes = null;
      identName = null;
      defaultValue = null;
+     Attributes attrs = null; // TODO: Put in context
   .)
   (. var beforeStartToken = t; .)
-  { Attribute<ref attributes> | AtAttribute<ref attributes> }
+  { Attribute<ref attributes> }
+  (. MergeInto(ref attrs, ref attributes); .)
   { "ghost"                            (. isGhost = true; .)
   | "nameonly"                         (. nameonlyToken = t; .)
   }
@@ -1216,7 +1230,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m, ref 
                                     .)
   )                                 (. keywordToken = t;
                                        CheckDeclModifiers(ref dmod, caption, allowed); .)
-  { Attribute<ref dmod.Attributes> }  (. Attributes.MergeInto(ref attrs, ref dmod.Attributes); .)
+  { Attribute<ref dmod.Attributes> }  (. MergeInto(ref attrs, ref dmod.Attributes); .)
   [ MethodFunctionName<out name>               (. hasName = true; .)
   ]
   (. if (!hasName) {
@@ -1245,7 +1259,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m, ref 
     ]
   | ellipsis                                    (. signatureEllipsis = t; .)
   )                                             (. tokenWithTrailingDocString = t; .)
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
              req, reads, mod, ens, dec, ref attrs, ref decAttrs, ref modAttrs, ref readsAttrs, caption, isConstructor>
   [ IF(isConstructor)
@@ -1298,25 +1312,29 @@ KType<ref ExtremePredicate.KType kType, out IToken openBracket, out IToken close
 RequiresClause<.List<AttributedExpression> req, bool allowLabel.>
 = "requires"    (. IToken lbl = null;
                    IToken first = t;
-                   Attributes attrs = null;
+                   Attributes attrs = null; // TODO put in context
+                   Attributes requiresAttrs = null;
                    Expression e;
                  .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> } (. MergeInto(ref attrs, ref requiresAttrs); .)
   [ IF(IsLabel(allowLabel))
     LabelName<out lbl> ":"
   ]
-  Expression<out e, false, false>
-  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs)); .)
+  AtAttributes<ref attrs>
+  Expression<out e, false, false, ref attrs>
+  OldSemi       (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), requiresAttrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
 EnsuresClause<.List<AttributedExpression> ens, bool allowLambda.>
 = "ensures"     (. Expression e;
-                   Attributes attrs = null;
+                   Attributes ensuresAttrs = null;
+                   Attributes attrs = null; // TODO: Get from context
                  .)
-  { Attribute<ref attrs> }
-  Expression<out e, false, allowLambda>
-    OldSemi       (. ens.Add(new AttributedExpression(e, attrs)); .)
+  { Attribute<ref attrs> } (. MergeInto(ref attrs, ref ensuresAttrs); .)
+  AtAttributes<ref attrs>
+  Expression<out e, false, allowLambda, ref attrs>
+    OldSemi       (. ens.Add(new AttributedExpression(e, ensuresAttrs)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1359,11 +1377,13 @@ ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
 
 /*------------------------------------------------------------------------*/
 InvariantClause<. List<AttributedExpression> invariants.> =
-  "invariant"                                   (. Attributes attrs = null;
-                                                   Expression e;
-                                                .)
-  { Attribute<ref attrs> }
-  Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
+  (. Attributes attrs = null; // TODO: Get from context
+     Attributes invariantAttrs = null;
+     Expression e;
+  .)
+  "invariant"   (. MergeInto(ref attrs, ref invariantAttrs); .)
+  { Attribute<ref invariantAttrs> }
+  Expression<out e, false, true, ref attrs> (. invariants.Add(new AttributedExpression(e, invariantAttrs)); .)
   OldSemi
   .
 
@@ -1384,7 +1404,7 @@ MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> 
       | EnsuresClause<ens, false>
       | DecreasesClause<decreases, ref decAttrs, !isGhost, false>
       )
-      { AtAttribute<ref attrs> } // For the next clause
+      AtAttributes<ref attrs> // For the next clause
   }
   .
 
@@ -1416,23 +1436,25 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
      Expression defaultValue;
      bool isNameOnly;
      bool isOlder;
-     Attributes attributes = null;
+     Attributes attrs = null;
      RangeToken range;
      Name name;
   .)
   "("
   [
-    { Attribute<ref attributes> }
+    AtAttributesFresh<ref attrs>
+    { Attribute<ref attrs> }
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
                         { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
-    { "," 
-      { Attribute<ref attributes> }
+    { ","
+      AtAttributesFresh<ref attrs>
+      { Attribute<ref attrs> }
       GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
       ParameterDefaultValue<incoming, out defaultValue>
-                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attributes, isOld, isNameOnly, isOlder)
+                 (. formals.Add(new Formal(name.Tok, name.Value, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)
                         { RangeToken = defaultValue != null ? new RangeToken(range.StartToken, defaultValue.EndToken) : range }
                     ); .)
     }
@@ -1441,10 +1463,12 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
   .
 
 ParameterDefaultValue<bool incoming, out Expression defaultValue>
-= (. defaultValue = null; IToken tok;
+= (. defaultValue = null; IToken tok; Attributes attrs = null;
   .)
   [ ":="        (. tok = t; .)
-    Expression<out defaultValue, true, true>
+    AtAttributesFresh<ref attrs>
+    Expression<out defaultValue, true, true, ref attrs>
+    (. CheckNoAttributes(ref attrs); .)
     (. if (!incoming) {
          SemErr(ErrorId.p_no_defaults_for_out_parameters, new RangeToken(tok,t), "out-parameters cannot have default-value expressions");
          defaultValue = null;
@@ -1826,9 +1850,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   (. decreases = isLeastPredicate || isGreatestPredicate ? null : new List<Expression/*!*/>();
      tokenWithTrailingDocString = t;
   .)
-  FunctionSpec<reqs, reads, ens, decreases, ref decAttrs, ref readsAttrs>
+  FunctionSpec<reqs, reads, ens, decreases, ref attrs, ref decAttrs, ref readsAttrs>
   (. IToken byMethodTok = null; BlockStmt byMethodBody = null; .)
-  [ FunctionBody<out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody> ]
+  [ FunctionBody<ref attrs, out body, out bodyStart, out bodyEnd, out byMethodTok, out byMethodBody> ]
 
   (. /* ========================================
       * Check if the keywords parsed above are allowed. We divide these checks into two broad categories,
@@ -2028,7 +2052,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes decAttrs, ref Attributes readsAttrs.>
+FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes attrs, ref Attributes decAttrs, ref Attributes readsAttrs.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
@@ -2075,18 +2099,23 @@ PredicateResult<string name, out Formal result>
   .
 
 /*------------------------------------------------------------------------*/
-PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
+PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e)!=null);
-     e = dummyExpr; .)
+     e = dummyExpr;
+     Attributes wildcardAttrs = null;
+     .)
   /* A decreases-* clause on a loop asks that no termination check be performed.
    * Use of this feature is sound only with respect to partial correctness.
    */
-  ( "*"                        (. e = new WildcardExpr(t);
+  ( "*"                        (. MergeInto(ref attrs, ref wildcardAttrs);
+                                  e = new WildcardExpr(t) {
+                                    Attributes = wildcardAttrs
+                                  };
                                   if (!allowWild) {
                                     SemErr(ErrorId.p_no_wild_expression, e.tok, "A '*' expression is not allowed here");
                                   }
                                .)
-  | Expression<out e, false, allowLambda>
+  | Expression<out e, false, allowLambda, ref attrs>
   )
   .
 
@@ -2118,9 +2147,10 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      IToken/*!*/ id;
      string fieldName = null;
      IToken feTok = null;
+     Attributes attrs = null; // TODO: Get from context
      fe = dummyFrameExpr;
   .)
-  ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.tok; .)
+  ( Expression<out e, allowLemma, allowLambda, ref attrs>   (. feTok = e.tok; .)
     [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
     ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
   |
@@ -2130,17 +2160,17 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
   .
 
 /*------------------------------------------------------------------------*/
-FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, out IToken/*?*/ byMethodTok, out BlockStmt/*?*/ byMethodBody>
+FunctionBody<ref Attributes attrs, out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, out IToken/*?*/ byMethodTok, out BlockStmt/*?*/ byMethodBody>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); e = dummyExpr;
      byMethodTok = null; byMethodBody = null;
   .)
-  "{"                         (. bodyStart = t; .)
-  Expression<out e, true, true>
-  "}"                         (. bodyEnd = t; .)
+  "{"                         (. bodyStart = t; CheckNoAttributes(ref attrs); .)
+  AtAttributes<ref attrs>
+  Expression<out e, true, true, ref attrs>
+  "}"                         (. bodyEnd = t; CheckNoAttributes(ref attrs); .)
   [ "by"                      (. byMethodTok = t; .)
     "method"
-    (. Attributes attrs = null; /* TODO: Have FunctionBody return attributes */ .)
-    { AtAttribute<ref attrs> }
+    AtAttributes<ref attrs>
     BlockStmt<out byMethodBody, out _, out _, ref attrs>
   ]
   .
@@ -2152,8 +2182,8 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd, re
      List<Statement/*!*/> body = new List<Statement/*!*/>();
      Attributes blockAttrs = null;
   .)
-  "{"                                  (. bodyStart = t; Attributes.MergeInto(ref attrs, ref blockAttrs); .)
-  { AtAttribute<ref attrs> }
+  "{"                                  (. bodyStart = t; MergeInto(ref attrs, ref blockAttrs); .)
+  AtAttributes<ref attrs>
   { Stmt<body, ref attrs> }
   "}"                                  (. bodyEnd = t;
                                           CheckNoAttributes(ref attrs);
@@ -2161,7 +2191,7 @@ BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd, re
                                             Attributes = blockAttrs
                                           };
                                           .)
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   .
 
 OpaqueBlock<out Statement s>
@@ -2177,8 +2207,7 @@ OpaqueBlock<out Statement s>
   { ModifiesClause<ref modifies, ref modifiesAttributes, false, false>
   | EnsuresClause<ensures, false>
   }
-  "{" (. CheckNoAttributes(ref attrs); .)
-  { AtAttribute<ref attrs> } 
+  "{" AtAttributesFresh<ref attrs> 
   { Stmt<body, ref attrs> }
   "}"
   (. 
@@ -2186,7 +2215,7 @@ OpaqueBlock<out Statement s>
     s = new OpaqueBlock(new RangeToken(start, t), body, ensures, 
       new Specification<FrameExpression>(modifies, modifiesAttributes));
   .)
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   .
 
 /*------------------------------------------------------------------------*/
@@ -2197,19 +2226,19 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
      List<Statement> bodyProper = new List<Statement>();
      Attributes blockAttrs = null;
   .)
-  "{"                                  (. bodyStart = t; Attributes.MergeInto(ref attrs, ref blockAttrs); .)
-  { AtAttribute<ref attrs> }
+  "{"                                  (. bodyStart = t; MergeInto(ref attrs, ref blockAttrs); .)
+  AtAttributes<ref attrs>
   { Stmt<bodyInit, ref attrs> }
   [ "new"                              (. separatorTok = t; CheckNoAttributes(ref attrs); .)
     ";"
-    { AtAttribute<ref attrs> }
+    AtAttributes<ref attrs>
     { Stmt<bodyProper, ref attrs> }
   ]
   "}"                                  (. bodyEnd = t; CheckNoAttributes(ref attrs); .)
   (. body = new DividedBlockStmt(new RangeToken(bodyStart, t), bodyInit, separatorTok, bodyProper) {
        Attributes = blockAttrs
      }; .)
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   .
 
 /*------------------------------------------------------------------------*/
@@ -2259,7 +2288,7 @@ LabeledStmt<out Statement s>
   .)
   "label"  (. IToken id; labelToken = t; .)
   LabelName<out id> ":" (. colonToken = t; .)
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   OneStmt<out s, ref attrs>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
      s.PostLabelToken = s.StartToken;
@@ -2350,6 +2379,7 @@ AssignStatement<out Statement/*!*/ s>
      IToken endTok = Token.NoToken;
      IToken startToken = Token.NoToken;
      Attributes attrs = null; // TODO: Capture attributes if Lhs parses
+     Attributes rhsAttrs = null;
      Attributes tokenAttrs = null;
      AttributedToken suchThatAssume = null;
      Expression suchThat = null;
@@ -2367,57 +2397,65 @@ AssignStatement<out Statement/*!*/ s>
       Rhs<out r>                   (. rhss.Add(r); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
-    | ":|"                         (. x = t; .)
+    | ":|"                         (. x = t; MergeInto(ref attrs, ref rhsAttrs); .)
+      AtAttributes<ref attrs>
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
         "assume"                      (. var tok = t; .)
-        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
+        { Attribute<ref tokenAttrs> } (. MergeInto(ref attrs, ref tokenAttrs); 
+                                         suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
+        AtAttributes<ref attrs>
       ]
-      Expression<out suchThat, false, true>
-    | ":-"                         (. x = t; .)
+      Expression<out suchThat, false, true, ref attrs>
+    | ":-"                         (. x = t; MergeInto(ref attrs, ref rhsAttrs); .)
+      AtAttributes<ref attrs>
       [ IF(IsAssumeTypeKeyword(la))   /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")  (. var tok = t; .)
-        { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
+        { Attribute<ref tokenAttrs> } (. MergeInto(ref attrs, ref tokenAttrs);
+                                         keywordToken = new AttributedToken(tok, tokenAttrs); .)
+        AtAttributes<ref attrs>
       ]
-      Expression<out exceptionExpr, false, false>
-      { Attribute<ref attrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); attrs = null; .)
+      Expression<out exceptionExpr, false, false, ref attrs>
+      { Attribute<ref rhsAttrs> }     (. exceptionRhs = new ExprRhs(exceptionExpr, rhsAttrs); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
     )
     (. CheckNoAttributes(ref attrs); .)
     (
-      "by" { AtAttribute<ref attrs> }
+      "by" AtAttributes<ref attrs>
       BlockStmt<out proof, out _, out _, ref attrs>
-    | ";" { AtAttribute<ref attrs> } 
+    | ";" AtAttributes<ref attrs> 
     )
   | ":"                            (. SemErr(ErrorId.p_invalid_colon, new RangeToken(startToken, t), "invalid statement beginning here (is a 'label' keyword missing? or a 'const' or 'var' keyword?)"); .)
-  | { Attribute<ref attrs> }       (. endToken = t; var rhsAttrs = attrs; attrs = null; .)
-    (. CheckNoAttributes(ref attrs); .)
+  | { Attribute<ref attrs> }       (. endToken = t; MergeInto(ref attrs, ref rhsAttrs); .)
     (
-      "by" { AtAttribute<ref attrs> }
+      "by" AtAttributes<ref attrs>
       BlockStmt<out proof, out _, out _, ref attrs>
     | ";"
     )                              (. endTok = t; rhss.Add(new ExprRhs(e, rhsAttrs) { RangeToken = new RangeToken(e.StartToken, endToken) }); .)
-     { AtAttribute<ref attrs> } 
+     AtAttributes<ref attrs> 
   | { Attribute<ref attrs> }       (. endToken = t; .)
                                    (. endTok = t; rhss.Add(new ExprRhs(e, attrs) { RangeToken = new RangeToken(e.StartToken, endToken) });
                                       SemErr(ErrorId.p_missing_semicolon, new RangeToken(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )
-| ":-"                             (. x = t; startToken = t; .)
+| ":-"                             (. x = t; startToken = t; CheckNoAttributes(ref attrs); .)
+   AtAttributes<ref attrs>
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
       ("expect"|"assert"|"assume")    (. var tok = t; .)
-      { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
+      { Attribute<ref tokenAttrs> }   (. MergeInto(ref attrs, ref tokenAttrs); keywordToken = new AttributedToken(tok, tokenAttrs); .)
+      AtAttributes<ref attrs>
    ]
-   Expression<out exceptionExpr, false, false>
-   { Attribute<ref attrs> }        (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); attrs = null; .)
+   Expression<out exceptionExpr, false, false, ref attrs>
+   { Attribute<ref attrs> }        (. MergeInto(ref attrs, ref rhsAttrs);
+                                      exceptionRhs = new ExprRhs(exceptionExpr, rhsAttrs); .)
    { "," Rhs<out r>                (. rhss.Add(r); .)
    }
    (. CheckNoAttributes(ref attrs); .)
    (
-     "by" { AtAttribute<ref attrs>}
+     "by" AtAttributes<ref attrs>
      BlockStmt<out proof, out _, out _, ref attrs>
    | ";"                           (. endTok = t; .)
-     { AtAttribute<ref attrs>}
+     AtAttributes<ref attrs>
    )                           
 )
   (. var rangeToken = new RangeToken(startToken, t);
@@ -2445,7 +2483,7 @@ Rhs<out AssignmentRhs r>
      Expression arrayElementInit = null;
      List<Expression> display = null;
      r = dummyRhs;  // to please compiler
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Obtain from context
      IToken startToken = null;
   .)
   ( IF(la.val == "new")
@@ -2471,8 +2509,8 @@ Rhs<out AssignmentRhs r>
          r = new TypeRhs(newToken, ty);
        }
     .)
-  | "*"                                (. r = new HavocRhs(t); startToken = t; .)
-  | Expression<out e, false, true>     (. r = new ExprRhs(e); startToken = e.StartToken; .)
+  | "*"                                       (. r = new HavocRhs(t); startToken = t; .)
+  | Expression<out e, false, true, ref attrs> (. r = new ExprRhs(e); startToken = e.StartToken; .)
   )
   { Attribute<ref attrs> }             (. r.Attributes = attrs;
                                           r.RangeToken = new RangeToken(startToken ?? t, t); .)
@@ -2484,29 +2522,34 @@ NewArray<. out List<Expression> ee, out Expression arrayElementInit, out List<Ex
      arrayElementInit = null;
      display = null;
      IToken x;
+     Attributes attrs = null; // TODO: Put in context
   .)
-  "["                                (. x = t; .)
+  "["                                (. x = t; CheckNoAttributes(ref attrs); .)
   ( "]"                              /* no size is given; this is allowed as long as an initialization display is given */
     "["                              (. display = new List<Expression>(); .)
-    [ Expressions<display> ]
+    AtAttributesFresh<ref attrs>
+    [ Expressions<display, ref attrs> ]
     "]"                              (. // we fill in the size
                                         ee.Add(new LiteralExpr(new AutoGeneratedToken(x), display.Count));
                                      .)
-  | Expressions<ee>
+  | Expressions<ee, ref attrs>
     "]"                              (. // make sure an array class with this dimensionality exists
                                         var eeCopy = ee;
                                         SystemModuleModifiers.Add(b => b.ArrayType(eeCopy.Count, new IntType(), true));
                                      .)
-    [ "(" Expression<out arrayElementInit, true, true>
+    [ "("    AtAttributesFresh<ref attrs>
+      Expression<out arrayElementInit, true, true, ref attrs>
       ")"
     | "["                            (. if (ee.Count > 1) {
                                           SemErr(ErrorId.p_initializing_display_only_for_1D_arrays, t, "An initializing element display is allowed only for 1-dimensional arrays");
                                         }
                                         display = new List<Expression>();
                                      .)
-      [ Expressions<display> ]
+      AtAttributesFresh<ref attrs>
+      [ Expressions<display, ref attrs> ]
       "]"
     ]
+    AtAttributesFresh<ref attrs>
   )
   (. if (ee.Count == 0) {
        // an error occurred while parsing, but we still want to make sure to return a nonempty "ee"
@@ -2527,8 +2570,9 @@ VarDeclStatement<.out Statement/*!*/ s.>
      AttributedToken keywordToken = null;
      Expression exceptionExpr = null;
      ExprRhs exceptionRhs = null;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Put that in context
      Attributes tokenAttrs = null;
+     Attributes rhsAttrs = null;
      BlockStmt proof = null;
      IToken endTok;
      IToken startToken = null;
@@ -2539,10 +2583,10 @@ VarDeclStatement<.out Statement/*!*/ s.>
   "var"                                     (. if (!isGhost) { x = t; startToken = t; } .)
   ( IF(!IsPatternDecl())
     { Attribute<ref attrs> }
-    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
+    LocalIdentTypeOptional<out d, isGhost>    (. lhss.Add(d); d.Attributes = Consume(ref attrs); .)
     { ","
       { Attribute<ref attrs> }
-      LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = attrs; attrs = null; .)
+      LocalIdentTypeOptional<out d, isGhost>  (. lhss.Add(d); d.Attributes = Consume(ref attrs); .)
     }
     [ ( ":=" | "=" (. SemErr(ErrorId.p_no_equal_for_initializing, t, "a local variable should be initialized using ':=', ':-', or ':|', not '='"); .) )                         
                                      (. assignTok = t; .)
@@ -2550,30 +2594,34 @@ VarDeclStatement<.out Statement/*!*/ s.>
       { "," Rhs<out r>               (. rhss.Add(r); .)
       }
     | { Attribute<ref attrs> }
-      ":|"                           (. assignTok = t; .)
+      ":|"                           (. assignTok = t; MergeInto(ref attrs, ref rhsAttrs); .)
+      AtAttributes<ref attrs>
       [ IF(la.kind == _assume)       /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
         "assume"                      (. var tok = t; .)
-        { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
+        { Attribute<ref tokenAttrs> } (. MergeInto(ref attrs, ref tokenAttrs); suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
+        AtAttributes<ref attrs>
       ]
-      Expression<out suchThat, false, true>
-    | ":-"                           (. assignTok = t; .)
+      Expression<out suchThat, false, true, ref attrs>
+    | ":-"                           (. assignTok = t; MergeInto(ref attrs, ref rhsAttrs); .)
+      AtAttributes<ref attrs>
       [ IF(IsAssumeTypeKeyword(la))     /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
          ("expect"|"assert"|"assume")  (. var tok = t; .)
-         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
+         { Attribute<ref tokenAttrs> } (. MergeInto(ref attrs, ref tokenAttrs); keywordToken = new AttributedToken(tok, tokenAttrs); .)
+        AtAttributes<ref attrs>
       ]
-      Expression<out exceptionExpr, false, false>
-      { Attribute<ref attrs> }       (. exceptionRhs = new ExprRhs(exceptionExpr, attrs); attrs = null; .)
-      { "," Rhs<out r>               (. rhss.Add(r); .)
+      Expression<out exceptionExpr, false, false, ref attrs>
+      { Attribute<ref rhsAttrs> }       (. MergeInto(ref attrs, ref rhsAttrs);
+                                           exceptionRhs = new ExprRhs(exceptionExpr, rhsAttrs); .)
+      { ","                      (. CheckNoAttributes(ref attrs); .)
+        Rhs<out r>               (. rhss.Add(r); .)
       }
     ]
     SYNC
-    ( (. CheckNoAttributes(ref attrs); .)
-      "by" { AtAttribute<ref attrs> }
+    ( "by" AtAttributesFresh<ref attrs>
       BlockStmt<out proof, out _, out _, ref attrs>
-    | (. CheckNoAttributes(ref attrs); .)
-      ";"                            (. endTok = t; .)
+    | ";"                            (. endTok = t; CheckNoAttributes(ref attrs); .)
+      AtAttributes<ref attrs> 
     )
-    { AtAttribute<ref attrs> } 
     (. ConcreteAssignStatement assignment;
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
@@ -2607,8 +2655,9 @@ VarDeclStatement<.out Statement/*!*/ s.>
     | { Attribute<ref attrs> }
       ":|"                          (.  SemErr(ErrorId.p_no_patterns_and_such_that, pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
     )
-    Expression<out e, false, true>
-
+    AtAttributes<ref attrs>
+    Expression<out e, false, true, ref attrs>
+    (. CheckNoAttributes(ref attrs); .)
     ";"
     (. s = new VarDeclPattern(e.RangeToken, pat, e, isGhost);
        s.RangeToken = new RangeToken(pat.StartToken, t); .)
@@ -2634,7 +2683,7 @@ IfStmt<out Statement/*!*/ ifStmt>
      bool usesOptionalBraces;
   .)
   "if"                       (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }   (. Attributes.MergeInto(ref attrs, ref ifAttrs); .)
+  { Attribute<ref attrs> }   (. MergeInto(ref attrs, ref ifAttrs); .)
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
@@ -2699,16 +2748,19 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
      Expression e; bool isBindingGuard;
      List<Statement> body;
      Attributes attrs = null; // TODO: Ensure attributes are part of the context
+     Attributes caseAttrs = null;
   .)
   "case"                             (. x = t; isBindingGuard = false; e = dummyExpr; .)
   { Attribute<ref attrs> }
+  (. MergeInto(ref attrs, ref caseAttrs); .)
+  AtAttributes<ref attrs>
   ( IF(allowBindingGuards && IsBindingGuard())
     BindingGuard<out e, false >  (. isBindingGuard = true; .)  // NB: don't allow lambda here
-  | Expression<out e, true, false> // NB: don't allow lambda here
+  | Expression<out e, true, false, ref attrs> // NB: don't allow lambda here
   )
   (. CheckNoAttributes(ref attrs); .)
   "=>"
-  { AtAttribute<ref attrs> }
+  AtAttributes<ref attrs>
   (. body = new List<Statement>(); .)
   SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
           * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
@@ -2718,7 +2770,7 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
     Stmt<body, ref attrs>
     SYNC  /* see comment about SYNC above */
   }
-  (. alt = new GuardedAlternative(x, isBindingGuard, e, body, attrs); .)
+  (. alt = new GuardedAlternative(x, isBindingGuard, e, body, caseAttrs); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2742,7 +2794,7 @@ WhileStmt<out Statement stmt>
      bool usesOptionalBraces;
   .)
   "while"                    (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }   (. Attributes.MergeInto(ref attrs, ref whileAttrs); .)
+  { Attribute<ref attrs> }   (. MergeInto(ref attrs, ref whileAttrs); .)
   (
     IF(IsLoopSpec() || IsAlternative())
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
@@ -2809,13 +2861,15 @@ ForLoopStmt<out Statement stmt>
      bool isDirtyLoop = true;
   .)
   "for"                    (. x = t; startToken = t; .)
-  { Attribute<ref attrs> } (. Attributes.MergeInto(ref attrs, ref forAttrs); .)
+  { Attribute<ref attrs> } (. MergeInto(ref attrs, ref forAttrs); .)
   IdentTypeOptional<out loopIndex>
-  ":="
-  Expression<out start, false, false>
+  ":=" AtAttributesFresh<ref attrs>
+  Expression<out start, false, false, ref attrs>
+  (. CheckNoAttributes(ref attrs); .)
   ForLoopDirection<out goingUp>
-  ( Expression<out end, false, false>
-  | "*"
+  AtAttributes<ref attrs>
+  ( Expression<out end, false, false, ref attrs>
+  | "*" AtAttributesFresh<ref attrs>
   )
   LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
   ( IF(la.kind == _lbrace)      /* if there's an open brace, claim it as the beginning of the loop body (as opposed to a BlockStmt following the loop) */
@@ -2857,9 +2911,12 @@ LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref
 
 /*------------------------------------------------------------------------*/
 DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.>
-= (. Expression e; .)
-  PossiblyWildExpression<out e, allowLambda, allowWildcard>       (. decreases.Add(e); .)
-  { "," PossiblyWildExpression<out e, allowLambda, allowWildcard> (. decreases.Add(e); .)
+= (. Expression e;
+     Attributes attrs = null; // TODO: Put in context
+   .)
+  PossiblyWildExpression<out e, allowLambda, allowWildcard, ref attrs>       (. decreases.Add(e); .)
+  { "," AtAttributesFresh<ref attrs>
+    PossiblyWildExpression<out e, allowLambda, allowWildcard, ref attrs> (. decreases.Add(e); .)
   }
   (. if (allowWildcard && decreases.Count > 1 && decreases.Exists(e => e is WildcardExpr)) {
        SemErr(ErrorId.p_no_decreases_expressions_with_star, e.tok, "A 'decreases' clause that contains '*' is not allowed to contain any other expressions");
@@ -2869,10 +2926,12 @@ DecreasesList<.List<Expression> decreases, bool allowWildcard, bool allowLambda.
 
 /*------------------------------------------------------------------------*/
 Guard<out Expression e>   /* null represents demonic-choice */
-= (. Expression/*!*/ ee;  e = null; .)
-  ( "*"                                   (. e = null; .)
-  | IF(IsParenStar())  "(" "*" ")"        (. e = null; .)
-  | Expression<out ee, true, true>        (. e = ee; .)
+= (. Expression/*!*/ ee;  e = null;
+     Attributes attrs = null; // TODO: Put in context
+     .)
+  ( "*"                                   (. e = null; CheckNoAttributes(ref attrs); .) AtAttributes<ref attrs>
+  | IF(IsParenStar())  "(" "*" ")"        (. e = null; CheckNoAttributes(ref attrs); .) AtAttributes<ref attrs>
+  | Expression<out ee, true, true, ref attrs>        (. e = ee; .)
   )
   .
 
@@ -2880,7 +2939,8 @@ Guard<out Expression e>   /* null represents demonic-choice */
 BindingGuard<out Expression e, bool allowLambda>
 = (. var bvars = new List<BoundVar>();
      BoundVar bv;  IToken x;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes existsAttrs = null;
      Expression body;
   .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); x = bv.tok; .)
@@ -2888,9 +2948,10 @@ BindingGuard<out Expression e, bool allowLambda>
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
   { Attribute<ref attrs> }
-  ":|"
-  Expression<out body, true, allowLambda>
-  (. e = new ExistsExpr(x, new RangeToken(x, t), bvars, null, body, attrs); .)
+  ":|" (. MergeInto(ref attrs, ref existsAttrs); .)
+  AtAttributes<ref attrs>
+  Expression<out body, true, allowLambda, ref attrs>
+  (. e = new ExistsExpr(x, new RangeToken(x, t), bvars, null, body, existsAttrs); .)
   .
 
 
@@ -2948,20 +3009,23 @@ MatchStmt<out Statement/*!*/ s>
      List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
      bool usesOptionalBraces = false;
      IToken startToken = null;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes matchAttrs = null;
   .)
   "match"                     (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
-  Expression<out e, true, true>
+  { Attribute<ref attrs> }    (. MergeInto(ref attrs, ref matchAttrs); .)
+  AtAttributes<ref attrs>
+  Expression<out e, true, true, ref attrs>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" (. usesOptionalBraces = true; .)
-        { CaseStmt<out c> (. cases.Add(c); .) }
-    "}"
+    "{" (. usesOptionalBraces = true; CheckNoAttributes(ref attrs); .)
+    AtAttributes<ref attrs>
+    { CaseStmt<out c> (. cases.Add(c); .) }
+    "}" AtAttributesFresh<ref attrs>
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
           CaseStmt<out c> (. cases.Add(c); .)
         }
   )
-  (. s = new NestedMatchStmt(new RangeToken(startToken, t), e, cases, usesOptionalBraces, attrs);
+  (. s = new NestedMatchStmt(new RangeToken(startToken, t), e, cases, usesOptionalBraces, matchAttrs);
   .)
   .
 
@@ -2977,7 +3041,7 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
   { Attribute<ref attrs> }
   ExtendedPattern<out pat>    (. .)
   "=>"
-    { AtAttribute<ref attrs> }
+    AtAttributes<ref attrs>
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
            * to follow the CaseStatement.
@@ -3002,20 +3066,21 @@ AssertStmt<out Statement/*!*/ s, ref Attributes attrs>
   .)
   SYNC
   "assert"                                     (. x = t; startToken = t; .)
-  { Attribute<ref attrs> } (. Attributes.MergeInto(ref attrs, ref assertAttrs); .)
+  { Attribute<ref attrs> } (. MergeInto(ref attrs, ref assertAttrs); .)
   ( [ IF(IsLabel(true))
       LabelName<out lbl> ":"
     ]
-    Expression<out e, false, true>
+    AtAttributes<ref attrs>
+    Expression<out e, false, true, ref attrs>
     (. CheckNoAttributes(ref attrs); .)
-    ( "by" { AtAttribute<ref attrs> } 
+    ( "by" AtAttributes<ref attrs> 
       BlockStmt<out proof, out proofStart, out proofEnd, ref attrs>
     | ";"
     | (.
         SemErr(ErrorId.p_assert_needs_by_or_semicolon, t, "expected either 'by' or a semicolon following the assert expression");
       .)
     )
-    { AtAttribute<ref attrs> } 
+    AtAttributes<ref attrs> 
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
@@ -3033,19 +3098,23 @@ AssertStmt<out Statement/*!*/ s, ref Attributes attrs>
 /*------------------------------------------------------------------------*/
 ExpectStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression e = dummyExpr; Expression m = null; Attributes attrs = null; // TODO: Accept ref attrs in ExpectStmt 
+     Expression e = dummyExpr; Expression m = null;
+     Attributes attrs = null; // TODO: Accept ref attrs in ExpectStmt 
+     Attributes expectAttrs = null;
      IToken dotdotdot = null;
      IToken startToken = null;
   .)
   SYNC
   "expect"                                     (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
-  ( Expression<out e, false, true>
+  { Attribute<ref attrs> }  (. MergeInto(ref attrs, ref expectAttrs); .)
+  AtAttributes<ref attrs>
+  ( Expression<out e, false, true, ref attrs>
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
   )
-  [ "," Expression<out m, false, true> ]
+  [ "," AtAttributesFresh<ref attrs>
+    Expression<out m, false, true, ref attrs> ]
   ";"
   (. if (dotdotdot != null) {
        s = new ExpectStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), m, attrs);
@@ -3059,20 +3128,24 @@ ExpectStmt<out Statement/*!*/ s>
 /*------------------------------------------------------------------------*/
 AssumeStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
-     Expression e = dummyExpr; Attributes attrs = null;
+     Expression e = dummyExpr;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes assumeAttrs = null;
      IToken dotdotdot = null;
      IToken startToken = null;
   .)
   "assume"                                     (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }
-  ( Expression<out e, false, false>
+  { Attribute<ref attrs> }                     (. MergeInto(ref attrs, ref assumeAttrs); .)
+  AtAttributes<ref attrs>
+  ( Expression<out e, false, false, ref attrs>
   | ellipsis                                   (. dotdotdot = t; 
                                                   errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                                 .)
   )
   ";"
+  AtAttributes<ref attrs>
   (. if (dotdotdot != null) {
-       s = new AssumeStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), attrs);
+       s = new AssumeStmt(new RangeToken(startToken, t), new LiteralExpr(x, true), assumeAttrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new AssumeStmt(new RangeToken(startToken, t), e, attrs);
@@ -3086,14 +3159,22 @@ PrintStmt<out Statement s>
      IToken x;  Expression e;
      var args = new List<Expression>();
      IToken startToken = null;
+     Attributes printAttrs = null;
+     Attributes attrs = null; // TODO: Put in context
   .)
-  "print"                                      (. x = t; startToken = t; .)
-  Expression<out e, false, true>               (. args.Add(e); .)
-  { "," Expression<out e, false, true>         (. args.Add(e); .)
+  "print"                                      (. x = t; startToken = t; MergeInto(ref attrs, ref printAttrs); .)
+  AtAttributes<ref attrs>
+  Expression<out e, false, true, ref attrs>    (. args.Add(e); .)
+  { ","
+    AtAttributesFresh<ref attrs>
+    Expression<out e, false, true, ref attrs>             (. args.Add(e); .)
   }
   ";"                                          (.
-    s = new PrintStmt(new RangeToken(startToken, t), args);
+    s = new PrintStmt(new RangeToken(startToken, t), args) {
+      Attributes = printAttrs
+    };
     .)
+  AtAttributes<ref attrs>
   .
 
 /*------------------------------------------------------------------------*/
@@ -3102,17 +3183,24 @@ RevealStmt<out Statement s>
      IToken x; Expression e; var es = new List<Expression>();
      IToken startToken = null;
      HideRevealCmd.Modes mode = HideRevealCmd.Modes.Reveal;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes revealAttrs = null;
      s = null;
   .)
   ( "reveal"                                    (. x = t; startToken = t; mode = HideRevealCmd.Modes.Reveal; .)
   | "hide"                                      (. x = t; startToken = t; mode = HideRevealCmd.Modes.Hide; .)
   )
-  ( Expression<out e, false, true>                (. es.Add(e); .)
-    { "," Expression<out e, false, true>          (. es.Add(e); .)
+  (. MergeInto(ref attrs, ref revealAttrs); .)
+  AtAttributes<ref attrs>
+  ( Expression<out e, false, true, ref attrs>                (. es.Add(e); .)
+    { ","
+      AtAttributesFresh<ref attrs>
+      Expression<out e, false, true, ref attrs>          (. es.Add(e); .)
     }                                           (. s = new HideRevealStmt(new RangeToken(startToken, t), es, mode); .)
   | "*"                                         (. s = new HideRevealStmt(new RangeToken(startToken, t), mode); .)
   )
-  ";"                                           
+  ";"
+  AtAttributesFresh<ref attrs>
   .
 
 /*------------------------------------------------------------------------*/
@@ -3167,7 +3255,7 @@ ModifyStmt<out Statement s>
      IToken startToken = null;
   .)
   "modify"           (. tok = t; startToken = t; .)
-  { Attribute<ref attrs> } (. Attributes.MergeInto(ref attrs, ref modifyAttrs); .)
+  { Attribute<ref attrs> } (. MergeInto(ref attrs, ref modifyAttrs); .)
   /* Note, there is an ambiguity here, because a curly brace may look like a FrameExpression and
    * may also look like a BlockStmt.  We're happy to parse the former, because if the user intended
    * the latter, then an explicit FrameExpression of {} could be given.
@@ -3184,7 +3272,7 @@ ModifyStmt<out Statement s>
                                          .)
   | SYNC ";"         (. endTok = t; CheckNoAttributes(ref attrs); .)
   )
-  { AtAttribute<ref attrs> } 
+  AtAttributes<ref attrs> 
   (. s = new ModifyStmt(new RangeToken(startToken, t), mod, modifyAttrs, body);
      if (ellipsisToken != null) {
        s = new SkeletonStatement(s, ellipsisToken, null);
@@ -3209,7 +3297,7 @@ CalcStmt<out Statement s>
      IToken danglingOperator = null;
   .)
   "calc"                                                  (. x = t; startToken = t; .)
-  { Attribute<ref attrs> }          (. Attributes.MergeInto(ref attrs, ref calcAttrs); .)
+  { Attribute<ref attrs> }                                (. MergeInto(ref attrs, ref calcAttrs); .)
   [ CalcOp<out opTok, out userSuppliedOp>                 (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
                                                                SemErr(ErrorId.p_calc_operator_must_be_transitive, opTok, "the main operator of a calculation must be transitive");
                                                              } else {
@@ -3218,8 +3306,9 @@ CalcStmt<out Statement s>
                                                           .)
   ]
   "{"
-  { Expression<out e, false, true>                        (. lines.Add(e); stepOp = null; danglingOperator = null; .)
-    ";"
+  AtAttributesFresh<ref attrs>
+  { Expression<out e, false, true, ref attrs>             (. lines.Add(e); stepOp = null; danglingOperator = null; .)
+    ";" (. CheckNoAttributes(ref attrs); .)
     [ CalcOp<out opTok, out op>                           (. var maybeOp = resOp.ResultOp(op);
                                                              if (maybeOp == null) {
                                                                SemErr(ErrorId.p_invalid_calc_op_combination, opTok, "this operator cannot continue this calculation");
@@ -3249,6 +3338,7 @@ CalcStmt<out Statement s>
        hints.Add(h);
        if (h.Body.Count != 0) { danglingOperator = null; }
     .)
+    (. CheckNoAttributes(ref attrs); .)
   }
   "}"
   (.
@@ -3261,16 +3351,18 @@ CalcStmt<out Statement s>
     }
     s = new CalcStmt(new RangeToken(startToken, t), userSuppliedOp, lines, hints, stepOps, calcAttrs);
   .)
+  AtAttributes<ref attrs>
   .
 
 /*------------------------------------------------------------------------*/
 CalcOp<out IToken x, out CalcStmt.CalcOp/*!*/ op>
 = (. var binOp = BinaryExpr.Opcode.Eq; // Returns Eq if parsing fails because it is compatible with any other operator
      Expression k = null;
+     Attributes attrs = null; // No need to put in context, it's only for the ==#[] case
      x = null;
   .)
   ( "=="           (. x = t;  binOp = BinaryExpr.Opcode.Eq; .)
-    [ "#" "[" Expression<out k, true, true> "]" ]
+    [ "#" "[" AtAttributes<ref attrs> Expression<out k, true, true, ref attrs> "]" ]
   | "<"            (. x = t;  binOp = BinaryExpr.Opcode.Lt; .)
   | ">"            (. x = t;  binOp = BinaryExpr.Opcode.Gt; .)
   | "<="           (. x = t;  binOp = BinaryExpr.Opcode.Le; .)
@@ -3312,19 +3404,23 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
      Expression tmp = null;
      IToken x = null;
      bool allowNoChange = false;
+     Attributes attrs = null; // TODO: Put in context
   .)
   TupleArgs<args>
   [ ( "decreases"                                                 (. allowNoChange = false; .)
     | "nonincreases"                                              (. allowNoChange = true; .)
     ) (. x = t; .)
+    (. CheckNoAttributes(ref attrs); .)
     ident
     (. if (t.val != "to") {
          SemErr(ErrorId.p_decreases_without_to, t, "expected 'to'");
        }
     .)
-    Expression<out tmp, false, false>                             (. newExprs.Add(tmp); .)
+    AtAttributes<ref attrs>
+    Expression<out tmp, false, false, ref attrs>                             (. newExprs.Add(tmp); .)
     { ","
-      Expression<out tmp, false, false>                           (. newExprs.Add(tmp); .)
+      AtAttributesFresh<ref attrs>
+      Expression<out tmp, false, false, ref attrs>                           (. newExprs.Add(tmp); .)
     }
   ]
   (.
@@ -3364,14 +3460,15 @@ MaybeDecreasesToExpression<out Expression e, IToken lp>
  * at the top level of this expression. It is passed in as "false" only inside
  * cardinality brackets, that is, "|expr|".
  */
-Expression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps = true>
+Expression<out Expression e, bool allowLemma, bool allowLambda, ref Attributes attrs, bool allowBitwiseOps = true>
 = (. Expression e0; IToken semiToken; .)
   [ "new" (. SemErr(ErrorId.p_no_side_effects_in_expressions, t, "Calls with side-effects such as constructors are not allowed in expressions."); .) ]
   EquivExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowLemma, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. semiToken = t; .)
-    Expression<out e0, allowLemma, allowLambda>
+    AtAttributesFresh<ref attrs>
+    Expression<out e0, allowLemma, allowLambda, ref attrs>
     (. var startToken = e.StartToken;
        e = new StmtExpr(e0.Tok,
              new AssignStatement(e.RangeToken, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e) }),
@@ -3579,15 +3676,16 @@ RelOp<out IToken/*!*/ x, out BinaryExpr.Opcode op, out Expression k>
      x = Token.NoToken;  op = BinaryExpr.Opcode.Add/*(dummy)*/;
      IToken y;
      k = null;
+     Attributes attrs = null;
   .)
   ( "=="           (. x = t;  op = BinaryExpr.Opcode.Eq; .)
-    [ "#" "[" Expression<out k, true, true> "]" ]
+    [ "#" "[" AtAttributes<ref attrs> Expression<out k, true, true, ref attrs> "]" ]
   | "<"            (. x = t;  op = BinaryExpr.Opcode.Lt;  .)
   | ">"            (. x = t;  op = BinaryExpr.Opcode.Gt;  .)
   | "<="           (. x = t;  op = BinaryExpr.Opcode.Le;  .)
   | ">="           (. x = t;  op = BinaryExpr.Opcode.Ge;  .)
   | "!="           (. x = t;  op = BinaryExpr.Opcode.Neq;  .)
-    [ "#" "[" Expression<out k, true, true> "]" ]
+    [ "#" "[" AtAttributes<ref attrs> Expression<out k, true, true, ref attrs> "]" ]
   | "in"           (. x = t;  op = BinaryExpr.Opcode.In; .)
   | notIn          (. x = t;  op = BinaryExpr.Opcode.NotIn; .)
   | /* The next operator is "!!", but we have to scan it as two "!", since the scanner is greedy
@@ -3764,29 +3862,46 @@ ConstAtomExpression<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x = null;
      e = dummyExpr;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes atomAttrs = null;
   .)
   ( LiteralExpression<out e>
-  | "this"                                     (. x = t; e = new ThisExpr(t); .)
-  | "allocated"                                (. x = t; .)
-    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
-  | "fresh"                                    (. x = t; IToken atLabel = null; .)
+  | "this"                                     (. x = t; e = new ThisExpr(t) { Attributes = Consume(ref attrs)}; .)
+    AtAttributes<ref attrs>
+  | "allocated"                                (. x = t; MergeInto(ref attrs, ref atomAttrs); .)
+    "("
+    AtAttributesFresh<ref attrs>
+    Expression<out e, true, true, ref attrs> ")"  (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e) { Attributes = atomAttrs }; .)
+    AtAttributesFresh<ref attrs>
+  | "fresh"                                    (. x = t; IToken atLabel = null; MergeInto(ref attrs, ref atomAttrs); .)
     [ "@" LabelName<out atLabel> ]
-    "(" Expression<out e, true, true> ")"      (. e = new FreshExpr(x, e, atLabel?.val); .)
-  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken atLabel = null; .)
+    "("
+    AtAttributesFresh<ref attrs>
+    Expression<out e, true, true, ref attrs>
+    ")"      (. e = new FreshExpr(x, e, atLabel?.val) { Attributes = atomAttrs }; .)
+    AtAttributesFresh<ref attrs>
+  | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken atLabel = null; MergeInto(ref attrs, ref atomAttrs); .)
     [ "@" LabelName<out atLabel> ]
     "("
       FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
       { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
       }
-    ")"                                        (. e = new UnchangedExpr(x, mod, atLabel?.val); .)
-  | "old"                                      (. x = t; IToken atLabel = null; .)
+    ")"                                        (. e = new UnchangedExpr(x, mod, atLabel?.val) { Attributes = atomAttrs }; .)
+    AtAttributesFresh<ref attrs>
+  | "old"                                      (. x = t; IToken atLabel = null; MergeInto(ref attrs, ref atomAttrs); .)
     [ "@" LabelName<out atLabel> ]
-    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, atLabel?.val); .)
-  | "|"                                        (. x = t; .)
-      Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
+    "("
+    AtAttributesFresh<ref attrs>
+    Expression<out e, true, true, ref attrs> ")"      (. e = new OldExpr(x, e, atLabel?.val) { Attributes = atomAttrs }; .)
+    AtAttributesFresh<ref attrs>
+  | "|"                                        (. x = t; MergeInto(ref attrs, ref atomAttrs); .)
+      AtAttributesFresh<ref attrs>
+      Expression<out e, true, true, ref attrs, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e) { Attributes = atomAttrs }; .)
     "|"
-  | "assigned"                                 (. x = t; .)
-    "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
+    AtAttributesFresh<ref attrs>
+  | "assigned"                                 (. x = t; MergeInto(ref attrs, ref atomAttrs); .)
+    "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e) { Attributes = atomAttrs }; .)
+    AtAttributesFresh<ref attrs>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.RangeToken = new RangeToken(x, t); } .)
   .
@@ -3835,6 +3950,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      var bvs = new List<BoundVar>();
      var reads = new List<FrameExpression>();
      Attributes readsAttrs = null;
+     Attributes attrs = null; // TODO: Put in context
      Expression req = null;
      Expression body = null;
   .)
@@ -3849,7 +3965,8 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
   )
   LambdaSpec<ref reads, ref readsAttrs, ref req>
   "=>"
-  Expression<out body, allowLemma, true, allowBitwiseOps>
+  AtAttributesFresh<ref attrs>
+  Expression<out body, allowLemma, true, ref attrs, allowBitwiseOps>
   (. e = new LambdaExpr(x, new RangeToken(x, t), bvs, req, new Specification<FrameExpression>(reads, readsAttrs), body);
      SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(bvs.Count));
   .)
@@ -3857,9 +3974,12 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 
 // Coco says LambdaSpec is deletable. This is OK (it might be empty).
 LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expression req.>
-= { ReadsClause<reads, ref readsAttrs, true, false, true>
+= (. Attributes attrs = null;
+  .)
+  { ReadsClause<reads, ref readsAttrs, true, false, true>
   | "requires"                             (. Expression ee; .)
-    Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.StartToken, ee.EndToken) } ; .)
+    AtAttributesFresh<ref attrs>
+    Expression<out ee, true, false, ref attrs>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee) { RangeToken = new RangeToken(req.StartToken, ee.EndToken) } ; .)
   }
   .
 
@@ -3905,6 +4025,7 @@ SetDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken token = null;
      IToken x = null, startToken = null;
+     Attributes attrs = null; // TODO: Put in context
      e = dummyExpr;
   .)
   [ ( "iset" | "multiset" )                  (. token = t; startToken = t; x = t; .)
@@ -3914,7 +4035,8 @@ SetDisplayExpr<out Expression e>
                                                 x = token; 
                                                 List<Expression> elements = new List<Expression/*!*/>();
                                              .)
-    [ Expressions<elements> ]                (. if (token.kind == _iset) {
+    AtAttributes<ref attrs>
+    [ Expressions<elements, ref attrs> ]     (. if (token.kind == _iset) {
                                                   e = new SetDisplayExpr(x, false, elements);
                                                 } else if (token.kind == _multiset) {
                                                   e = new MultiSetDisplayExpr(x, elements);
@@ -3925,7 +4047,8 @@ SetDisplayExpr<out Expression e>
     "}"
   |
     "("                                       (. x = t; startToken = startToken ?? t; .)
-     Expression<out e, true, true>            (.
+    AtAttributesFresh<ref attrs>
+    Expression<out e, true, true, ref attrs>    (.
                                                   if (token == null || token.kind != _multiset) {
                                                     SemErr(ErrorId.p_must_be_multiset, x, "A forming expression must be a multiset");
                                                   }
@@ -3933,6 +4056,7 @@ SetDisplayExpr<out Expression e>
                                                .)
     ")"
   )
+  AtAttributesFresh<ref attrs>
   (. e.RangeToken = new RangeToken(startToken, t); .)
   .
 
@@ -3943,10 +4067,12 @@ SeqDisplayExpr<out Expression e>
      IToken startInstantiation = null;
      Type explicitTypeArg = null;
      Expression n, f;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes seqAttrs = null; // TODO: Put in context
      e = dummyExpr;
   .)
   (
-    "seq"                          (. x = t; .)
+    "seq"                          (. x = t; MergeInto(ref attrs, ref seqAttrs); .)
     [ (. var gt = new List<Type>(); startInstantiation = la; .)
     GenericInstantiation<gt>     (. if (gt.Count > 1) {
                                       SemErr(ErrorId.p_seq_display_has_one_type_argument, new RangeToken(startInstantiation,t), "seq type expects only one type argument");
@@ -3956,18 +4082,22 @@ SeqDisplayExpr<out Expression e>
                                  .)
     ]
     "("
-    Expression<out n, true, true>
+    AtAttributesFresh<ref attrs>
+    Expression<out n, true, true, ref attrs>
     ","
-    Expression<out f, true, true>
-    ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
+    AtAttributesFresh<ref attrs>
+    Expression<out f, true, true, ref attrs>
+    ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f) { Attributes = seqAttrs }; .)
+    AtAttributesFresh<ref attrs>
   |
     "["                                      (. List<Expression> elements = new List<Expression/*!*/>();
                                                 x = t;
-
+                                               MergeInto(ref attrs, ref seqAttrs);
                                              .)
-    [ Expressions<elements> ]                (. e = new SeqDisplayExpr(x, elements);
+    [ Expressions<elements, ref attrs> ]     (. e = new SeqDisplayExpr(x, elements) { Attributes = seqAttrs };
                                              .)
     "]"
+    AtAttributesFresh<ref attrs>
   )
   (.  e.RangeToken = new RangeToken(x, t); .)
   .
@@ -3989,9 +4119,18 @@ MapDisplayExpr<out Expression e>
 MapLiteralExpressions<.out List<ExpressionPair> elements.>
 = (. Expression/*!*/ d, r;
      elements = new List<ExpressionPair/*!*/>();
+     Attributes attrs = null; // TODO: Put in context
   .)
-  Expression<out d, true, true> ":=" Expression<out r, true, true>       (. elements.Add(new ExpressionPair(d,r)); .)
-  { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
+  Expression<out d, true, true, ref attrs>
+  ":="
+  AtAttributesFresh<ref attrs>
+  Expression<out r, true, true, ref attrs>       (. elements.Add(new ExpressionPair(d,r)); .)
+  { ","
+    AtAttributesFresh<ref attrs>
+    Expression<out d, true, true, ref attrs>
+    ":="
+    AtAttributesFresh<ref attrs>
+    Expression<out r, true, true, ref attrs> (. elements.Add(new ExpressionPair(d,r)); .)
   }
   .
 
@@ -4003,14 +4142,18 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
      Expression bodyLeft = null;
      Expression bodyRight;
      Attributes attrs = null;
+     Attributes mapAttrs = null;
      bool finite = true;
   .)
   ( "map" | "imap" (. finite = false; .) )     (. IToken mapToken = t; .)
-  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
-  QSep
-  Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps>
+  QuantifierDomain<out bvars, out mapAttrs, out range, allowLemma, allowLambda, allowBitwiseOps>
+  QSep (. MergeInto(ref attrs, ref mapAttrs); .)
+  AtAttributesFresh<ref attrs>
+  Expression<out bodyRight, allowLemma, allowLambda, ref attrs, allowBitwiseOps>
   [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
-    ":=" Expression<out bodyRight, allowLemma, allowLambda, allowBitwiseOps || !finite>
+    ":="
+    AtAttributesFresh<ref attrs>
+    Expression<out bodyRight, allowLemma, allowLambda, ref attrs, allowBitwiseOps || !finite>
   ]
   (. if (bodyLeft == null && bvars.Count != 1) {
        SemErr(ErrorId.p_map_comprehension_must_have_term_expression, t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
@@ -4025,13 +4168,14 @@ MapComprehensionExpr<out Expression e, bool allowLemma, bool allowLambda, bool a
 EndlessExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Statement s;
      e = dummyExpr;
+     Attributes attrs = null; // TODO: Put in context and for every endless expression
   .)
   ( IfExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MatchExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | QuantifierExpression<out e, allowLemma, allowLambda>  /* types are such that we can allow bitwise operations in the quantifier body */
   | SetComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   | StmtInExpr<out s>
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.StartToken, e.EndToken) }; .)
+    Expression<out e, allowLemma, allowLambda, ref attrs, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e) { RangeToken = new RangeToken(s.StartToken, e.EndToken) }; .)
   | LetExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   | MapComprehensionExpr<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
@@ -4042,13 +4186,20 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 = "if"   (. IToken x = t; Expression e0; Expression e1;
             bool isBindingGuard = false;
             e = dummyExpr;
+            Attributes attrs = null; // TODO: Put in context
+            Attributes ifAttrs = Consume(ref attrs);
          .)
+      AtAttributes<ref attrs>
       ( IF(IsBindingGuard())
         BindingGuard<out e, true>  (. isBindingGuard = true; .)
-      | Expression<out e, true, true>
+      | Expression<out e, true, true, ref attrs>
       )
-      "then" Expression<out e0, true, true, true>
-      "else" Expression<out e1, allowLemma, allowLambda, allowBitwiseOps>
+      "then"
+        AtAttributesFresh<ref attrs>
+        Expression<out e0, true, true, ref attrs, true>
+      "else"
+        AtAttributes<ref attrs>
+        Expression<out e1, allowLemma, allowLambda, ref attrs, allowBitwiseOps>
                 (. if (isBindingGuard) {
                      var exists = (ExistsExpr) e;
                      var LHSs = new List<CasePattern<BoundVar>>();
@@ -4092,12 +4243,13 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
      CasePattern<BoundVar> pat;
      bool exact = true;
      bool isLetOrFail = false;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes letAttrs = null;
      e = dummyExpr;
   .)
     [ "ghost"                       (. isGhost = true;  x = t; .)
     ]
-    "var"                           (. if (!isGhost) { x = t; } .)
+    "var"                           (. if (!isGhost) { x = t; } MergeInto(ref attrs, ref letAttrs); .)
     CasePattern<out pat>            (. if (isGhost) { pat.Vars.ForEach(bv => bv.IsGhost = true); }
                                        letLHSs.Add(pat);
                                        lastLHS = la;
@@ -4107,7 +4259,7 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
                                     .)
     }
     ( ":=" 
-    | { Attribute<ref attrs> }
+    | { Attribute<ref letAttrs> }
       ":|"                          (. exact = false;
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
@@ -4118,11 +4270,15 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
     | ":-"                          (. isLetOrFail = true; .)
     | "=" (. SemErr(ErrorId.p_no_equal_in_let_initialization, t, "a variable in a let expression should be initialized using ':=', ':-', or ':|', not '='"); .)
     )
-    Expression<out e, false, true>        (. letRHSs.Add(e); lastRHS = la; .)
-    { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
+    AtAttributes<ref attrs>
+    Expression<out e, false, true, ref attrs>        (. letRHSs.Add(e); lastRHS = la; .)
+    { ","
+      AtAttributesFresh<ref attrs>
+      Expression<out e, false, true, ref attrs>  (. letRHSs.Add(e); .)
     }
     ";"
-    Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
+    AtAttributesFresh<ref attrs>
+    Expression<out e, allowLemma, allowLambda, ref attrs, allowBitwiseOps>
   (.
     if (isLetOrFail) {
       CasePattern<BoundVar> lhs = null;
@@ -4141,9 +4297,9 @@ LetExprWithLHS<out Expression e, bool allowLemma, bool allowLambda, bool allowBi
         var erange = new RangeToken(letRHSs[0].EndToken.Next, letRHSs[^1].EndToken);
         SemErr(ErrorId.p_elephant_has_one_rhs, erange, "':-' must have exactly one right-hand side");
       }
-      e = new LetOrFailExpr(x, lhs, rhs, e);
+      e = new LetOrFailExpr(x, lhs, rhs, e) { Attributes = letAttrs} ;
     } else {
-      e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
+      e = new LetExpr(x, letLHSs, letRHSs, e, exact, letAttrs);
     }
     e.RangeToken = new RangeToken(x, t);
   .)
@@ -4154,12 +4310,16 @@ LetExprWithoutLHS<out Expression e, bool allowLemma, bool allowLambda, bool allo
 = (. IToken x;
      Expression rhs;
      Expression body;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes letAttrs = null; // TODO: Put in context
   .)
-  ":-"                                    (. x = t; .)
-  Expression<out rhs, false, true>
+  ":-"                                    (. x = t; MergeInto(ref attrs, ref letAttrs); .)
+  AtAttributes<ref attrs>
+  Expression<out rhs, false, true, ref attrs>
   ";"
-  Expression<out body, allowLemma, allowLambda, allowBitwiseOps>
-  (. e = new LetOrFailExpr(x, null, rhs, body);
+  AtAttributesFresh<ref attrs>
+  Expression<out body, allowLemma, allowLambda, ref attrs, allowBitwiseOps>
+  (. e = new LetOrFailExpr(x, null, rhs, body) { Attributes = letAttrs };
      e.RangeToken = new RangeToken(x, t);
    .)
   .
@@ -4169,18 +4329,23 @@ MatchExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  NestedMatchCaseExpr/*!*/ c;
      List<NestedMatchCaseExpr/*!*/> cases = new List<NestedMatchCaseExpr/*!*/>();
      bool usesOptionalBraces = false;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes matchAttrs = null;
   .)
-  "match"                     (. x = t; .)
-  Expression<out e, allowLemma, allowLambda, allowBitwiseOps>
+  "match"                     (. x = t; MergeInto(ref attrs, ref matchAttrs); .)
+  AtAttributes<ref attrs>
+  Expression<out e, allowLemma, allowLambda, ref attrs, allowBitwiseOps>
   ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
     "{" (. usesOptionalBraces = true; .)
+        (. CheckNoAttributes(ref attrs); .)
         { CaseExpression<out c, true, true, allowBitwiseOps> (. cases.Add(c); .) }
     "}"
+    AtAttributesFresh<ref attrs>
   |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
           CaseExpression<out c, allowLemma, allowLambda, allowBitwiseOps> (. cases.Add(c); .)
         }
   )
-  (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces);
+  (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces) { Attributes = matchAttrs };
      e.RangeToken = new RangeToken(x, t); .)
 .
 
@@ -4189,13 +4354,15 @@ CaseExpression<out NestedMatchCaseExpr c, bool allowLemma, bool allowLambda, boo
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      Expression/*!*/ body;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes caseAttrs = null;
   .)
   "case"                      (. x = t; .)
-  { Attribute<ref attrs> }
+  { Attribute<ref attrs> }    (. MergeInto(ref attrs, ref caseAttrs); .)
   ExtendedPattern<out pat>             (. .)
   "=>"
-  Expression<out body, allowLemma, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body, attrs); .)
+  AtAttributesFresh<ref attrs>
+  Expression<out body, allowLemma, allowLambda, ref attrs, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body, caseAttrs); .)
 .
 
 /*------------------------------------------------------------------------*/
@@ -4331,12 +4498,19 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
  * Note: This grammar production mutates the id.val field to append the hash sign.
  */
 HashCall<.IToken id, out IToken openParen, out List<Type> typeArgs, out List<ActualBinding> args.>
-= (. Expression k; args = new List<ActualBinding>(); typeArgs = null; .)
+= (. Expression k;
+     args = new List<ActualBinding>();
+     typeArgs = null;
+  .)
   "#"                                      (. id.val = id.val + "#"; t.val = ""; t.pos = t.pos+1; t.col = t.col+1; .)
   [                                        (. typeArgs = new List<Type>(); .)
     GenericInstantiation<typeArgs>
   ]
-  "[" Expression<out k, true, true> "]"    (. args.Add(new ActualBinding(null, k)); .)
+  "[" 
+    (. Attributes attrs = null; .)
+    AtAttributes<ref attrs>
+    Expression<out k, true, true, ref attrs>
+    "]"    (. args.Add(new ActualBinding(null, k)); CheckNoAttributes(ref attrs); .)
   "("                                      (. openParen = t; .)
     [ ActualBindings<args> ]
   ")"
@@ -4363,6 +4537,7 @@ Suffix<ref Expression e>
      List<Expression> multipleIndices = null;
      List<Tuple<IToken, string, Expression>> updates;
      var startToken = e.StartToken;
+     Attributes attrs = null; // TODO: Put in context
      Expression v;
   .)
   ( "."
@@ -4404,25 +4579,33 @@ Suffix<ref Expression e>
       .)
     )
   | "["                                        (. x = t; .)
-      ( Expression<out ee, true, true>         (. e0 = ee; .)
-        ( ".."                                 (. anyDots = true; .)
-          [ Expression<out ee, true, true>     (. e1 = ee; .)
+      AtAttributesFresh<ref attrs>
+      ( Expression<out ee, true, true, ref attrs> (. e0 = ee; .)
+        ( ".."                                 (. anyDots = true; CheckNoAttributes(ref attrs); .)
+          [ AtAttributesFresh<ref attrs>
+            Expression<out ee, true, true, ref attrs>     (. e1 = ee; .)
           ]
         | ":="
-          Expression<out ee, true, true>       (. e1 = ee; .)
+          AtAttributesFresh<ref attrs>
+          Expression<out ee, true, true, ref attrs>       (. e1 = ee; .)
         | ":"                                  (. multipleLengths = new List<Expression>();
                                                   multipleLengths.Add(e0);  // account for the Expression read before the colon
                                                   takeRest = true;
                                                .)
-          [ Expression<out ee, true, true>     (. multipleLengths.Add(ee); takeRest = false; .)
+          AtAttributesFresh<ref attrs>
+          [ Expression<out ee, true, true, ref attrs>     (. multipleLengths.Add(ee); takeRest = false; .)
             { IF(IsNonFinalColon())
               ":"
-              Expression<out ee, true, true>   (. multipleLengths.Add(ee); .)
+              AtAttributesFresh<ref attrs>
+              Expression<out ee, true, true, ref attrs>   (. multipleLengths.Add(ee); .)
             }
             [ ":"                              (. takeRest = true; .)
+              AtAttributesFresh<ref attrs>
             ]
           ]
-        | { "," Expression<out ee, true, true> (. if (multipleIndices == null) {
+        | { ","
+            AtAttributesFresh<ref attrs>
+            Expression<out ee, true, true, ref attrs> (. if (multipleIndices == null) {
                                                     multipleIndices = new List<Expression>();
                                                     multipleIndices.Add(e0);
                                                   }
@@ -4431,10 +4614,11 @@ Suffix<ref Expression e>
           }
         )
       | ".."                                   (. anyDots = true; .)
-        [ Expression<out ee, true, true>       (. e1 = ee; .)
+        AtAttributesFresh<ref attrs>
+        [ Expression<out ee, true, true, ref attrs>       (. e1 = ee; .)
         ]
       )
-    "]"
+    "]" AtAttributesFresh<ref attrs>
       (. if (multipleIndices != null) {
            e = new MultiSelectExpr(x, e, multipleIndices);
            // make sure an array class with this dimensionality exists
@@ -4476,11 +4660,12 @@ Suffix<ref Expression e>
          }
          e.RangeToken = new RangeToken(startToken, t);
       .)
-  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); .)
+  | "("                                    (. IToken openParen = t; var args = new List<ActualBinding>(); CheckNoAttributes(ref attrs); .)
     [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(openParen, null, e, args, t);
                                               e.RangeToken = new RangeToken(startToken, t);
                                            .)
+    AtAttributesFresh<ref attrs>
   )
   .
 
@@ -4493,12 +4678,17 @@ ActualBindings<.List<ActualBinding> bindings.>
   .
 
 ActualBinding<out ActualBinding binding, bool isGhost = false>
-= (. IToken id = null; Expression e; .)
+= (. IToken id = null;
+     Expression e;
+     Attributes attrs = null; // TODO: Put in context
+  .)
   [ IF(IsBinding())
+    (. CheckNoAttributes(ref attrs); .)
     NoUSIdentOrDigits<out id>
     ":="
+    AtAttributes<ref attrs>
   ]
-  Expression<out e, true, true>
+  Expression<out e, true, true, ref attrs>
   (. binding = new ActualBinding(id, e, isGhost); .)
   .
 
@@ -4508,20 +4698,23 @@ QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
      IToken/*!*/ x = Token.NoToken;
      bool univ = false;
      List<BoundVar/*!*/> bvars;
-     Attributes attrs;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes forallAttrs;
      Expression range;
      Expression/*!*/ body;
   .)
   ( Forall                                     (. x = t;  univ = true; .)
   | Exists                                     (. x = t; .)
   )
-  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, true>
+  QuantifierDomain<out bvars, out forallAttrs, out range, allowLemma, allowLambda, true>
+  (. MergeInto(ref attrs, ref forallAttrs); .)
   QSep
-  Expression<out body, allowLemma, allowLambda>
+  AtAttributesFresh<ref attrs>
+  Expression<out body, allowLemma, allowLambda, ref attrs>
   (. if (univ) {
-       q = new ForallExpr(x, new RangeToken(x, t), bvars, range, body, attrs);
+       q = new ForallExpr(x, new RangeToken(x, t), bvars, range, body, forallAttrs);
      } else {
-       q = new ExistsExpr(x, new RangeToken(x, t), bvars, range, body, attrs);
+       q = new ExistsExpr(x, new RangeToken(x, t), bvars, range, body, forallAttrs);
      }
   .)
   .
@@ -4557,10 +4750,11 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
     "<" "-"
     // We can't allow bitwise ops here since otherwise we'll swallow up any
     // optional "| <Range>" suffix 
-    Expression<out domain, allowLemma, allowLambda, false>
+    AtAttributesFresh<ref attrs>
+    Expression<out domain, allowLemma, allowLambda, ref attrs, false>
   ]
   { IF( la.kind == _lbracecolon) Attribute<ref attrs>
-    | IF(la.kind == _at) AtAttribute<ref attrs>
+    | IF(la.kind == _at) AtAttributes<ref attrs>
    } // Ambiguity -- if the next optional block is not present, 
      // this {Attribute} ends a QuantifierVariableDecl so it can end a SetComprehensionExpr
      // so it can end an Expression
@@ -4572,7 +4766,7 @@ QuantifierVariableDecl<.out QuantifiedVar qvar, ref Attributes attrs, bool allow
     // The other parse can be obtained by using appropriate parentheses.
     IF(la.kind == _verticalbar) 
     "|"
-    Expression<out range, allowLemma, allowLambda, allowBitwiseOps>
+    Expression<out range, allowLemma, allowLambda, ref attrs, allowBitwiseOps>
   ]
   (. qvar = new QuantifiedVar(bv.tok, bv.Name, bv.SyntacticType, domain, range); .)
   .
@@ -4583,14 +4777,17 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
      List<BoundVar/*!*/> bvars = new List<BoundVar>();
      Expression range;
      Expression body = null;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Put in context
+     Attributes setAttrs = null;
      bool finite = true;
   .)
   ( "set" | "iset" (. finite = false; .) )     (. IToken setToken = t; .)
-  QuantifierDomain<out bvars, out attrs, out range, allowLemma, allowLambda, allowBitwiseOps>
+  QuantifierDomain<out bvars, out setAttrs, out range, allowLemma, allowLambda, allowBitwiseOps>
+  (. MergeInto(ref attrs, ref setAttrs); .)
   [ IF(IsQSep())  /* let any given body bind to the closest enclosing set comprehension */
     QSep
-    Expression<out body, allowLemma, allowLambda, allowBitwiseOps || !finite>
+    AtAttributesFresh<ref attrs>
+    Expression<out body, allowLemma, allowLambda, ref attrs, allowBitwiseOps || !finite>
   ]
   (. if (body == null && bvars.Count != 1) {
        SemErr(ErrorId.p_set_comprehension_needs_term_expression, t, "a set comprehension with more than one bound variable must have a term expression");
@@ -4602,16 +4799,18 @@ SetComprehensionExpr<out Expression q, bool allowLemma, bool allowLambda, bool a
        if (range == null) {
          range = LiteralExpr.CreateBoolLiteral(new AutoGeneratedToken(t), true);
        }
-       q = new SetComprehension(setToken, new RangeToken(setToken, t), finite, bvars, range, body, attrs);
+       q = new SetComprehension(setToken, new RangeToken(setToken, t), finite, bvars, range, body, setAttrs);
      }
   .)
   .
 
 /*------------------------------------------------------------------------*/
-Expressions<.List<Expression> args.>
+Expressions<.List<Expression> args, ref Attributes attrs.>
 = (. Expression e; .)
-  Expression<out e, true, true>                      (. args.Add(e); .)
-  { "," Expression<out e, true, true>                (. args.Add(e); .)
+  Expression<out e, true, true, ref attrs>           (. args.Add(e); .)
+  { ","
+    AtAttributesFresh<ref attrs>
+    Expression<out e, true, true, ref attrs>     (. args.Add(e); .)
   }
   .
 
@@ -4626,7 +4825,9 @@ Attribute<ref Attributes attrs>
   "{:"                         (. openBrace = t; .)
   (. ConvertKeywordTokenToIdent(); .)
   AttributeName<out x>
-  [ Expressions<args> ]
+  [ Expressions<args, ref attrs>
+    (. CheckNoAttributes(ref attrs); .)
+  ]
   "}"                         (. closeBrace = t; .)
   (. 
      var rtok = new RangeToken(openBrace, t);
@@ -4636,18 +4837,34 @@ Attribute<ref Attributes attrs>
   .)
   .
 
-/* After literals that start a block, we usually add this */
+AtAttributesFresh<ref Attributes attrs>
+= (. CheckNoAttributes(ref attrs); .)
+  AtAttributes<ref attrs>
+  .
+
+AtAttributes<ref Attributes attrs>
+= [ 
+AtAttribute<ref attrs> ]
+  .
+
+/* After literals that start a block, we usually add this
+   Note that it will parse all at-attributes at once since expression parsing
+   return attributes parsed after them. No need to wrap in a repeat statement
+*/
 AtAttribute<ref Attributes attrs>
 = (. IToken x = null;
      IToken atToken = null;
+     Attributes afterAttrs = null;
      Expression arg;
   .)
   "@"                         (. atToken = t; .)
-  Expression<out arg, false, false, false>
+  Expression<out arg, false, false, ref afterAttrs, false>
   (. 
      var rtok = new RangeToken(atToken, t);
      attrs = new UserSuppliedAtAttribute(x, arg, attrs);
      attrs.RangeToken = rtok;
+     MergeInto(ref attrs, ref afterAttrs);
+     attrs = afterAttrs;
   .)
   .
 
@@ -4778,10 +4995,13 @@ NoUSIdentOrDigits<out IToken id>
 
 /*------------------------------------------------------------------------*/
 MemberBindingUpdate<out IToken id, out Expression e>
-= (. id = Token.NoToken; e = dummyExpr; .)
+= (. id = Token.NoToken; e = dummyExpr;
+     Attributes attrs = null; // TODO: Put in context
+  .)
   NoUSIdentOrDigits<out id>
   ":="
-  Expression<out e, true, true>
+  AtAttributesFresh<ref attrs>
+  Expression<out e, true, true, ref attrs>
   .
 
 /*------------------------------------------------------------------------*/

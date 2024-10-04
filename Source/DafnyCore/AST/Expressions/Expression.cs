@@ -103,7 +103,7 @@ public abstract class Expression : TokenNode {
   }
 
   protected Expression(Cloner cloner, Expression original) {
-
+    Attributes = cloner.CloneAttributes(original.Attributes);
     tok = cloner.Tok(original.tok);
     RangeToken = cloner.Range(original.RangeToken);
 

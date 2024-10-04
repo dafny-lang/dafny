@@ -460,10 +460,10 @@ public class Attributes : TokenNode {
   /// - if the attribute is {:nm e1,...,en}, then returns (e1,...,en)
   /// Otherwise, returns null.
   /// </summary>
-  public static List<Expression> FindExpressions(Attributes attrs, string nm) {
+  public static List<Expression>? FindExpressions(Attributes attrs, string nm) {
     Contract.Requires(nm != null);
     foreach (var attr in attrs.AsEnumerable()) {
-      if (attr.Name == nm) {
+      if (attr?.Name == nm!) {
         return attr.Args;
       }
     }
@@ -500,27 +500,27 @@ public class Attributes : TokenNode {
     Contract.Requires(nm != null);
     Contract.Requires(allowed != null);
     Contract.Requires(reporter != null);
-    List<Expression> args = FindExpressions(attrs, nm);
+    List<Expression>? args = FindExpressions(attrs, nm!);
     if (args == null) {
       return false;
     } else if (args.Count == 0) {
-      if (allowed.Contains(MatchingValueOption.Empty)) {
+      if (allowed!.Contains(MatchingValueOption.Empty)) {
         return true;
       } else {
-        reporter("Attribute " + nm + " requires one argument");
+        reporter!("Attribute " + nm + " requires one argument");
         return false;
       }
     } else if (args.Count == 1) {
       Expression arg = args[0];
-      StringLiteralExpr stringLiteral = arg as StringLiteralExpr;
-      LiteralExpr literal = arg as LiteralExpr;
-      if (literal != null && literal.Value is bool && allowed.Contains(MatchingValueOption.Bool)) {
+      StringLiteralExpr? stringLiteral = arg as StringLiteralExpr;
+      LiteralExpr? literal = arg as LiteralExpr;
+      if (literal != null && literal.Value is bool && allowed!.Contains(MatchingValueOption.Bool)) {
         value = literal.Value;
         return true;
-      } else if (literal != null && literal.Value is BigInteger && allowed.Contains(MatchingValueOption.Int)) {
+      } else if (literal != null && literal.Value is BigInteger && allowed!.Contains(MatchingValueOption.Int)) {
         value = literal.Value;
         return true;
-      } else if (stringLiteral != null && stringLiteral.Value is string && allowed.Contains(MatchingValueOption.String)) {
+      } else if (stringLiteral != null && stringLiteral.Value is string && allowed!.Contains(MatchingValueOption.String)) {
         value = stringLiteral.Value;
         return true;
       } else if (allowed.Contains(MatchingValueOption.Expression)) {
@@ -542,6 +542,12 @@ public class Attributes : TokenNode {
       : new List<Node?> { Prev });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  public static Attributes? Consume(ref Attributes? tmpStack) {
+    var result = tmpStack;
+    tmpStack = null;
+    return result;
+  }
 
   // # After ensuring we started to parse something, we assign its attributes
   // Consumes all attributes of tmpStack and prepend them into attributesStack

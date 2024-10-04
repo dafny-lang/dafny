@@ -9,7 +9,6 @@ using static Microsoft.Dafny.ParseErrors;
 namespace Microsoft.Dafny;
 
 public partial class Parser {
-
   public Parser(DafnyOptions options, Scanner/*!*/ scanner, Errors/*!*/ errors, CancellationToken cancellationToken)
     : this(scanner, errors, cancellationToken)  // the real work
   {
@@ -23,6 +22,14 @@ public partial class Parser {
 
     theOptions = new DafnyOptions(options);
     theModule = new FileModuleDefinition(scanner.FirstToken);
+  }
+
+  public void MergeInto(ref Attributes attrsStack, ref Attributes attrsTarget) {
+    Attributes.MergeInto(ref attrsStack, ref attrsTarget);
+  }
+
+  public Attributes Consume(ref Attributes attrs) {
+    return Attributes.Consume(ref attrs);
   }
 
   bool IsReveal(IToken nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);

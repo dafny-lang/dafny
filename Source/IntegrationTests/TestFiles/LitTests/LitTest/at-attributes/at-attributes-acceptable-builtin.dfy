@@ -127,6 +127,9 @@ function Fib(n: nat, a: int, b: int): int {
 
 @Verify
 @Test
+@TestInline
+@TestInline(10)
+@TestEntry
 @VcsMaxCost(10)
 @VcsMaxKeepGoingSplits(10)
 @VcsMaxSplits(10)

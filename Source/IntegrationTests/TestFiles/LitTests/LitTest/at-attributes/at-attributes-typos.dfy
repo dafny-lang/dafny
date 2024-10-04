@@ -118,6 +118,8 @@ function Fib(n: nat, a: int, b: int): int {
 
 @NoVerify      // Should be Verify(false)
 @Tests         // Should be Test
+@testInline    // Should be TestInline
+@Testentry     // Should be TestEntry
 @VcMaxCost(10) // SHould be Vcs...
 @VcMaxKeepGoingSplits(10)
 @VcMaxSplits(10)
