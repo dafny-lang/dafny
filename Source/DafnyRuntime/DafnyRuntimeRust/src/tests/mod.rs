@@ -382,33 +382,58 @@ mod tests {
     }
 
     struct ClassWrapper<T> {
-        /*var*/ t: T,
-        /*var*/ x: crate::DafnyInt,
+        /*var*/ t: Field<T>,
+        /*var*/ x: Field<crate::DafnyInt>,
         /*const*/ next: Ptr<ClassWrapper<T>>,
         /*const*/ constant: crate::DafnyInt,
     }
     impl<T: Clone> ClassWrapper<T> {
         fn constant_plus_x(&self) -> crate::DafnyInt {
-            self.constant.clone() + self.x.clone()
+            self.constant.clone() + read_field!(self.x)
         }
         fn increment_x(&mut self) {
-            self.x = self.x.clone() + int!(1);
+            modify_field!(self.x, read_field!(self.x) + int!(1));
         }
     }
 
     impl<T: Clone + Display> ClassWrapper<T> {
         fn constructor(t: T) -> Ptr<ClassWrapper<T>> {
             let this = crate::allocate::<ClassWrapper<T>>();
-            update_field_nodrop!(this, t, t);
+            update_field_mut_nodrop!(this, t, t);
             update_field_nodrop!(this, next, this);
             // If x is assigned twice, we need to keep track of whether it's assigned
             // like in methods.
             let mut x_assigned = false;
-            update_field_uninit!(this, x, x_assigned, int!(2));
-            update_field_uninit!(this, x, x_assigned, int!(1));
+            update_field_mut_uninit!(this, x, x_assigned, int!(2));
+            update_field_mut_uninit!(this, x, x_assigned, int!(1));
             // If we can prove that x is assigned, we can even write this
-            modify!(this).x = int!(0);
+            modify_field!(read!(this).x,int!(0));
             update_field_nodrop!(this, constant, int!(42));
+            update_field_mut_if_uninit!(this, x, x_assigned, int!(0));
+            assert_eq!(x_assigned, true);
+            let mut next_assigned = true;
+            update_field_if_uninit!(this, next, next_assigned, this);
+            assert_eq!(next_assigned, true);
+            this
+        }
+
+        fn constructor_object(t: T) -> Object<ClassWrapper<T>> {
+            let mut this = crate::allocate_object::<ClassWrapper<T>>();
+            update_field_mut_nodrop_object!(this, t, t);
+            update_field_nodrop_object!(this, next, Ptr::from_raw_nonnull(this.as_mut()));
+            // If x is assigned twice, we need to keep track of whether it's assigned
+            // like in methods.
+            let mut x_assigned = false;
+            update_field_mut_uninit_object!(this, x, x_assigned, int!(2));
+            update_field_mut_uninit_object!(this, x, x_assigned, int!(1));
+            // If we can prove that x is assigned, we can even write this
+            modify_field!(rd!(this).x,int!(0));
+            update_field_nodrop_object!(this, constant, int!(42));
+            update_field_mut_if_uninit_object!(this, x, x_assigned, int!(0));
+            assert_eq!(x_assigned, true);
+            let mut next_assigned = true;
+            update_field_if_uninit_object!(this, next, next_assigned, Ptr::from_raw_nonnull(this.as_mut()));
+            assert_eq!(next_assigned, true);
             this
         }
     }
@@ -425,20 +450,38 @@ mod tests {
     fn test_class_wrapper() {
         let c: Ptr<ClassWrapper<i32>> = ClassWrapper::constructor(53);
         assert_eq!(read!(c).constant, int!(42));
-        assert_eq!(read!(c).t, 53);
-        assert_eq!(read!(c).x, int!(0));
-        assert_eq!(read!(read!(c).next).t, 53);
+        assert_eq!(read_field!(read!(c).t), 53);
+        assert_eq!(read_field!(read!(c).x), int!(0));
+        assert_eq!(read_field!(read!(read!(c).next).t), 53);
         assert_eq!(read!(c).constant_plus_x(), int!(42));
         modify!(c).increment_x();
         assert_eq!(read!(c).constant_plus_x(), int!(43));
-        modify!(c).x = int!(40);
+        modify_field!(read!(c).x,int!(40));
         assert_eq!(read!(c).constant_plus_x(), int!(82));
-        modify!(c).t = 54;
-        assert_eq!(read!(c).t, 54);
-        let x_copy = read!(c).x.clone();
+        modify_field!(read!(c).t,54);
+        assert_eq!(read_field!(read!(c).t), 54);
+        let x_copy = read_field!(read!(c).x);
         assert_eq!(Rc::strong_count(&x_copy.data), 2);
         deallocate(c);
         assert_eq!(Rc::strong_count(&x_copy.data), 1);
+    }
+
+
+    #[test]
+    #[allow(unused_unsafe)]
+    fn test_class_wrapper_object() {
+        let c: Object<ClassWrapper<i32>> = ClassWrapper::constructor_object(53);
+        assert_eq!(rd!(c).constant, int!(42));
+        assert_eq!(read_field!(rd!(c).t), 53);
+        assert_eq!(read_field!(rd!(c).x), int!(0));
+        assert_eq!(read_field!(rd!(rd!(c).next).t), 53);
+        assert_eq!(rd!(c).constant_plus_x(), int!(42));
+        md!(c).increment_x();
+        assert_eq!(rd!(c).constant_plus_x(), int!(43));
+        modify_field!(rd!(c).x,int!(40));
+        assert_eq!(rd!(c).constant_plus_x(), int!(82));
+        modify_field!(rd!(c).t,54);
+        assert_eq!(read_field!(rd!(c).t), 54);
     }
 
     // Requires test1 || test2
@@ -499,7 +542,7 @@ mod tests {
     #[test]
     fn test_coercion_immutable() {
         let o = ClassWrapper::<i32>::constructor(1);
-        let a: Ptr<dyn Any> = Upcast::<dyn Any>::upcast(modify!(o));
+        let a: Ptr<dyn Any> = Upcast::<dyn Any>::upcast(read!(o));
         assert_eq!(cast!(a, ClassWrapper<i32>), o);
         let seq_o = seq![o];
         let seq_a = Sequence::<Ptr<ClassWrapper<i32>>>::coerce(upcast::<ClassWrapper<i32>, dyn Any>())(seq_o);
@@ -634,6 +677,14 @@ mod tests {
         assert!(multiset! {1, 1, 5, 7, 8}
             .iter()
             .any(Rc::new(|i: u32| i % 2 == 0).as_ref()));
+        let count = Rc::new(RefCell::new(0));
+        let count_inner = count.clone();
+        multiset!{1, 1, 5, 7, 8}
+            .iter().for_each(move |_i: u32| {
+                let c: i32 = *count_inner.as_ref().borrow();
+                *count_inner.borrow_mut() = c + 1;
+             });
+        assert_eq!(*count.as_ref().borrow(), 5);
 
         let m = map![1 => 4, 3 => 6, 5 => 8];
         let m2 = m.clone();
@@ -770,7 +821,7 @@ mod tests {
 
         let previous_count = refcount!(x);
         {
-            let z = Object::<NodeRcMut>::from_ref(x.as_mut());
+            let z = Object::<NodeRcMut>::from_ref(x.as_ref());
             assert_eq!(refcount!(z), previous_count + 1);
             assert_eq!(refcount!(x), previous_count + 1);
         }
@@ -853,9 +904,16 @@ mod tests {
         let o: Object<InternalOpaqueError> = Object::new(s);
         let n: Object<dyn ::std::any::Any> = upcast_object::<InternalOpaqueError, dyn ::std::any::Any>()(o);
         let x = cast_object!(n, InternalOpaqueError);
-        let s2 = unsafe {
-            crate::dafny_runtime_conversions::object::dafny_class_to_struct(x)
-        };
+        let s2 = crate::dafny_runtime_conversions::object::dafny_class_to_struct(x);
         assert_eq!(s2.message, "Hello, World!");
+    }
+
+    #[test]
+    fn test_native_string_upcast_raw() {
+        let message = "Hello, World!".to_string();
+        let object = Object::new(message.clone());
+        let object_any: Object<dyn Any> = UpcastObject::<dyn Any>::upcast(object.as_ref());
+        let resulting_message = format!("{:?}", object_any);
+        assert_eq!(resulting_message, message);
     }
 }

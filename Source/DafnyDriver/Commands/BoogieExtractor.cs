@@ -189,25 +189,27 @@ namespace Microsoft.Dafny.Compilers {
     private QKeyValue? GetKeyValues(IToken tok, Attributes attributes) {
       QKeyValue? kv = null;
       var extractAttributes = Attributes.FindAllExpressions(attributes, AttributeAttribute);
-      if (extractAttributes != null) {
-        if (extractAttributes.Count == 0) {
-          throw new ExtractorError($"first argument to :{AttributeAttribute} is expected to be a literal string; got no arguments");
-        }
-        for (var i = extractAttributes.Count; 0 <= --i;) {
-          string? attrName = null;
-          var parameters = new List<object>();
-          foreach (var argument in extractAttributes[i]) {
-            if (attrName != null) {
-              parameters.Add(ExtractExpr(argument));
-            } else if (argument is StringLiteralExpr { Value: string name }) {
-              attrName = name;
-            } else {
-              throw new ExtractorError($"first argument to :{AttributeAttribute} is expected to be a literal string; got: {argument}");
-            }
-          }
+      if (extractAttributes == null) {
+        return kv;
+      }
 
-          kv = new Boogie.QKeyValue(tok, attrName, parameters, kv);
+      if (extractAttributes.Count == 0) {
+        throw new ExtractorError($"first argument to :{AttributeAttribute} is expected to be a literal string; got no arguments");
+      }
+      for (var i = extractAttributes.Count; 0 <= --i;) {
+        string? attrName = null;
+        var parameters = new List<object>();
+        foreach (var argument in extractAttributes[i]) {
+          if (attrName != null) {
+            parameters.Add(ExtractExpr(argument));
+          } else if (argument is StringLiteralExpr { Value: string name }) {
+            attrName = name;
+          } else {
+            throw new ExtractorError($"first argument to :{AttributeAttribute} is expected to be a literal string; got: {argument}");
+          }
         }
+
+        kv = new QKeyValue(tok, attrName, parameters, kv);
       }
 
       return kv;

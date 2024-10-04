@@ -655,14 +655,10 @@ namespace Microsoft.Dafny {
       }
 
       if (!(m is TwoStateLemma)) {
-        // play havoc with the heap according to the modifies clause
-        builder.Add(new Boogie.HavocCmd(m.tok, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
-        // assume the usual two-state boilerplate information
-        foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
-          if (tri.IsFree) {
-            builder.Add(TrAssumeCmd(m.tok, tri.Expr));
-          }
-        }
+        var modifies = m.Mod;
+        var allowsAllocation = m.AllowsAllocation;
+
+        ApplyModifiesEffect(m, etran, builder, modifies, allowsAllocation, m.IsGhost);
       }
 
       // also play havoc with the out parameters
@@ -689,6 +685,18 @@ namespace Microsoft.Dafny {
       var s1 = builder.Collect(m.tok);
       stmts = new StmtList(new List<BigBlock>(s0.BigBlocks.Concat(s1.BigBlocks)), m.tok);
       return stmts;
+    }
+
+    public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
+      Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
+      // play havoc with the heap according to the modifies clause
+      builder.Add(new Boogie.HavocCmd(node.Tok, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      // assume the usual two-state boilerplate information
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Tok, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
+        if (tri.IsFree) {
+          builder.Add(TrAssumeCmd(node.Tok, tri.Expr));
+        }
+      }
     }
 
     private StmtList TrMethodBody(Method m, BoogieStmtListBuilder builder, List<Variable> localVariables,
@@ -743,8 +751,8 @@ namespace Microsoft.Dafny {
         m.RecursiveCallParameters(m.tok, m.TypeArgs, m.Ins, receiverSubst, substMap, out var recursiveCallReceiver, out var recursiveCallArgs);
         var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name) {
           Member = m,
-          TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
-          TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
+          TypeApplicationAtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
+          TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp)),
           Type = new InferredTypeProxy()
         };
         var recursiveCall = new CallStmt(m.tok.ToRange(), new List<Expression>(), methodSel, recursiveCallArgs) {
@@ -778,8 +786,8 @@ namespace Microsoft.Dafny {
         };
 
 #if VERIFY_CORRECTNESS_OF_TRANSLATION_FORALL_STATEMENT_RANGE
-          var definedness = new BoogieStmtListBuilder(this, options);
-          var exporter = new BoogieStmtListBuilder(this, options);
+          var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
+          var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
           TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, definedness, exporter, localVariables, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
@@ -793,7 +801,7 @@ namespace Microsoft.Dafny {
       // $_reverifyPost := false;
       builder.Add(Boogie.Cmd.SimpleAssign(m.tok, new Boogie.IdentifierExpr(m.tok, "$_reverifyPost", Boogie.Type.Bool), Boogie.Expr.False));
       // register output parameters with definite-assignment trackers
-      Contract.Assert(definiteAssignmentTrackers.Count == 0);
+      Contract.Assert(DefiniteAssignmentTrackers.Count == 0);
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
       // translate the body
       TrStmt(m.Body, builder, localVariables, etran);
@@ -805,7 +813,7 @@ namespace Microsoft.Dafny {
       // tear down definite-assignment trackers
       m.Outs.ForEach(RemoveDefiniteAssignmentTracker);
 
-      Contract.Assert(definiteAssignmentTrackers.Count == 0);
+      Contract.Assert(DefiniteAssignmentTrackers.Count == 0);
       return stmts;
     }
 
