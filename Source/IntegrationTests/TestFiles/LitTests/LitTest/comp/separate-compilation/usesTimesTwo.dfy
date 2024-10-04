@@ -50,11 +50,15 @@ include "Inputs/producer/timesTwo.dfy"
 module ConsumerModule {
 
   import opened CoolLibraryName.LibraryModule
+  import Math
 
   method Main() {
     var n := 21;
     var TwoN := TimesTwo(n);
     print "Two times ", n, " is ", TwoN, "\n";
+
+    var z := Math.Add(20, 22);
+    print "20 plus 22 is ", z, "\n";
 
     // Need to actually execute the use of nat's type descriptor
     // to ensure it works on dynamic language targets.
