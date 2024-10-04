@@ -186,6 +186,7 @@ public class CliCompilation {
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
+        var hasParts = canVerifyResult.Tasks.Count > 2;
         if (Options.Get(CommonOptionBag.ProgressOption)) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
@@ -195,7 +196,7 @@ public class CliCompilation {
                                      $"through [{string.Join(",", pathOrigin.Branches.Select(b => b.tok.line))}]",
             IsolatedAssertionOrigin isolateOrigin => $"assertion at line {isolateOrigin.line}",
             ReturnOrigin returnOrigin => $"return at line {returnOrigin.line}",
-            _ => wellFormedness ? "contract well-formedness" : "body assertions"
+            _ => wellFormedness ? "contract well-formedness" : (hasParts ? "remaining body" : "body")
           };
 
           var runResult = completed.Result;
