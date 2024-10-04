@@ -253,7 +253,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+      var publicModuleName = PublicModuleIdProtect(module.GetCompileName(Options));
+      var import = CreateImport(publicModuleName, module.IsDefaultModule, externModule, libraryName);
       import.Path = goModuleName + import.Path;
       AddImport(import);
     }

@@ -23,3 +23,10 @@ module {:options "--function-syntax:4"} CoolLibraryName {
 
   }
 }
+
+// Ensuring reserved names in some languages are escaped consistently across languages
+module Math {
+  function Add(x: int, y: int): int {
+    x + y
+  }
+}
