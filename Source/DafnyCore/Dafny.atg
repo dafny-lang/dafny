@@ -2150,10 +2150,13 @@ FunctionBody<out Expression/*!*/ e, out IToken bodyStart, out IToken bodyEnd, ou
 BlockStmt<out BlockStmt/*!*/ block, out IToken bodyStart, out IToken bodyEnd, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out block) != null);
      List<Statement/*!*/> body = new List<Statement/*!*/>();
+     Attributes blockAttrs = null;
   .)
-  "{"                                  (. bodyStart = t; Attributes blockAttrs = attrs; attrs = null; .)
-  { Stmt<body> }
+  "{"                                  (. bodyStart = t; Attributes.MergeInto(ref attrs, ref blockAttrs); .)
+  { AtAttribute<ref attrs> }
+  { Stmt<body, ref attrs> }
   "}"                                  (. bodyEnd = t;
+                                          CheckNoAttributes(ref attrs);
                                           block = new BlockStmt(new RangeToken(bodyStart, bodyEnd), body) {
                                             Attributes = blockAttrs
                                           };
@@ -2168,18 +2171,22 @@ OpaqueBlock<out Statement s>
     List<FrameExpression/*!*/> modifies = new List<FrameExpression/*!*/>();
     Attributes modifiesAttributes = null;
     IToken start;
+    Attributes attrs = null; // TODO: Get from context
   .)
   "opaque" (. start = t; .)
   { ModifiesClause<ref modifies, ref modifiesAttributes, false, false>
   | EnsuresClause<ensures, false>
   }
-  "{"
-  { Stmt<body> }
+  "{" (. CheckNoAttributes(ref attrs); .)
+  { AtAttribute<ref attrs> } 
+  { Stmt<body, ref attrs> }
   "}"
   (. 
+    CheckNoAttributes(ref attrs);
     s = new OpaqueBlock(new RangeToken(start, t), body, ensures, 
       new Specification<FrameExpression>(modifies, modifiesAttributes));
   .)
+  { AtAttribute<ref attrs> }
   .
 
 /*------------------------------------------------------------------------*/
@@ -2188,14 +2195,17 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
      List<Statement> bodyInit = new List<Statement>();
      IToken separatorTok = null;
      List<Statement> bodyProper = new List<Statement>();
+     Attributes blockAttrs = null;
   .)
-  "{"                                  (. bodyStart = t; Attributes blockAttrs = attrs; attrs = null; .)
-  { Stmt<bodyInit> }
-  [ "new"                              (. separatorTok = t; .)
+  "{"                                  (. bodyStart = t; Attributes.MergeInto(ref attrs, ref blockAttrs); .)
+  { AtAttribute<ref attrs> }
+  { Stmt<bodyInit, ref attrs> }
+  [ "new"                              (. separatorTok = t; CheckNoAttributes(ref attrs); .)
     ";"
-    { Stmt<bodyProper> }
+    { AtAttribute<ref attrs> }
+    { Stmt<bodyProper, ref attrs> }
   ]
-  "}"                                  (. bodyEnd = t; .)
+  "}"                                  (. bodyEnd = t; CheckNoAttributes(ref attrs); .)
   (. body = new DividedBlockStmt(new RangeToken(bodyStart, t), bodyInit, separatorTok, bodyProper) {
        Attributes = blockAttrs
      }; .)
@@ -2203,19 +2213,18 @@ DividedBlockStmt<out DividedBlockStmt body, out IToken bodyStart, out IToken bod
   .
 
 /*------------------------------------------------------------------------*/
-Stmt<.List<Statement/*!*/>/*!*/ ss.>
+Stmt<.List<Statement/*!*/>/*!*/ ss, ref Attributes attrs.>
 = (. Statement/*!*/ s;
   .)
-  OneStmt<out s>                                (. ss.Add(s); .)
+  OneStmt<out s, ref attrs>            (. ss.Add(s); .)
   .
 
 /*------------------------------------------------------------------------*/
-OneStmt<out Statement/*!*/ s>
+OneStmt<out Statement/*!*/ s, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      s = dummyStmt;  /* to please the compiler */
      BlockStmt bs;
      IToken bodyStart, bodyEnd;
-     Attributes attrs = null; // TODO: Have OneStmt accept ref Attributes attrs
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd, ref attrs>  (. s = bs; .)
@@ -2227,7 +2236,7 @@ OneStmt<out Statement/*!*/ s>
   | IfStmt<out s>
   | WhileStmt<out s>
   | ForLoopStmt<out s>
-  | AssertStmt<out s>
+  | AssertStmt<out s, ref attrs>
   | AssumeStmt<out s>
   | BreakStmt<out s>
   | CalcStmt<out s>
@@ -2246,10 +2255,12 @@ OneStmt<out Statement/*!*/ s>
 LabeledStmt<out Statement s>
 = (. IToken colonToken;
      IToken labelToken;
+     Attributes attrs = null; // TODO: Get it from the context
   .)
   "label"  (. IToken id; labelToken = t; .)
   LabelName<out id> ":" (. colonToken = t; .)
-  OneStmt<out s>
+  { AtAttribute<ref attrs> }
+  OneStmt<out s, ref attrs>
   (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
      s.PostLabelToken = s.StartToken;
      s.RangeToken = new RangeToken(labelToken, t);
@@ -2687,7 +2698,7 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
 = (. IToken x;
      Expression e; bool isBindingGuard;
      List<Statement> body;
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Ensure attributes are part of the context
   .)
   "case"                             (. x = t; isBindingGuard = false; e = dummyExpr; .)
   { Attribute<ref attrs> }
@@ -2695,14 +2706,16 @@ AlternativeBlockCase<.bool allowBindingGuards, out GuardedAlternative alt.>
     BindingGuard<out e, false >  (. isBindingGuard = true; .)  // NB: don't allow lambda here
   | Expression<out e, true, false> // NB: don't allow lambda here
   )
+  (. CheckNoAttributes(ref attrs); .)
   "=>"
+  { AtAttribute<ref attrs> }
   (. body = new List<Statement>(); .)
   SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
           * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
           * to follow the CaseStatement.
           */
   { IF(IsNotEndOfCase()) /* This is a little sketchy. It would be nicer to be able to write IF(la is start-symbol of Stmt), but Coco doesn't allow that */
-    Stmt<body>
+    Stmt<body, ref attrs>
     SYNC  /* see comment about SYNC above */
   }
   (. alt = new GuardedAlternative(x, isBindingGuard, e, body, attrs); .)
@@ -2958,28 +2971,28 @@ CaseStmt<out NestedMatchCaseStmt/*!*/ c>
      IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
      var body = new List<Statement/*!*/>();
-     Attributes attrs = null;
+     Attributes attrs = null; // TODO: Move this into context
   .)
   "case"                      (. x = t; .)
   { Attribute<ref attrs> }
   ExtendedPattern<out pat>    (. .)
   "=>"
+    { AtAttribute<ref attrs> }
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
            * to follow the CaseStatement.
            */
     { IF(IsNotEndOfCase()) /* This is a little sketchy. It would be nicer to be able to write IF(la is start-symbol of Stmt), but Coco doesn't allow that */
-      Stmt<body>
+      Stmt<body, ref attrs>
       SYNC  /* see comment about SYNC above */
     }
   (. c = new NestedMatchCaseStmt(x, pat, body, attrs); .)
   .
 
 /*------------------------------------------------------------------------*/
-AssertStmt<out Statement/*!*/ s>
+AssertStmt<out Statement/*!*/ s, ref Attributes attrs>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr;
-     Attributes attrs = null; // TODO: Recover from context
      Attributes assertAttrs = null;
      IToken dotdotdot = null;
      BlockStmt proof = null;
@@ -4051,8 +4064,9 @@ IfExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
   .
 /*------------------------------------------------------------------------*/
 StmtInExpr<out Statement s>
-= (. s = dummyStmt; .)
-  ( AssertStmt<out s>
+= (. s = dummyStmt; Attributes attrs = null; // TODO: Ensure attrs is in the context
+  .)
+  ( AssertStmt<out s, ref attrs>
   | ExpectStmt<out s>
   | AssumeStmt<out s>
   | RevealStmt<out s>
@@ -4622,6 +4636,7 @@ Attribute<ref Attributes attrs>
   .)
   .
 
+/* After literals that start a block, we usually add this */
 AtAttribute<ref Attributes attrs>
 = (. IToken x = null;
      IToken atToken = null;

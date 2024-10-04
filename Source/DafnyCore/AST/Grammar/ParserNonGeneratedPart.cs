@@ -663,6 +663,9 @@ public partial class Parser {
     return ModuleKindEnum.Concrete;
   }
 
+  /// <summary>
+  /// Before literals that end a block, we usually add CheckNoAttributes to avoid any non-attached attributes
+  /// </summary>
   public void CheckNoAttributes(ref Attributes attrs) {
     if (attrs != null) {
       SemErr(ErrorId.p_extra_attributes, attrs.RangeToken, "Attribute not expected here");

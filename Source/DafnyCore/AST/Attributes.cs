@@ -543,6 +543,7 @@ public class Attributes : TokenNode {
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
+  // # After ensuring we started to parse something, we assign its attributes
   // Consumes all attributes of tmpStack and prepend them into attributesStack
   // It assumes attributesStack was parsed after tmpStack,
   // as if attributesStack was used all along
