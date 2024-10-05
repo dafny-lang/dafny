@@ -1495,7 +1495,7 @@ namespace Microsoft.Dafny {
             ReportError(expr.tok, "the name '{0}' denotes a datatype constructor in module {2}, but does not do so uniquely; add an explicit qualification (for example, '{1}.{0}')", name, pair.Item1.EnclosingDatatype.Name, ((ModuleDecl)ri.Decl).Name);
           } else {
             if (expr.OptTypeArguments != null) {
-              ReportError(expr.tok, "datatype constructor does not take any type parameters ('{0}')", name);
+              ReportError(expr.tok, $"datatype constructor does not take any type parameters ('{name}')");
             }
             var rr = new DatatypeValue(expr.tok, pair.Item1.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
             ResolveDatatypeValue(resolutionContext, rr, pair.Item1.EnclosingDatatype, null);
@@ -1553,8 +1553,10 @@ namespace Microsoft.Dafny {
             if (expr.OptTypeArguments != null) {
               ReportError(expr.tok, $"datatype constructor does not take any type parameters ('{name}')");
             }
+
             var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
             ResolveDatatypeValue(resolutionContext, rr, ctor.EnclosingDatatype, (DPreType)Type2PreType(ty));
+
             if (args == null) {
               r = rr;
             } else {
@@ -1752,7 +1754,7 @@ namespace Microsoft.Dafny {
           // e.Lhs does denote a function value
           // In the general case, we'll resolve this as an ApplyExpr, but in the more common case of the Lhs
           // naming a function directly, we resolve this as a FunctionCallExpr.
-          var mse = e.Lhs is NameSegment || e.Lhs is ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
+          var mse = e.Lhs is NameSegment or ExprDotName ? e.Lhs.Resolved as MemberSelectExpr : null;
           var callee = mse?.Member as Function;
           if (atLabel != null && !(callee is TwoStateFunction)) {
             ReportError(e.AtTok, "an @-label can only be applied to a two-state function");
