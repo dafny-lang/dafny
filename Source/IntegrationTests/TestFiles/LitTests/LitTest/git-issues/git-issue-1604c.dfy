@@ -9,9 +9,13 @@ method NatTypeInferenceType() {
   assert forall x: int :: EvenNat(x) ==> TrueInt(x); // precondition violation, since EvenNat expects a nat and x is int
   assert forall x: int :: 0 <= x && EvenNat(x) ==> TrueInt(x); // good
   assert forall x: int :: EvenNat(x) && 0 <= x ==> TrueInt(x); // precondition violation (good)
-  assert forall n :: EvenNat(n) ==> TrueInt(n); // since n is inferred to be an int, an precondition violation is reported
+  assert forall n :: EvenNat(n) ==> TrueInt(n); // since n is inferred to be an int, a precondition violation is reported
 
-  // In the following, n should be inferred as a nat
-  assert forall n | EvenNat(n) :: n == n;
-  assert forall n :: EvenNat(n) ==> true;
+  // In the following, n is inferred as int
+  assert forall n | EvenNat(n) :: n == n; // error: n may be negative
+  assert forall n :: EvenNat(n) ==> true; // error: n may be negative
+
+  // These work, even with the inferred type int
+  assert forall n: nat | EvenNat(n) :: n == n;
+  assert forall n :: 0 <= n && EvenNat(n) ==> true;
 }
