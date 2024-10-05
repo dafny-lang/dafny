@@ -1555,6 +1555,9 @@ namespace Microsoft.Dafny {
             }
 
             var rr = new DatatypeValue(expr.tok, ctor.EnclosingDatatype.Name, name, args ?? new List<ActualBinding>());
+            if (ri.TypeArgs.Count != 0) {
+              rr.InferredTypeArgs = ri.TypeArgs;
+            }
             ResolveDatatypeValue(resolutionContext, rr, ctor.EnclosingDatatype, (DPreType)Type2PreType(ty));
 
             if (args == null) {
@@ -1765,7 +1768,9 @@ namespace Microsoft.Dafny {
             var rr = new FunctionCallExpr(e.Lhs.tok, callee.Name, mse.Obj, e.tok, e.CloseParen, e.Bindings, atLabel) {
               Function = callee,
               PreTypeApplication_AtEnclosingClass = mse.PreTypeApplicationAtEnclosingClass,
-              PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember
+              PreTypeApplication_JustFunction = mse.PreTypeApplicationJustMember,
+              TypeApplication_AtEnclosingClass = mse.TypeApplicationAtEnclosingClass,
+              TypeApplication_JustFunction = mse.TypeApplicationJustMember
             };
             var typeMap = mse.PreTypeArgumentSubstitutionsAtMemberDeclaration();
             var preTypeMap = BuildPreTypeArgumentSubstitute(

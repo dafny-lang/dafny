@@ -24,5 +24,8 @@ git-issue-1676.dfy(212,47): Error: value of expression (of type 'multiset<bv10>'
 git-issue-1676.dfy(213,47): Error: value of expression (of type 'multiset<bv10>') is not known to be an instance of type 'multiset<MyBv10>'
 git-issue-1676.dfy(224,40): Error: value does not satisfy the subset constraints of 'MyOrdinal'
 git-issue-1676.dfy(225,40): Error: value does not satisfy the subset constraints of 'MyOrdinal'
+git-issue-1676.dfy(284,25): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1676.dfy(286,25): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-1676.dfy(288,35): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 19 verified, 26 errors
+Dafny program verifier finished with 20 verified, 29 errors
