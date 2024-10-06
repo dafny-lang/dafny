@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.ProofObligationDescription;
+using VCGeneration.Splits;
 using IdentifierExpr = Microsoft.Boogie.IdentifierExpr;
 using Type = Microsoft.Dafny.Type;
 
@@ -196,7 +197,7 @@ public class MatchStmtVerifier {
       b.Add(boogieGenerator.Assert(boogieGenerator.GetToken(me), Expr.False, new MatchIsComplete("expression", missingStr)));
 
       Expr guard = Expr.Eq(src, r);
-      ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
+      ifCmd = new IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els, BlockRewriter.AllowSplitQ);
       els = null;
     }
 

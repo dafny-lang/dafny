@@ -863,7 +863,7 @@ public partial class BoogieGenerator {
 
       TrStmt(ss, indexBuilder, locals, etran);
       if (processLabels && ss.Labels != null) {
-        builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+        builder.AddLabelCmd(ss.Tok, "after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
       }
     }
 

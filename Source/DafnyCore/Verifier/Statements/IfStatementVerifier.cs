@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
+using VCGeneration.Splits;
 using ExistsExpr = Microsoft.Dafny.ExistsExpr;
 
 namespace DafnyCore.Verifier.Statements;
@@ -55,6 +56,6 @@ public class IfStatementVerifier {
     }
     builder.Add(new IfCmd(stmt.Tok, 
       guard == null || stmt.IsBindingGuard ? null : etran.TrExpr(guard), 
-      thenList, elseIf, elseList, new QKeyValue(stmt.Tok, "allow_split")));
+      thenList, elseIf, elseList, BlockRewriter.AllowSplitQ));
   }
 }
