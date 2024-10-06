@@ -880,7 +880,6 @@ namespace Microsoft.Dafny {
         rr.OffsetMembers = revealStmt.OffsetMembers.ToList();
         r = rr;
       } else if (stmt is BlockByProofStmt blockByProofStmt) {
-        // Move this code into the class
         var rr = new BlockByProofStmt(blockByProofStmt.RangeToken,
           (BlockStmt)SubstStmt(blockByProofStmt.Proof),
           SubstStmt(blockByProofStmt.Body));
