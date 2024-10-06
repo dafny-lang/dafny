@@ -1,1 +1,0 @@
-The new resolver (accessible using `--type-system-refresh`) can now handle revealing instance functions using a static receiver, as it is the case for the current resolver

@@ -1735,7 +1735,9 @@ impl<V: DafnyTypeEq> Multiset<V> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = V> + '_ {
-        self.data.iter().map(|(k, _v)| k).cloned()
+        self.data.iter().flat_map(
+            |(k, &ref v)|
+            ::std::iter::repeat(k).take(v.clone().as_usize())).cloned()
     }
 }
 
@@ -3135,6 +3137,16 @@ macro_rules! update_field_nodrop {
     };
 }
 
+// Same as update_field_nodrop but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_nodrop {
+    ($ptr:expr, $field:ident, $value:expr) => {
+        let lhs = $ptr;
+        let value = $value;
+        unsafe { $crate::read!(lhs).$field.get().write(value) }
+    };
+}
+
 // When initializing an uninitialized field for the first time,
 // we ensure we don't drop the previous content
 #[macro_export]
@@ -3185,6 +3197,21 @@ macro_rules! update_field_uninit {
     }};
 }
 
+// Same as update_field_uninit but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_uninit {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        #[allow(unused_assignments)]
+        if $field_assigned {
+            $crate::modify_field!($crate::read!($t).$field, computed_value);
+        } else {
+            $crate::update_field_mut_nodrop!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
 // Macro to call at the end of the first new; constructor when not every field is guaranteed to be assigned.
 #[macro_export]
 macro_rules! update_field_if_uninit {
@@ -3192,6 +3219,18 @@ macro_rules! update_field_if_uninit {
         let computed_value = $value;
         if !$field_assigned {
             $crate::update_field_nodrop!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+// Same as update_field_if_uninit but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_if_uninit {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        if !$field_assigned {
+            $crate::update_field_mut_nodrop!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3358,6 +3397,7 @@ macro_rules! cast {
 pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 
 impl <T: ?Sized> Object<T> {
+    // For safety, it requires the Rc to have been created with Rc::new()
     pub unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
         Object(Some(rcmut::from_rc(rc)))
     }
@@ -3395,17 +3435,27 @@ impl <T: ?Sized>Default for Object<T> {
     }
 }
 
-impl<T: ?Sized> Debug for Object<T> {
+impl<T: ?Sized + UpcastObject<dyn Any>> Debug for Object<T> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         self.fmt_print(f, false)
     }
 }
-impl <T: ?Sized> DafnyPrint for Object<T> {
+impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        write!(f, "<object>")
+        let obj_any = UpcastObject::<dyn Any>::upcast(self.as_ref());
+        let option_string = obj_any.as_ref().downcast_ref::<String>();
+        match option_string {
+            Some(s) => write!(f, "{}", s),
+            None => write!(f, "<object>"),
+        }
     }
 }
-
+impl UpcastObject<dyn Any> for String {
+    fn upcast(&self) -> Object<dyn Any> {
+        // SAFETY: RC was just created
+        unsafe { Object::from_rc(Rc::new(self.clone()) as Rc<dyn Any>) }
+    }
+}
 
 impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
     fn eq(&self, other: &Object<U>) -> bool {
@@ -3499,6 +3549,14 @@ macro_rules! update_field_nodrop_object {
     };
 }
 
+// Same but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_nodrop_object {
+    ($ptr:expr, $field: ident, $value:expr) => {
+        unsafe { ($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field.get().write($value) }
+    };
+}
+
 // Equivalent of update_nodrop but for rcmut
 #[macro_export]
 macro_rules! update_nodrop_object {
@@ -3511,10 +3569,23 @@ macro_rules! update_nodrop_object {
 #[macro_export]
 macro_rules! update_field_if_uninit_object {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        let computed_value = $value;
         #[allow(unused_assignments)]
         if !$field_assigned {
+            let computed_value = $value;
             $crate::update_field_nodrop_object!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+// Same for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_if_uninit_object {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        #[allow(unused_assignments)]
+        if !$field_assigned {
+            let computed_value = $value;
+            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3535,6 +3606,22 @@ macro_rules! update_field_uninit_object {
     }};
 }
 
+// Same but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_uninit_object {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        #[allow(unused_assignments)]
+        if $field_assigned {
+            $crate::modify_field!($crate::rd!($t).$field, computed_value);
+        } else {
+            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+
 // Equivalent of modify but for rcmut
 #[macro_export]
 macro_rules! md {
@@ -3549,6 +3636,32 @@ macro_rules! rd {
     ($x:expr) => {
         $x.as_ref()
     };
+}
+
+// To use when modifying a mutable field that is wrapped with UnsafeCell
+#[macro_export]
+macro_rules! modify_field {
+    ($pointer:expr, $rhs:expr) => {
+        let lhs = $pointer.get();
+        let rhs = $rhs;
+        unsafe {*lhs = rhs}
+    };
+}
+
+// To use when reading a mutable field that is wrapped with UnsafeCell
+#[macro_export]
+macro_rules! read_field {
+    ($pointer:expr) => {
+      {
+        let lhs = $pointer.get();
+        unsafe {(*lhs).clone()}
+      }
+    };
+}
+
+pub type Field<T> = UnsafeCell<T>;
+pub fn new_field<T>(t: T) -> Field<T> {
+    UnsafeCell::new(t)
 }
 
 // Count the number of references to the given object
