@@ -91,8 +91,8 @@ public partial class BoogieGenerator {
       decrExpr = BplOr(etranCurrent.TrExpr(allowance), decrExpr);
     }
     builder.Add(Assert(tok, decrExpr, new
-      PODesc.Terminates(inferredDecreases, null, allowance,
-                        oldExpressions, newExpressions, endsWithWinningTopComparison, hint)));
+      Terminates(inferredDecreases, null, allowance,
+                        oldExpressions, newExpressions, endsWithWinningTopComparison, hint), builder.Context));
   }
 
   /// <summary>
@@ -168,7 +168,7 @@ public partial class BoogieGenerator {
 
           Expression dafnyBound = Expression.CreateOr(boundedDafny, EqDafny[k]);
           Bpl.Cmd cmd = Assert(toks[k], BplOr(bounded, Eq[k]),
-            new PODesc.DecreasesBoundedBelow(N, k, zeroStr, prevGhostLocals, dafnyBound, suffixMsg));
+            new DecreasesBoundedBelow(N, k, zeroStr, prevGhostLocals, dafnyBound, suffixMsg), builder.Context);
           builder.Add(cmd);
         }
       }

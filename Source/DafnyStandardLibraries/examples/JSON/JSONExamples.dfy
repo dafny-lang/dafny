@@ -254,20 +254,21 @@ module {:options "-functionSyntax:4"} ConcreteSyntax {
     // BUG(https://github.com/dafny-lang/dafny/issues/2184)
     // BUG(https://github.com/dafny-lang/dafny/issues/2690)
     var fn' := (sf: Suffixed<D, S>) requires (ghost var in_sq := sf => sf in sq; in_sq(sf)) => sf.(t := fn(sf));
-    var sq' := Seq.Map(fn', sq);
+    Seq.Map(fn', sq)
+  }
 
-    assert NoTrailingSuffix(sq') by {
-      forall idx | 0 <= idx < |sq'| ensures sq'[idx].suffix.Empty? <==> idx == |sq'| - 1 {
-        calc {
-          sq'[idx].suffix.Empty?;
-          fn'(sq[idx]).suffix.Empty?;
-          sq[idx].suffix.Empty?;
-          idx == |sq| - 1;
-          idx == |sq'| - 1;
-        }
+  lemma MapSuffixedSequenceNoTrailingSuffix<D, S>(sq: SuffixedSequence<D, S>, fn: Suffixed<D, S> --> D)
+    requires forall suffixed | suffixed in sq :: fn.requires(suffixed)
+    ensures NoTrailingSuffix(MapSuffixedSequence<D, S>(sq, fn))
+  {
+    var sq' := MapSuffixedSequence<D, S>(sq, fn);
+    forall idx | 0 <= idx < |sq'| ensures sq'[idx].suffix.Empty? <==> idx == |sq'| - 1 {
+      calc {
+        sq'[idx].suffix.Empty?;
+        sq[idx].suffix.Empty?;
+        idx == |sq| - 1;
+        idx == |sq'| - 1;
       }
     }
-
-    sq'
   }
 }

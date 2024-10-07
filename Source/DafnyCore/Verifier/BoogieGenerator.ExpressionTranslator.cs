@@ -705,7 +705,7 @@ namespace Microsoft.Dafny {
                 result = BoogieGenerator.CondApplyUnbox(GetToken(e), result, e.Function.ResultType, e.Type);
 
                 bool callIsLit = argsAreLit
-                                 && BoogieGenerator.FunctionBodyIsAvailable(e.Function, BoogieGenerator.currentModule, BoogieGenerator.currentScope, true)
+                                 && BoogieGenerator.FunctionBodyIsAvailable(e.Function, BoogieGenerator.currentModule, BoogieGenerator.currentScope)
                                  && !e.Function.Reads.Expressions.Any(); // Function could depend on external values
                 if (callIsLit) {
                   result = MaybeLit(result, ty);

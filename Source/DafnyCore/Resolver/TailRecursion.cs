@@ -267,6 +267,8 @@ class TailRecursion {
       }
     } else if (stmt is VarDeclPattern) {
     } else if (stmt is ExpectStmt) {
+    } else if (stmt is BlockByProofStmt blockByProofStmt) {
+      return CheckTailRecursive(blockByProofStmt.Body, enclosingMethod, ref tailCall, reportErrors);
     } else {
       Contract.Assert(false);  // unexpected statement type
     }

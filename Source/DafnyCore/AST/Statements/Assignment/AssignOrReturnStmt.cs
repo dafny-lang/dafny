@@ -12,8 +12,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
   public readonly List<AssignmentRhs> Rhss;
   public readonly AttributedToken KeywordToken;
-  public readonly BlockStmt Proof;
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new List<Statement>();
+  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = new();
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
   public override IToken Tok {
     get {
@@ -26,7 +25,8 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     }
   }
 
-  public override IEnumerable<INode> Children => ResolvedStatements.Concat(Proof?.Children ?? new List<INode>());
+  public override IEnumerable<INode> Children => ResolvedStatements;
+
   public override IEnumerable<Statement> PreResolveSubStatements => Enumerable.Empty<Statement>();
 
   [ContractInvariantMethod]
@@ -47,14 +47,13 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     Rhs = (ExprRhs)cloner.CloneRHS(original.Rhs);
     Rhss = original.Rhss.ConvertAll(cloner.CloneRHS);
     KeywordToken = cloner.AttributedTok(original.KeywordToken);
-    Proof = cloner.CloneBlockStmt(original.Proof);
 
     if (cloner.CloneResolvedFields) {
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
 
-  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss, BlockStmt proof = null)
+  public AssignOrReturnStmt(RangeToken rangeToken, List<Expression> lhss, ExprRhs rhs, AttributedToken keywordToken, List<AssignmentRhs> rhss)
     : base(rangeToken, lhss) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(lhss != null);
@@ -64,7 +63,6 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     Rhs = rhs;
     Rhss = rhss;
     KeywordToken = keywordToken;
-    Proof = proof;
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {
@@ -196,8 +194,6 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       return;
     }
 
-    ModuleResolver.ResolveByProof(resolver, Proof, resolutionContext);
-
     Expression lhsExtract = null;
     if (expectExtract) {
       if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
@@ -293,7 +289,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       }
     }
     // " temp, ... := MethodOrExpression, ...;"
-    var up = new AssignStatement(RangeToken, lhss2, rhss2, Proof);
+    var up = new AssignStatement(RangeToken, lhss2, rhss2);
     if (expectExtract) {
       up.OriginalInitialLhs = Lhss.Count == 0 ? null : Lhss[0];
     }
@@ -309,7 +305,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       } else if (token.val == "assume") {
         ss = new AssumeStmt(new RangeToken(token, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (token.val == "assert") {
-        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, null, KeywordToken.Attrs);
+        ss = new AssertStmt(new RangeToken(token, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
         Contract.Assert(false, $"Invalid token in :- statement: {token.val}");
       }
@@ -329,8 +325,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
           new BlockStmt(RangeToken, new List<Statement>() {
             new AssignStatement(RangeToken,
               new List<Expression>() { ident },
-              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) },
-              Proof
+              new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "PropagateFailure")) }
             ),
             new ReturnStmt(RangeToken, null),
           }),
@@ -346,7 +341,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
         new AssignStatement(RangeToken,
           new List<Expression>() { lhsExtract },
           new List<AssignmentRhs>() { new ExprRhs(resolver.VarDotMethod(Tok, temp, "Extract")) }
-        , Proof));
+        ));
       // The following check is not necessary, because the ghost mismatch is caught later.
       // However the error message here is much clearer.
       var m = resolver.ResolveMember(Tok, firstType, "Extract", out _);

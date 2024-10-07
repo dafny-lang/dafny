@@ -36,9 +36,9 @@ namespace Microsoft.Dafny {
     public void Add(Cmd cmd) {
       Commands.Add(cmd);
       builder.Add(cmd);
-      if (cmd is Boogie.AssertCmd) {
+      if (cmd is AssertCmd) {
         tran.assertionCount++;
-      } else if (cmd is Boogie.CallCmd call) {
+      } else if (cmd is CallCmd call) {
         // A call command may involve a precondition, but we can't tell for sure until the callee
         // procedure has been generated. Therefore, to be on the same side, we count this call
         // as a possible assertion, unless it's a procedure that's part of the translation and

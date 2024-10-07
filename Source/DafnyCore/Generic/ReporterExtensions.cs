@@ -47,7 +47,7 @@ public static class ErrorReporterExtensions {
   public const string RelatedLocationMessage = RelatedLocationCategory;
   private const string RelatedMessageCategory = "Related message";
   public const string AssertedExprCategory = "Asserted expression";
-  public static readonly string PostConditionFailingMessage = new ProofObligationDescription.EnsuresDescription(null, null, null).FailureDescription;
+  public static readonly string PostConditionFailingMessage = new EnsuresDescription(null, null, null).FailureDescription;
   private static string FormatRelated(string related) {
     return $"Could not prove: {related}";
   }
