@@ -811,38 +811,55 @@ namespace Microsoft.Dafny {
       f.ByMethodDecl = method;
     }
 
-    private ModuleSignature MakeAbstractSignature(ModuleSignature p, string name, int height,
-      Dictionary<ModuleDefinition, ModuleSignature> mods) {
-      Contract.Requires(p != null);
+    private ModuleSignature MakeAbstractSignature(ModuleSignature origin, string name, int height,
+      Dictionary<ModuleDefinition, ModuleSignature> moduleSignatures) {
+      Contract.Requires(origin != null);
       Contract.Requires(name != null);
-      Contract.Requires(mods != null);
+      Contract.Requires(moduleSignatures != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), ModuleKindEnum.Abstract, true, null, null, null);
-      mod.Height = height;
-      foreach (var kv in p.TopLevels) {
+      var module = new ModuleDefinition(RangeToken.NoToken, new Name(name + ".Abs"), new List<IToken>(), ModuleKindEnum.Abstract, true, null, null, null);
+      module.Height = height;
+      foreach (var kv in origin.TopLevels) {
         if (!(kv.Value is NonNullTypeDecl or DefaultClassDecl)) {
-          var clone = CloneDeclaration(p.VisibilityScope, kv.Value, mod, mods, name);
-          mod.SourceDecls.Add(clone);
+          var clone = CloneDeclarationForAbstractSignature(origin.VisibilityScope, kv.Value, module, moduleSignatures, name);
+          module.SourceDecls.Add(clone);
         }
       }
 
-      var defaultClassDecl = new DefaultClassDecl(mod, p.StaticMembers.Values.ToList());
-      mod.DefaultClass = (DefaultClassDecl)CloneDeclaration(p.VisibilityScope, defaultClassDecl, mod, mods, name);
+      var defaultClassDecl = new DefaultClassDecl(module, origin.StaticMembers.Values.ToList());
+      module.DefaultClass = (DefaultClassDecl)CloneDeclarationForAbstractSignature(origin.VisibilityScope, defaultClassDecl, module, moduleSignatures, name);
 
-      var sig = mod.RegisterTopLevelDecls(this, true);
-      sig.Refines = p.Refines;
-      sig.IsAbstract = p.IsAbstract;
-      mods.Add(mod, sig);
-      var good = mod.Resolve(sig, this);
+      var sig = module.RegisterTopLevelDecls(this, true);
+      sig.Refines = origin.Refines;
+      sig.IsAbstract = origin.IsAbstract;
+      moduleSignatures.Add(module, sig);
+
+      var good = module.Resolve(sig, this);
       if (good && reporter.Count(ErrorLevel.Error) == errCount) {
-        mod.SuccessfullyResolved = true;
+        module.SuccessfullyResolved = true;
       }
+
+      /* A bug we ran into was that cloning done for abstract modules,
+        did not clone the resolved field,
+        so the .Flattened field of NestedMatchExpr was not set.
+        Also, rewriters.PostResolve was not run, so .Flattened was not set after cloning
+        which led to a crash during Boogie generation.
+       
+        Cloning with resolved fields is not an option, 
+        because then internal references of the cloned code can point to the old code.
+       
+        I(keyboardDrummer) think it would be better altogether if no cloning was done for abstract modules,
+        But until that happens here is code that explicitly calls MatchFlattener which sets .Flattened
+        Alternatively, we could call all the rewriter.PostResolve methods
+      */
+
+      new MatchFlattener(reporter).PostResolve(module);
 
       return sig;
     }
 
-    TopLevelDecl CloneDeclaration(VisibilityScope scope, TopLevelDecl d, ModuleDefinition newParent,
+    TopLevelDecl CloneDeclarationForAbstractSignature(VisibilityScope scope, TopLevelDecl d, ModuleDefinition newParent,
       Dictionary<ModuleDefinition, ModuleSignature> mods, string name) {
       Contract.Requires(d != null);
       Contract.Requires(newParent != null);
