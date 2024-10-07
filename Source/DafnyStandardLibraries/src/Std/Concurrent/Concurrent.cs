@@ -23,7 +23,6 @@ namespace Std.Concurrent {
         public Dafny.ISet<V> Values() {
             return Dafny.Set<V>.FromCollection(map.Values);
         }
-    
         public Dafny.ISet<_System._ITuple2<K, V>> Items() {
             System.Collections.Generic.IEnumerable<_System._ITuple2<K, V>> ToEnumerable(System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<K, V>> enumerator) {
                 while (enumerator.MoveNext())

@@ -19,7 +19,7 @@ module Std.JSON.ZeroCopy.API {
 
 
   /* Serialization (JSON syntax trees to utf-8 bytes) */
-  opaque function Serialize(js: Grammar.JSON) : (bs: SerializationResult<seq<byte>>)
+  function Serialize(js: Grammar.JSON) : (bs: SerializationResult<seq<byte>>)
     ensures bs == Success(Spec.JSON(js))
   {
     Success(Serializer.Text(js).Bytes())
@@ -43,7 +43,7 @@ module Std.JSON.ZeroCopy.API {
   }
 
   /* Deserialization (utf-8 bytes to JSON syntax trees) */
-  opaque function Deserialize(bs: seq<byte>) : (js: DeserializationResult<Grammar.JSON>)
+  function Deserialize(bs: seq<byte>) : (js: DeserializationResult<Grammar.JSON>)
     ensures js.Success? ==> bs == Spec.JSON(js.value)
   {
     Deserializer.API.OfBytes(bs)

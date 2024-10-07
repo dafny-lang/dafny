@@ -27,7 +27,7 @@ module Std.JSON.Spec {
       assert Log(16, c as nat) <= Log(16, 0xFFFF) by {
         LemmaLogIsOrdered(16, c as nat, 0xFFFF);
       }
-      assert Log(16, 0xFFFF) == 3 by { reveal Log(); }
+      assert Log(16, 0xFFFF) == 3;
     }
     s + seq(4 - |s|, _ => ' ' as uint16)
   }
