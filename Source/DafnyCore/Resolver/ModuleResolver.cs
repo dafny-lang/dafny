@@ -1238,81 +1238,8 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        foreach (TopLevelDecl d in declarations) {
-          if (d is IteratorDecl) {
-            var iter = (IteratorDecl)d;
-            iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
-            if (iter.Body != null) {
-              CheckExpression(iter.Body, this, iter);
-            }
-
-          } else if (d is SubsetTypeDecl subsetTypeDecl) {
-            Contract.Assert(subsetTypeDecl.Constraint != null);
-            CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
-
-            if (subsetTypeDecl.Witness != null) {
-              CheckExpression(subsetTypeDecl.Witness, this,
-                new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-              if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-                var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-                ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
-              }
-            }
-
-          } else if (d is NewtypeDecl newtypeDecl) {
-            if (newtypeDecl.Var != null) {
-              Contract.Assert(newtypeDecl.Constraint != null);
-              CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
-            }
-
-            if (newtypeDecl.Witness != null) {
-              CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
-              if (newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-                var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
-                ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
-              }
-            }
-
-            new NativeTypeAnalysis(reporter).FigureOutNativeType(newtypeDecl, Options);
-
-          } else if (d is DatatypeDecl) {
-            var dd = (DatatypeDecl)d;
-            foreach (var member in GetClassMembers(dd)!.Values) {
-              var dtor = member as DatatypeDestructor;
-              if (dtor != null) {
-                var rolemodel = dtor.CorrespondingFormals[0];
-                for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
-                  var other = dtor.CorrespondingFormals[i];
-                  if (rolemodel.IsGhost != other.IsGhost) {
-                    reporter.Error(MessageSource.Resolver, other,
-                      "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
-                      rolemodel.Name,
-                      rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
-                      other.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[i].Name);
-                  }
-                }
-              }
-            }
-            foreach (var ctor in dd.Ctors) {
-              CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
-            }
-          }
-        }
-
-        AnalyzeTypeConstraints.AssignConstraintIsCompilable(declarations, Options);
-
-        // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
-        // visit iterator bodies and members (which will make calls to CheckIsCompilable).
-        foreach (TopLevelDecl d in declarations) {
-          if (d is IteratorDecl { Body: { } iterBody } iter) {
-            ComputeGhostInterest(iter.Body, false, null, iter);
-          }
-          if (d is TopLevelDeclWithMembers cl) {
-            ResolveClassMembers_Pass1(cl);
-          }
-        }
+        ComputeGhostInterestAndMisc(declarations);
       }
 
       // ---------------------------------- Pass 2 ----------------------------------
@@ -1656,6 +1583,85 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Compute ghost interests, figure out native types, check agreement among datatype destructors, and determine tail calls.
+    /// </summary>
+    private void ComputeGhostInterestAndMisc(List<TopLevelDecl> declarations) {
+      foreach (TopLevelDecl d in declarations) {
+        if (d is IteratorDecl) {
+          var iter = (IteratorDecl)d;
+          iter.SubExpressions.ForEach(e => CheckExpression(e, this, iter));
+          if (iter.Body != null) {
+            CheckExpression(iter.Body, this, iter);
+          }
+
+        } else if (d is SubsetTypeDecl subsetTypeDecl) {
+          Contract.Assert(subsetTypeDecl.Constraint != null);
+          CheckExpression(subsetTypeDecl.Constraint, this, new CodeContextWrapper(subsetTypeDecl, true));
+
+          if (subsetTypeDecl.Witness != null) {
+            CheckExpression(subsetTypeDecl.Witness, this,
+              new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+            if (subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+              var codeContext = new CodeContextWrapper(subsetTypeDecl, subsetTypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+              ExpressionTester.CheckIsCompilable(Options, this, subsetTypeDecl.Witness, codeContext);
+            }
+          }
+
+        } else if (d is NewtypeDecl newtypeDecl) {
+          if (newtypeDecl.Var != null) {
+            Contract.Assert(newtypeDecl.Constraint != null);
+            CheckExpression(newtypeDecl.Constraint, this, new CodeContextWrapper(newtypeDecl, true));
+          }
+
+          if (newtypeDecl.Witness != null) {
+            CheckExpression(newtypeDecl.Witness, this, new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost));
+            if (newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+              var codeContext = new CodeContextWrapper(newtypeDecl, newtypeDecl.WitnessKind == SubsetTypeDecl.WKind.Ghost);
+              ExpressionTester.CheckIsCompilable(Options, this, newtypeDecl.Witness, codeContext);
+            }
+          }
+
+          new NativeTypeAnalysis(reporter).FigureOutNativeType(newtypeDecl, Options);
+
+        } else if (d is DatatypeDecl) {
+          var dd = (DatatypeDecl)d;
+          foreach (var member in GetClassMembers(dd)!.Values) {
+            var dtor = member as DatatypeDestructor;
+            if (dtor != null) {
+              var rolemodel = dtor.CorrespondingFormals[0];
+              for (int i = 1; i < dtor.CorrespondingFormals.Count; i++) {
+                var other = dtor.CorrespondingFormals[i];
+                if (rolemodel.IsGhost != other.IsGhost) {
+                  reporter.Error(MessageSource.Resolver, other,
+                    "shared destructors must agree on whether or not they are ghost, but '{0}' is {1} in constructor '{2}' and {3} in constructor '{4}'",
+                    rolemodel.Name,
+                    rolemodel.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[0].Name,
+                    other.IsGhost ? "ghost" : "non-ghost", dtor.EnclosingCtors[i].Name);
+                }
+              }
+            }
+          }
+          foreach (var ctor in dd.Ctors) {
+            CheckParameterDefaultValuesAreCompilable(ctor.Formals, dd);
+          }
+        }
+      }
+
+      AnalyzeTypeConstraints.AssignConstraintIsCompilable(declarations, Options);
+
+      // Now that we have filled in the .ConstraintIsCompilable field of all subset types and newtypes, we're ready to
+      // visit iterator bodies and members (which will make calls to CheckIsCompilable).
+      foreach (TopLevelDecl d in declarations) {
+        if (d is IteratorDecl { Body: { } iterBody } iter) {
+          ComputeGhostInterest(iter.Body, false, null, iter);
+        }
+        if (d is TopLevelDeclWithMembers cl) {
+          ResolveClassMembers_Pass1(cl);
+        }
+      }
+    }
+
     private void CheckForCyclesAmongRedirectingTypes(RedirectingTypeDecl dd, HashSet<ICallable> cycleErrorHasBeenReported) {
       var enclosingModule = dd.EnclosingModule;
       if (enclosingModule.CallGraph.GetSCCSize(dd) != 1) {
@@ -1981,7 +1987,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
-      var v = new CheckExpression_Visitor(resolver, codeContext);
+      var v = new CheckLocalityVisitor(resolver, codeContext);
       v.Visit(expr);
     }
     /// <summary>
@@ -1994,43 +2000,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(stmt != null);
       Contract.Requires(resolver != null);
       Contract.Requires(codeContext != null);
-      var v = new CheckExpression_Visitor(resolver, codeContext);
+      var v = new CheckLocalityVisitor(resolver, codeContext);
       v.Visit(stmt);
     }
-    class CheckExpression_Visitor : ResolverBottomUpVisitor {
-      readonly ICodeContext CodeContext;
-      public CheckExpression_Visitor(ModuleResolver resolver, ICodeContext codeContext)
-        : base(resolver) {
-        Contract.Requires(resolver != null);
-        Contract.Requires(codeContext != null);
-        CodeContext = codeContext;
-      }
-      protected override void VisitOneExpr(Expression expr) {
-        if (expr is StmtExpr) {
-          var e = (StmtExpr)expr;
-          resolver.ComputeGhostInterest(e.S, true, "a statement expression", CodeContext);
-        } else if (expr is LetExpr) {
-          var e = (LetExpr)expr;
-          if (CodeContext.IsGhost) {
-            foreach (var bv in e.BoundVars) {
-              bv.MakeGhost();
-            }
-          }
-        }
-      }
 
-      protected override void VisitOneStmt(Statement stmt) {
-        if (stmt is CalcStmt calc) {
-          foreach (var h in calc.Hints) {
-            resolver.CheckLocalityUpdates(h, new HashSet<LocalVariable>(), "a hint");
-          }
-        } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
-          resolver.CheckLocalityUpdates(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
-        } else if (stmt is ForallStmt forall && forall.Body != null) {
-          resolver.CheckLocalityUpdates(forall.Body, new HashSet<LocalVariable>(), "a forall statement");
-        }
-      }
-    }
     #endregion
 
     void ExtremePredicateChecks(Expression expr, ExtremePredicate context, CallingPosition cp) {
@@ -3233,18 +3206,17 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Check that "stmt" is a valid statment for the body of an assert-by, forall,
+    /// Check that "stmt" is a valid statement for the body of an assert-by, forall,
     /// or calc-hint statement. In particular, check that the local variables assigned in
     /// the bodies of these statements are declared in the statements, not in some enclosing
     /// context. 
     /// </summary>
     public void CheckLocalityUpdates(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
-      // TODO it looks like this method has no side-effects and doesn't return anything.
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
       Contract.Requires(where != null);
 
-      if (stmt is AssertStmt || stmt is ForallStmt || stmt is CalcStmt || stmt is ModifyStmt) {
+      if (stmt is AssertStmt or ForallStmt or CalcStmt or ModifyStmt) {
         // don't recurse, since CheckHintRestrictions will be called on that assert-by separately
         return;
       } else if (stmt is AssignSuchThatStmt) {
@@ -3268,6 +3240,12 @@ namespace Microsoft.Dafny {
       } else if (stmt is BlockStmt) {
         localsAllowedInUpdates = new HashSet<LocalVariable>(localsAllowedInUpdates);
         // use this new set for the recursive calls
+      } else if (stmt is BlockByProofStmt blockByProofStmt) {
+        localsAllowedInUpdates = new HashSet<LocalVariable>(localsAllowedInUpdates);
+        // use this new set for the recursive calls
+
+        CheckLocalityUpdates(blockByProofStmt.Body, localsAllowedInUpdates, where);
+        return;
       }
 
       foreach (var ss in stmt.SubStatements) {
@@ -3347,21 +3325,6 @@ namespace Microsoft.Dafny {
     internal LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
       var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
       return LetPatIn(tok, lhs, rhs, body);
-    }
-
-    internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
-      if (proof == null) {
-        return;
-      }
-
-      // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
-      var prevLblStmts = resolver.EnclosingStatementLabels;
-      var prevLoopStack = resolver.LoopStack;
-      resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-      resolver.LoopStack = new List<Statement>();
-      resolver.ResolveStatement(proof, resolutionContext);
-      resolver.EnclosingStatementLabels = prevLblStmts;
-      resolver.LoopStack = prevLoopStack;
     }
 
     /// <summary>

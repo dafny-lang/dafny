@@ -15,3 +15,9 @@ method M1(x: int, y: int)
   }
   assert y == 8;  // error (yes, still -- the previous assumption should not be in effect here)
 }
+
+method WellFormedness(x: int) {
+  assert 3 / x == 1by {
+    assume x == 3;
+  } 
+}

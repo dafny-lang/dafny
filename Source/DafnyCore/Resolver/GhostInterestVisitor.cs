@@ -75,26 +75,18 @@ class GhostInterestVisitor {
     Contract.Assume(mustBeErasable || proofContext == null); // (this is really a precondition) !mustBeErasable ==> proofContext == null 
 
     switch (stmt) {
-      case AssertStmt:
-      case AssumeStmt: {
-          stmt.IsGhost = true;
-          var assertStmt = stmt as AssertStmt;
-          if (assertStmt != null && assertStmt.Proof != null) {
-            Visit(assertStmt.Proof, true, "an assert-by body");
-          }
-
-          break;
-        }
+      case AssertStmt or AssumeStmt:
+        stmt.IsGhost = true;
+        break;
       case ExpectStmt expectStmt: {
           expectStmt.IsGhost = false;
-          var s = expectStmt;
           if (mustBeErasable) {
             Error(ErrorId.r_expect_statement_is_not_ghost, expectStmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
-            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Expr, codeContext);
+            ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Expr, codeContext);
             // If not provided, the message is populated with a default value in resolution
-            Contract.Assert(s.Message != null);
-            ExpressionTester.CheckIsCompilable(resolver, reporter, s.Message, codeContext);
+            Contract.Assert(expectStmt.Message != null);
+            ExpressionTester.CheckIsCompilable(resolver, reporter, expectStmt.Message, codeContext);
           }
 
           break;
@@ -160,10 +152,6 @@ class GhostInterestVisitor {
           var s = statement;
           s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
-          if (s.Proof != null) {
-            Visit(s.Proof, true, "a call-by body");
-          }
-
           break;
         }
       case AssignOrReturnStmt returnStmt: {
@@ -534,6 +522,13 @@ class GhostInterestVisitor {
 
           break;
         }
+      case BlockByProofStmt blockByProofStmt:
+        blockByProofStmt.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
+        Visit(blockByProofStmt.Body, mustBeErasable, proofContext);
+        blockByProofStmt.IsGhost = blockByProofStmt.IsGhost || blockByProofStmt.Body.IsGhost;
+
+        Visit(blockByProofStmt.Proof, true, "a by block");
+        break;
       default:
         Contract.Assert(false); throw new cce.UnreachableException();
     }

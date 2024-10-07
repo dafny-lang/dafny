@@ -14,7 +14,7 @@ namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
-  void TrCallStmt(CallStmt s, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Bpl.IdentifierExpr actualReceiver) {
+  void TrCallStmt(CallStmt s, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, Bpl.IdentifierExpr actualReceiver) {
     Contract.Requires(s != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);
@@ -40,8 +40,7 @@ public partial class BoogieGenerator {
           string nm = CurrentIdGenerator.FreshId("$rhs##");
           var formalOutType = s.Method.Outs[i].Type.Subst(tySubst);
           var ty = TrType(formalOutType);
-          Bpl.LocalVariable var = new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty));
-          locals.Add(var);
+          var var = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(lhs.tok, new Bpl.TypedIdent(lhs.tok, nm, ty)));
           bLhss[i] = new Bpl.IdentifierExpr(lhs.tok, var.Name, ty);
         }
       }
@@ -98,7 +97,7 @@ public partial class BoogieGenerator {
 
   void ProcessCallStmt(CallStmt cs, Dictionary<TypeParameter, Type> tySubst, Bpl.Expr bReceiver,
     List<Bpl.IdentifierExpr> Lhss, List<Type> LhsTypes,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
 
     Contract.Requires(cs != null);
     Contract.Requires(Lhss != null);
@@ -185,10 +184,11 @@ public partial class BoogieGenerator {
       var formal = callee.Ins[i];
       var local = new LocalVariable(formal.RangeToken, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
       local.type = local.SyntacticType;  // resolve local here
-      var ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
+      var localName = local.AssignUniqueName(currentDeclaration.IdGenerator);
+      var ie = new IdentifierExpr(local.Tok, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(formal, ie);
-      locals.Add(new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type))));
+      locals.GetOrCreate(localName, () => new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, localName, TrType(local.Type))));
 
       var param = (Bpl.IdentifierExpr)etran.TrExpr(ie);  // TODO: is this cast always justified?
       Bpl.Expr bActual;
@@ -237,24 +237,24 @@ public partial class BoogieGenerator {
       if (!method.IsStatic && !(method is Constructor)) {
         Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran, ISALLOC, true);
         if (wh != null) {
-          var desc = new PODesc.IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
-          builder.Add(Assert(receiver.tok, wh, desc));
+          var desc = new IsAllocated("receiver argument", "in the state in which the method is invoked", receiver);
+          builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
         }
       }
       for (int i = 0; i < Args.Count; i++) {
         Expression ee = Args[i];
         Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran, ISALLOC, true);
         if (wh != null) {
-          var desc = new PODesc.IsAllocated("argument", "in the state in which the method is invoked", ee);
-          builder.Add(Assert(ee.tok, wh, desc));
+          var desc = new IsAllocated("argument", "in the state in which the method is invoked", ee);
+          builder.Add(Assert(ee.tok, wh, desc, builder.Context));
         }
       }
     } else if (method is TwoStateLemma) {
       if (!method.IsStatic) {
         Bpl.Expr wh = GetWhereClause(receiver.tok, etran.TrExpr(receiver), receiver.Type, etran.OldAt(atLabel), ISALLOC, true);
         if (wh != null) {
-          var desc = new PODesc.IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
-          builder.Add(Assert(receiver.tok, wh, desc));
+          var desc = new IsAllocated("receiver argument", "in the two-state lemma's previous state", receiver, atLabel);
+          builder.Add(Assert(receiver.tok, wh, desc, builder.Context));
         }
       }
       Contract.Assert(callee.Ins.Count == Args.Count);
@@ -265,13 +265,13 @@ public partial class BoogieGenerator {
           Bpl.Expr wh = GetWhereClause(ee.tok, etran.TrExpr(ee), ee.Type, etran.OldAt(atLabel), ISALLOC, true);
           if (wh != null) {
             var pIdx = Args.Count == 1 ? "" : " at index " + i;
-            var desc = new PODesc.IsAllocated(
+            var desc = new IsAllocated(
               $"argument{pIdx} for parameter '{formal.Name}'",
-              "in the two-state lemma's previous state" + PODesc.IsAllocated.HelperFormal(formal),
+              "in the two-state lemma's previous state" + IsAllocated.HelperFormal(formal),
               ee,
               atLabel
             );
-            builder.Add(Assert(ee.tok, wh, desc));
+            builder.Add(Assert(ee.tok, wh, desc, builder.Context));
           }
         }
       }
@@ -284,7 +284,7 @@ public partial class BoogieGenerator {
     if (etran.readsFrame != null) {
       // substitute actual args for parameters in description expression frames...
       var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
-      var desc = new PODesc.ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
+      var desc = new ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
 
       // ... but that substitution isn't needed for frames passed to CheckFrameSubset
       var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
@@ -297,7 +297,7 @@ public partial class BoogieGenerator {
     // Check that the modifies clause of a subcall is a subset of the current modifies frame,
     // but only if we're in a context that defines a modifies frame.
     if (codeContext is IMethodCodeContext methodCodeContext) {
-      var desc = new PODesc.ModifyFrameSubset(
+      var desc = new ModifyFrameSubset(
         "call",
         frameExpressions,
         methodCodeContext.Modifies.Expressions
@@ -313,7 +313,7 @@ public partial class BoogieGenerator {
     if (isRecursiveCall) {
       Contract.Assert(codeContext != null);
       if (codeContext is DatatypeDecl) {
-        builder.Add(Assert(tok, Bpl.Expr.False, new PODesc.IsNonRecursive()));
+        builder.Add(Assert(tok, Bpl.Expr.False, new IsNonRecursive(), builder.Context));
       } else {
         List<Expression> contextDecreases = codeContext.Decreases.Expressions;
         List<Expression> calleeDecreases = callee.Decreases.Expressions;
@@ -344,42 +344,21 @@ public partial class BoogieGenerator {
       }
     }
 
-    if (cs.Proof == null) {
-      AddCall(builder);
-    } else {
-      var callBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-      AddComment(callBuilder, cs, "call statement proof");
-      CurrentIdGenerator.Push();
-      TrStmt(cs.Proof, callBuilder, locals, etran);
-      CurrentIdGenerator.Pop();
-      AddCall(callBuilder);
-      PathAsideBlock(cs.Tok, callBuilder, builder);
+    AddReferencedMember(callee);
+    var calleeName = MethodName(callee, isCoCall ? MethodTranslationKind.CoCall : MethodTranslationKind.Call);
+    var call = Call(builder.Context, tok, calleeName, ins, outs);
+    proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
+    if (
+      (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+      (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
+      // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
+      // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
+      // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
+      // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
+      // of the predicate.
+      call.IsFree = true;
     }
-
-    void AddCall(BoogieStmtListBuilder callBuilder) {
-      callBuilder.Add(new CommentCmd($"ProcessCallStmt: Check precondition"));
-      // Make the call
-      AddReferencedMember(callee);
-      var call = Call(tok, MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPre : MethodTranslationKind.CallPre), ins, new List<Bpl.IdentifierExpr>());
-      proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
-      if (
-        (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
-        (module != currentModule && RefinementToken.IsInherited(tok, currentModule) && (codeContext == null || !codeContext.MustReverify))) {
-        // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
-        // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
-        // But if the callee sits in a different module, then any predicate it uses will be treated as opaque (that is,
-        // uninterpreted) anyway, so the refined module will have checked the call precondition for all possible definitions
-        // of the predicate.
-        call.IsFree = true;
-      }
-      callBuilder.Add(call);
-    }
-
-    builder.Add(new CommentCmd("ProcessCallStmt: Make the call"));
-    var post = Call(tok,
-      MethodName(callee, isCoCall ? MethodTranslationKind.CoCallPost : MethodTranslationKind.CallPost), ins, outs);
-    proofDependencies?.AddProofDependencyId(post, tok, new CallDependency(cs));
-    builder.Add(post);
+    builder.Add(call);
 
     // Unbox results as needed
     for (int i = 0; i < Lhss.Count; i++) {
