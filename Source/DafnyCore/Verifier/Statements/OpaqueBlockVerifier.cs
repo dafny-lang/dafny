@@ -1,27 +1,22 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Boogie;
-using Microsoft.Dafny;
-using Microsoft.Dafny.ProofObligationDescription;
-using Formal = Microsoft.Dafny.Formal;
 using DafnyIdentifierExpr = Microsoft.Dafny.IdentifierExpr;
 using BoogieIdentifierExpr = Microsoft.Boogie.IdentifierExpr;
-using ProofObligationDescription = Microsoft.Dafny.ProofObligationDescription.ProofObligationDescription;
-using Token = Microsoft.Dafny.Token;
 
-namespace DafnyCore.Verifier;
+namespace Microsoft.Dafny;
 
 public static class OpaqueBlockVerifier {
   public static void EmitBoogie(BoogieGenerator generator, OpaqueBlock block, BoogieStmtListBuilder builder,
-    List<Variable> locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
+    Variables locals, BoogieGenerator.ExpressionTranslator etran, IMethodCodeContext codeContext) {
 
     var hasModifiesClause = block.Modifies.Expressions.Any();
     var blockBuilder = new BoogieStmtListBuilder(generator, builder.Options, builder.Context);
 
     var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, hasModifiesClause, blockBuilder);
-    var prevDefiniteAssignmentTrackerCount = generator.DefiniteAssignmentTrackers.Count;
+    var prevDefiniteAssignmentTrackers = generator.DefiniteAssignmentTrackers;
     generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.RangeToken);
-    generator.RemoveDefiniteAssignmentTrackers(block.Body, prevDefiniteAssignmentTrackerCount);
+    generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
     var assignedVariables = block.DescendantsAndSelf.
       SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)
@@ -30,21 +25,21 @@ public static class OpaqueBlockVerifier {
 
     var variablesUsedInEnsures = block.Ensures.SelectMany(ae => ae.E.DescendantsAndSelf).
       OfType<DafnyIdentifierExpr>().DistinctBy(ie => ie.Var);
-    var implicitAssignedIdentifiers = variablesUsedInEnsures.Where(
-      v => assignedVariables.Contains(v.Var) && generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName));
+    var implicitAssignedIdentifiers =
+      variablesUsedInEnsures.Where(v => assignedVariables.Contains(v.Var) && generator.DefiniteAssignmentTrackers.ContainsKey(v.Var.UniqueName));
     foreach (var v in implicitAssignedIdentifiers) {
       var expression = new AttributedExpression(Expression.CreateAssigned(v.Tok, v));
       totalEnsures.Add(expression);
       blockBuilder.Add(generator.Assert(
         v.Tok, etran.TrExpr(expression.E),
-        new DefiniteAssignment("variable", v.Var.Name, "here")));
+        new DefiniteAssignment("variable", v.Var.Name, "here"), builder.Context));
     }
 
     foreach (var ensure in block.Ensures) {
       totalEnsures.Add(ensure);
       blockBuilder.Add(generator.Assert(
         ensure.Tok, etran.TrExpr(ensure.E),
-        new OpaqueEnsuresDescription(),
+        new OpaqueEnsuresDescription(), builder.Context,
         etran.TrAttributes(ensure.Attributes, null)));
     }
 
@@ -74,7 +69,7 @@ public static class OpaqueBlockVerifier {
     }
   }
 
-  private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, List<Variable> locals,
+  private static BoogieGenerator.ExpressionTranslator GetBodyTranslator(BoogieGenerator generator, OpaqueBlock block, Variables locals,
     BoogieGenerator.ExpressionTranslator etran, bool hasModifiesClause, BoogieStmtListBuilder blockBuilder) {
     BoogieGenerator.ExpressionTranslator bodyTranslator;
     if (hasModifiesClause) {
