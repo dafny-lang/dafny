@@ -29,9 +29,6 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
     this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
     this.UsesOptionalBraces = original.UsesOptionalBraces;
 
-    // The method MakeAbstractSignature makes an unresolved clone
-    // And then does not apply the rewriters to this clone,
-    // so unless we copy the flattened field
     if (cloner.CloneResolvedFields) {
       Flattened = cloner.CloneExpr(original.Flattened);
     }
