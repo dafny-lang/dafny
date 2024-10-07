@@ -83,14 +83,14 @@ pub mod DafnyLibraries {
 
 pub mod ExternModuleWithOneClassToImport {
   pub struct NonShareableBox {
-    s: ::dafny_runtime::DafnyString
+    s: ::dafny_runtime::Field<::dafny_runtime::DafnyString>
   }
   impl NonShareableBox {
     pub fn _allocate_object() -> ::dafny_runtime::Object<Self> {
       // SAFETY: The Rc has not been shared before
       unsafe {
         ::dafny_runtime::Object::from_rc(::std::rc::Rc::new(NonShareableBox {
-          s: ::dafny_runtime::string_of("")
+          s: ::dafny_runtime::Field::new(::dafny_runtime::string_of(""))
         }))
       }
     }
@@ -98,10 +98,10 @@ pub mod ExternModuleWithOneClassToImport {
   impl crate::ExternModuleWithOneClassToImport::TraitDefinedInModule
     for NonShareableBox {
     fn Get(&self) -> ::dafny_runtime::DafnyString {
-      self.s.clone()
+      ::dafny_runtime::read_field!(self.s)
     }
-    fn Put(&mut self, c: &::dafny_runtime::DafnyString) {
-      self.s = c.clone();
+    fn Put(&self, c: &::dafny_runtime::DafnyString) {
+      ::dafny_runtime::modify_field!(self.s, c.clone());
     }
   }
 }
