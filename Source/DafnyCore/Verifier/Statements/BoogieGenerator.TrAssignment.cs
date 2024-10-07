@@ -14,14 +14,13 @@ public partial class BoogieGenerator {
   /// "lhs" is expected to be a resolved form of an expression, i.e., not a concrete-syntax expression.
   /// </summary>
   void TrAssignment(Statement stmt, Expression lhs, AssignmentRhs rhs,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran) {
     Contract.Requires(stmt != null);
     Contract.Requires(lhs != null);
     Contract.Requires(!(lhs is ConcreteSyntaxExpression));
     Contract.Requires(!(lhs is SeqSelectExpr && !((SeqSelectExpr)lhs).SelectOne));  // these were once allowed, but their functionality is now provided by 'forall' statements
     Contract.Requires(rhs != null);
     Contract.Requires(builder != null);
-    Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
     Contract.Requires(predef != null);
 
@@ -37,13 +36,12 @@ public partial class BoogieGenerator {
 
   void ProcessRhss(List<AssignToLhs> lhsBuilder, List<Bpl.IdentifierExpr/*may be null*/> bLhss,
     List<Expression> lhss, List<AssignmentRhs> rhss,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Statement stmt) {
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, Statement stmt) {
     Contract.Requires(lhsBuilder != null);
     Contract.Requires(bLhss != null);
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(builder != null);
-    Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
     Contract.Requires(predef != null);
 
@@ -90,12 +88,11 @@ public partial class BoogieGenerator {
   }
 
   List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Statement stmt) {
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(cce.NonNullElements(rhss));
     Contract.Requires(builder != null);
-    Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
     Contract.Requires(predef != null);
     Contract.Ensures(Contract.ForAll(Contract.Result<List<Bpl.Expr>>(), i => i != null));
@@ -171,8 +168,8 @@ public partial class BoogieGenerator {
   void AssertDistinctness(Expression lhsa, Expression lhsb, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
     CheckDistinctness(lhsa, lhsb, etran, out var dExpr, out var bExpr);
     if (bExpr != null) {
-      builder.Add(Assert(GetToken(lhsa), bExpr, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
-        Printer.ExprToString(options, lhsb), bExpr != Bpl.Expr.False, false, dExpr)));
+      builder.Add(Assert(GetToken(lhsa), bExpr, new DistinctLHS(Printer.ExprToString(options, lhsa),
+        Printer.ExprToString(options, lhsb), bExpr != Bpl.Expr.False, false, dExpr), builder.Context));
     }
   }
 
@@ -180,8 +177,8 @@ public partial class BoogieGenerator {
     CheckDistinctness(lhsa, lhsb, etran, out var dExpr, out var bExpr);
     if (bExpr != null) {
       bExpr = BplOr(bExpr, Bpl.Expr.Eq(rhsa, rhsb));
-      builder.Add(Assert(GetToken(lhsa), bExpr, new PODesc.DistinctLHS(Printer.ExprToString(options, lhsa),
-        Printer.ExprToString(options, lhsb), false, true, dExpr)));
+      builder.Add(Assert(GetToken(lhsa), bExpr, new DistinctLHS(Printer.ExprToString(options, lhsa),
+        Printer.ExprToString(options, lhsb), false, true, dExpr), builder.Context));
     }
   }
 
@@ -192,13 +189,12 @@ public partial class BoogieGenerator {
   /// Checks that they denote different locations iff checkDistinctness is true.
   /// </summary>
   void ProcessLhss(List<Expression> lhss, bool rhsCanAffectPreviouslyKnownExpressions, bool checkDistinctness,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Statement stmt,
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, Statement stmt,
     out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
     out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
     Contract.Requires(cce.NonNullElements(lhss));
     Contract.Requires(builder != null);
-    Contract.Requires(cce.NonNullElements(locals));
     Contract.Requires(etran != null);
     Contract.Requires(predef != null);
     Contract.Ensures(Contract.ValueAtReturn(out lhsBuilders).Count == lhss.Count);
@@ -267,8 +263,8 @@ public partial class BoogieGenerator {
         prevObj[i] = obj;
         if (!useSurrogateLocal) {
           // check that the enclosing modifies clause allows this object to be written:  assert $_ModifiesFrame[obj]);
-          var desc = new PODesc.Modifiable("an object", contextModFrames, fse.Obj, field);
-          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), desc));
+          var desc = new Modifiable("an object", contextModFrames, fse.Obj, field);
+          builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), desc, builder.Context));
         }
 
         if (useSurrogateLocal) {
@@ -317,8 +313,8 @@ public partial class BoogieGenerator {
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
         // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-        var desc = new PODesc.Modifiable("an array element", contextModFrames, sel.Seq, null);
-        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc));
+        var desc = new Modifiable("an array element", contextModFrames, sel.Seq, null);
+        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc, builder.Context));
 
         bLhss.Add(null);
         lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -342,8 +338,8 @@ public partial class BoogieGenerator {
           "$index" + i, predef.FieldName(mse.tok), builder, locals);
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
-        var desc = new PODesc.Modifiable("an array element", contextModFrames, mse.Array, null);
-        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc));
+        var desc = new Modifiable("an array element", contextModFrames, mse.Array, null);
+        builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc, builder.Context));
 
         bLhss.Add(null);
         lhsBuilders.Add(delegate (Bpl.Expr rhs, bool origRhsIsHavoc, BoogieStmtListBuilder bldr, ExpressionTranslator et) {
@@ -382,7 +378,7 @@ public partial class BoogieGenerator {
   /// </summary>
   Bpl.Expr TrAssignmentRhs(IToken tok, Bpl.IdentifierExpr bGivenLhs, IVariable lhsVar, Type lhsType,
     AssignmentRhs rhs, Type rhsTypeConstraint,
-    BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran,
+    BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Statement stmt) {
     Contract.Requires(tok != null);
     Contract.Requires(rhs != null);
@@ -419,8 +415,7 @@ public partial class BoogieGenerator {
         // "where" wouldn't provide additional information over the assigned value.
         wh = null;
       }
-      var v = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh));
-      locals.Add(v);
+      var v = locals.GetOrCreate(nm, () => new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, nm, ty, wh)));
       bLhs = new Bpl.IdentifierExpr(tok, v);
     }
 
@@ -432,7 +427,7 @@ public partial class BoogieGenerator {
       TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, addResultCommands:
         (returnBuilder, result) => {
           if (cre != null) {
-            returnBuilder.Add(Assert(result.Tok, cre, desc));
+            returnBuilder.Add(Assert(result.Tok, cre, desc, builder.Context));
           }
         });
 
@@ -467,17 +462,17 @@ public partial class BoogieGenerator {
         int i = 0;
         foreach (Expression dim in tRhs.ArrayDimensions) {
           CheckWellformed(dim, new WFOptions(), locals, builder, etran);
-          var desc = new PODesc.NonNegative(tRhs.ArrayDimensions.Count == 1
+          var desc = new NonNegative(tRhs.ArrayDimensions.Count == 1
             ? "array size" : $"array size (dimension {i})", dim);
-          builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc));
+          builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc, builder.Context));
           i++;
         }
         if (tRhs.ElementInit != null) {
           CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
         } else if (tRhs.InitDisplay != null) {
           var dim = tRhs.ArrayDimensions[0];
-          var desc = new PODesc.ArrayInitSizeValid(tRhs, dim);
-          builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc));
+          var desc = new ArrayInitSizeValid(tRhs, dim);
+          builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc, builder.Context));
           foreach (var v in tRhs.InitDisplay) {
             CheckWellformed(v, new WFOptions(), locals, builder, etran);
           }
@@ -491,8 +486,8 @@ public partial class BoogieGenerator {
           foreach (Expression dim in tRhs.ArrayDimensions) {
             zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
           }
-          var desc = new PODesc.ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
-          builder.Add(Assert(tRhs.Tok, zeroSize, desc));
+          var desc = new ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
+          builder.Add(Assert(tRhs.Tok, zeroSize, desc, builder.Context));
         }
       }
 

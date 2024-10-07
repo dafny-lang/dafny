@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -22,6 +23,11 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
 
   public override bool CanBeRevealed() {
     return true;
+  }
+
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
   }
 
   public new bool IsGhost { get { return this.isGhost; } }

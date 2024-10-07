@@ -29,12 +29,11 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public readonly ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
-  public readonly BlockStmt Proof;
 
-  public Expression Receiver { get { return MethodSelect.Obj; } }
-  public Method Method { get { return (Method)MethodSelect.Member; } }
+  public Expression Receiver => MethodSelect.Obj;
+  public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null, BlockStmt proof = null)
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, IToken overrideToken = null)
     : base(rangeToken) {
     Contract.Requires(rangeToken != null);
     Contract.Requires(cce.NonNullElements(lhs));
@@ -46,7 +45,6 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     this.MethodSelect = memSel;
     this.overrideToken = overrideToken;
     this.Bindings = new ActualBindings(args);
-    Proof = proof;
   }
 
   public CallStmt Clone(Cloner cloner) {
@@ -58,15 +56,14 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     Lhs = original.Lhs.Select(cloner.CloneExpr).ToList();
     Bindings = new ActualBindings(cloner, original.Bindings);
     overrideToken = original.overrideToken;
-    Proof = cloner.CloneBlockStmt(original.Proof);
   }
 
   /// <summary>
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args, BlockStmt proof = null)
-    : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e)), proof: proof) {
+  public CallStmt(RangeToken rangeToken, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
+    : this(rangeToken, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

@@ -123,7 +123,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
           assertTree.Finished &&
             assertTree.Range.Intersects(selection) &&
             assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
-            assertTree.GetAssertion()?.Description is ProofObligationDescription.ProofObligationDescription description &&
+            assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
             description.GetAssertedExpr(options) is { } assertedExpr) {
         failingExpressions.Add(assertedExpr);
       }

@@ -541,7 +541,7 @@ public class Compilation : IDisposable {
         throw new ArgumentOutOfRangeException($"Unexpected ErrorKind: {errorInformation.Kind}");
     }
 
-    if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
+    if (boogieProofObligationDesc is ProofObligationDescription dafnyProofObligationDesc) {
       var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
       string? msg = null;
       if (expr != null) {
