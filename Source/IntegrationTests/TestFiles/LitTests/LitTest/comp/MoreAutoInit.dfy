@@ -247,7 +247,7 @@ module Consts {
     static const StaticD1: Ad := StaticD0
   }
 
-  trait Trait<At(0)> {
+  trait Trait<At(0)> extends object {
     const InstanceT0: At
     const InstanceT1: At := InstanceT0
     const InstanceT2: At

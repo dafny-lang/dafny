@@ -15,7 +15,7 @@ method Main() {
 
 // -------------------------------------------------------------------------------------------
 
-trait Trait { }
+trait Trait extends object { }
 class Class extends Trait { }
 
 type IntSet = set<int>

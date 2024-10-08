@@ -60,7 +60,7 @@ method Main() {
   // datatypes
   Method("AtomicShells<bool>", Atom(true));
   Method("AtomicShells<AtomicShells<int>>", Atom(Atom(3)));
-  Method("AtomicShells<AtomicShells<pos>>", Atom(Atom(3 as pos)));
+  Method("AtomicShells<AtomicShells<pos>>", Atom(AtomicShells<pos>.Atom(3 as pos)));
   var u: Class := new Class<int, int>;
   Method("Record<int, Class<int, int>, Class<real, real>>", Record<int, Class?<int, int>, Class<real, real>>.SimpleRecord(5, u));
 
@@ -131,7 +131,7 @@ function Up(x: int): Stream<int> {
   More(x, Up(x + 1))
 }
 
-trait Trait<T> { }
+trait Trait<T> extends object { }
 class Class<A, B> extends Trait<seq<A>> { }
 
 function IntBoolFunction(x: int): bool

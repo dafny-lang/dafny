@@ -99,7 +99,7 @@ method Arrows() {
 method DoNothing(F: int ~> pos) { }
 
 module NilRegression {
-  trait Trait { }
+  trait Trait extends object { }
   class Class extends Trait { }
 
   method Test() {

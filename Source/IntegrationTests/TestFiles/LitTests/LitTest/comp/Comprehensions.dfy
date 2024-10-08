@@ -253,7 +253,7 @@ method Sequences() {
   print nats, "\n";
 }
 
-trait NothingInParticular { }
+trait NothingInParticular extends object { }
 class ClassA { }
 class ClassB extends NothingInParticular { }
 
@@ -341,7 +341,7 @@ method SetComprehension3() {
   print |d|, " ", |e|, "\n"; // 3 3
 }
 
-trait ICell { var data: int }
+trait ICell extends object { var data: int }
 class CellA extends ICell { }
 class CellB extends ICell { }
 
@@ -423,7 +423,7 @@ method GoNil() {
   print "there are ", |dd|, " elements in the union\n";  // 3
 }
 
-trait SomethingElse { }
+trait SomethingElse extends object { }
 
 method Containment(s: set<CellA>, t: set<ICell>, u: set<SomethingElse>) {
   // Test that the type parameter emitted by the compiler accommodates that of both
@@ -447,7 +447,7 @@ method Containment(s: set<CellA>, t: set<ICell>, u: set<SomethingElse>) {
 }
 
 module TestImplicitTypeTests {
-  trait A {}
+  trait A extends object {}
   trait B extends A {}
   class C extends B {}
   class A' extends A {}
