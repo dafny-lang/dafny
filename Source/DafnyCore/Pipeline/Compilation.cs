@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -575,7 +574,7 @@ public class Compilation : IDisposable {
       case SolverOutcome.Undetermined:
         return VcOutcome.Inconclusive;
       case SolverOutcome.Bounded:
-        return VcOutcome.ReachedBound;
+        return VcOutcome.Inconclusive;
       default:
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }
