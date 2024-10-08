@@ -185,8 +185,7 @@ public class ProofDependencyWarnings {
     }
   }
 
-  private static void SuggestFunctionHiding(ErrorReporter reporter, List<Function> unusedFunctions, Method m)
-  {
+  private static void SuggestFunctionHiding(ErrorReporter reporter, List<Function> unusedFunctions, Method m) {
     if (unusedFunctions.Any()) {
       reporter.Info(MessageSource.Verifier, m.Body.StartToken,
         $"Consider hiding {(unusedFunctions.Count > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");
