@@ -4,7 +4,7 @@
 // This program shows how to model an outer type whose invariant refers to the invariant of an inner type.
 
 // A universe of objects playing under LCI rules 
-trait S {
+trait S extends object {
   // The set of objects in the universe
   ghost var obs: set<O>
 
@@ -39,7 +39,7 @@ trait S {
 }
 
 // A generic object trait
-trait O {
+trait O extends object {
   // Universe of which O is a member.
   // This should really be a constant, but I don't know how to do that while factoring out join below,
   // because traits can't have constructors.

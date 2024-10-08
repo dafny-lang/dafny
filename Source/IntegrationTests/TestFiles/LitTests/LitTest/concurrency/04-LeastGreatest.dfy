@@ -64,11 +64,11 @@ lemma BuildBAux(k: ORDINAL, x: Object) ensures B#[k](x) {
 
 // Mutually recursive, using two different traits
 
-trait TraitA {
+trait TraitA extends object {
   var b: TraitB
 }
 
-trait TraitB {
+trait TraitB extends object {
   var a: TraitA
 }
 
