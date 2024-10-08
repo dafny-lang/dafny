@@ -34,7 +34,7 @@ public class ProofDependencyWarnings {
         continue;
       }
       var assertCoverage = result.VCResults.Select(e => (e.CoveredElements, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>(e.Asserts))).ToList();
-      var unusedFunctions = UnusedFunctions(depManager, implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements), result.VCResults.SelectMany(r => r.AvailableAxioms));
+      var unusedFunctions = UnusedFunctions(dafnyOptions, depManager, implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements), result.VCResults.SelectMany(r => r.AvailableAxioms));
       WarnAboutSuspiciousDependencies(dafnyOptions, reporter, depManager, implementation.Name, assertCoverage, unusedFunctions);
     }
   }
@@ -47,11 +47,15 @@ public class ProofDependencyWarnings {
     }
     var distilled = results.Select(r => (r.CoveredElements, DafnyConsolePrinter.DistillVCResult(r))).ToList();
     var asserts = distilled.Select(tp => (tp.CoveredElements, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>(tp.Item2.Asserts))).ToList();
-    var unusedFunctions = UnusedFunctions(depManager, name, distilled.SelectMany(r => r.CoveredElements), distilled.SelectMany(r => r.Item2.AvailableAxioms));
+    var unusedFunctions = UnusedFunctions(dafnyOptions, depManager, name, distilled.SelectMany(r => r.CoveredElements), distilled.SelectMany(r => r.Item2.AvailableAxioms));
     WarnAboutSuspiciousDependencies(dafnyOptions, reporter, depManager, name, asserts, unusedFunctions);
   }
 
-  private static List<Function> UnusedFunctions(ProofDependencyManager depManager, string name, IEnumerable<TrackedNodeComponent> coveredElements, IEnumerable<Axiom> axioms) {
+  private static List<Function> UnusedFunctions(DafnyOptions dafnyOptions, ProofDependencyManager depManager, string name, IEnumerable<TrackedNodeComponent> coveredElements, IEnumerable<Axiom> axioms) {
+    if (!(dafnyOptions.Get(CommonOptionBag.SuggestProofRefactoring) && depManager.idsByMemberName[name].Decl is Method)) {
+      return new List<Function>();
+    }
+
     var unusedFunctions = new List<Function>();
     if (depManager.idsByMemberName[name].Decl is not Method m) {
       return unusedFunctions;
@@ -67,7 +71,7 @@ public class ProofDependencyWarnings {
     unusedFunctions = referencedFunctions.Except(hiddenFunctions).Except(usedFunctions).ToList();
 
     HashSet<Function> ReferencedFunctions(Method method) {
-      var functionCallsInMethod = method.Body.AllSubExpressions(false, false).OfType<FunctionCallExpr>();
+      var functionCallsInMethod = method.Body != null ? method.Body.AllSubExpressions(false, false).OfType<FunctionCallExpr>() : new List<FunctionCallExpr>();
       var functionDependants = new Dictionary<Function, IEnumerable<Function>>();
 
       foreach (var fce in functionCallsInMethod) {
