@@ -1367,7 +1367,7 @@ namespace Microsoft.Dafny.Compilers {
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            if (!instantiatedType.Equals(p.Type)) {
+            if (!p.IsGhost && !instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
               DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
