@@ -1,0 +1,10 @@
+ProofRefactorings.dfy(16,0): Info: Consider hiding these functions, which are unused by the proof: Pow, Id
+ProofRefactorings.dfy(22,0): Info: Consider hiding these functions, which are unused by the proof: Pow, Id
+ProofRefactorings.dfy(39,0): Info: Consider hiding this function, which is unused by the proof: Pow
+ProofRefactorings.dfy(80,10): Info: This fact was only used to prove the precondtion of the method call ProofRefactorings.dfy(81,3)-(81,6). Consider moving it into a by-proof.
+ProofRefactorings.dfy(93,0): Info: Consider hiding this function, which is unused by the proof: P
+ProofRefactorings.dfy(92,11): Info: This requires clause was only used to prove the assertion ProofRefactorings.dfy(94,11)-(94,11). Consider labelling it and revealing it in a by-proof.
+ProofRefactorings.dfy(99,0): Info: Consider hiding this function, which is unused by the proof: P
+ProofRefactorings.dfy(107,9): Info: This fact was only used to prove the assertion ProofRefactorings.dfy(109,10)-(109,10). Consider moving it into a by-proof.
+
+Dafny program verifier finished with 44 verified, 0 errors

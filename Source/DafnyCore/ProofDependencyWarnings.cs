@@ -244,6 +244,7 @@ public class ProofDependencyWarnings {
       var completeInformation = true;
 
       switch (dep) {
+        case AssumedProofObligationDependency:
         case AssumptionDependency: {
             range = dep.Range;
             factProvider = "fact";
