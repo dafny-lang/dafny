@@ -534,7 +534,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
-      proofDependencies.SetCurrentDefinition(proc.VerboseName);
+      proofDependencies.SetCurrentDefinition(proc.VerboseName, m);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -820,7 +820,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext == null);
 
-      proofDependencies.SetCurrentDefinition(proc.VerboseName);
+      proofDependencies.SetCurrentDefinition(proc.VerboseName, m);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);
@@ -918,7 +918,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
       Contract.Ensures(currentModule == null && codeContext == null && _tmpIEs.Count == 0 && isAllocContext != null);
 
-      proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.OverrideCheck));
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.OverrideCheck), f);
       #region first procedure, no impl yet
       //Function nf = new Function(f.tok, "OverrideCheck_" + f.Name, f.IsStatic, f.IsGhost, f.TypeArgs, f.OpenParen, f.Formals, f.ResultType, f.Req, f.Reads, f.Ens, f.Decreases, f.Body, f.Attributes, f.SignatureEllipsis);
       //AddFunction(f);
@@ -1691,7 +1691,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Boogie.Procedure>() != null);
       Contract.Assert(VisibleInScope(m));
 
-      proofDependencies.SetCurrentDefinition(MethodVerboseName(m.FullDafnyName, kind));
+      proofDependencies.SetCurrentDefinition(MethodVerboseName(m.FullDafnyName, kind), m);
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       isAllocContext = new IsAllocContext(options, m.IsGhost);

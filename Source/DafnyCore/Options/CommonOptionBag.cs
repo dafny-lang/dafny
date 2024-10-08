@@ -280,6 +280,11 @@ May slow down verification slightly, or make it more brittle.
 May produce spurious warnings.") {
     IsHidden = true
   };
+  public static readonly Option<bool> SuggestProofRefactoring = new("--suggest-proof-refactoring", @"
+(experimental) Emits suggestions for moving assertions into by-proofs and hiding unused function definitions.
+May produce spurious suggestions. Use with --show-hints on the CLI.") {
+    IsHidden = true
+  };
   public static readonly Option<string> VerificationCoverageReport = new("--verification-coverage-report",
     "Emit verification coverage report to a given directory, in the same format as a test coverage report.") {
     ArgumentHelpName = "directory"
@@ -453,6 +458,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
     DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
+    DafnyOptions.RegisterLegacyUi(SuggestProofRefactoring, DafnyOptions.ParseImplicitEnable, "Verification options", "suggestProofRefactoring");
 
     void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
@@ -504,6 +510,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
       if (value) { options.TrackVerificationCoverage = true; }
     });
     DafnyOptions.RegisterLegacyBinding(WarnRedundantAssumptions, (options, value) => {
+      if (value) { options.TrackVerificationCoverage = true; }
+    });
+    DafnyOptions.RegisterLegacyBinding(SuggestProofRefactoring, (options, value) => {
       if (value) { options.TrackVerificationCoverage = true; }
     });
 
@@ -605,6 +614,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(InternalIncludeRuntimeOptionForExecution, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnContradictoryAssumptions, OptionScope.Module);
     OptionRegistry.RegisterOption(WarnRedundantAssumptions, OptionScope.Module);
+    OptionRegistry.RegisterOption(SuggestProofRefactoring, OptionScope.Module);
     OptionRegistry.RegisterOption(VerificationCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(NoTimeStampForCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(DefaultFunctionOpacity, OptionScope.Module);

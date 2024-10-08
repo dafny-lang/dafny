@@ -1417,7 +1417,7 @@ public partial class BoogieGenerator {
     Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null);
     Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null);
 
-    proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness));
+    proofDependencies.SetCurrentDefinition(MethodVerboseName(decl.FullDafnyName, MethodTranslationKind.SpecWellformedness), null);
 
     if (!InVerificationScope(decl)) {
       // Checked in other file

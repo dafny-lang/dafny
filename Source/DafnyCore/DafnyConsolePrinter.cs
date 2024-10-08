@@ -26,8 +26,9 @@ public class DafnyConsolePrinter : ConsolePrinter {
     DateTime StartTime,
     TimeSpan RunTime,
     SolverOutcome Outcome,
-    List<(Boogie.IToken Tok, string Description)> Asserts,
+    List<(Boogie.IToken Tok, string Description, string Id)> Asserts,
     IEnumerable<TrackedNodeComponent> CoveredElements,
+    IEnumerable<Axiom> AvailableAxioms,
     int ResourceCount);
   public record VerificationResultLogEntry(
     VcOutcome Outcome,
@@ -43,10 +44,18 @@ public class DafnyConsolePrinter : ConsolePrinter {
       verificationResult.ResourceCount, verificationResult.RunResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
   }
 
-  private static VCResultLogEntry DistillVCResult(VerificationRunResult r) {
+  public static VCResultLogEntry DistillVCResult(VerificationRunResult r) {
     return new VCResultLogEntry(r.VcNum, r.StartTime, r.RunTime, r.Outcome,
-        r.Asserts.Select(a => (a.tok, a.Description.SuccessDescription)).ToList(), r.CoveredElements,
-        r.ResourceCount);
+        r.Asserts.Select(a => (a.tok, a.Description.SuccessDescription, GetId(a))).ToList(), r.CoveredElements,
+        r.DeclarationsAfterPruning.OfType<Axiom>(), r.ResourceCount);
+
+    string GetId(ICarriesAttributes construct) {
+      var values = construct.FindAllAttributes("id");
+      if (!values.Any()) {
+        throw new ArgumentException($"No dependency ID in assertion");
+      }
+      return (string)values.Last().Params.First();
+    }
   }
 
   public ConcurrentBag<ConsoleLogEntry> VerificationResults { get; } = new();

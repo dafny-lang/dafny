@@ -8,40 +8,42 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Dafny;
-using Bpl = Microsoft.Boogie;
-using BplParser = Microsoft.Boogie.Parser;
 using Microsoft.Boogie;
 using DafnyCore.Verifier;
-using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public class ProofDependencyManager {
     // proof dependency tracking state
     public Dictionary<string, ProofDependency> ProofDependenciesById { get; } = new();
-    private readonly Dictionary<string, HashSet<ProofDependency>> idsByMemberName = new();
+    public readonly Dictionary<string, (Declaration Decl, HashSet<ProofDependency> Deps)> idsByMemberName = new();
     private UInt64 proofDependencyIdCount = 0;
-    private string currentDefinition;
+    private string currentDeclarationString;
+    private Declaration currentDeclaration;
 
     public string GetProofDependencyId(ProofDependency dep) {
       var idString = $"id{proofDependencyIdCount}";
       ProofDependenciesById[idString] = dep;
       proofDependencyIdCount++;
-      var currentSet = idsByMemberName.GetOrCreate(currentDefinition, () => new HashSet<ProofDependency>());
+      var (_, currentSet) = idsByMemberName.GetOrCreate(currentDeclarationString, () => (currentDeclaration, new HashSet<ProofDependency>()));
       currentSet.Add(dep);
       return idString;
     }
 
-    public void SetCurrentDefinition(string verificationScopeId) {
-      currentDefinition = verificationScopeId;
+    public void SetCurrentDefinition(string verificationScopeId, Declaration decl) {
+      currentDeclarationString = verificationScopeId;
+      currentDeclaration = decl;
     }
 
     public IEnumerable<ProofDependency> GetPotentialDependenciesForDefinition(string defName) {
-      return idsByMemberName[defName];
+      return idsByMemberName[defName].Deps;
+    }
+
+    public Declaration GetDeclerationForDefinition(string defName) {
+      return idsByMemberName[defName].Decl;
     }
 
     public IEnumerable<ProofDependency> GetAllPotentialDependencies() {
-      return idsByMemberName.Values.SelectMany(x => x);
+      return idsByMemberName.Values.SelectMany(x => x.Deps);
     }
 
     // The "id" attribute on a Boogie AST node is used by Boogie to label

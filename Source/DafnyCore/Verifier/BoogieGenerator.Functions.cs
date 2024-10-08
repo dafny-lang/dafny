@@ -22,7 +22,7 @@ public partial class BoogieGenerator {
 
     Contract.Assert(InVerificationScope(f));
 
-    proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.SpecWellformedness));
+    proofDependencies.SetCurrentDefinition(MethodVerboseName(f.FullDafnyName, MethodTranslationKind.SpecWellformedness), f);
     currentModule = f.EnclosingClass.EnclosingModuleDefinition;
     codeContext = f;
 
@@ -927,9 +927,16 @@ public partial class BoogieGenerator {
     } else {
       comment += " (opaque)";
     }
-    return new Axiom(f.tok, BplImp(activate, ax), comment) {
+    var axe = new Axiom(f.tok, BplImp(activate, ax), comment) {
       CanHide = true
     };
+    if (proofDependencies == null) {
+      return axe;
+    }
+
+    proofDependencies.SetCurrentDefinition(f.FullSanitizedName, f);
+    proofDependencies.AddProofDependencyId(axe, f.tok, new FunctionDefinitionDependency(f));
+    return axe;
   }
 
 
