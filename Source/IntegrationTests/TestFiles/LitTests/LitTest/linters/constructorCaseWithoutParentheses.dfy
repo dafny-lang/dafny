@@ -1,5 +1,13 @@
-// RUN: %verify --warn-missing-constructor-parentheses "%s" --allow-warnings > "%t"
+// RUN: %exits-with 2 %verify --warn-missing-constructor-parentheses "%s" --allow-warnings > "%t"
 // RUN: %diff "%s.expect" "%t"
+
+/* These tests were originally designed to test --warn-missing-constructor-parentheses, which reported
+ * a warning when a nullary constructor in a match-case did not include parentheses.
+ *
+ * In the new resolver, that option has been superseded by reporting an error if a non-nullary
+ * constructor is used without arguments. The use of the --warn-missing-constructor-parentheses option
+ * in this test is thus not necessary.
+ */
 
 module WithWarning {
   datatype Color = Red | Green | ShadesOfGray(nat)
@@ -19,13 +27,13 @@ module WithWarning {
   }
   method MonochromaticMethod(c: Color) returns (x: bool) {
     return match c
-      case ShadesOfGray => true
+      case ShadesOfGray => true // error: needs arguments
       case Green => true
       case anythingElse => false;
   }
   function MonochromaticFunction(c: Color) : bool {
     match c
-      case ShadesOfGray => true
+      case ShadesOfGray => true // error: needs arguments
       case Green => true
       case anythingElse => false      
   }
@@ -34,7 +42,7 @@ module WithWarning {
     while test    
     {
        test := match c
-         case ShadesOfGray => true
+         case ShadesOfGray => true // error: needs arguments
          case Green => true      
          case anythingElse => false;
     }

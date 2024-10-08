@@ -67,8 +67,8 @@ ExportResolve.dfy(175,9): Error: This export set is not consistent: WhatIsKnownA
 ExportResolve.dfy(248,20): Error: unresolved identifier: X
 ExportResolve.dfy(248,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(248,39): Error: member 'u' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(250,18): Error: type of corresponding source/RHS (G.Trait) does not match type of bound variable (object?)
-ExportResolve.dfy(250,46): Error: type of corresponding source/RHS (G.Klass) does not match type of bound variable (object?)
+ExportResolve.dfy(250,18): Error: type of corresponding source/RHS (Trait) does not match type of bound variable (object?)
+ExportResolve.dfy(250,46): Error: type of corresponding source/RHS (Klass) does not match type of bound variable (object?)
 ExportResolve.dfy(252,15): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(252,28): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(252,41): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
@@ -91,17 +91,17 @@ ExportResolve.dfy(277,29): Error: member 'M' has not been imported in this scope
 ExportResolve.dfy(288,20): Error: unresolved identifier: X
 ExportResolve.dfy(288,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(288,39): Error: member 'u' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(290,18): Error: type of corresponding source/RHS (G.Trait) does not match type of bound variable (object?)
-ExportResolve.dfy(290,46): Error: type of corresponding source/RHS (G.Klass) does not match type of bound variable (object?)
+ExportResolve.dfy(290,18): Error: type of corresponding source/RHS (Trait) does not match type of bound variable (object?)
+ExportResolve.dfy(290,46): Error: type of corresponding source/RHS (Klass) does not match type of bound variable (object?)
 ExportResolve.dfy(298,19): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(342,15): Error: cannot reveal 'OpaqueFunction' because no revealable constant, function, assert label, or requires label in the current scope is named 'OpaqueFunction'
+ExportResolve.dfy(410,8): Error: RHS (of type X) not assignable to LHS (of type Z)
+ExportResolve.dfy(411,8): Error: RHS (of type T) not assignable to LHS (of type Z)
 ExportResolve.dfy(414,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(410,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
-ExportResolve.dfy(411,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
-ExportResolve.dfy(412,8): Error: RHS (of type int) not assignable to LHS (of type A.T)
+ExportResolve.dfy(412,11): Error: integer literal used as if it had type T
+ExportResolve.dfy(432,8): Error: RHS (of type X) not assignable to LHS (of type Z)
+ExportResolve.dfy(433,8): Error: RHS (of type T) not assignable to LHS (of type Z)
 ExportResolve.dfy(436,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
-ExportResolve.dfy(432,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
-ExportResolve.dfy(433,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
 ExportResolve.dfy(457,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(473,15): Error: Cannot export mutable field 'u' without revealing its enclosing class 'C'
 ExportResolve.dfy(475,15): Error: Cannot export constructor 'FromInt' without revealing its enclosing class 'C'

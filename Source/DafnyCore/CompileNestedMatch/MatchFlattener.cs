@@ -159,12 +159,12 @@ public class MatchFlattener : IRewriter {
         return pat;
       case IdPattern p:
         if (inDisjunctivePattern && p.ResolvedLit == null && p.Arguments == null && !p.IsWildcardPattern) {
-          return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
+          return new IdPattern(p.Tok, "_", null, p.IsGhost);
         }
         var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
         return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
       case DisjunctivePattern p:
-        return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
+        return new IdPattern(p.Tok, "_", null, p.IsGhost);
       default:
         Contract.Assert(false);
         return null;
