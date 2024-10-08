@@ -21,12 +21,13 @@ public class DafnyConsolePrinter : ConsolePrinter {
   private DafnyOptions options;
 
   public record ImplementationLogEntry(string Name, Boogie.IToken Tok);
-  public record VCResultLogEntry(
+  public record AssertCmdPartialCopy(Boogie.IToken Tok, string Description, string Id);
+  public record VerificationRunResultPartialCopy(
     int VCNum,
     DateTime StartTime,
     TimeSpan RunTime,
     SolverOutcome Outcome,
-    List<(Boogie.IToken Tok, string Description, string Id)> Asserts,
+    List<AssertCmdPartialCopy> Asserts,
     IEnumerable<TrackedNodeComponent> CoveredElements,
     IEnumerable<Axiom> AvailableAxioms,
     int ResourceCount);
@@ -34,7 +35,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     VcOutcome Outcome,
     TimeSpan RunTime,
     int ResourceCount,
-    List<VCResultLogEntry> VCResults,
+    List<VerificationRunResultPartialCopy> VCResults,
     List<Counterexample> Counterexamples);
   public record ConsoleLogEntry(ImplementationLogEntry Implementation, VerificationResultLogEntry Result);
 
@@ -44,9 +45,9 @@ public class DafnyConsolePrinter : ConsolePrinter {
       verificationResult.ResourceCount, verificationResult.RunResults.Select(DistillVCResult).ToList(), verificationResult.Errors);
   }
 
-  public static VCResultLogEntry DistillVCResult(VerificationRunResult r) {
-    return new VCResultLogEntry(r.VcNum, r.StartTime, r.RunTime, r.Outcome,
-        r.Asserts.Select(a => (a.tok, a.Description.SuccessDescription, GetId(a))).ToList(), r.CoveredElements,
+  public static VerificationRunResultPartialCopy DistillVCResult(VerificationRunResult r) {
+    return new VerificationRunResultPartialCopy(r.VcNum, r.StartTime, r.RunTime, r.Outcome,
+        r.Asserts.Select(a => new AssertCmdPartialCopy(a.tok, a.Description.SuccessDescription, GetId(a))).ToList(), r.CoveredElements,
         r.DeclarationsAfterPruning.OfType<Axiom>(), r.ResourceCount);
 
     string GetId(ICarriesAttributes construct) {

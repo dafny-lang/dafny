@@ -23,7 +23,7 @@ public class ProofDependencyWarnings {
     }
   }
 
-  public static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
+  public static void WarnAboutSuspiciousDependenciesUsingStoredPartialResults(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager) {
     var verificationResults = (dafnyOptions.Printer as DafnyConsolePrinter).VerificationResults.ToList();
     var orderedResults =
       verificationResults.OrderBy(vr =>
@@ -33,9 +33,9 @@ public class ProofDependencyWarnings {
       if (result.Outcome != VcOutcome.Correct) {
         continue;
       }
-      var assertCoverage = result.VCResults.Select(e => (e.CoveredElements, new HashSet<(Boogie.IToken Tok, string Description, string Id)>(e.Asserts))).ToList();
+      var assertCoverage = result.VCResults.Select(e => (e.CoveredElements, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>(e.Asserts))).ToList();
       var unusedFunctions = UnusedFunctions(depManager, implementation.Name, result.VCResults.SelectMany(r => r.CoveredElements), result.VCResults.SelectMany(r => r.AvailableAxioms));
-      Warn(dafnyOptions, reporter, depManager, implementation.Name, assertCoverage, unusedFunctions);
+      WarnAboutSuspiciousDependencies(dafnyOptions, reporter, depManager, implementation.Name, assertCoverage, unusedFunctions);
     }
   }
 
@@ -46,90 +46,92 @@ public class ProofDependencyWarnings {
       return;
     }
     var distilled = results.Select(r => (r.CoveredElements, DafnyConsolePrinter.DistillVCResult(r))).ToList();
-    var asserts = distilled.Select(tp => (tp.CoveredElements, new HashSet<(Boogie.IToken Tok, string Description, string Id)>(tp.Item2.Asserts))).ToList();
+    var asserts = distilled.Select(tp => (tp.CoveredElements, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>(tp.Item2.Asserts))).ToList();
     var unusedFunctions = UnusedFunctions(depManager, name, distilled.SelectMany(r => r.CoveredElements), distilled.SelectMany(r => r.Item2.AvailableAxioms));
-    Warn(dafnyOptions, reporter, depManager, name, asserts, unusedFunctions);
+    WarnAboutSuspiciousDependencies(dafnyOptions, reporter, depManager, name, asserts, unusedFunctions);
   }
 
   private static List<Function> UnusedFunctions(ProofDependencyManager depManager, string name, IEnumerable<TrackedNodeComponent> coveredElements, IEnumerable<Axiom> axioms) {
     var unusedFunctions = new List<Function>();
-    if (depManager.idsByMemberName[name].Decl is Method m) {
-      var referencedFunctions = ReferencedFunctions(m);
+    if (depManager.idsByMemberName[name].Decl is not Method m) {
+      return unusedFunctions;
+    }
 
-      var hiddenFunctions = HiddenFunctions(referencedFunctions);
+    var referencedFunctions = ReferencedFunctions(m);
 
-      var usedFunctions = coveredElements.Select(depManager.GetFullIdDependency).OfType<FunctionDefinitionDependency>()
-        .Select(dep => dep.function).Deduplicate((a, b) => a.Equals(b));
+    var hiddenFunctions = HiddenFunctions(referencedFunctions);
 
-      unusedFunctions = referencedFunctions.Except(hiddenFunctions).Except(usedFunctions).ToList();
+    var usedFunctions = coveredElements.Select(depManager.GetFullIdDependency).OfType<FunctionDefinitionDependency>()
+      .Select(dep => dep.function).Deduplicate((a, b) => a.Equals(b));
 
-      HashSet<Function> ReferencedFunctions(Method method) {
-        var fCEsinM = method.Body.AllSubExpressions(false, false).OfType<FunctionCallExpr>();
-        var fToDeps = new Dictionary<Function, IEnumerable<Function>>();
+    unusedFunctions = referencedFunctions.Except(hiddenFunctions).Except(usedFunctions).ToList();
 
-        foreach (var fce in fCEsinM) {
-          var fun = fce.Function;
-          if (!fToDeps.ContainsKey(fun)) {
-            fToDeps[fun] = Dependents(fun);
-          }
+    HashSet<Function> ReferencedFunctions(Method method) {
+      var functionCallsInMethod = method.Body.AllSubExpressions(false, false).OfType<FunctionCallExpr>();
+      var functionDependants = new Dictionary<Function, IEnumerable<Function>>();
 
-          continue;
+      foreach (var fce in functionCallsInMethod) {
+        var fun = fce.Function;
+        if (!functionDependants.ContainsKey(fun)) {
+          functionDependants[fun] = Dependents(fun);
+        }
 
-          IEnumerable<Function> Dependents(Function fn) {
-            var queue = new Queue<Function>(new[] { fn });
-            var visited = new HashSet<Function>();
-            while (queue.Any()) {
-              var f = queue.Dequeue();
-              visited.Add(f);
+        continue;
 
-              f.SubExpressions.SelectMany(AllSubFunctions).Where(fn => !visited.Contains(fn)).ForEach(queue.Enqueue);
-              continue;
+        IEnumerable<Function> Dependents(Function fn) {
+          var queue = new Queue<Function>(new[] { fn });
+          var visited = new HashSet<Function>();
+          while (queue.Any()) {
+            var f = queue.Dequeue();
+            visited.Add(f);
 
-              IEnumerable<Function> AllSubFunctions(Expression e) {
-                return e.SubExpressions.OfType<FunctionCallExpr>().Select(fce => fce.Function)
-                  .Concat(e.SubExpressions.SelectMany(AllSubFunctions));
-              }
+            f.SubExpressions.SelectMany(AllSubFunctions).Where(fn => !visited.Contains(fn)).ForEach(queue.Enqueue);
+            continue;
+
+            IEnumerable<Function> AllSubFunctions(Expression e) {
+              return e.SubExpressions.OfType<FunctionCallExpr>().Select(fce => fce.Function)
+                .Concat(e.SubExpressions.SelectMany(AllSubFunctions));
             }
-            return visited.ToList();
           }
+          return visited.ToList();
         }
-
-        var hashSet = new HashSet<Function>();
-        foreach (var (f, deps) in fToDeps) {
-          hashSet.Add(f);
-          hashSet.UnionWith(deps);
-        }
-
-        return hashSet;
       }
 
-      HashSet<Function> HiddenFunctions(HashSet<Function> functions) {
-        var hiddenFunctions = new HashSet<Function>(functions);
+      var hashSet = new HashSet<Function>();
+      foreach (var (f, deps) in functionDependants) {
+        hashSet.Add(f);
+        hashSet.UnionWith(deps);
+      }
 
-        foreach (var visibleFunction in axioms.Select(GetFunctionFromAttributed).Where(f => f != null)) {
-          hiddenFunctions.Remove(visibleFunction);
-        }
+      return hashSet;
+    }
 
-        return hiddenFunctions;
+    HashSet<Function> HiddenFunctions(HashSet<Function> functions) {
+      var hiddenFunctions = new HashSet<Function>(functions);
 
-        Function GetFunctionFromAttributed(ICarriesAttributes construct) {
-          var values = construct.FindAllAttributes("id");
-          if (!values.Any()) {
-            return null;
-          }
-          var id = (string)values.Last().Params.First();
-          if (depManager.ProofDependenciesById.TryGetValue(id, out var dep) && dep is FunctionDefinitionDependency fdd) {
-            return fdd.function;
-          }
+      foreach (var visibleFunction in axioms.Select(GetFunctionFromAttributed).Where(f => f != null)) {
+        hiddenFunctions.Remove(visibleFunction);
+      }
+
+      return hiddenFunctions;
+
+      Function GetFunctionFromAttributed(ICarriesAttributes construct) {
+        var values = construct.FindAllAttributes("id");
+        if (!values.Any()) {
           return null;
         }
+        var id = (string)values.Last().Params.First();
+        if (depManager.ProofDependenciesById.TryGetValue(id, out var dep) && dep is FunctionDefinitionDependency fdd) {
+          return fdd.function;
+        }
+        return null;
       }
     }
     return unusedFunctions;
   }
 
-  private static void Warn(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager,
-    string scopeName, List<(IEnumerable<TrackedNodeComponent> CoveredElements, HashSet<(Boogie.IToken Tok, string Description, string Id)> Asserts)> assertCoverage, List<Function> unusedFunctions) {
+  private static void WarnAboutSuspiciousDependencies(DafnyOptions dafnyOptions, ErrorReporter reporter, ProofDependencyManager depManager,
+    string scopeName, List<(IEnumerable<TrackedNodeComponent> CoveredElements, HashSet<DafnyConsolePrinter.AssertCmdPartialCopy> Asserts)> assertCoverage, List<Function> unusedFunctions) {
     var potentialDependencies = depManager.GetPotentialDependenciesForDefinition(scopeName);
     var coveredElements = assertCoverage.SelectMany(tp => tp.CoveredElements);
     var usedDependencies =
@@ -178,25 +180,28 @@ public class ProofDependencyWarnings {
     }
 
     if (dafnyOptions.Get(CommonOptionBag.SuggestProofRefactoring) && depManager.idsByMemberName[scopeName].Decl is Method m) {
-      // Function hiding suggestion
-      if (unusedFunctions.Any()) {
-        reporter.Info(MessageSource.Verifier, m.Body.StartToken,
-          $"Consider hiding {(unusedFunctions.Count > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");
-      }
-
+      SuggestFunctionHiding(reporter, unusedFunctions, m);
       SuggestByProofRefactoring(reporter, depManager, scopeName, assertCoverage);
     }
   }
 
+  private static void SuggestFunctionHiding(ErrorReporter reporter, List<Function> unusedFunctions, Method m)
+  {
+    if (unusedFunctions.Any()) {
+      reporter.Info(MessageSource.Verifier, m.Body.StartToken,
+        $"Consider hiding {(unusedFunctions.Count > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");
+    }
+  }
+
   private static void SuggestByProofRefactoring(ErrorReporter reporter, ProofDependencyManager depManager,
-    string scopeName, List<(IEnumerable<TrackedNodeComponent> CoveredElements, HashSet<(Boogie.IToken Tok, string Description, string Id)> Asserts)> assertCoverage) {
-    var dependencyTracker = depManager.GetPotentialDependenciesForDefinition(scopeName).Where(dep => dep is not EnsuresDependency).ToDictionary(dep => dep, _ => new HashSet<(Boogie.IToken Tok, string Description, string Id)> { });
+    string scopeName, List<(IEnumerable<TrackedNodeComponent> CoveredElements, HashSet<DafnyConsolePrinter.AssertCmdPartialCopy> Asserts)> assertCoverage) {
+    var dependencyTracker = depManager.GetPotentialDependenciesForDefinition(scopeName).Where(dep => dep is not EnsuresDependency).ToDictionary(dep => dep, _ => new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy> { });
 
     foreach (var (usedFacts, asserts) in assertCoverage) {
       foreach (var fact in usedFacts) {
         var dep = depManager.GetFullIdDependency(fact);
         _ = dep is not EnsuresDependency &&
-            dependencyTracker.TryAdd(dep, new HashSet<(Boogie.IToken Tok, string Description, string Id)>());
+            dependencyTracker.TryAdd(dep, new HashSet<DafnyConsolePrinter.AssertCmdPartialCopy>());
         if (dependencyTracker.ContainsKey(dep)) {
           dependencyTracker[dep].UnionWith(asserts);
         }
