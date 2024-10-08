@@ -55,12 +55,12 @@ public abstract class ProofDependency {
 public class ProofObligationDependency : ProofDependency {
   public override RangeToken Range { get; }
 
-  public PODesc.ProofObligationDescription ProofObligation { get; }
+  public ProofObligationDescription ProofObligation { get; }
 
   public override string Description =>
       $"{ProofObligation.SuccessDescription}";
 
-  public ProofObligationDependency(Microsoft.Boogie.IToken tok, PODesc.ProofObligationDescription proofObligation) {
+  public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
     Range = BoogieGenerator.ToDafnyToken(true, tok).ToRange();
     ProofObligation = proofObligation;
   }
@@ -69,12 +69,12 @@ public class ProofObligationDependency : ProofDependency {
 public class AssumedProofObligationDependency : ProofDependency {
   public override RangeToken Range { get; }
 
-  public PODesc.ProofObligationDescription ProofObligation { get; }
+  public ProofObligationDescription ProofObligation { get; }
 
   public override string Description =>
       $"assumption that {ProofObligation.SuccessDescription}";
 
-  public AssumedProofObligationDependency(IToken tok, PODesc.ProofObligationDescription proofObligation) {
+  public AssumedProofObligationDependency(IToken tok, ProofObligationDescription proofObligation) {
     Range = tok as RangeToken ?? new RangeToken(tok, tok);
     ProofObligation = proofObligation;
   }

@@ -195,13 +195,13 @@ module Refinement {
   }
 
   module BB refines AA {
-    type SoonSubsetType0<B> = int // here, the name is allowed to be changed
+    type SoonSubsetType0<B> = int // error: name change not allowed
     type SoonSubsetType1<B extends Trait> = int // error: name change not allowed
     type SoonSubsetType2<B> = int // error: name change not allowed
 
-    type AbstractType0<B> // error: name change not allowed
-    type AbstractType1<B> // error: name change not allowed
-    type AbstractType2<B extends Trait> // error: name change not allowed
+    type AbstractType0<A> // error: name change not allowed
+    type AbstractType1<A> // error: type bounds don't match the ones in AA.AbstractType1
+    type AbstractType2<A extends Trait> // error: type bounds don't match the ones in AAAbstractType2
 
     type AbstractType3<A extends Trait> // error: wrong number of type bounds
     type AbstractType4<A extends Trait extends object>
@@ -321,5 +321,145 @@ module VariousBounds {
       parent := y; // (legacy error)
       assert parent is YTrait; // (legacy error)
     }
+  }
+}
+
+module MoreRefinement {
+  module AA {
+    trait Trait { }
+    trait G<X> { }
+    trait H<X> { }
+
+    type AbstractType0<A extends G<A>, B>
+    type AbstractType1<A, B extends G<A>>
+    type AbstractType2<A extends G<A>, B extends G<A>>
+    type AbstractType3<A extends G<A>, B extends G<A>>
+
+    function F0<A, B extends G<A>>(): int
+    function F1<A, B extends G<A>>(): int
+    function F2<A, B>(): A
+    function F3<A, B>(a: A): int
+    function F4<A, B>(a: A): A
+
+    method M0<A, B extends G<A>>()
+    method M1<A, B extends G<A>>()
+    method M2<A, B>() returns (a: A)
+    method M3<A, B>(a: A)
+    method M4<A, B>(a: A) returns (r: A)
+  }
+
+  module BB refines AA {
+    type AbstractType0<A extends G<B>, B> // error: the type bounds are not the same
+    type AbstractType1<A, B extends G<B>> // error: the type bounds are not the same
+    type AbstractType2<A extends G<A>, B extends G<A>>
+    type AbstractType3<A extends G<A>, B extends H<A>> // error: the type bounds are not the same
+
+    function F0<A, B extends G<B>>(): int // error: the type bounds are not the same
+    function F1<A, B extends G<A>>(): int
+    function F2<A, B>(): B // error: mismatched result type
+    function F3<A, B>(b: B): int // error: mismatched in-parameter type
+    function F4<A, B>(a: A): A
+
+    method M0<A, B extends G<B>>() // error: the type bounds are not the same
+    method M1<A, B extends G<A>>()
+    method M2<A, B>() returns (b: B) // error: mismatched out-parameter type
+    method M3<A, B>(b: B) // error: mismatched in-parameter type
+    method M4<A, B>(a: A) returns (r: A)
+  }
+}
+
+module RefinementRegressions {
+  module AA {
+    datatype D<X> = D(x: X)
+  }
+
+  module BB refines AA {
+    type X = int
+    datatype D<Y> ... // error: not allowed to rename type parameter
+  }
+
+  abstract module XX {
+    type D<X>
+    class C<X> {
+      var x: X
+      constructor Orig(x: X) {
+        this.x := x;
+      }
+      method Print() {
+        print x, "\n";
+      }
+    }
+
+    method G() returns (r: C<char>) {
+      r := new C<char>.Orig('h'); // error (reported as part of YY): 'h' used when an 'int' is expected (strange error, caused by the renaming error in YY)
+    }
+  }
+
+  module YY refines XX {
+    type D<Z> = X // error: not allowed to rename type parameter
+    type X = int
+    class C<Y> ... { // error: not allowed to rename type parameter
+      var y: Y
+      constructor Alt(y: Y) {
+        this.x := 15;
+        this.y := y;
+      }
+    }
+
+    method Test() {
+      var c := new C<real>.Alt(3.2);
+      var d := new C<real>.Orig(3);
+      c.Print();
+      d.Print();
+    }
+  }
+
+}
+
+module BadBounds {
+  trait GoodTrait { }
+
+  method M<G extends GoodTrait>(g: G) { }
+
+  method MCaller(r: real, n: nat) {
+    M(r); // error: type argument does not satisfy bound GoodTrait
+    M(n); // error: type argument does not satisfy bound GoodTrait
+  }
+
+  trait ReferenceTrait extends object {
+    const u: int
+  }
+
+  type ConstrainedReferenceTrait = r: ReferenceTrait | r.u < 100 witness *
+
+  method P<R extends ReferenceTrait?, S extends ReferenceTrait, T extends ConstrainedReferenceTrait>(r: R, s: S, t: T) { }
+
+  method PCaller(r: ReferenceTrait?, s: ReferenceTrait, t: ConstrainedReferenceTrait) {
+    P(r, s, t);
+    P(t, t, t);
+    P(s, s, s); // error: type argument 2 is not a ConstrainedReferenceTrait
+    P(r, r, t); // error: type argument 1 is not a ReferenceTrait
+    P(r, s, r); // error: type argument 2 is not a ConstrainedReferenceTrait
+
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, s, t);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(t, t, t);
+    // The value parameters passed into the following three calls are incorrect. However, these are checked
+    // by the verifier, so the resolver does not flag these. (See BoundedPolymorphismVerification.dfy.)
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(s, s, s);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, r, t);
+    P<ReferenceTrait?, ReferenceTrait, ConstrainedReferenceTrait>(r, s, r);
+  }
+
+  class E extends GoodTrait { }
+
+  method Q<G extends GoodTrait>(g: G) { }
+
+  method QCaller(e: E, eMaybe: E?) {
+    Q(e);
+    Q(eMaybe); // error: type E? does not satisfy GoodTrait (because an E? may be null)
+    Q<E>(e);
+    Q<E>(eMaybe); // parameter "eMaybe" might not be of the type E, but that's checked by the verifier
+    Q<E?>(e); // error: type E? does not satisfy GoodTrait (because an E? may be null)
+    Q<E?>(eMaybe); // error: type E? does not satisfy GoodTrait (because an E? may be null)
   }
 }

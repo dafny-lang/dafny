@@ -35,13 +35,13 @@ namespace Microsoft.Dafny.Compilers {
   interface ModuleContainer : Container {
     void AddModule(Module item);
 
-    public ModuleBuilder Module(string name, Sequence<Attribute> attributes) {
-      return new ModuleBuilder(this, name, attributes);
+    public ModuleBuilder Module(string name, Sequence<Attribute> attributes, bool requiresExterns) {
+      return new ModuleBuilder(this, name, attributes, requiresExterns);
     }
 
     static public Module UnsupportedToModule(string why) {
       return new Module(Sequence<Rune>.UnicodeFromString(why), Sequence<Attribute>.FromElements((Attribute)Attribute.create_Attribute(
-          Sequence<Rune>.UnicodeFromString(why), Sequence<Sequence<Rune>>.Empty)),
+          Sequence<Rune>.UnicodeFromString(why), Sequence<Sequence<Rune>>.Empty)), false,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_None());
     }
   }
@@ -51,11 +51,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly string name;
     readonly Sequence<Attribute> attributes;
     readonly List<ModuleItem> body = new();
+    private readonly bool requiresExterns;
 
-    public ModuleBuilder(ModuleContainer parent, string name, Sequence<Attribute> attributes) {
+    public ModuleBuilder(ModuleContainer parent, string name, Sequence<Attribute> attributes, bool requiresExterns) {
       this.parent = parent;
       this.name = name;
       this.attributes = attributes;
+      this.requiresExterns = requiresExterns;
     }
 
     public void AddModule(Module item) {
@@ -82,6 +84,7 @@ namespace Microsoft.Dafny.Compilers {
       parent.AddModule((Module)Module.create(
         Sequence<Rune>.UnicodeFromString(this.name),
         attributes,
+        requiresExterns,
         Std.Wrappers.Option<Sequence<ModuleItem>>.create_Some((Sequence<ModuleItem>)Sequence<ModuleItem>.FromArray(body.ToArray()))
       ));
 
@@ -130,8 +133,8 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
-      fields.Add((DAST.Field)DAST.Field.create_Field(item, defaultValue));
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
+      fields.Add((DAST.Field)DAST.Field.create_Field(item, isConstant, defaultValue));
     }
 
     public object Finish() {
@@ -184,7 +187,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -240,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -340,7 +343,7 @@ namespace Microsoft.Dafny.Compilers {
       body.Add(item);
     }
 
-    public void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue) {
+    public void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue) {
       throw new UnsupportedFeatureException(Token.NoToken, Feature.RunAllTests);
     }
 
@@ -360,17 +363,16 @@ namespace Microsoft.Dafny.Compilers {
   interface ClassLike {
     void AddMethod(DAST.Method item);
 
-    void AddField(DAST.Formal item, _IOption<DAST._IExpression> defaultValue);
+    void AddField(DAST.Formal item, bool isConstant, _IOption<DAST._IExpression> defaultValue);
 
-    public MethodBuilder Method(
-      bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
+    public MethodBuilder Method(bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      ISequence<_IAttribute> attributes,
       string name,
-      List<DAST.TypeArgDecl> typeArgs,
+      List<TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
-      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
-    ) {
-      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, name, typeArgs, params_, outTypes, outVars);
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
+      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, attributes, name, typeArgs, params_, outTypes, outVars);
     }
 
     public object Finish();
@@ -389,11 +391,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = new();
+    private ISequence<_IAttribute> attributes;
 
     public MethodBuilder(
       ClassLike parent,
       bool isStatic, bool hasBody, bool outVarsAreUninitFieldsToAssign, bool wasFunction,
       ISequence<ISequence<Rune>> overridingPath,
+      ISequence<_IAttribute> attributes,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
       Sequence<DAST.Formal> params_,
@@ -405,6 +409,7 @@ namespace Microsoft.Dafny.Compilers {
       this.outVarsAreUninitFieldsToAssign = outVarsAreUninitFieldsToAssign;
       this.wasFunction = wasFunction;
       this.overridingPath = overridingPath;
+      this.attributes = attributes;
       this.name = name;
       this.typeArgs = typeArgs;
       this.params_ = params_;
@@ -431,6 +436,7 @@ namespace Microsoft.Dafny.Compilers {
       StatementContainer.RecursivelyBuild(body, builtStatements);
 
       return (DAST.Method)DAST.Method.create(
+        attributes,
         isStatic,
         hasBody,
         outVarsAreUninitFieldsToAssign,
@@ -1800,7 +1806,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    public static DAST.Expression ToNativeU64(int number) {
+    public static DAST.Expression ToNativeUsize(int number) {
       var origType = DAST.Type.create_Primitive(DAST.Primitive.create_Int());
       var numberExpr = (DAST.Expression)DAST.Expression.create_Literal(
         DAST.Literal.create_IntLiteral(Sequence<Rune>.UnicodeFromString($"{number}"),
@@ -1808,9 +1814,9 @@ namespace Microsoft.Dafny.Compilers {
       );
       return (DAST.Expression)DAST.Expression.create_Convert(numberExpr, origType, DAST.Type.create_UserDefined(
         DAST.ResolvedType.create_ResolvedType(
-        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("u64")),
+        Sequence<Sequence<Rune>>.FromElements((Sequence<Rune>)Sequence<Rune>.UnicodeFromString("usize")),
         Sequence<_IType>.Empty,
-        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_U64(), true), Sequence<_IAttribute>.Empty,
+        DAST.ResolvedTypeBase.create_Newtype(origType, DAST.NewtypeRange.create_USIZE(), true), Sequence<_IAttribute>.Empty,
         Sequence<Sequence<Rune>>.Empty, Sequence<_IType>.Empty)
       ));
     }
@@ -1827,13 +1833,14 @@ namespace Microsoft.Dafny.Compilers {
 
       DAST.Expression startExpr;
       if (start == null) {
-        startExpr = ToNativeU64(0);
+        startExpr = ToNativeUsize(0);
       } else {
         startExpr = (DAST.Expression)DAST.Expression.create_Ident(
           Sequence<Rune>.UnicodeFromString(start));
       }
 
       return (DAST.Expression)DAST.Expression.create_IntRange(
+        DAST.Type.create_Primitive(DAST.Primitive.create_Native()),
         startExpr, endExpr, true);
     }
 

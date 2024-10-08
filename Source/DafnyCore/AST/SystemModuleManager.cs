@@ -380,8 +380,8 @@ public class SystemModuleManager {
     }
     var fn = new MemberSelectExpr(tok, f, member.Name) {
       Member = member,
-      TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
-      TypeApplication_JustMember = new List<Type>(),
+      TypeApplicationAtEnclosingClass = f.Type.TypeArgs,
+      TypeApplicationJustMember = new List<Type>(),
       Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
     };
     Expression body = new ApplyExpr(tok, fn, args, tok);

@@ -540,7 +540,7 @@ public class Compilation : IDisposable {
         throw new ArgumentOutOfRangeException($"Unexpected ErrorKind: {errorInformation.Kind}");
     }
 
-    if (boogieProofObligationDesc is ProofObligationDescription.ProofObligationDescription dafnyProofObligationDesc) {
+    if (boogieProofObligationDesc is ProofObligationDescription dafnyProofObligationDesc) {
       var expr = dafnyProofObligationDesc.GetAssertedExpr(options);
       string? msg = null;
       if (expr != null) {
@@ -574,7 +574,7 @@ public class Compilation : IDisposable {
       case SolverOutcome.Undetermined:
         return VcOutcome.Inconclusive;
       case SolverOutcome.Bounded:
-        return VcOutcome.Inconclusive;
+        return VcOutcome.Correct;
       default:
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }

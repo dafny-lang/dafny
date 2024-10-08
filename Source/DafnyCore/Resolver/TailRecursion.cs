@@ -104,8 +104,8 @@ class TailRecursion {
       if (s.HiddenUpdate != null) {
         return CheckTailRecursive(s.HiddenUpdate, enclosingMethod, ref tailCall, reportErrors);
       }
-    } else if (stmt is AssignStmt) {
-      var s = (AssignStmt)stmt;
+    } else if (stmt is SingleAssignStmt) {
+      var s = (SingleAssignStmt)stmt;
       if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
         // It's a recursive call.  However, it is not a tail call, because after the "new" allocation
         // and init call have taken place, the newly allocated object has yet to be assigned to
@@ -136,7 +136,7 @@ class TailRecursion {
       var s = (CallStmt)stmt;
       if (s.Method == enclosingMethod) {
         DisallowRecursiveCallsInExpressions(s, enclosingMethod, reportErrors);
-        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplication_JustMember, s.Lhs, reportErrors);
+        var status = ConfirmTailCall(s.Tok, s.Method, s.MethodSelect.TypeApplicationJustMember, s.Lhs, reportErrors);
         if (status == TailRecursionStatus.TailCallSpent) {
           tailCall = s;
         }
@@ -250,8 +250,8 @@ class TailRecursion {
       // TODO this should be the conservative choice, but probably we can consider this to be tail-recursive
       // under some conditions? However, how does this interact with compiling to exceptions?
       return TailRecursionStatus.NotTailRecursive;
-    } else if (stmt is UpdateStmt) {
-      var s = (UpdateStmt)stmt;
+    } else if (stmt is AssignStatement) {
+      var s = (AssignStatement)stmt;
       var ss = s.ResolvedStatements;
       if (ss.Count == 1) {
         return CheckTailRecursive(ss, enclosingMethod, ref tailCall, reportErrors);
@@ -262,11 +262,13 @@ class TailRecursion {
       }
     } else if (stmt is VarDeclStmt) {
       var s = (VarDeclStmt)stmt;
-      if (s.Update != null) {
-        return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
+      if (s.Assign != null) {
+        return CheckTailRecursive(s.Assign, enclosingMethod, ref tailCall, reportErrors);
       }
     } else if (stmt is VarDeclPattern) {
     } else if (stmt is ExpectStmt) {
+    } else if (stmt is BlockByProofStmt blockByProofStmt) {
+      return CheckTailRecursive(blockByProofStmt.Body, enclosingMethod, ref tailCall, reportErrors);
     } else {
       Contract.Assert(false);  // unexpected statement type
     }
@@ -340,7 +342,7 @@ class TailRecursion {
       if (formal != actual) {
         if (reportErrors) {
           reporter.Error(MessageSource.Resolver, tok,
-            "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
+            "the recursive call to '{0}' is not tail recursive because the actual type argument{1} is not the formal type parameter '{2}'",
             method.Name, method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
         }
         return TailRecursionStatus.NotTailRecursive;

@@ -2,6 +2,110 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.8.1
+
+## New features
+
+- feat: allow type parameters of `newtype` declarations
+  feat: support optional `witness` clause of constraint-less `newtype` declarations
+  feat: show tool tips for auto-completed type parameters
+  feat: show tool tips for inferred `(==)` characteristics
+  fix: Don't let `newtype` well-formedness checking affect witness checking (fixes ##5520)
+  fix: Check the emptiness status of constraint-less `newtype` declarations (fixes #5521)
+  (https://github.com/dafny-lang/dafny/pull/5495)
+
+- New feature: model extractor
+
+  ### CLI option
+
+  The `dafny verify` command now has an option `--extract:<file>`, where (just like for the various print options) `<file>` is allowed to be `-` to denote standard output.
+
+  ### Extract mechanism
+
+  Upon successful verification, the new extract mechanism visits the AST of the given program. For any module marked with `{:extract}`, the extract-worthy material from the module is output. The output declarations will be in the same order as they appear textually in the module (in particular, the fact that module-level Dafny declarations are collected in an internal class `_default` has no bearing on the output order).
+
+  Three kinds of declarations are extract-worthy:
+
+  * A type declaration `A<X, Y, Z>` that bears an attribute `{:extract_name B}` is extracted into a Boogie type declaration `type B _ _ _;`.
+
+      The definition of the type is ignored. (The intended usage for an extracted type is that the Dafny program give a definition for the type, which goes to show the existence of such a type.)
+
+  * A function declaration `F(x: X, y: Y): Z` that bears an attribute `{:extract_name G}` is extracted into a Boogie function declaration `function G(x: X, y: Y): Z;`.
+
+      The body of the Dafny function is ignored. (The intended usage for an extracted function is that the Dafny program give a definition for the function, which goes to show the existence of such a function.)
+
+  * A lemma declaration `L(x: X, y: Y) requires P ensures Q` that bears an attribute `{:extract_pattern ...}` or an attribute `{:extract_used_by ...}` is extracted into a Boogie `axiom`. The axiom has the basic form `axiom (forall x: X, y: Y :: P ==> Q);`.
+
+      If the lemma has an attribute `{:extract_used_by F}`, then the axiom will be emitted into the `uses` clause of the Boogie function generated for Dafny function `F`.
+
+      If the lemma has no in-parameters, the axiom is just `P ==> Q`.
+
+      If the lemma has in-parameters, then any attribute `{:extract_pattern E, F, G}` adds a matching pattern `{ E, F, G }` to the emitted quantifier. Also, any attribute `{:extract_attribute "name", E, F, G}` adds an attribute `{:name E, F, G}` to the quantifier.
+
+  ### Expressions
+
+  The pre- and postconditions of extracted lemmas turn into analogous Boogie expressions, and the types of function/lemma parameters and bound variables are extracted into analogous Boogie types. The intended usage of the extract mechanism is that these expressions and types do indeed have analogous Boogie types.
+
+  At this time, only a limited set of expressions and types are supported, but more can be added in the future.
+
+  Any `forall` and `exists` quantifiers in expressions are allowed to use `:extract_pattern` and `:extract_attribute` attributes, as described above for lemmas.
+
+  Some extracted expressions are simplified. For example, `true && !!P` is simplified to `P`.
+
+  ### Soundness
+
+  The Dafny program that is used as input for the extraction is treated like any other Dafny program. The intended usage of the extraction mechanism is to prove parts of the axiomatization in `DafnyPrelude.bpl` to be logically consistent. Whether or not the extracted Boogie declarations meet this goal depends on the given Dafny program. For example, if the given Dafny program formalizes sequences in terms of maps and formalizes maps in terms of sequences, then the extraction probably does not provide guarantees of consistency.
+  (https://github.com/dafny-lang/dafny/pull/5621)
+
+- Dafny-to-Rust: `{:test}` methods generate `#[test]` wrappers in Rust that can be invoked using `cargo test`.
+  Similarly, `{:rust_cfg_test}` on modules generates a `#[cfg(test)]` in the resulting rust module.
+  (https://github.com/dafny-lang/dafny/pull/5676)
+
+## Bug fixes
+
+- Allow hiding instance member using a static reference
+
+- Enable using "hide *" in the context of a recursive function
+
+- Support for double constant initialization in Dafny-to-Rust (https://github.com/dafny-lang/dafny/pull/5642)
+
+- Support for enumerating datatypes in the Rust backend (https://github.com/dafny-lang/dafny/pull/5643)
+
+- Tail-Recursion for the Dafny-to-Rust compiler (https://github.com/dafny-lang/dafny/pull/5647)
+
+- The new resolver (accessible using `--type-system-refresh`) can now handle revealing instance functions using a static receiver, as it is the case for the current resolver (https://github.com/dafny-lang/dafny/pull/5760)
+
+# 4.8.0
+
+## New features
+
+- Introduce `hide` statements that enable hiding the body of a function at a particular proof location, which allows simplifying the verification of that proof in case the body of the function is not needed for the proof. `Hide` statements make the opaque keyword on functions obsolete. (https://github.com/dafny-lang/dafny/pull/5562)
+
+- Let the command `measure-complexity` output which verification tasks performed the worst in terms of resource count. Output looks like:
+  ...
+  Verification task on line 8 in file measure-complexity.dfy consumed 9984 resources
+  Verification task on line 7 in file measure-complexity.dfy consumed 9065 resources
+  ...
+  (https://github.com/dafny-lang/dafny/pull/5631)
+
+- Enable the option `--enforce-determinism` for the commands `resolve` and `verify` (https://github.com/dafny-lang/dafny/pull/5632)
+
+- Method calls get an optional by-proof that hides the precondtion and its proof (https://github.com/dafny-lang/dafny/pull/5662)
+
+## Bug fixes
+
+- Clarify error location of inlined `is` predicates. (https://github.com/dafny-lang/dafny/pull/5587)
+
+- Optimize the compilation of single-LHS assignment statements to allow the RHS to be a deeply nested expression. This solves a problem in compiling to Java, since `javac` does not deal gracefully with nested lambda expressions. (https://github.com/dafny-lang/dafny/pull/5589)
+
+- Crash when compiling an empty source file while including testing code (https://github.com/dafny-lang/dafny/pull/5638)
+
+- Let the options --print-mode=NoGhostOrIncludes and --print-mode=NoIncludes work (https://github.com/dafny-lang/dafny/pull/5645)
+
+- Verification in the IDE now works correctly when declaring nested module in a different file than their parent. (https://github.com/dafny-lang/dafny/pull/5650)
+
+- Fix NRE that would occur when using --legacy-data-constructors (https://github.com/dafny-lang/dafny/pull/5655)
+
 # 4.7.0
 
 ## New features

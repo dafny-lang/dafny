@@ -559,7 +559,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
       }
     }
 
-    if (stmt is AssertStmt { Proof: { StartToken: { } startToken } }) {
+    if (stmt is BlockByProofStmt { Proof: { StartToken: { } startToken } }) {
       SetOpeningIndentedRegion(startToken, indent);
     }
 
@@ -609,7 +609,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return true;
   }
 
-  public bool SetIndentUpdateStmt(ConcreteUpdateStatement stmt, int indent, bool inner) {
+  public bool SetIndentUpdateStmt(ConcreteAssignStatement stmt, int indent, bool inner) {
     var ownedTokens = stmt.OwnedTokens.ToList();
     var opIndentDefault =
       stmt is AssignOrReturnStmt assignStmt && assignStmt.Lhss.Count == 0
@@ -622,7 +622,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     var commaIndent = indent + SpaceTab;
     SetIndentations(startToken, startAssignmentIndent, startAssignmentIndent, afterStartIndent);
 
-    var rhss = stmt is UpdateStmt updateStmt ? updateStmt.Rhss
+    var rhss = stmt is AssignStatement updateStmt ? updateStmt.Rhss
       : stmt is AssignOrReturnStmt assignOrReturnStmt ? new List<AssignmentRhs> { assignOrReturnStmt.Rhs }
         .Concat(assignOrReturnStmt.Rhss).ToList()
       : new List<AssignmentRhs>();

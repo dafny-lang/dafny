@@ -17,7 +17,7 @@ class MyClass {
   static method N() returns (r: int) { r := 70; }
 }
 
-trait MyTrait {
+trait MyTrait extends object {
   var a: int
   const b: int
   const c := 17

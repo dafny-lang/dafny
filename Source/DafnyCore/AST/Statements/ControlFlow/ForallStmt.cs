@@ -85,8 +85,8 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
         if (block != null && block.Body.Count == 1) {
           s = block.Body[0];
           // dig further into s
-        } else if (s is UpdateStmt) {
-          var update = (UpdateStmt)s;
+        } else if (s is AssignStatement) {
+          var update = (AssignStatement)s;
           if (update.ResolvedStatements?.Count == 1) {
             s = update.ResolvedStatements[0];
             // dig further into s

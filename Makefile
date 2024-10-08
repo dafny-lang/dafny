@@ -1,3 +1,6 @@
+# Run these tasks even if eponymous files or folders exist
+.PHONY: test-dafny exe
+
 DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
 
 default: exe
@@ -25,6 +28,28 @@ boogie: ${DIR}/boogie/Binaries/Boogie.exe
 
 tests:
 	(cd "${DIR}"; dotnet test Source/IntegrationTests)
+
+# make test name=<part of the path of an integration test>
+test:
+	(cd "${DIR}"; dotnet test Source/IntegrationTests --filter "DisplayName~${name}")
+
+# Run Dafny on an integration test case directly in the folder itself.
+# make test-run name=<part of the path> action="run ..."
+test-dafny:
+	name="$(name)"; \
+	files=$$(cd "${DIR}"/Source/IntegrationTests/TestFiles/LitTests/LitTest; find . -type f -wholename "*$$name*" | grep -E '\.dfy$$'); \
+	count=$$(echo "$$files" | wc -l); \
+  echo "$${files}"; \
+	if [ "$$count" -eq 0 ]; then \
+		echo "No files found matching pattern: $$name"; \
+		exit 1; \
+	else \
+		echo "$$count test files found."; \
+		for file in $$files; do \
+			filedir=$$(dirname "$$file"); \
+			(cd "${DIR}/Source/IntegrationTests/TestFiles/LitTests/LitTest/$${filedir}"; dotnet run --project "${DIR}"/Source/Dafny -- $(action)  "$$(basename $$file)" ); \
+		done; \
+	fi
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
@@ -87,11 +112,19 @@ clean:
 update-cs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime; make update-system-module)
 
+update-rs-module:
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeRust; make update-system-module)
+
 update-go-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
 
 update-runtime-dafny:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+
+pr-nogeneration: format-dfy format update-runtime-dafny update-cs-module update-rs-module update-go-module update-rs-module
+
+update-standard-libraries:
+	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make update-binary)
 
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
@@ -100,4 +133,7 @@ update-runtime-dafny:
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
-pr: exe dfy-to-cs-exe format-dfy format update-runtime-dafny update-cs-module update-go-module
+pr: exe dfy-to-cs-exe pr-nogeneration
+
+# Same as `make pr` but useful when resolving conflicts, to take the last compiled version of Dafny first
+pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -8,6 +9,7 @@ namespace Microsoft.Dafny;
 /// An ICodeContext is an ICallable or a NoContext.
 /// </summary>
 public interface ICodeContext : IASTVisitorContext {
+  bool ContainsHide { get; set; }
   bool IsGhost { get; }
   List<TypeParameter> TypeArgs { get; }
   List<Formal> Ins { get; }
@@ -31,6 +33,11 @@ public class CodeContextWrapper : ICodeContext {
     this.isGhostContext = isGhostContext;
   }
 
+  public bool ContainsHide {
+    get => inner.ContainsHide;
+    set => inner.ContainsHide = value;
+  }
+
   public bool IsGhost => isGhostContext;
   public List<TypeParameter> TypeArgs => inner.TypeArgs;
   public List<Formal> Ins => inner.Ins;
@@ -49,7 +56,6 @@ public class CodeContextWrapper : ICodeContext {
 }
 
 interface ICodeContainer {
-  bool ContainsHide { get; set; }
 }
 
 /// <summary>
@@ -124,6 +130,11 @@ public class NoContext : ICodeContext {
   public NoContext(ModuleDefinition module) {
     this.Module = module;
   }
+
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
   List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
@@ -145,6 +156,8 @@ public interface RedirectingTypeDecl : ICallable {
   Attributes Attributes { get; }
   ModuleDefinition Module { get; }
   BoundVar/*?*/ Var { get; }
+  PreType BasePreType { get; }
+  Type BaseType { get; }
   Expression/*?*/ Constraint { get; }
   SubsetTypeDecl.WKind WitnessKind { get; }
   Expression/*?*/ Witness { get; }  // non-null iff WitnessKind is Compiled or Ghost

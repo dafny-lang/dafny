@@ -1,15 +1,28 @@
-OlderVerification.dfy(34,16): Error: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
-OlderVerification.dfy(42,16): Error: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
-OlderVerification.dfy(89,18): Error: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(141,18): Error: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(168,18): Error: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(263,18): Error: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(267,18): Error: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
-OlderVerification.dfy(271,18): Error: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(275,18): Error: an 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(279,18): Error: an 'older' parameter might be newer than the non-'older' parameter when the predicate returns 'true'
-OlderVerification.dfy(283,18): Error: an 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
-OlderVerification.dfy(288,20): Error: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
-OlderVerification.dfy(292,20): Error: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(35,2): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(34,16): Related location: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(43,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(42,16): Related location: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(95,66): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(89,18): Related location: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(145,15): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(141,18): Related location: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(174,66): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(168,18): Related location: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(264,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(263,18): Related location: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(268,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(267,18): Related location: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(272,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(271,18): Related location: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(276,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(275,18): Related location: an 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(280,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(279,18): Related location: an 'older' parameter might be newer than the non-'older' parameter when the predicate returns 'true'
+OlderVerification.dfy(284,4): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(283,18): Related location: an 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
+OlderVerification.dfy(289,6): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(288,20): Related location: the 'older' parameter might be newer than the other parameter when the predicate returns 'true'
+OlderVerification.dfy(293,6): Error: a postcondition could not be proved on this return path
+OlderVerification.dfy(292,20): Related location: the 'older' parameter might be newer than all non-'older' parameters when the predicate returns 'true'
 
 Dafny program verifier finished with 19 verified, 13 errors

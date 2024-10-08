@@ -5,7 +5,10 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AssignSuchThatStmt : ConcreteUpdateStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
+/// <summary>
+/// Parsed from ":|"
+/// </summary>
+public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
   public readonly Expression Expr;
   public readonly AttributedToken AssumeToken;
 

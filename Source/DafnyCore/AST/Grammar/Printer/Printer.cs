@@ -308,11 +308,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
             wr.Write("| ");
             PrintExpression(dd.Constraint, true);
             wr.WriteLine();
-            if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
-              Indent(indent + IndentAmount);
-              PrintWitnessClause(dd);
-              wr.WriteLine();
-            }
+          }
+          if (dd.WitnessKind != SubsetTypeDecl.WKind.CompiledZero) {
+            Indent(indent + IndentAmount);
+            PrintWitnessClause(dd);
+            wr.WriteLine();
           }
           if (dd.Members.Count != 0) {
             Indent(indent);
@@ -765,42 +765,43 @@ NoGhost - disable printing of functions, ghost methods, and proof
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(
-        typeArgs.All(tp => tp.Name.StartsWith("_")) ||
-        typeArgs.All(tp => !tp.Name.StartsWith("_")));
+        typeArgs.All(tp => tp.IsAutoCompleted) ||
+        typeArgs.All(tp => !tp.IsAutoCompleted));
 
-      if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {
+      if (typeArgs.Count != 0 && !typeArgs[0].IsAutoCompleted) {
         wr.Write("<{0}>", Util.Comma(typeArgs, TypeParamString));
       }
     }
 
+    public static string TypeParameterToString(TypeParameter tp) {
+      return TypeParamVariance(tp) + tp.Name + TPCharacteristicsSuffix(tp.Characteristics, true);
+    }
+
     public string TypeParamString(TypeParameter tp) {
       Contract.Requires(tp != null);
-      string variance;
-      switch (tp.VarianceSyntax) {
-        case TypeParameter.TPVarianceSyntax.Covariant_Permissive:
-          variance = "*";
-          break;
-        case TypeParameter.TPVarianceSyntax.Covariant_Strict:
-          variance = "+";
-          break;
-        case TypeParameter.TPVarianceSyntax.NonVariant_Permissive:
-          variance = "!";
-          break;
-        case TypeParameter.TPVarianceSyntax.NonVariant_Strict:
-          variance = "";
-          break;
-        case TypeParameter.TPVarianceSyntax.Contravariance:
-          variance = "-";
-          break;
-        default:
-          Contract.Assert(false);  // unexpected VarianceSyntax
-          throw new cce.UnreachableException();
-      }
-      var paramString = variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
+      var paramString = TypeParamVariance(tp) + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
       foreach (var typeBound in tp.TypeBounds) {
         paramString += $" extends {typeBound.TypeName(options, null, true)}";
       }
       return paramString;
+    }
+
+    public static string TypeParamVariance(TypeParameter tp) {
+      switch (tp.VarianceSyntax) {
+        case TypeParameter.TPVarianceSyntax.Covariant_Permissive:
+          return "*";
+        case TypeParameter.TPVarianceSyntax.Covariant_Strict:
+          return "+";
+        case TypeParameter.TPVarianceSyntax.NonVariant_Permissive:
+          return "!";
+        case TypeParameter.TPVarianceSyntax.NonVariant_Strict:
+          return "";
+        case TypeParameter.TPVarianceSyntax.Contravariance:
+          return "-";
+        default:
+          Contract.Assert(false);  // unexpected VarianceSyntax
+          throw new cce.UnreachableException();
+      }
     }
 
     private void PrintArrowType(string arrow, string internalName, List<TypeParameter> typeArgs) {
@@ -1111,7 +1112,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     internal void PrintDecreasesSpec(Specification<Expression> decs, int indent) {
       Contract.Requires(decs != null);
-      if (printMode == PrintModes.NoGhostOrIncludes) { return; }
+      if (printMode == PrintModes.NoGhostOrIncludes) {
+        return;
+      }
       if (decs.Expressions != null && decs.Expressions.Count != 0) {
         wr.WriteLine();
         Indent(indent);
@@ -1184,9 +1187,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     }
 
     public string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+      return TPCharacteristicsSuffix(characteristics, options.DafnyPrintResolvedFile != null);
+    }
+
+    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics, bool printInferredTypeCharacteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
-        (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && options.DafnyPrintResolvedFile != null)) {
+          (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && printInferredTypeCharacteristics)) {
         s = "==";
       }
       if (characteristics.HasCompiledValue) {

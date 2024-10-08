@@ -20,7 +20,7 @@ if not os.path.exists(output + '.cs'):
   print(f"File {output} was not generated. Fix issues and re-run ./DafnyGeneratedFromDafny.sh")
   exit()
 
-with open (output + '.cs', 'r' ) as f:
+with open(output + '.cs', 'r' ) as f:
   content = f.read()
   content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content, flags = re.M)
   content_new = re.sub('\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \\1', '', content_trimmed, flags = re.M)
@@ -57,7 +57,7 @@ with open (output + '.cs', 'r' ) as f:
     # If the name of the namespace ends with "coverage", we move this test
     # to ../DafnyCore.Test/{output}/....
     file_path_prefix = ""
-    if namespace_name.endswith("Coverage"):
+    if namespace_name.endswith("Coverage") or namespace_name.endswith("Test"):
       file_path_prefix = test_output
     
     # Write content to a file

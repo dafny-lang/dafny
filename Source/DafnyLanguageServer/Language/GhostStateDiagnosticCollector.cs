@@ -84,12 +84,12 @@ Send notifications that indicate which lines are ghost.".TrimStart());
 
       private static Range GetRange(Statement statement) {
         return statement switch {
-          UpdateStmt updateStatement => GetRange(updateStatement),
+          AssignStatement updateStatement => GetRange(updateStatement),
           _ => CreateRange(statement.RangeToken.StartToken, statement.RangeToken.EndToken)
         };
       }
 
-      private static Range GetRange(UpdateStmt updateStatement) {
+      private static Range GetRange(AssignStatement updateStatement) {
         IToken startToken;
         if (updateStatement.Lhss.Count > 0) {
           startToken = updateStatement.Lhss[0].tok;

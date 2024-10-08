@@ -35,11 +35,7 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<ProofDependency> GetPotentialDependenciesForDefinition(string defName) {
-      return idsByMemberName[defName].Deps;
-    }
-
-    public Declaration GetDeclerationForDefinition(string defName) {
-      return idsByMemberName[defName].Decl;
+      return idsByMemberName.TryGetValue(defName, out var result) ? result.Deps : Enumerable.Empty<ProofDependency>();
     }
 
     public IEnumerable<ProofDependency> GetAllPotentialDependencies() {
