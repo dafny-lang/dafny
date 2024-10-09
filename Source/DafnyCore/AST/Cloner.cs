@@ -626,28 +626,24 @@ namespace Microsoft.Dafny {
     public DeepModuleSignatureCloner(bool cloneResolvedFields = false) : base(false, cloneResolvedFields) {
     }
 
-    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition newParent) {
-      var dd = base.CloneDeclaration(d, newParent);
-      if (d is ModuleDecl) {
-        ((ModuleDecl)dd).Signature = ((ModuleDecl)d).Signature;
-        if (d is AbstractModuleDecl) {
-          var sourcefacade = (AbstractModuleDecl)d;
-
-          ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
-          if (sourcefacade.QId.Root != null) {
-            ((AbstractModuleDecl)dd).QId.Root = (ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, newParent);
-          }
-        } else if (d is AliasModuleDecl) {
-          var sourcealias = (AliasModuleDecl)d;
-
-          if (sourcealias.TargetQId.Root != null) {
-            ((AliasModuleDecl)dd).TargetQId.Root =
-              (ModuleDecl)CloneDeclaration(sourcealias.TargetQId.Root, newParent);
-          }
-        }
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl original, ModuleDefinition newParent) {
+      var result = base.CloneDeclaration(original, newParent);
+      if (original is not ModuleDecl moduleDecl) {
+        return result;
       }
 
-      return dd;
+      ((ModuleDecl)result).Signature = moduleDecl.Signature;
+      if (moduleDecl is ImportModuleDecl importModuleDecl) {
+        if (importModuleDecl.TargetQId.Root != null) {
+          ((AliasModuleDecl)result).TargetQId.Root =
+            (ModuleDecl)CloneDeclaration(importModuleDecl.TargetQId.Root, newParent);
+        }
+      }
+      if (moduleDecl is AbstractModuleDecl abstractModuleDecl) {
+        ((AbstractModuleDecl)result).OriginalSignature = abstractModuleDecl.OriginalSignature;
+      }
+
+      return result;
     }
   }
 

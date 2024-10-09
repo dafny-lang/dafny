@@ -429,7 +429,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
               wr.Write(" opened");
             }
             wr.Write(" {0} ", dd.Name);
-            wr.Write(": {0}", dd.QId.ToString());
+            wr.Write(": {0}", dd.TargetQId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }

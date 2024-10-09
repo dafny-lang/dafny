@@ -190,7 +190,7 @@ namespace Microsoft.Dafny {
           alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
         }
       } else if (decl is AbstractModuleDecl abs) {
-        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out var originalSignature, reporter)) {
+        if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.TargetQId, abs.Exports, out var originalSignature, reporter)) {
           abs.OriginalSignature = originalSignature;
           abs.Signature = MakeAbstractSignature(originalSignature, abs.FullSanitizedName, abs.Height, signatures);
         } else {
@@ -868,7 +868,7 @@ namespace Microsoft.Dafny {
 
       if (d is AbstractModuleDecl abstractDecl) {
         var sig = MakeAbstractSignature(abstractDecl.OriginalSignature, name + "." + abstractDecl.Name, abstractDecl.Height, mods);
-        var result = new AbstractModuleDecl(abstractDecl.Options, abstractDecl.RangeToken, abstractDecl.QId, abstractDecl.NameNode,
+        var result = new AbstractModuleDecl(abstractDecl.Options, abstractDecl.RangeToken, abstractDecl.TargetQId, abstractDecl.NameNode,
           newParent, abstractDecl.Opened, abstractDecl.Exports, Guid.NewGuid()) {
           Signature = sig,
           OriginalSignature = abstractDecl.OriginalSignature

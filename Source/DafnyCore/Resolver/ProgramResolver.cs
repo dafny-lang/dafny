@@ -291,7 +291,7 @@ public class ProgramResolver {
 
       var subBindings = bindings.SubBindings(moduleDecl.Name);
       ProcessDependencies(moduleDecl, subBindings ?? bindings, declarationPointers);
-      if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.QId.Root != null) {
+      if (module.ModuleKind == ModuleKindEnum.Concrete && (moduleDecl as AbstractModuleDecl)?.TargetQId.Root != null) {
         Reporter.Error(MessageSource.Resolver, moduleDecl.tok,
           "The abstract import named {0} (using :) may only be used in an abstract or replaceable module declaration",
           moduleDecl.Name);
@@ -316,13 +316,13 @@ public class ProgramResolver {
         dependencies.AddEdge(aliasDecl, root);
       }
     } else if (moduleDecl is AbstractModuleDecl abstractDecl) {
-      if (!bindings.ResolveQualifiedModuleIdRootAbstract(abstractDecl, abstractDecl.QId, out var root)) {
+      if (!bindings.ResolveQualifiedModuleIdRootAbstract(abstractDecl, abstractDecl.TargetQId, out var root)) {
         //if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
         //  m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-        Reporter.Error(MessageSource.Resolver, abstractDecl.tok, ModuleNotFoundErrorMessage(0, abstractDecl.QId.Path));
+        Reporter.Error(MessageSource.Resolver, abstractDecl.tok, ModuleNotFoundErrorMessage(0, abstractDecl.TargetQId.Path));
       } else {
-        abstractDecl.QId.Root = root;
-        declarationPointers.AddOrUpdate(root, v => abstractDecl.QId.Root = v, Util.Concat);
+        abstractDecl.TargetQId.Root = root;
+        declarationPointers.AddOrUpdate(root, v => abstractDecl.TargetQId.Root = v, Util.Concat);
         dependencies.AddEdge(abstractDecl, root);
       }
     }

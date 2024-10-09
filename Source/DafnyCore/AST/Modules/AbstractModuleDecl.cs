@@ -8,8 +8,7 @@ namespace Microsoft.Dafny;
 /// Represents "module name as path [ = compilePath];", where name is a identifier and path is a possibly qualified name.
 /// Used to be called ModuleFacadeDecl -- renamed to be like LiteralModuleDecl, AliasModuleDecl
 /// </summary>
-public class AbstractModuleDecl : ModuleDecl, ICanFormat {
-  public readonly ModuleQualifiedId QId;
+public class AbstractModuleDecl : ImportModuleDecl, ICanFormat {
   public readonly List<IToken> Exports; // list of exports sets
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
@@ -17,16 +16,14 @@ public class AbstractModuleDecl : ModuleDecl, ICanFormat {
   public AbstractModuleDecl(Cloner cloner, AbstractModuleDecl original, ModuleDefinition parent)
     : base(cloner, original, parent) {
     Exports = original.Exports;
-    QId = new ModuleQualifiedId(cloner, original.QId);
   }
 
   public AbstractModuleDecl(DafnyOptions options, RangeToken rangeToken, ModuleQualifiedId qid, Name name,
     ModuleDefinition parent, bool opened, List<IToken> exports, Guid cloneId)
-    : base(options, rangeToken, name, parent, opened, false, cloneId) {
+    : base(options, rangeToken, qid, name, parent, opened, false, cloneId) {
     Contract.Requires(qid != null && qid.Path.Count > 0);
     Contract.Requires(exports != null);
 
-    QId = qid;
     Exports = exports;
   }
 
