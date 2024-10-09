@@ -1,0 +1,8 @@
+at-attributes-typos.dfy(15,9): Error: the parameter named 'low' is already given positionally
+at-attributes-typos.dfy(13,8): Error: wrong number of arguments (got 2, but datatype constructor 'Compile' expects at most 1: (0: bool))
+at-attributes-typos.dfy(12,8): Error: incorrect argument type for datatype constructor parameter '0' (expected bool, found string)
+at-attributes-typos.dfy(22,18): Error: wrong number of arguments (got 1, but datatype constructor 'IsolateAssertions' expects 0)
+at-attributes-typos.dfy(14,1): Error: unresolved identifier: fuel
+at-attributes-typos.dfy(11,1): Error: unresolved identifier: compile
+at-attributes-typos.dfy(21,1): Error: unresolved identifier: isolate_assertions
+7 resolution/type errors detected in at-attributes-typos.dfy

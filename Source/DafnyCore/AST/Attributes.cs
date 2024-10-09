@@ -15,6 +15,31 @@ static class AttributeBearingDeclaration {
     Attributes.Contains(me.Attributes, "axiom");
 }
 
+// Syntax of a formal of a built-in @-attribute
+// To create one, prefer using the chaining BuiltInAtAttributeSyntax.WithArg()
+public record BuiltInAtAttributeArgSyntax(
+  String ArgName,
+  Type ArgType, // If null, it means it's not resolved (@Induction and @Trigger)
+  Expression DefaultValue) {
+  public Formal ToFormal() {
+    Contract.Assert(ArgType != null);
+    return new Formal(Token.NoToken, ArgName, ArgType, true, false,
+      DefaultValue);
+  }
+}
+
+// Syntax for a built-in @-attribute.
+// To create such an attribute, use the Attributes.B() helper
+public record BuiltInAtAttributeSyntax(
+  string Name,
+  List<BuiltInAtAttributeArgSyntax> Args) {
+  public BuiltInAtAttributeSyntax WithArg(String argName, Type argType, Expression defaultValue = null) {
+    var c = new List<BuiltInAtAttributeArgSyntax>(Args) {
+      new(argName, argType, defaultValue) };
+    return this with { Args = c };
+  }
+}
+
 public class Attributes : TokenNode {
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -37,6 +62,7 @@ public class Attributes : TokenNode {
   public Attributes(string name, [Captured] List<Expression> args, Attributes prev) {
     Contract.Requires(name != null);
     Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
     Name = name;
     Args = args;
     Prev = prev;
@@ -207,6 +233,196 @@ public class Attributes : TokenNode {
       : new List<Node> { Prev });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+
+  private static string TupleItem0Name => "0";
+  // Helper to create a built-in @-attribute
+  static BuiltInAtAttributeSyntax B(string name) {
+    return new BuiltInAtAttributeSyntax(
+      name, new List<BuiltInAtAttributeArgSyntax>());
+  }
+
+  // Helper to create an old-style attribute
+  private static Attributes A(string name, params Expression[] args) {
+    return new Attributes(name, args.ToList(), null);
+  }
+
+  // Helper to create an old-style attribute with only one argument
+  private static Attributes A1(string name, ActualBindings bindings) {
+    if (Get(bindings, 0, out var expr) && expr != null) {
+      return A(name, expr);
+    }
+
+    return A(name);
+  }
+
+  // Given a user-supplied @-attribute, expand it if recognized as builtin to an old-style attribute
+  // or mark i as not built-in for later resolution
+  public static Attributes ExpandAtAttribute(Program program, UserSuppliedAtAttribute atAttribute) {
+    var toMatch = atAttribute.Arg;
+    var name = atAttribute.UserSuppliedName;
+    var bindings = atAttribute.UserSuppliedPreResolveBindings;
+
+    if (name == null) {
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.RangeToken, "@-Attribute not recognized: " + atAttribute.ToString());
+      return null;
+    }
+
+    if (!TryGetBuiltinAtAttribute(name, out var builtinSyntax) || builtinSyntax == null) {
+      atAttribute.Builtin = false; // Will be resolved after
+      return null;
+    }
+
+    if (name != "Induction" && name != "Trigger") {
+      var formals = builtinSyntax.Args.Select(arg => arg.ToFormal()).ToArray();
+      ResolveLikeDatatypeConstructor(program, formals, name, toMatch.tok, bindings);
+    } // For @Induction and @Trigger, resolution is done in the generated version of the attributes
+
+    atAttribute.Builtin = true;
+    atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
+
+    switch (name) {
+      case "Compile": {
+          return A1("compile", bindings);
+        }
+      case "Fuel": {
+          if (Get(bindings, 0, out var lowFuel) && lowFuel != null) {
+            if (Get(bindings, 1, out var highFuel) && highFuel != null) {
+              if (Get(bindings, 2, out var functionName) && IsStringNotEmpty(functionName)) {
+                return A("fuel", functionName, lowFuel, highFuel);
+              }
+
+              return A("fuel", lowFuel, highFuel);
+            }
+
+            return A("fuel", lowFuel);
+          }
+
+          return A("fuel");
+        }
+      case "Induction": {
+          return A("induction", bindings.ArgumentBindings.Select(binding => binding.Actual).ToArray());
+        }
+      case "IsolateAssertions": {
+          return A("isolate_assertions");
+        }
+      case "Options": {
+          return A1("options", bindings);
+        }
+      default: {
+          throw new Exception("@-Attribute added to Attributes.BuiltinAtAttributes needs to be handled here");
+        }
+    }
+  }
+
+  // List of built-in @-attributes with their definitions.
+  // This list could be obtained from parsing and resolving a .Dfy file
+  // but for now it's good enough.
+  public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = new() {
+    B("Compile").WithArg(TupleItem0Name, Type.Bool, DefaultBool(true)),
+    B("Fuel")
+      .WithArg("low", Type.Int, DefaultInt(1))
+      .WithArg("high", Type.Int, DefaultInt(2))
+      .WithArg("functionName", Type.ResolvedString(), DefaultString("")),
+    B("Induction"), // Resolution is different
+    B("IsolateAssertions"),
+    B("Options").WithArg(TupleItem0Name, Type.ResolvedString()),
+  };
+
+  ////// Helpers to create default values for the @-attribute definitions above //////
+
+  public static LiteralExpr DefaultString(string value) {
+    return Expression.CreateStringLiteral(Token.NoToken, value);
+  }
+
+  public static LiteralExpr DefaultBool(bool value) {
+    return Expression.CreateBoolLiteral(Token.NoToken, value);
+  }
+
+  public static LiteralExpr DefaultInt(int value) {
+    return Expression.CreateIntLiteralNonnegative(Token.NoToken, value);
+  }
+
+  private static bool IsStringNotEmpty(Expression value) {
+    return value is StringLiteralExpr { Value: string and not "" };
+  }
+
+  // Given resolved bindings, gets the i-th argument according to the
+  // declaration formals order
+  private static bool Get(ActualBindings bindings, int i, out Expression expr) {
+    if (bindings.Arguments.Count < i + 1) {
+      expr = null;
+      return false;
+    }
+
+    expr = bindings.Arguments[i];
+    return true;
+  }
+
+  // Resolves bindings given a list of datatype constructor-like formals,
+  // obtained from built-in @-attribute definitions
+  private static void ResolveLikeDatatypeConstructor(
+    Program program, Formal[] formals, string attrName,
+    IToken attrsTok, ActualBindings bindings) {
+    var datatypeName = new Name(RangeToken.NoToken, attrName);
+    var datatypeCtor = new DatatypeCtor(RangeToken.NoToken, datatypeName, false, formals.ToList(), null);
+    var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
+    var typeMap = new Dictionary<TypeParameter, Type>();
+    var resolver = new ModuleResolver(new ProgramResolver(program), program.Options);
+    resolver.reporter = program.Reporter;
+    resolver.moduleInfo = resolver.ProgramResolver.SystemModuleManager.systemNameInfo;
+    resolver.ResolveActualParameters(bindings, formals.ToList(), attrsTok,
+      datatypeCtor, resolutionContext, typeMap, null);
+    resolver.FillInDefaultValueExpressions();
+    resolver.SolveAllTypeConstraints();
+  }
+
+  // Recovers a built-in @-Attribute if it exists
+  public static bool TryGetBuiltinAtAttribute(string name, out BuiltInAtAttributeSyntax builtinAtAttribute) {
+    return BuiltInAtAttributeDictionary.TryGetValue(name, out builtinAtAttribute);
+  }
+
+  // Builtin @-attributes dictionary based on the sequence of definitions of @-attributes
+  public static Dictionary<string, BuiltInAtAttributeSyntax> BuiltInAtAttributeDictionary =
+    BuiltinAtAttributes.ToDictionary(b => {
+      if (b.Name.Contains("_") || b.Name.Contains("-") || Char.IsLower(b.Name[0])) {
+        throw new Exception("Builtin @-attributes are PascalCase for consistency");
+      }
+      return b.Name;
+    }, b => b);
+
+  // Overridable method to clone the attribute as if the new attribute was placed after "prev" in the source code
+  public virtual Attributes CloneAfter(Attributes prev) {
+    return new Attributes(Name, Args, prev);
+  }
+
+  //////// Helpers for parsing attributes //////////////////
+
+  // Returns the memory location's attributes content and set the memory location to null (no attributes)
+  public static Attributes Consume(ref Attributes tmpStack) {
+    var result = tmpStack;
+    tmpStack = null;
+    return result;
+  }
+
+  // Empties the first attribute memory location while prepending its attributes to the second attribute memory location, in the same order
+  public static void MergeInto(ref Attributes tmpStack, ref Attributes attributesStack) {
+    MergeIntoReadonly(tmpStack, ref attributesStack);
+    tmpStack = null;
+  }
+
+  // Prepends the attributes tmpStack before the attributes contained in the memory location attributesStack 
+  private static void MergeIntoReadonly(Attributes tmpStack, ref Attributes attributesStack) {
+    if (tmpStack == null) {
+      return;
+    }
+    if (attributesStack == null) {
+      attributesStack = tmpStack;
+      return;
+    }
+    MergeIntoReadonly(tmpStack.Prev, ref attributesStack);
+    attributesStack = tmpStack.CloneAfter(attributesStack);
+  }
 }
 
 public static class AttributesExtensions {
@@ -221,6 +437,7 @@ public static class AttributesExtensions {
   }
 }
 
+// {:..} Attributes parsed are built using this class
 public class UserSuppliedAttributes : Attributes {
   public readonly IToken OpenBrace;
   public readonly IToken CloseBrace;
@@ -237,11 +454,80 @@ public class UserSuppliedAttributes : Attributes {
   }
 }
 
+// @-Attributes parsed are built using this class
+public class UserSuppliedAtAttribute : Attributes {
+  public static readonly string AtName = "@";
+  public readonly IToken AtSign;
+  public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
+  // Otherwise it's a user-defined one and Arg needs to be fully resolved
+  public UserSuppliedAtAttribute(IToken tok, Expression arg, Attributes prev)
+    : base(AtName, new List<Expression>() { arg }, prev) {
+    Contract.Requires(tok != null);
+    this.tok = tok;
+    this.AtSign = tok;
+  }
+
+  public Expression Arg => Args[0];
+
+  public override Attributes CloneAfter(Attributes prev) {
+    return new UserSuppliedAtAttribute(AtSign, Args[0], prev);
+  }
+
+  // Name of this @-Attribute, which is the part right after the @
+  public string UserSuppliedName =>
+    GetName(this);
+
+  // Pre-resolved bindings of this @-Attribute
+  public ActualBindings UserSuppliedPreResolveBindings =>
+    GetPreResolveBindings(this);
+
+  // Pre-resolved arguments of this @-Attributes. The order is the one provided by the user,
+  // not by any binding. Used for 
+  public IEnumerable<Expression> UserSuppliedPreResolveArguments =>
+    GetPreResolveArguments(this);
+
+  // Gets the name of an @-attribute. Attributes might be applied.
+  public static string GetName(Attributes a) {
+    if (a is UserSuppliedAtAttribute { Arg: ApplySuffix { Lhs: NameSegment { Name: var name } } }) {
+      return name;
+    }
+    if (a is UserSuppliedAtAttribute { Arg: NameSegment { Name: var singleName } }) {
+      return singleName;
+    }
+
+    return null;
+  }
+
+  // Gets the pre-resolved bindings of an @-Attribute.
+  // Returns an empty bindings if it's anything else
+  public static ActualBindings GetPreResolveBindings(Attributes a) {
+    if (a is UserSuppliedAtAttribute { Arg: ApplySuffix { Bindings: var bindings } }) {
+      return bindings;
+    }
+    return new ActualBindings(new List<ActualBinding>());
+  }
+
+  // Gets the list of pre-resolved arguments of an @-Attribute, and an empty list otherwise
+  public static IEnumerable<Expression> GetPreResolveArguments(Attributes a) {
+    if (a is UserSuppliedAtAttribute { UserSuppliedPreResolveBindings: var bindings }) {
+      return bindings.ArgumentBindings.Select(arg => arg.Actual);
+    }
+
+    return new List<Expression>();
+  }
+
+  // Gets the list of pre-resolved arguments of an @-Attribute, and the list of arguments
+  // for any other kind of attributes. Used for example to extract module options for parsing.
+  public static IEnumerable<Expression> GetUserSuppliedArguments(Attributes a) {
+    return a is UserSuppliedAtAttribute { UserSuppliedPreResolveArguments: var arguments } ? arguments : a.Args;
+  }
+}
+
 /// <summary>
 /// A class implementing this interface is one that can carry attributes.
 /// </summary>
 public interface IAttributeBearingDeclaration {
-  Attributes Attributes { get; }
+  Attributes Attributes { get; internal set; }
 }
 
 public static class AttributeBearingDeclarationExtensions {

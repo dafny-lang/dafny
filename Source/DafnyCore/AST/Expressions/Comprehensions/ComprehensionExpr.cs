@@ -40,7 +40,10 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
   }
 
   public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attributes;
+    set => Attributes = value;
+  }
 
   [FilledInDuringResolution] public List<BoundedPool> Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;

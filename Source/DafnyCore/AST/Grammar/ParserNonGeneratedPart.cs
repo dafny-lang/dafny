@@ -25,6 +25,14 @@ public partial class Parser {
     theModule = new FileModuleDefinition(scanner.FirstToken);
   }
 
+  public void MergeInto(ref Attributes attrsStack, ref Attributes attrsTarget) {
+    Attributes.MergeInto(ref attrsStack, ref attrsTarget);
+  }
+
+  public Attributes Consume(ref Attributes attrs) {
+    return Attributes.Consume(ref attrs);
+  }
+
   bool IsReveal(IToken nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
 
   bool IsIdentifier(int kind) {
@@ -458,6 +466,30 @@ public partial class Parser {
         return false;
     }
   }
+
+  // Returns true if the parser can parse an heap-referencing @-call
+  // The reason to do this is that expressions can be prefixed by @-Attributes,
+  // so the rule to distinguish them is that an @-call of the form name@label(args),
+  // the @ must be next to the name. Otherwise an attribute is parsed.
+  // Indeed 'name' could be the last expression of an ensures clause, and the attribute
+  // could belong to the next method declaration otherwise.
+  bool IsAtCall() {
+    IToken pt = la;
+    if (pt.val != "@") {
+      return false;
+    }
+    // If it's the beginning of the file, or the previous token is on a different line or separated by a space, it's not an At-call. Must be an attribute
+    var isFirstToken = pt.Prev == null;
+    var spaceExistsSincePreviousToken =
+      !isFirstToken &&
+      (pt.Prev.line != pt.line || pt.Prev.col + pt.Prev.val.Length + pt.TrailingTrivia.Trim().Length < pt.col - pt.LeadingTrivia.Trim().Length);
+    if (isFirstToken || spaceExistsSincePreviousToken) {
+      return false;
+    }
+
+    return true;
+  }
+
   /* Returns true if the next thing is of the form:
    *     "<" Type { "," Type } ">"
    */
@@ -608,7 +640,7 @@ public partial class Parser {
   int anonymousIds = 0;
 
   /// <summary>
-  /// Holds the modifiers given for a declaration
+  /// Holds the modifiers and attributes given for a declaration
   ///
   /// Not all modifiers are applicable to all kinds of declarations.
   /// Errors are given when a modify does not apply.
@@ -627,6 +659,7 @@ public partial class Parser {
     public bool IsOpaque;
     public IToken OpaqueToken;
     public IToken FirstToken;
+    public Attributes Attributes = null;
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {
@@ -642,6 +675,16 @@ public partial class Parser {
     }
 
     return ModuleKindEnum.Concrete;
+  }
+
+  /// <summary>
+  /// Before literals that end a block, we usually add CheckNoAttributes to avoid any non-attached or dangling attributes
+  /// </summary>
+  public void CheckNoAttributes(ref Attributes attrs) {
+    if (attrs != null) {
+      SemErr(ErrorId.p_extra_attributes, attrs.RangeToken, "Attribute not expected here");
+      attrs = null;
+    }
   }
 
   // Check that token has not been set, then set it.
@@ -725,10 +768,10 @@ public partial class Parser {
 
 
   public void ApplyOptionsFromAttributes(Attributes attrs) {
-    var overrides = attrs.AsEnumerable().Where(a => a.Name == "options")
+    var overrides = attrs.AsEnumerable().Where(a => a.Name == "options" || a is UserSuppliedAtAttribute { UserSuppliedName: "Options" })
       .Reverse().Select(a =>
-        (token: (a as UserSuppliedAttributes)?.tok,
-         options: a.Args.Select(arg => {
+        (token: a.tok,
+         options: UserSuppliedAtAttribute.GetUserSuppliedArguments(a).Select(arg => {
            if (arg is not LiteralExpr { Value: string optStr }) {
              SemErr(ErrorId.p_literal_string_required, arg.tok, "argument to :options attribute must be a literal string");
              return null;

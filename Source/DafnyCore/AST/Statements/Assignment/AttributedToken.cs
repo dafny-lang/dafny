@@ -12,5 +12,8 @@ namespace Microsoft.Dafny;
 /// attributes).
 /// </summary>
 public record AttributedToken(IToken Token, Attributes Attrs) : IAttributeBearingDeclaration {
-  Attributes IAttributeBearingDeclaration.Attributes => Attrs;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attrs;
+    set => throw new System.NotImplementedException();
+  }
 }

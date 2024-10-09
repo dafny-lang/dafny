@@ -124,7 +124,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   }
 
   public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attributes;
+    set => Attributes = value;
+  }
 
   [Pure]
   public override string ToString() {

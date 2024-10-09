@@ -9,7 +9,11 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   readonly string name;
   public string DafnyName => Name;
   public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes => Attributes;
+  Attributes IAttributeBearingDeclaration.Attributes {
+    get => Attributes;
+    set => Attributes = value;
+  }
+
   public bool IsGhost;
   [ContractInvariantMethod]
   void ObjectInvariant() {

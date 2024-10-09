@@ -319,15 +319,20 @@ namespace Microsoft.Dafny {
 
       // order does not matter much for resolution, so resolve them in reverse order
       foreach (var attr in attributeHost.Attributes.AsEnumerable()) {
-        if (attr is UserSuppliedAttributes) {
-          var usa = (UserSuppliedAttributes)attr;
+        if (attr is UserSuppliedAtAttribute { Builtin: true }) { // Already resolved
+          continue;
+        } else if (attr is UserSuppliedAttributes usa) {
           usa.Recognized = IsRecognizedAttribute(usa, attributeHost);
         }
         if (attr.Args != null) {
           foreach (var arg in attr.Args) {
             Contract.Assert(arg != null);
             if (!(Attributes.Contains(attributeHost.Attributes, "opaque_reveal") && attr.Name is "revealedFunction" && arg is NameSegment)) {
+              var prevCount = reporter.ErrorCount;
               ResolveExpression(arg, resolutionContext);
+              if (prevCount == reporter.ErrorCount && attr is UserSuppliedAtAttribute { Builtin: false }) {
+                reporter.Error(MessageSource.Resolver, attr.tok, "User-supplied @-Attributes not supported yet");
+              }
             } else {
               ResolveRevealLemmaAttribute(arg);
             }
@@ -3200,7 +3205,7 @@ namespace Microsoft.Dafny {
     /// "typeMap" is applied to the type of each formal.
     /// This method should be called only once. That is, bindings.arguments is required to be null on entry to this method.
     /// </summary>
-    void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
+    internal void ResolveActualParameters(ActualBindings bindings, List<Formal> formals, IToken callTok, object context, ResolutionContext resolutionContext,
       Dictionary<TypeParameter, Type> typeMap, Expression/*?*/ receiver) {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);

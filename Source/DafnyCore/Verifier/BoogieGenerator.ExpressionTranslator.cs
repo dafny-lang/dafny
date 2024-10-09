@@ -2009,7 +2009,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType,
               // omit the extern attribute when /noExterns option is specified.
               (name is "extern" && options.DisallowExterns) ||
               (name is "timeLimit" && hasNewTimeLimit) ||
-              (name is "rlimit" && hasNewRLimit)
+              (name is "rlimit" && hasNewRLimit) ||
+              (attr is UserSuppliedAtAttribute)
           ) {
             continue;
           }
