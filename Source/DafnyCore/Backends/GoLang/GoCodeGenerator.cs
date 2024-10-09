@@ -54,6 +54,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private readonly List<Import> Imports = new(StandardImports);
+    private readonly List<Import> ExtendedImports = new();
     private string ModuleName;
     private ConcreteSyntaxTree RootImportWriter;
     private ConcreteSyntaxTree RootImportDummyWriter;
@@ -267,7 +268,7 @@ namespace Microsoft.Dafny.Compilers {
       // Import in root module
       EmitImport(import, RootImportWriter, RootImportDummyWriter);
       // Import in all subsequent modules
-      Imports.Add(import);
+      ExtendedImports.Add(import);
     }
 
     private void EmitImport(Import import, ConcreteSyntaxTree importWriter, ConcreteSyntaxTree importDummyWriter) {
