@@ -187,7 +187,8 @@ namespace Microsoft.Dafny.Compilers {
       return module.ShouldCompile(program.Compilation);
     }
 
-    protected abstract ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault, ModuleDefinition externModule,
+    protected abstract ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
+      ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr);
     /// <summary>
     /// Indicates the current program depends on the given module without creating it.
@@ -1570,18 +1571,7 @@ namespace Microsoft.Dafny.Compilers {
 
       DetectAndMarkCapitalizationConflicts(module);
 
-      ModuleDefinition externModule = null;
-      string libraryName = null;
-      if (!Options.DisallowExterns) {
-        var args = Attributes.FindExpressions(module.Attributes, "extern");
-        if (args != null) {
-          if (args.Count == 2) {
-            libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
-          }
-
-          externModule = module;
-        }
-      }
+      var externModule = GetExternalModuleFromModule(module, out var libraryName);
 
       if (!ShouldCompileModule(program, module)) {
         DependOnModule(program, module, externModule, libraryName);
@@ -1590,7 +1580,8 @@ namespace Microsoft.Dafny.Compilers {
 
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
-      var wr = CreateModule(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
+      var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, 
+        externModule, libraryName, module.Attributes, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
@@ -1712,6 +1703,24 @@ namespace Microsoft.Dafny.Compilers {
 
       Contract.Assert(enclosingModule == module);
       enclosingModule = null;
+    }
+
+    protected ModuleDefinition GetExternalModuleFromModule(ModuleDefinition module, out string libraryName)
+    {
+      ModuleDefinition externModule = null;
+      libraryName = null;
+      if (!Options.DisallowExterns) {
+        var args = Attributes.FindExpressions(module.Attributes, "extern");
+        if (args != null) {
+          if (args.Count == 2) {
+            libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
+          }
+
+          externModule = module;
+        }
+      }
+
+      return externModule;
     }
 
     private void DetectAndMarkCapitalizationConflicts(ModuleDefinition module) {

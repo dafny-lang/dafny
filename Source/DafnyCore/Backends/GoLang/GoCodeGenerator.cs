@@ -106,14 +106,19 @@ namespace Microsoft.Dafny.Compilers {
 
     private string DafnySequenceCompanion => $"{HelperModulePrefix}Companion_Sequence_";
 
-    void EmitModuleHeader(ConcreteSyntaxTree wr) {
+    void EmitModuleHeader(ConcreteSyntaxTree wr, ModuleDefinition module) {
       wr.WriteLine("// Package {0}", ModuleName);
       wr.WriteLine("// Dafny module {0} compiled into Go", ModuleName);
       wr.WriteLine();
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
-      // This is a non-main module; it only imports things declared before it, so we don't need these writers
-      EmitImports(wr, out _, out _);
+      EmitImports(wr, out var importWriter, out var dummyImportWriter);
+      foreach (var alias in module.TopLevelDecls.OfType<ImportModuleDecl>()) {
+        var importedDef = alias.TargetQId.Decl.Signature.ModuleDef;
+        var externModule = GetExternalModuleFromModule(importedDef, out var libraryName);
+        var import = CreateImport(importedDef.GetCompileName(Options), false, externModule, libraryName); 
+        EmitImport(import, importWriter, dummyImportWriter);
+      }
       wr.WriteLine();
       wr.WriteLine("type {0} struct{{}}", DummyTypeName);
       wr.WriteLine();
@@ -193,7 +198,7 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (isDefault) {
@@ -213,7 +218,7 @@ namespace Microsoft.Dafny.Compilers {
       var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
-      EmitModuleHeader(w);
+      EmitModuleHeader(w, module);
 
       import.Path = goModuleName + import.Path;
       AddImport(import);
