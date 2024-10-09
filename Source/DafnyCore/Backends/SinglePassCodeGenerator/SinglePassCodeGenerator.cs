@@ -1580,7 +1580,7 @@ namespace Microsoft.Dafny.Compilers {
 
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
-      var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, 
+      var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule,
         externModule, libraryName, module.Attributes, programNode);
       var v = new CheckHasNoAssumes_Visitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
@@ -1705,8 +1705,7 @@ namespace Microsoft.Dafny.Compilers {
       enclosingModule = null;
     }
 
-    protected ModuleDefinition GetExternalModuleFromModule(ModuleDefinition module, out string libraryName)
-    {
+    protected ModuleDefinition GetExternalModuleFromModule(ModuleDefinition module, out string libraryName) {
       ModuleDefinition externModule = null;
       libraryName = null;
       if (!Options.DisallowExterns) {

@@ -13,6 +13,7 @@ using System.Diagnostics.Contracts;
 using System.Text.RegularExpressions;
 using DafnyCore;
 using DafnyCore.Options;
+using DAST;
 using JetBrains.Annotations;
 using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
@@ -113,10 +114,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
       EmitImports(wr, out var importWriter, out var dummyImportWriter);
-      foreach (var alias in module.TopLevelDecls.OfType<ImportModuleDecl>()) {
-        var importedDef = alias.TargetQId.Decl.Signature.ModuleDef;
+
+      var defsToImport = module.TopLevelDecls.OfType<ImportModuleDecl>()
+        .Select(d => d.TargetQId.Decl.Signature.ModuleDef).Concat(
+          module.TopLevelDecls.OfType<LiteralModuleDecl>().Select(l => l.ModuleDef));
+      foreach (var importedDef in defsToImport) {
         var externModule = GetExternalModuleFromModule(importedDef, out var libraryName);
-        var import = CreateImport(importedDef.GetCompileName(Options), false, externModule, libraryName); 
+        var import = CreateImport(importedDef.GetCompileName(Options), false, externModule, libraryName);
         EmitImport(import, importWriter, dummyImportWriter);
       }
       wr.WriteLine();
