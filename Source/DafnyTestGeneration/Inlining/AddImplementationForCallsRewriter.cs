@@ -21,7 +21,6 @@ namespace DafnyTestGeneration.Inlining;
 /// </summary>
 public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
 
-  private const string CallPrefix = "CallPost$$";
   private readonly DafnyOptions options;
   private List<Implementation> implsToAdd = new();
 
@@ -32,7 +31,7 @@ public class AddImplementationsForCallsRewriter : ReadOnlyVisitor {
   }
 
   public override Procedure /*?*/ VisitProcedure(Procedure /*?*/ node) {
-    if (node == null || !node.Name.StartsWith(CallPrefix) ||
+    if (node == null || !node.Name.StartsWith(BoogieGenerator.CallPrefix + BoogieGenerator.NameSeparator) ||
         node.Name.EndsWith(ProgramModifier.CtorPostfix)) {
       return node;
     }

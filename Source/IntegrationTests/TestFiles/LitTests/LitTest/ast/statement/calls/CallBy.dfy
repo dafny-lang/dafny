@@ -65,3 +65,9 @@ greatest lemma F(x: int)
   F(x-2) by { ProveP(); }
   assert P(); // should fail
 }
+
+method ArgumentWellformedness(x: int) {
+  F(3 / x) by {
+    assume x > 0;
+  } 
+}

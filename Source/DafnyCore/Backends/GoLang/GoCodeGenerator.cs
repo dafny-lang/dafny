@@ -2236,8 +2236,11 @@ namespace Microsoft.Dafny.Compilers {
       if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
+        var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
+        var sep = "";
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
         EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
         wr.Write(")");
       }
     }
