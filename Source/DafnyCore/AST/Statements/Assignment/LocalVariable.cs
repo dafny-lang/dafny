@@ -133,11 +133,13 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   public IToken NavigationToken => RangeToken.StartToken;
   public bool IsTypeExplicit { get; }
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
 
   public override IEnumerable<INode> PreResolveChildren =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>()).Concat(
+    Attributes.AsEnumerable().
+      Concat<Node>(
       IsTypeExplicit ? new List<Node>() { SyntacticType ?? type } : Enumerable.Empty<Node>());
 
   public SymbolKind? Kind => SymbolKind.Variable;

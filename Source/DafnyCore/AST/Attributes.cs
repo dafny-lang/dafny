@@ -40,7 +40,7 @@ public record BuiltInAtAttributeSyntax(
   }
 }
 
-public class Attributes : TokenNode {
+public class Attributes : TokenNode, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -233,8 +233,44 @@ public class Attributes : TokenNode {
       : new List<Node> { Prev });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+  public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
+    foreach (var token in OwnedTokens) {
+      switch (token.val) {
+        case "}": {
+          formatter.SetClosingIndentedRegion(token, indentBefore);
+          break;
+        }
+        case "@": {
+          formatter.SetIndentations(token, indentBefore, indentBefore, indentBefore);
+          break;
+        }
+        case ",": {
+          formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+          break;
+        }
+        case "{" or "{:":{
+          formatter.SetOpeningIndentedRegion(token, indentBefore); 
+          break;
+        }
+      }
+    }
+    foreach (var arg in Args) {
+      formatter.SetExpressionIndentation(arg);
+    }
+    formatter.SetClosingIndentedRegion(EndToken, indentBefore);
+    return false; // Don't do inner attributes, they should be performed independently
+  }
 
-
+  // Typically, {:} are indented when @-attributes are not
+  public static void SetIndents(Attributes attrs, int indentBefore, TokenNewIndentCollector formatter) {
+    foreach (var attribute in attrs.AsEnumerable()) {
+      if (attribute.StartToken.val == UserSuppliedAtAttribute.AtName) {
+        attribute.SetIndent(indentBefore, formatter);
+      } else {
+        attribute.SetIndent(indentBefore + formatter.SpaceTab, formatter);
+      }
+    }
+  }
   private static string TupleItem0Name => "0";
   // Helper to create a built-in @-attribute
   static BuiltInAtAttributeSyntax B(string name) {

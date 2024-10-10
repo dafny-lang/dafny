@@ -658,8 +658,21 @@ public partial class Parser {
     public IToken StaticToken;
     public bool IsOpaque;
     public IToken OpaqueToken;
-    public IToken FirstToken;
+    public IToken FirstTokenExceptAttributes;
     public Attributes Attributes = null;
+
+    public IToken FirstToken {
+      get {
+        IToken result = FirstTokenExceptAttributes;
+        foreach (var attr in Attributes.AsEnumerable()) {
+          if (result == null || result.pos > attr.tok.pos) {
+            result = attr.StartToken;
+          }
+        }
+
+        return result;
+      }
+    }
   }
 
   private ModuleKindEnum GetModuleKind(DeclModifierData mods) {

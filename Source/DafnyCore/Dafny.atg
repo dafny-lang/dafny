@@ -244,11 +244,11 @@ Dafny
 
 /*------------------------------------------------------------------------*/
 DeclModifier<ref DeclModifierData dmod>
-= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "replaceable"                          (. dmod.IsReplaceable = true;  CheckAndSetToken(ref dmod.ReplaceableToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+= ( "abstract"                             (. dmod.IsAbstract = true;  CheckAndSetToken(ref dmod.AbstractToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "replaceable"                          (. dmod.IsReplaceable = true;  CheckAndSetToken(ref dmod.ReplaceableToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+  | "opaque"                               (. dmod.IsOpaque = true; CheckAndSetToken(ref dmod.OpaqueToken); CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   )
   .
 
@@ -317,7 +317,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 /*------------------------------------------------------------------------*/
 ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
 =  "module"
-   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+   (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
      Attributes attrs = null;
      IToken/*!*/ iderr;
      IToken tokenWithTrailingDocString;
@@ -531,7 +531,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      DeclModifierData dmod;
   .)
   SYNC
-  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstToken); .)
+  "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstTokenExceptAttributes); .)
   { Attribute<ref dmodClass.Attributes> }
   ClassName<out name>                     (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ] (. tokenWithTrailingDocString = t; .)
@@ -583,7 +583,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      DeclModifierData dmod;
   .)
   SYNC
-  "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstToken); .)
+  "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstTokenExceptAttributes); .)
   { Attribute<ref attrs> }
   ClassName<out var name>                         (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
@@ -650,7 +650,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   SYNC
   ( "datatype"
   | "codatatype"     (. co = true; .)
-  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  )                                        (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   { Attribute<ref dmod.Attributes> }
   DatatypeName<out name>
   [ GenericParameters<typeArgs, true> ]
@@ -746,7 +746,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
      CheckDeclModifiers(ref dmod, "field", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Opaque);
   .)
   SYNC
-  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "const"                                    (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   { Attribute<ref attrs> }
   ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
     (. SemErr(ErrorId.p_const_decl_missing_identifier, la, "expected an identifier after 'const' and any attributes"); .)
@@ -781,7 +781,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      var members = new List<MemberDecl>();
      var typeParameters = new List<TypeParameter>();
   .)
-  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "newtype" (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   { Attribute<ref dmod.Attributes> }
   NewtypeName<out name>
   [ GenericParameters<typeParameters, true> ]
@@ -838,7 +838,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
      var members = new List<MemberDecl>();
      var isRefining = false;
   .)
-  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "type"                      (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   { Attribute<ref dmod.Attributes> }
   SynonymTypeName<out var name>
   { TypeParameterCharacteristics<ref characteristics> }
@@ -1049,7 +1049,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      CheckDeclModifiers(ref dmod, "iterator", AllowedDeclModifiers.None);
   .)
   SYNC
-  "iterator"                (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  "iterator"                (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   { Attribute<ref dmod.Attributes> }    (. MergeInto(ref attrs, ref dmod.Attributes); .)
   IteratorName<out var name>
   (
@@ -1190,31 +1190,31 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   .)
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "method";
-                                       CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "lemma";
-                                       CheckAndSetTokenOnce(ref dmod.FirstToken);
+                                       CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | ( "greatest"                    (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
       "lemma"
-    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstToken); 
+    | "colemma"                     (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); 
                                        errors.Deprecated(ErrorId.p_deprecated_colemma, t, "the old keyword 'colemma' has been renamed to the keyword phrase 'greatest lemma'"); 
                                     .)
     )
                                     (. isGreatestLemma = true; caption = "greatest lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | ( "least"                       (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+    | "inductive"                   (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        errors.Deprecated(ErrorId.p_deprecated_inductive_lemma, t, "the old keyword phrase 'inductive lemma' has been renamed to 'least lemma'"); 
                                     .)
     )
     "lemma"
                                     (. isLeastLemma = true;  caption = "least lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
-  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "twostate"                      (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
     "lemma"                         (. isTwoStateLemma = true; caption = "two-state lemma";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static; .)
-  | "constructor"                   (. CheckAndSetTokenOnce(ref dmod.FirstToken);
+  | "constructor"                   (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes);
                                        if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
@@ -1748,9 +1748,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
    */
 
   /* ----- function ----- */
-  [ "twostate"   (. isTwoState = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  [ "twostate"   (. isTwoState = true; CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
   ]
-  ( "function"   (. headToken = t; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  ( "function"   (. headToken = t; CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
     [ "method"   (. functionMethodToken = t; .)
     ]
     { Attribute<ref dmod.Attributes> }
@@ -1773,7 +1773,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     )
 
   /* ----- predicate ----- */
-  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+  | "predicate"  (. headToken = t; isPredicate = true; CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
     [ "method"   (. functionMethodToken = t; .)
     ]
     { Attribute<ref dmod.Attributes> }
@@ -1794,8 +1794,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   /* ----- least predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "least"
     .)
-    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
-    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(ErrorId.p_deprecated_inductive_predicate, t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
+    ( "least"                  (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
+    | "inductive"              (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); errors.Deprecated(ErrorId.p_deprecated_inductive_predicate, t, "the old keyword phrase 'inductive predicate' has been renamed to 'least predicate'"); .)
     )
     "predicate"
     (. isLeastPredicate = true; .)
@@ -1812,9 +1812,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
   /* ----- greatest predicate ----- */
   | (. Contract.Assert(!isTwoState);  // the IsFunctionDecl check checks that "twostate" is not followed by "greatest"
     .)
-    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstToken); .)
+    ( "greatest"                 (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); .)
       "predicate"     
-    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstToken); errors.Deprecated(ErrorId.p_deprecated_copredicate, t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
+    | "copredicate"              (. CheckAndSetTokenOnce(ref dmod.FirstTokenExceptAttributes); errors.Deprecated(ErrorId.p_deprecated_copredicate, t, "the old keyword 'copredicate' has been renamed to the keyword phrase 'greatest predicate'"); .)
     )
     (. isGreatestPredicate = true; .)
     { Attribute<ref dmod.Attributes> }

@@ -122,8 +122,8 @@ public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBeari
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
   public override IEnumerable<INode> Children =>
-    (Attributes != null ? new List<Node> { Attributes } : Enumerable.Empty<Node>())
-    .Concat(LHSs)
+    Attributes.AsEnumerable().
+      Concat<Node>(LHSs)
     .Concat(base.Children);
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
