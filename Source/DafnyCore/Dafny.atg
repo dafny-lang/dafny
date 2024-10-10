@@ -574,7 +574,6 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      CheckDeclModifiers(ref dmodIn, "trait", AllowedDeclModifiers.None);
      IToken/*!*/ tokenWithTrailingDocString;
      List<Type> parentTraits = new List<Type>();
-     Attributes attrs = null;
      bool isRefining = false;
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -583,7 +582,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   .)
   SYNC
   "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstTokenExceptAttributes); .)
-  { Attribute<ref attrs> }
+  { Attribute<ref dmodIn.Attributes> }
   ClassName<out var name>                         (. tokenWithTrailingDocString = t; .)
   [ GenericParameters<typeArgs, true> ]     (. tokenWithTrailingDocString = t; .)
   [ ExtendsClause<parentTraits, out tokenWithTrailingDocString, null>
@@ -595,7 +594,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
+  (. trait = new TraitDecl(new RangeToken(dmodIn.FirstToken, t), name, module, typeArgs, members, dmodIn.Attributes, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
      trait.TokenWithTrailingDocString = tokenWithTrailingDocString;
     .)
