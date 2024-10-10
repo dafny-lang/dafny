@@ -1,3 +1,4 @@
+// NONUNIFORM: this fails on Java
 // RUN: %run --target go %s > %t
 // RUN: %diff "%s.expect" "%t"
 
