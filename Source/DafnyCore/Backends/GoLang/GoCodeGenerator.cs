@@ -53,8 +53,10 @@ namespace Microsoft.Dafny.Compilers {
       return $"_default_{tp.GetCompileName(Options)}";
     }
 
+    private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
     private readonly List<Import> Imports = new(StandardImports);
     private string ModuleName;
+    private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;
     private ConcreteSyntaxTree RootImportDummyWriter;
 
@@ -134,6 +136,7 @@ namespace Microsoft.Dafny.Compilers {
       IdProtect(Regex.Replace(baseName, "[^_A-Za-z0-9$]", "_"));
 
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
+      CurrentModule = null;
       var companion = TypeName_Companion(UserDefinedType.FromTopLevelDeclWithAllBooleanTypeParameters(mainMethod.EnclosingClass), wr, mainMethod.tok, mainMethod);
 
       var wBody = wr.NewNamedBlock("func main()");
@@ -159,7 +162,8 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock("func (_this * {0}) Main({1} _dafny.Sequence)", FormatCompanionTypeName(((GoCodeGenerator.ClassWriter)cw).ClassName), argsParameterName);
     }
 
-    private Import CreateImport(string moduleName, bool isDefault, ModuleDefinition externModule, string /*?*/ libraryName) {
+    private Import CreateImport(string moduleName, ModuleDefinition externModule,
+      string /*?*/ libraryName, string namePrefix = "m_") {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -177,7 +181,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
 
-      return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
+      return new Import { Name = namePrefix + moduleName, Path = pkgName, ExternModule = externModule };
     }
 
     protected override bool ShouldCompileModule(Program program, ModuleDefinition module) {
@@ -192,7 +196,7 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
+    protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
       if (isDefault) {
@@ -209,13 +213,14 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       ModuleName = PublicModuleIdProtect(moduleName);
-      var import = CreateImport(ModuleName, isDefault, externModule, libraryName);
+      CurrentModule = module;
+      var import = CreateImport(ModuleName, externModule, libraryName);
       var filename = string.Format("{0}/{0}.go", import.Path);
       var w = wr.NewFile(filename);
       EmitModuleHeader(w);
 
       import.Path = goModuleName + import.Path;
-      AddImport(import);
+      AddImport(module, import);
 
       return w;
     }
@@ -254,20 +259,26 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       var publicModuleName = PublicModuleIdProtect(module.GetCompileName(Options));
-      var import = CreateImport(publicModuleName, module.IsDefaultModule, externModule, libraryName);
+      var import = CreateImport(publicModuleName, externModule, libraryName);
       import.Path = goModuleName + import.Path;
-      AddImport(import);
+      AddImport(module, import);
     }
 
     protected override void FinishModule() {
       ModuleName = MainModuleName;
     }
 
-    private void AddImport(Import import) {
+    private void AddImport(ModuleDefinition module, Import import) {
       // Import in root module
       EmitImport(import, RootImportWriter, RootImportDummyWriter);
       // Import in all subsequent modules
       Imports.Add(import);
+      ModuleImports[module] = import;
+      var implemented = module.GetImplementedModule();
+      while (implemented != null) {
+        ModuleImports[implemented] = import;
+        implemented = implemented.GetImplementedModule();
+      }
     }
 
     private void EmitImport(Import import, ConcreteSyntaxTree importWriter, ConcreteSyntaxTree importDummyWriter) {
@@ -2684,7 +2695,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
-      var enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
+      string enclosingModuleDefinitionId;
+      if (CurrentModule == cl.EnclosingModuleDefinition || cl.EnclosingModuleDefinition.IsDefaultModule) {
+        enclosingModuleDefinitionId = cl.EnclosingModuleDefinition.GetCompileName(Options);
+      } else {
+        enclosingModuleDefinitionId = ModuleImports[cl.EnclosingModuleDefinition].Name;
+      }
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
