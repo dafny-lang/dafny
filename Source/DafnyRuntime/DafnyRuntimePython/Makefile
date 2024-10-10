@@ -3,7 +3,7 @@
 DAFNY = dotnet run --project ../../Dafny --no-build --
 
 GENERATED_SYSTEM_MODULE_SOURCE=../obj/systemModulePopulator-py/System_.py
-GENERATED_SYSTEM_MODULE_TARGET=src/System_/__init__.py
+GENERATED_SYSTEM_MODULE_TARGET=System_/__init__.py
 
 VIRTUALENV = venv
 
