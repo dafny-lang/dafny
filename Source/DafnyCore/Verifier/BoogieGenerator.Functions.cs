@@ -376,9 +376,9 @@ public partial class BoogieGenerator {
         f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
         new Bpl.IdentifierExpr(f.tok, bvPrevHeap), f);
     } else {
-      etran = readsHeap
+      etran = f.ReadsHeap
         ? new ExpressionTranslator(this, predef, f.tok, f)
-        : new ExpressionTranslator(this, predef, (Bpl.Expr)null, f);
+        : new ExpressionTranslator(this, predef, readsHeap ? NewOneHeapExpr(f.tok) : null, f);
     }
 
     // quantify over the type arguments, and add them first to the arguments
@@ -421,26 +421,19 @@ public partial class BoogieGenerator {
       ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr));
     }
 
-    Bpl.Expr goodHeap = null;
-    var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
     if (f.ReadsHeap) {
+      var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
       funcFormals.Add(bv);
-    }
-
-    if (f.ReadsHeap) {
       args.Add(new Bpl.IdentifierExpr(f.tok, bv));
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
-    }
 
-    // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
-    if (readsHeap) {
+      // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       forallFormals.Add(bv);
-      goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
+      var goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
       ante = BplAnd(ante, goodHeap);
-    }
-
-    if (f is TwoStateFunction && f.ReadsHeap) {
-      ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
+      if (f is TwoStateFunction) {
+        ante = BplAnd(ante, HeapSucc(etran.Old.HeapExpr, etran.HeapExpr));
+      }
     }
 
     // ante:  conditions on bounded type parameters
@@ -479,7 +472,7 @@ public partial class BoogieGenerator {
     var substMap = new Dictionary<IVariable, Expression>();
     foreach (Formal p in f.Ins) {
       var pType = p.Type.Subst(typeMap);
-      bv = new Bpl.BoundVariable(p.tok,
+      var bv = new Bpl.BoundVariable(p.tok,
         new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
       forallFormals.Add(bv);
       funcFormals.Add(bv);
