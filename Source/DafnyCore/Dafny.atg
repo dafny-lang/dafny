@@ -522,7 +522,6 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      Name/*!*/ name;
      IToken tokenWithTrailingDocString = Token.NoToken;
      List<Type> parentTraits = new List<Type>();
-     Attributes attrs = null;
      bool isRefining = false;
      List<TypeParameter> typeArgs = new List<TypeParameter>();
      List<MemberDecl> members = new List<MemberDecl>();
