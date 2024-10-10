@@ -19,6 +19,13 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
+    protected override void EmitStaticExternMethodQualifier(string qual, ConcreteSyntaxTree wr) {
+      if (qual != null) {
+        qual = ImportPrefix + qual;
+      }
+      base.EmitStaticExternMethodQualifier(qual, wr);
+    }
+
     protected override bool RequiresAllVariablesToBeUsed => true;
     //TODO: This is tentative, update this to point to public module once available.
     private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
@@ -67,6 +74,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     private static string DummyTypeName = "Dummy__";
 
+    private static string ImportPrefix = "m_";
     private struct Import {
       public string Name, Path;
       public ModuleDefinition ExternModule;
@@ -164,7 +172,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private Import CreateImport(string moduleName, ModuleDefinition externModule,
-      string /*?*/ libraryName, string namePrefix = "m_") {
+      string /*?*/ libraryName) {
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -182,7 +190,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
 
-      return new Import { Name = namePrefix + moduleName, Path = pkgName, ExternModule = externModule };
+      return new Import { Name = ImportPrefix + moduleName, Path = pkgName, ExternModule = externModule };
     }
 
     protected override bool ShouldCompileModule(Program program, ModuleDefinition module) {
