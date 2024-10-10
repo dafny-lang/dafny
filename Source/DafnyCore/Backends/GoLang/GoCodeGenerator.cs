@@ -75,6 +75,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
 
+      CurrentModule = null;
       ModuleName = MainModuleName = program.MainMethod != null ? "main" : TransformToClassName(Path.GetFileNameWithoutExtension(program.Name));
 
       wr.WriteLine("package {0}", ModuleName);
@@ -265,6 +266,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void FinishModule() {
+      CurrentModule = null;
       ModuleName = MainModuleName;
     }
 
