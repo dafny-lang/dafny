@@ -58,21 +58,21 @@ module TestModule2 {
         assert pos2(-1) == 0;
         assert pos2(y) == 3 + pos2(y - 3);
         assert pos2(y) == 4 + pos2(y - 4);
-
+    }
+    method test3(y: int) requires y > 5 {
         if * {
             assert pos3(y) == 5 + pos3(y - 5);  // Just enough fuel to get here
         } else {
             assert pos3(y) == 6 + pos3(y - 6);  // error: Should fail even with a boost, since boost is too small
         }
-
+    }
+    method test4(y: int, z: int) requires y > 5 requires z < 0 {
         if * {
             assert pos4(z) == 0;    // error: Fuel shouldn't overcome opaque
         } else {
             reveal pos4();
             assert pos4(y) == 5 + pos4(y - 5);  // With reveal, everything should work as above
         }
-
-
     }
 }
 
