@@ -25,10 +25,7 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
     return true;
   }
 
-  public bool ContainsHide {
-    get => throw new NotSupportedException();
-    set => throw new NotSupportedException();
-  }
+  public bool ContainsHide { get; set; }
 
   public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
