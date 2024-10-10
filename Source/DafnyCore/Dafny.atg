@@ -545,7 +545,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, attrs, isRefining, parentTraits);
+  (. c = new ClassDecl(new RangeToken(dmodClass.FirstToken, t), name, module, typeArgs, members, dmodClass.Attributes, isRefining, parentTraits);
      c.BodyStartTok = bodyStart;
      c.TokenWithTrailingDocString = tokenWithTrailingDocString;
   .)
