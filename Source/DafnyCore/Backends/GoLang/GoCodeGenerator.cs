@@ -2707,7 +2707,7 @@ namespace Microsoft.Dafny.Compilers {
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
       string enclosingModuleDefinitionId;
       if (CurrentModule == cl.EnclosingModuleDefinition || cl.EnclosingModuleDefinition.IsDefaultModule) {
-        enclosingModuleDefinitionId = cl.EnclosingModuleDefinition.GetCompileName(Options);
+        enclosingModuleDefinitionId = PublicModuleIdProtect(cl.EnclosingModuleDefinition.GetCompileName(Options));
       } else {
         enclosingModuleDefinitionId = ModuleImports[cl.EnclosingModuleDefinition].Name;
       }
