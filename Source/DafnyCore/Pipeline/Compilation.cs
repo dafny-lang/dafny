@@ -333,9 +333,6 @@ public class Compilation : IDisposable {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
-          foreach (var task in result) {
-            cancellationSource.Token.Register(task.Cancel);
-          }
 
           return result.GroupBy(t => ((IToken)t.ScopeToken).GetFilePosition()).ToDictionary(
             g => g.Key,
@@ -434,6 +431,11 @@ public class Compilation : IDisposable {
 
   public void CancelPendingUpdates() {
     cancellationSource.Cancel();
+    foreach (var (_, tasks) in tasksPerVerifiable) {
+      foreach (var task in tasks) {
+        task.Cancel();
+      }
+    }
   }
 
   public async Task<TextEditContainer?> GetTextEditToFormatCode(Uri uri) {
