@@ -1797,7 +1797,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
     )
     "predicate"
     (. isLeastPredicate = true; .)
-    { Attribute<ref attrs> }
+    { Attribute<ref dmod.Attributes> }
     MethodFunctionName<out name>
     (
       [ GenericParameters<typeArgs, false> ]

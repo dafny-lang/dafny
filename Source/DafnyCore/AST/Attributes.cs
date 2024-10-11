@@ -237,21 +237,21 @@ public class Attributes : TokenNode, ICanFormat {
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "}": {
-          formatter.SetClosingIndentedRegion(token, indentBefore);
-          break;
-        }
+            formatter.SetClosingIndentedRegion(token, indentBefore);
+            break;
+          }
         case "@": {
-          formatter.SetIndentations(token, indentBefore, indentBefore, indentBefore);
-          break;
-        }
+            formatter.SetIndentations(token, indentBefore, indentBefore, indentBefore);
+            break;
+          }
         case ",": {
-          formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
-          break;
-        }
-        case "{" or "{:":{
-          formatter.SetOpeningIndentedRegion(token, indentBefore); 
-          break;
-        }
+            formatter.SetDelimiterInsideIndentedRegions(token, indentBefore);
+            break;
+          }
+        case "{" or "{:": {
+            formatter.SetOpeningIndentedRegion(token, indentBefore);
+            break;
+          }
       }
     }
     foreach (var arg in Args) {
