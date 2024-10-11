@@ -12,6 +12,7 @@ exe:
 
 format-dfy:
 	(cd "${DIR}"/Source/DafnyCore ; ../../Binaries/Dafny.exe format .)
+	(cd "${DIR}"/Source/DafnyStandardLibraries ; ../../Binaries/Dafny.exe format .)
 
 dfy-to-cs: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
