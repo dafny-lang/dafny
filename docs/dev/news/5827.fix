@@ -1,0 +1,1 @@
+Improve performance of `dafny verify` for large applications, by removing memory leaks
