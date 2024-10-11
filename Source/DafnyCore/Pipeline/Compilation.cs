@@ -510,7 +510,7 @@ public class Compilation : IDisposable {
 
     // This reports problems that are not captured by counter-examples, like a time-out
     // The Boogie API forces us to create a temporary engine here to report the outcome, even though it only uses the options.
-    var boogieEngine = new ExecutionEngine(options, new VerificationResultCache(),
+    var boogieEngine = new ExecutionEngine(options, new EmptyVerificationResultCache(),
       CustomStackSizePoolTaskScheduler.Create(0, 0));
     boogieEngine.ReportOutcome(null, outcome, outcomeError => errorReporter.ReportBoogieError(outcomeError, null, false),
       name, token, null, TextWriter.Null,
