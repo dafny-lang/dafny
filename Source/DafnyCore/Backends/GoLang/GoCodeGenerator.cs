@@ -20,8 +20,7 @@ using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
 namespace Microsoft.Dafny.Compilers {
   class GoCodeGenerator : SinglePassCodeGenerator {
     protected override bool RequiresAllVariablesToBeUsed => true;
-    //TODO: This is tentative, update this to point to public module once available.
-    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/";
+    private string DafnyRuntimeGoModule = "github.com/dafny-lang/DafnyRuntimeGo/v4/";
 
     private bool GoModuleMode;
     private string GoModuleName;
