@@ -580,4 +580,12 @@ public class Compilation : IDisposable {
         throw new ArgumentOutOfRangeException(nameof(outcome), outcome, null);
     }
   }
+
+  public void ClearModuleCache(ModuleDefinition moduleDefinition) {
+    translatedModules.Remove(moduleDefinition);
+  }
+
+  public void ClearCanVerifyCache(ICanVerify canVerify) {
+    tasksPerVerifiable.Remove(canVerify);
+  }
 }
