@@ -262,6 +262,9 @@ public class CliCompilation {
         Compilation.ClearCanVerifyCache(canVerify);
       }
       Compilation.ClearModuleCache(canVerifiesForModule.Key);
+      
+      await Options.OutputWriter.WriteLineAsync(
+        $"Finished module ${canVerifiesForModule.Key.FullName}");
     }
   }
 
