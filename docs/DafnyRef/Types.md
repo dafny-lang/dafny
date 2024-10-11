@@ -1690,17 +1690,17 @@ Intuitively, the built-in partial arrow type is defined as follows (here shown
 for arrows with arity 1):
 <!-- %no-check -->
 ```dafny
-type A --> B = f: A ~> B | forall a :: f.reads(a) == {}
+type A --> B = f: A ~> B | forall a :: f.requires(a) ==> f.reads(a) == {}
 ```
 (except that what is shown here left of the `=` is not legal Dafny syntax
 and that the restriction could not be verified as is).
 That is, the partial arrow type is defined as those functions `f`
-whose reads frame is empty for all inputs.
+whose reads frame is empty for all inputs on which f is defined.
 More precisely, taking variance into account, the partial arrow type
 is defined as
 <!-- %no-check -->
 ```dafny
-type -A --> +B = f: A ~> B | forall a :: f.reads(a) == {}
+type -A --> +B = f: A ~> B | forall a :: f.requires(a) ==> f.reads(a) == {}
 ```
 
 The type `(TT) -> U` is, in turn, a subset type of `(TT) --> U`, adding the
@@ -2892,8 +2892,8 @@ whose `reads` and `requires` properties are given by the definition:
 <!-- %no-check -->
 ```dafny
 function f.reads<T>(x: T): set<object>
-  reads R(x)
   requires P(x)
+  reads if P(x) then R(x) else *
 {
   R(x)
 }
