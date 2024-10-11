@@ -1068,7 +1068,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
                              new Specification<FrameExpression>(mod, modAttrs),
                              new Specification<Expression>(decreases, decrAttrs),
                              req, ens, yieldReq, yieldEns,
-                             body, attrs, signatureEllipsis);
+                             body, dmod.Attributes, signatureEllipsis);
      iter.BodyStartTok = bodyStart;
  .)
   .
