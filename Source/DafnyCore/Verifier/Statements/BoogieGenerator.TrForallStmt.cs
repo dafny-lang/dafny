@@ -40,12 +40,14 @@ public partial class BoogieGenerator {
       } else {
         var s0 = (CallStmt)forallStmt.S0;
         if (Attributes.Contains(forallStmt.Attributes, "_trustWellformed")) {
-          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null, forallStmt.EffectiveEnsuresClauses, s0, null, builder, locals, etran);
+          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
+            forallStmt.EffectiveEnsuresClauses, null, s0, null, builder, locals, etran);
         } else {
           var definedness = new BoogieStmtListBuilder(this, options, builder.Context);
           DefineFuelConstant(forallStmt.Tok, forallStmt.Attributes, definedness, etran);
           var exporter = new BoogieStmtListBuilder(this, options, builder.Context);
-          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null, forallStmt.EffectiveEnsuresClauses, s0, definedness, exporter, locals, etran);
+          TrForallStmtCall(forallStmt.Tok, forallStmt.BoundVars, forallStmt.Bounds, forallStmt.Range, null,
+            forallStmt.EffectiveEnsuresClauses, null, s0, definedness, exporter, locals, etran);
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(forallStmt.Tok, null, definedness.Collect(forallStmt.Tok), null, exporter.Collect(forallStmt.Tok)));
         }
@@ -71,13 +73,14 @@ public partial class BoogieGenerator {
 
 
   void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<BoundedPool> bounds,
-    Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
+    Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, List<List<Expression>> triggers, CallStmt s0,
     BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(bounds != null);
     Contract.Requires(range != null);
     // additionalRange is allowed to be null
+    Contract.Requires(forallExpressions == null || triggers == null || triggers.Count == 0);
     Contract.Requires(s0 != null);
     // definedness is allowed to be null
     Contract.Requires(exporter != null);
@@ -209,7 +212,18 @@ public partial class BoogieGenerator {
           post = BplAnd(post, callEtran.CanCallAssumption(p));
           post = BplAnd(post, callEtran.TrExpr(p));
         }
+
         tr = null;
+        if (triggers != null) {
+          foreach (var trigger in triggers) {
+            Contract.Assert(trigger.Count != 0);
+            var terms = trigger.ConvertAll(expr => {
+              expr = Substitute(expr, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+              return callEtran.TrExpr(expr);
+            });
+            tr = new Trigger(trigger[0].tok, true, terms, tr);
+          }
+        }
       }
 
       // TRIG (forall $ih#s0#0: Seq :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))

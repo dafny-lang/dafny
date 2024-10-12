@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using JetBrains.Annotations;
 using static Microsoft.Dafny.RewriterErrors;
 
@@ -183,6 +184,23 @@ public class InductionRewriter : IRewriter {
     }
 
     if (inductionVariables.Count != 0) {
+      if (lemma != null) {
+        var triggers = ComputeInductionTriggers(inductionVariables, body, lemma.EnclosingClass.EnclosingModuleDefinition);
+        if (triggers.Count == 0) {
+          var msg = "omitting automatic induction because of lack of triggers";
+          if (args != null) {
+            Reporter.Warning(MessageSource.Rewriter, GenericErrors.ErrorId.none, tok, msg);
+          } else {
+            Reporter.Info(MessageSource.Rewriter, tok, msg);
+          }
+          return;
+        }
+
+        foreach (var trigger in triggers) {
+          attributes = new Attributes("_inductionPattern", trigger, attributes);
+        }
+      }
+
       // We found something usable, so let's record that in an attribute
       attributes = new Attributes("_induction", inductionVariables, attributes);
       // And since we're inferring something, let's also report that in a hover text.
@@ -193,6 +211,49 @@ public class InductionRewriter : IRewriter {
 
       Reporter.Info(MessageSource.Rewriter, tok, s);
     }
+  }
+
+  /// <summary>
+  /// Obtain and return matching patterns for
+  ///     (forall inductionVariables :: body)
+  /// If there aren't any, then return null.
+  /// </summary>
+  List<List<Expression>> ComputeInductionTriggers(List<Expression> inductionVariables, Expression body, ModuleDefinition moduleDefinition) {
+    Contract.Requires(inductionVariables.Count != 0);
+
+    // Construct a quantifier, because that's what the trigger-generating machinery expects.
+    // We start by creating a new BoundVar for each ThisExpr-or-IdentifierExpr in "inductionVariables".
+    var boundVars = new List<BoundVar>();
+    var substMap = new Dictionary<IVariable, Expression>();
+    var reverseSubstMap = new Dictionary<IVariable, Expression>();
+    Expression receiverReplacement = null;
+    foreach (var inductionVariableExpr in inductionVariables) {
+      var tok = inductionVariableExpr.tok;
+      BoundVar boundVar;
+      if (inductionVariableExpr is IdentifierExpr identifierExpr) {
+        boundVar = new BoundVar(tok, identifierExpr.Var.Name, identifierExpr.Var.Type);
+        substMap.Add(identifierExpr.Var, new IdentifierExpr(tok, boundVar));
+      } else {
+        Contract.Assert(inductionVariableExpr is ThisExpr);
+        boundVar = new BoundVar(tok, "this", inductionVariableExpr.Type);
+        receiverReplacement = new IdentifierExpr(tok, boundVar);
+      }
+      boundVars.Add(boundVar);
+      reverseSubstMap.Add(boundVar, inductionVariableExpr);
+    }
+
+    var substituter = new Substituter(receiverReplacement, substMap, new Dictionary<TypeParameter, Type>());
+    var quantifier = new ForallExpr(body.tok, body.RangeToken, boundVars, null, substituter.Substitute(body), null) {
+      Type = Type.Bool
+    };
+
+    var finder = new Triggers.QuantifierCollector(Reporter);
+    var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, Reporter.Options, moduleDefinition);
+    var quantifierCollection = new Triggers.ComprehensionTriggerGenerator(quantifier, Enumerable.Repeat(quantifier, 1), Reporter);
+    quantifierCollection.ComputeTriggers(triggersCollector);
+    var triggers = quantifierCollection.GetTriggers();
+    var reverseSubstituter = new Substituter(null, reverseSubstMap, new Dictionary<TypeParameter, Type>());
+    return triggers.ConvertAll(trigger => trigger.ConvertAll(reverseSubstituter.Substitute));
   }
 
   class InductionVisitor : BottomUpVisitor {
