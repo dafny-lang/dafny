@@ -184,7 +184,7 @@ public class CliCompilation {
         var canVerifyResult = canVerifyResults[boogieUpdate.CanVerify];
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
 
-        if (Options.Get(CommonOptionBag.ProgressOption)) {
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.SymbolParts) {
           var token = BoogieGenerator.ToDafnyToken(false, boogieUpdate.VerificationTask.Split.Token);
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
@@ -237,7 +237,7 @@ public class CliCompilation {
       foreach (var canVerify in canVerifiesForModule) {
         var results = canVerifyResults[canVerify];
         try {
-          if (Options.Get(CommonOptionBag.ProgressOption)) {
+          if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
             await Options.OutputWriter.WriteLineAsync(
               $"Verified {done}/{orderedCanVerifies.Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
           }
