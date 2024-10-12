@@ -763,6 +763,7 @@ namespace Microsoft.Dafny {
         foreach (var pre in m.Req) {
           parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
         }
+
         // construct an expression (generator) for:  VF' << VF
         ExpressionConverter decrCheck = delegate (Dictionary<IVariable, Expression> decrSubstMap, ExpressionTranslator exprTran) {
           var decrToks = new List<IToken>();
