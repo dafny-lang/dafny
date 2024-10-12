@@ -171,7 +171,7 @@ public class InductionRewriter : IRewriter {
     // Okay, here we go, coming up with good induction setting for the given situation
     var inductionVariables = new List<Expression>();
     if (lemma is { IsStatic: false }) {
-      if (args != null || FreeVariablesUtil.ContainsFreeVariable(body, true, null)) {
+      if (args != null || InductionHeuristic.VarOccursInArgumentToRecursiveFunction(Reporter.Options, body, null)) {
         inductionVariables.Add(new ThisExpr(lemma));
       }
     }
