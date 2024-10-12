@@ -158,15 +158,14 @@ public partial class BoogieGenerator {
 
       // Note, in the following, we need to do a bit of a song and dance.  The actual arguments of the
       // call should be translated using "initEtran", whereas the method postcondition should be translated
-      // using "callEtran".  To accomplish this, we translate the argument and then tuck the resulting
+      // using "callEtran".  To accomplish this, we translate the arguments and then tuck the resulting
       // Boogie expressions into BoogieExprWrappers that are used in the DafnyExpr-to-DafnyExpr substitution.
       var bvars = new List<Variable>();
       Dictionary<IVariable, Expression> substMap;
-      Bpl.Trigger antitriggerBoundVarTypes;
-      Bpl.Expr ante;
       var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
       Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
       var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap, etran.scope);
+      Bpl.Expr ante;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
       if (forallExpressions != null) {
@@ -176,29 +175,35 @@ public partial class BoogieGenerator {
           expr = (QuantifierExpr)expr.SplitQuantifierExpression;
         }
         boundVars = expr.BoundVars;
-        ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
-        ante = BplAnd(ante, initEtran.TrExpr(Substitute(expr.Range, null, substMap)));
+        ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
+
+        var p = Substitute(expr.Range, null, substMap);
+        ante = BplAnd(ante, initEtran.TrExpr(p));
         if (additionalRange != null) {
           ante = BplAnd(ante, additionalRange(substMap, initEtran));
         }
         tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
         post = callEtran.TrExpr(Substitute(expr.Term, null, substMap));
       } else {
-        ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
+        ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+
+        var p = Substitute(range, null, substMap);
+        ante = BplAnd(ante, initEtran.TrExpr(p));
+        if (additionalRange != null) {
+          ante = BplAnd(ante, additionalRange(substMap, initEtran));
+        }
+
+        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
         for (int i = 0; i < s0.Method.Ins.Count; i++) {
           var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the renamed bound variables for the declared ones
           argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
         }
-        ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
-        if (additionalRange != null) {
-          ante = BplAnd(ante, additionalRange(substMap, initEtran));
-        }
-        var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
         foreach (var ens in s0.Method.Ens) {
-          var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
+          p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
           post = BplAnd(post, callEtran.TrExpr(p));
         }
-        tr = antitriggerBoundVarTypes;
+        tr = null;
       }
 
       // TRIG (forall $ih#s0#0: Seq :: $Is($ih#s0#0, TSeq(TChar)) && $IsAlloc($ih#s0#0, TSeq(TChar), $initHeapForallStmt#0) && Seq#Length($ih#s0#0) != 0 && Seq#Rank($ih#s0#0) < Seq#Rank(s#0) ==> (forall i#2: int :: true ==> LitInt(0) <= i#2 && i#2 < Seq#Length($ih#s0#0) ==> char#ToInt(_module.CharChar.MinChar($LS($LZ), $Heap, this, $ih#s0#0)) <= char#ToInt($Unbox(Seq#Index($ih#s0#0, i#2)): char)))

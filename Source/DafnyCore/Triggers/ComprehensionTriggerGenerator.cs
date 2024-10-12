@@ -122,7 +122,7 @@ namespace Microsoft.Dafny.Triggers {
       // In addition, we ignore cases where the only differences between a trigger
       // and a trigger match are places where a variable is replaced with an
       // expression whose free variables do not intersect that of the quantifier
-      // in which that expression is found. For examples of this behavious, see
+      // in which that expression is found. For examples of this behavior, see
       // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
       bool foundLoop = false;
