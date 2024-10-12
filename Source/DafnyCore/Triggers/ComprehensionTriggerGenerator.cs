@@ -230,5 +230,19 @@ namespace Microsoft.Dafny.Triggers {
         triggerWriter.CommitTrigger(reporter, partWriters.Count > 1 ? index : null, systemModuleManager);
       }
     }
+
+    public List<List<Expression>> GetTriggers() {
+      var triggers = new List<List<Expression>>();
+      foreach (var triggerWriter in partWriters) {
+        foreach (var triggerTerms in triggerWriter.Candidates) {
+          var trigger = new List<Expression>();
+          foreach (var triggerTerm in triggerTerms.Terms) {
+            trigger.Add(triggerTerm.Expr);
+          }
+          triggers.Add(trigger);
+        }
+      }
+      return triggers;
+    }
   }
 }
