@@ -230,6 +230,9 @@ namespace Microsoft.Dafny {
             }
           }
 
+          foreach (var pattern in letExpr.LHSs) {
+            VisitCasePattern(pattern);
+          }
         } else if (expr is QuantifierExpr quantifierExpr) {
           foreach (BoundVar v in quantifierExpr.BoundVars) {
             VisitUserProvidedType(v.Type, context);
@@ -336,6 +339,8 @@ namespace Microsoft.Dafny {
             VisitUserProvidedType(local.SyntacticType, context);
           }
 
+          VisitCasePattern(varDeclPattern.LHS);
+
         } else if (stmt is SingleAssignStmt assignStmt) {
           if (assignStmt.Rhs is TypeRhs typeRhs) {
             if (typeRhs.EType != null) {
@@ -376,6 +381,12 @@ namespace Microsoft.Dafny {
 
         PostVisitOneStatement(stmt, context);
       }
+    }
+
+    protected virtual void VisitCasePattern<T>(CasePattern<T> pattern) where T : class, IVariable {
+      foreach (var argument in pattern.Arguments) {
+        VisitCasePattern(argument);
+      } 
     }
 
     /// <summary>

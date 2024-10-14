@@ -458,7 +458,7 @@ namespace Microsoft.Dafny.Compilers {
       Constructor ct = constructors[0];
 
       foreach (var member in iter.Members) {
-        if (member is Field f && !f.IsGhost) {
+        if (member is Field f) {
           cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, PlaceboValue(f.Type, w, f.tok, true), f);
         }
       }
@@ -466,7 +466,7 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine("System.Collections.Generic.IEnumerator<object> _iter;");
 
       // here we rely on the parameters and the corresponding fields having the same names
-      var nonGhostFormals = ct.Ins.Where(p => !p.IsGhost).ToList();
+      var nonGhostFormals = ct.Ins.ToList();
       var parameters = nonGhostFormals.Comma(p => $"{TypeName(p.Type, w, p.tok)} {IdName(p)}");
 
       // here's the initializer method
@@ -623,11 +623,10 @@ namespace Microsoft.Dafny.Compilers {
 
         var wDefaultArguments = wDefault.Write(DtCreateName(groundingCtor)).ForkInParens();
         wDefaultArguments.Append(wDefaultTypeArguments);
-        var nonGhostFormals = groundingCtor.Formals.Where(f => !f.IsGhost).ToList();
-        if (defaultMethodTypeDescriptorCount != 0 && nonGhostFormals.Count != 0) {
+        if (defaultMethodTypeDescriptorCount != 0 && groundingCtor.Formals.Count != 0) {
           wDefaultArguments.Write(", ");
         }
-        wDefaultArguments.Write(nonGhostFormals.Comma(f => DefaultValue(f.Type, wDefault, f.tok)));
+        wDefaultArguments.Write(groundingCtor.Formals.Comma(f => DefaultValue(f.Type, wDefault, f.tok)));
       }
 
       EmitTypeDescriptorMethod(dt, wr);
@@ -645,7 +644,7 @@ namespace Microsoft.Dafny.Compilers {
         var formalCount = WriteFormals(typeDescriptorCount > 0 ? ", " : "", ctor.Formals, wr);
         var sep = typeDescriptorCount > 0 && formalCount > 0 ? ", " : "";
         wr.NewBlock(")")
-          .WriteLine($"return new {DtCtorDeclarationName(ctor)}{DtT_TypeArgs}({wCallArguments}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+          .WriteLine($"return new {DtCtorDeclarationName(ctor)}{DtT_TypeArgs}({wCallArguments}{sep}{ctor.Formals.Comma(FormalName)});");
       }
 
       if (dt.IsRecordType) {
@@ -659,7 +658,7 @@ namespace Microsoft.Dafny.Compilers {
         var formalCount = WriteFormals(typeDescriptorCount > 0 ? ", " : "", ctor.Formals, wr);
         var sep = typeDescriptorCount > 0 && formalCount > 0 ? ", " : "";
         wr.NewBlock(")")
-          .WriteLine($"return create({wCallArguments}{sep}{ctor.Formals.Where(f => !f.IsGhost).Comma(FormalName)});");
+          .WriteLine($"return create({wCallArguments}{sep}{ctor.Formals.Comma(FormalName)});");
       }
 
       // query properties
@@ -721,7 +720,7 @@ namespace Microsoft.Dafny.Compilers {
         (ty.AsTypeParameter != null && refTy && datatype.TypeArgs.Contains(ty.AsTypeParameter))
         || ty.TypeArgs.Exists(arg => InvalidType(arg, refTy || ty.IsRefType));
 
-      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && InvalidType(f.SyntacticType, false)))) {
+      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => InvalidType(f.SyntacticType, false)))) {
         return;
       }
 
@@ -845,7 +844,7 @@ namespace Microsoft.Dafny.Compilers {
         var typeDescriptorArgumentsStrings = wCallArguments.ToString();
         string constructorArgs;
         if (!lazy) {
-          constructorArgs = ctor.Formals.Where(f => !f.IsGhost).Comma(PrintInvocation);
+          constructorArgs = ctor.Formals.Comma(PrintInvocation);
         } else if (customReceiver) {
           var sep0 = typeDescriptorCount != 0 ? ", " : "";
           var sep1 = converters.Length != 0 ? ", " : "";
@@ -855,7 +854,7 @@ namespace Microsoft.Dafny.Compilers {
           var sep0 = typeDescriptorCount != 0 && converters.Length != 0 ? ", " : "";
           constructorArgs = $"() => _Get().DowncastClone{uTypeArgs}({typeDescriptorArgumentsStrings}{sep0}{converters})";
         }
-        var sep = typeDescriptorCount != 0 && (lazy || ctor.Formals.Any(f => !f.IsGhost)) ? ", " : "";
+        var sep = typeDescriptorCount != 0 && (lazy || ctor.Formals.Any()) ? ", " : "";
         var className = lazy ? lazyClass : DtCtorDeclarationName(ctor);
         wBody.WriteLine($"return new {className}{uTypeArgs}({typeDescriptorArgumentsStrings}{sep}{constructorArgs});");
       }
@@ -872,56 +871,55 @@ namespace Microsoft.Dafny.Compilers {
           var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
           if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
-            if (!arg.IsGhost) {
-              var DtorM = arg.HasName ? InternalFieldPrefix + arg.CompileName : FieldName(arg, index);
-              //   TN dtor_QDtorM { get; }
-              interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
-              //   public TN dtor_QDtorM { get {
-              //       var d = this;         // for inductive datatypes
-              //       var d = this._Get();  // for co-inductive datatypes
-              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).DtorM; }
-              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).DtorM; }
-              //       ...
-              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).DtorM; }
-              //       return ((DT_Ctor(n-1))d).DtorM;
-              //    }}
-              var wDtor =
-                wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)}");
-              var wGet = wDtor.NewBlock("get");
-              if (dt.IsRecordType) {
-                if (dt is CoDatatypeDecl) {
-                  wGet.WriteLine($"return this._Get().{IdProtect(DtorM)};");
-                } else {
-                  wGet.WriteLine($"return this.{IdProtect(DtorM)};");
-                }
+            var DtorM = arg.HasName ? InternalFieldPrefix + arg.CompileName : FieldName(arg, index);
+            //   TN dtor_QDtorM { get; }
+            interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
+
+            //   public TN dtor_QDtorM { get {
+            //       var d = this;         // for inductive datatypes
+            //       var d = this._Get();  // for co-inductive datatypes
+            //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).DtorM; }
+            //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).DtorM; }
+            //       ...
+            //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).DtorM; }
+            //       return ((DT_Ctor(n-1))d).DtorM;
+            //    }}
+            var wDtor =
+              wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)}");
+            var wGet = wDtor.NewBlock("get");
+            if (dt.IsRecordType) {
+              if (dt is CoDatatypeDecl) {
+                wGet.WriteLine($"return this._Get().{IdProtect(DtorM)};");
               } else {
-                if (dt is CoDatatypeDecl) {
-                  wGet.WriteLine("var d = this._Get();");
-                } else {
-                  wGet.WriteLine("var d = this;");
-                }
-
-                var compiledConstructorsProcessed = 0;
-                for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
-                  var ctor_i = dtor.EnclosingCtors[i];
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                  if (ctor_i.IsGhost) {
-                    continue;
-                  }
-                  var type = $"{dt.GetCompileName(Options)}_{ctor_i.GetCompileName(Options)}{DtT_TypeArgs}";
-                  // TODO use pattern matching to replace cast.
-                  var returnTheValue = $"return (({type})d).{IdProtect(DtorM)};";
-                  if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
-                    wGet.WriteLine($"if (d is {type}) {{ {returnTheValue} }}");
-                  } else {
-                    wGet.WriteLine(returnTheValue);
-                  }
-                  compiledConstructorsProcessed++;
-                }
+                wGet.WriteLine($"return this.{IdProtect(DtorM)};");
               }
-              index++;
+            } else {
+              if (dt is CoDatatypeDecl) {
+                wGet.WriteLine("var d = this._Get();");
+              } else {
+                wGet.WriteLine("var d = this;");
+              }
+
+              var compiledConstructorsProcessed = 0;
+              for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
+                var ctor_i = dtor.EnclosingCtors[i];
+                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                if (ctor_i.IsGhost) {
+                  continue;
+                }
+                var type = $"{dt.GetCompileName(Options)}_{ctor_i.GetCompileName(Options)}{DtT_TypeArgs}";
+                // TODO use pattern matching to replace cast.
+                var returnTheValue = $"return (({type})d).{IdProtect(DtorM)};";
+                if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
+                  wGet.WriteLine($"if (d is {type}) {{ {returnTheValue} }}");
+                } else {
+                  wGet.WriteLine(returnTheValue);
+                }
+                compiledConstructorsProcessed++;
+              }
             }
+            index++;
           }
         }
       }
@@ -929,7 +927,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private void CompileDatatypeInterfaceMembers(DatatypeDecl dt, ConcreteSyntaxTree interfaceTree) {
       foreach (var member in dt.Members) {
-        if (member.IsGhost || member.IsStatic) { continue; }
+        if (member.IsStatic) { continue; }
         if (member is Function fn && !NeedsCustomReceiver(member)) {
           CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.tok, fn.IsStatic,
             false, fn, interfaceTree, false, false);
@@ -957,7 +955,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in d.TypeArgs) {
           bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
                                        || ty.TypeArgs.Exists(InvalidType);
-          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SyntacticType);
+          bool InvalidFormal(Formal f) => InvalidType(f.SyntacticType);
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
@@ -1060,10 +1058,8 @@ namespace Microsoft.Dafny.Compilers {
 
       var i = 0;
       foreach (Formal arg in ctor.Formals) {
-        if (!arg.IsGhost) {
-          wr.WriteLine($"public readonly {TypeName(arg.Type, wr, arg.tok)} {FieldName(arg, i)};");
-          i++;
-        }
+        wr.WriteLine($"public readonly {TypeName(arg.Type, wr, arg.tok)} {FieldName(arg, i)};");
+        i++;
       }
 
       var typeDescriptorCount = EmitTypeDescriptorsForClass(dt.TypeArgs, dt, out var wTypeFields, out var wCtorParams, out var wBaseCallArguments, out var wCtorBody);
@@ -1080,10 +1076,8 @@ namespace Microsoft.Dafny.Compilers {
         var w = wCtorBody;
         i = 0;
         foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            w.WriteLine($"this.{FieldName(arg, i)} = {FormalName(arg, i)};");
-            i++;
-          }
+          w.WriteLine($"this.{FieldName(arg, i)} = {FormalName(arg, i)};");
+          i++;
         }
       }
 
@@ -1102,14 +1096,12 @@ namespace Microsoft.Dafny.Compilers {
         w.Write("return oth != null");
         i = 0;
         foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            var nm = FieldName(arg, i);
-            w.Write(IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, arg.Type))
-              ? $" && this.{nm} == oth.{nm}"
-              : $" && object.Equals(this.{nm}, oth.{nm})");
+          var nm = FieldName(arg, i);
+          w.Write(IsDirectlyComparable(DatatypeWrapperEraser.SimplifyType(Options, arg.Type))
+            ? $" && this.{nm} == oth.{nm}"
+            : $" && object.Equals(this.{nm}, oth.{nm})");
 
-            i++;
-          }
+          i++;
         }
 
         w.WriteLine(";");
@@ -1122,11 +1114,9 @@ namespace Microsoft.Dafny.Compilers {
         w.WriteLine($"hash = ((hash << 5) + hash) + {constructorIndex};");
         i = 0;
         foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            string nm = FieldName(arg, i);
-            w.WriteLine($"hash = ((hash << 5) + hash) + ((ulong){DafnyHelpersClass}.GetHashCode(this.{nm}));");
-            i++;
-          }
+          string nm = FieldName(arg, i);
+          w.WriteLine($"hash = ((hash << 5) + hash) + ((ulong){DafnyHelpersClass}.GetHashCode(this.{nm}));");
+          i++;
         }
 
         w.WriteLine("return (int) hash;");
@@ -1156,19 +1146,17 @@ namespace Microsoft.Dafny.Compilers {
               w.WriteLine($"{tempVar} += \"(\";");
               i = 0;
               foreach (var arg in ctor.Formals) {
-                if (!arg.IsGhost) {
-                  if (i != 0) {
-                    w.WriteLine($"{tempVar} += \", \";");
-                  }
-
-                  if (arg.Type.IsStringType && UnicodeCharEnabled) {
-                    w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString(true);");
-                  } else {
-                    w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
-                  }
-
-                  i++;
+                if (i != 0) {
+                  w.WriteLine($"{tempVar} += \", \";");
                 }
+
+                if (arg.Type.IsStringType && UnicodeCharEnabled) {
+                  w.WriteLine($"{tempVar} += this.{FieldName(arg, i)}.ToVerbatimString(true);");
+                } else {
+                  w.WriteLine($"{tempVar} += {DafnyHelpersClass}.ToString(this.{FieldName(arg, i)});");
+                }
+
+                i++;
               }
 
               w.WriteLine($"{tempVar} += \")\";");
@@ -1499,14 +1487,12 @@ namespace Microsoft.Dafny.Compilers {
     internal string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
       string/*?*/ targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
-        if (!p.IsGhost) {
-          if (targetReturnTypeReplacement == null) {
-            targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-          } else {
-            // there's more than one out-parameter, so bail
-            targetReturnTypeReplacement = null;
-            break;
-          }
+        if (targetReturnTypeReplacement == null) {
+          targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
+        } else {
+          // there's more than one out-parameter, so bail
+          targetReturnTypeReplacement = null;
+          break;
         }
       }
 
@@ -2658,14 +2644,12 @@ namespace Microsoft.Dafny.Compilers {
           lambdaHeader.Write(" => ");
 
           foreach (var arg in fn.Ins) {
-            if (!arg.IsGhost) {
-              var name = idGenerator.FreshId("_eta");
-              var ty = arg.Type.Subst(typeMap);
-              arguments.Write($"{prefixSep}{TypeName(ty, arguments, arg.tok)} {name}");
-              callArguments.Write($"{sep}{name}");
-              sep = ", ";
-              prefixSep = ", ";
-            }
+            var name = idGenerator.FreshId("_eta");
+            var ty = arg.Type.Subst(typeMap);
+            arguments.Write($"{prefixSep}{TypeName(ty, arguments, arg.tok)} {name}");
+            callArguments.Write($"{sep}{name}");
+            sep = ", ";
+            prefixSep = ", ";
           }
           return EnclosedLvalue(lambdaHeader.ToString(), obj, $".{wr}");
         }

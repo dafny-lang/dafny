@@ -110,11 +110,17 @@ public class SymbolTable {
 
   public IEnumerable<Location> GetReferences(Uri uri, Position position) {
     if (nodePositions.TryGetValue(uri, out var forFile)) {
-      return forFile.Query(position).
-        SelectMany(node => NodeToReferences.GetOrDefault(node, () => (ISet<IHasNavigationToken>)new HashSet<IHasNavigationToken>())).
-        Select(u => new Location { Uri = u.NavigationToken.Filepath, Range = u.NavigationToken.GetLspRange() }).Distinct();
+      return forFile.Query(position).SelectMany(GetReferenceLocations).Distinct();
     }
     return Enumerable.Empty<Location>();
+  }
+  
+  public IEnumerable<IHasNavigationToken> GetReferences(IHasNavigationToken node) {
+    return NodeToReferences.GetOrDefault(node, () => (ISet<IHasNavigationToken>)new HashSet<IHasNavigationToken>());
+  }
+  
+  public IEnumerable<Location> GetReferenceLocations(IHasNavigationToken node) {
+    return GetReferences(node).Select(u => new Location { Uri = u.NavigationToken.Filepath, Range = u.NavigationToken.GetLspRange() });
   }
 
   public Location? GetDeclaration(Uri uri, Position position) {
@@ -122,7 +128,7 @@ public class SymbolTable {
     return node == null ? null : NodeToLocation(node);
   }
 
-  internal static Location? NodeToLocation(IHasNavigationToken node) {
+  public static Location? NodeToLocation(IHasNavigationToken node) {
     if (node.NavigationToken.Uri == null) {
       return null;
     }

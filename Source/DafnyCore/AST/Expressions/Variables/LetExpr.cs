@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class LetExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICloneable<LetExpr>, ICanFormat {
-  public readonly List<CasePattern<BoundVar>> LHSs;
+  public List<CasePattern<BoundVar>> LHSs;
   public readonly List<Expression> RHSs;
   public readonly Expression Body;
   public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression

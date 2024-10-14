@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DafnyCore.Backends;
 using DafnyCore.Options;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Dafny.Plugins;
@@ -28,6 +29,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override string ModuleSeparator => CodeGenerator.ModuleSeparator;
 
   public override void Compile(Program dafnyProgram, string dafnyProgramName, ConcreteSyntaxTree output) {
+    GhostEraser.EraseGhostCode(dafnyProgram);
     ProcessTranslationRecords(dafnyProgram, dafnyProgramName, output);
     CheckInstantiationReplaceableModules(dafnyProgram);
     ProcessOuterModules(dafnyProgram);

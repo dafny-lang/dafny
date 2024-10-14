@@ -574,7 +574,7 @@ namespace Microsoft.Dafny.Compilers {
 
       Constructor ct = null;
       foreach (var member in iter.Members) {
-        if (member is Field f && !f.IsGhost) {
+        if (member is Field f) {
           cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, PlaceboValue(f.Type, wr, f.tok, true), f);
         } else if (member is Constructor c) {
           Contract.Assert(ct == null);
@@ -586,11 +586,9 @@ namespace Microsoft.Dafny.Compilers {
       cw.ConcreteMethodWriter.Write("func (_this * {0}) {1}(", IdName(iter), IdName(ct));
       string sep = "";
       foreach (var p in ct.Ins) {
-        if (!p.IsGhost) {
-          // here we rely on the parameters and the corresponding fields having the same names
-          cw.ConcreteMethodWriter.Write("{0}{1} {2}", sep, IdName(p), TypeName(p.Type, wr, p.tok));
-          sep = ", ";
-        }
+        // here we rely on the parameters and the corresponding fields having the same names
+        cw.ConcreteMethodWriter.Write("{0}{1} {2}", sep, IdName(p), TypeName(p.Type, wr, p.tok));
+        sep = ", ";
       }
       var wCtor = cw.ConcreteMethodWriter.NewBlock(")");
       wCtor.WriteLine("_cont := make(chan struct{})");

@@ -762,9 +762,7 @@ namespace Microsoft.Dafny.Compilers {
       var arguments = Enumerable.Empty<string>();
       if (ctor != null && ctor.IsExtern(Options, out _, out _)) {
         // the arguments of any external constructor are placed here
-        arguments = ctor.Ins.Select((f, i) => (f, i))
-          .Where(tp => !tp.f.IsGhost)
-          .Select(tp => Expr(initCall.Args[tp.i], false, wStmts).ToString());
+        arguments = initCall.Args.Select(arg => Expr(arg, false, wStmts).ToString());
       }
       return (arguments.Any() ? sep : "") + arguments.Comma();
     }
@@ -1533,7 +1531,7 @@ namespace Microsoft.Dafny.Compilers {
       if (include) {
         classIsExtern = !Options.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
         if (classIsExtern && cl.Members.TrueForAll(member =>
-              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+              Attributes.Contains(member.Attributes, "extern"))) {
           include = false;
         }
       }
@@ -1542,7 +1540,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected bool HasCompilationMaterial(MemberDecl memberDecl) {
-      return !memberDecl.IsGhost && (Options.DisallowExterns || !Attributes.Contains(memberDecl.Attributes, "extern"));
+      return Options.DisallowExterns || !Attributes.Contains(memberDecl.Attributes, "extern");
     }
 
     protected (bool classIsExtern, bool included) GetIsExternAndIncluded(DefaultClassDecl defaultClassDecl) {
@@ -1554,7 +1552,7 @@ namespace Microsoft.Dafny.Compilers {
           (!Options.DisallowExterns && Attributes.Contains(defaultClassDecl.Attributes, "extern")) ||
           Attributes.Contains(defaultClassDecl.EnclosingModuleDefinition.Attributes, "extern");
         if (classIsExtern && defaultClassDecl.Members.TrueForAll(member =>
-              member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+              Attributes.Contains(member.Attributes, "extern"))) {
           include = false;
         }
       }
@@ -1821,14 +1819,12 @@ namespace Microsoft.Dafny.Compilers {
         finished = true;
         int i = 0;
         foreach (var arg in formals) {
-          if (!arg.IsGhost) {
-            // FormalName returns a protected name, so we compare a protected version of "root" to it
-            if (IdProtect(root).Equals(FormalName(arg, i))) {
-              root += root;
-              finished = false;
-            }
-            i++;
+          // FormalName returns a protected name, so we compare a protected version of "root" to it
+          if (IdProtect(root).Equals(FormalName(arg, i))) {
+            root += root;
+            finished = false;
           }
+          i++;
         }
       }
       return root;
@@ -1843,13 +1839,11 @@ namespace Microsoft.Dafny.Compilers {
       int n = 0;
       for (var i = 0; i < formals.Count; i++) {
         var arg = formals[i];
-        if (!arg.IsGhost) {
-          string name = FormalName(useTheseNamesForFormals == null ? arg : useTheseNamesForFormals[i], n);
-          if (DeclareFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
-            sep = ", ";
-          }
-          n++;
+        string name = FormalName(useTheseNamesForFormals == null ? arg : useTheseNamesForFormals[i], n);
+        if (DeclareFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
+          sep = ", ";
         }
+        n++;
       }
       return n;  // the number of formals written
     }
@@ -2023,8 +2017,8 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       }
-      if (!m.Ins.TrueForAll(f => f.IsGhost)) {
-        var nonGhostFormals = m.Ins.Where(f => !f.IsGhost).ToList();
+      if (m.Ins.Any()) {
+        var nonGhostFormals = m.Ins.ToList();
         if (nonGhostFormals.Count > 1) {
           reason = "the method has two or more non-ghost parameters";
           return false;
@@ -2140,9 +2134,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
           enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
-          if (member.IsGhost) {
-            // skip
-          } else if (c is TraitDecl) {
+          if (c is TraitDecl) {
             RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
             var cf = (ConstantField)member;
@@ -2214,16 +2206,14 @@ namespace Microsoft.Dafny.Compilers {
           thisContext = c;
         }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
-          if (!member.IsGhost && TraitRepeatsInheritedDeclarations) {
+          if (TraitRepeatsInheritedDeclarations) {
             RedeclareInheritedMember(member, classWriter);
           } else {
             // emit nothing in the trait; this member will be emitted in the classes that extend this trait
           }
         } else if (member is Field) {
           var f = (Field)member;
-          if (f.IsGhost) {
-            // emit nothing
-          } else if (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern")) {
+          if (!Options.DisallowExterns && Attributes.Contains(f.Attributes, "extern")) {
             // emit nothing
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
@@ -2293,12 +2283,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         } else if (member is Function) {
           var f = (Function)member;
-          if (f.IsGhost) {
-            if (Attributes.Contains(f.Attributes, "test")) {
-              Error(ErrorId.c_test_function_must_be_compilable, f.tok,
-                "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
-            }
-          } else if (f.IsVirtual) {
+          if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
               var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Ins, f.ResultType, f.tok, false, false, f, false, false);
               Contract.Assert(w == null); // since we requested no body
@@ -2332,7 +2317,6 @@ namespace Microsoft.Dafny.Compilers {
                 "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
                 errorWr, m.FullName);
             }
-          } else if (m.IsGhost) {
           } else if (m.IsVirtual) {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, CombineAllTypeArguments(m), false, false, false);
@@ -2475,13 +2459,11 @@ namespace Microsoft.Dafny.Compilers {
 
       for (int j = 0, l = 0; j < f.Ins.Count; j++) {
         var p = f.Ins[j];
-        if (!p.IsGhost) {
-          wr.Write(sep);
-          w = EmitCoercionIfNecessary(f.Original.Ins[j].Type, f.Ins[j].Type, f.tok, wr);
-          w.Write(IdName(p));
-          sep = ", ";
-          l++;
-        }
+        wr.Write(sep);
+        w = EmitCoercionIfNecessary(f.Original.Ins[j].Type, f.Ins[j].Type, f.tok, wr);
+        w.Write(IdName(p));
+        sep = ", ";
+        l++;
       }
       wr.Write(")");
     }
@@ -2494,14 +2476,11 @@ namespace Microsoft.Dafny.Compilers {
       var wrReturn = EmitReturnExpr(wr);
       var sep = "";
       for (int j = 0, l = 0; j < outs.Count; j++) {
-        var p = outs[j];
-        if (!p.IsGhost) {
-          wrReturn.Write(sep);
-          var w = EmitCoercionIfNecessary(outs[j].Type, outTypes[l], methodToken, wrReturn);
-          w.Write(outTmps[l]);
-          sep = ", ";
-          l++;
-        }
+        wrReturn.Write(sep);
+        var w = EmitCoercionIfNecessary(outs[j].Type, outTypes[l], methodToken, wrReturn);
+        w.Write(outTmps[l]);
+        sep = ", ";
+        l++;
       }
     }
 
@@ -2561,13 +2540,11 @@ namespace Microsoft.Dafny.Compilers {
 
       for (int j = 0, l = 0; j < method.Ins.Count; j++) {
         var p = method.Ins[j];
-        if (!p.IsGhost) {
-          wr.Write(sep);
-          w = EmitCoercionIfNecessary(method.Original.Ins[j].Type, method.Ins[j].Type, method.tok, wr);
-          EmitIdentifier(IdName(p), w);
-          sep = ", ";
-          l++;
-        }
+        wr.Write(sep);
+        w = EmitCoercionIfNecessary(method.Original.Ins[j].Type, method.Ins[j].Type, method.tok, wr);
+        EmitIdentifier(IdName(p), w);
+        sep = ", ";
+        l++;
       }
 
       if (!returnStyleOuts) {
@@ -2916,16 +2893,11 @@ namespace Microsoft.Dafny.Compilers {
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
           var formal = ctor.Formals[i];
-          if (formal.IsGhost) {
-            // nothing to compile, but do a sanity check
-            Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
-          } else {
-            Type targetType = formal.Type.Subst(substMap);
-            TrCasePatternOpt(arg, null, sw =>
+          Type targetType = formal.Type.Subst(substMap);
+          TrCasePatternOpt(arg, null, sw =>
               EmitDestructor(wr => EmitIdentifier(tmp_name, wr), formal, k, ctor, () => dtv.InferredTypeArgs, arg.Expr.Type, sw),
-              targetType, pat.Expr.tok, wr, inLetExprBody);
-            k++;
-          }
+            targetType, pat.Expr.tok, wr, inLetExprBody);
+          k++;
         }
       }
     }
