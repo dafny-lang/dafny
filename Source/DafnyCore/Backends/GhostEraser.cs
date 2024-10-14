@@ -103,38 +103,26 @@ public static class GhostEraser {
   private static void RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member,
     List<Formal> formals) {
     var references = symbolTable.GetReferences(member);
+
     foreach (var reference in references) {
+      if (reference is MatchCase matchCase) {
+        RemoveElementsAtGhostPositions(matchCase.Arguments);
+      }
       if (reference is IdPattern idPattern) {
-        for (int i = idPattern.Arguments.Count - 1; i >= 0; i--) {
-          if (formals[i].IsGhost) {
-            idPattern.Arguments.RemoveAt(i);
-          }
-        }
+        RemoveElementsAtGhostPositions(idPattern.Arguments);
       }
       if (reference is DatatypeValue datatypeValue) {
-        for (int i = datatypeValue.Arguments.Count - 1; i >= 0; i--) {
-          if (formals[i].IsGhost) {
-            datatypeValue.Arguments.RemoveAt(i);
-          }
-        }
+        RemoveElementsAtGhostPositions(datatypeValue.Arguments);
       }
       if (reference is FunctionCallExpr functionCallExpr) {
-        for (int i = functionCallExpr.Args.Count - 1; i >= 0; i--) {
-          if (formals[i].IsGhost) {
-            functionCallExpr.Args.RemoveAt(i);
-          }
-        }
+        RemoveElementsAtGhostPositions(functionCallExpr.Args);
 
       }
       if (reference is MemberSelectExpr memberSelectExpr) {
         var applySuffix = program.FindNode<ApplySuffix>(memberSelectExpr.Tok.Uri, memberSelectExpr.Tok.ToDafnyPosition());
         if (applySuffix != null) {
           if (applySuffix.Lhs == memberSelectExpr) {
-            for (int i = applySuffix.Args.Count - 1; i >= 0; i--) {
-              if (formals[i].IsGhost) {
-                applySuffix.Args.RemoveAt(i);
-              }
-            }
+            RemoveElementsAtGhostPositions(applySuffix.Args);
           }
         }
       }
@@ -143,6 +131,16 @@ public static class GhostEraser {
     for (int i = formals.Count - 1; i >= 0; i--) {
       if (formals[i].IsGhost) {
         formals.RemoveAt(i);
+      }
+    }
+
+    return;
+
+    void RemoveElementsAtGhostPositions<T>(List<T> list) {
+      for (int i = list.Count - 1; i >= 0; i--) {
+        if (formals[i].IsGhost) {
+          list.RemoveAt(i);
+        }
       }
     }
   }

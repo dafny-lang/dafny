@@ -263,6 +263,10 @@ namespace Microsoft.Dafny {
           foreach (var mc in nestedMatchExpr.Cases) {
             VisitExtendedPattern(mc.Pat, context);
           }
+
+          if (nestedMatchExpr.Flattened != null) {
+            VisitExpression(nestedMatchExpr.Flattened, context);
+          }
         }
 
         // Visit substatements
@@ -363,6 +367,9 @@ namespace Microsoft.Dafny {
             VisitExtendedPattern(mc.Pat, context);
           }
 
+          if (nestedMatchStmt.Flattened != null) {
+            VisitStatement(nestedMatchStmt.Flattened, context);
+          }
         } else if (stmt is MatchStmt matchStmt) {
           foreach (MatchCaseStmt mc in matchStmt.Cases) {
             if (mc.Arguments != null) {
