@@ -1696,17 +1696,14 @@ namespace Microsoft.Dafny {
             var post = subst.CloneExpr(p.E);
             prefixLemma.Ens.Add(new AttributedExpression(post));
             foreach (var e in coConclusions) {
-              var fce = e as FunctionCallExpr;
-              if (fce != null) {
-                // the other possibility is that "e" is a BinaryExpr
+              if (e is FunctionCallExpr fce) {
                 GreatestPredicate predicate = (GreatestPredicate)fce.Function;
                 focalPredicates.Add(predicate);
                 // For every focal predicate P in S, add to S all greatest predicates in the same strongly connected
                 // component (in the call graph) as P
-                foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(
-                           predicate)) {
-                  if (node is GreatestPredicate) {
-                    focalPredicates.Add((GreatestPredicate)node);
+                foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
+                  if (node is GreatestPredicate greatestPredicate) {
+                    focalPredicates.Add(greatestPredicate);
                   }
                 }
               }
@@ -1729,8 +1726,8 @@ namespace Microsoft.Dafny {
               // For every focal predicate P in S, add to S all least predicates in the same strongly connected
               // component (in the call graph) as P
               foreach (var node in predicate.EnclosingClass.EnclosingModuleDefinition.CallGraph.GetSCC(predicate)) {
-                if (node is LeastPredicate) {
-                  focalPredicates.Add((LeastPredicate)node);
+                if (node is LeastPredicate leastPredicate) {
+                  focalPredicates.Add(leastPredicate);
                 }
               }
             }
