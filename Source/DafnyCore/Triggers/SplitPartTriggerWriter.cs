@@ -84,9 +84,7 @@ class SplitPartTriggerWriter {
             var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
             if (entry == null) {
               var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-              var ie = new IdentifierExpr(sub.tok, newBv.Name);
-              ie.Var = newBv;
-              ie.Type = newBv.Type;
+              var ie = new IdentifierExpr(sub.tok, newBv.Name) { Var = newBv, Type = newBv.Type };
               substMap.Add(new Tuple<Expression, IdentifierExpr>(sub, ie));
             }
           }
