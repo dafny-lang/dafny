@@ -1492,12 +1492,14 @@ namespace Microsoft.Dafny.Compilers {
     internal string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
       string/*?*/ targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
-        if (targetReturnTypeReplacement == null) {
-          targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-        } else {
-          // there's more than one out-parameter, so bail
-          targetReturnTypeReplacement = null;
-          break;
+        if (!p.IsGhost) {
+          if (targetReturnTypeReplacement == null) {
+            targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
+          } else {
+            // there's more than one out-parameter, so bail
+            targetReturnTypeReplacement = null;
+            break;
+          }
         }
       }
 

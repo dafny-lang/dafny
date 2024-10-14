@@ -1839,11 +1839,14 @@ namespace Microsoft.Dafny.Compilers {
       int n = 0;
       for (var i = 0; i < formals.Count; i++) {
         var arg = formals[i];
-        string name = FormalName(useTheseNamesForFormals == null ? arg : useTheseNamesForFormals[i], n);
-        if (DeclareFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
-          sep = ", ";
+        if (!arg.IsGhost) { // Can be removed when we clean up outs
+          string name = FormalName(useTheseNamesForFormals == null ? arg : useTheseNamesForFormals[i], n);
+          if (DeclareFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
+            sep = ", ";
+          }
+
+          n++;
         }
-        n++;
       }
       return n;  // the number of formals written
     }
@@ -2017,8 +2020,9 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
       }
-      if (m.Ins.Any()) {
-        var nonGhostFormals = m.Ins.ToList();
+      if (!m.Ins.TrueForAll(f => f.IsGhost)) {
+        // This is run before GhostEraser
+        var nonGhostFormals = m.Ins.Where(f => !f.IsGhost).ToList();
         if (nonGhostFormals.Count > 1) {
           reason = "the method has two or more non-ghost parameters";
           return false;
