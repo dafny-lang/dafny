@@ -63,4 +63,16 @@ abstract class ExtremeCloner : Cloner {
     reporter.Info(MessageSource.Cloner, e.tok, e.Name + suffix);
     return fexp;
   }
+
+  protected Expression CloneEqualityAndAndK(BinaryExpr binaryExpr) {
+    if (this.CloneResolvedFields) {
+      throw new NotImplementedException();
+    }
+
+    var eq = new TernaryExpr(Tok(binaryExpr.tok),
+      binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon ? TernaryExpr.Opcode.PrefixEqOp : TernaryExpr.Opcode.PrefixNeqOp,
+      k, CloneExpr(binaryExpr.E0), CloneExpr(binaryExpr.E1));
+    reporter.Info(MessageSource.Cloner, binaryExpr.tok, "==" + suffix);
+    return eq;
+  }
 }

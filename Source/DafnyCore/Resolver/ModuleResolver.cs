@@ -1685,6 +1685,7 @@ namespace Microsoft.Dafny {
 
         var k = prefixLemma.Ins[0];
         var focalPredicates = new HashSet<ExtremePredicate>();
+        var focalCodatatypeEquality = new HashSet<CoDatatypeDecl>();
         if (com is GreatestLemma) {
           // compute the postconditions of the prefix lemma
           Contract.Assume(prefixLemma.Ens.Count == 0); // these are not supposed to have been filled in before
@@ -1706,6 +1707,9 @@ namespace Microsoft.Dafny {
                     focalPredicates.Add(greatestPredicate);
                   }
                 }
+              } else {
+                var binExpr = (BinaryExpr)e; // each "coConclusion" is either a FunctionCallExpr or a BinaryExpr
+                focalCodatatypeEquality.Add(binExpr.E0.Type.AsCoDatatype ?? binExpr.E1.Type.AsCoDatatype);
               }
             }
           }
@@ -1734,16 +1738,21 @@ namespace Microsoft.Dafny {
           }
         }
 
-        reporter.Info(MessageSource.Resolver, com.tok,
-          focalPredicates.Count == 0
-            ? $"{com.PrefixLemma.Name} has no focal predicates"
-            : $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalPredicates.Count)} {Util.Comma(focalPredicates, p => p.Name)}");
+        var focalCount = focalPredicates.Count + focalCodatatypeEquality.Count;
+        if (focalCount == 0) {
+          reporter.Info(MessageSource.Resolver, com.tok, $"{com.PrefixLemma.Name} has no focal predicates");
+        } else {
+          var predicates = Util.Comma(focalPredicates, p => p.Name);
+          var equalities = Util.Comma(focalCodatatypeEquality, decl => $"{decl.Name}.==");
+          var focals = predicates + (predicates.Length != 0 && equalities.Length != 0 ? ", " : "") + equalities;
+          reporter.Info(MessageSource.Resolver, com.tok, $"{com.PrefixLemma.Name} with focal predicate{Util.Plural(focalCount)} {focals}");
+        }
         // Compute the statement body of the prefix lemma
         Contract.Assume(prefixLemma.Body == null); // this is not supposed to have been filled in before
         if (com.Body != null) {
           var kMinusOne = new BinaryExpr(com.tok, BinaryExpr.Opcode.Sub, new IdentifierExpr(k.tok, k.Name),
             new LiteralExpr(com.tok, 1));
-          var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, this.reporter);
+          var subst = new ExtremeLemmaBodyCloner(com, kMinusOne, focalPredicates, focalCodatatypeEquality, this.reporter);
           var mainBody = subst.CloneBlockStmt(com.Body);
           Expression kk;
           Statement els;
