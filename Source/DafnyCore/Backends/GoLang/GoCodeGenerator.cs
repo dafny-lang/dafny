@@ -1854,10 +1854,10 @@ namespace Microsoft.Dafny.Compilers {
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
-      if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
+      if (type is UserDefinedType { ResolvedClass: not null } udt && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!udt.ResolvedClass.EnclosingModuleDefinition.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(udt.ResolvedClass.EnclosingModuleDefinition.GetCompileName(Options));
+        return IdProtect(ModuleImports[udt.ResolvedClass.EnclosingModuleDefinition].Name);
       }
       return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
@@ -2729,7 +2729,6 @@ namespace Microsoft.Dafny.Compilers {
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.GetCompileName(Options);
-
         } else if (!full || cl.EnclosingModuleDefinition.TryToAvoidName || this.ModuleName == enclosingModuleDefinitionId) {
           return IdName(cl);
         } else {
