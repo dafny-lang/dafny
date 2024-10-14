@@ -29,7 +29,7 @@ public static class GhostEraser {
     }
 
     protected override void VisitCasePattern<T>(CasePattern<T> pattern) {
-      pattern.Arguments = pattern.Arguments.Where(lhs => !lhs.Var.IsGhost).ToList();
+      pattern.Arguments = pattern.Arguments?.Where(lhs => !lhs.Var.IsGhost).ToList();
       base.VisitCasePattern(pattern);
     }
 

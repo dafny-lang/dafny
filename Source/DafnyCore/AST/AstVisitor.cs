@@ -384,6 +384,10 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void VisitCasePattern<T>(CasePattern<T> pattern) where T : class, IVariable {
+      if (pattern.Arguments == null) {
+        return;
+      }
+      
       foreach (var argument in pattern.Arguments) {
         VisitCasePattern(argument);
       } 
