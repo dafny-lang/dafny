@@ -104,6 +104,20 @@ public static class GhostEraser {
     List<Formal> formals) {
     var references = symbolTable.GetReferences(member);
     foreach (var reference in references) {
+      if (reference is IdPattern idPattern) {
+        for (int i = idPattern.Arguments.Count - 1; i >= 0; i--) {
+          if (formals[i].IsGhost) {
+            idPattern.Arguments.RemoveAt(i);
+          }
+        }
+      }
+      if (reference is DatatypeValue datatypeValue) {
+        for (int i = datatypeValue.Arguments.Count - 1; i >= 0; i--) {
+          if (formals[i].IsGhost) {
+            datatypeValue.Arguments.RemoveAt(i);
+          }
+        }
+      }
       if (reference is FunctionCallExpr functionCallExpr) {
         for (int i = functionCallExpr.Args.Count - 1; i >= 0; i--) {
           if (formals[i].IsGhost) {

@@ -871,55 +871,60 @@ namespace Microsoft.Dafny.Compilers {
           var compiledConstructorCount = dtor.EnclosingCtors.Count(constructor => !constructor.IsGhost);
           if (compiledConstructorCount != 0) {
             var arg = dtor.CorrespondingFormals[0];
+            if (!arg.IsGhost) {
+              var DtorM = arg.HasName ? InternalFieldPrefix + arg.CompileName : FieldName(arg, index);
+              //   TN dtor_QDtorM { get; }
+              interfaceTree.WriteLine(
+                $"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
 
-            var DtorM = arg.HasName ? InternalFieldPrefix + arg.CompileName : FieldName(arg, index);
-            //   TN dtor_QDtorM { get; }
-            interfaceTree.WriteLine($"{TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)} {{ get; }}");
-
-            //   public TN dtor_QDtorM { get {
-            //       var d = this;         // for inductive datatypes
-            //       var d = this._Get();  // for co-inductive datatypes
-            //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).DtorM; }
-            //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).DtorM; }
-            //       ...
-            //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).DtorM; }
-            //       return ((DT_Ctor(n-1))d).DtorM;
-            //    }}
-            var wDtor =
-              wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)}");
-            var wGet = wDtor.NewBlock("get");
-            if (dt.IsRecordType) {
-              if (dt is CoDatatypeDecl) {
-                wGet.WriteLine($"return this._Get().{IdProtect(DtorM)};");
-              } else {
-                wGet.WriteLine($"return this.{IdProtect(DtorM)};");
-              }
-            } else {
-              if (dt is CoDatatypeDecl) {
-                wGet.WriteLine("var d = this._Get();");
-              } else {
-                wGet.WriteLine("var d = this;");
-              }
-
-              var compiledConstructorsProcessed = 0;
-              for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
-                var ctor_i = dtor.EnclosingCtors[i];
-                Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                if (ctor_i.IsGhost) {
-                  continue;
-                }
-                var type = $"{dt.GetCompileName(Options)}_{ctor_i.GetCompileName(Options)}{DtT_TypeArgs}";
-                // TODO use pattern matching to replace cast.
-                var returnTheValue = $"return (({type})d).{IdProtect(DtorM)};";
-                if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
-                  wGet.WriteLine($"if (d is {type}) {{ {returnTheValue} }}");
+              //   public TN dtor_QDtorM { get {
+              //       var d = this;         // for inductive datatypes
+              //       var d = this._Get();  // for co-inductive datatypes
+              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).DtorM; }
+              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).DtorM; }
+              //       ...
+              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).DtorM; }
+              //       return ((DT_Ctor(n-1))d).DtorM;
+              //    }}
+              var wDtor =
+                wr.NewNamedBlock($"public {TypeName(arg.Type, wr, arg.tok)} {DestructorGetterName(arg, ctor, index)}");
+              var wGet = wDtor.NewBlock("get");
+              if (dt.IsRecordType) {
+                if (dt is CoDatatypeDecl) {
+                  wGet.WriteLine($"return this._Get().{IdProtect(DtorM)};");
                 } else {
-                  wGet.WriteLine(returnTheValue);
+                  wGet.WriteLine($"return this.{IdProtect(DtorM)};");
                 }
-                compiledConstructorsProcessed++;
+              } else {
+                if (dt is CoDatatypeDecl) {
+                  wGet.WriteLine("var d = this._Get();");
+                } else {
+                  wGet.WriteLine("var d = this;");
+                }
+
+                var compiledConstructorsProcessed = 0;
+                for (var i = 0; i < dtor.EnclosingCtors.Count; i++) {
+                  var ctor_i = dtor.EnclosingCtors[i];
+                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                  if (ctor_i.IsGhost) {
+                    continue;
+                  }
+
+                  var type = $"{dt.GetCompileName(Options)}_{ctor_i.GetCompileName(Options)}{DtT_TypeArgs}";
+                  // TODO use pattern matching to replace cast.
+                  var returnTheValue = $"return (({type})d).{IdProtect(DtorM)};";
+                  if (compiledConstructorsProcessed < compiledConstructorCount - 1) {
+                    wGet.WriteLine($"if (d is {type}) {{ {returnTheValue} }}");
+                  } else {
+                    wGet.WriteLine(returnTheValue);
+                  }
+
+                  compiledConstructorsProcessed++;
+                }
               }
+
+              index++;
             }
-            index++;
           }
         }
       }
