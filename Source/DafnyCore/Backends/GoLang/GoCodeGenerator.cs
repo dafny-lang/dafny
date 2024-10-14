@@ -1386,6 +1386,9 @@ namespace Microsoft.Dafny.Compilers {
         } else if (thisContext != null) {
           w = w.NewBlock("", open: BlockStyle.Brace);
           for (var i = 0; i < inParams.Count; i++) {
+            if (inParams[i].IsGhost) {
+              continue;
+            }
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
             if (!instantiatedType.Equals(p.Type)) {
