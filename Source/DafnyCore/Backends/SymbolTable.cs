@@ -114,11 +114,11 @@ public class SymbolTable {
     }
     return Enumerable.Empty<Location>();
   }
-  
+
   public IEnumerable<IHasNavigationToken> GetReferences(IHasNavigationToken node) {
     return NodeToReferences.GetOrDefault(node, () => (ISet<IHasNavigationToken>)new HashSet<IHasNavigationToken>());
   }
-  
+
   public IEnumerable<Location> GetReferenceLocations(IHasNavigationToken node) {
     return GetReferences(node).Select(u => new Location { Uri = u.NavigationToken.Filepath, Range = u.NavigationToken.GetLspRange() });
   }

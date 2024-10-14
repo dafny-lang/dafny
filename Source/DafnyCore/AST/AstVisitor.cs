@@ -387,10 +387,10 @@ namespace Microsoft.Dafny {
       if (pattern.Arguments == null) {
         return;
       }
-      
+
       foreach (var argument in pattern.Arguments) {
         VisitCasePattern(argument);
-      } 
+      }
     }
 
     /// <summary>

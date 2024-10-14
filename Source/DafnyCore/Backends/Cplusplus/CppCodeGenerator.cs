@@ -486,8 +486,8 @@ namespace Microsoft.Dafny.Compilers {
         var default_ctor = dt.Ctors[0]; // Arbitrarily choose the first one
         wd.WriteLine("{0} COMPILER_result_subStruct;", DatatypeSubStructName(default_ctor, true));
         foreach (Formal arg in default_ctor.Formals) {
-            wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
-              DefaultValue(arg.Type, wd, arg.tok));
+          wd.WriteLine("COMPILER_result_subStruct.{0} = {1};", arg.CompileName,
+            DefaultValue(arg.Type, wd, arg.tok));
         }
 
         wd.WriteLine("v = COMPILER_result_subStruct;");

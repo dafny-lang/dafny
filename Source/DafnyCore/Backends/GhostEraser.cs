@@ -33,8 +33,7 @@ public static class GhostEraser {
       base.VisitCasePattern(pattern);
     }
 
-    private static void RemoveGhostStatements(List<Statement> statements)
-    {
+    private static void RemoveGhostStatements(List<Statement> statements) {
       for (int i = statements.Count - 1; i >= 0; i--) {
         if (statements[i].IsGhost) {
           statements.RemoveAt(i);
@@ -50,51 +49,59 @@ public static class GhostEraser {
   public static void EraseGhostCode(Program program) {
     var symbolTable = SymbolTable.CreateFrom(NullLogger.Instance, program, CancellationToken.None);
     foreach (var compileModule in program.CompileModules) {
-      foreach (var decl in compileModule.TopLevelDecls) {
-        if (decl is DatatypeDecl datatypeDecl) {
-          foreach (var constructor in datatypeDecl.Ctors) {                
+      foreach (var topLevelDecl in compileModule.TopLevelDecls) {
+        if (topLevelDecl is DatatypeDecl datatypeDecl) {
+          foreach (var constructor in datatypeDecl.Ctors) {
             RemoveGhostParameters(program, symbolTable, constructor, constructor.Formals);
           }
         }
-        if (decl is TopLevelDeclWithMembers withMembers) {
-          withMembers.Members = withMembers.Members.Where(m => !m.IsGhost).ToList();
-          foreach (var member in withMembers.Members) {
-            switch (member)
-            {
-              case MethodOrFunction methodOrFunction: {
-                if (Attributes.Contains(methodOrFunction.Attributes, "test")) {
-                  program.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.c_test_function_must_be_compilable, methodOrFunction.tok,
-                    $"Function {methodOrFunction.FullName} must be compiled to use the {{:test}} attribute");
-                }
-                
-                RemoveGhostParameters(program, symbolTable, member, methodOrFunction.Ins);
-                if (methodOrFunction is Method method) {
-                  new GhostCodeRemover().VisitMethod(method);
-                  // Remove ghost outs.
-                }
-                break;
+        if (topLevelDecl is TopLevelDeclWithMembers withMembers) {
+          for (int i = withMembers.Members.Count - 1; i >= 0; i--) {
+            var member = withMembers.Members[i];
+            if (member.IsGhost) {
+              if (member is Method && Attributes.Contains(member.Attributes, "test")) {
+                program.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.c_test_function_must_be_compilable, member.tok,
+                  $"Function {member.FullName} must be compiled to use the {{:test}} attribute");
               }
+
+              withMembers.Members.RemoveAt(i);
+            }
+          }
+
+          foreach (var member in withMembers.Members) {
+            switch (member) {
+              case MethodOrFunction methodOrFunction: {
+
+                  RemoveGhostParameters(program, symbolTable, member, methodOrFunction.Ins);
+                  if (methodOrFunction is Function { ByMethodDecl: not null } function) {
+                    new GhostCodeRemover().VisitMethod(function.ByMethodDecl);
+                  }
+                  if (methodOrFunction is Method method) {
+                    new GhostCodeRemover().VisitMethod(method);
+                    // Remove ghost outs.
+                  }
+                  break;
+                }
             }
           }
         }
       }
-      
+
       foreach (var decl in compileModule.TopLevelDecls) {
         if (decl is TopLevelDeclWithMembers withMembers) {
           foreach (var member in withMembers.Members) {
             if (member is MethodOrFunction methodOrFunction) {
               methodOrFunction.Ins = methodOrFunction.Ins.Where(i => !i.IsGhost).ToList();
-            } 
+            }
           }
         }
       }
     }
-    
+
   }
 
   private static void RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member,
-    List<Formal> formals)
-  {
+    List<Formal> formals) {
     var references = symbolTable.GetReferences(member);
     foreach (var reference in references) {
       if (reference is FunctionCallExpr functionCallExpr) {
