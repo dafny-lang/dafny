@@ -23,7 +23,7 @@ setup-venv:
 	$(VIRTUALENV)/bin/pip install --upgrade build twine
 
 clean-package:
-	rm -rf dist/
+	rm -rf dist/ *.egg-info/
 
 build-package:
 	$(VIRTUALENV)/bin/python -m build
