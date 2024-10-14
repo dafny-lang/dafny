@@ -49,6 +49,10 @@ class ExtremeLemmaBodyCloner : ExtremeCloner {
             }
           }
         }
+      } else if (expr is BinaryExpr { ResolvedOp: BinaryExpr.ResolvedOpcode.EqCommon or BinaryExpr.ResolvedOpcode.NeqCommon } binaryExpr) {
+        if (binaryExpr.E0.Type.AsCoDatatype is { } coDatatypeDecl && focalCodatatypeEquality.Contains(coDatatypeDecl)) {
+          return CloneEqualityAndAndK(binaryExpr);
+        }
       }
     }
     return base.CloneExpr(expr);
