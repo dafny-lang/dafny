@@ -52,7 +52,8 @@ public static class GhostEraser {
       foreach (var topLevelDecl in compileModule.TopLevelDecls) {
         if (topLevelDecl is DatatypeDecl datatypeDecl) {
           foreach (var constructor in datatypeDecl.Ctors) {
-            RemoveGhostParameters(program, symbolTable, constructor, constructor.Formals);
+            var removalLocations = RemoveGhostParameters(program, symbolTable, constructor, constructor.Formals);
+            RemoveElementsAtGhostPositions(constructor.Destructors, removalLocations);
           }
         }
         if (topLevelDecl is TopLevelDeclWithMembers withMembers) {
@@ -100,31 +101,13 @@ public static class GhostEraser {
 
   }
 
-  private static void RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member,
+  private static List<int> RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member,
     List<Formal> formals) {
-    var references = symbolTable.GetReferences(member);
-
-    foreach (var reference in references) {
-      if (reference is MatchCase matchCase) {
-        RemoveElementsAtGhostPositions(matchCase.Arguments);
-      }
-      if (reference is IdPattern idPattern) {
-        RemoveElementsAtGhostPositions(idPattern.Arguments);
-      }
-      if (reference is DatatypeValue datatypeValue) {
-        RemoveElementsAtGhostPositions(datatypeValue.Arguments);
-      }
-      if (reference is FunctionCallExpr functionCallExpr) {
-        RemoveElementsAtGhostPositions(functionCallExpr.Args);
-
-      }
-      if (reference is MemberSelectExpr memberSelectExpr) {
-        var applySuffix = program.FindNode<ApplySuffix>(memberSelectExpr.Tok.Uri, memberSelectExpr.Tok.ToDafnyPosition());
-        if (applySuffix != null) {
-          if (applySuffix.Lhs == memberSelectExpr) {
-            RemoveElementsAtGhostPositions(applySuffix.Args);
-          }
-        }
+    var removalLocations = new List<int>();
+    for (var index = formals.Count - 1; index >= 0; index--) {
+      var formal = formals[index];
+      if (formal.IsGhost) {
+        removalLocations.Add(index);
       }
     }
 
@@ -133,15 +116,44 @@ public static class GhostEraser {
         formals.RemoveAt(i);
       }
     }
+    
+    RemoveGhostParameters(program, symbolTable, member, removalLocations);
+    return removalLocations;
+  }
+
+  private static void RemoveGhostParameters(Program program, SymbolTable symbolTable, IHasNavigationToken member, List<int> removalLocations)
+  {
+    var references = symbolTable.GetReferences(member);
+    foreach (var reference in references) {
+      if (reference is MatchCase matchCase) {
+        RemoveElementsAtGhostPositions(matchCase.Arguments, removalLocations);
+      }
+      if (reference is IdPattern idPattern) {
+        RemoveElementsAtGhostPositions(idPattern.Arguments, removalLocations);
+      }
+      if (reference is DatatypeValue datatypeValue) {
+        RemoveElementsAtGhostPositions(datatypeValue.Arguments, removalLocations);
+      }
+      if (reference is FunctionCallExpr functionCallExpr) {
+        RemoveElementsAtGhostPositions(functionCallExpr.Args, removalLocations);
+
+      }
+      if (reference is MemberSelectExpr memberSelectExpr) {
+        var applySuffix = program.FindNode<ApplySuffix>(memberSelectExpr.Tok.Uri, memberSelectExpr.Tok.ToDafnyPosition());
+        if (applySuffix != null) {
+          if (applySuffix.Lhs == memberSelectExpr) {
+            RemoveElementsAtGhostPositions(applySuffix.Args, removalLocations);
+          }
+        }
+      }
+    }
 
     return;
 
-    void RemoveElementsAtGhostPositions<T>(List<T> list) {
-      for (int i = list.Count - 1; i >= 0; i--) {
-        if (formals[i].IsGhost) {
-          list.RemoveAt(i);
-        }
-      }
+  }
+  static void RemoveElementsAtGhostPositions<T>(List<T> list, List<int> removalLocations) {
+    foreach (var index in removalLocations) {
+      list.RemoveAt(index);
     }
   }
 }
