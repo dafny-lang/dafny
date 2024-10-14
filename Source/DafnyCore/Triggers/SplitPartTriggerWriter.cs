@@ -13,6 +13,7 @@ class SplitPartTriggerWriter {
   public List<TriggerTerm> CandidateTerms { get; set; }
   public List<TriggerCandidate> Candidates { get; set; }
   private List<TriggerCandidate> RejectedCandidates { get; }
+  public List<Tuple<Expression, IdentifierExpr>> NamedExpressions { get; }
   private List<TriggerMatch> loopingMatches;
 
   private bool AllowsLoops {
@@ -28,6 +29,7 @@ class SplitPartTriggerWriter {
   internal SplitPartTriggerWriter(ComprehensionExpr comprehension) {
     this.Comprehension = comprehension;
     this.RejectedCandidates = new List<TriggerCandidate>();
+    this.NamedExpressions = new();
   }
 
   internal void TrimInvalidTriggers() {
@@ -96,6 +98,7 @@ class SplitPartTriggerWriter {
     if (substMap.Count > 0) {
       var s = new ExprSubstituter(substMap);
       expr = s.Substitute(Comprehension) as QuantifierExpr;
+      NamedExpressions.AddRange(substMap);
     } else {
       // make a copy of the expr
       if (expr is ForallExpr) {
@@ -173,7 +176,8 @@ class SplitPartTriggerWriter {
       messages.Add($"Part #{splitPartIndex} is '{Comprehension.Term}'");
     }
     if (Candidates.Any()) {
-      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}");
+      var subst = Util.Comma("", NamedExpressions, pair => $" where {pair.Item2} := {pair.Item1}");
+      messages.Add($"Selected triggers:{InfoFirstLineEnd(Candidates.Count)}{string.Join(", ", Candidates)}{subst}");
     }
     if (RejectedCandidates.Any()) {
       messages.Add($"Rejected triggers:{InfoFirstLineEnd(RejectedCandidates.Count)}{string.Join("\n  ", RejectedCandidates)}");
