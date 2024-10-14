@@ -72,15 +72,17 @@ public class InductionRewriter : IRewriter {
 
   void ComputeLemmaInduction(Method method) {
     Contract.Requires(method != null);
-    if (method is Lemma or PrefixLemma && method is { Body: not null, Outs: { Count: 0 } }) {
+    if (method is { IsGhost: true, AllowsAllocation: false, Outs: { Count: 0 }, Body: not null } and not ExtremeLemma) {
       Expression pre = Expression.CreateBoolLiteral(method.tok, true);
       foreach (var req in method.Req) {
         pre = Expression.CreateAnd(pre, req.E);
       }
+
       Expression post = Expression.CreateBoolLiteral(method.tok, true);
       foreach (var ens in method.Ens) {
         post = Expression.CreateAnd(post, ens.E);
       }
+
       ComputeInductionVariables(method.tok, method.Ins, Expression.CreateImplies(pre, post), method, ref method.Attributes);
     }
   }
