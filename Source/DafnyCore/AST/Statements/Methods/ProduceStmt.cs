@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public abstract class ProduceStmt : Statement {
   public List<AssignmentRhs> Rhss;
   [FilledInDuringResolution]
-  public UpdateStmt HiddenUpdate;
+  public AssignStatement HiddenUpdate;
 
   protected ProduceStmt(Cloner cloner, ProduceStmt original) : base(cloner, original) {
     if (original.Rhss != null) {
@@ -14,7 +14,7 @@ public abstract class ProduceStmt : Statement {
     }
     if (cloner.CloneResolvedFields) {
       if (original.HiddenUpdate != null) {
-        HiddenUpdate = new UpdateStmt(cloner, original.HiddenUpdate);
+        HiddenUpdate = new AssignStatement(cloner, original.HiddenUpdate);
       }
     }
   }

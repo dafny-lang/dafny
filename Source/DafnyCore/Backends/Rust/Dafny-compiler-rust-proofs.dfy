@@ -4,6 +4,7 @@ include "../Dafny/AST.dfy"
   only proves properties about DCOMP. In a sense, it's a test file. */
 module {:extern "DafnyToRustCompilerProofs"} {:compile false} DafnyToRustCompilerProofs {
   import opened DafnyToRustCompiler
+  import opened DafnyToRustCompilerDefinitions
 
   ghost predicate IsDafnyId(s: string) {
     && |s| > 0 && s[0] in "aqkhd" &&

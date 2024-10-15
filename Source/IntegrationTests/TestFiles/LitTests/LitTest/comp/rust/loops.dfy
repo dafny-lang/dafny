@@ -71,8 +71,13 @@ method Main() {
 
   Remap();
 
+  // ExactBoundedPool
   expect forall i: int | i == 1 :: i % 2 == 1;
   expect (map i: int | i == 1 :: i % 2 := 2) == map[1 := 2];
+
+  // MultisetBoundedPool
+  expect forall i: int | i in multiset{1, 1, 3} :: i % 2 == 1;
+  expect (map i: int | i in multiset{1, 1, 3} :: i % 2 := 2) == map[1 := 2];
 }
 
 method Remap() {

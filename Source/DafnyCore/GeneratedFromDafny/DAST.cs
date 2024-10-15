@@ -1429,6 +1429,7 @@ namespace DAST {
     bool is_String { get; }
     bool is_Bool { get; }
     bool is_Char { get; }
+    bool is_Native { get; }
     _IPrimitive DowncastClone();
   }
   public abstract class Primitive : _IPrimitive {
@@ -1457,11 +1458,15 @@ namespace DAST {
     public static _IPrimitive create_Char() {
       return new Primitive_Char();
     }
+    public static _IPrimitive create_Native() {
+      return new Primitive_Native();
+    }
     public bool is_Int { get { return this is Primitive_Int; } }
     public bool is_Real { get { return this is Primitive_Real; } }
     public bool is_String { get { return this is Primitive_String; } }
     public bool is_Bool { get { return this is Primitive_Bool; } }
     public bool is_Char { get { return this is Primitive_Char; } }
+    public bool is_Native { get { return this is Primitive_Native; } }
     public static System.Collections.Generic.IEnumerable<_IPrimitive> AllSingletonConstructors {
       get {
         yield return Primitive.create_Int();
@@ -1469,6 +1474,7 @@ namespace DAST {
         yield return Primitive.create_String();
         yield return Primitive.create_Bool();
         yield return Primitive.create_Char();
+        yield return Primitive.create_Native();
       }
     }
     public abstract _IPrimitive DowncastClone();
@@ -1578,6 +1584,27 @@ namespace DAST {
       return s;
     }
   }
+  public class Primitive_Native : Primitive {
+    public Primitive_Native() : base() {
+    }
+    public override _IPrimitive DowncastClone() {
+      if (this is _IPrimitive dt) { return dt; }
+      return new Primitive_Native();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Primitive_Native;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 5;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Primitive.Native";
+      return s;
+    }
+  }
 
   public interface _INewtypeRange {
     bool is_U8 { get; }
@@ -1590,6 +1617,7 @@ namespace DAST {
     bool is_I64 { get; }
     bool is_U128 { get; }
     bool is_I128 { get; }
+    bool is_USIZE { get; }
     bool is_BigInt { get; }
     bool is_NoRange { get; }
     _INewtypeRange DowncastClone();
@@ -1635,6 +1663,9 @@ namespace DAST {
     public static _INewtypeRange create_I128() {
       return new NewtypeRange_I128();
     }
+    public static _INewtypeRange create_USIZE() {
+      return new NewtypeRange_USIZE();
+    }
     public static _INewtypeRange create_BigInt() {
       return new NewtypeRange_BigInt();
     }
@@ -1651,6 +1682,7 @@ namespace DAST {
     public bool is_I64 { get { return this is NewtypeRange_I64; } }
     public bool is_U128 { get { return this is NewtypeRange_U128; } }
     public bool is_I128 { get { return this is NewtypeRange_I128; } }
+    public bool is_USIZE { get { return this is NewtypeRange_USIZE; } }
     public bool is_BigInt { get { return this is NewtypeRange_BigInt; } }
     public bool is_NoRange { get { return this is NewtypeRange_NoRange; } }
     public static System.Collections.Generic.IEnumerable<_INewtypeRange> AllSingletonConstructors {
@@ -1665,6 +1697,7 @@ namespace DAST {
         yield return NewtypeRange.create_I64();
         yield return NewtypeRange.create_U128();
         yield return NewtypeRange.create_I128();
+        yield return NewtypeRange.create_USIZE();
         yield return NewtypeRange.create_BigInt();
         yield return NewtypeRange.create_NoRange();
       }
@@ -1881,6 +1914,27 @@ namespace DAST {
       return s;
     }
   }
+  public class NewtypeRange_USIZE : NewtypeRange {
+    public NewtypeRange_USIZE() : base() {
+    }
+    public override _INewtypeRange DowncastClone() {
+      if (this is _INewtypeRange dt) { return dt; }
+      return new NewtypeRange_USIZE();
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.NewtypeRange_USIZE;
+      return oth != null;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 10;
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.NewtypeRange.USIZE";
+      return s;
+    }
+  }
   public class NewtypeRange_BigInt : NewtypeRange {
     public NewtypeRange_BigInt() : base() {
     }
@@ -1894,7 +1948,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 10;
+      hash = ((hash << 5) + hash) + 11;
       return (int) hash;
     }
     public override string ToString() {
@@ -1915,7 +1969,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 11;
+      hash = ((hash << 5) + hash) + 12;
       return (int) hash;
     }
     public override string ToString() {
@@ -3336,28 +3390,32 @@ namespace DAST {
   public interface _IField {
     bool is_Field { get; }
     DAST._IFormal dtor_formal { get; }
+    bool dtor_isConstant { get; }
     Std.Wrappers._IOption<DAST._IExpression> dtor_defaultValue { get; }
     _IField DowncastClone();
   }
   public class Field : _IField {
     public readonly DAST._IFormal _formal;
+    public readonly bool _isConstant;
     public readonly Std.Wrappers._IOption<DAST._IExpression> _defaultValue;
-    public Field(DAST._IFormal formal, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
+    public Field(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
       this._formal = formal;
+      this._isConstant = isConstant;
       this._defaultValue = defaultValue;
     }
     public _IField DowncastClone() {
       if (this is _IField dt) { return dt; }
-      return new Field(_formal, _defaultValue);
+      return new Field(_formal, _isConstant, _defaultValue);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.Field;
-      return oth != null && object.Equals(this._formal, oth._formal) && object.Equals(this._defaultValue, oth._defaultValue);
+      return oth != null && object.Equals(this._formal, oth._formal) && this._isConstant == oth._isConstant && object.Equals(this._defaultValue, oth._defaultValue);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 0;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._formal));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._defaultValue));
       return (int) hash;
     }
@@ -3366,11 +3424,13 @@ namespace DAST {
       s += "(";
       s += Dafny.Helpers.ToString(this._formal);
       s += ", ";
+      s += Dafny.Helpers.ToString(this._isConstant);
+      s += ", ";
       s += Dafny.Helpers.ToString(this._defaultValue);
       s += ")";
       return s;
     }
-    private static readonly DAST._IField theDefault = create(DAST.Formal.Default(), Std.Wrappers.Option<DAST._IExpression>.Default());
+    private static readonly DAST._IField theDefault = create(DAST.Formal.Default(), false, Std.Wrappers.Option<DAST._IExpression>.Default());
     public static DAST._IField Default() {
       return theDefault;
     }
@@ -3378,16 +3438,21 @@ namespace DAST {
     public static Dafny.TypeDescriptor<DAST._IField> _TypeDescriptor() {
       return _TYPE;
     }
-    public static _IField create(DAST._IFormal formal, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
-      return new Field(formal, defaultValue);
+    public static _IField create(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
+      return new Field(formal, isConstant, defaultValue);
     }
-    public static _IField create_Field(DAST._IFormal formal, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
-      return create(formal, defaultValue);
+    public static _IField create_Field(DAST._IFormal formal, bool isConstant, Std.Wrappers._IOption<DAST._IExpression> defaultValue) {
+      return create(formal, isConstant, defaultValue);
     }
     public bool is_Field { get { return true; } }
     public DAST._IFormal dtor_formal {
       get {
         return this._formal;
+      }
+    }
+    public bool dtor_isConstant {
+      get {
+        return this._isConstant;
       }
     }
     public Std.Wrappers._IOption<DAST._IExpression> dtor_defaultValue {
@@ -3942,7 +4007,7 @@ namespace DAST {
     DAST._IExpression dtor_expr { get; }
     Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> dtor_toLabel { get; }
     DAST._IExpression dtor_Print_a0 { get; }
-    Dafny.ISequence<DAST._IFormal> dtor_fields { get; }
+    Dafny.ISequence<DAST._IField> dtor_fields { get; }
     _IStatement DowncastClone();
   }
   public abstract class Statement : _IStatement {
@@ -3998,7 +4063,7 @@ namespace DAST {
     public static _IStatement create_Print(DAST._IExpression _a0) {
       return new Statement_Print(_a0);
     }
-    public static _IStatement create_ConstructorNewSeparator(Dafny.ISequence<DAST._IFormal> fields) {
+    public static _IStatement create_ConstructorNewSeparator(Dafny.ISequence<DAST._IField> fields) {
       return new Statement_ConstructorNewSeparator(fields);
     }
     public bool is_DeclareVar { get { return this is Statement_DeclareVar; } }
@@ -4146,7 +4211,7 @@ namespace DAST {
         return ((Statement_Print)d)._a0;
       }
     }
-    public Dafny.ISequence<DAST._IFormal> dtor_fields {
+    public Dafny.ISequence<DAST._IField> dtor_fields {
       get {
         var d = this;
         return ((Statement_ConstructorNewSeparator)d)._fields;
@@ -4585,8 +4650,8 @@ namespace DAST {
     }
   }
   public class Statement_ConstructorNewSeparator : Statement {
-    public readonly Dafny.ISequence<DAST._IFormal> _fields;
-    public Statement_ConstructorNewSeparator(Dafny.ISequence<DAST._IFormal> fields) : base() {
+    public readonly Dafny.ISequence<DAST._IField> _fields;
+    public Statement_ConstructorNewSeparator(Dafny.ISequence<DAST._IField> fields) : base() {
       this._fields = fields;
     }
     public override _IStatement DowncastClone() {
@@ -4619,6 +4684,7 @@ namespace DAST {
     Dafny.ISequence<Dafny.Rune> dtor_ident { get; }
     DAST._IExpression dtor_expr { get; }
     Dafny.ISequence<Dafny.Rune> dtor_field { get; }
+    bool dtor_isConstant { get; }
     Dafny.ISequence<DAST._IExpression> dtor_indices { get; }
     _IAssignLhs DowncastClone();
   }
@@ -4636,8 +4702,8 @@ namespace DAST {
     public static _IAssignLhs create_Ident(Dafny.ISequence<Dafny.Rune> ident) {
       return new AssignLhs_Ident(ident);
     }
-    public static _IAssignLhs create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field) {
-      return new AssignLhs_Select(expr, field);
+    public static _IAssignLhs create_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant) {
+      return new AssignLhs_Select(expr, field, isConstant);
     }
     public static _IAssignLhs create_Index(DAST._IExpression expr, Dafny.ISequence<DAST._IExpression> indices) {
       return new AssignLhs_Index(expr, indices);
@@ -4662,6 +4728,12 @@ namespace DAST {
       get {
         var d = this;
         return ((AssignLhs_Select)d)._field;
+      }
+    }
+    public bool dtor_isConstant {
+      get {
+        var d = this;
+        return ((AssignLhs_Select)d)._isConstant;
       }
     }
     public Dafny.ISequence<DAST._IExpression> dtor_indices {
@@ -4702,23 +4774,26 @@ namespace DAST {
   public class AssignLhs_Select : AssignLhs {
     public readonly DAST._IExpression _expr;
     public readonly Dafny.ISequence<Dafny.Rune> _field;
-    public AssignLhs_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field) : base() {
+    public readonly bool _isConstant;
+    public AssignLhs_Select(DAST._IExpression expr, Dafny.ISequence<Dafny.Rune> field, bool isConstant) : base() {
       this._expr = expr;
       this._field = field;
+      this._isConstant = isConstant;
     }
     public override _IAssignLhs DowncastClone() {
       if (this is _IAssignLhs dt) { return dt; }
-      return new AssignLhs_Select(_expr, _field);
+      return new AssignLhs_Select(_expr, _field, _isConstant);
     }
     public override bool Equals(object other) {
       var oth = other as DAST.AssignLhs_Select;
-      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field);
+      return oth != null && object.Equals(this._expr, oth._expr) && object.Equals(this._field, oth._field) && this._isConstant == oth._isConstant;
     }
     public override int GetHashCode() {
       ulong hash = 5381;
       hash = ((hash << 5) + hash) + 1;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._expr));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._field));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._isConstant));
       return (int) hash;
     }
     public override string ToString() {
@@ -4727,6 +4802,8 @@ namespace DAST {
       s += Dafny.Helpers.ToString(this._expr);
       s += ", ";
       s += Dafny.Helpers.ToString(this._field);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._isConstant);
       s += ")";
       return s;
     }
@@ -5892,6 +5969,7 @@ namespace DAST {
     bool is_SetBoundedPool { get; }
     bool is_MapBoundedPool { get; }
     bool is_SeqBoundedPool { get; }
+    bool is_MultisetBoundedPool { get; }
     bool is_ExactBoundedPool { get; }
     bool is_IntRange { get; }
     bool is_UnboundedIntRange { get; }
@@ -6117,6 +6195,9 @@ namespace DAST {
     public static _IExpression create_SeqBoundedPool(DAST._IExpression of, bool includeDuplicates) {
       return new Expression_SeqBoundedPool(of, includeDuplicates);
     }
+    public static _IExpression create_MultisetBoundedPool(DAST._IExpression of, bool includeDuplicates) {
+      return new Expression_MultisetBoundedPool(of, includeDuplicates);
+    }
     public static _IExpression create_ExactBoundedPool(DAST._IExpression of) {
       return new Expression_ExactBoundedPool(of);
     }
@@ -6175,6 +6256,7 @@ namespace DAST {
     public bool is_SetBoundedPool { get { return this is Expression_SetBoundedPool; } }
     public bool is_MapBoundedPool { get { return this is Expression_MapBoundedPool; } }
     public bool is_SeqBoundedPool { get { return this is Expression_SeqBoundedPool; } }
+    public bool is_MultisetBoundedPool { get { return this is Expression_MultisetBoundedPool; } }
     public bool is_ExactBoundedPool { get { return this is Expression_ExactBoundedPool; } }
     public bool is_IntRange { get { return this is Expression_IntRange; } }
     public bool is_UnboundedIntRange { get { return this is Expression_UnboundedIntRange; } }
@@ -6592,13 +6674,15 @@ namespace DAST {
         if (d is Expression_SetBoundedPool) { return ((Expression_SetBoundedPool)d)._of; }
         if (d is Expression_MapBoundedPool) { return ((Expression_MapBoundedPool)d)._of; }
         if (d is Expression_SeqBoundedPool) { return ((Expression_SeqBoundedPool)d)._of; }
+        if (d is Expression_MultisetBoundedPool) { return ((Expression_MultisetBoundedPool)d)._of; }
         return ((Expression_ExactBoundedPool)d)._of;
       }
     }
     public bool dtor_includeDuplicates {
       get {
         var d = this;
-        return ((Expression_SeqBoundedPool)d)._includeDuplicates;
+        if (d is Expression_SeqBoundedPool) { return ((Expression_SeqBoundedPool)d)._includeDuplicates; }
+        return ((Expression_MultisetBoundedPool)d)._includeDuplicates;
       }
     }
     public DAST._IExpression dtor_lo {
@@ -8176,6 +8260,38 @@ namespace DAST {
       return s;
     }
   }
+  public class Expression_MultisetBoundedPool : Expression {
+    public readonly DAST._IExpression _of;
+    public readonly bool _includeDuplicates;
+    public Expression_MultisetBoundedPool(DAST._IExpression of, bool includeDuplicates) : base() {
+      this._of = of;
+      this._includeDuplicates = includeDuplicates;
+    }
+    public override _IExpression DowncastClone() {
+      if (this is _IExpression dt) { return dt; }
+      return new Expression_MultisetBoundedPool(_of, _includeDuplicates);
+    }
+    public override bool Equals(object other) {
+      var oth = other as DAST.Expression_MultisetBoundedPool;
+      return oth != null && object.Equals(this._of, oth._of) && this._includeDuplicates == oth._includeDuplicates;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 46;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._includeDuplicates));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "DAST.Expression.MultisetBoundedPool";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._of);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._includeDuplicates);
+      s += ")";
+      return s;
+    }
+  }
   public class Expression_ExactBoundedPool : Expression {
     public readonly DAST._IExpression _of;
     public Expression_ExactBoundedPool(DAST._IExpression of) : base() {
@@ -8191,7 +8307,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 46;
+      hash = ((hash << 5) + hash) + 47;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._of));
       return (int) hash;
     }
@@ -8224,7 +8340,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 47;
+      hash = ((hash << 5) + hash) + 48;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._lo));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._hi));
@@ -8262,7 +8378,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 48;
+      hash = ((hash << 5) + hash) + 49;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._up));
       return (int) hash;
@@ -8298,7 +8414,7 @@ namespace DAST {
     }
     public override int GetHashCode() {
       ulong hash = 5381;
-      hash = ((hash << 5) + hash) + 49;
+      hash = ((hash << 5) + hash) + 50;
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._elemType));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._collection));
       hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._is__forall));

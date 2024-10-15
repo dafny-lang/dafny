@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, predef, NewOneHeapExpr(f.tok), null);
-            if (!IsOpaque(cf)) {
+            if (!IsOpaque(cf, options)) {
               var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
               definitionAxiom.CanHide = true;
               sink.AddTopLevelDeclaration(definitionAxiom);
@@ -205,9 +205,9 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
-      var locals = new List<Variable>();
+      var locals = new Variables();
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
-      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
+      builder.Add(new CommentCmd($"AddWellformednessCheck for {decl.WhatKind} {decl}"));
       builder.AddCaptureState(decl.tok, false, "initial state");
       isAllocContext = new IsAllocContext(options, true);
 

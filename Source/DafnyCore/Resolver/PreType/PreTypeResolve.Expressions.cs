@@ -118,10 +118,10 @@ namespace Microsoft.Dafny {
           }
         case DatatypeValue value: {
             var dtv = value;
-            if (!resolver.moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out var decl)) {
+            TopLevelDecl decl = value.Ctor?.EnclosingDatatype;
+            if (decl == null && !resolver.moduleInfo.TopLevels.TryGetValue(dtv.DatatypeName, out decl)) {
               ReportError(value.tok, "Undeclared datatype: {0}", dtv.DatatypeName);
-            } else if (decl is AmbiguousTopLevelDecl) {
-              var ad = (AmbiguousTopLevelDecl)decl;
+            } else if (decl is AmbiguousTopLevelDecl ad) {
               ReportError(value.tok,
                 "The name {0} ambiguously refers to a type in one of the modules {1} (try qualifying the type name with the module name)",
                 dtv.DatatypeName, ad.ModuleNames());
@@ -706,7 +706,7 @@ namespace Microsoft.Dafny {
             int prevErrorCount = ErrorCount;
             ResolveStatement(e.S, resolutionContext);
             if (ErrorCount == prevErrorCount) {
-              if (e.S is UpdateStmt updateStmt && updateStmt.ResolvedStatements.Count == 1) {
+              if (e.S is AssignStatement updateStmt && updateStmt.ResolvedStatements.Count == 1) {
                 var call = (CallStmt)updateStmt.ResolvedStatements[0];
                 if (call.Method is TwoStateLemma && !resolutionContext.IsTwoState) {
                   ReportError(call, "two-state lemmas can only be used in two-state contexts");
@@ -1164,6 +1164,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
+      return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, false);
+    }
+
     /// <summary>
     /// Look up expr.Name in the following order:
     ///  0. Local variable, parameter, or bound variable.
@@ -1192,7 +1197,7 @@ namespace Microsoft.Dafny {
     /// there is no "this" in scope. This seems like a terrible hack, because it breaks scope invariants about the AST. But, for now, it's here
     /// to mimic what the legacy resolver does.</param>
     public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
-      ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true, bool specialOpaqueHackAllowance = false) {
+      ResolutionContext resolutionContext, bool allowMethodCall, bool complain, bool specialOpaqueHackAllowance) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
@@ -1971,7 +1976,9 @@ namespace Microsoft.Dafny {
           };
           actualBindings.Add(new ActualBinding(bindingName, ctorArg));
         }
-        var ctorCall = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings);
+        var ctorCall = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, actualBindings) {
+          Ctor = crc
+        };
         if (body == null) {
           body = ctorCall;
         } else {

@@ -150,7 +150,7 @@ public class PartialState {
     if (!IsLoopEntryState) {
       return new AssumeStmt(RangeToken.NoToken, expression, null);
     }
-    return new UpdateStmt(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, LoopGuards.Last()) },
+    return new AssignStatement(RangeToken.NoToken, new List<Expression>() { new IdentifierExpr(Token.NoToken, LoopGuards.Last()) },
         new List<AssignmentRhs>() { new ExprRhs(expression) });
   }
 

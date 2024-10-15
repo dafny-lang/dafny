@@ -12,6 +12,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Text.RegularExpressions;
 using DafnyCore;
+using DafnyCore.Options;
 using JetBrains.Annotations;
 using Tomlyn.Model;
 using static Microsoft.Dafny.ConcreteSyntaxTreeUtils;
@@ -179,6 +180,18 @@ namespace Microsoft.Dafny.Compilers {
       return new Import { Name = moduleName, Path = pkgName, ExternModule = externModule };
     }
 
+    protected override bool ShouldCompileModule(Program program, ModuleDefinition module) {
+      if (!base.ShouldCompileModule(program, module)) {
+        return false;
+      }
+
+      if (TranslationRecord.ModuleEmptyForCompilation(module)) {
+        return false;
+      }
+
+      return true;
+    }
+
     protected override ConcreteSyntaxTree CreateModule(string moduleName, bool isDefault,
       ModuleDefinition externModule,
       string libraryName /*?*/, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
@@ -209,6 +222,11 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void DependOnModule(Program program, ModuleDefinition module, ModuleDefinition externModule,
       string libraryName) {
+
+      if (externModule == null && TranslationRecord.ModuleEmptyForCompilation(module)) {
+        return;
+      }
+
       var goModuleName = "";
       if (GoModuleMode) {
         // "_System" module has a special handling because although it gets translated from a Dafny module,
@@ -235,7 +253,8 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
 
-      var import = CreateImport(module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName);
+      var publicModuleName = PublicModuleIdProtect(module.GetCompileName(Options));
+      var import = CreateImport(publicModuleName, module.IsDefaultModule, externModule, libraryName);
       import.Path = goModuleName + import.Path;
       AddImport(import);
     }
@@ -1348,7 +1367,7 @@ namespace Microsoft.Dafny.Compilers {
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            if (!instantiatedType.Equals(p.Type)) {
+            if (!p.IsGhost && !instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
               DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
@@ -2217,8 +2236,11 @@ namespace Microsoft.Dafny.Compilers {
       if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
+        var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
+        var sep = "";
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
         EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
         wr.Write(")");
       }
     }

@@ -116,6 +116,11 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   Expression RedirectingTypeDecl.Witness { get { return Witness; } }
   VerificationIdGenerator RedirectingTypeDecl.IdGenerator { get { return IdGenerator; } }
 
+  public bool ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+
   bool ICodeContext.IsGhost {
     get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   }

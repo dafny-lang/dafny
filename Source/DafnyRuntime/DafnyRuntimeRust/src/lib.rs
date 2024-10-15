@@ -8,15 +8,19 @@ pub use once_cell::unsync::Lazy;
 use std::{
     any::Any,
     borrow::Borrow,
+    boxed::Box,
     cell::{RefCell, UnsafeCell},
+    clone::Clone,
     cmp::Ordering,
     collections::{HashMap, HashSet},
+    convert::From,
     fmt::{Debug, Display, Formatter},
     hash::{Hash, Hasher},
     ptr::NonNull,
     mem,
-    ops::{Add, Deref, Div, Mul, Neg, Rem, Sub},
+    ops::{Add, Deref, Div, Fn, Mul, Neg, Rem, Sub},
     rc::{Rc, Weak},
+    vec::Vec,
 };
 
 pub use system::*;
@@ -71,11 +75,11 @@ pub mod dafny_runtime_conversions {
         pub type DafnyArray2<T> = crate::Object<crate::Array2<T>>;
         pub type DafnyArray3<T> = crate::Object<crate::Array3<T>>;
         // Conversion to and from Dafny reference-counted classes. All these methods take ownership of the class.
-        pub unsafe fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
+        pub fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
             let t: &T = crate::rd!(ptr);
             t.clone()
         }
-        pub unsafe fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
+        pub fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
             Box::new(dafny_class_to_struct(ptr))
         }
         pub unsafe fn dafny_class_to_rc_struct<T: Clone + ?Sized>(ptr: DafnyClass<T>) -> ::std::rc::Rc<T> {
@@ -87,7 +91,7 @@ pub mod dafny_runtime_conversions {
         pub fn boxed_struct_to_dafny_class<T>(t: Box<T>) -> DafnyClass<T> {
             struct_to_dafny_class(*t)
         }
-        pub unsafe fn rc_struct_to_dafny_class<T>(t: ::std::rc::Rc<T>) -> DafnyClass<T> {
+        pub unsafe fn rc_struct_to_dafny_class<T: ?Sized>(t: ::std::rc::Rc<T>) -> DafnyClass<T> {
             crate::Object::from_rc(t)
         }
         // Conversions to and from Dafny arrays. They all take ownership
@@ -318,7 +322,7 @@ impl AsRef<BigInt> for DafnyInt {
 #[macro_export]
 macro_rules! truncate {
     ($x:expr, $t:ty) => {
-        <$crate::DafnyInt as $crate::Into<$t>>::into($x)
+        <$crate::DafnyInt as ::std::convert::Into<$t>>::into($x)
     };
 }
 
@@ -370,6 +374,11 @@ impl Into<i64> for DafnyInt {
 impl Into<i128> for DafnyInt {
     fn into(self) -> i128 {
         self.data.to_i128().unwrap()
+    }
+}
+impl Into<usize> for DafnyInt {
+    fn into(self) -> usize {
+        self.data.to_usize().unwrap()
     }
 }
 
@@ -585,14 +594,14 @@ impl DafnyInt {
 macro_rules! impl_dafnyint_from {
     () => {};
     ($type:ident) => {
-        impl From<$type> for DafnyInt {
+        impl ::std::convert::From<$type> for $crate::DafnyInt {
             fn from(n: $type) -> Self {
-                DafnyInt {
-                    data: Rc::new(n.into()),
+                $crate::DafnyInt {
+                    data: ::std::rc::Rc::new(n.into()),
                 }
             }
         }
-        impl DafnyUsize for $type {
+        impl $crate::DafnyUsize for $type {
             fn into_usize(self) -> usize {
                 self as usize
             }
@@ -1726,7 +1735,9 @@ impl<V: DafnyTypeEq> Multiset<V> {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = V> + '_ {
-        self.data.iter().map(|(k, _v)| k).cloned()
+        self.data.iter().flat_map(
+            |(k, &ref v)|
+            ::std::iter::repeat(k).take(v.clone().as_usize())).cloned()
     }
 }
 
@@ -1981,8 +1992,8 @@ impl<A: DafnyPrint> DafnyPrint for LazyFieldWrapper<A> {
 // Convert the DafnyPrint above into a macro so that we can create it for functions of any input arity
 macro_rules! dafny_print_function {
     ($($n:tt)*) => {
-        impl <B, $($n),*> DafnyPrint for Rc<dyn Fn($($n),*) -> B> {
-            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+        impl <B, $($n),*> $crate::DafnyPrint for ::std::rc::Rc<dyn ::std::ops::Fn($($n),*) -> B> {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
                 write!(f, "<function>")
             }
         }
@@ -2055,9 +2066,9 @@ impl<T> DafnyPrint for *const T {
 
 macro_rules! impl_print_display {
     ($name:ty) => {
-        impl DafnyPrint for $name {
-            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-                std::fmt::Display::fmt(&self, f)
+        impl $crate::DafnyPrint for $name {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
+                ::std::fmt::Display::fmt(&self, f)
             }
         }
     };
@@ -2402,12 +2413,12 @@ pub fn string_utf16_of(s: &str) -> DafnyStringUTF16 {
 
 macro_rules! impl_tuple_print {
     ($($items:ident)*) => {
-        impl <$($items,)*> DafnyPrint for ($($items,)*)
+        impl <$($items,)*> $crate::DafnyPrint for ($($items,)*)
         where
-            $($items: DafnyPrint,)*
+            $($items: $crate::DafnyPrint,)*
         {
             #[allow(unused_assignments)]
-            fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
+            fn fmt_print(&self, f: &mut ::std::fmt::Formatter<'_>, _in_seq: bool) -> ::std::fmt::Result {
                 #[allow(non_snake_case)]
                 let ($($items,)*) = self;
 
@@ -2522,8 +2533,8 @@ macro_rules! int {
 macro_rules! ARRAY_GETTER_LENGTH0 {
     () => {
         #[inline]
-        pub fn length0(&self) -> DafnyInt {
-            DafnyInt::from(self.length0_usize())
+        pub fn length0(&self) -> $crate::DafnyInt {
+            $crate::DafnyInt::from(self.length0_usize())
         }
         #[inline]
         pub fn length0_usize(&self) -> usize {
@@ -2534,7 +2545,7 @@ macro_rules! ARRAY_GETTER_LENGTH0 {
 macro_rules! ARRAY_GETTER_LENGTH {
     ($field: ident, $field_usize: ident) => {
         #[inline]
-        pub fn $field(&self) -> DafnyInt {
+        pub fn $field(&self) -> $crate::DafnyInt {
             $crate::DafnyInt::from(self.$field_usize())
         }
         #[inline]
@@ -2548,14 +2559,14 @@ macro_rules! ARRAY_GETTER_LENGTH {
 #[macro_export]
 macro_rules! array {
     ($($x:expr), *) => {
-        array::from_native(Box::new([$($x), *]))
+        $crate::array::from_native(::std::boxed::Box::new([$($x), *]))
     }
 }
 
 macro_rules! ARRAY_INIT {
     {$length: ident, $inner: expr} => {
         $crate::array::initialize_box_usize($length, {
-            Rc::new(move |_| { $inner })
+            ::std::rc::Rc::new(move |_| { $inner })
         })
     }
 }
@@ -2570,10 +2581,10 @@ macro_rules! ARRAY_INIT_INNER {
 // Box<[Box<[Box<[T]>]>]>
 macro_rules! ARRAY_DATA_TYPE {
     ($length:ident) => {
-        Box<[T]>
+        ::std::boxed::Box<[T]>
     };
     ($length:ident, $($rest_length:ident),+) => {
-        Box<[ARRAY_DATA_TYPE!($($rest_length),+)]>
+        ::std::boxed::Box<[ARRAY_DATA_TYPE!($($rest_length),+)]>
     };
 }
 
@@ -2597,18 +2608,18 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos_box_usize(
             $length0: usize,
             $($length: usize),+
-        ) -> Box<$ArrayType<$crate::MaybeUninit<T>>> {
-            Box::new($ArrayType {
+        ) -> ::std::boxed::Box<$ArrayType<$crate::MaybeUninit<T>>> {
+            ::std::boxed::Box::new($ArrayType {
                 $($length: $length),+,
                 data: INIT_ARRAY_DATA!($ArrayType, $length0, $($length),+),
             })
         }
-        
+
         pub fn placebos_usize(
             $length0: usize,
             $($length: usize),+
-        ) -> Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
-            Ptr::from_box(Self::placebos_box_usize(
+        ) -> $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
+            $crate::Ptr::from_box(Self::placebos_box_usize(
                 $length0,
                 $($length),+
             ))
@@ -2628,7 +2639,7 @@ macro_rules! ARRAY_METHODS {
         pub fn placebos(
             $length0: &$crate::DafnyInt,
             $($length: &$crate::DafnyInt),+
-        ) -> Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
+        ) -> $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>> {
             Self::placebos_usize(
                 $length0.as_usize(),
                 $($length.as_usize()),+
@@ -2636,11 +2647,11 @@ macro_rules! ARRAY_METHODS {
         }
 
         // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct(p: Ptr<$ArrayType<$crate::MaybeUninit<T>>>) -> Ptr<$ArrayType<T>> {
+        pub fn construct(p: $crate::Ptr<$ArrayType<$crate::MaybeUninit<T>>>) -> $crate::Ptr<$ArrayType<T>> {
             unsafe { std::mem::transmute(p) }
         }
         // Once all the elements have been initialized, transform the signature of the pointer
-        pub fn construct_object(p: $crate::Object<$ArrayType<MaybeUninit<T>>>) -> Object<$ArrayType<T>> {
+        pub fn construct_object(p: $crate::Object<$ArrayType<$crate::MaybeUninit<T>>>) -> $crate::Object<$ArrayType<T>> {
             unsafe { std::mem::transmute(p) }
         }
     };
@@ -2667,15 +2678,15 @@ macro_rules! ARRAY_TO_VEC_LOOP {
     };
     (@inner $self: ident, $outerTmp: ident, $data: expr $(, $rest_length_usize: ident)*) => {
         {
-            let mut tmp = Vec::new();
+            let mut tmp = ::std::vec::Vec::new();
             ARRAY_TO_VEC_LOOP!(@for $self, tmp, $data $(, $rest_length_usize)*);
             $outerTmp.push(tmp);
         }
     };
-    
+
     ($self: ident, $data: expr $(, $rest_length_usize: ident)*) => {
         {
-            let mut tmp = Vec::new();
+            let mut tmp = ::std::vec::Vec::new();
             ARRAY_TO_VEC_LOOP!(@for $self, tmp, $data $(, $rest_length_usize)*);
             tmp
         }
@@ -2684,10 +2695,10 @@ macro_rules! ARRAY_TO_VEC_LOOP {
 
 macro_rules! ARRAY_TO_VEC_TYPE {
     ($length0: ident) => {
-        Vec<T>
+        ::std::vec::Vec<T>
     };
     ($length0: ident $(, $res_length: ident)*) => {
-        Vec<ARRAY_TO_VEC_TYPE!($($res_length), *)>
+        ::std::vec::Vec<ARRAY_TO_VEC_TYPE!($($res_length), *)>
     }
 }
 
@@ -2742,7 +2753,7 @@ macro_rules! ARRAY_DEF {
                 $(($length, $length_usize)), +
             }
         }
-        impl<T: Clone> $ArrayType<T> {
+        impl<T: ::std::clone::Clone> $ArrayType<T> {
             ARRAY_TO_VEC_WRAPPER!{
                 $(($length, $length_usize)), +
             }
@@ -2752,12 +2763,12 @@ macro_rules! ARRAY_DEF {
 
 // Array2 to Array16
 
-ARRAY_DEF!{Array2, 
+ARRAY_DEF!{Array2,
     (length0, length0_usize),
     (length1, length1_usize)
 }
 
-ARRAY_DEF!{Array3, 
+ARRAY_DEF!{Array3,
     (length0, length0_usize),
     (length1, length1_usize),
     (length2, length2_usize)
@@ -3102,7 +3113,7 @@ macro_rules! is_object {
 #[macro_export]
 macro_rules! cast_any {
     ($raw:expr) => {
-        $crate::Upcast::<dyn Any>::upcast($crate::modify!($raw))
+        $crate::Upcast::<dyn ::std::any::Any>::upcast($crate::read!($raw))
     };
 }
 // cast_any_object is meant to be used on references only, to convert any references (classes or traits)*
@@ -3110,7 +3121,7 @@ macro_rules! cast_any {
 #[macro_export]
 macro_rules! cast_any_object {
     ($obj:expr) => {
-        $crate::UpcastObject::<dyn Any>::upcast($crate::md!($obj))
+        $crate::UpcastObject::<dyn ::std::any::Any>::upcast($crate::md!($obj))
     };
 }
 
@@ -3123,6 +3134,16 @@ macro_rules! cast_any_object {
 macro_rules! update_field_nodrop {
     ($ptr:expr, $field:ident, $value:expr) => {
         $crate::update_nodrop!($crate::modify!($ptr).$field, $value)
+    };
+}
+
+// Same as update_field_nodrop but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_nodrop {
+    ($ptr:expr, $field:ident, $value:expr) => {
+        let lhs = $ptr;
+        let value = $value;
+        unsafe { $crate::read!(lhs).$field.get().write(value) }
     };
 }
 
@@ -3176,6 +3197,21 @@ macro_rules! update_field_uninit {
     }};
 }
 
+// Same as update_field_uninit but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_uninit {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        #[allow(unused_assignments)]
+        if $field_assigned {
+            $crate::modify_field!($crate::read!($t).$field, computed_value);
+        } else {
+            $crate::update_field_mut_nodrop!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
 // Macro to call at the end of the first new; constructor when not every field is guaranteed to be assigned.
 #[macro_export]
 macro_rules! update_field_if_uninit {
@@ -3183,6 +3219,18 @@ macro_rules! update_field_if_uninit {
         let computed_value = $value;
         if !$field_assigned {
             $crate::update_field_nodrop!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+// Same as update_field_if_uninit but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_if_uninit {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        if !$field_assigned {
+            $crate::update_field_mut_nodrop!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3223,7 +3271,7 @@ impl <T: ?Sized + 'static + Upcast<dyn Any>> Ptr<T> {
         if self.is_null() {
             false
         } else {
-            read!(Upcast::<dyn Any>::upcast(modify!(self)))
+            read!(Upcast::<dyn Any>::upcast(read!(self)))
                 .downcast_ref::<U>()
                 .is_some()
         }
@@ -3349,6 +3397,7 @@ macro_rules! cast {
 pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 
 impl <T: ?Sized> Object<T> {
+    // For safety, it requires the Rc to have been created with Rc::new()
     pub unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
         Object(Some(rcmut::from_rc(rc)))
     }
@@ -3362,7 +3411,7 @@ impl <T: ?Sized> Object<T> {
 impl <T: ?Sized + 'static + UpcastObject<dyn Any>> Object<T> {
     pub fn is_instance_of<U: 'static>(self) -> bool {
     // safety: Dafny won't call this function unless it can guarantee the object is still allocated
-        rd!(UpcastObject::<dyn Any>::upcast(md!(self)))
+        rd!(UpcastObject::<dyn Any>::upcast(rd!(self)))
             .downcast_ref::<U>()
             .is_some()
     }
@@ -3386,17 +3435,27 @@ impl <T: ?Sized>Default for Object<T> {
     }
 }
 
-impl<T: ?Sized> Debug for Object<T> {
+impl<T: ?Sized + UpcastObject<dyn Any>> Debug for Object<T> {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         self.fmt_print(f, false)
     }
 }
-impl <T: ?Sized> DafnyPrint for Object<T> {
+impl <T: ?Sized + UpcastObject<dyn Any>> DafnyPrint for Object<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        write!(f, "<object>")
+        let obj_any = UpcastObject::<dyn Any>::upcast(self.as_ref());
+        let option_string = obj_any.as_ref().downcast_ref::<String>();
+        match option_string {
+            Some(s) => write!(f, "{}", s),
+            None => write!(f, "<object>"),
+        }
     }
 }
-
+impl UpcastObject<dyn Any> for String {
+    fn upcast(&self) -> Object<dyn Any> {
+        // SAFETY: RC was just created
+        unsafe { Object::from_rc(Rc::new(self.clone()) as Rc<dyn Any>) }
+    }
+}
 
 impl <T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
     fn eq(&self, other: &Object<U>) -> bool {
@@ -3437,11 +3496,19 @@ impl <T: ?Sized> AsRef<T> for Object<T> {
     }
 }
 
+// Never inline because, when compiling with cargo --release, sometimes it gets rid of this statement
+#[inline(never)]
+fn increment_strong_count<T: ?Sized>(data: *const T) {
+    // SAFETY: This method is called only on values that were constructed from an Rc
+    unsafe {
+       Rc::increment_strong_count(data);
+    }
+}
 
 impl <T: ?Sized> Object<T> {
-    pub fn from_ref(r: &mut T) -> Object<T> {
-        let pt = r as *mut T as *mut UnsafeCell<T>;
-        unsafe { ::std::rc::Rc::increment_strong_count(pt) }
+    pub fn from_ref(r: &T) -> Object<T> {
+        let pt = r as *const T as *const UnsafeCell<T>;
+        crate::increment_strong_count(pt);
         let rebuilt = unsafe { Rc::from_raw(pt) };
         Object(Some(rebuilt))
     }
@@ -3482,6 +3549,14 @@ macro_rules! update_field_nodrop_object {
     };
 }
 
+// Same but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_nodrop_object {
+    ($ptr:expr, $field: ident, $value:expr) => {
+        unsafe { ($crate::rcmut::borrow_mut(&mut $ptr.0.clone().unwrap())).$field.get().write($value) }
+    };
+}
+
 // Equivalent of update_nodrop but for rcmut
 #[macro_export]
 macro_rules! update_nodrop_object {
@@ -3494,10 +3569,23 @@ macro_rules! update_nodrop_object {
 #[macro_export]
 macro_rules! update_field_if_uninit_object {
     ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
-        let computed_value = $value;
         #[allow(unused_assignments)]
         if !$field_assigned {
+            let computed_value = $value;
             $crate::update_field_nodrop_object!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+// Same for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_if_uninit_object {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        #[allow(unused_assignments)]
+        if !$field_assigned {
+            let computed_value = $value;
+            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
             $field_assigned = true;
         }
     }};
@@ -3518,6 +3606,22 @@ macro_rules! update_field_uninit_object {
     }};
 }
 
+// Same but for mutable fields
+#[macro_export]
+macro_rules! update_field_mut_uninit_object {
+    ($t:expr, $field:ident, $field_assigned:expr, $value:expr) => {{
+        let computed_value = $value;
+        #[allow(unused_assignments)]
+        if $field_assigned {
+            $crate::modify_field!($crate::rd!($t).$field, computed_value);
+        } else {
+            $crate::update_field_mut_nodrop_object!($t, $field, computed_value);
+            $field_assigned = true;
+        }
+    }};
+}
+
+
 // Equivalent of modify but for rcmut
 #[macro_export]
 macro_rules! md {
@@ -3534,11 +3638,37 @@ macro_rules! rd {
     };
 }
 
+// To use when modifying a mutable field that is wrapped with UnsafeCell
+#[macro_export]
+macro_rules! modify_field {
+    ($pointer:expr, $rhs:expr) => {
+        let lhs = $pointer.get();
+        let rhs = $rhs;
+        unsafe {*lhs = rhs}
+    };
+}
+
+// To use when reading a mutable field that is wrapped with UnsafeCell
+#[macro_export]
+macro_rules! read_field {
+    ($pointer:expr) => {
+      {
+        let lhs = $pointer.get();
+        unsafe {(*lhs).clone()}
+      }
+    };
+}
+
+pub type Field<T> = UnsafeCell<T>;
+pub fn new_field<T>(t: T) -> Field<T> {
+    UnsafeCell::new(t)
+}
+
 // Count the number of references to the given object
 #[macro_export]
 macro_rules! refcount {
     ($x:expr) => {
-        Rc::strong_count(unsafe { rcmut::as_rc($x.0.as_ref().unwrap()) })
+        ::std::rc::Rc::strong_count(unsafe { $crate::rcmut::as_rc($x.0.as_ref().unwrap()) })
     };
 }
 
@@ -3736,13 +3866,13 @@ macro_rules! maybe_placebos_from {
 pub fn upcast_object<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Object<A>) -> Object<B>>
   where A : UpcastObject<B>
 {
-    Rc::new(|mut x: Object<A>| x.as_mut().upcast())
+    Rc::new(|x: Object<A>| x.as_ref().upcast())
 }
 
 pub fn upcast<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Ptr<A>) -> Ptr<B>>
   where A: Upcast<B>
 {
-    Rc::new(|x: Ptr<A>| modify!(x).upcast())
+    Rc::new(|x: Ptr<A>| read!(x).upcast())
 }
 
 pub fn upcast_id<A>() -> Rc<impl Fn(A) -> A>
@@ -3770,19 +3900,19 @@ pub fn fn1_coerce<T: Clone + 'static, A: Clone + 'static, R: Clone + 'static>(
 
 // For pointers
 pub trait Upcast<T: ?Sized> {
-    fn upcast(&mut self) -> Ptr<T>;
+    fn upcast(&self) -> Ptr<T>;
 }
 pub trait UpcastObject<T: ?Sized> {
-    fn upcast(&mut self) -> Object<T>;
+    fn upcast(&self) -> Object<T>;
 }
 
 impl <T: ?Sized> Upcast<T> for T {
-    fn upcast(&mut self) -> Ptr<T> {
-        Ptr::from_raw_nonnull(self as *mut T)
+    fn upcast(&self) -> Ptr<T> {
+        Ptr::from_raw_nonnull(self as *const T as *mut T)
     }
 }
 impl <T: ?Sized> UpcastObject<T> for T {
-    fn upcast(&mut self) -> Object<T> {
+    fn upcast(&self) -> Object<T> {
         Object::from_ref(self)
     }
 }
@@ -3797,8 +3927,8 @@ macro_rules! Extends {
 #[macro_export]
 macro_rules! UpcastFn {
     ($B:ty) => {
-        fn upcast(&mut self) -> $crate::Ptr<$B> {
-            $crate::Ptr::from_raw_nonnull(self as *mut Self as *mut $B)
+        fn upcast(&self) -> $crate::Ptr<$B> {
+            $crate::Ptr::from_raw_nonnull(self as *const Self as *mut Self as *mut $B)
         }
     };
 }
@@ -3806,8 +3936,8 @@ macro_rules! UpcastFn {
 #[macro_export]
 macro_rules! UpcastObjectFn {
     ($B:ty) => {
-        fn upcast(&mut self) -> $crate::Object<$B> {
-            $crate::Object::from_ref(self as &mut $B)
+        fn upcast(&self) -> $crate::Object<$B> {
+            $crate::Object::from_ref(self as &$B)
         }
     };
 }
@@ -3822,10 +3952,10 @@ macro_rules! UpcastDef {
             $crate::UpcastFn!($B);
         }
     };
-    
+
     ($A:ty, $B:ty, $($C: ty),*) => {
-        UpcastDef!($A, $B);
-        UpcastDef!($A, $($C),*);
+        $crate::UpcastDef!($A, $B);
+        $crate::UpcastDef!($A, $($C),*);
     }
 }
 
@@ -3836,10 +3966,10 @@ macro_rules! UpcastDefObject {
             $crate::UpcastObjectFn!($B);
         }
     };
-    
+
     ($A:ty, $B:ty, $($C: ty),*) => {
-        UpcastDefObject!($A, $B);
-        UpcastDefObject!($A, $($C),*);
+        $crate::UpcastDefObject!($A, $B);
+        $crate::UpcastDefObject!($A, $($C),*);
     }
 }
 

@@ -128,10 +128,11 @@ module {:extern "DAST"} DAST {
     | SupportsEquality
     | SupportsDefault
 
-  datatype Primitive = Int | Real | String | Bool | Char
+  datatype Primitive = Int | Real | String | Bool | Char | Native
 
+  // USIZE is for whatever target considers that native arrays can be indexed with
   datatype NewtypeRange =
-    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | BigInt
+    | U8 | I8 | U16 | I16 | U32 | I32 | U64 | I64 | U128 | I128 | USIZE | BigInt
     | NoRange
 
   datatype Attribute = Attribute(name: string, args: seq<string>)
@@ -199,7 +200,7 @@ module {:extern "DAST"} DAST {
 
   datatype ClassItem = Method(Method)
 
-  datatype Field = Field(formal: Formal, defaultValue: Option<Expression>)
+  datatype Field = Field(formal: Formal, isConstant: bool, defaultValue: Option<Expression>)
 
   datatype Formal = Formal(name: VarName, typ: Type, attributes: seq<Attribute>)
 
@@ -238,13 +239,13 @@ module {:extern "DAST"} DAST {
     JumpTailCallStart() |
     Halt() |
     Print(Expression) |
-    ConstructorNewSeparator(fields: seq<Formal>)
+    ConstructorNewSeparator(fields: seq<Field>)
   {
   }
 
   datatype AssignLhs =
     Ident(ident: VarName) |
-    Select(expr: Expression, field: VarName) |
+    Select(expr: Expression, field: VarName, isConstant: bool) |
     Index(expr: Expression, indices: seq<Expression>)
 
   datatype CollKind = Seq | Array | Map
@@ -316,6 +317,7 @@ module {:extern "DAST"} DAST {
     SetBoundedPool(of: Expression) |
     MapBoundedPool(of: Expression) |
     SeqBoundedPool(of: Expression, includeDuplicates: bool) |
+    MultisetBoundedPool(of: Expression, includeDuplicates: bool) |
     ExactBoundedPool(of: Expression) |
     IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |

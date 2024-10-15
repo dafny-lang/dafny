@@ -59,8 +59,8 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
       foreach (var v in s.LocalVars) {
         VisitType(v.Tok, v.Type, inGhostContext || v.IsGhost);
       }
-    } else if (stmt is AssignStmt) {
-      var s = (AssignStmt)stmt;
+    } else if (stmt is SingleAssignStmt) {
+      var s = (SingleAssignStmt)stmt;
       if (s.Rhs is TypeRhs tRhs) {
         VisitType(tRhs.Tok, tRhs.Type, inGhostContext);
       }
