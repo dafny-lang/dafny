@@ -1367,7 +1367,7 @@ namespace Microsoft.Dafny.Compilers {
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = p.Type.Subst(thisContext.ParentFormalTypeParametersToActuals);
-            if (!instantiatedType.Equals(p.Type)) {
+            if (!p.IsGhost && !instantiatedType.Equals(p.Type)) {
               // var p instantiatedType = p.(instantiatedType)
               var pName = IdName(inParams[i]);
               DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
@@ -2236,8 +2236,11 @@ namespace Microsoft.Dafny.Compilers {
       if (cl is TraitDecl { IsObjectTrait: true }) {
         wr.Write("_dafny.New_Object()");
       } else {
+        var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
+        var sep = "";
         wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
         EmitTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, wr);
+        wr.Write(ConstructorArguments(initCall, wStmts, ctor, sep));
         wr.Write(")");
       }
     }
