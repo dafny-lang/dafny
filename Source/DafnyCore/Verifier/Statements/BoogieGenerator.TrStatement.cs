@@ -108,8 +108,8 @@ public partial class BoogieGenerator {
       builder.Add(TrAssumeCmd(s.Tok, YieldCountAssumption(iter, etran)));
       // assume $IsGoodHeap($Heap);
       builder.Add(AssumeGoodHeap(s.Tok, etran));
-      // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType), iter);
+      // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_YieldEnsuresOldHeap
+      var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_YieldEnsuresOldHeap", predef.HeapType), iter);
 
       var rhss = s.Rhss == null
         ? dafnyOutExprs
